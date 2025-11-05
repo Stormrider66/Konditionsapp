@@ -116,8 +116,8 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-      // Redirect to appropriate dashboard from root if authenticated
-      if (pathname === '/' || pathname === '/login' || pathname === '/register') {
+      // Redirect from login/register pages if authenticated (but allow access to /)
+      if (pathname === '/login' || pathname === '/register') {
         if (role === 'ATHLETE') {
           return NextResponse.redirect(new URL('/athlete/dashboard', request.url))
         }
@@ -125,6 +125,7 @@ export async function middleware(request: NextRequest) {
           return NextResponse.redirect(new URL('/clients', request.url))
         }
       }
+      // Allow authenticated users to access / - the page will show appropriate content
     }
   }
 

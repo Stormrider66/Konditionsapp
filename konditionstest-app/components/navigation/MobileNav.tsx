@@ -59,6 +59,7 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
 
   // Athlete-specific links
   const athleteNavLinks = [
+    { href: '/', label: 'Hem', icon: Home },
     { href: '/athlete/dashboard', label: 'Min träning', icon: Dumbbell },
     { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
   ]
