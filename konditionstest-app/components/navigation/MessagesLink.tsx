@@ -44,24 +44,24 @@ export function MessagesLink({ role, variant = 'desktop', isActive = false }: Me
     return (
       <Link
         href={href}
-        className={`flex items-center gap-3 px-6 py-3 transition ${
+        className={`flex items-center gap-3 px-4 sm:px-6 py-4 transition min-h-[56px] ${
           isActive
             ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
-            : 'text-gray-700 hover:bg-gray-50'
+            : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'
         }`}
       >
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <MessageSquare className="w-5 h-5" />
           {unreadCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-[10px] min-w-[20px]"
             >
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>
           )}
         </div>
-        <span className="font-medium">Meddelanden</span>
+        <span className="font-medium text-base">Meddelanden</span>
       </Link>
     )
   }

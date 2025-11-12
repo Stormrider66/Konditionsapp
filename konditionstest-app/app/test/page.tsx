@@ -192,9 +192,9 @@ export default function TestPage() {
     <div className="min-h-screen bg-gray-50">
       <MobileNav user={user} />
 
-      <div className="lg:hidden gradient-primary text-white shadow-lg py-4 px-4">
-        <h1 className="text-xl font-bold">Nytt Konditionstest</h1>
-        <p className="text-white/90 text-sm mt-1">Skapa ny testrapport</p>
+      <div className="lg:hidden gradient-primary text-white shadow-lg py-3 sm:py-4 px-4">
+        <h1 className="text-lg sm:text-xl font-bold">Nytt Konditionstest</h1>
+        <p className="text-white/90 text-xs sm:text-sm mt-1">Skapa ny testrapport</p>
       </div>
 
       <div className="hidden lg:block gradient-primary text-white shadow-lg py-6 px-4">
@@ -204,7 +204,7 @@ export default function TestPage() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 lg:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8">
         {!showReport ? (
           <div className="space-y-6">
             <Card>
@@ -251,11 +251,11 @@ export default function TestPage() {
                   </Tabs>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="location-select">Plats</Label>
                     <Select value={location} onValueChange={setLocation}>
-                      <SelectTrigger id="location-select">
+                      <SelectTrigger id="location-select" className="min-h-[44px]">
                         <SelectValue placeholder="Välj plats" />
                       </SelectTrigger>
                       <SelectContent>
@@ -268,7 +268,7 @@ export default function TestPage() {
                   <div className="space-y-2">
                     <Label htmlFor="test-leader">Testledare</Label>
                     <Select value={testLeader} onValueChange={setTestLeader}>
-                      <SelectTrigger id="test-leader">
+                      <SelectTrigger id="test-leader" className="min-h-[44px]">
                         <SelectValue placeholder="Välj testledare" />
                       </SelectTrigger>
                       <SelectContent>
@@ -301,55 +301,59 @@ export default function TestPage() {
           </div>
         ) : (
           <div>
-            <div className="mb-4 flex gap-4 print:hidden flex-wrap">
-              <Link href="/">
-                <Button variant="outline">
+            <div className="mb-4 flex gap-2 sm:gap-3 lg:gap-4 print:hidden flex-wrap">
+              <Link href="/" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">
                   <Home className="w-4 h-4 mr-2" />
                   Hem
                 </Button>
               </Link>
-              <Button variant="outline" onClick={() => setShowReport(false)}>
+              <Button variant="outline" onClick={() => setShowReport(false)} className="w-full sm:w-auto min-h-[44px]">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Tillbaka till formulär
               </Button>
               {reportData && (
-                <Link href={`/clients/${reportData.client.id}`}>
-                  <Button variant="outline">
+                <Link href={`/clients/${reportData.client.id}`} className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">
                     <User className="w-4 h-4 mr-2" />
                     Testhistorik
                   </Button>
                 </Link>
               )}
-              <Button variant="secondary" onClick={() => window.print()}>
+              <Button variant="secondary" onClick={() => window.print()} className="w-full sm:w-auto min-h-[44px]">
                 <Printer className="w-4 h-4 mr-2" />
                 Skriv ut
               </Button>
               {reportData && (
                 <>
-                  <PDFExportButton
-                    reportData={{
-                      client: reportData.client,
-                      test: reportData.test,
-                      calculations: reportData.calculations,
-                      testLeader: testLeader || 'Henrik Lundholm',
-                      organization: location === 'Skellefteå' ? 'Star by Thomson & Hallberg' : 'Star by Thomson',
-                      reportDate: new Date(),
-                    }}
-                    variant="default"
-                    size="md"
-                  />
-                  <EmailReportButton
-                    reportData={{
-                      client: reportData.client,
-                      test: reportData.test,
-                      calculations: reportData.calculations,
-                      testLeader: testLeader || 'Henrik Lundholm',
-                      organization: location === 'Skellefteå' ? 'Star by Thomson & Hallberg' : 'Star by Thomson',
-                      reportDate: new Date(),
-                    }}
-                    variant="outline"
-                    size="md"
-                  />
+                  <div className="w-full sm:w-auto">
+                    <PDFExportButton
+                      reportData={{
+                        client: reportData.client,
+                        test: reportData.test,
+                        calculations: reportData.calculations,
+                        testLeader: testLeader || 'Henrik Lundholm',
+                        organization: location === 'Skellefteå' ? 'Star by Thomson & Hallberg' : 'Star by Thomson',
+                        reportDate: new Date(),
+                      }}
+                      variant="default"
+                      size="md"
+                    />
+                  </div>
+                  <div className="w-full sm:w-auto">
+                    <EmailReportButton
+                      reportData={{
+                        client: reportData.client,
+                        test: reportData.test,
+                        calculations: reportData.calculations,
+                        testLeader: testLeader || 'Henrik Lundholm',
+                        organization: location === 'Skellefteå' ? 'Star by Thomson & Hallberg' : 'Star by Thomson',
+                        reportDate: new Date(),
+                      }}
+                      variant="outline"
+                      size="default"
+                    />
+                  </div>
                 </>
               )}
             </div>

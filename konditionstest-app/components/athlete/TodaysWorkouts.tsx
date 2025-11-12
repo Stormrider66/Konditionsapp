@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, CheckCircle2, Clock, MapPin } from 'lucide-react'
+import { Calendar, CheckCircle2, Clock, MapPin, Heart } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { formatPace } from '@/lib/utils'
 
 interface TodaysWorkoutsProps {
   workouts: any[]
@@ -58,78 +59,108 @@ function WorkoutCard({ workout }: { workout: any }) {
   const log = workout.logs?.[0]
 
   return (
-    <div className="border rounded-lg p-4 space-y-3 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-semibold">{workout.name}</h4>
+    <div className="border rounded-lg p-3 sm:p-4 space-y-3 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h4 className="font-semibold text-sm sm:text-base truncate">{workout.name}</h4>
             {isCompleted && (
-              <Badge variant="default" className="bg-green-500">
+              <Badge variant="default" className="bg-green-500 flex-shrink-0">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                Klar
+                <span className="text-xs">Klar</span>
               </Badge>
             )}
-            <Badge variant="outline" className={getIntensityBadgeClass(workout.intensity)}>
+            <Badge variant="outline" className={`${getIntensityBadgeClass(workout.intensity)} flex-shrink-0 text-xs`}>
               {formatIntensity(workout.intensity)}
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">{workout.programName}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground truncate">{workout.programName}</p>
         </div>
       </div>
 
       {workout.instructions && (
-        <p className="text-sm text-muted-foreground">{workout.instructions}</p>
+        <p className="text-xs sm:text-sm text-muted-foreground line-clamp-3">{workout.instructions}</p>
       )}
 
       {/* Workout segments preview */}
       {workout.segments && workout.segments.length > 0 && (
         <div className="space-y-1">
-          {workout.segments.map((segment: any) => (
-            <div key={segment.id} className="flex items-center gap-2 text-xs">
-              <Badge variant="secondary" className="text-xs">
+          {workout.segments.map((segment: any) => {
+            // DEBUG: Log segment data
+            console.log('TodaysWorkouts segment:', {
+              id: segment.id,
+              type: segment.type,
+              exerciseId: segment.exerciseId,
+              exercise: segment.exercise,
+              heartRate: segment.heartRate,
+              pace: segment.pace
+            })
+
+            return (
+            <div key={segment.id} className="flex items-start gap-2 text-xs">
+              <Badge variant="secondary" className="text-xs flex-shrink-0">
                 {formatSegmentType(segment.type)}
               </Badge>
-              <span className="text-muted-foreground">
-                {segment.description}
-                {segment.duration && ` (${segment.duration} min)`}
-                {segment.pace && ` @ ${segment.pace}`}
+              <span className="text-muted-foreground line-clamp-2 flex-1 min-w-0">
+                {/* Show exercise name for strength/plyo/core */}
+                {segment.exercise && segment.exercise.nameSv ? (
+                  <>
+                    {segment.exercise.nameSv}
+                    {segment.sets && segment.repsCount && (
+                      <> ({segment.sets} set × {segment.repsCount} reps{segment.rest && ` med ${segment.rest}s vila`})</>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {segment.description}
+                    {segment.duration && ` (${segment.duration} min)`}
+                    {segment.pace && ` @ ${formatPace(segment.pace)}`}
+                    {segment.heartRate && segment.pace && (
+                      <> | {segment.heartRate}</>
+                    )}
+                    {segment.heartRate && !segment.pace && (
+                      <> @ {segment.heartRate}</>
+                    )}
+                  </>
+                )}
               </span>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
-      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
         {workout.duration && (
-          <span className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
+          <span className="flex items-center gap-1 flex-shrink-0">
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
             {workout.duration} min
           </span>
         )}
         {workout.distance && (
-          <span className="flex items-center gap-1">
-            <MapPin className="h-4 w-4" />
+          <span className="flex items-center gap-1 flex-shrink-0">
+            <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
             {workout.distance} km
           </span>
         )}
       </div>
 
       {isCompleted ? (
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Link href={`/athlete/workouts/${workout.id}`} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full">
+            <Button variant="outline" size="sm" className="w-full min-h-[40px]">
               Visa logg
             </Button>
           </Link>
           <Link href={`/athlete/workouts/${workout.id}/log`} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full">
+            <Button variant="outline" size="sm" className="w-full min-h-[40px]">
               Redigera
             </Button>
           </Link>
         </div>
       ) : (
         <Link href={`/athlete/workouts/${workout.id}/log`}>
-          <Button className="w-full">Logga pass</Button>
+          <Button className="w-full min-h-[44px]">Logga pass</Button>
         </Link>
       )}
     </div>
@@ -156,6 +187,12 @@ function formatSegmentType(type: string): string {
     work: 'Arbete',
     rest: 'Vila',
     exercise: 'Övning',
+    WARMUP: 'Uppvärmning',
+    INTERVAL: 'Intervall',
+    COOLDOWN: 'Nedvärmning',
+    WORK: 'Arbete',
+    REST: 'Vila',
+    EXERCISE: 'Övning',
   }
   return types[type] || type
 }

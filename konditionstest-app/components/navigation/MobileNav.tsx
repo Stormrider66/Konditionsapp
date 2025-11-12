@@ -81,12 +81,12 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
     <>
       {/* Mobile Header */}
       <header className="lg:hidden gradient-primary text-white shadow-lg sticky top-0 z-50">
-        <div className="px-4 py-4">
+        <div className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={toggleMenu}
-                className="p-2 hover:bg-white/10 rounded-lg transition"
+                className="p-2 hover:bg-white/10 rounded-lg transition min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Toggle menu"
               >
                 {isOpen ? (
@@ -96,7 +96,7 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
                 )}
               </button>
               <div>
-                <h1 className="text-xl font-bold">Star by Thomson</h1>
+                <h1 className="text-lg sm:text-xl font-bold">Star by Thomson</h1>
               </div>
             </div>
             <UserNav user={user} />
@@ -116,24 +116,24 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
                     key={link.href}
                     href={link.href}
                     onClick={closeMenu}
-                    className={`flex items-center gap-3 px-6 py-3 transition ${
+                    className={`flex items-center gap-3 px-4 sm:px-6 py-4 transition min-h-[56px] ${
                       active
                         ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
-                        : 'text-gray-700 hover:bg-gray-50'
+                        : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'
                     }`}
                   >
-                    <div className="relative">
+                    <div className="relative flex-shrink-0">
                       <Icon className="w-5 h-5" />
                       {badge > 0 && (
                         <Badge
                           variant="destructive"
-                          className="absolute -top-2 -right-2 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                          className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-[10px] min-w-[20px]"
                         >
                           {badge > 9 ? '9+' : badge}
                         </Badge>
                       )}
                     </div>
-                    <span className="font-medium">{link.label}</span>
+                    <span className="font-medium text-base">{link.label}</span>
                   </Link>
                 )
               })}

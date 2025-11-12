@@ -232,6 +232,8 @@ export function buildStrengthWorkout(
   focus: 'upper' | 'lower' | 'full',
   exercises: string[] // Exercise IDs from database
 ): CreateWorkoutDTO {
+  console.log(`[buildStrengthWorkout] Building workout with ${exercises.length} exercises:`, exercises)
+
   const segments: CreateWorkoutSegmentDTO[] = []
 
   // Reps/sets vary by phase
@@ -275,6 +277,8 @@ export function buildStrengthWorkout(
  * Build core workout
  */
 export function buildCoreWorkout(exercises: string[]): CreateWorkoutDTO {
+  console.log(`[buildCoreWorkout] Building workout with ${exercises.length} exercises:`, exercises)
+
   const segments: CreateWorkoutSegmentDTO[] = []
 
   exercises.forEach((exerciseId, index) => {
@@ -303,6 +307,8 @@ export function buildCoreWorkout(exercises: string[]): CreateWorkoutDTO {
  * Build plyometric workout
  */
 export function buildPlyometricWorkout(exercises: string[]): CreateWorkoutDTO {
+  console.log(`[buildPlyometricWorkout] Building workout with ${exercises.length} exercises:`, exercises)
+
   const segments: CreateWorkoutSegmentDTO[] = []
 
   exercises.forEach((exerciseId, index) => {

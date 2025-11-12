@@ -55,7 +55,7 @@ export function UpcomingWorkouts({ workouts }: UpcomingWorkoutsProps) {
               {format(new Date(dateKey), 'EEEE d MMMM', { locale: sv })}
             </h4>
             <div className="space-y-2">
-              {dayWorkouts.map((workout) => (
+              {(dayWorkouts as any[]).map((workout) => (
                 <div
                   key={workout.id}
                   className="border rounded-lg p-3 text-sm space-y-2"

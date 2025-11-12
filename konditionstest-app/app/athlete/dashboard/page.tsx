@@ -52,6 +52,9 @@ export default async function AthleteDashboardPage() {
                     orderBy: {
                       order: 'asc',
                     },
+                    include: {
+                      exercise: true,
+                    },
                     take: 3,
                   },
                 },
@@ -168,10 +171,10 @@ export default async function AthleteDashboardPage() {
     : 0
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Hej, {athleteAccount.client.name}!</h1>
-        <p className="text-muted-foreground">
+    <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Hej, {athleteAccount.client.name}!</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Välkommen tillbaka. Här är din träningsöversikt.
         </p>
       </div>
@@ -184,9 +187,9 @@ export default async function AthleteDashboardPage() {
         avgEffort={avgEffortThisWeek}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2 mt-6">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2 mt-4 sm:mt-6">
         {/* Left Column */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Today's Workouts */}
           <TodaysWorkouts workouts={todaysWorkouts as any} />
 
@@ -195,7 +198,7 @@ export default async function AthleteDashboardPage() {
         </div>
 
         {/* Right Column */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Active Programs */}
           <ActivePrograms programs={activePrograms as any} />
 

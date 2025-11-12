@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import {
@@ -23,12 +24,25 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { useToast } from '@/hooks/use-toast'
+import {
   Calendar,
   User,
   Target,
   Activity,
   Search,
   Filter,
+  Trash2,
 } from 'lucide-react'
 
 interface ProgramsListProps {
@@ -147,13 +161,85 @@ function ProgramCard({ program }: { program: any }) {
   const currentPhase = getCurrentPhase(program)
   const progressPercent = getProgressPercent(program)
   const isActive = isActiveProgram(program)
+  const router = useRouter()
+  const { toast } = useToast()
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    setIsDeleting(true)
+
+    try {
+      const response = await fetch(`/api/programs/${program.id}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        toast({
+          title: 'Program raderat',
+          description: 'Träningsprogrammet har raderats',
+        })
+        router.refresh()
+      } else {
+        throw new Error(data.error || 'Misslyckades med att radera program')
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
+      toast({
+        title: 'Fel',
+        description: error instanceof Error ? error.message : 'Kunde inte radera programmet',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   return (
-    <Link href={`/coach/programs/${program.id}`}>
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+    <Card className="hover:shadow-lg transition-shadow h-full relative group">
+      {/* Delete button - positioned at top-right, left of "Aktiv" badge */}
+      <div className="absolute top-3 right-20 z-20">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-white hover:bg-destructive hover:text-destructive-foreground shadow-sm border border-gray-200"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Radera träningsprogram?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Är du säker på att du vill radera programmet "{program.name}"?
+                Detta kommer permanent ta bort alla veckor, dagar och pass.
+                Denna åtgärd kan inte ångras.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Avbryt</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {isDeleting ? 'Raderar...' : 'Radera'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+
+      <Link href={`/coach/programs/${program.id}`} className="block">
         <CardHeader>
           <div className="flex justify-between items-start mb-2">
-            <CardTitle className="text-lg">{program.name}</CardTitle>
+            <CardTitle className="text-lg pr-12">{program.name}</CardTitle>
             {isActive && (
               <Badge variant="default">Aktiv</Badge>
             )}
@@ -201,8 +287,8 @@ function ProgramCard({ program }: { program: any }) {
             </div>
           </div>
         </CardContent>
-      </Card>
-    </Link>
+      </Link>
+    </Card>
   )
 }
 

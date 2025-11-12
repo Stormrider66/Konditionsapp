@@ -261,28 +261,28 @@ export default function CoachMessagesPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <MessageSquare className="h-8 w-8 text-blue-600" />
+    <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+          <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
           Meddelanden
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
           Kommunicera med dina atleter
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Conversation List */}
         <Card className="lg:col-span-1">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-5 w-5" />
+          <CardHeader className="pb-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                <Users className="h-5 w-5 flex-shrink-0" />
                 Atleter
               </CardTitle>
               <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-full sm:w-32 min-h-[44px]">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
@@ -295,31 +295,31 @@ export default function CoachMessagesPage() {
           </CardHeader>
           <CardContent className="p-0">
             {filteredConversations.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 px-4 text-muted-foreground">
                 <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Inga meddelanden ännu</p>
+                <p className="text-sm sm:text-base">Inga meddelanden ännu</p>
               </div>
             ) : (
-              <ScrollArea className="h-[600px]">
+              <ScrollArea className="h-[400px] sm:h-[500px] lg:h-[600px]">
                 {filteredConversations.map((conversation) => (
                   <button
                     key={conversation.athleteId}
                     onClick={() => setSelectedAthleteId(conversation.athleteId)}
-                    className={`w-full text-left p-4 border-b hover:bg-muted/50 transition ${
+                    className={`w-full text-left p-3 sm:p-4 border-b hover:bg-muted/50 active:bg-muted transition min-h-[80px] ${
                       selectedAthleteId === conversation.athleteId
                         ? 'bg-blue-50 border-l-4 border-l-blue-600'
                         : ''
                     }`}
                   >
-                    <div className="flex items-start justify-between mb-1">
-                      <p className="font-semibold">{conversation.athleteName}</p>
+                    <div className="flex items-start justify-between mb-1 gap-2">
+                      <p className="font-semibold text-sm sm:text-base truncate flex-1">{conversation.athleteName}</p>
                       {conversation.unreadCount > 0 && (
-                        <Badge variant="destructive" className="text-xs">
+                        <Badge variant="destructive" className="text-xs flex-shrink-0 min-w-[24px]">
                           {conversation.unreadCount}
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
+                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
                       {conversation.lastMessage.content}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -338,13 +338,13 @@ export default function CoachMessagesPage() {
         <Card className="lg:col-span-2">
           {selectedConversation ? (
             <>
-              <CardHeader>
-                <CardTitle>{selectedConversation.athleteName}</CardTitle>
-                <CardDescription>{selectedConversation.athleteEmail}</CardDescription>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base sm:text-lg truncate">{selectedConversation.athleteName}</CardTitle>
+                <CardDescription className="text-xs sm:text-sm truncate">{selectedConversation.athleteEmail}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[450px] pr-4 mb-4">
-                  <div className="space-y-4">
+              <CardContent className="px-3 sm:px-6">
+                <ScrollArea className="h-[300px] sm:h-[400px] lg:h-[450px] pr-2 sm:pr-4 mb-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {selectedConversation.messages
                       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
                       .map((msg) => {
@@ -355,34 +355,34 @@ export default function CoachMessagesPage() {
                             className={`flex ${isCoach ? 'justify-end' : 'justify-start'}`}
                           >
                             <div
-                              className={`max-w-[80%] rounded-lg p-4 ${
+                              className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-3 sm:p-4 ${
                                 isCoach
                                   ? 'bg-blue-600 text-white'
                                   : 'bg-muted'
                               }`}
                             >
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className={`text-sm font-semibold ${isCoach ? 'text-blue-100' : 'text-muted-foreground'}`}>
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <p className={`text-xs sm:text-sm font-semibold ${isCoach ? 'text-blue-100' : 'text-muted-foreground'}`}>
                                   {msg.sender.name}
                                 </p>
                                 {msg.workout && (
-                                  <Badge variant="outline" className={isCoach ? 'border-blue-300 text-blue-100' : ''}>
+                                  <Badge variant="outline" className={`text-xs ${isCoach ? 'border-blue-300 text-blue-100' : ''}`}>
                                     <Dumbbell className="h-3 w-3 mr-1" />
-                                    {msg.workout.name}
+                                    <span className="truncate max-w-[120px]">{msg.workout.name}</span>
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <Clock className={`h-3 w-3 ${isCoach ? 'text-blue-200' : 'text-muted-foreground'}`} />
+                              <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                              <div className="flex flex-wrap items-center gap-2 mt-2">
+                                <Clock className={`h-3 w-3 flex-shrink-0 ${isCoach ? 'text-blue-200' : 'text-muted-foreground'}`} />
                                 <p className={`text-xs ${isCoach ? 'text-blue-200' : 'text-muted-foreground'}`}>
                                   {format(new Date(msg.createdAt), 'PPp', { locale: sv })}
                                 </p>
                                 {isCoach && msg.isRead && (
-                                  <MailOpen className="h-3 w-3 text-blue-200" />
+                                  <MailOpen className="h-3 w-3 text-blue-200 flex-shrink-0" />
                                 )}
                                 {isCoach && !msg.isRead && (
-                                  <Mail className="h-3 w-3 text-blue-200" />
+                                  <Mail className="h-3 w-3 text-blue-200 flex-shrink-0" />
                                 )}
                               </div>
                             </div>
@@ -398,17 +398,19 @@ export default function CoachMessagesPage() {
                     placeholder="Skriv ditt meddelande här..."
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    rows={4}
+                    rows={3}
                     maxLength={1000}
                     disabled={sending}
+                    className="text-sm sm:text-base min-h-[80px]"
                   />
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {replyText.length}/1000 tecken
                     </p>
                     <Button
                       onClick={sendMessage}
                       disabled={!replyText.trim() || sending}
+                      className="w-full sm:w-auto min-h-[44px]"
                     >
                       {sending ? (
                         <>
@@ -427,10 +429,10 @@ export default function CoachMessagesPage() {
               </CardContent>
             </>
           ) : (
-            <CardContent className="flex items-center justify-center h-full py-20">
+            <CardContent className="flex items-center justify-center h-full py-20 px-4">
               <div className="text-center text-muted-foreground">
-                <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <p>Välj en atlet för att se meddelanden</p>
+                <MessageSquare className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-50" />
+                <p className="text-sm sm:text-base">Välj en atlet för att se meddelanden</p>
               </div>
             </CardContent>
           )}

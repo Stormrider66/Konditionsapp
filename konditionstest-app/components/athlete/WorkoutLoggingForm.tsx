@@ -26,7 +26,7 @@ import { Loader2, Upload, Clock, MapPin, Heart, Zap } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 const formSchema = z.object({
-  completed: z.boolean().default(true),
+  completed: z.boolean().optional(),
   duration: z.number().min(0).optional(),
   distance: z.number().min(0).optional(),
   avgPace: z.string().optional(),
@@ -63,15 +63,15 @@ export function WorkoutLoggingForm({
       completed: existingLog?.completed ?? true,
       duration: existingLog?.duration || workout.duration || undefined,
       distance: existingLog?.distance || workout.distance || undefined,
-      avgPace: existingLog?.avgPace || '',
+      avgPace: existingLog?.avgPace || undefined,
       avgHR: existingLog?.avgHR || undefined,
       maxHR: existingLog?.maxHR || undefined,
-      perceivedEffort: existingLog?.perceivedEffort || 5,
-      difficulty: existingLog?.difficulty || 5,
-      feeling: existingLog?.feeling || '',
-      notes: existingLog?.notes || '',
-      dataFileUrl: existingLog?.dataFileUrl || '',
-      stravaUrl: existingLog?.stravaUrl || '',
+      perceivedEffort: existingLog?.perceivedEffort || undefined,
+      difficulty: existingLog?.difficulty || undefined,
+      feeling: existingLog?.feeling || undefined,
+      notes: existingLog?.notes || undefined,
+      dataFileUrl: existingLog?.dataFileUrl || undefined,
+      stravaUrl: existingLog?.stravaUrl || undefined,
     },
   })
 

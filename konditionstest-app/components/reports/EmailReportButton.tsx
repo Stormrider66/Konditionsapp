@@ -22,14 +22,14 @@ import { format } from 'date-fns'
 interface EmailReportButtonProps {
   reportData: ReportData
   variant?: 'default' | 'outline' | 'ghost'
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'default' | 'lg'
   className?: string
 }
 
 export function EmailReportButton({
   reportData,
   variant = 'default',
-  size = 'md',
+  size = 'default',
   className = '',
 }: EmailReportButtonProps) {
   const { toast } = useToast()

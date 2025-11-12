@@ -30,9 +30,9 @@ export function TestChart({ data, testType, showLegend = true, height = 400 }: T
   const xAxisLabel = testType === 'RUNNING' ? 'Hastighet (km/h)' : 'Effekt (watt)'
 
   return (
-    <div className="w-full bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl shadow-md smooth-transition hover:shadow-lg">
+    <div className="w-full bg-gradient-to-br from-white to-gray-50 p-3 sm:p-4 lg:p-6 rounded-lg sm:rounded-xl shadow-md smooth-transition hover:shadow-lg overflow-hidden">
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 60 }}>
+        <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 60 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis
             dataKey="x"

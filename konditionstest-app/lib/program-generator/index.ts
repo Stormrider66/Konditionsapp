@@ -406,6 +406,8 @@ async function getDefaultExercises(category: string, focus?: string): Promise<st
                           undefined // 'full' includes both
     }
 
+    console.log(`[getDefaultExercises] Searching for category: ${category.toUpperCase()}, focus: ${focus}, muscleGroupFilter: ${muscleGroupFilter}`)
+
     // Query public exercises
     const exercises = await prisma.exercise.findMany({
       where: {
@@ -417,14 +419,16 @@ async function getDefaultExercises(category: string, focus?: string): Promise<st
       select: { id: true },
     })
 
+    console.log(`[getDefaultExercises] Found ${exercises.length} exercises:`, exercises.map(e => e.id))
+
     if (exercises.length === 0) {
-      console.warn(`No exercises found for category: ${category}, focus: ${focus}`)
+      console.warn(`❌ No exercises found for category: ${category}, focus: ${focus}`)
       return []
     }
 
     return exercises.map(e => e.id)
   } catch (error) {
-    console.error('Error fetching exercises:', error)
+    console.error('❌ Error fetching exercises:', error)
     return []
   }
 }

@@ -18,51 +18,51 @@ export function AthleteStats({
   avgEffort,
 }: AthleteStatsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Pass denna vecka</p>
-              <p className="text-2xl font-bold">{totalWorkouts}</p>
+        <CardContent className="pt-4 sm:pt-6 pb-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Pass denna vecka</p>
+              <p className="text-xl sm:text-2xl font-bold">{totalWorkouts}</p>
             </div>
-            <Activity className="h-8 w-8 text-blue-500" />
+            <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 flex-shrink-0" />
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total distans</p>
-              <p className="text-2xl font-bold">{totalDistance.toFixed(1)} km</p>
+        <CardContent className="pt-4 sm:pt-6 pb-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Total distans</p>
+              <p className="text-xl sm:text-2xl font-bold truncate">{totalDistance.toFixed(1)} km</p>
             </div>
-            <MapPin className="h-8 w-8 text-green-500" />
+            <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 flex-shrink-0" />
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total tid</p>
-              <p className="text-2xl font-bold">{formatDuration(totalDuration)}</p>
+        <CardContent className="pt-4 sm:pt-6 pb-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Total tid</p>
+              <p className="text-xl sm:text-2xl font-bold truncate">{formatDuration(totalDuration)}</p>
             </div>
-            <Clock className="h-8 w-8 text-orange-500" />
+            <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500 flex-shrink-0" />
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Genomsnittlig RPE</p>
-              <p className="text-2xl font-bold">{avgEffort > 0 ? `${avgEffort}/10` : '-'}</p>
+        <CardContent className="pt-4 sm:pt-6 pb-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Genomsnittlig RPE</p>
+              <p className="text-xl sm:text-2xl font-bold">{avgEffort > 0 ? `${avgEffort}/10` : '-'}</p>
             </div>
-            <Zap className="h-8 w-8 text-red-500" />
+            <Zap className="h-6 w-6 sm:h-8 sm:w-8 text-red-500 flex-shrink-0" />
           </div>
         </CardContent>
       </Card>

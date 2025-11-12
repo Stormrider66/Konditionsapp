@@ -116,6 +116,9 @@ function WeekCard({
     0
   ) || 0
 
+  // Calculate weekly totals
+  const weeklyStats = calculateWeeklyStats(week)
+
   return (
     <Card
       className={cn(
@@ -155,7 +158,15 @@ function WeekCard({
                     {week.focus}
                   </p>
                 )}
-                <Badge variant="secondary">{totalWorkouts} pass</Badge>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <Badge variant="secondary">{totalWorkouts} pass</Badge>
+                  {weeklyStats.totalDistance > 0 && (
+                    <span className="font-medium">📏 {weeklyStats.totalDistance.toFixed(1)} km</span>
+                  )}
+                  {weeklyStats.totalDuration > 0 && (
+                    <span className="font-medium">⏱ {weeklyStats.totalDuration} min</span>
+                  )}
+                </div>
                 {isExpanded ? (
                   <ChevronUp className="h-5 w-5" />
                 ) : (
@@ -259,15 +270,31 @@ function DayCard({ day, date }: DayCardProps) {
             {workout.segments && workout.segments.length > 0 && (
               <div className="text-xs space-y-1">
                 {(isExpanded ? workout.segments : workout.segments.slice(0, 3)).map((segment: any) => (
-                  <div key={segment.id} className="flex items-center gap-2">
+                  <div key={segment.id} className="flex items-center gap-2 flex-wrap">
                     <Badge variant="secondary" className="text-xs">
-                      {segment.type}
+                      {segment.exercise?.nameSv || formatSegmentType(segment.type)}
                     </Badge>
                     <span className="text-muted-foreground">
                       {segment.description}
                       {segment.duration && ` (${segment.duration} min)`}
+                      {segment.distance && ` ${segment.distance} km`}
                       {segment.pace && ` @ ${segment.pace}`}
                     </span>
+                    {segment.zone && (
+                      <Badge variant="outline" className="text-xs border-blue-400 text-blue-700">
+                        Zon {segment.zone}
+                      </Badge>
+                    )}
+                    {segment.heartRate && (
+                      <span className="text-xs text-muted-foreground">
+                        ❤️ {segment.heartRate}
+                      </span>
+                    )}
+                    {segment.sets && segment.repsCount && (
+                      <span className="text-xs text-muted-foreground">
+                        {segment.sets} × {segment.repsCount} reps
+                      </span>
+                    )}
                   </div>
                 ))}
                 {!isExpanded && workout.segments.length > 3 && (
@@ -358,4 +385,42 @@ function getIntensityBadgeClass(intensity: string): string {
     MAX: 'border-red-500 text-red-800',
   }
   return classes[intensity] || ''
+}
+
+function formatSegmentType(type: string): string {
+  const types: Record<string, string> = {
+    WARMUP: 'Uppvärmning',
+    COOLDOWN: 'Nedvarvning',
+    INTERVAL: 'Intervall',
+    STEADY: 'Löpning',
+    TEMPO: 'Tempo',
+    RECOVERY: 'Återhämtning',
+    EXERCISE: 'Övning',
+    REST: 'Vila',
+  }
+  return types[type] || type
+}
+
+function calculateWeeklyStats(week: any): { totalDistance: number; totalDuration: number } {
+  let totalDistance = 0
+  let totalDuration = 0
+
+  if (!week.days || week.days.length === 0) {
+    return { totalDistance: 0, totalDuration: 0 }
+  }
+
+  week.days.forEach((day: any) => {
+    if (day.workouts && day.workouts.length > 0) {
+      day.workouts.forEach((workout: any) => {
+        if (workout.distance) {
+          totalDistance += workout.distance
+        }
+        if (workout.duration) {
+          totalDuration += workout.duration
+        }
+      })
+    }
+  })
+
+  return { totalDistance, totalDuration }
 }

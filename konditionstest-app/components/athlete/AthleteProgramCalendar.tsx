@@ -13,8 +13,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown, ChevronUp, CheckCircle2, Clock, MapPin } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { ChevronDown, ChevronUp, CheckCircle2, Clock, MapPin, Heart } from 'lucide-react'
+import { cn, formatPace } from '@/lib/utils'
 
 interface AthleteProgramCalendarProps {
   program: any
@@ -271,18 +271,48 @@ function DayCard({ day, date, athleteId }: DayCardProps) {
 
               {workout.segments && workout.segments.length > 0 && (
                 <div className="text-xs space-y-1">
-                  {workout.segments.slice(0, 3).map((segment: any) => (
-                    <div key={segment.id} className="flex items-center gap-2">
+                  {workout.segments.slice(0, 3).map((segment: any) => {
+                    // DEBUG: Log segment data
+                    console.log('Segment data:', {
+                      id: segment.id,
+                      type: segment.type,
+                      exerciseId: segment.exerciseId,
+                      exercise: segment.exercise,
+                      heartRate: segment.heartRate,
+                      pace: segment.pace
+                    })
+
+                    return (
+                    <div key={segment.id} className="flex items-center gap-2 flex-wrap">
                       <Badge variant="secondary" className="text-xs">
                         {formatSegmentType(segment.type)}
                       </Badge>
                       <span className="text-muted-foreground">
-                        {segment.description}
-                        {segment.duration && ` (${segment.duration} min)`}
-                        {segment.pace && ` @ ${segment.pace}`}
+                        {/* Show exercise name for strength/plyo/core */}
+                        {segment.exercise && segment.exercise.nameSv ? (
+                          <>
+                            {segment.exercise.nameSv}
+                            {segment.sets && segment.repsCount && (
+                              <> ({segment.sets} set × {segment.repsCount} reps{segment.rest && ` med ${segment.rest}s vila`})</>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {segment.description}
+                            {segment.duration && ` (${segment.duration} min)`}
+                            {segment.pace && ` @ ${formatPace(segment.pace)}`}
+                            {segment.heartRate && segment.pace && (
+                              <> | {segment.heartRate}</>
+                            )}
+                            {segment.heartRate && !segment.pace && (
+                              <> @ {segment.heartRate}</>
+                            )}
+                          </>
+                        )}
                       </span>
                     </div>
-                  ))}
+                    )
+                  })}
                   {workout.segments.length > 3 && (
                     <p className="text-muted-foreground">
                       +{workout.segments.length - 3} fler segment
@@ -375,6 +405,12 @@ function formatSegmentType(type: string): string {
     work: 'Arbete',
     rest: 'Vila',
     exercise: 'Övning',
+    WARMUP: 'Uppvärmning',
+    INTERVAL: 'Intervall',
+    COOLDOWN: 'Nedvärmning',
+    WORK: 'Arbete',
+    REST: 'Vila',
+    EXERCISE: 'Övning',
   }
   return types[type] || type
 }
