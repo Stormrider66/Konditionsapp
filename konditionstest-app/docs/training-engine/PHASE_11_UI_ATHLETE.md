@@ -513,6 +513,244 @@ export function TodayWorkout({ athleteId }: { athleteId: string }) {
 
 ---
 
+## Future Enhancements
+
+### Actual Distance/Pace Logging
+
+**Priority:** High | **Effort:** 3-4 hours | **Impact:** Accurate training load tracking
+
+**Problem:**
+Currently, workout logging captures completion status and RPE, but not actual distance/pace/duration achieved. This prevents comparing planned vs actual training volume - a critical metric for advanced runners.
+
+**Example:**
+- Planned: "Lugnt löppass" - 40 min @ 7:11 min/km
+- Actual: Athlete runs 5.8 km in 42 minutes @ 7:15 avg pace
+- Current: Only RPE and notes captured
+- Needed: Actual distance, duration, and pace for volume comparison
+
+**Solution:**
+Enhance `WorkoutLogger.tsx` to capture actual workout metrics:
+
+```typescript
+// components/athlete/workouts/WorkoutLogger.tsx additions
+
+interface ActualWorkoutMetrics {
+  actualDistance?: number;     // km
+  actualDuration?: number;      // minutes
+  actualAvgPace?: number;       // sec/km or min/km
+  actualAvgHR?: number;         // bpm
+  perceivedEffort: number;      // 1-10 RPE (existing)
+  notes?: string;               // (existing)
+}
+
+// Add fields to logging form
+<div className="space-y-4">
+  <div>
+    <Label>Actual Distance (km)</Label>
+    <Input
+      type="number"
+      step="0.1"
+      placeholder="e.g., 5.8"
+      {...register('actualDistance', { valueAsNumber: true })}
+    />
+    <p className="text-xs text-muted-foreground">
+      Planned: {workout.distance || 'Not specified'} km
+    </p>
+  </div>
+
+  <div>
+    <Label>Actual Duration (minutes)</Label>
+    <Input
+      type="number"
+      placeholder="e.g., 42"
+      {...register('actualDuration', { valueAsNumber: true })}
+    />
+    <p className="text-xs text-muted-foreground">
+      Planned: {workout.duration} min
+    </p>
+  </div>
+
+  <div>
+    <Label>Average Pace (min/km)</Label>
+    <Input
+      type="text"
+      placeholder="e.g., 7:15 or auto-calculated"
+      {...register('actualAvgPace')}
+    />
+  </div>
+</div>
+```
+
+**Database Changes:**
+Update `WorkoutLog` model in `prisma/schema.prisma`:
+
+```prisma
+model WorkoutLog {
+  // ... existing fields ...
+
+  // Actual metrics (NEW)
+  actualDistance   Float?
+  actualDuration   Int?         // minutes
+  actualAvgPace    Float?       // sec/km
+  actualAvgHR      Int?         // bpm
+
+  // Existing fields
+  perceivedEffort  Int?
+  notes            String?
+  completed        Boolean
+}
+```
+
+**Acceptance Criteria:**
+- [ ] Workout logging form includes actual distance/duration/pace fields
+- [ ] Fields show planned values for comparison
+- [ ] Auto-calculate pace if distance + duration provided
+- [ ] All fields optional (flexibility for incomplete logs)
+- [ ] Database schema updated with new fields
+- [ ] Weekly volume calculations use actual distance when available, fall back to planned
+
+---
+
+### Weekly Volume Comparison: Planned vs Actual
+
+**Priority:** Medium | **Effort:** 2-3 hours | **Impact:** Better training adherence insights
+
+**Problem:**
+Athletes and coaches need to see how actual training volume compares to planned volume to:
+1. Identify under/over-training patterns
+2. Validate program adherence
+3. Adjust future weeks based on actual capacity
+
+**Example:**
+- Week 1 Planned: 50 km (5 workouts)
+- Week 1 Actual: 47.2 km (5 workouts completed)
+- Difference: -2.8 km (-5.6%)
+
+**Solution:**
+Enhance `AthleteStats.tsx` and dashboard to show planned vs actual comparison:
+
+```typescript
+// app/athlete/dashboard/page.tsx additions
+
+// Calculate ACTUAL volumes from logged workouts
+const actualWorkoutsThisWeek = recentLogs.filter(
+  log => log.completedAt >= weekStart && log.completedAt <= weekEnd
+).length;
+
+const actualDistanceThisWeek = recentLogs
+  .filter(log => log.completedAt >= weekStart && log.completedAt <= weekEnd)
+  .reduce((sum, log) => sum + (log.actualDistance || log.distance || 0), 0);
+
+const actualDurationThisWeek = recentLogs
+  .filter(log => log.completedAt >= weekStart && log.completedAt <= weekEnd)
+  .reduce((sum, log) => sum + (log.actualDuration || log.duration || 0), 0);
+
+// Calculate adherence percentage
+const adherencePercent = plannedWorkoutsThisWeek > 0
+  ? Math.round((actualWorkoutsThisWeek / plannedWorkoutsThisWeek) * 100)
+  : 0;
+
+const volumeAdherence = plannedDistanceThisWeek > 0
+  ? Math.round((actualDistanceThisWeek / plannedDistanceThisWeek) * 100)
+  : 0;
+```
+
+**UI Enhancement:**
+Add adherence indicators to stat cards:
+
+```typescript
+// components/athlete/AthleteStats.tsx
+<Card>
+  <CardContent>
+    <p className="text-sm text-muted-foreground">Pass denna vecka</p>
+    <p className="text-2xl font-bold">
+      {actualWorkouts}
+      <span className="text-sm text-muted-foreground">/{plannedWorkouts}</span>
+    </p>
+
+    {/* NEW: Adherence indicator */}
+    <div className="flex items-center gap-2 mt-2">
+      <Badge variant={adherencePercent >= 90 ? "success" : "warning"}>
+        {adherencePercent}% adherence
+      </Badge>
+      {adherencePercent < 80 && (
+        <p className="text-xs text-amber-600">Under-training</p>
+      )}
+      {adherencePercent > 110 && (
+        <p className="text-xs text-red-600">Over-training risk</p>
+      )}
+    </div>
+  </CardContent>
+</Card>
+```
+
+**Acceptance Criteria:**
+- [ ] Dashboard calculates actual vs planned volumes
+- [ ] Adherence percentage displayed per metric (workouts, distance, duration)
+- [ ] Visual indicators for under/over-training (color-coded badges)
+- [ ] Warnings shown when adherence <80% or >110%
+- [ ] Works with partial data (some workouts logged, some not)
+
+---
+
+### Estimated vs Explicit Distance Toggle
+
+**Priority:** Low | **Effort:** 1-2 hours | **Impact:** Transparency in volume calculations
+
+**Problem:**
+With automatic distance calculation from pace + duration (Phase 7), users may want to distinguish between:
+- **Explicit distance**: Manually set in workout plan (e.g., "15 km run")
+- **Estimated distance**: Calculated from duration + pace (e.g., "40 min @ 7:11 pace = ~5.57 km")
+
+**Solution:**
+Add visual indicator in program calendar and weekly summary:
+
+```typescript
+// components/athlete/AthleteProgramCalendar.tsx
+
+<div className="workout-details">
+  <p className="text-sm">
+    Distance: {workout.distance.toFixed(1)} km
+    {workout.distanceCalculated && (
+      <Badge variant="outline" className="ml-2 text-xs">
+        Estimated
+      </Badge>
+    )}
+  </p>
+</div>
+
+// Weekly summary
+<div className="weekly-stats">
+  <span>📏 {weeklyStats.totalDistance.toFixed(1)} km</span>
+  {weeklyStats.hasEstimatedDistances && (
+    <span className="text-xs text-muted-foreground ml-1">(includes estimated)</span>
+  )}
+</div>
+```
+
+**Database Change:**
+Add `distanceCalculated` boolean flag to `Workout` model:
+
+```prisma
+model Workout {
+  // ... existing fields ...
+  distance           Float?
+  distanceCalculated Boolean @default(false)  // NEW: true if auto-calculated
+}
+```
+
+**Acceptance Criteria:**
+- [ ] Workouts with calculated distance flagged in database
+- [ ] UI shows "Estimated" badge on calculated distances
+- [ ] Weekly summary indicates if totals include estimates
+- [ ] Toggle to show/hide estimated distances (optional)
+
+**Related Enhancements:**
+- Distance calculation from pace + duration (Phase 7)
+- Post-workout actual distance logging (above)
+
+---
+
 ## Related Phases
 
 **Depends on:**

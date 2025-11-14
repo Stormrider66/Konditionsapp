@@ -31,8 +31,22 @@ export async function performAllCalculations(test: Test, client: Client): Promis
   aerobicThreshold.percentOfMax = Math.round((aerobicThreshold.heartRate / maxHR) * 100)
   anaerobicThreshold.percentOfMax = Math.round((anaerobicThreshold.heartRate / maxHR) * 100)
 
-  // Träningszoner
-  const trainingZones = calculateTrainingZones(maxHR, anaerobicThreshold, test.testType)
+  // Träningszoner (använder nytt 3-nivå system: laktattest > fälttest > %HRmax)
+  const zoneResult = calculateTrainingZones(
+    client,
+    maxHR,
+    aerobicThreshold,
+    anaerobicThreshold,
+    test.testType
+  )
+  const trainingZones = zoneResult.zones
+
+  // Logga varning om estimerade zoner används
+  if (zoneResult.confidence === 'LOW' && zoneResult.warning) {
+    console.warn('[Zone Calculation]', zoneResult.warning)
+  } else if (zoneResult.confidence === 'HIGH') {
+    console.log('[Zone Calculation] Using individualized zones from lactate test (HIGH confidence)')
+  }
 
   // Ekonomi (endast för löpning)
   let economyData

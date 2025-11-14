@@ -3,11 +3,14 @@ import { redirect } from 'next/navigation'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { addDays, startOfDay, endOfDay, subDays } from 'date-fns'
+import Link from 'next/link'
 import { TodaysWorkouts } from '@/components/athlete/TodaysWorkouts'
 import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
 import { RecentActivity } from '@/components/athlete/RecentActivity'
 import { ActivePrograms } from '@/components/athlete/ActivePrograms'
 import { AthleteStats } from '@/components/athlete/AthleteStats'
+import { Card, CardContent } from '@/components/ui/card'
+import { TrendingUp, Trophy, Calendar, Activity } from 'lucide-react'
 
 export default async function AthleteDashboardPage() {
   const user = await requireAthlete()
@@ -170,6 +173,36 @@ export default async function AthleteDashboardPage() {
       )
     : 0
 
+  // Calculate PLANNED workouts for this week (Monday to Sunday)
+  const weekStart = startOfDay(
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1))
+  )
+  const weekEnd = addDays(weekStart, 6)
+
+  const thisWeekWorkouts = activePrograms.flatMap((program) =>
+    program.weeks.flatMap((week) =>
+      week.days
+        .filter((day) => {
+          const dayDate = addDays(
+            new Date(program.startDate),
+            (week.weekNumber - 1) * 7 + (day.dayNumber - 1)
+          )
+          return dayDate >= weekStart && dayDate <= weekEnd
+        })
+        .flatMap((day) => day.workouts)
+    )
+  )
+
+  const plannedWorkoutsThisWeek = thisWeekWorkouts.length
+  const plannedDistanceThisWeek = thisWeekWorkouts.reduce(
+    (sum, workout) => sum + (workout.distance || 0),
+    0
+  )
+  const plannedDurationThisWeek = thisWeekWorkouts.reduce(
+    (sum, workout) => sum + (workout.duration || 0),
+    0
+  )
+
   return (
     <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6">
       <div className="mb-6 sm:mb-8">
@@ -185,6 +218,9 @@ export default async function AthleteDashboardPage() {
         totalDistance={totalDistanceThisWeek}
         totalDuration={totalDurationThisWeek}
         avgEffort={avgEffortThisWeek}
+        plannedWorkouts={plannedWorkoutsThisWeek}
+        plannedDistance={plannedDistanceThisWeek}
+        plannedDuration={plannedDurationThisWeek}
       />
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-2 mt-4 sm:mt-6">
@@ -205,6 +241,73 @@ export default async function AthleteDashboardPage() {
           {/* Recent Activity */}
           <RecentActivity logs={recentLogs as any} />
         </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link href="/athlete/tests" className="block">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Activity className="h-8 w-8 text-red-500" />
+                <div>
+                  <p className="font-semibold">Konditionstester</p>
+                  <p className="text-sm text-muted-foreground">
+                    Resultat och rapporter
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/athlete/history" className="block">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="h-8 w-8 text-blue-500" />
+                <div>
+                  <p className="font-semibold">Träningshistorik</p>
+                  <p className="text-sm text-muted-foreground">
+                    Analys och framsteg
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/athlete/history" className="block">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Trophy className="h-8 w-8 text-yellow-500" />
+                <div>
+                  <p className="font-semibold">Personliga rekord</p>
+                  <p className="text-sm text-muted-foreground">
+                    Dina bästa prestationer
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/athlete/programs" className="block">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-8 w-8 text-green-500" />
+                <div>
+                  <p className="font-semibold">Alla program</p>
+                  <p className="text-sm text-muted-foreground">
+                    Träningsprogram
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
   )

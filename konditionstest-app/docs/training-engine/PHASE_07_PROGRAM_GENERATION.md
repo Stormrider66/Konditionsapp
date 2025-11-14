@@ -2165,6 +2165,91 @@ export function compileProgramReport(
 
 ---
 
+## Future Enhancements
+
+### Distance Calculation from Pace + Duration
+
+**Priority:** Medium | **Effort:** 2-3 hours | **Impact:** Improved weekly volume tracking
+
+**Problem:**
+Currently, workouts without explicit `distance` field (e.g., zone-based runs with only duration and pace targets) don't contribute to weekly km totals. This underestimates actual training volume for advanced runners who track weekly mileage as a key load indicator.
+
+**Example:**
+- Workout: "Lugnt löppass" - 40 min @ 7:11 min/km pace (no distance field set)
+- Current behavior: Weekly total shows 0 km from this workout
+- Expected: ~5.57 km should be calculated and included in totals
+
+**Solution:**
+Add auto-calculation logic to workout generation that computes distance when:
+1. Workout has `duration` (minutes) and `pace` (min/km) but no `distance`
+2. Formula: `distance (km) = duration (min) / pace (min/km)`
+
+**Implementation:**
+
+```typescript
+// lib/training-engine/program-generator/workout-templates.ts
+
+/**
+ * Calculate distance from pace and duration if not explicitly set
+ */
+function calculateImplicitDistance(workout: Workout): number {
+  // If distance already set, use it
+  if (workout.totalDistance && workout.totalDistance > 0) {
+    return workout.totalDistance;
+  }
+
+  // If no pace target, can't calculate
+  if (!workout.targetPace && !workout.targetPaceRange) {
+    return 0;
+  }
+
+  // Calculate from target pace
+  const avgPace = workout.targetPaceRange
+    ? (workout.targetPaceRange.min + workout.targetPaceRange.max) / 2
+    : workout.targetPace!;
+
+  const durationMinutes = workout.totalDuration;
+  const distanceKm = durationMinutes / avgPace;
+
+  return Math.round(distanceKm * 100) / 100; // Round to 2 decimals
+}
+
+/**
+ * Apply implicit distance calculation to all workouts in a week
+ */
+export function finalizeWeeklyWorkouts(week: TrainingWeek): TrainingWeek {
+  week.days.forEach(day => {
+    if (day.workout) {
+      const calculatedDistance = calculateImplicitDistance(day.workout);
+      if (calculatedDistance > 0 && day.workout.totalDistance === 0) {
+        day.workout.totalDistance = calculatedDistance;
+      }
+    }
+  });
+
+  // Recalculate weekly volume with implicit distances
+  week.plannedVolume = week.days.reduce((sum, day) =>
+    sum + (day.workout?.totalDistance || 0), 0
+  );
+
+  return week;
+}
+```
+
+**Acceptance Criteria:**
+- [ ] Workouts with duration + pace but no distance automatically calculate distance
+- [ ] Calculation formula: `distance = duration / pace`
+- [ ] Applied during program generation, not retroactively
+- [ ] Weekly totals include both explicit and calculated distances
+- [ ] UI displays distinction between explicit vs calculated (optional enhancement)
+
+**Related Future Enhancements:**
+- Post-workout logging with actual distance/pace (see Phase 11)
+- Toggle to show "planned volume" vs "estimated volume" in athlete dashboard
+- Comparison of planned vs actual weekly volume in analytics
+
+---
+
 ## Related Phases
 
 **Depends on:**

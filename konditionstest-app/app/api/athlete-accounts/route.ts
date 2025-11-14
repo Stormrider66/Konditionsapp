@@ -83,9 +83,19 @@ export async function POST(request: NextRequest) {
     // Generate temporary password if not provided
     const password = temporaryPassword || generateTemporaryPassword()
 
-    // Create user account in Supabase
-    const supabase = await createClient()
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    // Create user account in Supabase using service role for admin operations
+    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true, // Auto-confirm email

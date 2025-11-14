@@ -192,18 +192,6 @@ export default function TestPage() {
     <div className="min-h-screen bg-gray-50">
       <MobileNav user={user} />
 
-      <div className="lg:hidden gradient-primary text-white shadow-lg py-3 sm:py-4 px-4">
-        <h1 className="text-lg sm:text-xl font-bold">Nytt Konditionstest</h1>
-        <p className="text-white/90 text-xs sm:text-sm mt-1">Skapa ny testrapport</p>
-      </div>
-
-      <div className="hidden lg:block gradient-primary text-white shadow-lg py-6 px-4">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold">Star by Thomson</h1>
-          <p className="text-white/90 mt-1">Nytt Konditionstest</p>
-        </div>
-      </div>
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8">
         {!showReport ? (
           <div className="space-y-6">

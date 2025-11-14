@@ -160,37 +160,6 @@ export default function EditClientPage() {
     <div className="min-h-screen bg-gray-50">
       <MobileNav user={user} />
 
-      {/* Mobile Header */}
-      <div className="lg:hidden gradient-primary text-white shadow-lg py-4 px-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-bold">Redigera Klient</h1>
-            <p className="text-white/90 text-sm mt-1">Uppdatera klientinformation</p>
-          </div>
-          <Link href={`/clients/${id}`}>
-            <Button variant="secondary" size="sm">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Desktop Header */}
-      <div className="hidden lg:block gradient-primary text-white shadow-lg py-6 px-4">
-        <div className="max-w-3xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Redigera Klient</h1>
-            <p className="text-white/90 mt-1">Uppdatera klientinformation</p>
-          </div>
-          <Link href={`/clients/${id}`}>
-            <Button variant="secondary" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Tillbaka
-            </Button>
-          </Link>
-        </div>
-      </div>
-
       <main className="max-w-3xl mx-auto px-4 py-6 lg:py-12">
         {error && (
           <Alert variant="destructive" className="mb-6">

@@ -53,8 +53,14 @@ export default function Home() {
         const response = await fetch('/api/users/me')
         const result = await response.json()
         if (result.success) {
-          setUserRole(result.data.role)
-          // Don't redirect - let authenticated users stay on home page
+          const role = result.data.role
+          setUserRole(role)
+
+          // Only redirect athletes, let coaches stay on home page
+          if (role === 'ATHLETE') {
+            window.location.href = '/athlete/dashboard'
+            return
+          }
         }
       } catch (error) {
         console.error('Error fetching user role:', error)

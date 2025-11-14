@@ -234,18 +234,6 @@ export default function EditTestPage() {
     <div className="min-h-screen bg-gray-50">
       <MobileNav user={user} />
 
-      <div className="lg:hidden gradient-primary text-white shadow-lg py-4 px-4">
-        <h1 className="text-xl font-bold">Redigera Test</h1>
-        <p className="text-white/90 text-sm mt-1">{client.name}</p>
-      </div>
-
-      <div className="hidden lg:block gradient-primary text-white shadow-lg py-6 px-4">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold">Star by Thomson</h1>
-          <p className="text-white/90 mt-1">Redigera Test - {client.name}</p>
-        </div>
-      </div>
-
       <main className="max-w-7xl mx-auto px-4 py-6 lg:py-8">
         <div className="mb-4 flex gap-4">
           <Link href={`/tests/${test.id}`}>

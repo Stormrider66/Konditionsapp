@@ -9,6 +9,9 @@ interface AthleteStatsProps {
   totalDistance: number
   totalDuration: number
   avgEffort: number
+  plannedWorkouts?: number
+  plannedDistance?: number
+  plannedDuration?: number
 }
 
 export function AthleteStats({
@@ -16,6 +19,9 @@ export function AthleteStats({
   totalDistance,
   totalDuration,
   avgEffort,
+  plannedWorkouts = 0,
+  plannedDistance = 0,
+  plannedDuration = 0,
 }: AthleteStatsProps) {
   return (
     <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
@@ -24,7 +30,11 @@ export function AthleteStats({
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Pass denna vecka</p>
-              <p className="text-xl sm:text-2xl font-bold">{totalWorkouts}</p>
+              <p className="text-xl sm:text-2xl font-bold">
+                {totalWorkouts}
+                <span className="text-sm text-muted-foreground">/{plannedWorkouts}</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Genomförda/Planerade</p>
             </div>
             <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 flex-shrink-0" />
           </div>
@@ -36,7 +46,11 @@ export function AthleteStats({
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Total distans</p>
-              <p className="text-xl sm:text-2xl font-bold truncate">{totalDistance.toFixed(1)} km</p>
+              <p className="text-xl sm:text-2xl font-bold truncate">
+                {totalDistance.toFixed(1)}
+                <span className="text-sm text-muted-foreground">/{plannedDistance.toFixed(1)}</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">km (Genomförda/Planerade)</p>
             </div>
             <MapPin className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 flex-shrink-0" />
           </div>
@@ -48,7 +62,11 @@ export function AthleteStats({
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Total tid</p>
-              <p className="text-xl sm:text-2xl font-bold truncate">{formatDuration(totalDuration)}</p>
+              <p className="text-xl sm:text-2xl font-bold truncate">
+                {formatDuration(totalDuration)}
+                <span className="text-sm text-muted-foreground">/{formatDuration(plannedDuration)}</span>
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">Genomförda/Planerade</p>
             </div>
             <Clock className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500 flex-shrink-0" />
           </div>
@@ -61,6 +79,7 @@ export function AthleteStats({
             <div className="min-w-0 flex-1">
               <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">Genomsnittlig RPE</p>
               <p className="text-xl sm:text-2xl font-bold">{avgEffort > 0 ? `${avgEffort}/10` : '-'}</p>
+              <p className="text-xs text-muted-foreground mt-1">Upplevd ansträngning</p>
             </div>
             <Zap className="h-6 w-6 sm:h-8 sm:w-8 text-red-500 flex-shrink-0" />
           </div>
