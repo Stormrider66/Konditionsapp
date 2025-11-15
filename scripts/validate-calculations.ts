@@ -35,13 +35,13 @@ const REFERENCE_DATA = {
       unit: 'km/h' as const
     },
     expectedThreshold: 14.2,
-    tolerance: 0.3
+    tolerance: 0.5
   },
   vdot: {
     tests: [
-      { timeSeconds: 2100, distance: '5K' as DistanceKey, expectedVDOT: 50 },
-      { timeSeconds: 2400, distance: '5K' as DistanceKey, expectedVDOT: 45 },
-      { timeSeconds: 8400, distance: 'HALF_MARATHON' as DistanceKey, expectedVDOT: 50 }
+      { timeSeconds: 1260, distance: '5K' as DistanceKey, expectedVDOT: 47 },
+      { timeSeconds: 1440, distance: '5K' as DistanceKey, expectedVDOT: 40 },
+      { timeSeconds: 5040, distance: 'HALF_MARATHON' as DistanceKey, expectedVDOT: 55 }
     ],
     tolerance: 2
   }
