@@ -1,0 +1,60 @@
+name: CI Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-and-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest suite
+        run: npm run test
+
+      - name: Run calculation validation
+        run: npm run validate:calculations
+
+  playwright:
+    needs: unit-and-validation
+    runs-on: ubuntu-latest
+    env:
+      E2E_COACH_EMAIL: ${{ secrets.E2E_COACH_EMAIL || 'coach@test.com' }}
+      E2E_COACH_PASSWORD: ${{ secrets.E2E_COACH_PASSWORD || 'password' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
+
