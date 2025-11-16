@@ -27,14 +27,13 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] }
     }
   ],
-  webServer: process.env.CI
-    ? undefined
-    : {
-        command: 'npm run dev',
-        url: 'http://localhost:3000',
-        reuseExistingServer: !process.env.CI,
-        stdout: 'pipe',
-        stderr: 'pipe'
-      }
+  webServer: {
+    command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',
+    url: 'http://127.0.0.1:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
+    stdout: 'pipe',
+    stderr: 'pipe'
+  }
 })
 
