@@ -120,7 +120,15 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
       })
 
       if (!response.ok) {
-        throw new Error('Failed to submit check-in')
+        const responseText = await response.text()
+        console.error('Check-in submission failed:', response.status, responseText)
+        let errorData
+        try {
+          errorData = JSON.parse(responseText)
+        } catch {
+          errorData = { error: `Server error: ${response.status}` }
+        }
+        throw new Error(errorData.error || 'Failed to submit check-in')
       }
 
       const result = await response.json()

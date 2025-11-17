@@ -11,7 +11,7 @@
 
 import { requireAthlete } from '@/lib/auth-utils';
 import { SelfReportedLactateForm } from '@/components/athlete/lactate/SelfReportedLactateForm';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 

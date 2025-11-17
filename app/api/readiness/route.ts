@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     // Get user from database
     const dbUser = await prisma.user.findUnique({
-      where: { authId: user.id },
+      where: { email: user.email },
     })
 
     if (!dbUser) {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       include: {
-        athleteProfile: true,
+        athleteAccount: true,
       },
     })
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     // Authorization check
     const isOwner = client.userId === dbUser.id
-    const isAthlete = client.athleteProfile?.athleteUserId === dbUser.id
+    const isAthlete = client.athleteAccount?.userId === dbUser.id
 
     if (!isOwner && !isAthlete) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })

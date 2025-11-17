@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     // Get user from database
     const dbUser = await prisma.user.findUnique({
-      where: { authId: user.id },
+      where: { email: user.email },
     })
 
     if (!dbUser) {
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       include: {
-        athleteProfile: true,
+        athleteAccount: true,
       },
     })
 
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Authorization check: User must own the client or be the athlete
     const isOwner = client.userId === dbUser.id
-    const isAthlete = client.athleteProfile?.athleteUserId === dbUser.id
+    const isAthlete = client.athleteAccount?.userId === dbUser.id
 
     if (!isOwner && !isAthlete) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
@@ -198,18 +198,32 @@ export async function POST(request: NextRequest) {
       stress !== undefined &&
       injuryPain !== undefined
     ) {
+      // Convert 1-10 scale to 1-5 scale for wellness function
+      const scaleTo5 = (value: number) => Math.round(((value - 1) / 9) * 4 + 1)
+
       const wellnessResponses: WellnessResponses = {
-        sleepQuality,
-        sleepHours,
-        muscleSoreness,
-        energyLevel,
-        mood,
-        stress,
-        injuryPain,
+        sleepQuality: scaleTo5(sleepQuality) as 1 | 2 | 3 | 4 | 5,
+        sleepDuration: sleepHours,
+        fatigueLevel: scaleTo5(energyLevel) as 1 | 2 | 3 | 4 | 5,
+        muscleSoreness: scaleTo5(muscleSoreness) as 1 | 2 | 3 | 4 | 5,
+        stressLevel: scaleTo5(stress) as 1 | 2 | 3 | 4 | 5,
+        mood: scaleTo5(mood) as 1 | 2 | 3 | 4 | 5,
+        motivationToTrain: scaleTo5(injuryPain) as 1 | 2 | 3 | 4 | 5, // 1 = significant pain (low motivation), 10 = no pain (high motivation)
       }
 
+      console.log('Original wellness input (1-10 scale):', {
+        sleepQuality, sleepHours, energyLevel, muscleSoreness, stress, mood, injuryPain
+      })
+      console.log('Converted wellness (1-5 scale):', wellnessResponses)
+
       wellnessScoreData = calculateWellnessScore(wellnessResponses)
-      calculatedWellnessScore = wellnessScoreData.score
+      calculatedWellnessScore = wellnessScoreData.totalScore
+
+      console.log('Wellness score result:', {
+        totalScore: wellnessScoreData.totalScore,
+        rawScore: wellnessScoreData.rawScore,
+        status: wellnessScoreData.status
+      })
     }
 
     // ==================
@@ -225,7 +239,8 @@ export async function POST(request: NextRequest) {
       // Get recent training load for ACWR calculation
       const recentWorkouts = await prisma.workoutLog.findMany({
         where: {
-          clientId,
+          athleteId: dbUser.id,
+          completed: true,
           completedAt: {
             gte: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000), // Last 28 days
           },
@@ -234,10 +249,12 @@ export async function POST(request: NextRequest) {
       })
 
       // Calculate daily TSS/TRIMP (simplified - assume RPE * duration / 10)
-      const dailyLoads = recentWorkouts.map(w => ({
-        date: w.completedAt,
-        tss: (w.rpe || 5) * (w.durationMinutes || 0) / 10,
-      }))
+      const dailyLoads = recentWorkouts
+        .filter(w => w.completedAt !== null)
+        .map(w => ({
+          date: w.completedAt!,
+          tss: (w.perceivedEffort || 5) * (w.duration || 0) / 10,
+        }))
 
       // Group by date and sum
       const loadByDate = new Map<string, number>()
@@ -252,22 +269,61 @@ export async function POST(request: NextRequest) {
       }))
 
       readinessScoreData = calculateReadinessScore({
-        hrvAssessment,
-        rhrAssessment,
-        wellnessScore: wellnessScoreData,
-        trainingLoads,
+        hrv: hrvAssessment,
+        rhr: rhrAssessment,
+        wellness: wellnessScoreData,
+        // ACWR calculation would require more complex load tracking
+        // For now, readiness is based on HRV, RHR, and wellness only
       })
 
       calculatedReadinessScore = readinessScoreData.score
-      readinessLevel = readinessScoreData.level
-      recommendedAction = readinessScoreData.recommendation
+      readinessLevel = readinessScoreData.status
+      recommendedAction = readinessScoreData.workoutModification.action
     }
 
     // ==================
     // Save to Database
     // ==================
-    const dailyMetrics = await prisma.dailyMetrics.create({
-      data: {
+    const dailyMetrics = await prisma.dailyMetrics.upsert({
+      where: {
+        clientId_date: {
+          clientId,
+          date: metricsDate,
+        },
+      },
+      update: {
+        // HRV data
+        hrvRMSSD: hrvRMSSD || null,
+        hrvQuality: hrvQuality || null,
+        hrvStatus,
+        hrvPercent,
+        hrvTrend,
+
+        // RHR data
+        restingHR: restingHR || null,
+        restingHRStatus,
+        restingHRDev,
+
+        // Wellness data
+        sleepQuality: sleepQuality ?? null,
+        sleepHours: sleepHours ?? null,
+        muscleSoreness: muscleSoreness ?? null,
+        energyLevel: energyLevel ?? null,
+        mood: mood ?? null,
+        stress: stress ?? null,
+        injuryPain: injuryPain ?? null,
+        wellnessScore: calculatedWellnessScore,
+
+        // Readiness composite
+        readinessScore: calculatedReadinessScore,
+        readinessLevel,
+        recommendedAction,
+
+        // Notes
+        athleteNotes: notes || null,
+        updatedAt: new Date(),
+      },
+      create: {
         clientId,
         date: metricsDate,
 
@@ -299,7 +355,7 @@ export async function POST(request: NextRequest) {
         recommendedAction,
 
         // Notes
-        notes: notes || null,
+        athleteNotes: notes || null,
       },
     })
 
@@ -341,7 +397,7 @@ export async function GET(request: NextRequest) {
 
     // Get user from database
     const dbUser = await prisma.user.findUnique({
-      where: { authId: user.id },
+      where: { email: user.email },
     })
 
     if (!dbUser) {
@@ -364,7 +420,7 @@ export async function GET(request: NextRequest) {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       include: {
-        athleteProfile: true,
+        athleteAccount: true,
       },
     })
 
@@ -374,7 +430,7 @@ export async function GET(request: NextRequest) {
 
     // Authorization check
     const isOwner = client.userId === dbUser.id
-    const isAthlete = client.athleteProfile?.athleteUserId === dbUser.id
+    const isAthlete = client.athleteAccount?.userId === dbUser.id
 
     if (!isOwner && !isAthlete) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
