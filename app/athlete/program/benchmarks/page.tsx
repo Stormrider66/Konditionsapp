@@ -9,7 +9,7 @@
 
 import { requireAthlete } from '@/lib/auth-utils';
 import { BenchmarkSchedule } from '@/components/athlete/program/BenchmarkSchedule';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 
 interface BenchmarkSchedulePageProps {
@@ -31,7 +31,7 @@ export default async function BenchmarkSchedulePage({ searchParams }: BenchmarkS
     include: {
       trainingPrograms: {
         where: {
-          active: true
+          isActive: true
         },
         orderBy: {
           startDate: 'desc'

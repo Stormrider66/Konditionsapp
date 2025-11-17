@@ -11,7 +11,7 @@
 
 import { requireAthlete } from '@/lib/auth-utils';
 import { ProgramReportViewer } from '@/components/athlete/program/ProgramReportViewer';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 
 interface ProgramReportPageProps {
@@ -33,7 +33,7 @@ export default async function ProgramReportPage({ searchParams }: ProgramReportP
     include: {
       trainingPrograms: {
         where: {
-          active: true
+          isActive: true
         },
         orderBy: {
           startDate: 'desc'

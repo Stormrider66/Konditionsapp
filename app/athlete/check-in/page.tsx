@@ -9,7 +9,7 @@
 
 import { requireAthlete } from '@/lib/auth-utils';
 import { DailyCheckInForm } from '@/components/athlete/DailyCheckInForm';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export default async function CheckInPage() {
   const user = await requireAthlete();

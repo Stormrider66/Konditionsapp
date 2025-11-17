@@ -4,7 +4,10 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
-import { Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell } from 'lucide-react'
+import {
+  Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
+  ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { UserNav } from './UserNav'
@@ -59,9 +62,20 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
 
   // Athlete-specific links
   const athleteNavLinks = [
-    { href: '/', label: 'Hem', icon: Home },
-    { href: '/athlete/dashboard', label: 'Min träning', icon: Dumbbell },
-    { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
+    // Dashboard & Overview
+    { href: '/athlete/dashboard', label: 'Dashboard', icon: LayoutDashboard, description: 'Översikt & idag' },
+    { href: '/athlete/check-in', label: 'Check-in', icon: CheckCircle, description: 'Daglig readiness', highlight: true },
+
+    // Training & History
+    { href: '/athlete/history', label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
+
+    // Tests & Data
+    { href: '/athlete/tests', label: 'Tester', icon: FlaskConical, description: 'Testresultat' },
+    { href: '/athlete/lactate/new', label: 'Laktattest', icon: Droplet, description: 'Rapportera laktat' },
+
+    // Communication & Reports
+    { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount, description: 'Chatta med coach' },
+    { href: '/athlete/program/report', label: 'Rapport', icon: FileText, description: 'Program PDF' },
   ]
 
   // Determine which links to show
@@ -111,19 +125,23 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
                 const Icon = link.icon
                 const active = isActive(link.href)
                 const badge = (link as any).badge
+                const highlight = (link as any).highlight
+                const description = (link as any).description
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
                     onClick={closeMenu}
-                    className={`flex items-center gap-3 px-4 sm:px-6 py-4 transition min-h-[56px] ${
+                    className={`flex items-center gap-4 px-6 py-4 transition min-h-[60px] ${
                       active
                         ? 'bg-blue-50 text-blue-600 border-l-4 border-blue-600'
+                        : highlight
+                        ? 'text-gray-700 hover:bg-green-50 active:bg-green-100 border-l-4 border-green-500'
                         : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'
                     }`}
                   >
                     <div className="relative flex-shrink-0">
-                      <Icon className="w-5 h-5" />
+                      <Icon className={`w-6 h-6 ${highlight && !active ? 'text-green-600' : ''}`} />
                       {badge > 0 && (
                         <Badge
                           variant="destructive"
@@ -133,7 +151,12 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
                         </Badge>
                       )}
                     </div>
-                    <span className="font-medium text-base">{link.label}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-base leading-snug">{link.label}</div>
+                      {description && userRole === 'ATHLETE' && (
+                        <div className="text-xs text-muted-foreground mt-1 leading-snug">{description}</div>
+                      )}
+                    </div>
                   </Link>
                 )
               })}
