@@ -114,11 +114,31 @@ export async function generateBaseProgram(
   // Generate program name
   const programName = generateProgramName(params.goalType, params.durationWeeks)
 
+  // Build phase mapping array from PhaseDistribution object
+  const phaseMapping: { weekNumber: number; phase: PeriodPhase }[] = []
+  let currentWeek = 1
+
+  // BASE PHASE
+  for (let i = 0; i < phases.base; i++) {
+    phaseMapping.push({ weekNumber: currentWeek++, phase: 'BASE' })
+  }
+
+  // BUILD PHASE
+  for (let i = 0; i < phases.build; i++) {
+    phaseMapping.push({ weekNumber: currentWeek++, phase: 'BUILD' })
+  }
+
+  // PEAK PHASE
+  for (let i = 0; i < phases.peak; i++) {
+    phaseMapping.push({ weekNumber: currentWeek++, phase: 'PEAK' })
+  }
+
+  // TAPER PHASE
+  for (let i = 0; i < phases.taper; i++) {
+    phaseMapping.push({ weekNumber: currentWeek++, phase: 'TAPER' })
+  }
+
   // Calculate advanced deload schedule
-  const phaseMapping = phases.map((phase, index) => ({
-    weekNumber: index + 1,
-    phase: phase.phase,
-  }))
   const deloadSchedule = calculateDeloadSchedule(
     params.durationWeeks,
     athleteLevel,

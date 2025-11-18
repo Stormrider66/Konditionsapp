@@ -5,13 +5,12 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, CheckCircle2, Clock, MapPin, Heart } from 'lucide-react'
-import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { Calendar, CheckCircle2, Clock, MapPin } from 'lucide-react'
 import { formatPace } from '@/lib/utils'
+import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 
 interface TodaysWorkoutsProps {
-  workouts: any[]
+  workouts: DashboardWorkoutWithContext[]
 }
 
 export function TodaysWorkouts({ workouts }: TodaysWorkoutsProps) {
@@ -54,9 +53,8 @@ export function TodaysWorkouts({ workouts }: TodaysWorkoutsProps) {
   )
 }
 
-function WorkoutCard({ workout }: { workout: any }) {
+function WorkoutCard({ workout }: { workout: DashboardWorkoutWithContext }) {
   const isCompleted = workout.logs && workout.logs.length > 0 && workout.logs[0].completed
-  const log = workout.logs?.[0]
 
   return (
     <div className="border rounded-lg p-3 sm:p-4 space-y-3 hover:shadow-md transition-shadow">
@@ -85,18 +83,7 @@ function WorkoutCard({ workout }: { workout: any }) {
       {/* Workout segments preview */}
       {workout.segments && workout.segments.length > 0 && (
         <div className="space-y-1">
-          {workout.segments.map((segment: any) => {
-            // DEBUG: Log segment data
-            console.log('TodaysWorkouts segment:', {
-              id: segment.id,
-              type: segment.type,
-              exerciseId: segment.exerciseId,
-              exercise: segment.exercise,
-              heartRate: segment.heartRate,
-              pace: segment.pace
-            })
-
-            return (
+          {workout.segments.map((segment) => (
             <div key={segment.id} className="flex items-start gap-2 text-xs">
               <Badge variant="secondary" className="text-xs flex-shrink-0">
                 {formatSegmentType(segment.type)}
@@ -125,8 +112,7 @@ function WorkoutCard({ workout }: { workout: any }) {
                 )}
               </span>
             </div>
-            )
-          })}
+          ))}
         </div>
       )}
 

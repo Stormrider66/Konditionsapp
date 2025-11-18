@@ -14,9 +14,10 @@ import {
 } from '@/components/ui/collapsible'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ProgramWithWeeks, WeekWithDays, DayWithWorkouts, WorkoutWithSegments } from '@/types/prisma-types'
 
 interface ProgramCalendarProps {
-  program: any
+  program: ProgramWithWeeks
 }
 
 export function ProgramCalendar({ program }: ProgramCalendarProps) {
@@ -38,7 +39,7 @@ export function ProgramCalendar({ program }: ProgramCalendarProps) {
   useState(() => {
     const currentWeek = getCurrentWeek(program)
     const currentWeekData = program.weeks?.find(
-      (w: any) => w.weekNumber === currentWeek
+      (w) => w.weekNumber === currentWeek
     )
     if (currentWeekData) {
       setExpandedWeeks(new Set([currentWeekData.id]))
@@ -63,7 +64,7 @@ export function ProgramCalendar({ program }: ProgramCalendarProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setExpandedWeeks(new Set(program.weeks.map((w: any) => w.id)))}
+            onClick={() => setExpandedWeeks(new Set(program.weeks.map((w) => w.id)))}
           >
             Expandera alla
           </Button>
@@ -78,7 +79,7 @@ export function ProgramCalendar({ program }: ProgramCalendarProps) {
       </div>
 
       <div className="space-y-3">
-        {program.weeks.map((week: any) => (
+        {program.weeks.map((week) => (
           <WeekCard
             key={week.id}
             week={week}
@@ -94,7 +95,7 @@ export function ProgramCalendar({ program }: ProgramCalendarProps) {
 }
 
 interface WeekCardProps {
-  week: any
+  week: WeekWithDays
   programStartDate: Date
   isExpanded: boolean
   onToggle: () => void
@@ -112,7 +113,7 @@ function WeekCard({
   const weekEndDate = addDays(weekStartDate, 6)
 
   const totalWorkouts = week.days?.reduce(
-    (sum: number, day: any) => sum + day.workouts.length,
+    (sum: number, day) => sum + day.workouts.length,
     0
   ) || 0
 
@@ -181,7 +182,7 @@ function WeekCard({
           <CardContent className="pt-0">
             <div className="space-y-3">
               {week.days && week.days.length > 0 ? (
-                week.days.map((day: any) => (
+                week.days.map((day) => (
                   <DayCard
                     key={day.id}
                     day={day}
@@ -202,7 +203,7 @@ function WeekCard({
 }
 
 interface DayCardProps {
-  day: any
+  day: DayWithWorkouts
   date: Date
 }
 
@@ -240,7 +241,7 @@ function DayCard({ day, date }: DayCardProps) {
 
   return (
     <div className="space-y-2">
-      {day.workouts.map((workout: any, index: number) => {
+      {day.workouts.map((workout, index) => {
         const isExpanded = expandedWorkouts.has(workout.id)
         return (
         <div
@@ -269,7 +270,7 @@ function DayCard({ day, date }: DayCardProps) {
 
             {workout.segments && workout.segments.length > 0 && (
               <div className="text-xs space-y-1">
-                {(isExpanded ? workout.segments : workout.segments.slice(0, 3)).map((segment: any) => (
+                {(isExpanded ? workout.segments : workout.segments.slice(0, 3)).map((segment) => (
                   <div key={segment.id} className="flex items-center gap-2 flex-wrap">
                     <Badge variant="secondary" className="text-xs">
                       {segment.exercise?.nameSv || formatSegmentType(segment.type)}
@@ -331,12 +332,12 @@ function DayCard({ day, date }: DayCardProps) {
 }
 
 // Helper functions
-function getCurrentWeek(program: any): number {
+function getCurrentWeek(program: ProgramWithWeeks): number {
   const now = new Date()
   const start = new Date(program.startDate)
   const diffTime = Math.abs(now.getTime() - start.getTime())
   const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7))
-  return Math.min(diffWeeks, program.weeks?.length || 1)
+  return Math.min(diffWeeks, program.weeks.length || 1)
 }
 
 function formatPhase(phase: string): string {
@@ -401,7 +402,7 @@ function formatSegmentType(type: string): string {
   return types[type] || type
 }
 
-function calculateWeeklyStats(week: any): { totalDistance: number; totalDuration: number } {
+function calculateWeeklyStats(week: WeekWithDays): { totalDistance: number; totalDuration: number } {
   let totalDistance = 0
   let totalDuration = 0
 
@@ -409,9 +410,9 @@ function calculateWeeklyStats(week: any): { totalDistance: number; totalDuration
     return { totalDistance: 0, totalDuration: 0 }
   }
 
-  week.days.forEach((day: any) => {
+  week.days.forEach((day) => {
     if (day.workouts && day.workouts.length > 0) {
-      day.workouts.forEach((workout: any) => {
+      day.workouts.forEach((workout) => {
         if (workout.distance) {
           totalDistance += workout.distance
         }
@@ -423,4 +424,5 @@ function calculateWeeklyStats(week: any): { totalDistance: number; totalDuration
   })
 
   return { totalDistance, totalDuration }
+
 }

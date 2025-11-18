@@ -31,8 +31,10 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import { useState } from 'react'
 
+import { ProgramWithWeeks } from '@/types/prisma-types'
+
 interface ProgramOverviewProps {
-  program: any
+  program: ProgramWithWeeks
 }
 
 export function ProgramOverview({ program }: ProgramOverviewProps) {
@@ -42,7 +44,7 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
 
   const currentWeek = getCurrentWeek(program)
   const totalWeeks = program.weeks?.length || 0
-  const progressPercent = Math.round((currentWeek / totalWeeks) * 100)
+  const progressPercent = totalWeeks > 0 ? Math.round((currentWeek / totalWeeks) * 100) : 0
   const isActive = isActiveProgram(program)
 
   async function handleDelete() {
@@ -87,7 +89,7 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             <User className="h-4 w-4" />
-            <span>{program.client?.name}</span>
+            <span>{program.client?.name || 'Okänd klient'}</span>
           </div>
         </div>
 
@@ -154,7 +156,7 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Mål</p>
                 <p className="text-2xl font-bold">
-                  {formatGoalType(program.goalType)}
+                  {formatGoalType(program.goalType || '')}
                 </p>
               </div>
               <Target className="h-8 w-8 text-muted-foreground" />
@@ -232,15 +234,15 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
 }
 
 // Helper functions
-function getCurrentWeek(program: any): number {
+function getCurrentWeek(program: ProgramWithWeeks): number {
   const now = new Date()
   const start = new Date(program.startDate)
   const diffTime = Math.abs(now.getTime() - start.getTime())
   const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7))
-  return Math.min(diffWeeks, program.weeks?.length || 1)
+  return Math.min(diffWeeks, program.weeks.length || 1)
 }
 
-function isActiveProgram(program: any): boolean {
+function isActiveProgram(program: ProgramWithWeeks): boolean {
   const now = new Date()
   const start = new Date(program.startDate)
   const end = new Date(program.endDate)

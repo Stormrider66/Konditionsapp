@@ -95,10 +95,10 @@ export default async function ProgramPage({ params }: ProgramPageProps) {
         </Button>
       </Link>
 
-      <ProgramOverview program={program as any} />
+      <ProgramOverview program={program} />
 
       <div className="mt-8">
-        <ProgramCalendar program={program as any} />
+        <ProgramCalendar program={program} />
       </div>
     </div>
   )

@@ -83,11 +83,11 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
       restingHR: undefined,
       sleepQuality: 5,
       sleepHours: 7,
-      muscleSoreness: 5,
+      muscleSoreness: 1, // Default to no soreness
       energyLevel: 5,
       mood: 5,
-      stress: 5,
-      injuryPain: 1,
+      stress: 1, // Default to no stress
+      injuryPain: 1, // Default to no pain
       notes: '',
     },
   })
@@ -97,6 +97,13 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
     setReadinessResult(null)
 
     try {
+      // Invert negative scales so backend receives 10 = Good, 1 = Bad
+      // UI: 1 = No pain/stress (Good), 10 = High pain/stress (Bad)
+      // Backend: 10 = No pain/stress (Good), 1 = High pain/stress (Bad)
+      const muscleSorenessScore = 11 - data.muscleSoreness
+      const stressScore = 11 - data.stress
+      const injuryPainScore = 11 - data.injuryPain
+
       const response = await fetch('/api/daily-metrics', {
         method: 'POST',
         headers: {
@@ -110,11 +117,11 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
           restingHR: data.restingHR || null,
           sleepQuality: data.sleepQuality,
           sleepHours: data.sleepHours,
-          muscleSoreness: data.muscleSoreness,
+          muscleSoreness: muscleSorenessScore,
           energyLevel: data.energyLevel,
           mood: data.mood,
-          stress: data.stress,
-          injuryPain: data.injuryPain,
+          stress: stressScore,
+          injuryPain: injuryPainScore,
           notes: data.notes || null,
         }),
       })
@@ -331,7 +338,7 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
                       />
                     </FormControl>
                     <FormDescription>
-                      1 = Extremely sore, 10 = No soreness
+                      1 = No soreness, 10 = Extreme soreness
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -400,7 +407,7 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
                       />
                     </FormControl>
                     <FormDescription>
-                      1 = Very stressed, 10 = No stress
+                      1 = No stress, 10 = Extreme stress
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -423,7 +430,7 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
                       />
                     </FormControl>
                     <FormDescription>
-                      1 = Significant pain, 10 = No pain
+                      1 = No pain, 10 = Extreme pain
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -468,14 +475,34 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
 
       {/* Readiness Result */}
       {readinessResult && (
-        <Alert>
+        <Alert variant={readinessResult.score < 5 ? "destructive" : "default"}>
           <AlertDescription>
-            <div className="space-y-2">
-              <p className="font-semibold">
-                Readiness Score: {readinessResult.score.toFixed(1)}/10
-              </p>
-              <p className="text-sm">Level: {readinessResult.level}</p>
-              <p className="text-sm">{readinessResult.explanation}</p>
+            <div className="space-y-3">
+              <div>
+                <p className="font-semibold text-lg">
+                  Readiness Score: {readinessResult.score.toFixed(1)}/10
+                </p>
+                <p className="font-medium text-muted-foreground">{readinessResult.status}</p>
+              </div>
+              
+              <div className="p-3 bg-background/50 rounded-md">
+                <p className="font-medium mb-1">Rekommendation:</p>
+                <p className="text-sm">{readinessResult.recommendation}</p>
+              </div>
+
+              {(readinessResult.criticalFlags?.length > 0 || readinessResult.warnings?.length > 0) && (
+                <div className="text-sm space-y-1">
+                  <p className="font-medium">Orsaker:</p>
+                  <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+                    {readinessResult.criticalFlags?.map((flag: string, i: number) => (
+                      <li key={`crit-${i}`} className="text-red-500 font-medium">{flag}</li>
+                    ))}
+                    {readinessResult.warnings?.map((warning: string, i: number) => (
+                      <li key={`warn-${i}`}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </AlertDescription>
         </Alert>

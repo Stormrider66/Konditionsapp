@@ -7,8 +7,10 @@ import { Activity, CheckCircle2, Clock, MapPin } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 
+import { DashboardActivityLog } from '@/types/prisma-types'
+
 interface RecentActivityProps {
-  logs: any[]
+  logs: DashboardActivityLog[]
 }
 
 export function RecentActivity({ logs }: RecentActivityProps) {
@@ -51,7 +53,7 @@ export function RecentActivity({ logs }: RecentActivityProps) {
   )
 }
 
-function LogCard({ log }: { log: any }) {
+function LogCard({ log }: { log: DashboardActivityLog }) {
   return (
     <div className="border rounded-lg p-3 space-y-2">
       <div className="flex items-start justify-between">

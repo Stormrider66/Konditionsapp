@@ -5,12 +5,13 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Target, TrendingUp } from 'lucide-react'
+import { Target } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { ActiveProgramSummary } from '@/types/prisma-types'
 
 interface ActiveProgramsProps {
-  programs: any[]
+  programs: ActiveProgramSummary[]
 }
 
 export function ActivePrograms({ programs }: ActiveProgramsProps) {
@@ -49,10 +50,10 @@ export function ActivePrograms({ programs }: ActiveProgramsProps) {
   )
 }
 
-function ProgramCard({ program }: { program: any }) {
+function ProgramCard({ program }: { program: ActiveProgramSummary }) {
   const currentWeek = getCurrentWeek(program)
   const totalWeeks = program.weeks?.length || 0
-  const progressPercent = Math.round((currentWeek / totalWeeks) * 100)
+  const progressPercent = totalWeeks > 0 ? Math.round((currentWeek / totalWeeks) * 100) : 0
   const currentPhase = getCurrentPhase(program)
 
   return (
@@ -91,7 +92,7 @@ function ProgramCard({ program }: { program: any }) {
   )
 }
 
-function getCurrentWeek(program: any): number {
+function getCurrentWeek(program: ActiveProgramSummary): number {
   const now = new Date()
   const start = new Date(program.startDate)
   const diffTime = Math.abs(now.getTime() - start.getTime())
@@ -99,10 +100,10 @@ function getCurrentWeek(program: any): number {
   return Math.min(diffWeeks, program.weeks?.length || 1)
 }
 
-function getCurrentPhase(program: any): string {
+function getCurrentPhase(program: ActiveProgramSummary): string {
   if (!program.weeks || program.weeks.length === 0) return 'BASE'
   const currentWeekNum = getCurrentWeek(program)
-  const currentWeek = program.weeks.find((w: any) => w.weekNumber === currentWeekNum)
+  const currentWeek = program.weeks.find((w) => w.weekNumber === currentWeekNum)
   return currentWeek?.phase || 'BASE'
 }
 

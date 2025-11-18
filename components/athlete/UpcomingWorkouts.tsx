@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { CalendarDays, Clock, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 
 interface UpcomingWorkoutsProps {
-  workouts: any[]
+  workouts: DashboardWorkoutWithContext[]
 }
 
 export function UpcomingWorkouts({ workouts }: UpcomingWorkoutsProps) {
@@ -32,13 +33,13 @@ export function UpcomingWorkouts({ workouts }: UpcomingWorkoutsProps) {
 
   // Group by date
   const workoutsByDate = workouts.reduce((acc, workout) => {
-    const dateKey = format(workout.dayDate, 'yyyy-MM-dd')
+    const dateKey = format(new Date(workout.dayDate || workout.day.date), 'yyyy-MM-dd')
     if (!acc[dateKey]) {
       acc[dateKey] = []
     }
     acc[dateKey].push(workout)
     return acc
-  }, {} as Record<string, any[]>)
+  }, {} as Record<string, DashboardWorkoutWithContext[]>)
 
   return (
     <Card>
@@ -55,7 +56,7 @@ export function UpcomingWorkouts({ workouts }: UpcomingWorkoutsProps) {
               {format(new Date(dateKey), 'EEEE d MMMM', { locale: sv })}
             </h4>
             <div className="space-y-2">
-              {(dayWorkouts as any[]).map((workout) => (
+              {dayWorkouts.map((workout) => (
                 <div
                   key={workout.id}
                   className="border rounded-lg p-3 text-sm space-y-2"
