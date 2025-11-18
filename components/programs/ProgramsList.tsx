@@ -217,7 +217,7 @@ function ProgramCard({ program }: { program: any }) {
             <AlertDialogHeader>
               <AlertDialogTitle>Radera träningsprogram?</AlertDialogTitle>
               <AlertDialogDescription>
-                Är du säker på att du vill radera programmet "{program.name}"?
+                Är du säker på att du vill radera programmet &ldquo;{program.name}&rdquo;?
                 Detta kommer permanent ta bort alla veckor, dagar och pass.
                 Denna åtgärd kan inte ångras.
               </AlertDialogDescription>

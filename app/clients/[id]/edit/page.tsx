@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -51,17 +51,7 @@ export default function EditClientPage() {
   const gender = watch('gender')
   const selectedTeamId = watch('teamId')
 
-  useEffect(() => {
-    const supabase = createSupabaseClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
-
-    fetchClient()
-    fetchTeams()
-  }, [id])
-
-  const fetchClient = async () => {
+  const fetchClient = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/clients/${id}`)
@@ -90,9 +80,9 @@ export default function EditClientPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, reset])
 
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       const response = await fetch('/api/teams')
       const result = await response.json()
@@ -104,7 +94,17 @@ export default function EditClientPage() {
     } finally {
       setTeamsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    const supabase = createSupabaseClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+
+    fetchClient()
+    fetchTeams()
+  }, [fetchClient, fetchTeams])
 
   const onSubmit = async (data: ClientFormData) => {
     try {

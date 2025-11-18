@@ -167,7 +167,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
   useEffect(() => {
     const recommendation = recommendMethodology(form.getValues())
     setMethodologyRecommendation(recommendation)
-  }, [watchedFields])
+  }, [form, watchedFields])
 
   async function onSubmit(data: FormData) {
     setIsSubmitting(true)

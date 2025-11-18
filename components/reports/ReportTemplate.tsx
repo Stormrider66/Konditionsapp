@@ -91,15 +91,40 @@ export function ReportTemplate({
             <p className="text-gray-600 text-sm">Max Puls</p>
             <p className="text-2xl font-bold text-blue-700">{calculations.maxHR} slag/min</p>
           </div>
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <p className="text-gray-600 text-sm">VO₂max</p>
-            <p className="text-2xl font-bold text-green-700">{calculations.vo2max} ml/kg/min</p>
-          </div>
+          {calculations.vo2max && calculations.vo2max > 0 ? (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <p className="text-gray-600 text-sm">VO₂max</p>
+              <p className="text-2xl font-bold text-green-700">{calculations.vo2max} ml/kg/min</p>
+            </div>
+          ) : (
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-300">
+              <p className="text-gray-600 text-sm">VO₂max</p>
+              <p className="text-sm text-gray-500 italic mt-1">Ej mätt under testet</p>
+            </div>
+          )}
           <div className="bg-red-50 p-4 rounded-lg border border-red-200">
             <p className="text-gray-600 text-sm">Max Laktat</p>
             <p className="text-2xl font-bold text-red-700">{calculations.maxLactate} mmol/L</p>
           </div>
         </div>
+
+        {/* Information om testomfång */}
+        {(!calculations.vo2max || calculations.vo2max === 0) && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 mr-2 mt-0.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900">Om detta test</p>
+                <p className="text-sm text-blue-800 mt-1">
+                  Detta test genomfördes utan VO₂-mätning. Laktat- och pulsmätningar är tillräckliga för att beräkna
+                  träningszoner och tröskelvärden. VO₂-mätning krävs endast för VO₂max-bedömning och löpekonomianalys.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Cykel-specifika resultat */}
         {test.testType === 'CYCLING' && calculations.cyclingData && (

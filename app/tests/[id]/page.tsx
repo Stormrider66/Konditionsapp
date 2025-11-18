@@ -1,7 +1,7 @@
 // app/tests/[id]/page.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ReportTemplate } from '@/components/reports/ReportTemplate'
@@ -20,11 +20,7 @@ export default function TestDetailPage() {
   const [client, setClient] = useState<Client | null>(null)
   const [calculations, setCalculations] = useState<TestCalculations | null>(null)
 
-  useEffect(() => {
-    fetchTest()
-  }, [id])
-
-  const fetchTest = async () => {
+  const fetchTest = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/tests/${id}`)
@@ -59,7 +55,11 @@ export default function TestDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    fetchTest()
+  }, [fetchTest])
 
   if (loading) {
     return (

@@ -37,6 +37,20 @@ export {
   calculateCriticalVelocity,
 } from './critical-velocity'
 
+// 20-Minute Time Trial
+export {
+  type TwentyMinTTData,
+  type TwentyMinTTResult,
+  analyzeTwentyMinTT,
+} from './twenty-min-tt'
+
+// Race-based estimation
+export {
+  type RaceBasedEstimationData,
+  type RaceBasedEstimationResult,
+  estimateRaceBasedThreshold,
+} from './race-based'
+
 // Validation
 export {
   type FieldTestValidation,

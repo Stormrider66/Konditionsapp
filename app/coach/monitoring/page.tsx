@@ -48,7 +48,7 @@ export default async function MonitoringPage({ searchParams }: MonitoringPagePro
           <CardHeader>
             <CardTitle>No Athletes</CardTitle>
             <CardDescription>
-              You don't have any athletes yet. Create a client first.
+              You don&apos;t have any athletes yet. Create a client first.
             </CardDescription>
           </CardHeader>
         </Card>

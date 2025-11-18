@@ -1,7 +1,7 @@
 // app/coach/messages/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -79,60 +79,7 @@ export default function CoachMessagesPage() {
   const [replyText, setReplyText] = useState('')
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchMessages()
-  }, [filter])
-
-  useEffect(() => {
-    // Mark messages as read when conversation is opened
-    if (selectedAthleteId) {
-      markConversationAsRead(selectedAthleteId)
-    }
-  }, [selectedAthleteId])
-
-  async function fetchMessages() {
-    try {
-      setLoading(true)
-      const queryParams = new URLSearchParams()
-      if (filter === 'unread') {
-        queryParams.append('filter', 'unread')
-      }
-
-      const response = await fetch(`/api/messages?${queryParams.toString()}`)
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Misslyckades med att hämta meddelanden')
-      }
-
-      const fetchedMessages = result.data as Message[]
-      setMessages(fetchedMessages)
-
-      // Determine current user ID from messages
-      if (fetchedMessages.length > 0) {
-        const firstMessage = fetchedMessages[0]
-        // Current user is either sender or receiver - determine by role
-        const userId = firstMessage.sender.role === 'COACH'
-          ? firstMessage.senderId
-          : firstMessage.receiverId
-        setCurrentUserId(userId)
-      }
-
-      // Group messages by athlete
-      groupMessagesByAthlete(fetchedMessages)
-    } catch (error: any) {
-      console.error('Error fetching messages:', error)
-      toast({
-        title: 'Kunde inte hämta meddelanden',
-        description: error.message,
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function groupMessagesByAthlete(msgs: Message[]) {
+  const groupMessagesByAthlete = useCallback((msgs: Message[]) => {
     const athleteMap = new Map<string, AthleteConversation>()
 
     msgs.forEach((msg) => {
@@ -177,9 +124,55 @@ export default function CoachMessagesPage() {
     if (!selectedAthleteId && conversationsList.length > 0) {
       setSelectedAthleteId(conversationsList[0].athleteId)
     }
-  }
+  }, [selectedAthleteId])
 
-  async function markConversationAsRead(athleteId: string) {
+  const fetchMessages = useCallback(async () => {
+    try {
+      setLoading(true)
+      const queryParams = new URLSearchParams()
+      if (filter === 'unread') {
+        queryParams.append('filter', 'unread')
+      }
+
+      const response = await fetch(`/api/messages?${queryParams.toString()}`)
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Misslyckades med att hämta meddelanden')
+      }
+
+      const fetchedMessages = result.data as Message[]
+      setMessages(fetchedMessages)
+
+      // Determine current user ID from messages
+      if (fetchedMessages.length > 0) {
+        const firstMessage = fetchedMessages[0]
+        // Current user is either sender or receiver - determine by role
+        const userId = firstMessage.sender.role === 'COACH'
+          ? firstMessage.senderId
+          : firstMessage.receiverId
+        setCurrentUserId(userId)
+      }
+
+      // Group messages by athlete
+      groupMessagesByAthlete(fetchedMessages)
+    } catch (error: any) {
+      console.error('Error fetching messages:', error)
+      toast({
+        title: 'Kunde inte hämta meddelanden',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [filter, groupMessagesByAthlete, toast])
+
+  useEffect(() => {
+    fetchMessages()
+  }, [fetchMessages])
+
+  const markConversationAsRead = useCallback(async (athleteId: string) => {
     const conversation = conversations.find((c) => c.athleteId === athleteId)
     if (!conversation) return
 
@@ -200,7 +193,14 @@ export default function CoachMessagesPage() {
 
     // Refresh messages
     await fetchMessages()
-  }
+  }, [conversations, fetchMessages])
+
+  useEffect(() => {
+    // Mark messages as read when conversation is opened
+    if (selectedAthleteId) {
+      markConversationAsRead(selectedAthleteId)
+    }
+  }, [selectedAthleteId, markConversationAsRead])
 
   async function sendMessage() {
     if (!replyText.trim() || !selectedAthleteId) return

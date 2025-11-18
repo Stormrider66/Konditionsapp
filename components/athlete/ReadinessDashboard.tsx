@@ -196,7 +196,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
         <Alert>
           <AlertTitle>Daily Check-In Needed</AlertTitle>
           <AlertDescription>
-            You haven't completed your check-in today. Complete it to get your current readiness
+            You haven&apos;t completed your check-in today. Complete it to get your current readiness
             score.
           </AlertDescription>
         </Alert>

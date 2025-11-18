@@ -27,6 +27,11 @@ enum TestStatus {
   ARCHIVED
 }
 
+enum InclineUnit {
+  PERCENT
+  DEGREES
+}
+
 enum UserRole {
   ADMIN
   COACH
@@ -171,6 +176,7 @@ model Test {
   // Test metadata
   location    String?     // Piteå, Skellefteå, etc.
   testLeader  String?     // Name of test leader
+  inclineUnit InclineUnit @default(PERCENT) // For running tests: % or degrees
 
   // Beräknade värden
   maxHR      Int?

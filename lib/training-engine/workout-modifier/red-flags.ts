@@ -298,7 +298,7 @@ export function estimateRecoveryTime(flags: RedFlagType[]): {
     return {
       minDays: 0,
       maxDays: 0,
-      explanation: 'No recovery needed - you're ready to train',
+      explanation: "No recovery needed - you're ready to train",
     }
   }
 

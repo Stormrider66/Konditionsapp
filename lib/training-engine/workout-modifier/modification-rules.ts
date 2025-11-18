@@ -305,7 +305,7 @@ export function getModificationSummary(
       title: 'Workout as Planned',
       emoji: '✅',
       color: 'green',
-      summary: 'You're ready! Proceed with today's workout as scheduled.',
+      summary: "You're ready! Proceed with today's workout as scheduled.",
     },
     REDUCE_INTENSITY: {
       title: 'Reduced Intensity',

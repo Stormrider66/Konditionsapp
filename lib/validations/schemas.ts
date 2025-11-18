@@ -40,6 +40,7 @@ export const createTestSchema = z.object({
   testType: z.enum(['RUNNING', 'CYCLING', 'SKIING']),
   location: z.string().optional(),
   testLeader: z.string().optional(),
+  inclineUnit: z.enum(['PERCENT', 'DEGREES']).optional(),
   stages: z.array(testStageSchema).min(3, 'Minst 3 steg krävs'),
   notes: z.string().optional(),
 })

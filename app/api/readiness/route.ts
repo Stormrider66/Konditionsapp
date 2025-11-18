@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
-import { analyzeReadinessTrend } from '@/lib/training-engine/monitoring'
+import { analyzeReadinessTrend, type ReadinessScore } from '@/lib/training-engine/monitoring'
 
 /**
  * GET /api/readiness?clientId=xxx
@@ -112,10 +112,7 @@ export async function GET(request: NextRequest) {
     // Calculate trend
     const readinessScores = last7Days
       .filter(m => m.readinessScore !== null)
-      .map(m => ({
-        score: m.readinessScore!,
-        date: m.date,
-      }))
+      .map(metric => mapMetricToReadinessScore(metric))
 
     let trend = null
     if (readinessScores.length >= 3) {
@@ -262,4 +259,31 @@ function calculateCheckInStreak(metrics: Array<{ date: Date }>): number {
   }
 
   return streak
+}
+
+function mapMetricToReadinessScore(metric: {
+  readinessScore: number | null
+  readinessLevel: string | null
+  wellnessScore: number | null
+}): ReadinessScore {
+  const scoreValue = metric.readinessScore ?? 0
+  const status = (metric.readinessLevel as ReadinessScore['status']) || 'GOOD'
+
+  return {
+    score: scoreValue,
+    status,
+    confidence: 'LOW',
+    componentScores: {
+      wellness: metric.wellnessScore ?? scoreValue,
+    },
+    criticalFlags: [],
+    warnings: [],
+    recommendation: '',
+    workoutModification: {
+      action: 'PROCEED',
+      intensityAdjustment: 0,
+      volumeAdjustment: 0,
+      reasoning: 'Trend calculation placeholder',
+    },
+  }
 }

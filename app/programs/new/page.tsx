@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -42,29 +42,15 @@ export default function NewProgramPage() {
   const [targetRaceDate, setTargetRaceDate] = useState('')
   const [notes, setNotes] = useState('')
 
-  useEffect(() => {
-    fetchUser()
-    fetchClients()
-  }, [])
-
-  useEffect(() => {
-    if (selectedClient) {
-      fetchClientTests(selectedClient)
-    } else {
-      setClientTests([])
-      setSelectedTest('')
-    }
-  }, [selectedClient])
-
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     const supabase = createSupabaseClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
     setUser(user)
-  }
+  }, [])
 
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/clients')
@@ -83,9 +69,9 @@ export default function NewProgramPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
-  const fetchClientTests = async (clientId: string) => {
+  const fetchClientTests = useCallback(async (clientId: string) => {
     try {
       const response = await fetch(`/api/clients/${clientId}`)
       const result = await response.json()
@@ -103,7 +89,21 @@ export default function NewProgramPage() {
     } catch (error) {
       console.error('Error fetching tests:', error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchUser()
+    fetchClients()
+  }, [fetchClients, fetchUser])
+
+  useEffect(() => {
+    if (selectedClient) {
+      fetchClientTests(selectedClient)
+    } else {
+      setClientTests([])
+      setSelectedTest('')
+    }
+  }, [fetchClientTests, selectedClient])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

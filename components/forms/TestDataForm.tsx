@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2, Save, Download } from 'lucide-react'
+import { Plus, Trash2, Save, Download, Info } from 'lucide-react'
 import { createTestSchema, CreateTestFormData } from '@/lib/validations/schemas'
 import { TestType, TestTemplate } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
   Dialog,
   DialogContent,
@@ -34,12 +35,14 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     handleSubmit,
     getValues,
     reset,
+    watch,
     formState: { errors },
   } = useForm<CreateTestFormData>({
     resolver: zodResolver(createTestSchema),
     defaultValues: {
       testType,
       testDate: new Date().toISOString().split('T')[0],
+      inclineUnit: 'PERCENT',
       stages: [
         {
           duration: 4,
@@ -76,6 +79,9 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     control,
     name: 'stages',
   })
+
+  const inclineUnit = watch('inclineUnit') || 'PERCENT'
+  const inclineLabel = inclineUnit === 'DEGREES' ? 'Lutning (°)' : 'Lutning (%)'
 
   const [templates, setTemplates] = useState<TestTemplate[]>([])
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -189,6 +195,24 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
         {errors.testDate && <p className="text-sm text-red-600">{errors.testDate.message}</p>}
       </div>
 
+      {/* Incline Unit Selector (only for running tests) */}
+      {testType === 'RUNNING' && (
+        <div className="space-y-2">
+          <Label htmlFor="inclineUnit">Lutningsenhet</Label>
+          <select
+            id="inclineUnit"
+            {...register('inclineUnit')}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="PERCENT">Procent (%)</option>
+            <option value="DEGREES">Grader (°)</option>
+          </select>
+          <p className="text-xs text-gray-500">
+            Välj om lutning mäts i procent eller grader
+          </p>
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <h3 className="text-lg font-semibold">Teststeg</h3>
@@ -224,6 +248,45 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
         </div>
         {errors.stages && <p className="text-sm text-red-600">{errors.stages.message}</p>}
 
+        {/* D-max Guidelines */}
+        <Alert className="bg-blue-50 border-blue-200">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-900 font-semibold">
+            Krav för D-max laktattröskelberäkning
+          </AlertTitle>
+          <AlertDescription className="text-blue-800 text-sm space-y-2 mt-2">
+            <p className="font-medium">För optimal tröskelberäkning behövs:</p>
+            <ul className="list-disc list-inside space-y-1 ml-2">
+              <li>
+                <strong>Minst 4 teststeg</strong> - fler steg ger bättre precision (5-7 steg rekommenderas)
+              </li>
+              <li>
+                <strong>Stigande laktatvärden</strong> - laktat ska öka mellan stegen (undvik större minskningar)
+              </li>
+              <li>
+                <strong>Brett intensitetsområde</strong> - från lätt aerob (1-2 mmol/L) till anaerob (4-6 mmol/L)
+              </li>
+              <li>
+                <strong>Jämna stegökningar</strong> - helst lika stor ökning mellan varje steg (hastighet/watt)
+              </li>
+              <li>
+                <strong>Komplett data</strong> - fyll i hastighet/watt, puls och laktat för varje steg
+              </li>
+              <li className="text-xs text-blue-700">
+                <strong>VO₂ är valfritt</strong> - trösklar kan beräknas utan VO₂-mätning
+              </li>
+            </ul>
+            <div className="mt-3 pt-2 border-t border-blue-200">
+              <p className="font-medium mb-1">Konfidensgrad baseras på:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2 text-xs">
+                <li>Hög konfidens: R² ≥ 0.95 och tröskel 2-4 mmol/L</li>
+                <li>Medel konfidens: R² ≥ 0.90 eller tröskel 1.5-4.5 mmol/L</li>
+                <li>Låg konfidens: R² &lt; 0.90 - faller tillbaka på 4.0 mmol/L-metoden</li>
+              </ul>
+            </div>
+          </AlertDescription>
+        </Alert>
+
         {fields.map((field, index) => (
           <Card key={field.id}>
             <CardContent className="p-4">
@@ -257,7 +320,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor={`stages.${index}.incline`} className="text-xs">
-                        Lutning (%)
+                        {inclineLabel}
                       </Label>
                       <Input
                         id={`stages.${index}.incline`}
@@ -329,12 +392,13 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
 
                 <div className="space-y-1">
                   <Label htmlFor={`stages.${index}.vo2`} className="text-xs">
-                    VO₂ (ml/kg/min)
+                    VO₂ (ml/kg/min) <span className="text-gray-400 font-normal">(valfritt)</span>
                   </Label>
                   <Input
                     id={`stages.${index}.vo2`}
                     type="number"
                     step="0.1"
+                    placeholder="Valfritt"
                     {...register(`stages.${index}.vo2`, { valueAsNumber: true })}
                   />
                 </div>

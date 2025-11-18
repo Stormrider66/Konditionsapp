@@ -1,6 +1,6 @@
 # Training Engine Implementation Status
 
-**Last Updated:** 2025-11-15 (Phase 12 COMPLETE! 🎉🎉🎉)
+**Last Updated:** 2025-11-18 (API alignment + readiness fixes ✅)
 **Current Phase:** Phase 12 COMPLETE (100%) - Integration & Testing
 **Next Action:** Phase 13 (E2E Testing Execution) OR Phase 14 (Production Deployment) - OPTIONAL
 **Total Phases:** 18 (expanded from 14)
@@ -17,6 +17,22 @@
 2. **Read MASTER_PLAN.md** for complete overview
 3. **Start with Phase 1** - Database Foundation is critical
 4. **Reference phase documents** as you implement each phase
+
+### Current Session Summary (2025-11-18 - API Alignment & Documentation)
+
+✅ **Knowledge captured:** Added `docs/training-engine/code-review-2025-11-18.md` with a full audit of @training-engine, outstanding gaps, and implementation priorities so future sessions retain the findings.
+
+✅ **Workout modification fixes:** `app/api/workouts/modify/route.ts` now imports `modifyWorkout`, queries `dailyMetrics` by `clientId`, hydrates readiness data from actual fields, and persists `WorkoutModification` records with the correct Prisma shape (factors, methodology, planned/modified details).
+
+✅ **Monitoring data pipeline:** `app/api/daily-metrics/route.ts` now feeds full `HRVMeasurement`/`RHRMeasurement` objects (with required quality/duration/position data) into `establishHRVBaseline`/`establishRHRBaseline`, eliminating the shape mismatch flagged in review.
+
+✅ **Field test coverage:** Implemented the missing Phase 4 tests (`lib/training-engine/field-tests/twenty-min-tt.ts`, `race-based.ts`), exported them via the index, added schemas/handlers in `app/api/field-tests/route.ts`, and corrected persistence (`clientId`, `results`, LT1/LT2 fields).
+
+✅ **Injury assessment persistence:** `app/api/injury/assess/route.ts` now stores assessments using `clientId` plus all schema-required pain/protocol fields, ensuring the University of Delaware rules surface downstream.
+
+✅ **Readiness trend data shape:** `app/api/readiness/route.ts` now builds full `ReadinessScore` objects before handing data to `analyzeReadinessTrend`, preventing runtime type errors.
+
+➡️ **Next focus:** Expose the remaining training-engine modules via `lib/training-engine/index.ts` (or update docs) and wire the Phase 12 multi-system validation cascade into a server action so the documented safety stack actually runs.
 
 ### Current Session Summary (2025-11-15 - Phase 12 Integration & Testing Completion)
 
@@ -1960,6 +1976,7 @@ After each work session, update:
 | 2025-11-15 (Very Late Evening) | 💡 **Impact:** All training algorithms now accessible via type-safe REST APIs! | Claude Code |
 | 2025-11-15 (Very Late Evening) | 🎯 **BACKEND COMPLETE!** Algorithms + APIs ready for UI integration (Phases 10/11) | Claude Code |
 | 2025-11-15 (Very Late Evening) | 🚀 **Next Steps:** Phase 10 (Coach UI) OR Phase 11 (Athlete UI) - Build user interfaces! | Claude Code |
+| 2025-11-18 | 📋 Captured @training-engine audit + fixed workout modification, daily metrics, field-tests, injury assessment, and readiness APIs to match schemas | GPT-5.1 Codex |
 
 ---
 

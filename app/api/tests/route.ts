@@ -137,6 +137,7 @@ export async function POST(request: NextRequest) {
         testType: data.testType,
         location: (data as any).location || null,
         testLeader: (data as any).testLeader || null,
+        inclineUnit: (data as any).inclineUnit || 'PERCENT',
         notes: data.notes || null,
         testStages: {
           create: data.stages.map((stage, index) => ({

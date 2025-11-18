@@ -1,10 +1,163 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ReportTemplate } from '@/components/reports/ReportTemplate'
 import { PDFExportButton } from '@/components/reports/PDFExportButton'
 import { performAllCalculations } from '@/lib/calculations'
 import { Test, Client, TestStage, TestCalculations, TestType } from '@/types'
+
+const sampleClients: Record<'running' | 'cycling', Client> = {
+  running: {
+    id: '1',
+    userId: 'demo-user',
+    name: 'Åsa Östergren',
+    gender: 'FEMALE',
+    birthDate: new Date('1990-05-15'),
+    height: 170,
+    weight: 62,
+    email: 'asa.ostergren@example.com',
+    phone: '070-123 45 67',
+    notes: 'Erfaren löpare, mål: förbättra maraton-tid',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  cycling: {
+    id: '2',
+    userId: 'demo-user',
+    name: 'Erik Ängström',
+    gender: 'MALE',
+    birthDate: new Date('1985-11-22'),
+    height: 182,
+    weight: 78,
+    email: 'erik.angstrom@example.com',
+    phone: '070-987 65 43',
+    notes: 'Tävlingscyklist, tränar 12h/vecka',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+}
+
+const sampleRunningStages: TestStage[] = [
+  {
+    id: '1',
+    testId: 'test-1',
+    sequence: 0,
+    duration: 4,
+    heartRate: 145,
+    lactate: 1.5,
+    vo2: 27.3,
+    speed: 8.0,
+  },
+  {
+    id: '2',
+    testId: 'test-1',
+    sequence: 1,
+    duration: 4,
+    heartRate: 158,
+    lactate: 2.1,
+    vo2: 35.2,
+    speed: 10.0,
+  },
+  {
+    id: '3',
+    testId: 'test-1',
+    sequence: 2,
+    duration: 4,
+    heartRate: 173,
+    lactate: 3.8,
+    vo2: 42.9,
+    speed: 12.0,
+  },
+  {
+    id: '4',
+    testId: 'test-1',
+    sequence: 3,
+    duration: 4,
+    heartRate: 182,
+    lactate: 6.2,
+    vo2: 47.8,
+    speed: 13.5,
+  },
+  {
+    id: '5',
+    testId: 'test-1',
+    sequence: 4,
+    duration: 3,
+    heartRate: 191,
+    lactate: 14.0,
+    vo2: 49.2,
+    speed: 14.5,
+  },
+]
+
+const sampleCyclingStages: TestStage[] = [
+  {
+    id: '1',
+    testId: 'test-2',
+    sequence: 0,
+    duration: 5,
+    heartRate: 120,
+    lactate: 1.2,
+    vo2: 25.0,
+    power: 150,
+    cadence: 85,
+  },
+  {
+    id: '2',
+    testId: 'test-2',
+    sequence: 1,
+    duration: 5,
+    heartRate: 135,
+    lactate: 1.8,
+    vo2: 32.5,
+    power: 200,
+    cadence: 90,
+  },
+  {
+    id: '3',
+    testId: 'test-2',
+    sequence: 2,
+    duration: 5,
+    heartRate: 150,
+    lactate: 2.5,
+    vo2: 40.2,
+    power: 250,
+    cadence: 92,
+  },
+  {
+    id: '4',
+    testId: 'test-2',
+    sequence: 3,
+    duration: 5,
+    heartRate: 165,
+    lactate: 4.1,
+    vo2: 48.7,
+    power: 300,
+    cadence: 95,
+  },
+  {
+    id: '5',
+    testId: 'test-2',
+    sequence: 4,
+    duration: 5,
+    heartRate: 178,
+    lactate: 7.8,
+    vo2: 55.3,
+    power: 350,
+    cadence: 98,
+  },
+  {
+    id: '6',
+    testId: 'test-2',
+    sequence: 5,
+    duration: 3,
+    heartRate: 186,
+    lactate: 12.5,
+    vo2: 59.1,
+    power: 380,
+    cadence: 100,
+  },
+]
 
 export default function PDFDemoPage() {
   const [reportData, setReportData] = useState<{
@@ -16,161 +169,7 @@ export default function PDFDemoPage() {
   const [testType, setTestType] = useState<TestType>('RUNNING')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Sample data med svenska tecken för att testa åäö
-  const sampleClients = {
-    running: {
-      id: '1',
-      userId: 'demo-user',
-      name: 'Åsa Östergren',
-      gender: 'FEMALE' as const,
-      birthDate: new Date('1990-05-15'),
-      height: 170,
-      weight: 62,
-      email: 'asa.ostergren@example.com',
-      phone: '070-123 45 67',
-      notes: 'Erfaren löpare, mål: förbättra maraton-tid',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-    cycling: {
-      id: '2',
-      userId: 'demo-user',
-      name: 'Erik Ängström',
-      gender: 'MALE' as const,
-      birthDate: new Date('1985-11-22'),
-      height: 182,
-      weight: 78,
-      email: 'erik.angstrom@example.com',
-      phone: '070-987 65 43',
-      notes: 'Tävlingscyklist, tränar 12h/vecka',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  }
-
-  const sampleRunningStages: TestStage[] = [
-    {
-      id: '1',
-      testId: 'test-1',
-      sequence: 0,
-      duration: 4,
-      heartRate: 145,
-      lactate: 1.5,
-      vo2: 27.3,
-      speed: 8.0,
-    },
-    {
-      id: '2',
-      testId: 'test-1',
-      sequence: 1,
-      duration: 4,
-      heartRate: 158,
-      lactate: 2.1,
-      vo2: 35.2,
-      speed: 10.0,
-    },
-    {
-      id: '3',
-      testId: 'test-1',
-      sequence: 2,
-      duration: 4,
-      heartRate: 173,
-      lactate: 3.8,
-      vo2: 42.9,
-      speed: 12.0,
-    },
-    {
-      id: '4',
-      testId: 'test-1',
-      sequence: 3,
-      duration: 4,
-      heartRate: 182,
-      lactate: 6.2,
-      vo2: 47.8,
-      speed: 13.5,
-    },
-    {
-      id: '5',
-      testId: 'test-1',
-      sequence: 4,
-      duration: 3,
-      heartRate: 191,
-      lactate: 14.0,
-      vo2: 49.2,
-      speed: 14.5,
-    },
-  ]
-
-  const sampleCyclingStages: TestStage[] = [
-    {
-      id: '1',
-      testId: 'test-2',
-      sequence: 0,
-      duration: 5,
-      heartRate: 120,
-      lactate: 1.2,
-      vo2: 25.0,
-      power: 150,
-      cadence: 85,
-    },
-    {
-      id: '2',
-      testId: 'test-2',
-      sequence: 1,
-      duration: 5,
-      heartRate: 135,
-      lactate: 1.8,
-      vo2: 32.5,
-      power: 200,
-      cadence: 90,
-    },
-    {
-      id: '3',
-      testId: 'test-2',
-      sequence: 2,
-      duration: 5,
-      heartRate: 150,
-      lactate: 2.5,
-      vo2: 40.2,
-      power: 250,
-      cadence: 92,
-    },
-    {
-      id: '4',
-      testId: 'test-2',
-      sequence: 3,
-      duration: 5,
-      heartRate: 165,
-      lactate: 4.1,
-      vo2: 48.7,
-      power: 300,
-      cadence: 95,
-    },
-    {
-      id: '5',
-      testId: 'test-2',
-      sequence: 4,
-      duration: 5,
-      heartRate: 178,
-      lactate: 7.8,
-      vo2: 55.3,
-      power: 350,
-      cadence: 98,
-    },
-    {
-      id: '6',
-      testId: 'test-2',
-      sequence: 5,
-      duration: 3,
-      heartRate: 186,
-      lactate: 12.5,
-      vo2: 59.1,
-      power: 380,
-      cadence: 100,
-    },
-  ]
-
-  const generateReport = async (type: TestType) => {
+  const generateReport = useCallback(async (type: TestType) => {
     setIsLoading(true)
     setTestType(type)
 
@@ -204,12 +203,12 @@ export default function PDFDemoPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   // Generera löptest som default
   useEffect(() => {
     generateReport('RUNNING')
-  }, [])
+  }, [generateReport])
 
   return (
     <div className="min-h-screen bg-gray-50">

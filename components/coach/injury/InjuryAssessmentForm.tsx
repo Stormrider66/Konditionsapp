@@ -142,7 +142,7 @@ export function InjuryAssessmentForm({ athletes, onAssessmentComplete }: InjuryA
                         <SelectItem value="PLANTAR_FASCIITIS">Plantar Fasciitis</SelectItem>
                         <SelectItem value="ACHILLES_TENDINOPATHY">Achilles Tendinopathy</SelectItem>
                         <SelectItem value="IT_BAND_SYNDROME">IT Band Syndrome</SelectItem>
-                        <SelectItem value="PATELLOFEMORAL_PAIN">Patellofemoral Pain (Runner's Knee)</SelectItem>
+                        <SelectItem value="PATELLOFEMORAL_PAIN">Patellofemoral Pain (Runner&apos;s Knee)</SelectItem>
                         <SelectItem value="SHIN_SPLINTS">Shin Splints</SelectItem>
                         <SelectItem value="HAMSTRING_STRAIN">Hamstring Strain</SelectItem>
                         <SelectItem value="HIP_FLEXOR_STRAIN">Hip Flexor Strain</SelectItem>

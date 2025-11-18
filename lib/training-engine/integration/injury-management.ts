@@ -106,8 +106,13 @@ export interface CoachNotification {
  */
 export async function processInjuryDetection(
   injury: InjuryDetection,
-  prisma: PrismaClient
+  prisma: PrismaClient,
+  options?: {
+    persistRecord?: boolean
+  }
 ): Promise<InjuryResponse> {
+
+  const shouldPersistRecord = options?.persistRecord !== false;
 
   // Step 1: Apply University of Delaware pain rules
   const immediateAction = determineImmediateAction(injury.painLevel, injury.painTiming);
@@ -153,7 +158,9 @@ export async function processInjuryDetection(
   );
 
   // Step 8: Persist injury record and modifications
-  await persistInjuryRecord(injury, prisma);
+  if (shouldPersistRecord) {
+    await persistInjuryRecord(injury, prisma);
+  }
   await applyWorkoutModifications(workoutModifications, prisma);
 
   return {

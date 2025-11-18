@@ -236,7 +236,7 @@ function CriticalVelocityResults({ results }: { results: any }) {
               <p className="text-2xl font-bold">{results.criticalVelocity?.toFixed(2)} m/s</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">D' (Anaerobic Capacity)</p>
+              <p className="text-sm text-muted-foreground">D&apos; (Anaerobic Capacity)</p>
               <p className="text-2xl font-bold">{results.dPrime?.toFixed(0)} m</p>
             </div>
             <div>

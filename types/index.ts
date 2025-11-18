@@ -4,6 +4,7 @@
 export type Gender = 'MALE' | 'FEMALE'
 export type TestType = 'RUNNING' | 'CYCLING' | 'SKIING'
 export type TestStatus = 'DRAFT' | 'COMPLETED' | 'ARCHIVED'
+export type InclineUnit = 'PERCENT' | 'DEGREES'
 export type UserRole = 'ADMIN' | 'COACH' | 'ATHLETE'
 export type WorkoutType = 'RUNNING' | 'STRENGTH' | 'PLYOMETRIC' | 'CORE' | 'RECOVERY' | 'CYCLING' | 'SKIING' | 'OTHER'
 export type WorkoutIntensity = 'RECOVERY' | 'EASY' | 'MODERATE' | 'THRESHOLD' | 'INTERVAL' | 'MAX'
@@ -58,6 +59,7 @@ export interface Test {
   status: TestStatus
   location?: string
   testLeader?: string
+  inclineUnit?: InclineUnit
   maxHR?: number
   maxLactate?: number
   vo2max?: number

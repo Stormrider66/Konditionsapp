@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -33,16 +33,7 @@ export default function TeamsPage() {
   const [deleting, setDeleting] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    const supabase = createSupabaseClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
-
-    fetchTeams()
-  }, [])
-
-  const fetchTeams = async () => {
+  const fetchTeams = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/teams')
@@ -67,7 +58,16 @@ export default function TeamsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    const supabase = createSupabaseClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+
+    fetchTeams()
+  }, [fetchTeams])
 
   const handleTeamSuccess = (team: Team) => {
     if (editingTeam) {

@@ -1,7 +1,7 @@
 // app/athlete/messages/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -60,18 +60,7 @@ export default function AthleteMessagesPage() {
   const [coachInfo, setCoachInfo] = useState<{ id: string; name: string; email: string } | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchMessages()
-  }, [])
-
-  useEffect(() => {
-    // Mark coach messages as read when page loads
-    if (messages.length > 0) {
-      markMessagesAsRead()
-    }
-  }, [messages])
-
-  async function fetchMessages() {
+  const fetchMessages = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/messages')
@@ -115,11 +104,15 @@ export default function AthleteMessagesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
 
-  async function markMessagesAsRead() {
+  useEffect(() => {
+    fetchMessages()
+  }, [fetchMessages])
+
+  const markMessagesAsRead = useCallback(async (messagesToProcess: Message[]) => {
     // Mark all unread messages from coach as read
-    const unreadCoachMessages = messages.filter(
+    const unreadCoachMessages = messagesToProcess.filter(
       (msg) => !msg.isRead && (msg.sender.role === 'COACH' || msg.sender.role === 'ADMIN')
     )
 
@@ -137,7 +130,12 @@ export default function AthleteMessagesPage() {
     if (unreadCoachMessages.length > 0) {
       await fetchMessages()
     }
-  }
+  }, [fetchMessages])
+
+  useEffect(() => {
+    if (messages.length === 0) return
+    markMessagesAsRead(messages)
+  }, [messages, markMessagesAsRead])
 
   async function sendMessage() {
     if (!replyText.trim() || !coachInfo) return

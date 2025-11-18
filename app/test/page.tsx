@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { TestDataForm } from '@/components/forms/TestDataForm'
 import { ReportTemplate } from '@/components/reports/ReportTemplate'
@@ -42,15 +42,7 @@ export default function TestPage() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchClients()
-    const supabase = createSupabaseClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
-  }, [])
-
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     try {
       const response = await fetch('/api/clients')
       const data = await response.json()
@@ -69,7 +61,15 @@ export default function TestPage() {
       })
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    fetchClients()
+    const supabase = createSupabaseClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+  }, [fetchClients])
 
   const selectedClient = clients.find((c) => c.id === selectedClientId)
 

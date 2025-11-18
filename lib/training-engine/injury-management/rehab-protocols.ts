@@ -20,7 +20,7 @@ import { RehabProtocol, RehabPhase, InjuryType } from './types';
 export function getRehabProtocol(injuryType: string, severity?: string): RehabProtocol {
   switch (injuryType) {
     case 'PLANTAR_FASCIITIS':
-      return getPlantar FasciitisProtocol();
+      return getPlantarFasciitisProtocol();
     case 'ACHILLES_TENDINOPATHY':
       return getAchillesProtocol();
     case 'IT_BAND_SYNDROME':
@@ -44,7 +44,7 @@ export function getRehabProtocol(injuryType: string, severity?: string): RehabPr
  * Plantar Fasciitis Protocol (6-12 weeks)
  * 3-phase approach: Acute → Subacute → Strengthening
  */
-function getPlantar FasciitisProtocol(): RehabProtocol {
+function getPlantarFasciitisProtocol(): RehabProtocol {
   return {
     injuryType: 'PLANTAR_FASCIITIS',
     totalDuration: '6-12 weeks',

@@ -1,7 +1,7 @@
 // app/clients/[id]/page.tsx
 'use client'
 
-import { useEffect, useState, useMemo, Fragment } from 'react'
+import { useEffect, useState, useMemo, Fragment, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -67,21 +67,15 @@ export default function ClientDetailPage() {
 
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchClient()
-    fetchUser()
-    fetchPrograms()
-  }, [id])
-
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     const supabase = createSupabaseClient()
     const {
       data: { user },
     } = await supabase.auth.getUser()
     setUser(user)
-  }
+  }, [])
 
-  const fetchClient = async () => {
+  const fetchClient = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/clients/${id}`)
@@ -98,9 +92,9 @@ export default function ClientDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
-  const fetchPrograms = async () => {
+  const fetchPrograms = useCallback(async () => {
     try {
       setProgramsLoading(true)
       const response = await fetch(`/api/programs?clientId=${id}`)
@@ -118,7 +112,13 @@ export default function ClientDetailPage() {
     } finally {
       setProgramsLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    fetchClient()
+    fetchUser()
+    fetchPrograms()
+  }, [fetchClient, fetchPrograms, fetchUser])
 
   const calculateAge = (birthDate: Date) => {
     const today = new Date()

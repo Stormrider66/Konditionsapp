@@ -7,10 +7,14 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { validateRequest, successResponse, handleApiError, requireAuth } from '@/lib/api/utils';
-import { assessPain } from '@/lib/training-engine/injury-management/pain-assessment';
+import { assessPainAndRecommend } from '@/lib/training-engine/injury-management/pain-assessment';
 import { checkACWRRisk } from '@/lib/training-engine/injury-management/acwr-monitoring';
-import { getReturnToRunningProtocol } from '@/lib/training-engine/injury-management/return-protocols';
+import { generateReturnProtocol } from '@/lib/training-engine/injury-management/return-protocols';
 import { getRehabProtocol } from '@/lib/training-engine/injury-management/rehab-protocols';
+import {
+  processInjuryDetection,
+  type InjuryDetection,
+} from '@/lib/training-engine/integration/injury-management';
 import prisma from '@/lib/prisma';
 
 const requestSchema = z.object({
@@ -34,6 +38,8 @@ const requestSchema = z.object({
   currentACWR: z.number().optional()
 });
 
+type InjuryAssessmentRequest = z.infer<typeof requestSchema>;
+
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
@@ -52,14 +58,19 @@ export async function POST(request: NextRequest) {
       currentACWR
     } = validation.data;
 
-    // Assess pain using University of Delaware rules
-    const painAssessment = assessPain({
-      currentPain: painLevel,
-      painDuringActivity: painTiming === 'DURING' || painTiming === 'CONSTANT' ? painLevel : 0,
-      painAfterActivity: painTiming === 'AFTER' || painTiming === 'CONSTANT' ? painLevel : 0,
-      morningPain: painTiming === 'CONSTANT' ? painLevel : painLevel * 0.5,
-      daysSincePainStarted: symptomDuration
-    });
+    const sorenessRules = buildSorenessFlags(painTiming)
+    const painDecision = assessPainAndRecommend(
+      {
+        painLevel,
+        location: injuryType,
+        timing: mapPainTiming(painTiming),
+        gaitAffected: false,
+        swelling: false,
+        rangeOfMotion: 'NORMAL',
+        functionalImpact: deriveFunctionalImpact(painLevel),
+      },
+      sorenessRules
+    );
 
     // Check ACWR risk if available
     let acwrRisk = null;
@@ -70,40 +81,68 @@ export async function POST(request: NextRequest) {
     // Get rehab protocol for specific injury
     const rehabProtocol = getRehabProtocol(injuryType);
 
-    // Get return-to-running protocol
-    const returnProtocol = getReturnToRunningProtocol({
-      injuryType,
-      severity: painLevel > 7 ? 'SEVERE' : painLevel > 4 ? 'MODERATE' : 'MILD',
-      daysSinceInjury: symptomDuration
-    });
+    const severity = painDecision.severity;
+    const severityLevel = painLevel > 7 ? 'SEVERE' : painLevel > 4 ? 'MODERATE' : 'MILD';
+    const returnProtocol = generateReturnProtocol(injuryType, severityLevel, 40);
 
-    // Determine overall severity
-    const severity = painLevel > 7 || painAssessment.decision === 'STOP' ? 'SEVERE' :
-                     painLevel > 4 ? 'MODERATE' : 'MILD';
+    const recommendedProtocol = {
+      rehab: {
+        name: rehabProtocol.name,
+        phases: rehabProtocol.phases.map(phase => ({
+          name: phase.name,
+          duration: phase.duration,
+          focus: phase.goals,
+        })),
+        totalDuration: rehabProtocol.totalDuration,
+      },
+      returnToRun: returnProtocol,
+      modifications: painDecision.modifications ?? [],
+    }
 
-    // Store injury assessment
+    const sorenessDetails = mapSorenessFlagsToModel(sorenessRules)
+
     const stored = await prisma.injuryAssessment.create({
       data: {
-        athleteId,
-        userId: user.id,
+        clientId: athleteId,
+        painLevel,
+        painTiming: mapPainTimingLabel(painTiming),
+        painDuringWarmup: sorenessDetails.painDuringWarmup,
+        painContinuesThroughout: sorenessDetails.painContinuesThroughout,
+        painDisappearsAfterWarmup: sorenessDetails.painDisappearsAfterWarmup,
+        painRedevelopsLater: sorenessDetails.painRedevelopsLater,
+        painPersists1HourPost: sorenessDetails.painPersists1HourPost,
+        gaitAffected: false,
+        swelling: false,
+        rangeOfMotion: 'NORMAL',
+        weightBearing: null,
+        assessment: painDecision.decision,
+        status: 'ACTIVE',
         injuryType,
         severity,
-        painLevel,
-        decision: painAssessment.decision,
-        reasoning: painAssessment.reasoning,
-        assessedAt: new Date()
+        phase: painLevel > 7 ? 'ACUTE' : painLevel > 4 ? 'SUBACUTE' : 'CHRONIC',
+        recommendedProtocol,
+        estimatedTimeOff: painDecision.estimatedTimeOff,
+        notes: buildAssessmentNotes(functionalLimitations, previousTreatment),
       }
+    });
+
+    const cascade = await runIntegrationCascade({
+      athleteId,
+      injuryType,
+      painLevel,
+      painTiming,
+      acwrRisk,
     });
 
     return successResponse({
       assessment: stored,
-      decision: painAssessment.decision,
+      decision: painDecision.decision,
       severity,
       painAssessment: {
         currentPain: painLevel,
         timing: painTiming,
-        decision: painAssessment.decision,
-        reasoning: painAssessment.reasoning
+        decision: painDecision.decision,
+        reasoning: painDecision.reasoning
       },
       acwrRisk: acwrRisk ? {
         zone: acwrRisk.zone,
@@ -120,30 +159,38 @@ export async function POST(request: NextRequest) {
         totalDuration: rehabProtocol.totalWeeks
       },
       returnToRunning: {
-        currentPhase: returnProtocol.phases[0].name,
-        estimatedWeeks: returnProtocol.totalWeeks,
-        phases: returnProtocol.phases.map(p => ({
-          name: p.name,
-          duration: p.durationWeeks,
-          description: p.criteria
-        }))
+        nextPhase: returnProtocol[0]?.phase ?? null,
+        phases: returnProtocol
       },
-      recommendations: generateInjuryRecommendations(painAssessment, severity, injuryType)
+      recommendations: generateInjuryRecommendations(painDecision, severity, injuryType),
+      cascade,
     }, 'Injury assessed successfully', 201);
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-function generateInjuryRecommendations(painAssessment: any, severity: string, injuryType: string): string[] {
+function generateInjuryRecommendations(painDecision: any, severity: string, injuryType: string): string[] {
   const recs: string[] = [];
 
-  if (painAssessment.decision === 'STOP') {
-    recs.push('🛑 STOP training immediately');
-    recs.push('Consult healthcare professional');
-  } else if (painAssessment.decision === 'MODIFY') {
-    recs.push('⚠️ Modify training - reduce intensity and volume');
-    recs.push('Monitor pain closely - stop if it increases');
+  switch (painDecision.decision) {
+    case 'STOP_IMMEDIATELY':
+    case 'MEDICAL_EVALUATION':
+      recs.push('🛑 Stop training immediately');
+      recs.push('Schedule medical evaluation');
+      break;
+    case 'REST_2_3_DAYS':
+    case 'REST_1_DAY':
+      recs.push('⚠️ Rest recommended before resuming activity');
+      recs.push('Introduce cross-training alternatives if pain-free');
+      break;
+    case 'MODIFY':
+      recs.push('⚠️ Modify training - reduce intensity and volume');
+      recs.push('Monitor pain closely - stop if it increases');
+      break;
+    default:
+      recs.push('Continue with caution and monitor symptoms daily');
+      break;
   }
 
   if (severity === 'SEVERE') {
@@ -171,4 +218,146 @@ function generateInjuryRecommendations(painAssessment: any, severity: string, in
   }
 
   return recs;
+}
+
+function mapPainTiming(value: 'BEFORE' | 'DURING' | 'AFTER' | 'CONSTANT') {
+  switch (value) {
+    case 'BEFORE':
+      return 'DURING_WARMUP';
+    case 'DURING':
+      return 'DURING_WORKOUT';
+    case 'AFTER':
+      return 'POST_WORKOUT';
+    case 'CONSTANT':
+    default:
+      return 'CONSTANT';
+  }
+}
+
+function mapPainTimingLabel(value: 'BEFORE' | 'DURING' | 'AFTER' | 'CONSTANT') {
+  switch (value) {
+    case 'BEFORE':
+      return 'DURING_WARMUP';
+    case 'DURING':
+      return 'DURING_WORKOUT';
+    case 'AFTER':
+      return 'REDEVELOPS_LATER';
+    case 'CONSTANT':
+    default:
+      return 'CONSTANT';
+  }
+}
+
+function buildSorenessFlags(timing: 'BEFORE' | 'DURING' | 'AFTER' | 'CONSTANT') {
+  return {
+    painDuringWarmup: timing === 'BEFORE' || timing === 'DURING' || timing === 'CONSTANT',
+    painContinuesThroughout: timing === 'DURING' || timing === 'CONSTANT',
+    painDisappearsAfterWarmup: timing === 'BEFORE',
+    painRedevelopsLater: timing === 'AFTER',
+    painPersists1HourPost: timing === 'CONSTANT' || timing === 'AFTER',
+    painAltersGait: false,
+  };
+}
+
+function mapSorenessFlagsToModel(flags: ReturnType<typeof buildSorenessFlags>) {
+  return {
+    painDuringWarmup: flags.painDuringWarmup,
+    painContinuesThroughout: flags.painContinuesThroughout,
+    painDisappearsAfterWarmup: flags.painDisappearsAfterWarmup,
+    painRedevelopsLater: flags.painRedevelopsLater,
+    painPersists1HourPost: flags.painPersists1HourPost,
+  };
+}
+
+function deriveFunctionalImpact(painLevel: number): 'NONE' | 'MILD' | 'MODERATE' | 'SEVERE' {
+  if (painLevel >= 7) return 'SEVERE';
+  if (painLevel >= 5) return 'MODERATE';
+  if (painLevel >= 3) return 'MILD';
+  return 'NONE';
+}
+
+function buildAssessmentNotes(limitations?: string[], treatments?: string[]) {
+  const notes: string[] = [];
+  if (limitations?.length) {
+    notes.push(`Functional limitations: ${limitations.join(', ')}`);
+  }
+  if (treatments?.length) {
+    notes.push(`Previous treatments: ${treatments.join(', ')}`);
+  }
+  return notes.join(' | ') || null;
+}
+
+async function runIntegrationCascade(params: {
+  athleteId: string;
+  injuryType: InjuryAssessmentRequest['injuryType'];
+  painLevel: number;
+  painTiming: 'BEFORE' | 'DURING' | 'AFTER' | 'CONSTANT';
+  acwrRisk: ReturnType<typeof checkACWRRisk> | null;
+}) {
+  const integrationType = mapInjuryTypeForIntegration(params.injuryType);
+  if (!integrationType) {
+    return null;
+  }
+
+  try {
+    const response = await processInjuryDetection(
+      {
+        athleteId: params.athleteId,
+        injuryType: integrationType,
+        painLevel: params.painLevel,
+        painTiming: params.painTiming,
+        acwrRisk: mapAcwrZoneToRisk(params.acwrRisk?.zone),
+        detectionSource: 'COACH_ASSESSMENT',
+        date: new Date(),
+      } satisfies InjuryDetection,
+      prisma,
+      { persistRecord: false },
+    );
+
+    return {
+      immediateAction: response.immediateAction,
+      workoutModifications: response.workoutModifications,
+      crossTrainingSubstitutions: response.crossTrainingSubstitutions,
+      returnToRunningProtocol: response.returnToRunningProtocol,
+      programAdjustment: response.programAdjustment,
+      coachNotification: response.coachNotification,
+      estimatedReturnWeeks: response.estimatedReturnWeeks,
+    };
+  } catch (error) {
+    console.error('Failed to run injury integration cascade', error);
+    return null;
+  }
+}
+
+function mapInjuryTypeForIntegration(
+  type: InjuryAssessmentRequest['injuryType'],
+): InjuryDetection['injuryType'] | null {
+  const map: Record<InjuryAssessmentRequest['injuryType'], InjuryDetection['injuryType'] | null> = {
+    PLANTAR_FASCIITIS: 'PLANTAR_FASCIITIS',
+    ACHILLES_TENDINOPATHY: 'ACHILLES_TENDINOPATHY',
+    IT_BAND_SYNDROME: 'IT_BAND_SYNDROME',
+    PATELLOFEMORAL_PAIN: 'PATELLOFEMORAL_SYNDROME',
+    SHIN_SPLINTS: 'SHIN_SPLINTS',
+    HAMSTRING_STRAIN: 'HAMSTRING_STRAIN',
+    HIP_FLEXOR_STRAIN: 'HIP_FLEXOR',
+    STRESS_FRACTURE: 'STRESS_FRACTURE',
+    GENERAL: null,
+  };
+
+  return map[type] ?? null;
+}
+
+function mapAcwrZoneToRisk(
+  zone?: ReturnType<typeof checkACWRRisk>['zone'],
+): InjuryDetection['acwrRisk'] | undefined {
+  if (!zone) return undefined;
+  const map: Record<string, InjuryDetection['acwrRisk']> = {
+    DETRAINING: 'LOW',
+    OPTIMAL: 'LOW',
+    CAUTION: 'MODERATE',
+    DANGER: 'HIGH',
+    CRITICAL: 'CRITICAL',
+  };
+
+  return map[zone];
 }

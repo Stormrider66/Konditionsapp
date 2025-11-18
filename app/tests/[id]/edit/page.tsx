@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { performAllCalculations } from '@/lib/calculations'
@@ -32,15 +32,7 @@ export default function EditTestPage() {
   const [testDate, setTestDate] = useState('')
   const { toast } = useToast()
 
-  useEffect(() => {
-    fetchTestAndClient()
-    const supabase = createSupabaseClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
-  }, [id])
-
-  const fetchTestAndClient = async () => {
+  const fetchTestAndClient = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/tests/${id}`)
@@ -67,7 +59,15 @@ export default function EditTestPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    fetchTestAndClient()
+    const supabase = createSupabaseClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+  }, [fetchTestAndClient])
 
   const addStage = () => {
     const newStage = {

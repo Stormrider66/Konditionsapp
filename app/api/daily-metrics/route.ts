@@ -15,7 +15,9 @@ import {
   calculateReadinessScore,
   establishHRVBaseline,
   establishRHRBaseline,
+  type HRVBaseline,
   type HRVMeasurement,
+  type RHRBaseline,
   type RHRMeasurement,
   type WellnessResponses,
 } from '@/lib/training-engine/monitoring'
@@ -53,6 +55,9 @@ export async function POST(request: NextRequest) {
       date,
       hrvRMSSD,
       hrvQuality,
+      hrvArtifactPercent,
+      hrvDuration,
+      hrvPosition,
       restingHR,
       sleepQuality,
       sleepHours,
@@ -117,27 +122,36 @@ export async function POST(request: NextRequest) {
     if (hrvRMSSD && hrvQuality) {
       const hrvMeasurement: HRVMeasurement = {
         rmssd: hrvRMSSD,
-        quality: hrvQuality as 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR',
+        quality: normalizeMeasurementQuality(hrvQuality),
+        artifactPercent: hrvArtifactPercent ?? 0,
+        duration: hrvDuration ?? 180,
+        position: normalizePosition(hrvPosition),
         timestamp: metricsDate,
       }
 
       // Calculate baseline from historical data
-      const historicalHRVData = historicalMetrics
-        .filter(m => m.hrvRMSSD !== null && m.hrvQuality === 'EXCELLENT')
-        .map(m => m.hrvRMSSD as number)
+      const historicalHRVMeasurements = historicalMetrics
+        .filter(m => m.hrvRMSSD !== null)
+        .map(m => ({
+          rmssd: m.hrvRMSSD as number,
+          quality: normalizeMeasurementQuality(m.hrvQuality),
+          artifactPercent: m.hrvArtifactPercent ?? 0,
+          duration: m.hrvDuration ?? 180,
+          position: normalizePosition(m.hrvPosition),
+          timestamp: m.date,
+        }))
 
-      let hrvBaseline
-      if (historicalHRVData.length >= 7) {
-        hrvBaseline = establishHRVBaseline(historicalHRVData)
-      } else {
-        // Not enough data for baseline - use measurement as baseline
-        hrvBaseline = {
-          baseline: hrvRMSSD,
-          standardDeviation: 0,
-          measurementCount: 1,
-          lastUpdated: metricsDate,
-          isReliable: false,
+      let hrvBaseline: HRVBaseline | null = null
+      if (historicalHRVMeasurements.length >= 14) {
+        try {
+          hrvBaseline = establishHRVBaseline(historicalHRVMeasurements)
+        } catch (error) {
+          console.warn('Failed to build HRV baseline from history:', error)
         }
+      }
+
+      if (!hrvBaseline) {
+        hrvBaseline = createFallbackHRVBaseline(hrvMeasurement)
       }
 
       hrvAssessment = assessHRV(hrvMeasurement, hrvBaseline)
@@ -155,27 +169,35 @@ export async function POST(request: NextRequest) {
 
     if (restingHR) {
       const rhrMeasurement: RHRMeasurement = {
-        bpm: restingHR,
+        heartRate: restingHR,
+        quality: 'GOOD',
+        duration: 60,
+        position: 'SUPINE',
         timestamp: metricsDate,
       }
 
       // Calculate baseline from historical data
-      const historicalRHRData = historicalMetrics
+      const historicalRHRMeasurements = historicalMetrics
         .filter(m => m.restingHR !== null)
-        .map(m => m.restingHR as number)
+        .map(m => ({
+          heartRate: m.restingHR as number,
+          quality: 'GOOD' as const,
+          duration: 60,
+          position: 'SUPINE' as const,
+          timestamp: m.date,
+        }))
 
-      let rhrBaseline
-      if (historicalRHRData.length >= 7) {
-        rhrBaseline = establishRHRBaseline(historicalRHRData)
-      } else {
-        // Not enough data for baseline
-        rhrBaseline = {
-          baseline: restingHR,
-          standardDeviation: 0,
-          measurementCount: 1,
-          lastUpdated: metricsDate,
-          isReliable: false,
+      let rhrBaseline: RHRBaseline | null = null
+      if (historicalRHRMeasurements.length >= 7) {
+        try {
+          rhrBaseline = establishRHRBaseline(historicalRHRMeasurements)
+        } catch (error) {
+          console.warn('Failed to build RHR baseline from history:', error)
         }
+      }
+
+      if (!rhrBaseline) {
+        rhrBaseline = createFallbackRHRBaseline(rhrMeasurement)
       }
 
       rhrAssessment = assessRHR(rhrMeasurement, rhrBaseline)
@@ -295,6 +317,9 @@ export async function POST(request: NextRequest) {
         // HRV data
         hrvRMSSD: hrvRMSSD || null,
         hrvQuality: hrvQuality || null,
+        hrvArtifactPercent: hrvArtifactPercent ?? null,
+        hrvDuration: hrvDuration ?? null,
+        hrvPosition: hrvPosition ?? null,
         hrvStatus,
         hrvPercent,
         hrvTrend,
@@ -330,6 +355,9 @@ export async function POST(request: NextRequest) {
         // HRV data
         hrvRMSSD: hrvRMSSD || null,
         hrvQuality: hrvQuality || null,
+        hrvArtifactPercent: hrvArtifactPercent ?? null,
+        hrvDuration: hrvDuration ?? null,
+        hrvPosition: hrvPosition ?? null,
         hrvStatus,
         hrvPercent,
         hrvTrend,
@@ -486,5 +514,54 @@ export async function GET(request: NextRequest) {
       { error: 'Failed to retrieve daily metrics' },
       { status: 500 }
     )
+  }
+}
+
+function normalizeMeasurementQuality(
+  value?: string | null
+): 'GOOD' | 'FAIR' | 'POOR' {
+  if (value === 'FAIR') return 'FAIR'
+  if (value === 'POOR') return 'POOR'
+  return 'GOOD'
+}
+
+function normalizePosition(value?: string | null): 'SUPINE' | 'SEATED' {
+  return value === 'SEATED' ? 'SEATED' : 'SUPINE'
+}
+
+function createFallbackHRVBaseline(measurement: HRVMeasurement): HRVBaseline {
+  return {
+    mean: measurement.rmssd,
+    stdDev: 0,
+    cv: 0,
+    measurementDays: 1,
+    startDate: measurement.timestamp,
+    endDate: measurement.timestamp,
+    thresholds: {
+      excellent: measurement.rmssd,
+      good: measurement.rmssd,
+      moderate: measurement.rmssd,
+      fair: measurement.rmssd,
+      poor: measurement.rmssd,
+      veryPoor: measurement.rmssd,
+    },
+  }
+}
+
+function createFallbackRHRBaseline(measurement: RHRMeasurement): RHRBaseline {
+  return {
+    mean: measurement.heartRate,
+    stdDev: 0,
+    min: measurement.heartRate,
+    max: measurement.heartRate,
+    measurementDays: 1,
+    startDate: measurement.timestamp,
+    endDate: measurement.timestamp,
+    thresholds: {
+      normal: measurement.heartRate,
+      slightlyElevated: measurement.heartRate + 3,
+      elevated: measurement.heartRate + 6,
+      highlyElevated: measurement.heartRate + 8,
+    },
   }
 }
