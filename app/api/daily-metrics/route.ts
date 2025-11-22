@@ -387,6 +387,61 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // ==========================================
+    // Automatic Injury Detection & Response
+    // ==========================================
+    let injuryTriggered = false
+    let injurySummary = null
+
+    // Trigger injury cascade if pain/readiness thresholds exceeded
+    // Note: injuryPain is inverted (10 = high pain, 1 = no pain)
+    const shouldTriggerInjury =
+      injuryPain >= 5 || // Pain ≥5/10
+      (calculatedReadinessScore && calculatedReadinessScore < 5.5) || // Low readiness
+      sleepHours < 5 || // Critical sleep deprivation
+      stress >= 8 // Extreme stress
+
+    if (shouldTriggerInjury) {
+      try {
+        console.log('🔔 Injury trigger detected, processing cascade...')
+
+        // Call injury processing endpoint internally
+        const injuryResponse = await fetch(
+          `${request.nextUrl.origin}/api/injury/process-checkin`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Cookie: request.headers.get('cookie') || '', // Forward auth cookie
+            },
+            body: JSON.stringify({
+              clientId,
+              date: date,
+              injuryPain,
+              stress,
+              sleepHours,
+              energyLevel,
+              readinessScore: calculatedReadinessScore,
+              readinessLevel,
+              muscleSoreness,
+            }),
+          }
+        )
+
+        if (injuryResponse.ok) {
+          const injuryData = await injuryResponse.json()
+          injuryTriggered = injuryData.triggered
+          injurySummary = injuryData.summary
+          console.log('✅ Injury cascade completed:', injuryData.summary?.title)
+        } else {
+          console.error('Failed to process injury cascade:', injuryResponse.statusText)
+        }
+      } catch (error) {
+        console.error('Error triggering injury cascade:', error)
+        // Don't fail the entire check-in if injury processing fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       dailyMetrics,
@@ -396,6 +451,14 @@ export async function POST(request: NextRequest) {
         wellness: wellnessScoreData,
         readiness: readinessScoreData,
       },
+      injuryResponse: injuryTriggered
+        ? {
+            triggered: true,
+            summary: injurySummary,
+          }
+        : {
+            triggered: false,
+          },
     })
   } catch (error) {
     console.error('Error saving daily metrics:', error)

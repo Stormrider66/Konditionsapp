@@ -74,6 +74,7 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [readinessResult, setReadinessResult] = useState<any>(null)
+  const [injuryResponse, setInjuryResponse] = useState<any>(null)
 
   const form = useForm<CheckInFormData>({
     resolver: zodResolver(checkInSchema),
@@ -141,11 +142,21 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
       const result = await response.json()
 
       setReadinessResult(result.assessments?.readiness)
+      setInjuryResponse(result.injuryResponse)
 
-      toast({
-        title: 'Check-in submitted',
-        description: 'Your daily metrics have been recorded successfully.',
-      })
+      // Show appropriate toast based on injury trigger
+      if (result.injuryResponse?.triggered) {
+        toast({
+          title: '⚠️ Injury/Fatigue Alert',
+          description: 'Your workouts have been automatically adjusted. Your coach has been notified.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Check-in submitted',
+          description: 'Your daily metrics have been recorded successfully.',
+        })
+      }
 
       if (onSuccess) {
         onSuccess()
@@ -473,8 +484,59 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
         </form>
       </Form>
 
+      {/* Injury Auto-Response Alert */}
+      {injuryResponse?.triggered && (
+        <Alert variant="destructive" className="border-2">
+          <AlertDescription>
+            <div className="space-y-4">
+              <div>
+                <p className="font-bold text-lg mb-1">⚠️ Automatiskt skaderespons aktiverat</p>
+                <p className="font-medium text-sm opacity-90">
+                  Dina träningspass har automatiskt justerats baserat på rapporterade värden
+                </p>
+              </div>
+
+              <div className="p-4 bg-background/60 rounded-lg space-y-3">
+                <div>
+                  <p className="font-semibold mb-1">{injuryResponse.summary?.title}</p>
+                  <p className="text-sm opacity-90">{injuryResponse.summary?.message}</p>
+                </div>
+
+                {injuryResponse.summary?.programAdjustment && (
+                  <div className="pt-2 border-t border-white/20">
+                    <p className="text-sm font-medium mb-1">Programjustering:</p>
+                    <p className="text-sm opacity-90">{injuryResponse.summary.programAdjustment}</p>
+                  </div>
+                )}
+
+                {injuryResponse.summary?.nextSteps && injuryResponse.summary.nextSteps.length > 0 && (
+                  <div className="pt-2 border-t border-white/20">
+                    <p className="text-sm font-medium mb-2">Nästa steg (Coach):</p>
+                    <ul className="space-y-1 text-sm opacity-90">
+                      {injuryResponse.summary.nextSteps.slice(0, 3).map((step: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <span className="mt-0.5">•</span>
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between text-xs opacity-75">
+                <span>Din coach har blivit notifierad</span>
+                <span className="font-mono">
+                  {injuryResponse.injuryResponse?.workoutsModified || 0} pass modifierade
+                </span>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Readiness Result */}
-      {readinessResult && (
+      {readinessResult && !injuryResponse?.triggered && (
         <Alert variant={readinessResult.score < 5 ? "destructive" : "default"}>
           <AlertDescription>
             <div className="space-y-3">
@@ -484,7 +546,7 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
                 </p>
                 <p className="font-medium text-muted-foreground">{readinessResult.status}</p>
               </div>
-              
+
               <div className="p-3 bg-background/50 rounded-md">
                 <p className="font-medium mb-1">Rekommendation:</p>
                 <p className="text-sm">{readinessResult.recommendation}</p>
