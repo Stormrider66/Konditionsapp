@@ -413,7 +413,8 @@ async function buildWeek(
     athleteLevel,
     weekInPhase,
     test,
-    params
+    params,
+    elitePaces // Pass elite paces to workout distribution
   )
 
   // Build each training day
@@ -526,7 +527,8 @@ function determineWorkoutDistribution(
   athleteLevel: AthleteLevel,
   weekInPhase: number,
   test: Test,
-  params: ProgramGenerationParams
+  params: ProgramGenerationParams,
+  elitePaces: EliteZonePaces | null // Elite pace data (if available)
 ): WorkoutSlot[] {
   const workouts: WorkoutSlot[] = []
 
@@ -548,24 +550,35 @@ function determineWorkoutDistribution(
     console.log(`[Canova] Mapped to Canova phase: ${canovaPhase}`)
 
     // === SMART MARATHON PACE SELECTION ===
-    // Use validated pace from test data with consistency checks
-    const paceValidation = selectReliableMarathonPace(
-      test as any,
-      params.goalType,
-      params.targetRaceDate
-    )
+    // Prioritize elite paces if available, otherwise use test-based validation
+    let marathonPaceKmh: number
 
-    const marathonPaceKmh = paceValidation.marathonPaceKmh
+    if (elitePaces && validateEliteZones(elitePaces)) {
+      // Use elite marathon pace (from VDOT or lactate profile)
+      marathonPaceKmh = elitePaces.canova.marathon.kmh
+      console.log(`[Canova] ✓ Using ELITE marathon pace: ${elitePaces.canova.marathon.pace} (${marathonPaceKmh.toFixed(1)} km/h)`)
+      console.log(`[Canova]   Source: ${elitePaces.source} (${elitePaces.confidence} confidence)`)
+      console.log(`[Canova]   Athlete Level: ${elitePaces.athleteLevel}`)
+    } else {
+      // Fallback to test-based pace validation
+      const paceValidation = selectReliableMarathonPace(
+        test as any,
+        params.goalType,
+        params.targetRaceDate
+      )
 
-    // Log validation results
-    console.log(`[Canova] ${formatPaceValidation(paceValidation)}`)
+      marathonPaceKmh = paceValidation.marathonPaceKmh
 
-    // Log warnings and errors for monitoring
-    if (paceValidation.warnings.length > 0) {
-      console.warn(`[Canova] ⚠️ VARNINGAR:`, paceValidation.warnings)
-    }
-    if (paceValidation.errors.length > 0) {
-      console.error(`[Canova] 🚨 FEL:`, paceValidation.errors)
+      // Log validation results
+      console.log(`[Canova] ${formatPaceValidation(paceValidation)}`)
+
+      // Log warnings and errors for monitoring
+      if (paceValidation.warnings.length > 0) {
+        console.warn(`[Canova] ⚠️ VARNINGAR:`, paceValidation.warnings)
+      }
+      if (paceValidation.errors.length > 0) {
+        console.error(`[Canova] 🚨 FEL:`, paceValidation.errors)
+      }
     }
 
     const canovaZones = calculateCanovaZones(marathonPaceKmh)
