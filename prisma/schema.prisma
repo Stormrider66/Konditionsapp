@@ -81,6 +81,42 @@ enum SubscriptionStatus {
   TRIAL
 }
 
+enum BiomechanicalPillar {
+  POSTERIOR_CHAIN    // Hip dominance - glutes, hamstrings
+  KNEE_DOMINANCE     // Quad strength & stiffness
+  UNILATERAL         // Single-leg exercises
+  FOOT_ANKLE         // Calf, ankle, foot strength
+  ANTI_ROTATION_CORE // Core stability & anti-rotation
+  UPPER_BODY         // Upper body strength (optional for runners)
+}
+
+enum ProgressionLevel {
+  LEVEL_1            // Static/Stability - beginners
+  LEVEL_2            // Strength/Loading - intermediate
+  LEVEL_3            // Dynamic/Ballistic - advanced
+}
+
+enum PlyometricIntensity {
+  LOW                // >250ms ground contact (pogo, squat jumps)
+  MODERATE           // 150-250ms (countermovement, bounds)
+  HIGH               // <150ms (depth jumps, max 27 contacts)
+}
+
+enum ProgressionStatus {
+  ON_TRACK           // Progressing as expected
+  PLATEAU            // No progress for 3+ weeks
+  REGRESSING         // Performance declining
+  DELOAD_NEEDED      // Volume/intensity too high
+}
+
+enum StrengthPhase {
+  ANATOMICAL_ADAPTATION  // 4-6 weeks, 2-3×12-20 @ 40-60%
+  MAXIMUM_STRENGTH       // 6-8 weeks, 3-5×3-6 @ 80-95%
+  POWER                  // 3-4 weeks, 3-5×4-6 @ 30-60% max velocity
+  MAINTENANCE            // Variable, 2×3-5 @ 80-85%
+  TAPER                  // 1-2 weeks, 41-60% volume reduction
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -158,6 +194,10 @@ model Client {
   injuryAssessments    InjuryAssessment[]
   crossTrainingSessions CrossTrainingSession[]
   strengthSessions     StrengthTrainingSession[]
+  progressionTracking  ProgressionTracking[]
+  oneRepMaxHistory     OneRepMaxHistory[]
+  raceResults          RaceResult[]
+  dailyCheckIns        DailyCheckIn[]
 
   @@index([userId])
   @@index([teamId])
@@ -509,8 +549,20 @@ model Exercise {
   nameSv String?
   nameEn String?
 
-  coach    User?            @relation(fields: [coachId], references: [id], onDelete: SetNull)
-  segments WorkoutSegment[]
+  // Scientific Framework Fields
+  biomechanicalPillar BiomechanicalPillar? // Primary movement pattern
+  progressionLevel    ProgressionLevel?    // Level 1-3 progression
+  plyometricIntensity PlyometricIntensity? // For plyometric exercises only
+  contactsPerRep      Int?                 // Ground contacts per rep (plyometric)
+
+  // Exercise substitutions and progressions
+  substitutes         String?              // JSON array of alternative exercise IDs
+  progressionPath     String?              // JSON array: [easier_id, current_id, harder_id]
+
+  coach                User?                 @relation(fields: [coachId], references: [id], onDelete: SetNull)
+  segments             WorkoutSegment[]
+  progressionTracking  ProgressionTracking[]
+  oneRepMaxHistory     OneRepMaxHistory[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -519,6 +571,8 @@ model Exercise {
   @@index([category])
   @@index([name])
   @@index([isPublic])
+  @@index([biomechanicalPillar])
+  @@index([progressionLevel])
 }
 
 // ==================== WORKOUT LOGGING ====================
@@ -657,6 +711,38 @@ model AthleteProfile {
   vo2maxPercentile    Float?    // Percentile for age/gender
   lt2AsPercentVO2max  Float?    // Key categorization metric
 
+  // VDOT-based training data (from race performance)
+  currentVDOT         Float?    // Most recent VDOT calculation
+  vdotSource          String?   // "RACE_5K", "RACE_10K", "RACE_HM", "RACE_MARATHON", "ESTIMATED"
+  vdotConfidence      String?   // "VERY_HIGH", "HIGH", "MEDIUM", "LOW"
+  vdotLastUpdated     DateTime?
+  vdotAgeAdjusted     Boolean   @default(false) // Whether age adjustment was applied
+  vdotGenderAdjusted  Boolean   @default(false) // Whether gender adjustment was applied
+
+  // Lactate profile data (from lab or field tests)
+  maxLactate          Float?    // Maximum lactate achieved (mmol/L)
+  lt2LactateRatio     Float?    // LT2 as % of max lactate (individual ratio)
+  lt2Speed            Float?    // LT2 speed (km/h)
+  lt2HeartRate        Int?      // LT2 heart rate (bpm)
+  lactateTestDate     DateTime? // Date of most recent lactate test
+  lactateConfidence   String?   // "VERY_HIGH", "HIGH", "MEDIUM", "LOW"
+
+  // Metabolic type (affects training recommendations)
+  metabolicType       String?   // "SLOW_TWITCH", "FAST_TWITCH_ENDURANCE", "FAST_TWITCH_POWER", "MIXED"
+  metabolicTypeSource String?   // "LACTATE_PROFILE", "RACE_PATTERN", "ESTIMATED"
+
+  // Dynamic compression factor (for marathon pace calculation)
+  compressionFactor   Float?    // MP as % of LT2 pace (0.75-0.98)
+  compressionSource   String?   // "LEVEL_BASED", "AGE_ADJUSTED", "GENDER_ADJUSTED", "CUSTOM"
+
+  // Complete pace zones (stored for quick access)
+  danielsZones        Json?     // DanielsZones object
+  canovaZones         Json?     // CanovaZones object
+  norwegianZones      Json?     // NorwegianZones object
+  hrZones             Json?     // HRZones object
+  zonesLastUpdated    DateTime?
+  zonesPrimarySource  String?   // "VDOT", "LACTATE_RATIO", "HR_ESTIMATION", "PROFILE_ESTIMATION"
+
   // Monitoring baselines (established over 14-21 days)
   hrvBaseline         Float?    // RMSSD in ms
   hrvStdDev           Float?    // Standard deviation for thresholds
@@ -664,9 +750,8 @@ model AthleteProfile {
   rhrBaseline         Float?    // bpm
   rhrLastUpdated      DateTime?
 
-  // Current training zones (JSON for flexibility)
+  // Current training zones (DEPRECATED - use specific zone fields above)
   trainingZones       Json?
-  zonesLastUpdated    DateTime?
 
   // Equipment & capabilities
   hasLactateMeter     Boolean   @default(false)
@@ -690,6 +775,9 @@ model AthleteProfile {
   @@index([hasLactateMeter, hasHRVMonitor]) // Filter athletes by monitoring capabilities
   @@index([vo2maxPercentile]) // Rank athletes by VO2max
   @@index([norwegianPhase]) // Track Norwegian Method progression
+  @@index([currentVDOT]) // Rank athletes by VDOT
+  @@index([metabolicType]) // Group by metabolic profile
+  @@index([vdotLastUpdated]) // Find stale VDOT data
 }
 
 // ============================================
@@ -722,6 +810,7 @@ model DailyCheckIn {
   // Notes
   notes               String?
 
+  client              Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -1274,4 +1363,154 @@ model StrengthTrainingSession {
   @@index([phase, date])
   @@index([clientId, phase]) // Track strength phase progression per athlete
   @@index([runningPhase, priorityLevel]) // Analyze strength integration with running
+}
+
+// ============================================
+// AUTOMATIC PROGRESSION TRACKING
+// ============================================
+
+/// Tracks load progression for strength exercises with 1RM estimation
+model ProgressionTracking {
+  id               String            @id @default(uuid())
+  clientId         String
+  exerciseId       String
+  date             DateTime
+
+  // Workout data
+  sets             Int
+  repsCompleted    Int               // Actual reps achieved
+  repsTarget       Int               // Target reps prescribed
+  actualLoad       Float             // Weight used (kg)
+  rpe              Int?              // 1-10 rate of perceived exertion
+
+  // 1RM estimation (calculated)
+  estimated1RM     Float             // Calculated from Epley/Brzycki formulas
+  estimationMethod String            // "EPLEY", "BRZYCKI", "AVERAGE"
+
+  // Progression tracking
+  progressionStatus ProgressionStatus @default(ON_TRACK)
+  weeksAtCurrentLoad Int             @default(0)
+  lastIncrease     DateTime?         // Date when load was last increased
+  nextRecommendedLoad Float?         // Auto-calculated next load
+
+  // Phase context
+  strengthPhase    StrengthPhase?
+
+  // 2-for-2 rule tracking
+  consecutiveSessionsWithExtraReps Int @default(0)
+  readyForIncrease Boolean           @default(false)
+
+  // Plateau detection
+  plateauWeeks     Int               @default(0)
+  deloadRecommended Boolean          @default(false)
+
+  // Notes and overrides
+  notes            String?           @db.Text
+  manualOverride   Boolean           @default(false) // Coach manually adjusted
+  locked           Boolean           @default(false) // Prevent auto-progression
+
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  exercise         Exercise          @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([clientId, exerciseId, date])
+  @@index([clientId, progressionStatus])
+  @@index([exerciseId, date])
+  @@index([readyForIncrease])
+  @@index([plateauWeeks])
+  @@index([clientId, strengthPhase])
+}
+
+/// Historical 1RM records for tracking strength gains over time
+model OneRepMaxHistory {
+  id               String       @id @default(uuid())
+  clientId         String
+  exerciseId       String
+  date             DateTime
+
+  oneRepMax        Float        // Actual tested or estimated 1RM
+  source           String       // "TESTED", "ESTIMATED", "CALCULATED"
+
+  // Context
+  bodyWeight       Float?       // kg at time of test
+  strengthPhase    StrengthPhase?
+
+  notes            String?      @db.Text
+
+  client           Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  exercise         Exercise     @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime     @default(now())
+
+  @@index([clientId, exerciseId, date])
+  @@index([clientId, date])
+}
+
+// ============================================
+// RACE RESULTS & PERFORMANCE TRACKING
+// ============================================
+
+/// Race results for VDOT calculation and pace zone determination
+model RaceResult {
+  id               String   @id @default(uuid())
+  clientId         String
+
+  // Race details
+  raceName         String?  // "Stockholm Marathon", "Local 5K"
+  raceDate         DateTime
+  distance         String   // "5K", "10K", "HALF_MARATHON", "MARATHON", "CUSTOM"
+  customDistanceKm Float?   // For CUSTOM distance
+
+  // Performance
+  timeMinutes      Float    // Total race time in minutes
+  timeFormatted    String   // "1:28:00", "45:30", etc.
+
+  // Environmental conditions
+  temperature      Float?   // Celsius
+  humidity         Float?   // Percentage
+  windSpeed        Float?   // m/s
+  elevation        Float?   // Meters above sea level
+  terrain          String?  // "FLAT", "ROLLING", "HILLY", "TRAIL"
+
+  // Calculated VDOT data (stored for historical tracking)
+  vdot             Float?   // Calculated VDOT value
+  vdotAdjusted     Float?   // Gender/age adjusted VDOT
+  confidence       String?  // "VERY_HIGH", "HIGH", "MEDIUM", "LOW"
+  ageInDays        Int?     // Age of result (for confidence decay)
+
+  // Training paces (stored snapshot at time of race)
+  trainingPaces    Json?    // Complete DanielsTrainingPaces snapshot
+  equivalentTimes  Json?    // Equivalent race times for other distances
+
+  // Race context
+  goalTime         String?  // Intended goal time
+  goalAchieved     Boolean  @default(false)
+  raceType         String?  // "TRAINING_RACE", "B_RACE", "A_RACE", "TIME_TRIAL"
+
+  // Performance analysis
+  avgHeartRate     Int?     // bpm
+  maxHeartRate     Int?     // bpm
+  avgPace          String?  // "4:30/km"
+  splits           Json?    // Array of split times
+
+  // Notes and feedback
+  conditions       String?  @db.Text // Weather, course, etc.
+  athleteNotes     String?  @db.Text // How they felt
+  coachNotes       String?  @db.Text // Coach analysis
+
+  // Integration
+  usedForZones     Boolean  @default(false) // Is this being used for current training zones?
+  trainingProgramId String? // Link to program this race was part of
+
+  client           Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([clientId, raceDate])
+  @@index([clientId, usedForZones]) // Find active race results
+  @@index([distance, raceDate]) // Compare performances by distance
+  @@index([vdot]) // Rank athletes by VDOT
+  @@index([confidence]) // Filter high-confidence results
 }
