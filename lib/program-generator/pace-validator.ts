@@ -312,6 +312,94 @@ export function runAllValidationTests() {
   }
 }
 
+/**
+ * Select the most reliable marathon pace from a test
+ * Used by program generator for Canova methodology
+ */
+export function selectReliableMarathonPace(
+  test: any,
+  goalType: string,
+  targetRaceDate?: Date
+): {
+  marathonPaceKmh: number
+  source: string
+  confidence: string
+  warnings: string[]
+  errors: string[]
+} {
+  const warnings: string[] = []
+  const errors: string[] = []
+
+  // Try to get marathon pace from test's anaerobic threshold
+  if (test.anaerobicThreshold && test.testStages) {
+    const lt2Stage = test.testStages.find(
+      (stage: any) => stage.sequence === test.anaerobicThreshold.sequence
+    )
+
+    if (lt2Stage && lt2Stage.speed) {
+      // Use threshold speed to estimate marathon pace
+      // Marathon pace is typically 88-92% of LT2 pace
+      const marathonPaceKmh = lt2Stage.speed * 0.90
+
+      return {
+        marathonPaceKmh,
+        source: 'LACTATE_TEST',
+        confidence: 'HIGH',
+        warnings,
+        errors,
+      }
+    }
+  }
+
+  // Fallback: Use zone 2 from training zones
+  if (test.trainingZones && test.trainingZones.length >= 2) {
+    const zone2 = test.trainingZones[1] // Zone 2 = Marathon zone
+
+    if (zone2.minSpeed && zone2.maxSpeed) {
+      const marathonPaceKmh = (zone2.minSpeed + zone2.maxSpeed) / 2
+
+      warnings.push('Using legacy zone 2 for marathon pace (less precise)')
+
+      return {
+        marathonPaceKmh,
+        source: 'TRAINING_ZONES',
+        confidence: 'MEDIUM',
+        warnings,
+        errors,
+      }
+    }
+  }
+
+  // No reliable pace available
+  errors.push('No reliable marathon pace available from test')
+
+  return {
+    marathonPaceKmh: 12.0, // Fallback default
+    source: 'DEFAULT',
+    confidence: 'LOW',
+    warnings,
+    errors,
+  }
+}
+
+/**
+ * Format pace validation results for logging
+ */
+export function formatPaceValidation(validation: {
+  marathonPaceKmh: number
+  source: string
+  confidence: string
+  warnings: string[]
+  errors: string[]
+}): string {
+  const minPerKm = 60 / validation.marathonPaceKmh
+  const minutes = Math.floor(minPerKm)
+  const seconds = Math.round((minPerKm - minutes) * 60)
+  const pace = `${minutes}:${String(seconds).padStart(2, '0')}/km`
+
+  return `Marathon pace: ${pace} (${validation.marathonPaceKmh.toFixed(1)} km/h) from ${validation.source} (${validation.confidence} confidence)`
+}
+
 // For running directly
 if (require.main === module) {
   runAllValidationTests()
