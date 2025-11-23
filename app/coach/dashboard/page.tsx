@@ -164,10 +164,17 @@ export default async function CoachDashboardPage() {
   })
 
   // Pending field tests (tests due within next 14 days or overdue)
+  // First get all coach's client IDs
+  const coachClients = await prisma.client.findMany({
+    where: { userId: user.id },
+    select: { id: true },
+  })
+  const clientIds = coachClients.map(c => c.id)
+
   const dueFieldTests = await prisma.fieldTestSchedule.findMany({
     where: {
-      client: {
-        userId: user.id,
+      clientId: {
+        in: clientIds,
       },
       completed: false,
       scheduledDate: {
@@ -177,7 +184,7 @@ export default async function CoachDashboardPage() {
     select: {
       id: true,
       scheduledDate: true,
-      critical: true,
+      required: true,
     },
   })
 
