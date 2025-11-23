@@ -1,6 +1,6 @@
 // app/coach/injuries/modifications/page.tsx
 import { requireCoach } from '@/lib/auth-utils'
-import AutoModifiedWorkoutsView from '@/components/coach/injury/AutoModifiedWorkoutsView'
+import { AutoModifiedWorkoutsView } from '@/components/coach/injury/AutoModifiedWorkoutsView'
 
 export default async function ModificationsPage() {
   await requireCoach()

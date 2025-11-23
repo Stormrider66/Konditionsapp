@@ -1,6 +1,6 @@
 // app/coach/injuries/acwr/page.tsx
 import { requireCoach } from '@/lib/auth-utils'
-import ACWRRiskMonitor from '@/components/coach/injury/ACWRRiskMonitor'
+import { ACWRRiskMonitor } from '@/components/coach/injury/ACWRRiskMonitor'
 
 export default async function ACWRPage() {
   await requireCoach()

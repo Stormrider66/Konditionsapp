@@ -1,6 +1,6 @@
 // app/coach/injuries/[id]/page.tsx
 import { requireCoach } from '@/lib/auth-utils'
-import InjuryProgressTimeline from '@/components/coach/injury/InjuryProgressTimeline'
+import { InjuryProgressTimeline } from '@/components/coach/injury/InjuryProgressTimeline'
 
 export default async function InjuryProgressPage() {
   await requireCoach()
