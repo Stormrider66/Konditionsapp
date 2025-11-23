@@ -118,11 +118,13 @@ export default async function CoachDashboardPage() {
     },
     select: {
       id: true,
-      severity: true,
+      painLevel: true,
+      gaitAffected: true,
     },
   })
 
-  const criticalInjuryCount = activeInjuries.filter(i => i.severity === 'CRITICAL' || i.severity === 'HIGH').length
+  // Critical = painLevel >= 7 OR gait affected
+  const criticalInjuryCount = activeInjuries.filter(i => i.painLevel >= 7 || i.gaitAffected).length
 
   // ACWR warnings (athletes in DANGER/CRITICAL zones)
   const acwrWarnings = await prisma.trainingLoad.findMany({
