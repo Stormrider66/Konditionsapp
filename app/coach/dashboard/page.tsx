@@ -21,6 +21,9 @@ import {
   Clock,
   CheckCircle2,
   ArrowRight,
+  HeartPulse,
+  Waves,
+  ClipboardList,
 } from 'lucide-react'
 import { format, subDays } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -102,6 +105,82 @@ export default async function CoachDashboardPage() {
   // Logs without feedback
   const logsNeedingFeedback = recentLogs.filter(log => !log.coachFeedback && log.completed)
 
+  // Active injuries count (via InjuryAssessment)
+  const activeInjuries = await prisma.injuryAssessment.findMany({
+    where: {
+      client: {
+        userId: user.id,
+      },
+      status: {
+        in: ['ACTIVE', 'MONITORING'],
+      },
+      resolved: false,
+    },
+    select: {
+      id: true,
+      severity: true,
+    },
+  })
+
+  const criticalInjuryCount = activeInjuries.filter(i => i.severity === 'CRITICAL' || i.severity === 'HIGH').length
+
+  // ACWR warnings (athletes in DANGER/CRITICAL zones)
+  const acwrWarnings = await prisma.trainingLoad.findMany({
+    where: {
+      client: {
+        userId: user.id,
+      },
+      acwrZone: {
+        in: ['DANGER', 'CRITICAL'],
+      },
+      date: {
+        gte: subDays(now, 7), // Last 7 days
+      },
+    },
+    distinct: ['clientId'],
+    select: {
+      clientId: true,
+      acwrZone: true,
+    },
+  })
+
+  const criticalAcwrCount = acwrWarnings.filter(w => w.acwrZone === 'CRITICAL').length
+
+  // Cross-training substitutions (athletes with active injury)
+  const crossTrainingAthletes = await prisma.injuryAssessment.findMany({
+    where: {
+      client: {
+        userId: user.id,
+      },
+      status: 'ACTIVE',
+      resolved: false,
+    },
+    distinct: ['clientId'],
+    select: {
+      clientId: true,
+    },
+  })
+
+  // Pending field tests (tests due within next 14 days or overdue)
+  const dueFieldTests = await prisma.fieldTestSchedule.findMany({
+    where: {
+      client: {
+        userId: user.id,
+      },
+      completed: false,
+      scheduledDate: {
+        lte: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000), // Next 14 days
+      },
+    },
+    select: {
+      id: true,
+      scheduledDate: true,
+      critical: true,
+    },
+  })
+
+  const overdueTests = dueFieldTests.filter(t => new Date(t.scheduledDate) < now).length
+
   // Calculate stats
   const completedLogsThisWeek = recentLogs.filter(log => log.completed).length
   const feedbackGiven = recentLogs.filter(log => log.coachFeedback).length
@@ -125,6 +204,7 @@ export default async function CoachDashboardPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Existing Cards */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -198,6 +278,113 @@ export default async function CoachDashboardPage() {
             <p className="text-sm text-muted-foreground mt-1">
               Pass utan feedback
             </p>
+          </CardContent>
+        </Card>
+
+        {/* New Overview Cards - Phase 5 */}
+        <Card className={activeInjuries.length > 0 ? 'border-red-200' : ''}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Aktiva skador
+              </CardTitle>
+              <HeartPulse className="h-5 w-5 text-red-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-600">
+              {activeInjuries.length}
+            </div>
+            {criticalInjuryCount > 0 && (
+              <Badge variant="destructive" className="mt-2">
+                {criticalInjuryCount} kritiska
+              </Badge>
+            )}
+            <Link href="/coach/injuries">
+              <Button variant="link" size="sm" className="px-0 text-sm mt-1">
+                Granska skador
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className={acwrWarnings.length > 0 ? 'border-orange-200' : ''}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                ACWR-varningar
+              </CardTitle>
+              <Waves className="h-5 w-5 text-orange-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-orange-600">
+              {acwrWarnings.length}
+            </div>
+            {criticalAcwrCount > 0 && (
+              <Badge variant="destructive" className="mt-2">
+                {criticalAcwrCount} kritiska
+              </Badge>
+            )}
+            <Link href="/coach/injuries/acwr">
+              <Button variant="link" size="sm" className="px-0 text-sm mt-1">
+                Visa risköversikt
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className={crossTrainingAthletes.length > 0 ? 'border-blue-200' : ''}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Cross-training
+              </CardTitle>
+              <Activity className="h-5 w-5 text-blue-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-600">
+              {crossTrainingAthletes.length}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Atleter på substitution
+            </p>
+            <Link href="/coach/cross-training">
+              <Button variant="link" size="sm" className="px-0 text-sm mt-1">
+                Visa schema
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className={dueFieldTests.length > 0 ? 'border-purple-200' : ''}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Väntande tester
+              </CardTitle>
+              <ClipboardList className="h-5 w-5 text-purple-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-purple-600">
+              {dueFieldTests.length}
+            </div>
+            {overdueTests > 0 && (
+              <Badge variant="destructive" className="mt-2">
+                {overdueTests} försenade
+              </Badge>
+            )}
+            <Link href="/coach/field-tests/schedule">
+              <Button variant="link" size="sm" className="px-0 text-sm mt-1">
+                Testschema
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -387,7 +574,7 @@ export default async function CoachDashboardPage() {
       </Card>
 
       {/* Quick Actions */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <Link href="/clients" className="block">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="pt-6">
@@ -429,6 +616,71 @@ export default async function CoachDashboardPage() {
                   <p className="font-semibold">Meddelanden</p>
                   <p className="text-sm text-muted-foreground">
                     Kommunicera med atleter
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* New Quick Actions - Phase 5 */}
+        <Link href="/coach/injuries" className="block">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer border-red-200">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <HeartPulse className="h-8 w-8 text-red-500" />
+                <div>
+                  <p className="font-semibold">Skadehantering</p>
+                  <p className="text-sm text-muted-foreground">
+                    Granska och hantera skador
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/coach/injuries/acwr" className="block">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer border-orange-200">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Waves className="h-8 w-8 text-orange-500" />
+                <div>
+                  <p className="font-semibold">ACWR-övervakning</p>
+                  <p className="text-sm text-muted-foreground">
+                    Skaderisk och belastning
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/coach/cross-training" className="block">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer border-blue-200">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <Activity className="h-8 w-8 text-blue-500" />
+                <div>
+                  <p className="font-semibold">Cross-training</p>
+                  <p className="text-sm text-muted-foreground">
+                    Substitutionsschema
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/coach/field-tests" className="block">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer border-purple-200">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <ClipboardList className="h-8 w-8 text-purple-500" />
+                <div>
+                  <p className="font-semibold">Fälttester</p>
+                  <p className="text-sm text-muted-foreground">
+                    Analys och schemaläggning
                   </p>
                 </div>
               </div>
