@@ -1,6 +1,6 @@
 'use client'
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ScatterChart, ReferenceLine } from 'recharts'
+import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ReferenceLine } from 'recharts'
 import { TestStage } from '@/types'
 
 interface DmaxCurveChartProps {
@@ -85,7 +85,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
     })
   }
 
-  // Combine data for chart
+  // Combine data for chart lines
   const chartData = polynomialCurve.map((point, index) => ({
     intensity: point.intensity,
     polynomial: point.lactate,
@@ -96,6 +96,14 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
   const intensityLabel = intensityUnit === 'km/h' ? 'Hastighet (km/h)' :
                         intensityUnit === 'watt' ? 'Effekt (watt)' :
                         'Tempo (min/km)'
+
+  // Calculate Y-domain manually to ensure rendering
+  const maxLactate = Math.max(
+    ...dataPoints.map(p => p.lactate),
+    dmaxResult.lactate,
+    ...chartData.map(c => c.polynomial)
+  )
+  const yDomain = [0, Math.ceil(maxLactate * 1.1)]
 
   return (
     <div className="space-y-4">
@@ -118,7 +126,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
       </div>
 
       <ResponsiveContainer width="100%" height={400}>
-        <LineChart
+        <ComposedChart
           data={chartData}
           margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
         >
@@ -128,13 +136,17 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
             label={{ value: intensityLabel, position: 'insideBottom', offset: -10 }}
             type="number"
             domain={['dataMin', 'dataMax']}
+            allowDataOverflow={false}
           />
           <YAxis
             label={{ value: 'Laktat (mmol/L)', angle: -90, position: 'insideLeft' }}
-            domain={[0, 'auto']}
+            domain={yDomain}
           />
           <Tooltip
-            formatter={(value: number) => value.toFixed(2)}
+            formatter={(value: number, name: string) => {
+              if (name === 'D-max tröskel') return [`${value.toFixed(2)} mmol/L`, name]
+              return [value.toFixed(2), name]
+            }}
             labelFormatter={(label) => `${intensityLabel.split('(')[0]}: ${label}`}
           />
           <Legend />
@@ -148,6 +160,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
             strokeDasharray="5 5"
             name="Baslinje"
             dot={false}
+            isAnimationActive={false}
           />
 
           {/* Polynomial curve */}
@@ -158,16 +171,35 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
             strokeWidth={2}
             name="Polynomisk kurva"
             dot={false}
+            isAnimationActive={false}
+          />
+
+          {/* Actual test data points */}
+          <Scatter
+            data={dataPoints.map(p => ({ intensity: p.intensity, y: p.lactate }))}
+            name="Uppmätta värden"
+            fill="#ef4444"
+            line={false}
+            shape="circle"
           />
 
           {/* D-max threshold point */}
+          <Scatter
+            data={[{ intensity: dmaxResult.intensity, y: dmaxResult.lactate }]}
+            name="D-max tröskel"
+            fill="#f59e0b"
+            shape="star"
+            line={false}
+            legendType="star"
+          />
+
           <ReferenceLine
             x={dmaxResult.intensity}
             stroke="#f59e0b"
             strokeWidth={2}
             strokeDasharray="3 3"
             label={{
-              value: `D-max: ${dmaxResult.intensity} ${intensityUnit}`,
+              value: `D-max: ${dmaxResult.intensity}`,
               position: 'top',
               fill: '#f59e0b',
               fontSize: 12
@@ -179,40 +211,13 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
             strokeWidth={2}
             strokeDasharray="3 3"
             label={{
-              value: `${dmaxResult.lactate} mmol/L`,
+              value: `${dmaxResult.lactate}`,
               position: 'right',
               fill: '#f59e0b',
               fontSize: 12
             }}
           />
-        </LineChart>
-      </ResponsiveContainer>
-
-      {/* Actual test data points overlay */}
-      <ResponsiveContainer width="100%" height={400} style={{ marginTop: '-400px' }}>
-        <ScatterChart
-          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-        >
-          <XAxis
-            dataKey="intensity"
-            type="number"
-            domain={['dataMin', 'dataMax']}
-            hide
-          />
-          <YAxis domain={[0, 'auto']} hide />
-          <Scatter
-            data={dataPoints}
-            fill="#ef4444"
-            name="Uppmätta värden"
-          />
-          {/* D-max point */}
-          <Scatter
-            data={[{ intensity: dmaxResult.intensity, lactate: dmaxResult.lactate }]}
-            fill="#f59e0b"
-            shape="star"
-            name="D-max tröskel"
-          />
-        </ScatterChart>
+        </ComposedChart>
       </ResponsiveContainer>
 
       {/* Explanation */}

@@ -46,6 +46,7 @@ export interface LactateProfile {
 
   // Curve characteristics
   curvePattern: 'ASCENDING' | 'PLATEAU' | 'IRREGULAR'
+  confidence: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW'
   rSquared?: number // From D-max fit (if applicable)
 
   // Warnings and errors
@@ -197,6 +198,7 @@ function createProfileFromDmax(
     metabolicType,
     athleteLevel,
     curvePattern,
+    confidence: 'VERY_HIGH',
     rSquared: dmaxResult.rSquared,
     warnings: [],
     errors: []
@@ -254,6 +256,7 @@ function createProfileFromRatioMethod(
     metabolicType,
     athleteLevel,
     curvePattern,
+    confidence: 'HIGH',
     warnings: [],
     errors: []
   }
@@ -299,6 +302,7 @@ function createProfileFromManualSelection(
     metabolicType,
     athleteLevel,
     curvePattern,
+    confidence: 'HIGH',
     warnings: [],
     errors: []
   }
@@ -513,6 +517,7 @@ function createFallbackProfile(
     metabolicType: 'MIXED',
     athleteLevel: 'RECREATIONAL',
     curvePattern: 'IRREGULAR',
+    confidence: 'LOW',
     warnings: ['Insufficient data - using conservative defaults'],
     errors
   }

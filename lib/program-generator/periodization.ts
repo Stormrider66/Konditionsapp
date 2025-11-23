@@ -22,43 +22,42 @@ export interface WeeklyVolumeProgression {
  * Uses standard periodization ratios
  */
 export function calculatePhases(totalWeeks: number): PhaseDistribution {
+  let base: number, build: number, peak: number, taper: number
+
   if (totalWeeks < 4) {
     // Very short program - minimal phases
-    return {
-      base: Math.max(1, Math.floor(totalWeeks * 0.5)),
-      build: Math.max(1, Math.floor(totalWeeks * 0.3)),
-      peak: Math.max(1, Math.floor(totalWeeks * 0.2)),
-      taper: 0,
-    }
-  }
-
-  if (totalWeeks <= 8) {
+    base = Math.max(1, Math.floor(totalWeeks * 0.5))
+    build = Math.max(1, Math.floor(totalWeeks * 0.3))
+    peak = Math.max(1, Math.floor(totalWeeks * 0.2))
+    taper = 0
+  } else if (totalWeeks <= 8) {
     // Short program (8 weeks or less)
-    return {
-      base: Math.floor(totalWeeks * 0.5), // 50% base
-      build: Math.floor(totalWeeks * 0.3), // 30% build
-      peak: Math.floor(totalWeeks * 0.15), // 15% peak
-      taper: Math.max(1, Math.floor(totalWeeks * 0.05)), // 5% taper (min 1 week)
-    }
-  }
-
-  if (totalWeeks <= 16) {
+    base = Math.floor(totalWeeks * 0.5) // 50% base
+    build = Math.floor(totalWeeks * 0.3) // 30% build
+    peak = Math.floor(totalWeeks * 0.15) // 15% peak
+    taper = Math.max(1, Math.floor(totalWeeks * 0.05)) // 5% taper (min 1 week)
+  } else if (totalWeeks <= 16) {
     // Medium program (marathon standard)
-    return {
-      base: Math.floor(totalWeeks * 0.55), // 55% base
-      build: Math.floor(totalWeeks * 0.25), // 25% build
-      peak: Math.floor(totalWeeks * 0.12), // 12% peak
-      taper: Math.max(2, Math.floor(totalWeeks * 0.08)), // 8% taper (min 2 weeks)
-    }
+    base = Math.floor(totalWeeks * 0.55) // 55% base
+    build = Math.floor(totalWeeks * 0.25) // 25% build
+    peak = Math.floor(totalWeeks * 0.12) // 12% peak
+    taper = Math.max(2, Math.floor(totalWeeks * 0.08)) // 8% taper (min 2 weeks)
+  } else {
+    // Long program (>16 weeks)
+    base = Math.floor(totalWeeks * 0.6) // 60% base
+    build = Math.floor(totalWeeks * 0.25) // 25% build
+    peak = Math.floor(totalWeeks * 0.1) // 10% peak
+    taper = Math.max(2, Math.floor(totalWeeks * 0.05)) // 5% taper (min 2 weeks)
   }
 
-  // Long program (>16 weeks)
-  return {
-    base: Math.floor(totalWeeks * 0.6), // 60% base
-    build: Math.floor(totalWeeks * 0.25), // 25% build
-    peak: Math.floor(totalWeeks * 0.1), // 10% peak
-    taper: Math.max(2, Math.floor(totalWeeks * 0.05)), // 5% taper (min 2 weeks)
+  // Ensure phases sum to exactly totalWeeks
+  // Add any remainder weeks to the base phase (safest place)
+  const sum = base + build + peak + taper
+  if (sum < totalWeeks) {
+    base += (totalWeeks - sum)
   }
+
+  return { base, build, peak, taper }
 }
 
 /**

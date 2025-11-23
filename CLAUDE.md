@@ -8,6 +8,12 @@ This is a **VO2max/Konditionstest Report Generator** - a Next.js 15 web applicat
 
 **Key purpose**: Transform 30-60 minute manual report generation into a <1 minute automated process with standardized calculations and professional formatting.
 
+**Major features**:
+1. **Physiological Testing** - Lab test report generation (original core functionality)
+2. **Training Programs** - Year-round endurance training programs with athlete portals
+3. **Elite Training Engine** - Advanced monitoring, field tests, methodologies (Polarized, Norwegian, Canova)
+4. **Strength Training** - Periodized strength programs with automatic progression tracking
+
 ## Development Commands
 
 ```bash
@@ -40,140 +46,121 @@ npx prisma migrate dev   # Create and apply migrations (development)
 - **PDF Export**: jsPDF with html2canvas
 - **Email**: Resend for report email delivery
 
-## Architecture & Code Organization
-
-### Application Flow
-1. **Authentication** → User login via Supabase Auth
-2. **Client Management** → Create/manage test subjects (athletes/clients)
-3. **Test Data Input** → Multi-stage test data entry (speed/power, HR, lactate, VO2)
-4. **Calculations Engine** → Automatic threshold, zone, and economy calculations
-5. **Report Generation** → Professional HTML reports with charts
-6. **Export** → PDF download or email delivery
-
-### Directory Structure
+## Directory Structure
 
 ```
 konditionstest-app/
 ├── app/                          # Next.js App Router
 │   ├── api/                      # API routes
-│   │   ├── clients/              # Client CRUD endpoints
-│   │   ├── tests/                # Test CRUD endpoints
-│   │   ├── teams/                # Team management endpoints
-│   │   ├── templates/            # Test template endpoints
-│   │   └── send-report-email/    # Email delivery endpoint
 │   ├── actions/                  # Server actions (auth.ts)
+│   ├── coach/                    # Coach pages (programs, tests, monitoring, tools)
+│   ├── athlete/                  # Athlete pages (dashboard, workouts, check-in)
 │   ├── clients/                  # Client management pages
-│   ├── teams/                    # Team management pages
-│   ├── tests/                    # Test management pages
-│   ├── test/                     # Main test creation page
-│   └── login|register/           # Authentication pages
+│   └── test/                     # Test creation pages
 ├── components/
-│   ├── forms/                    # Form components (TestDataForm, TeamForm)
-│   ├── charts/                   # Recharts components (TestChart, PowerChart, ProgressionChart)
-│   ├── reports/                  # Report templates and export buttons
-│   ├── navigation/               # Navigation components (UserNav, MobileNav)
+│   ├── coach/                    # Coach UI (exercise library, program generator, monitoring)
+│   ├── athlete/                  # Athlete UI (workout logging, stats, calendar)
+│   ├── forms/                    # Form components
+│   ├── charts/                   # Recharts components
+│   ├── reports/                  # Report templates
 │   └── ui/                       # shadcn/ui components
 ├── lib/
-│   ├── calculations/             # Core calculation engine (see below)
+│   ├── calculations/             # Core physiological calculations
+│   ├── training-engine/          # Elite training system (see below)
+│   ├── program-generator/        # Program generation logic
 │   ├── supabase/                 # Supabase client/server/middleware
 │   ├── validations/              # Zod schemas
-│   ├── utils/                    # Utilities (csv-export.ts)
-│   ├── prisma.ts                 # Prisma client singleton
-│   └── pdf-generator.ts          # PDF export logic
+│   ├── auth-utils.ts             # Role-based authorization
+│   └── prisma.ts                 # Prisma client singleton
 ├── types/
 │   └── index.ts                  # Central TypeScript type definitions
-└── prisma/
-    └── schema.prisma             # Database schema
+├── prisma/
+│   ├── schema.prisma             # Database schema (40+ models)
+│   └── seed-exercises.ts         # 84-exercise library seeder
+└── docs/
+    └── training-engine/          # Detailed training engine documentation
 ```
+
+## Database Schema (Prisma)
+
+**Core testing models** (original functionality):
+- `User`, `Client`, `Team`, `Test`, `TestStage`, `Report`, `TestTemplate`
+
+**Training program models** (Phase 1):
+- `TrainingProgram`, `TrainingWeek`, `TrainingDay`, `Workout`, `WorkoutSegment`
+- `WorkoutLog`, `Message`, `AthleteAccount`, `Subscription`
+
+**Elite training engine models** (Phases 1-12):
+- `AthleteProfile`, `DailyCheckIn`, `DailyMetrics`, `TrainingLoad`
+- `ThresholdCalculation`, `FieldTest`, `SelfReportedLactate`
+- `InjuryAssessment`, `CrossTrainingSession`, `RaceCalendar`, `Race`
+- `WorkoutModification`, `TrainingProgramEngine`
+
+**Strength training models** (Phases 1-8):
+- `Exercise` (84 exercises), `ProgressionTracking`, `OneRepMaxHistory`
+
+**Visual Documentation**:
+- 📊 **ER Diagram**: See `docs/database/erd.svg` - Auto-generated visual diagram of all 40+ models and relationships
+- 📖 **Database Guide**: See `docs/database/README.md` - Complete documentation with relationship explanations
+
+**Complete schema**: See `prisma/schema.prisma` for all 40+ models and relationships.
+
+## Key Code Organization
 
 ### Calculations Engine (`lib/calculations/`)
 
-The calculation engine is the core of the application. All calculations follow scientific standards for physiological testing:
-
-**Key files**:
-- `index.ts` - Main entry point: `performAllCalculations(test, client)` orchestrates all calculations
-- `thresholds.ts` - Lactate threshold calculations (aerobic ≈2.0 mmol/L, anaerobic ≈4.0 mmol/L)
+**Physiological testing calculations**:
+- `index.ts` - Main coordinator: `performAllCalculations(test, client)`
+- `thresholds.ts` - Lactate threshold detection (aerobic ≈2.0 mmol/L, anaerobic ≈4.0 mmol/L)
   - Uses linear interpolation between test stages
-  - Special handling for "second crossing" of 4 mmol/L for anaerobic threshold
-- `zones.ts` - Garmin 5-zone training zones based on max HR and thresholds
-- `economy.ts` - Running economy calculations (ml O₂/kg/km)
-- `cycling.ts` - Cycling-specific: FTP, watt/kg, power zones
-- `vo2max.ts` - VO2max identification and age/gender-based evaluation
-- `basic.ts` - BMI and age calculations
+  - **Critical**: Anaerobic threshold = **second crossing** of 4 mmol/L (if exists)
+- `zones.ts` - Training zones based on max HR and thresholds
+- `economy.ts` - Running economy (ml O₂/kg/km)
+- `cycling.ts` - FTP, watt/kg, power zones
+- `vo2max.ts` - VO2max identification and evaluation
 
-**Critical calculation details**:
-- Aerobic threshold: First crossing of 2 mmol/L lactate
-- Anaerobic threshold: **Second crossing** of 4 mmol/L lactate (if exists), otherwise first crossing
-- All interpolations use linear interpolation between adjacent test stages
-- Training zones calculated as percentages of max HR (50-60%, 60-70%, 70-80%, 80-90%, 90-100%)
-- Running economy = (VO2 × 60) / speed [ml/kg/km]
-- Cycling FTP approximated from anaerobic threshold power
+### Training Engine (`lib/training-engine/`)
 
-### Database Schema (Prisma)
+**Core systems** (see `docs/training-engine/` for detailed documentation):
+- `calculations/` - D-max threshold detection, TSS/TRIMP
+- `progression/` - 1RM estimation, 2-for-2 rule, plateau detection
+- `methodologies/` - Polarized, Norwegian, Canova, Pyramidal implementations
+- `generators/` - Exercise selection, plyometric volume control
+- `integration/` - Norwegian validation, injury management, multi-system validation
+- `scheduling/` - Interference management (strength/running)
+- `quality-programming/` - 5-phase strength periodization
 
-**Core models**:
-- `User` - Test leaders/administrators
-- `Client` - Test subjects with demographics (height, weight, age, gender)
-- `Team` - Groups of clients (e.g., sports teams)
-- `Test` - Test session metadata (date, type, location, calculated results)
-- `TestStage` - Individual test stages with measurements
-- `Report` - Generated HTML reports
-- `TestTemplate` - Reusable test protocols
+### Authorization (`lib/auth-utils.ts`)
 
-**Important relationships**:
-- Client → Tests (one-to-many)
-- Test → TestStages (one-to-many, cascade delete)
-- Test → Report (one-to-one, cascade delete)
-- User → Clients, Tests (one-to-many)
-- Team → Clients (one-to-many)
-
-**TestStage fields by test type**:
-- **Running**: `speed` (km/h), `incline` (%), `vo2`, `heartRate`, `lactate`
-- **Cycling**: `power` (watt), `cadence` (rpm), `vo2`, `heartRate`, `lactate`
-- **Skiing**: `pace` (min/km), `vo2`, `heartRate`, `lactate`
+**Role-based system**:
+- `getCurrentUser()`, `requireCoach()`, `requireAthlete()`, `requireAdmin()`
+- `canAccessProgram()`, `canAccessWorkout()`, `canAccessClient()`
+- `hasReachedAthleteLimit()` - Subscription enforcement
 
 ### Type System (`types/index.ts`)
 
-All TypeScript types are centralized in `types/index.ts`. Key types:
+All TypeScript types centralized. Key types:
 - `Test`, `TestStage`, `Client`, `User`, `Team`
 - `TestType` = 'RUNNING' | 'CYCLING' | 'SKIING'
-- `Threshold` - Contains HR, value (speed/power/pace), unit, lactate, percentOfMax
-- `TrainingZone` - HR ranges and corresponding speed/power/pace ranges
-- `TestCalculations` - Return type from `performAllCalculations()`
-- `CreateTestDTO`, `CreateClientDTO` - Form submission types
-
-### State Management & Data Flow
-
-- **Server Components**: Default for all pages (fetch data server-side)
-- **Client Components**: Forms, charts, interactive UI (marked with 'use client')
-- **API Routes**: RESTful endpoints for CRUD operations
-- **Server Actions**: Used for authentication (`app/actions/auth.ts`)
-- **No global state library**: Data fetched per-page, mutations via API calls
-
-### Authentication & Authorization
-
-- Supabase Auth handles login/register/sessions
-- Middleware (`middleware.ts`) protects routes
-- User context via Supabase server-side helpers
-- All data scoped to authenticated user via `userId` foreign keys
+- `Threshold`, `TrainingZone`, `TestCalculations`
+- `TrainingProgram`, `Workout`, `WorkoutSegment`
 
 ## Important Conventions
 
 ### Calculation Accuracy
 - All calculations must match scientific standards
-- Threshold interpolation must use linear interpolation, not estimation
-- Always validate that test stages are sorted by `sequence` before calculations
+- Threshold interpolation: **linear interpolation only**, not estimation
+- Always validate test stages are sorted by `sequence` before calculations
 - Handle edge cases (missing VO2 data, incomplete lactate curves, etc.)
 
 ### Test Type Handling
-- Check `testType` to determine which fields are relevant (speed vs power vs pace)
-- Unit determination logic: Check if `speed` exists → 'km/h', else `power` → 'watt', else `pace` → 'min/km'
+- Check `testType` to determine relevant fields (speed vs power vs pace)
 - Running tests require `speed`, cycling requires `power`, skiing requires `pace`
 
 ### Data Validation
 - All form data validated with Zod schemas in `lib/validations/schemas.ts`
-- Client-side validation via React Hook Form + Zod resolver
-- Server-side validation in API routes (always validate on server)
+- Client-side: React Hook Form + Zod resolver
+- Server-side: Always validate in API routes
 
 ### Database Interactions
 - Use Prisma client singleton from `lib/prisma.ts`
@@ -181,61 +168,33 @@ All TypeScript types are centralized in `types/index.ts`. Key types:
 - Use transactions for multi-step operations
 - Cascade deletes configured for Test → TestStages, Test → Report
 
-### Report Generation
-- Reports generated from `ReportTemplate.tsx` component
-- Export to PDF via `PDFExportButton.tsx` using jsPDF + html2canvas
-- Email delivery via Resend API (`api/send-report-email/route.ts`)
-- Reports include: client info, test data, charts, thresholds, training zones
+### Path Aliases
+- `@/*` maps to project root (configured in `tsconfig.json`)
+- Always use `@/` prefix for imports
 
 ### UI/UX Patterns
 - Forms use multi-step wizards for test data entry
 - Charts show dual-axis (HR + lactate) vs intensity (speed/power/pace)
 - Responsive design with mobile navigation
-- Loading states with skeleton components
 - Error handling with toast notifications
-
-### Path Aliases
-- `@/*` maps to project root (configured in `tsconfig.json`)
-- Always use `@/` prefix for imports: `@/lib/calculations`, `@/types`, `@/components/ui/button`
 
 ## Common Development Tasks
 
 ### Adding a New Test Type
 1. Add to `TestType` enum in `prisma/schema.prisma` and `types/index.ts`
-2. Add relevant fields to `TestStage` model (e.g., for rowing: `strokeRate`)
+2. Add relevant fields to `TestStage` model
 3. Update `lib/calculations/thresholds.ts` to handle new unit type
-4. Update `lib/calculations/zones.ts` to calculate zones for new type
-5. Modify `components/forms/TestDataForm.tsx` to show relevant input fields
-6. Update `components/charts/TestChart.tsx` for new axis labels
-7. Update `components/reports/ReportTemplate.tsx` to display new data
-
-### Adding a New Calculation
-1. Create function in appropriate `lib/calculations/*.ts` file
-2. Add to `performAllCalculations()` in `lib/calculations/index.ts`
-3. Update `TestCalculations` type in `types/index.ts`
-4. Update `ReportTemplate.tsx` to display new calculation
-5. Write tests if complex calculation logic
+4. Update `lib/calculations/zones.ts` for new type
+5. Modify `components/forms/TestDataForm.tsx` for input fields
+6. Update `components/charts/TestChart.tsx` for axis labels
+7. Update `components/reports/ReportTemplate.tsx` to display data
 
 ### Debugging Calculation Issues
-- Check console logs in `lib/calculations/thresholds.ts` (has extensive logging)
+- Check console logs in `lib/calculations/thresholds.ts` (extensive logging)
 - Verify test stages are sorted by `sequence`
-- Check that correct field (speed/power/pace) exists and is not null/undefined
-- Validate lactate values are ascending (if threshold can't be found)
+- Check correct field (speed/power/pace) exists and is not null
+- Validate lactate values are ascending
 - Use Prisma Studio to inspect raw database values
-
-### Testing with Sample Data
-- Sample data exists in `data_model.md` spec file
-- Can create test data via `/simple-test` page
-- Example client: Joakim Hällgren, male, 186cm, 88kg
-- Example test date range: 2025-09-02 to 2025-10-02
-
-## Known Issues & Considerations
-
-- **Lactate curve validation**: Not enforced - users can input decreasing lactate values
-- **Missing VO2 data**: Economy calculations skip stages without VO2, no error shown
-- **PDF export**: Large reports may timeout on slow connections
-- **Email delivery**: Requires Resend API key in environment variables
-- **Database**: Currently uses Supabase PostgreSQL (not local development DB by default)
 
 ## Environment Variables
 
@@ -253,721 +212,366 @@ DATABASE_URL=
 RESEND_API_KEY=
 ```
 
-## Testing & Quality
-
-- No automated test suite currently implemented
-- Manual testing via development server
-- Calculation accuracy validated against reference data
-- Forms validated with Zod schemas (type-safe at runtime)
-
 ## Performance Considerations
 
 - Server-side rendering for initial page loads
 - Client-side navigation via Next.js App Router
-- Charts may be slow with >20 test stages (consider virtualization)
-- PDF generation blocks UI (consider moving to API route with background processing)
-- Database queries not optimized with eager loading (N+1 queries possible)
+- Charts may be slow with >20 test stages
+- Database queries: 18+ indexes for <500ms performance with 500+ athletes
 
 ## Deployment
 
 - Designed for Vercel deployment
 - Database hosted on Supabase
-- Environment variables configured in Vercel dashboard
 - Build command: `npm run build`
-- No custom server required (Next.js handles routing)
-
----
-
-## Phase 1: Training Program Foundation (IMPLEMENTED)
-
-The app now includes foundational support for training programs and athlete portals. **Phase 1 is complete** with the following additions:
-
-### New Database Models (10 models added)
-
-**Subscription & Billing**:
-- `Subscription` - Subscription tiers (FREE, BASIC, PRO, ENTERPRISE) with athlete limits and Stripe integration
-
-**Athlete Accounts**:
-- `AthleteAccount` - Links Client to Athlete User (1-to-1 relationship)
-
-**Training Programs**:
-- `TrainingProgram` - Year-round program support with goal types (marathon, 5k, fitness, etc.)
-- `TrainingWeek` - Weekly structure with phases (BASE, BUILD, PEAK, TAPER, etc.)
-- `TrainingDay` - Daily workout schedule
-- `Workout` - Individual workouts with type, intensity, segments
-- `WorkoutSegment` - Detailed workout parts (warm-up, intervals, exercises, etc.)
-- `Exercise` - Exercise library with Swedish/English names
-- `WorkoutLog` - Athlete workout completion logs with RPE, notes, file uploads
-- `Message` - Coach-athlete messaging system
-
-### User Roles & Authentication
-
-**Three roles implemented**:
-- `COACH` - Creates clients, tests, programs (existing test leaders)
-- `ATHLETE` - Views programs, logs workouts, sees test results
-- `ADMIN` - Full system access
-
-**Role-based route protection** (`middleware.ts`):
-- `/coach/*` routes protected for coaches
-- `/athlete/*` routes protected for athletes
-- `/admin/*` routes protected for admins
-- Automatic redirect to appropriate dashboard based on role
-
-### Auth Utilities (`lib/auth-utils.ts`)
-
-Complete authorization system:
-- `getCurrentUser()` - Get authenticated user with role
-- `requireCoach()`, `requireAthlete()`, `requireAdmin()` - Role guards
-- `canAccessProgram()`, `canAccessWorkout()`, `canAccessClient()` - Resource-level permissions
-- `hasReachedAthleteLimit()` - Subscription limit checks
-- `getAccessiblePrograms()` - Filtered program lists by role
-
-### API Endpoints
-
-**Athlete Account Management** (`/api/athlete-accounts`):
-- `POST` - Create athlete account for client (generates temp password, sends email)
-- `GET` - Retrieve athlete account by clientId
-- Integrates with Supabase Auth
-- Updates subscription athlete count
-
-### Exercise Library
-
-**25 Swedish exercises** (`prisma/seed-exercises.ts`):
-- **Strength**: Knäböj, marklyft, bänkpress, rodd, chins, etc.
-- **Plyometric**: Lådhopp, depth jumps, enbenhopp, broad jump, etc.
-- **Core**: Plank, sidplank, dead bug, bird dog, pallof press, etc.
-- All with Swedish (`nameSv`) and English (`nameEn`) names
-- Instructions, equipment, difficulty, video links
-- Run with: `npx ts-node prisma/seed-exercises.ts`
-
-### Key Design Decisions
-
-1. **Year-Round Training**: Programs can span any duration, not just race-specific blocks
-2. **Multiple Goals**: Support for marathon, 5k, fitness, cycling, skiing, custom goals
-3. **Flexible Logging**: Athletes can log in advance and add custom workouts (`isCustom` flag)
-4. **Full Visibility**: Athletes see entire program from start (not week-by-week unlock)
-5. **Scalability**: Designed for 500+ athletes with proper indexing
-6. **Swedish First**: All content in Swedish, English support to be added later
-7. **Subscription Tiers**: FREE (0 athletes), BASIC (5), PRO (50), ENTERPRISE (unlimited)
-
-### Next Steps for Phase 2
-
-To complete the training program MVP, implement:
-1. Program generator algorithm (`lib/program-generator/`)
-2. Coach program builder UI (`/coach/programs/`)
-3. Athlete dashboard (`/athlete/dashboard`)
-4. Workout detail and logging (`/athlete/workouts/[id]`)
-
-See `TRAINING_PROGRAM_IMPLEMENTATION_PLAN.md` for complete Phase 2-7 roadmap.
-
-### Migration Required
-
-**Before using Phase 1 features**:
-```bash
-# Stop development server
-# Generate Prisma client
-npx prisma generate
-
-# Create migration
-npx prisma migrate dev --name add_training_programs
-
-# Seed exercise library
-npx ts-node prisma/seed-exercises.ts
-
-# Restart development server
-npm run dev
-```
-
-**Update existing users**: All existing users default to `COACH` role. Update manually if needed:
-```sql
-UPDATE "User" SET role = 'ATHLETE' WHERE email = 'athlete@example.com';
-```
 
 ---
 
 ## Elite Training Engine (Phases 1-12 COMPLETE)
 
-The application now includes a **production-ready elite training engine** with advanced features for professional endurance coaching. All 12 phases have been implemented.
+**Overview**: Production-ready elite training system with automatic adaptation based on athlete monitoring, lactate testing, field tests, injury management, and cross-training integration.
 
-### Training Engine Overview
+### Key Capabilities
 
-**What it does**: Generates science-based training programs with automatic adaptation based on athlete monitoring, lactate testing, field tests, injury management, and cross-training integration.
-
-**Who it's for**: Coaches working with advanced and elite endurance athletes (running, cycling, skiing) who need sophisticated training methodologies and continuous monitoring.
-
-**Key capabilities**:
-- 🧪 **D-max threshold detection** from lactate curves
+- 🧪 **D-max threshold detection** from lactate curves (polynomial curve fitting)
 - 📊 **4 elite methodologies**: Polarized (80/20), Norwegian (double threshold), Canova, Pyramidal
+- 🎯 **Elite Pace Zone System** - Hierarchical multi-source pace calculation (VDOT → Lactate → HR → Profile)
+- 🏃 **Race Results Tracking** - VDOT calculation, equivalent times, performance analysis
 - 💓 **HRV/RHR monitoring** with daily readiness assessment
-- 🏃 **Automatic workout modification** based on readiness
-- 🩹 **Injury management** with University of Delaware pain rules
-- 🏊 **Cross-training integration** with 6 modalities
+- 🏃 **Automatic workout modification** based on readiness scores
+- 🩹 **Injury management** with University of Delaware pain rules (9 injury types)
+- 🏊 **Cross-training integration** with 6 modalities (DWR 98%, Cycling 75%, Swimming 45%, etc.)
 - 📅 **Multi-race planning** with A/B/C race classification
-- 🧬 **ACWR monitoring** for injury prevention
+- 🧬 **ACWR monitoring** for injury prevention (EWMA method)
+- 💬 **Coach-athlete messaging** with thread support
 
----
+### Key Files & Directories
 
-## Training Engine Architecture
-
-### Calculation Layer (`lib/training-engine/`)
-
-**Threshold Calculations** (`calculations/`):
-- `dmax.ts` - D-max lactate threshold detection with polynomial curve fitting
-- `tss-trimp.ts` - Training Stress Score and TRIMP calculations
-
-**Integration Utilities** (`integration/`):
-- `norwegian-validation.ts` - Norwegian Method eligibility validation with 4-phase transition
-- `injury-management.ts` - Multi-system injury response cascade
-- `multi-system-validation.ts` - Cross-system validation and priority ordering
-
-**Utility Functions** (`utils/`):
-- `interpolation.ts` - Linear/polynomial interpolation for threshold detection
-- `polynomial-fit.ts` - Polynomial curve fitting for D-max
-
-### Database Models (Training Engine)
-
-**Core Models** (20+ new models):
-
-1. **AthleteProfile** - Central profile with categorization (BEGINNER → ELITE)
-   - HRV/RHR baselines (14-21 day establishment)
-   - Training zones (updated from tests)
-   - Equipment tracking (lactate meter, HRV monitor, power meter)
-   - Norwegian Method phase tracking
-
-2. **DailyCheckIn** - Quick daily check-in (<2 minutes)
-   - Optional HRV/RHR input
-   - 7-question wellness questionnaire
-   - Readiness score (0-100) calculation
-   - Readiness decision (PROCEED/REDUCE/EASY/REST)
-
-3. **DailyMetrics** - Full daily monitoring (legacy, comprehensive)
-   - HRV with quality assessment
-   - RHR with baseline deviation
-   - Wellness questionnaire (7 factors)
-   - Readiness score with red/yellow flags
-
-4. **TrainingLoad** - Daily training load with ACWR
-   - TSS or TRIMP values
-   - Acute load (7-day EWMA)
-   - Chronic load (28-day EWMA)
-   - ACWR zones (DETRAINING → CRITICAL)
-   - Injury risk classification
-
-5. **ThresholdCalculation** - D-max and threshold results
-   - D-max intensity, lactate, HR
-   - LT1 (aerobic threshold) data
-   - LT2 (anaerobic threshold) data
-   - Confidence levels (VERY_HIGH → LOW)
-   - R² goodness of fit
-
-6. **TrainingProgramEngine** - Complete programs
-   - Methodologies: POLARIZED, NORWEGIAN, CANOVA, PYRAMIDAL, LYDIARD
-   - Periodization structure (JSON)
-   - Weekly plans with progression
-   - Status tracking (DRAFT → COMPLETED)
-
-7. **WorkoutModification** - Auto/manual modifications
-   - Decision types (PROCEED → CANCEL)
-   - Original vs modified plans
-   - Readiness-based reasoning
-   - Methodology-specific guidance
-
-8. **FieldTest** - Non-lab threshold tests
-   - 30-min TT, HR drift, Critical Velocity
-   - Derived LT1/LT2 paces and HR
-   - Confidence levels
-   - Validation warnings/errors
-
-9. **FieldTestSchedule** - Field test reminders
-   - Scheduled date tracking
-   - Critical test flagging (<7 days alert)
-   - Completion status
-
-10. **SelfReportedLactate** - Athlete-submitted lactate data
-    - Multi-stage test support (4+ stages required)
-    - Photo verification
-    - Coach validation workflow
-    - Estimated threshold calculation
-
-11. **InjuryAssessment** - University of Delaware pain rules
-    - 0-10 pain scale
-    - 9 injury types (plantar fasciitis, achilles, IT band, etc.)
-    - Functional assessment
-    - Return-to-running protocol
-
-12. **CrossTrainingSession** - Cross-training with equivalencies
-    - 6 modalities: DWR (98%), Cycling (75%), Elliptical (65%), Swimming (45%), AlterG (90%), Rowing (68%)
-    - TSS equivalency calculation
-    - Fitness retention tracking
-    - Injury-specific recommendations
-
-13. **StrengthTrainingSession** - Periodized strength
-    - 4 phases: AA, Max Strength, Power, Maintenance
-    - Integration with running phases
-    - Volume load tracking
-    - Plyometric contact tracking
-
-14. **RaceCalendar** - Season planning
-    - A/B/C race classification
-    - Multi-race periodization
-    - Taper scheduling
-
-15. **Race** - Individual race tracking
-    - Goals vs results
-    - VDOT calculation
-    - Equivalent times
-    - Assessment (EXCEEDED/MET/CLOSE/MISSED)
-
-### Training Methodologies
-
-**1. Polarized (80/20)**
-- 80% volume at low intensity (Zone 1-2)
-- 20% volume at high intensity (Zone 4-5)
-- Minimal Zone 3 ("gray zone" avoidance)
-- 2-3 threshold/interval sessions per week
-- Best for: Advanced to elite athletes
-
-**2. Norwegian Method (Double Threshold)**
-- 2x weekly threshold sessions at LT2 (2-3 mmol/L lactate)
-- 25-30% of weekly volume at threshold
-- Lactate monitoring required (twice weekly)
-- Prerequisites:
-  - 2+ years consistent training
-  - 60+ km/week aerobic base
-  - Recent lactate test (<8 weeks)
-  - Lactate meter access
-  - Coach supervision
-- 4-phase transition protocol (12 weeks)
-- Best for: Elite athletes with proper support
-
-**3. Canova Method**
-- Mixed intensity approach
-- Long runs with fast finishes
-- Progressive long runs
-- Fundamental runs (marathon pace +10-15%)
-- Best for: Marathon specialists
-
-**4. Pyramidal**
-- Graduated intensity distribution
-- More volume than polarized in Zone 3
-- Typical: 70% easy, 20% moderate, 10% hard
-- Best for: Recreational to advanced athletes
-
-### Field Tests (Alternative to Lab Testing)
-
-**30-Minute Time Trial**
-- Maximal 30-min effort
-- LT2 estimated from avg HR and pace
-- Confidence: HIGH (if executed correctly)
-
-**HR Drift Test**
-- 60-90 min constant pace
-- HR drift <5% = aerobic
-- HR drift >5% = above aerobic threshold
-- Confidence: MEDIUM
-
-**Critical Velocity Test**
-- 2-3 maximal efforts at different distances
-- Mathematical modeling (distance vs time)
-- LT2 ≈ critical velocity
-- Confidence: MEDIUM
-
-**Validation Requirements**:
-- Proper taper (48 hours since last hard workout)
-- Readiness score ≥75
-- No active injuries
-- Good test conditions (temperature, wind, terrain)
-
-### Injury Management System
-
-**University of Delaware Soreness Rules**:
-- Pain > 5/10 → Complete rest
-- Pain 3-5/10 → Cross-training only
-- Pain < 3/10 → Reduce volume/intensity 50%
-- Gait affected → RED FLAG (immediate rest)
-
-**9 Injury Types Supported**:
-1. Plantar Fasciitis → DWR recommended
-2. Achilles Tendinopathy → DWR or swimming
-3. IT Band Syndrome → Swimming or DWR
-4. Patellofemoral Syndrome → DWR (avoid cycling)
-5. Shin Splints → Cycling or DWR
-6. Stress Fracture → DWR/swimming ONLY (6+ weeks no impact)
-7. Hamstring Strain → Swimming ideal
-8. Calf Strain → Cycling with low resistance
-9. Hip Flexor → Swimming with pull buoy
-
-**Return-to-Running Protocol** (5 phases):
-- Phase 1: Walking only (1 week)
-- Phase 2: Walk/run 1:4 ratio (2 weeks)
-- Phase 3: Progressive walk/run 2:3 → 3:2 (2 weeks)
-- Phase 4: Continuous running (2 weeks)
-- Phase 5: Return to full training (4 weeks)
-
-**Multi-System Response**:
-When injury detected, system automatically:
-1. Modifies/cancels running workouts (next 14 days)
-2. Generates cross-training substitutions
-3. Pauses/adjusts training program
-4. Creates return-to-running protocol
-5. Notifies coach (urgency based on severity)
-
-### Cross-Training Equivalencies
-
-**Fitness Retention by Modality**:
-- **DWR (Deep Water Running)**: 98% - Nearly perfect running substitute
-- **AlterG Treadmill**: 90% - Excellent for gradual return
-- **Cycling**: 75% - Good cardiovascular stimulus
-- **Rowing**: 68% - Full-body alternative
-- **Elliptical**: 65% - Low impact option
-- **Swimming**: 45% - Lowest retention but injury-safe
-
-**TSS Calculation**:
-- Running TSS = baseline
-- Cross-training TSS = running_TSS × (retention% / 100)
-- Example: 100 TSS run → 75 TSS cycling session
-
-**AlterG Progression Protocol**:
-- Week 1: 50% body weight
-- Week 2: 60% body weight
-- Week 3: 70% body weight
-- Week 4: 80% body weight
-- Week 5: 90% body weight
-- Week 6: Return to normal running
-
-### Norwegian Method Integration
-
-**Eligibility Validation** (`lib/training-engine/integration/norwegian-validation.ts`):
-
-```typescript
-const result = await validateNorwegianMethodEligibility(athleteId, prisma);
-
-// Returns:
-// - eligible: boolean
-// - requirements: Array of 5 prerequisite checks
-// - transitionPlan: 4-phase protocol
-// - estimatedTransitionWeeks: 12-16 weeks
-```
-
-**5 Critical Prerequisites**:
-1. Training age ≥ 2 years
-2. Aerobic base ≥ 60 km/week (sustained)
-3. Recent lactate test (< 8 weeks)
-4. Lactate meter access
-5. Coach supervision
-
-**4-Phase Transition**:
-1. **Threshold Familiarization** (4 weeks)
-   - 1x weekly threshold @ LT2
-   - 8-10 km threshold volume
-   - Lactate: 2.0-3.0 mmol/L
-
-2. **Double Threshold Introduction** (4 weeks)
-   - 2x weekly threshold (72h spacing)
-   - 15-18 km total threshold volume
-   - Both sessions: 2.0-3.5 mmol/L
-
-3. **Volume Integration** (4 weeks)
-   - 2x weekly threshold
-   - 20-25 km total (25-30% of weekly)
-   - Stable HRV/RHR required
-
-4. **Full Norwegian Protocol** (ongoing)
-   - 2x weekly threshold
-   - 25-30 km total
-   - Continuous lactate monitoring
-   - Sustainable year-round
-
-**Phase Progression Validation**:
-- Minimum 4 weeks per phase
-- Lactate variability < 0.5 mmol/L
-- HRV not declining
-- RHR not elevated
-- No injury flags
-
-### Multi-System Validation Cascade
-
-**Purpose**: Prevent conflicting training decisions across systems
-
-**Priority Order** (highest to lowest):
-1. **INJURY** - Safety first, overrides all
-2. **READINESS** - Daily state trumps planned workouts
-3. **FIELD_TESTS** - Test validity depends on readiness/injury
-4. **NORWEGIAN_METHOD** - Prerequisites must be continuously met
-5. **PROGRAM_GENERATION** - Base program structure
-6. **WORKOUT_MODIFICATION** - Daily adjustments
-
-**Example Conflict Resolution**:
-```typescript
-// Scenario: Norwegian Method enabled + Active injury + Field test scheduled
-
-const validation = await validateSystemState(athleteId, prisma);
-
-// Result:
-// - BLOCKER: Injury → Pause Norwegian Method
-// - BLOCKER: Norwegian paused → Cancel threshold sessions
-// - WARNING: Field test → Reschedule (athlete not ready)
-// - RECOMMENDATION: "Switch to cross-training-only protocol"
-```
-
-### ACWR (Acute:Chronic Workload Ratio)
-
-**Calculation Method**: EWMA (Exponentially Weighted Moving Average)
-- Acute load: 7-day EWMA of daily TSS
-- Chronic load: 28-day EWMA of daily TSS
-- ACWR = Acute / Chronic
-
-**Risk Zones**:
-- **<0.8**: DETRAINING (fitness loss)
-- **0.8-1.3**: OPTIMAL (sweet spot)
-- **1.3-1.5**: CAUTION (moderate risk)
-- **1.5-2.0**: DANGER (high risk)
-- **>2.0**: CRITICAL (very high risk)
-
-**Automatic Intervention**:
-- ACWR >1.3 → Reduce upcoming workouts by 20-30%
-- ACWR >1.5 → Reduce by 40-50% + extra rest day
-- ACWR >2.0 → Mandatory rest + coach notification
-
-### Readiness Assessment
-
-**Readiness Score Calculation** (weighted composite):
-- HRV status: 30% weight
-- RHR status: 20% weight
-- Sleep quality: 15% weight
-- Muscle soreness: 15% weight
-- Energy level: 10% weight
-- Mood: 5% weight
-- Stress: 5% weight
-
-**Readiness Levels**:
-- **EXCELLENT** (85-100): PROCEED as planned
-- **GOOD** (70-84): PROCEED with caution
-- **MODERATE** (55-69): REDUCE intensity
-- **FAIR** (40-54): EASY day only
-- **POOR** (25-39): REST or very easy
-- **VERY_POOR** (<25): MANDATORY REST
-
-**Workout Modification Decisions**:
-- **PROCEED**: Execute workout as planned
-- **MINOR_MODIFICATION**: Reduce intensity 10-15%
-- **MODERATE_MODIFICATION**: Reduce intensity 20-30% or volume 20%
-- **MAJOR_MODIFICATION**: Convert to easy or cross-training
-- **CANCEL**: Complete rest
-
-### D-max Threshold Detection
-
-**Method**: Polynomial curve fitting with D-max point calculation
-
-**Algorithm**:
-1. Fit 3rd-order polynomial to lactate curve: `y = ax³ + bx² + cx + d`
-2. Calculate D-max: Point of maximum perpendicular distance from baseline
-3. Interpolate LT1 and LT2 from curve
-4. Validate R² ≥ 0.90 for confidence
-
-**Confidence Levels**:
-- **VERY_HIGH**: R² ≥ 0.95, 6+ stages, proper progression
-- **HIGH**: R² ≥ 0.90, 5+ stages
-- **MEDIUM**: R² ≥ 0.85, 4+ stages
-- **LOW**: R² < 0.85 or <4 stages
-
-**Validation Warnings**:
-- Non-ascending lactate values
-- Insufficient stages (<4)
-- Poor curve fit (R² < 0.90)
-- Missing baseline stages
-- Irregular stage progression
-
-### Coach UI Components
-
-**Created Components** (10 components, ~3,800 lines):
-- `FieldTestForm.tsx` - 3 test types submission
-- `TestResultsDisplay.tsx` - Comprehensive results analysis
-- `InjuryAssessmentForm.tsx` - Delaware pain rules implementation
-- `WorkoutConverter.tsx` - Cross-training conversion with 6 modalities
-- `EnvironmentalCalculator.tsx` - WBGT, altitude, wind adjustments
-- `VDOTCalculator.tsx` - Jack Daniels calculator
-- `MonitoringCharts.tsx` - HRV/RHR/Wellness visualization
-- `ProgramReportPreview.tsx` - Comprehensive program reports
-- `NorwegianMethodConfig.tsx` - Norwegian setup wizard
-- `WorkoutModificationDashboard.tsx` - Daily modification review
-
-**Coach Pages** (4 pages):
-- `/coach/tests/new` - Field test creation
-- `/coach/tests/[testId]` - Test results detail
-- `/coach/monitoring` - Athlete monitoring dashboard
-- `/coach/tools` - Calculators and utilities
-
-### Athlete UI Components
-
-**Created Components** (4 new + 13 existing):
-- `ProgramReportViewer.tsx` - Program overview with export
-- `BenchmarkSchedule.tsx` - Field test reminders
-- `ModificationBanner.tsx` - Workout modification alerts
-- `SelfReportedLactateForm.tsx` - Multi-stage lactate entry
-- `DailyCheckInForm.tsx` - 2-minute daily check-in
-- Plus 13 existing components (workout logging, stats, calendar, etc.)
-
-**Athlete Pages** (4 pages):
-- `/athlete/check-in` - Daily readiness check-in
-- `/athlete/program/report` - Program report viewer
-- `/athlete/program/benchmarks` - Field test schedule
-- `/athlete/lactate/new` - Self-service lactate submission
-
-### API Layer
-
-**Training Engine APIs** (9 new endpoints):
-- `POST /api/field-tests` - Submit field test
-- `GET /api/field-tests/[id]` - Get field test results
-- `POST /api/daily-checkin` - Submit daily check-in
-- `POST /api/lactate/self-reported` - Submit athlete lactate data
-- `PUT /api/lactate/[id]/validate` - Coach validation
-- `GET /api/monitoring/readiness` - Get athlete readiness
-- `POST /api/injury/assess` - Submit injury assessment
-- `GET /api/cross-training/convert` - Convert workout to cross-training
-- `POST /api/programs/[id]/generate-report` - Generate program report PDF
-
-### Database Indexes (Performance Optimization)
-
-**18+ new indexes added for <500ms query performance**:
-- `ThresholdCalculation`: (method, confidence), testDate
-- `DailyMetrics`: (clientId, readinessScore), (clientId, readinessLevel)
-- `TrainingLoad`: (clientId, acwrZone), (clientId, injuryRisk)
-- `TrainingProgramEngine`: (methodology, status), currentPhase
-- `WorkoutModification`: (workoutId, date), (autoGenerated, decision)
-- `FieldTest`: (clientId, testType, date), (confidence, valid)
-- `SelfReportedLactate`: (validated, clientId), (validatedBy, validatedAt)
-- `InjuryAssessment`: (clientId, resolved), (injuryType, phase)
-- `CrossTrainingSession`: (clientId, modality), (reason, injuryType)
-- `StrengthTrainingSession`: (clientId, phase), (runningPhase, priorityLevel)
-- `AthleteProfile`: (hasLactateMeter, hasHRVMonitor), norwegianPhase
-- `Workout`: status
-- `DailyCheckIn`: readinessScore, readinessDecision
-- `FieldTestSchedule`: (clientId, scheduledDate), (completed, scheduledDate)
-
-**Performance Benchmarks** (500 athletes):
-- Get readiness: 35ms (<50ms target) ✅
-- Calculate ACWR: 78ms (<100ms target) ✅
-- Validate Norwegian: 145ms (<200ms target) ✅
-- Generate program: 1.2s (<2s target) ✅
-- Multi-system validation: 220ms (<300ms target) ✅
-
-### Testing & Documentation
-
-**End-to-End Test Scenarios** (`docs/training-engine/END_TO_END_TEST_SCENARIOS.md`):
-- 10 comprehensive test scenarios
-- 3 test athletes (Beginner, Advanced, Elite)
-- Complete program generation flow
-- Norwegian Method eligibility validation
-- Daily readiness & workout modification
-- Injury detection & multi-system response
-- Multi-system validation cascade
-- Field test validation & zone updates
-- Self-reported lactate validation
-- ACWR injury risk monitoring
-- Cross-training equivalency calculation
-- Complete season with multi-race planning
-
-**Phase Documentation** (`docs/training-engine/`):
-- `MASTER_PLAN.md` - Complete 14-phase roadmap
-- `PHASE_01_DATABASE.md` through `PHASE_18_CROSS_TRAINING.md`
-- `STATUS.md` - Implementation status (99% complete)
-- `CONTINUATION_GUIDE.md` - Development continuation guide
-
-### Training Engine Status
-
-**Implementation Progress**: 99% complete (Phases 1-12 done)
-
-✅ **Phase 1**: Database foundation (100%)
-✅ **Phase 2**: Core calculations (100%)
-✅ **Phase 3**: Monitoring system (100%)
-✅ **Phase 4**: Field tests (100%)
-✅ **Phase 5**: Self-service lactate (100%)
-✅ **Phase 6**: Methodologies (100%)
-✅ **Phase 7**: Program generation (100%)
-✅ **Phase 8**: Workout modification (100%)
-✅ **Phase 9**: API layer (100%)
-✅ **Phase 10**: Coach UI (100%)
-✅ **Phase 11**: Athlete UI (100%)
-✅ **Phase 12**: Integration & testing (100%)
-
-**Remaining** (optional future enhancements):
-- Phase 13: End-to-end testing execution
-- Phase 14: Production deployment & monitoring
-
-### Key Files to Know
-
-**Integration Utilities**:
-- `lib/training-engine/integration/norwegian-validation.ts` - Norwegian eligibility (310 lines)
-- `lib/training-engine/integration/injury-management.ts` - Injury cascade (650 lines)
-- `lib/training-engine/integration/multi-system-validation.ts` - System validation (700 lines)
-
-**Calculation Engines**:
+**Core calculations**:
 - `lib/training-engine/calculations/dmax.ts` - D-max threshold detection
-- `lib/training-engine/calculations/tss-trimp.ts` - Training load calculation
+- `lib/training-engine/calculations/tss-trimp.ts` - Training load
 
-**Critical Components**:
-- `components/coach/injury/InjuryAssessmentForm.tsx` - Delaware pain rules (350 lines)
-- `components/coach/cross-training/WorkoutConverter.tsx` - Cross-training (450 lines)
-- `components/athlete/lactate/SelfReportedLactateForm.tsx` - Lactate entry (550 lines)
+**Integration systems**:
+- `lib/training-engine/integration/norwegian-validation.ts` - Norwegian Method eligibility (5 prerequisites, 4-phase transition)
+- `lib/training-engine/integration/injury-management.ts` - Multi-system injury response cascade
+- `lib/training-engine/integration/multi-system-validation.ts` - Priority ordering (INJURY → READINESS → FIELD_TESTS → NORWEGIAN → PROGRAM → WORKOUT)
 
-### Migration for Training Engine
+**Methodologies**:
+- `lib/training-engine/methodologies/polarized.ts` - 80/20 distribution
+- `lib/training-engine/methodologies/norwegian.ts` - Double threshold (2x weekly @ LT2)
+- `lib/training-engine/methodologies/canova.ts` - Marathon specialist approach
+- `lib/training-engine/methodologies/pyramidal.ts` - 70/20/10 distribution
 
-**Required migration**:
+**UI Components**:
+- Coach: `components/coach/` (FieldTestForm, InjuryAssessmentForm, WorkoutConverter, MonitoringCharts, etc.)
+- Athlete: `components/athlete/` (DailyCheckInForm, SelfReportedLactateForm, ModificationBanner, etc.)
+
+### Elite Pace Zone System
+
+**Purpose**: Addresses critical flaw in fixed lactate thresholds - elite marathoners can have LT2 <2 mmol/L while others have LT2 >6 mmol/L for same performance.
+
+**Hierarchical Calculation Priority**:
+1. **Tier 1**: Race Performance (VDOT) ⭐⭐⭐⭐⭐
+2. **Tier 2**: Lactate Test (individualized LT2:Peak ratio) ⭐⭐⭐⭐
+3. **Tier 3**: HR-Based Estimation ⭐⭐⭐
+4. **Tier 4**: Profile-Based Estimation ⭐⭐
+
+**Training Systems Supported**:
+- **Daniels VDOT**: E/M/T/I/R paces (Easy/Marathon/Threshold/Interval/Repetition)
+- **Canova**: Fundamental/Progressive/Marathon/Specific/Threshold/5K/1K paces
+- **Norwegian**: Green/Threshold/Red zones (polarized)
+- **Legacy 5-zone**: Backwards compatibility
+
+**Key Features**:
+- Metabolic type detection (Fast Twitch vs Slow Twitch based on max lactate)
+- Athletic level compression factors (Elite: 96-98% MP/LT2, Recreational: 75-82%)
+- LT2 calculated as % of individual max lactate (not fixed 4 mmol/L)
+- Phase-aware zones (BASE: physiological anchor, SPECIFIC: race pace anchor)
+
+**Files**:
+- `lib/program-generator/elite-pace-integration.ts` - Integration layer (300+ lines)
+- `lib/training-engine/calculations/pace-selector.ts` - Multi-source pace calculation (450+ lines)
+- `lib/program-generator/pace-validator.ts` - Validation logic (500+ lines)
+- `docs/training-engine/ELITE_PACE_ZONE_IMPLEMENTATION_PLAN.md` - Complete scientific documentation
+
+### Race Results & Performance Tracking
+
+**Database Models**: `Race`, `RaceCalendar`
+
+**Features**:
+- CRUD operations for race results (marathon, half, 10K, 5K, custom distances)
+- Automatic VDOT calculation from race times (Jack Daniels tables)
+- Equivalent time predictions across distances
+- Race assessment: EXCEEDED/MET/CLOSE/MISSED goals
+- Integration with pace calculation (Tier 1 priority source)
+- A/B/C race classification for season planning
+
+**API Endpoints**:
+- `GET/POST /api/race-results` - List/create race results
+- `GET/PUT/DELETE /api/race-results/[id]` - Single race CRUD
+- `POST /api/calculations/vdot` - Standalone VDOT calculator
+
+### Messaging System
+
+**Database Model**: `Message`
+
+**Features**:
+- Coach-athlete bidirectional communication
+- Thread support with message history
+- Read/unread status tracking
+- Accessible from `/coach/messages` and `/athlete/messages`
+
+**API Endpoints**:
+- `GET/POST /api/messages` - List/send messages
+- `GET/PUT/DELETE /api/messages/[id]` - Single message CRUD
+
+### Documentation
+
+**Detailed documentation in `docs/training-engine/`** (36 markdown files):
+- `MASTER_PLAN.md` - Complete 14-phase roadmap
+- `PHASE_01_DATABASE.md` through `PHASE_12_INTEGRATION.md` - Phase-by-phase implementation details
+- `STATUS.md` - Implementation status (99% complete)
+- `Elite_Training_Zone_Frameworks.md` - Methodologies overview
+- `Metabolic_Equilibrium_Lactate_Analysis.md` - D-max algorithm details
+- `Norwegian_Double_Threshold_Training_Protocol.md` - Norwegian Method implementation
+- `ELITE_PACE_ZONE_IMPLEMENTATION_PLAN.md` - Elite pace zone scientific framework
+- `END_TO_END_TEST_SCENARIOS.md` - 10 comprehensive test scenarios
+
+### Migration
+
 ```bash
-# Generate Prisma client with new models
 npx prisma generate
-
-# Create migration for training engine models
 npx prisma migrate dev --name add_training_engine
-
-# Seed exercises (if not already done)
-npx ts-node prisma/seed-exercises.ts
 ```
 
-**New models added**: 20+ training engine models including:
-- AthleteProfile, DailyCheckIn, DailyMetrics, TrainingLoad
-- ThresholdCalculation, TrainingProgramEngine, WorkoutModification
-- FieldTest, FieldTestSchedule, SelfReportedLactate
-- InjuryAssessment, CrossTrainingSession, StrengthTrainingSession
-- RaceCalendar, Race
+**New models**: 20+ models including AthleteProfile, DailyCheckIn, ThresholdCalculation, FieldTest, InjuryAssessment, CrossTrainingSession, etc.
 
-### Common Training Engine Tasks
+### API Endpoints
 
-**Enable Norwegian Method for Athlete**:
-1. Validate eligibility: `validateNorwegianMethodEligibility()`
-2. If eligible, apply 4-phase transition plan
-3. Monitor lactate values twice weekly
-4. Validate phase progression after 4 weeks
-5. Progress to next phase when criteria met
+**Training Engine APIs** (17 endpoints):
 
-**Process Injury Detection**:
-1. Athlete reports pain via daily check-in or workout log
-2. System applies Delaware pain rules
-3. Automatic workout modifications (next 14 days)
-4. Cross-training substitutions generated
-5. Return-to-running protocol created
-6. Coach notification sent (urgency based on severity)
+**Testing & Calculations**:
+- `POST /api/field-tests` - Submit field test (30-min TT, HR drift, Critical Velocity)
+- `POST /api/calculations/thresholds` - Calculate thresholds from test data
+- `POST /api/calculations/zones` - Calculate training zones
+- `POST /api/calculations/vdot` - VDOT from race performance
+- `POST /api/calculations/environmental` - WBGT, altitude, wind adjustments
 
-**Handle Low Readiness**:
-1. Athlete submits daily check-in
-2. Readiness score calculated (weighted composite)
-3. If score <40: REST decision
-4. Today's workout automatically modified
-5. Coach notified if score <40 (HIGH urgency)
+**Monitoring & Readiness**:
+- `POST /api/daily-checkin` - Submit daily check-in (<2 min)
+- `GET /api/monitoring/readiness` - Get athlete readiness
+- `POST /api/lactate/self-reported` - Athlete lactate submission
+- `PUT /api/lactate/[id]/validate` - Coach validation of lactate data
 
-**Submit Self-Reported Lactate**:
-1. Athlete completes home lactate test (4+ stages)
-2. Submit via `/athlete/lactate/new` with photos
-3. Automatic validation (ascending lactate, HR correlation)
-4. Coach reviews photos via validation workflow
-5. If approved, zones updated automatically
+**Injury & Cross-Training**:
+- `POST /api/injury/assess` - University of Delaware pain assessment
+- `POST /api/injury/process-checkin` - Process daily check-in for injury triggers
+- `GET /api/cross-training/convert` - Workout conversion with TSS equivalency
 
-**Calculate ACWR and Prevent Injury**:
-1. Daily training load logged (TSS/TRIMP)
-2. ACWR calculated using EWMA method
-3. If ACWR >1.3: Caution zone
-4. If ACWR >1.5: Automatic workout reduction
-5. Coach notification if >1.3 (intervention logged)
+**Race Results**:
+- `GET/POST /api/race-results` - List/create race results
+- `GET/PUT/DELETE /api/race-results/[id]` - Single race CRUD
+
+**Norwegian Method**:
+- `POST /api/norwegian-singles/eligibility` - Check eligibility
+- `POST /api/norwegian-singles/generate` - Generate Norwegian workouts
+
+**System**:
+- `GET /api/system-validation` - Multi-system validation cascade
+
+**Complete API reference**:
+- 📚 **Full Documentation**: See `docs/API_REFERENCE.md` - Comprehensive documentation of all 52 endpoints with request/response schemas and examples
+- 🗂️ **Source Code**: See `app/api/` directory for implementation
+
+### Common Tasks
+
+**Enable Norwegian Method**:
+1. Validate eligibility: `validateNorwegianMethodEligibility(athleteId, prisma)`
+2. Check 5 prerequisites: training age ≥2 years, base ≥60 km/week, recent lactate test, lactate meter, coach supervision
+3. Apply 4-phase transition (12 weeks total)
+4. Monitor lactate twice weekly
+
+**Handle Injury**:
+1. Athlete reports pain via daily check-in
+2. System applies Delaware pain rules (Pain >5 → Rest, 3-5 → Cross-training, <3 → Reduce 50%)
+3. Auto-modifies workouts for next 14 days
+4. Generates cross-training substitutions
+5. Creates return-to-running protocol (5 phases)
+
+**Process Low Readiness**:
+1. Daily check-in calculates readiness score (weighted composite)
+2. Score <40 → REST decision
+3. Today's workout auto-modified
+4. Coach notified if score <40 (HIGH urgency)
 
 ---
+
+## Scientific Strength Training System (Phases 1-8 COMPLETE)
+
+**Overview**: Production-ready strength training system with automated periodization, progression tracking, and biomechanical exercise balance - aligned with endurance training phases.
+
+### Key Capabilities
+
+- 📊 **5-phase periodization**: AA (4-6 weeks) → Max Strength (6-8 weeks) → Power (3-4 weeks) → Maintenance (4-24 weeks) → Taper (1-2 weeks)
+- 💪 **1RM estimation**: Epley and Brzycki formulas (no 1RM testing required)
+- 📈 **2-for-2 progression**: Automatic load increases (2+ extra reps × 2 sessions → increase 5-10%)
+- 🔍 **Plateau detection**: Recommends deloads after 3+ weeks stagnation
+- 🏃 **Interference management**: NEVER schedule heavy strength <48h before key running workout
+- 🦘 **Plyometric volume control**: Scientific contact limits (60-300 per session by level)
+- 🎯 **Biomechanical balance**: 6 movement patterns (Posterior Chain, Knee Dominance, Unilateral, Foot/Ankle, Core, Upper Body)
+- 📚 **84-exercise library**: Swedish exercises with progression paths (LEVEL_1 → LEVEL_2 → LEVEL_3)
+
+### Key Files & Directories
+
+**Progression system**:
+- `lib/training-engine/progression/index.ts` - Main coordinator
+- `lib/training-engine/progression/rm-estimation.ts` - Epley/Brzycki/Average formulas
+- `lib/training-engine/progression/two-for-two.ts` - Automatic progression logic
+- `lib/training-engine/progression/plateau-detection.ts` - 3-week plateau detection
+
+**Program generation**:
+- `lib/training-engine/quality-programming/strength-periodization.ts` - 5-phase system (Bompa & Haff, 2009)
+- `lib/training-engine/generators/exercise-selector.ts` - Biomechanical balance algorithm
+- `lib/training-engine/generators/plyometric-calculator.ts` - Contact volume limits
+- `lib/training-engine/scheduling/interference-manager.ts` - Strength/running scheduling
+
+**Coach UI** (7 components):
+- `components/coach/exercise-library/ExerciseLibraryBrowser.tsx` - Search, filter, pagination
+- `components/coach/exercise-library/CustomExerciseCreator.tsx` - Create custom exercises
+- `components/coach/program-generator/StrengthProgramWizard.tsx` - 5-step wizard
+- `components/coach/program-editor/SessionEditor.tsx` - Universal workout editor
+- `components/coach/program-editor/ExerciseSwapper.tsx` - Smart exercise replacement
+- `components/coach/progression/ProgressionDashboard.tsx` - 1RM charts, plateau alerts
+
+**Athlete UI** (4 components):
+- `components/athlete/workout/StrengthWorkoutCard.tsx` - Workout display
+- `components/athlete/workout/WorkoutLoggingForm.tsx` - Exercise-by-exercise logging
+- `components/athlete/workout/WorkoutHistory.tsx` - PR tracking, stats
+- `components/athlete/workout/ExerciseInstructionsModal.tsx` - Tabbed exercise guide
+
+### Documentation
+
+**Detailed documentation**:
+- `docs/training-engine/Strength_Training_for_Runners_Scientific_Framework.md` - Complete scientific framework
+- `STRENGTH_TRAINING_IMPLEMENTATION_CHECKLIST.md` - Implementation checklist
+
+### Migration
+
+```bash
+npx prisma generate
+npx prisma migrate dev --name add_strength_training
+npx ts-node prisma/seed-exercises.ts  # Seed 84-exercise library
+```
+
+**New models**: Exercise, ProgressionTracking, OneRepMaxHistory
+**New enums**: BiomechanicalPillar, ProgressionLevel, PlyometricIntensity, ProgressionStatus, StrengthPhase
+
+### Exercise Library (84 Exercises)
+
+**Categories** (see `prisma/seed-exercises.ts`):
+- **Posterior Chain** (13): RDL, Nordic Hamstring, Glute Bridge variations
+- **Knee Dominance** (11): Squats, Bulgarian Split Squat, Step-ups
+- **Unilateral** (10): Lunges, Single-leg Squat, Skater Squat
+- **Foot/Ankle** (10): Calf Raises, Ankle strengthening
+- **Core** (15): Planks, Dead Bug, Pallof Press
+- **Plyometric** (25): Box Jumps, Depth Jumps, Bounding
+
+### API Endpoints
+
+**Strength Training APIs** (14 endpoints):
+- `GET/POST /api/exercises` - Exercise CRUD with filtering
+- `GET /api/exercises/[id]/alternatives` - Alternative exercises (same pillar)
+- `GET /api/exercises/[id]/progression-path` - Easier → Current → Harder
+- `GET/POST /api/clients/[id]/progression/[exerciseId]` - Progression tracking
+- `POST /api/workouts/[id]/log` - Log workout with auto-progression
+- `GET /api/strength-templates` - Pre-built templates
+- `PUT/POST/DELETE /api/programs/[id]/edit` - Program editing
+- See `app/api/` directory for complete list
+
+### Common Tasks
+
+**Generate Strength Program**:
+1. Navigate to `/coach/programs/new`
+2. Use StrengthProgramWizard (5 steps): athlete info → goals → periodization plan → exercise pool → review
+3. Program auto-aligned with running phases
+4. Biomechanical balance validated
+5. Interference rules applied
+
+**Log Workout (Athlete)**:
+1. View workout in StrengthWorkoutCard
+2. Use WorkoutLoggingForm: enter sets, reps, load, RPE per exercise
+3. Submit → Auto-progression runs (1RM updated, 2-for-2 checked, plateau detection)
+4. Results saved to ProgressionTracking
+
+**Monitor Progression (Coach)**:
+1. Navigate to `/coach/clients/[id]/progression`
+2. ProgressionDashboard shows: 1RM charts, load/reps bars, status badges (ON_TRACK/PLATEAU/REGRESSING)
+3. Plateau alerts after 3+ weeks no progress → Recommend deload (40-50% volume reduction)
+4. 2-for-2 badges → Next session auto-increases load
+
+**Apply 2-for-2 Rule**:
+- Session 1: 3×8 @ 100kg → Completed 3×10 (2 extra reps) ✓
+- Session 2: 3×8 @ 100kg → Completed 3×10 (2 extra reps) ✓
+- Result: Recommend 105kg (5% increase for lower body)
+- Next workout auto-generated with 105kg
+
+---
+
+## User Roles & Authentication
+
+**Three roles**:
+- `COACH` - Creates clients, tests, programs (existing test leaders)
+- `ATHLETE` - Views programs, logs workouts, sees test results
+- `ADMIN` - Full system access
+
+**Route protection** (`middleware.ts`):
+- `/coach/*` routes protected for coaches
+- `/athlete/*` routes protected for athletes
+- `/admin/*` routes protected for admins
+- Automatic redirect to appropriate dashboard
+
+**Subscription tiers**:
+- FREE (0 athletes), BASIC (5), PRO (50), ENTERPRISE (unlimited)
+
+---
+
+## Testing & Quality
+
+**Automated Testing**:
+- **Unit tests**: Vitest - `npm test`, `npm run test:watch`, `npm run test:coverage`
+- **E2E tests**: Playwright - `npm run test:e2e`
+- **Calculation validation**: `npm run validate:calculations`
+
+**Manual Test Scripts** (`scripts/` directory):
+- `test-comprehensive-program-generation.ts` - Full program generation test
+- `test-training-engine.ts` - Training engine validation
+- `test-zone-calculations.ts` - Zone calculation accuracy tests
+- `test-e2e-program-generation.ts` - End-to-end program flow
+
+**Quality Assurance**:
+- Forms validated with Zod schemas (type-safe at runtime)
+- Calculation accuracy validated against reference data
+- End-to-end test scenarios documented in `docs/training-engine/END_TO_END_TEST_SCENARIOS.md`
+
+**Helper Scripts**:
+- `create-athlete-account.ts` - Create athlete accounts
+- `check-data.ts`, `diagnose-program.ts` - Debugging tools
+
+## Known Issues & Considerations
+
+- **Lactate curve validation**: Not enforced - users can input decreasing lactate values
+- **Missing VO2 data**: Economy calculations skip stages without VO2
+- **PDF export**: Large reports may timeout on slow connections
+- **Database**: Currently uses Supabase PostgreSQL (not local development DB by default)
+- **Norwegian Singles**: Standalone system may need audit/cleanup (see `INJURY_CROSS_TRAINING_IMPLEMENTATION.md`)
+
+---
+
+**For detailed implementation details**, see:
+- `docs/API_REFERENCE.md` - Complete API documentation (all 52 endpoints)
+- `docs/database/` - Database documentation with auto-generated ER diagram
+- `docs/training-engine/` - Elite training engine documentation (36+ markdown files)
+- `STRENGTH_TRAINING_IMPLEMENTATION_CHECKLIST.md` - Strength training implementation
+- `docs/TRAINING_PROGRAM_IMPLEMENTATION_PLAN.md` - Training program roadmap
+- `prisma/schema.prisma` - Complete database schema
+- `types/index.ts` - All TypeScript types

@@ -189,7 +189,7 @@ export async function generateBaseProgram(
   console.log('\n[2/6] Selecting training methodology...')
   let methodology: MethodologyType = 'POLARIZED' // Default to safest methodology
 
-  if (params.methodology === 'AUTO' || !params.methodology) {
+  if (params.methodology === ('AUTO' as any) || !params.methodology) {
     // Auto-select using elite classification if available
     if (elitePaces && validateEliteZones(elitePaces)) {
       methodology = getRecommendedMethodology(
@@ -211,7 +211,7 @@ export async function generateBaseProgram(
       }
       console.log(`✓ Auto-selected: ${methodology} (legacy rules)`)
     }
-  } else if (params.methodology === 'LYDIARD') {
+  } else if (params.methodology === ('LYDIARD' as any)) {
     // LYDIARD not yet implemented, use CANOVA as closest equivalent
     methodology = 'CANOVA'
     console.log(`✓ Using specified: ${methodology} (LYDIARD mapped to CANOVA)`)
@@ -250,8 +250,8 @@ export async function generateBaseProgram(
   const zones = (elitePaces && validateEliteZones(elitePaces))
     ? elitePaces.legacy // Use elite-calculated paces
     : (test.testType === 'CYCLING'
-        ? calculateZonePowers(test.trainingZones)
-        : calculateZonePaces(test.trainingZones))
+        ? calculateZonePowers(test.trainingZones || [])
+        : calculateZonePaces(test.trainingZones || []))
 
   if (elitePaces && validateEliteZones(elitePaces)) {
     console.log('✓ Using ELITE pace system')
@@ -342,7 +342,7 @@ export async function generateBaseProgram(
       adjustedVolume,
       trainingDays,
       zones as any,
-      test.trainingZones,
+      test.trainingZones || [],
       params.experienceLevel,
       params.goalType,
       weekData.focus,
@@ -469,7 +469,8 @@ function calculateMethodologyIntensityDistribution(
   phase: PeriodPhase
 ): IntensityDistribution {
   // Get zone distribution from methodology
-  const { zone1Percent, zone2Percent, zone3Percent } = methodologyConfig.zoneDistribution3
+  const dist = methodologyConfig.zoneDistribution3 || { zone1Percent: 80, zone2Percent: 0, zone3Percent: 20 }
+  const { zone1Percent, zone2Percent, zone3Percent } = dist
 
   // BASE phase: shift slightly more to Zone 1
   // PEAK/TAPER: shift slightly more to Zone 3
@@ -1077,7 +1078,10 @@ function determineWorkoutDistribution(
       try {
         doublesIntensity = calculateNorwegianDoublesIntensity(
           test.testStages,
-          test.anaerobicThreshold
+          {
+            ...test.anaerobicThreshold,
+            lactate: test.anaerobicThreshold.lactate || 4.0 // Fallback if lactate is missing
+          }
         )
         console.log(`[Norwegian Doubles] Calculated individualized intensity:`)
         console.log(`  AM (Low Zone 2): ${doublesIntensity.am.targetLactateLow.toFixed(1)}-${doublesIntensity.am.targetLactateHigh.toFixed(1)} mmol/L`)
@@ -1221,7 +1225,10 @@ function determineWorkoutDistribution(
       try {
         singlesIntensity = calculateNorwegianSinglesIntensity(
           test.testStages,
-          test.anaerobicThreshold
+          {
+            ...test.anaerobicThreshold,
+            lactate: test.anaerobicThreshold.lactate || 4.0 // Fallback
+          }
         )
         console.log(`[Norwegian Singles] Calculated individualized intensity:`)
         console.log(`  Target lactate: ${singlesIntensity.targetLactateLow.toFixed(1)}-${singlesIntensity.targetLactateHigh.toFixed(1)} mmol/L`)
@@ -1362,7 +1369,7 @@ function determineWorkoutDistribution(
     }
 
     // === TUESDAY: THRESHOLD WORK (Key session) ===
-    if (pyramidalPhase === 'STRENGTH' || pyramidalPhase === 'SHARPENING' || pyramidalPhase === 'MARATHON_SPECIFIC') {
+    if (pyramidalPhase === 'STRENGTH' || pyramidalPhase === 'SHARPENING' || (pyramidalPhase as string) === 'MARATHON_SPECIFIC') {
       // Daniels Cruise Intervals OR Pfitzinger Continuous Tempo
       const useCruiseIntervals = weekInPhase % 2 === 0 // Alternate between cruise and continuous
 
@@ -1467,7 +1474,7 @@ function determineWorkoutDistribution(
     }
 
     // === SATURDAY: ADVANCED THRESHOLD WORK (Optional) ===
-    if (pyramidalEvent === 'MARATHON' && pyramidalPhase === 'MARATHON_SPECIFIC') {
+    if (pyramidalEvent === 'MARATHON' && (pyramidalPhase as string) === 'MARATHON_SPECIFIC') {
       // Fatigued Threshold: Easy miles + tempo
       const advancedSession = getAdvancedThresholdSession('FATIGUED_THRESHOLD')
       console.log(`[Pyramidal] Saturday: ${advancedSession.description}`)
@@ -1804,7 +1811,7 @@ async function getDefaultExercises(category: string, focus?: string): Promise<st
           where: {
             isPublic: true,
             category: 'STRENGTH',
-            biomechanicalPillar: pillar,
+            biomechanicalPillar: pillar as any,
           },
           select: { id: true },
           orderBy: { createdAt: 'asc' }, // Use oldest (most basic) exercises
@@ -1817,7 +1824,7 @@ async function getDefaultExercises(category: string, focus?: string): Promise<st
         where: {
           isPublic: true,
           category: 'CORE',
-          biomechanicalPillar: 'CORE',
+          biomechanicalPillar: 'CORE' as any,
         },
         take: 4,
         select: { id: true },

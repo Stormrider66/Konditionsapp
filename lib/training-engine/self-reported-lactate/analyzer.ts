@@ -11,7 +11,7 @@
  */
 
 import { calculateDmax } from '../calculations/dmax'
-import { linearInterpolation } from '../utils/interpolation'
+import { interpolateFromArrays } from '../utils/interpolation'
 
 export interface LactateMeasurement {
   stage?: number
@@ -229,8 +229,8 @@ function estimateLT1(
   const hrValues = measurements.map((m) => m.heartRate)
 
   // Find LT1 at 2.0 mmol/L (first crossing)
-  const lt1Intensity = linearInterpolation(lactateValues, intensityValues, 2.0)
-  const lt1HR = linearInterpolation(lactateValues, hrValues, 2.0)
+  const lt1Intensity = interpolateFromArrays(lactateValues, intensityValues, 2.0) || 0
+  const lt1HR = interpolateFromArrays(lactateValues, hrValues, 2.0) || 0
 
   return {
     intensity: lt1Intensity,
@@ -257,8 +257,8 @@ function estimateLT2Fallback(
   const hrValues = measurements.map((m) => m.heartRate)
 
   // Find second crossing of 4.0 mmol/L if exists, otherwise first
-  let lt2Intensity = linearInterpolation(lactateValues, intensityValues, 4.0)
-  let lt2HR = linearInterpolation(lactateValues, hrValues, 4.0)
+  let lt2Intensity = interpolateFromArrays(lactateValues, intensityValues, 4.0) || 0
+  let lt2HR = interpolateFromArrays(lactateValues, hrValues, 4.0) || 0
 
   return {
     intensity: lt2Intensity,

@@ -327,3 +327,391 @@ export function comparePyramidalToPolarized(): {
     ],
   }
 }
+
+// ============================================================================
+// ADVANCED PYRAMIDAL PROTOCOLS - Daniels, Pfitzinger, Lydiard Integration
+// ============================================================================
+
+/**
+ * Training Phase for Pyramidal periodization
+ * Based on Lydiard and Pfitzinger periodization models
+ */
+export type PyramidalPhase =
+  | 'BASE'          // Lydiard Phase 1: Aerobic base building
+  | 'STRENGTH'      // Lydiard Phase 2: Hills + threshold introduction
+  | 'SHARPENING'    // Lydiard Phase 3: VO2max intervals
+  | 'COORDINATION'  // Lydiard Phase 4: Race-specific work + taper
+  | 'MARATHON_SPECIFIC' // Pfitzinger: Marathon-specific threshold
+
+/**
+ * Event type determines the pyramid shape
+ */
+export type PyramidalEventType = '5K' | '10K' | 'HALF_MARATHON' | 'MARATHON'
+
+/**
+ * Cruise Interval Types (Jack Daniels methodology)
+ * The cornerstone of Pyramidal threshold training
+ */
+export type CruiseIntervalType =
+  | 'CI_MILE'       // 1-mile repeats @ T-Pace
+  | 'CI_1200'       // 1200m (3/4 mile) repeats
+  | 'CI_1K'         // 1000m repeats
+  | 'CI_2K'         // 2000m repeats (advanced)
+  | 'CI_5MIN'       // 5-minute time-based repeats
+
+/**
+ * Cruise Interval Session Structure
+ * Jack Daniels: "Threshold intervals with minimal rest"
+ */
+export interface CruiseIntervalSession {
+  type: CruiseIntervalType
+  reps: number
+  workDistance: number // km
+  restDuration: number // seconds (typically 60s)
+  targetPace: 'T_PACE' // Threshold pace
+  totalTimeAtThreshold: number // minutes
+  description: string
+  danielsRule: string // The 10% rule
+}
+
+/**
+ * Get Cruise Interval session details
+ * Based on Jack Daniels' Running Formula
+ * @param type - Interval type
+ * @param weeklyMileage - For applying the 10% rule
+ * @returns Complete cruise interval structure
+ */
+export function getCruiseIntervalSession(
+  type: CruiseIntervalType,
+  weeklyMileage: number
+): CruiseIntervalSession {
+  // Daniels Rule: Total T-Pace volume should not exceed 10% of weekly mileage
+  const maxTPaceVolume = weeklyMileage * 0.10
+
+  switch (type) {
+    case 'CI_MILE':
+      return {
+        type: 'CI_MILE',
+        reps: Math.min(6, Math.floor(maxTPaceVolume / 1.6)), // Cap at 10% rule
+        workDistance: 1.6, // 1 mile = 1.6 km
+        restDuration: 60,
+        targetPace: 'T_PACE',
+        totalTimeAtThreshold: Math.min(6, Math.floor(maxTPaceVolume / 1.6)) * 7, // ~7 min per mile
+        description: 'Daniels Cruise Intervals: 1-mile repeats with 1 min rest',
+        danielsRule: `Max reps limited by 10% rule (${maxTPaceVolume.toFixed(1)}km T-Pace allowed)`
+      }
+
+    case 'CI_1200':
+      return {
+        type: 'CI_1200',
+        reps: Math.min(8, Math.floor(maxTPaceVolume / 1.2)),
+        workDistance: 1.2,
+        restDuration: 60,
+        targetPace: 'T_PACE',
+        totalTimeAtThreshold: Math.min(8, Math.floor(maxTPaceVolume / 1.2)) * 5,
+        description: 'Cruise Intervals: 1200m repeats with 1 min rest',
+        danielsRule: `Max reps limited by 10% rule (${maxTPaceVolume.toFixed(1)}km T-Pace allowed)`
+      }
+
+    case 'CI_1K':
+      return {
+        type: 'CI_1K',
+        reps: Math.min(10, Math.floor(maxTPaceVolume)),
+        workDistance: 1.0,
+        restDuration: 60,
+        targetPace: 'T_PACE',
+        totalTimeAtThreshold: Math.min(10, Math.floor(maxTPaceVolume)) * 4.5,
+        description: 'Cruise Intervals: 1000m repeats with 1 min rest',
+        danielsRule: `Max reps limited by 10% rule (${maxTPaceVolume.toFixed(1)}km T-Pace allowed)`
+      }
+
+    case 'CI_2K':
+      return {
+        type: 'CI_2K',
+        reps: Math.min(4, Math.floor(maxTPaceVolume / 2)),
+        workDistance: 2.0,
+        restDuration: 90, // Longer rest for longer reps
+        targetPace: 'T_PACE',
+        totalTimeAtThreshold: Math.min(4, Math.floor(maxTPaceVolume / 2)) * 9,
+        description: 'Advanced Cruise Intervals: 2000m repeats with 90s rest',
+        danielsRule: `Max reps limited by 10% rule (${maxTPaceVolume.toFixed(1)}km T-Pace allowed)`
+      }
+
+    case 'CI_5MIN':
+      return {
+        type: 'CI_5MIN',
+        reps: Math.min(8, Math.floor(maxTPaceVolume / 1.3)), // ~1.3km per 5 min
+        workDistance: 1.3, // Approximate distance in 5 min at T-Pace
+        restDuration: 60,
+        targetPace: 'T_PACE',
+        totalTimeAtThreshold: Math.min(8, Math.floor(maxTPaceVolume / 1.3)) * 5,
+        description: 'Time-based Cruise: 5-minute repeats with 1 min rest',
+        danielsRule: `Max reps limited by 10% rule (${maxTPaceVolume.toFixed(1)}km T-Pace allowed)`
+      }
+  }
+}
+
+/**
+ * Continuous Tempo Types (Pfitzinger methodology)
+ * Single-block threshold runs
+ */
+export type ContinuousTempoType =
+  | 'CT_20MIN'      // 20 minutes continuous
+  | 'CT_30MIN'      // 30 minutes (standard)
+  | 'CT_40MIN'      // 40 minutes (advanced)
+  | 'CT_PROGRESSIVE' // Start MP, finish T-Pace
+
+/**
+ * Continuous Tempo Session Structure
+ */
+export interface ContinuousTempoSession {
+  type: ContinuousTempoType
+  duration: number // minutes
+  targetPace: 'T_PACE' | 'MP' | 'PROGRESSIVE'
+  description: string
+  pfitzingerNote: string
+}
+
+/**
+ * Get Continuous Tempo session (Pfitzinger style)
+ * @param type - Tempo type
+ * @returns Continuous tempo structure
+ */
+export function getContinuousTempoSession(type: ContinuousTempoType): ContinuousTempoSession {
+  switch (type) {
+    case 'CT_20MIN':
+      return {
+        type: 'CT_20MIN',
+        duration: 20,
+        targetPace: 'T_PACE',
+        description: 'Pfitzinger Tempo: 20 minutes continuous at Threshold',
+        pfitzingerNote: '15K to Half-Marathon race pace'
+      }
+
+    case 'CT_30MIN':
+      return {
+        type: 'CT_30MIN',
+        duration: 30,
+        targetPace: 'T_PACE',
+        description: 'Pfitzinger Tempo: 30 minutes continuous at Threshold',
+        pfitzingerNote: 'Classic LT run - mental toughness and thermal adaptation'
+      }
+
+    case 'CT_40MIN':
+      return {
+        type: 'CT_40MIN',
+        duration: 40,
+        targetPace: 'T_PACE',
+        description: 'Pfitzinger Advanced Tempo: 40 minutes continuous',
+        pfitzingerNote: 'Maximum single-block duration - split if exceeding 40 mins'
+      }
+
+    case 'CT_PROGRESSIVE':
+      return {
+        type: 'CT_PROGRESSIVE',
+        duration: 30,
+        targetPace: 'PROGRESSIVE',
+        description: 'Progressive Tempo: Start Marathon Pace, finish Threshold',
+        pfitzingerNote: 'Teaches pacing and finishing strength'
+      }
+  }
+}
+
+/**
+ * Advanced Threshold Workouts
+ * Sophisticated lactate manipulation
+ */
+export type AdvancedThresholdType =
+  | 'ALTERNATING_TEMPO'  // 10K pace / MP alternating
+  | 'BROKEN_TEMPO'       // 2 x 15 min @ T-Pace
+  | 'FATIGUED_THRESHOLD' // Easy miles + tempo (marathon-specific)
+  | 'HILLY_BROKEN_TEMPO' // Tempo + hills + tempo
+
+/**
+ * Advanced Threshold Session Structure
+ */
+export interface AdvancedThresholdSession {
+  type: AdvancedThresholdType
+  structure: string
+  mechanism: string // Physiological explanation
+  description: string
+}
+
+/**
+ * Get Advanced Threshold workout
+ * @param type - Advanced workout type
+ * @returns Advanced threshold structure
+ */
+export function getAdvancedThresholdSession(type: AdvancedThresholdType): AdvancedThresholdSession {
+  switch (type) {
+    case 'ALTERNATING_TEMPO':
+      return {
+        type: 'ALTERNATING_TEMPO',
+        structure: '3 sets × (5 min @ 10K Pace / 5 min @ Marathon Pace) - continuous',
+        mechanism: 'Fast segment floods lactate, float segment forces active lactate consumption',
+        description: 'The ultimate "Lactate Shuttle" workout - teaches fuel utilization'
+      }
+
+    case 'BROKEN_TEMPO':
+      return {
+        type: 'BROKEN_TEMPO',
+        structure: '2 × 15 min @ T-Pace (3 min recovery)',
+        mechanism: 'Break allows brief lactate clearance without full recovery',
+        description: 'Alternative to 30 min continuous - accumulate more volume'
+      }
+
+    case 'FATIGUED_THRESHOLD':
+      return {
+        type: 'FATIGUED_THRESHOLD',
+        structure: '10 miles easy + 4 miles @ T-Pace',
+        mechanism: 'Simulates marathon fatigue state - teaches threshold running on tired legs',
+        description: 'Marathon-specific: Threshold work in glycogen-depleted state'
+      }
+
+    case 'HILLY_BROKEN_TEMPO':
+      return {
+        type: 'HILLY_BROKEN_TEMPO',
+        structure: '3 miles Tempo + 3 min jog + 4 × 30s Hill Sprints + 3 min jog + 3 miles Tempo',
+        mechanism: 'Recruits fast-twitch fibers under fatigue',
+        description: 'Combines neuromuscular recruitment (hills) with threshold endurance'
+      }
+  }
+}
+
+/**
+ * Calculate volume-adjusted Pyramidal distribution
+ * Low-volume athletes need steeper pyramid (more Z2)
+ * High-volume athletes need broader base (more Z1)
+ * @param weeklyHours - Total training hours per week
+ * @returns Adjusted zone distribution
+ */
+export function calculateVolumeAdjustedPyramid(weeklyHours: number): ZoneDistribution3 {
+  if (weeklyHours < 5) {
+    // LOW VOLUME: Steep Pyramid (Threshold-Heavy)
+    return {
+      zone1Percent: 60,  // Reduced base
+      zone2Percent: 30,  // Increased threshold (higher ROI)
+      zone3Percent: 10   // Minimal VO2max
+    }
+  } else if (weeklyHours > 10) {
+    // HIGH VOLUME: Broad Pyramid
+    return {
+      zone1Percent: 85,  // Massive base
+      zone2Percent: 12,  // Reduced threshold (absolute volume still high)
+      zone3Percent: 3    // Capped VO2max (can't scale linearly)
+    }
+  } else {
+    // STANDARD VOLUME: Classic Pyramid
+    return {
+      zone1Percent: 72,
+      zone2Percent: 18,
+      zone3Percent: 10
+    }
+  }
+}
+
+/**
+ * Calculate event-specific Pyramidal distribution
+ * Marathon: Suppress Z3, boost Z2 (glycogen sparing)
+ * 5K: Allow more Z3 (VLamax tolerance)
+ * @param eventType - Target race distance
+ * @param phase - Current training phase
+ * @param weeksToRace - Weeks until race
+ * @returns Event-optimized distribution
+ */
+export function calculateEventSpecificPyramid(
+  eventType: PyramidalEventType,
+  phase: PyramidalPhase,
+  weeksToRace: number
+): ZoneDistribution3 {
+  if (eventType === 'MARATHON') {
+    // Marathon: Glycogen sparing strategy
+    if (weeksToRace <= 8) {
+      // MARATHON Z3 LOCK: Remove Zone 3 work
+      return {
+        zone1Percent: 70,
+        zone2Percent: 30,  // All quality is threshold
+        zone3Percent: 0    // ZERO VO2max (prevents carb wastage)
+      }
+    } else {
+      return {
+        zone1Percent: 75,
+        zone2Percent: 20,
+        zone3Percent: 5
+      }
+    }
+  } else if (eventType === '5K' && weeksToRace <= 4) {
+    // 5K POLARIZED SWITCH: Pyramid → Polarized in final 4-6 weeks
+    return {
+      zone1Percent: 80,   // Increase base (freshness)
+      zone2Percent: 0,    // DROP all threshold work
+      zone3Percent: 20    // MAX VO2max (sharpening)
+    }
+  } else if (eventType === '5K' || eventType === '10K') {
+    // 5K/10K: Allow higher Z3
+    return {
+      zone1Percent: 70,
+      zone2Percent: 18,
+      zone3Percent: 12  // Higher than marathon
+    }
+  } else {
+    // HALF_MARATHON: Balanced
+    return {
+      zone1Percent: 72,
+      zone2Percent: 18,
+      zone3Percent: 10
+    }
+  }
+}
+
+/**
+ * Select appropriate Cruise Interval based on phase and volume
+ * @param phase - Current training phase
+ * @param weeklyMileage - For 10% rule enforcement
+ * @param weekInPhase - For progression logic
+ * @returns Cruise interval type
+ */
+export function selectCruiseInterval(
+  phase: PyramidalPhase,
+  weeklyMileage: number,
+  weekInPhase: number
+): CruiseIntervalType {
+  // Progression: Increase volume (reps) before reducing rest or increasing pace
+  if (phase === 'STRENGTH') {
+    // Introduction to threshold work
+    if (weekInPhase <= 2) return 'CI_1K'    // Start short
+    if (weekInPhase <= 4) return 'CI_1200'  // Build volume
+    return 'CI_MILE'                        // Standard cruise intervals
+  } else if (phase === 'SHARPENING' || phase === 'MARATHON_SPECIFIC') {
+    // Advanced threshold work
+    if (weeklyMileage > 80) return 'CI_2K'  // High-volume athletes
+    return 'CI_MILE'                         // Standard
+  } else {
+    return 'CI_1K' // Default
+  }
+}
+
+/**
+ * Select Continuous Tempo type based on phase and event
+ * @param phase - Current training phase
+ * @param eventType - Target race
+ * @param weekInPhase - For progression
+ * @returns Tempo type
+ */
+export function selectContinuousTempo(
+  phase: PyramidalPhase,
+  eventType: PyramidalEventType,
+  weekInPhase: number
+): ContinuousTempoType {
+  if (eventType === 'MARATHON' && phase === 'MARATHON_SPECIFIC') {
+    // Marathon-specific: Longer continuous blocks
+    if (weekInPhase <= 2) return 'CT_20MIN'
+    if (weekInPhase <= 4) return 'CT_30MIN'
+    return 'CT_40MIN' // Peak marathon tempo
+  } else {
+    // Standard progression
+    if (weekInPhase <= 2) return 'CT_20MIN'
+    if (weekInPhase <= 4) return 'CT_30MIN'
+    return 'CT_PROGRESSIVE' // Add variety
+  }
+}

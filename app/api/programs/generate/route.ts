@@ -44,6 +44,14 @@ export async function POST(request: NextRequest) {
       // Phase 6: Methodology integration
       methodology: body.methodology, // Optional - defaults to POLARIZED if not provided
       athleteLevel: body.athleteLevel, // Optional - will be mapped from experienceLevel if not provided
+
+      // Granular session control
+      runningSessionsPerWeek: body.runningSessionsPerWeek || body.trainingDaysPerWeek || 4,
+      strengthSessionsPerWeek: body.strengthSessionsPerWeek || 0,
+      coreSessionsPerWeek: body.coreSessionsPerWeek || 0,
+      alternativeTrainingSessionsPerWeek: body.alternativeTrainingSessionsPerWeek || 0,
+      scheduleStrengthAfterRunning: body.scheduleStrengthAfterRunning !== undefined ? body.scheduleStrengthAfterRunning : false,
+      scheduleCoreAfterRunning: body.scheduleCoreAfterRunning !== undefined ? body.scheduleCoreAfterRunning : false,
     }
 
     // Validate parameters

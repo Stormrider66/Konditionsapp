@@ -60,10 +60,20 @@ const formSchema = z.object({
 
   // Program Structure
   durationWeeks: z.number().min(4).max(52),
-  trainingDaysPerWeek: z.number().min(2).max(7),
+  trainingDaysPerWeek: z.number().min(2).max(7), // Legacy field, kept for backward compatibility
+
+  // Granular Session Control
+  runningSessionsPerWeek: z.number().min(1).max(14).default(4), // Can have double days
+  strengthSessionsPerWeek: z.number().min(0).max(7).default(0),
+  coreSessionsPerWeek: z.number().min(0).max(7).default(0),
+  alternativeTrainingSessionsPerWeek: z.number().min(0).max(7).default(0),
+
+  // Session Scheduling Options
+  scheduleStrengthAfterRunning: z.boolean().default(false), // Same day PM session
+  scheduleCoreAfterRunning: z.boolean().default(false), // Same day PM session
 
   // Training Methodology
-  methodology: z.enum(['AUTO', 'POLARIZED', 'NORWEGIAN', 'CANOVA', 'PYRAMIDAL', 'LYDIARD']),
+  methodology: z.enum(['AUTO', 'POLARIZED', 'NORWEGIAN', 'NORWEGIAN_SINGLE', 'CANOVA', 'PYRAMIDAL', 'LYDIARD']),
 
   // Athlete Profile
   yearsRunning: z.number().min(0).max(50).optional(),
@@ -141,15 +151,32 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      clientId: '',
+      testId: '',
       goalType: 'marathon',
+      targetTime: '',
       durationWeeks: 16,
       trainingDaysPerWeek: 4,
+      runningSessionsPerWeek: 4,
+      strengthSessionsPerWeek: 2,
+      coreSessionsPerWeek: 2,
+      alternativeTrainingSessionsPerWeek: 0,
+      scheduleStrengthAfterRunning: true, // Default to PM sessions
+      scheduleCoreAfterRunning: true,
       methodology: 'AUTO',
+      yearsRunning: undefined,
+      currentWeeklyVolume: undefined,
+      longestLongRun: undefined,
+      recentRaceDistance: 'NONE',
+      recentRaceTime: '',
       hasLactateMeter: false,
       hasHRVMonitor: false,
       hasPowerMeter: false,
       hasRecentInjury: false,
-      recentRaceDistance: 'NONE',
+      injuryDetails: '',
+      preferredTrainingDays: [],
+      maxSessionDuration: undefined,
+      notes: '',
     },
   })
 
@@ -168,6 +195,44 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
     const recommendation = recommendMethodology(form.getValues())
     setMethodologyRecommendation(recommendation)
   }, [form, watchedFields])
+
+  // Auto-calculate program duration from race date
+  const targetRaceDate = form.watch('targetRaceDate')
+
+  useEffect(() => {
+    if (targetRaceDate) {
+      // Calculate weeks between today and race date
+      const today = new Date()
+      today.setHours(0, 0, 0, 0) // Reset time to start of day
+
+      const raceDate = new Date(targetRaceDate)
+      raceDate.setHours(0, 0, 0, 0) // Reset time to start of day
+
+      const diffTime = raceDate.getTime() - today.getTime()
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      const diffWeeks = Math.ceil(diffDays / 7)
+
+      console.log('[Auto-calc] Today:', today.toLocaleDateString())
+      console.log('[Auto-calc] Race date:', raceDate.toLocaleDateString())
+      console.log('[Auto-calc] Days until race:', diffDays)
+      console.log('[Auto-calc] Weeks until race:', diffWeeks)
+
+      // Clamp between 4 and 52 weeks
+      const weeks = Math.max(4, Math.min(52, diffWeeks))
+      console.log('[Auto-calc] Final weeks (clamped):', weeks)
+
+      // Only update if different from current value
+      const currentWeeks = form.getValues('durationWeeks')
+      console.log('[Auto-calc] Current duration field value:', currentWeeks)
+
+      if (weeks !== currentWeeks && weeks >= 4) {
+        console.log('[Auto-calc] ✓ Updating duration to:', weeks)
+        form.setValue('durationWeeks', weeks, { shouldValidate: true, shouldDirty: true })
+      } else {
+        console.log('[Auto-calc] ✗ Not updating (same value or invalid)')
+      }
+    }
+  }, [targetRaceDate, form])
 
   async function onSubmit(data: FormData) {
     setIsSubmitting(true)
@@ -196,15 +261,23 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
       })
 
       // Redirect to the new program
-      router.push(`/coach/programs/${result.data.id}`)
+      // Use setTimeout to prevent NEXT_REDIRECT error from showing in console
+      setTimeout(() => {
+        router.push(`/coach/programs/${result.data.id}`)
+      }, 100)
     } catch (error: any) {
+      // Filter out NEXT_REDIRECT errors (internal Next.js redirect mechanism)
+      if (error.message && error.message.includes('NEXT_REDIRECT')) {
+        // This is not a real error, just Next.js handling the redirect
+        return
+      }
+
       console.error('Error generating program:', error)
       toast({
         title: 'Något gick fel',
         description: error.message,
         variant: 'destructive',
       })
-    } finally {
       setIsSubmitting(false)
     }
   }
@@ -357,7 +430,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                     </PopoverContent>
                   </Popover>
                   <FormDescription>
-                    Om du har ett specifikt tävlingsdatum
+                    Programlängden beräknas automatiskt från tävlingsdatum
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -666,9 +739,17 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       </SelectItem>
                       <SelectItem value="NORWEGIAN">
                         <div>
-                          <div className="font-medium">Norwegian Method</div>
+                          <div className="font-medium">Norwegian (Doubles)</div>
                           <div className="text-sm text-muted-foreground">
-                            Dubbel tröskelträning - kräver laktatmätare
+                            Dubbel tröskel + dubbelpass - för elitlöpare
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="NORWEGIAN_SINGLE">
+                        <div>
+                          <div className="font-medium">Norwegian (Single)</div>
+                          <div className="text-sm text-muted-foreground">
+                            Dubbel tröskel utan dubbelpass - för avancerade
                           </div>
                         </div>
                       </SelectItem>
@@ -727,31 +808,19 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                         min={4}
                         max={52}
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        value={field.value ?? ''}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? parseInt(e.target.value) : undefined
+                          )
+                        }
                       />
                     </FormControl>
-                    <FormDescription>4-52 veckor</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="trainingDaysPerWeek"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Träningsdagar per vecka *</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={2}
-                        max={7}
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormDescription>2-7 dagar</FormDescription>
+                    <FormDescription>
+                      {targetRaceDate
+                        ? '✓ Beräknat automatiskt från tävlingsdatum'
+                        : '4-52 veckor'}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -785,6 +854,182 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                   </FormItem>
                 )}
               />
+            </div>
+
+            {/* Granular Session Control */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="font-medium mb-3">Antal pass per vecka</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="runningSessionsPerWeek"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Löppass per vecka *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={14}
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value ? parseInt(e.target.value) : 4
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        1-14 (kan inkludera dubbelpass)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="strengthSessionsPerWeek"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Styrkepass per vecka</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={7}
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value ? parseInt(e.target.value) : 0
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        0-7 styrketräningspass
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="coreSessionsPerWeek"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Core-pass per vecka</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={7}
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value ? parseInt(e.target.value) : 0
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        0-7 core-träningspass
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="alternativeTrainingSessionsPerWeek"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Alternativträning per vecka</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={7}
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value ? parseInt(e.target.value) : 0
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        0-7 (cykel, simning, DWR, etc.)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            {/* Session Scheduling Options */}
+            <div className="border-t pt-4 mt-4">
+              <h4 className="font-medium mb-3">Schemaläggning av pass</h4>
+              <Alert className="mb-4">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Rekommendation:</strong> Schemalägg styrka och core direkt efter löppass för att optimera återhämtning och spara tid.
+                </AlertDescription>
+              </Alert>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="scheduleStrengthAfterRunning"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Lägg styrkepass direkt efter löppass
+                        </FormLabel>
+                        <FormDescription>
+                          Samma dag PM-session (rekommenderas för tidseffektivitet)
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="scheduleCoreAfterRunning"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Lägg core-pass direkt efter löppass
+                        </FormLabel>
+                        <FormDescription>
+                          Samma dag PM-session (effektivt för core-aktivering)
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

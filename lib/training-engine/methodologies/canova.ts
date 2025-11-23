@@ -327,3 +327,434 @@ export function getCanovaIntensityGuidelines(): {
     fast: 'Speed development - >105% of race pace. Short intervals and strides. Neuromuscular development.',
   }
 }
+
+// ============================================================================
+// CANOVA ADVANCED STRUCTURES - Based on Elite Methodology
+// ============================================================================
+
+/**
+ * Canova Training Phase Types
+ * These are the actual phases used in Canova periodization
+ */
+export type CanovaPhase =
+  | 'TRANSITION'    // 4 weeks: Recovery, gym, short sprints
+  | 'GENERAL'       // 4 weeks: General resistance, aerobic base
+  | 'FUNDAMENTAL'   // 6 weeks: Peak volume, 80-90% MP
+  | 'SPECIAL'       // 8 weeks: Polarized speed+endurance, introduce blocks
+  | 'SPECIFIC'      // 6-10 weeks: Convergence at 95-105% MP
+  | 'TAPER'         // 3 weeks: Volume reduction, intensity maintenance
+
+/**
+ * Canova 7-Zone Intensity Model (based on Marathon Pace)
+ * All zones calculated as percentages of Goal Marathon Pace (MP = 100%)
+ */
+export interface CanovaZones {
+  regeneration: { min: number; max: number; description: string }      // 60-70% AnT (~50-60% MP)
+  fundamental: { min: number; max: number; description: string }       // 80% MP
+  generalEndurance: { min: number; max: number; description: string }  // 85-90% MP
+  specialEndurance: { min: number; max: number; description: string }  // 90-95% MP
+  specificEndurance: { min: number; max: number; description: string } // 95-105% MP (THE RACE ZONE)
+  specialSpeed: { min: number; max: number; description: string }      // 105-110% MP
+  lacticAlactic: { min: number; max: number; description: string }     // >110% MP
+}
+
+/**
+ * Calculate Canova 7-zone structure from Marathon Pace
+ * @param marathonPaceKmh - Goal marathon pace in km/h
+ * @returns Complete zone structure
+ */
+export function calculateCanovaZones(marathonPaceKmh: number): CanovaZones {
+  return {
+    regeneration: {
+      min: marathonPaceKmh * 0.50,
+      max: marathonPaceKmh * 0.60,
+      description: 'Lactate flush, recovery, capillary maintenance'
+    },
+    fundamental: {
+      min: marathonPaceKmh * 0.75,
+      max: marathonPaceKmh * 0.85,
+      description: 'Aerobic support, lipid metabolism, structural tolerance'
+    },
+    generalEndurance: {
+      min: marathonPaceKmh * 0.85,
+      max: marathonPaceKmh * 0.90,
+      description: 'High-end aerobic base, metabolic efficiency, active recovery'
+    },
+    specialEndurance: {
+      min: marathonPaceKmh * 0.90,
+      max: marathonPaceKmh * 0.95,
+      description: 'Support for race pace, glycogen sparing, aerobic power'
+    },
+    specificEndurance: {
+      min: marathonPaceKmh * 0.95,
+      max: marathonPaceKmh * 1.05,
+      description: 'THE RACE ZONE - simulation of metabolic & biomechanical demands'
+    },
+    specialSpeed: {
+      min: marathonPaceKmh * 1.05,
+      max: marathonPaceKmh * 1.10,
+      description: 'Biomechanical efficiency, lactate clearance, recruitment'
+    },
+    lacticAlactic: {
+      min: marathonPaceKmh * 1.10,
+      max: marathonPaceKmh * 1.30,
+      description: 'Neuromuscular recruitment, mechanical power'
+    }
+  }
+}
+
+/**
+ * Canova Special Block Types
+ * The hallmark of Canova training - double workout days
+ */
+export type CanovaBlockType = 'EXTENSIVE' | 'INTENSIVE' | 'MIXED'
+
+export interface CanovaSpecialBlock {
+  type: CanovaBlockType
+  amSession: {
+    description: string
+    totalDistance: number // km
+    segments: Array<{
+      distance: number // km
+      pacePercent: number // % of MP
+    }>
+  }
+  pmSession: {
+    description: string
+    totalDistance: number // km
+    segments: Array<{
+      distance: number // km
+      pacePercent: number // % of MP
+    }>
+  }
+  totalDailyVolume: number // km
+  recoveryDaysAfter: number
+  nutritionalStrategy: 'NORMAL' | 'DEPLETED' // Depleted = carb restriction between sessions
+}
+
+/**
+ * Get Canova Special Block template
+ * @param type - Block type (EXTENSIVE for endurance, INTENSIVE for speed, MIXED for race simulation)
+ * @param athleteLevel - Adjust volume based on level
+ * @returns Complete block structure
+ */
+export function getCanovaSpecialBlock(
+  type: CanovaBlockType,
+  athleteLevel: 'ADVANCED' | 'ELITE' = 'ADVANCED'
+): CanovaSpecialBlock {
+  const volumeMultiplier = athleteLevel === 'ELITE' ? 1.0 : 0.85
+
+  switch (type) {
+    case 'EXTENSIVE':
+      // Focus: Pure endurance extension (for fast-twitch athletes needing aerobic support)
+      return {
+        type: 'EXTENSIVE',
+        amSession: {
+          description: 'AM: Build aerobic house with moderate + specific pace',
+          totalDistance: Math.round(30 * volumeMultiplier),
+          segments: [
+            { distance: 10, pacePercent: 90 },   // 10km @ 90% MP
+            { distance: 20, pacePercent: 100 },  // 20km @ 100% MP
+          ]
+        },
+        pmSession: {
+          description: 'PM: Continue volume accumulation at MP',
+          totalDistance: Math.round(30 * volumeMultiplier),
+          segments: [
+            { distance: 10, pacePercent: 90 },
+            { distance: 20, pacePercent: 100 },
+          ]
+        },
+        totalDailyVolume: Math.round(60 * volumeMultiplier),
+        recoveryDaysAfter: 3,
+        nutritionalStrategy: 'DEPLETED' // Force fat oxidation in PM
+      }
+
+    case 'INTENSIVE':
+      // Focus: Lactate clearance and biomechanical efficiency (for endurance athletes needing speed)
+      return {
+        type: 'INTENSIVE',
+        amSession: {
+          description: 'AM: Moderate + High intensity intervals',
+          totalDistance: Math.round(20 * volumeMultiplier),
+          segments: [
+            { distance: 10, pacePercent: 90 },
+            { distance: 10, pacePercent: 105 },  // 10km @ 105% MP (intervals)
+          ]
+        },
+        pmSession: {
+          description: 'PM: Speed intervals on fatigue',
+          totalDistance: Math.round(22 * volumeMultiplier),
+          segments: [
+            { distance: 10, pacePercent: 90 },
+            { distance: 12, pacePercent: 110 },  // 10-12 x 1km @ 110% MP
+          ]
+        },
+        totalDailyVolume: Math.round(42 * volumeMultiplier),
+        recoveryDaysAfter: 3,
+        nutritionalStrategy: 'NORMAL'
+      }
+
+    case 'MIXED':
+      // Focus: Specific marathon simulation (glycogen depletion AM + speed PM)
+      return {
+        type: 'MIXED',
+        amSession: {
+          description: 'AM: Specific Endurance - depletes glycogen',
+          totalDistance: Math.round(20 * volumeMultiplier),
+          segments: [
+            { distance: 20, pacePercent: 98 },  // 20km @ 98% MP
+          ]
+        },
+        pmSession: {
+          description: 'PM: Specific Speed - forces fast running on tired legs',
+          totalDistance: Math.round(12 * volumeMultiplier),
+          segments: [
+            { distance: 12, pacePercent: 105 },  // 12 x 1km @ 105% MP
+          ]
+        },
+        totalDailyVolume: Math.round(32 * volumeMultiplier),
+        recoveryDaysAfter: 3,
+        nutritionalStrategy: 'DEPLETED' // Simulates marathon glycogen state
+      }
+  }
+}
+
+/**
+ * Canova Long Fast Run Types
+ * These are quality workouts, not slow long runs
+ */
+export interface CanovaLongFastRun {
+  type: 'CONTINUOUS' | 'PROGRESSIVE' | 'ALTERNATING'
+  totalDistance: number // km
+  description: string
+  segments: Array<{
+    distance: number // km
+    pacePercent: number // % of MP
+  }>
+}
+
+/**
+ * Generate Canova Long Fast Run
+ * @param phase - Current training phase
+ * @param type - Run type
+ * @returns Long fast run structure
+ */
+export function getCanovaLongFastRun(
+  phase: CanovaPhase,
+  type: 'CONTINUOUS' | 'PROGRESSIVE' | 'ALTERNATING' = 'CONTINUOUS'
+): CanovaLongFastRun {
+  switch (phase) {
+    case 'GENERAL':
+      // Building structural tolerance
+      return {
+        type: 'CONTINUOUS',
+        totalDistance: 32,
+        description: 'Long run at fundamental pace to build aerobic base',
+        segments: [{ distance: 32, pacePercent: 80 }]
+      }
+
+    case 'FUNDAMENTAL':
+      // Peak distance, maximize aerobic capacity
+      if (type === 'PROGRESSIVE') {
+        return {
+          type: 'PROGRESSIVE',
+          totalDistance: 35,
+          description: 'Progressive long run: start slow, finish fast',
+          segments: [
+            { distance: 15, pacePercent: 85 },  // Start easy
+            { distance: 12, pacePercent: 95 },  // Build to MP
+            { distance: 8, pacePercent: 102 },  // Finish faster
+          ]
+        }
+      }
+      return {
+        type: 'CONTINUOUS',
+        totalDistance: 36,
+        description: 'Peak volume long run at 85% MP',
+        segments: [{ distance: 36, pacePercent: 85 }]
+      }
+
+    case 'SPECIAL':
+      // Introduce race-specific stress with variations
+      if (type === 'ALTERNATING') {
+        return {
+          type: 'ALTERNATING',
+          totalDistance: 30,
+          description: 'Alternating pace: 1km fast/1km moderate (trains lactate shuttle)',
+          segments: [
+            // Represented as average - actual execution alternates each km
+            { distance: 30, pacePercent: 96 }  // Average of 103% + 90%
+          ]
+        }
+      }
+      return {
+        type: 'CONTINUOUS',
+        totalDistance: 30,
+        description: 'Long run at 90-92% MP with race-specific stress',
+        segments: [{ distance: 30, pacePercent: 91 }]
+      }
+
+    case 'SPECIFIC':
+      // Specific Long Run - race simulation
+      if (type === 'ALTERNATING') {
+        return {
+          type: 'ALTERNATING',
+          totalDistance: 32,
+          description: 'Specific alternating: 1km @ 103% MP / 1km @ 90% MP',
+          segments: [
+            { distance: 32, pacePercent: 96.5 }  // Average
+          ]
+        }
+      }
+      return {
+        type: 'CONTINUOUS',
+        totalDistance: 35,
+        description: 'Specific Long Run: 35km at 95-98% MP (race predictor)',
+        segments: [{ distance: 35, pacePercent: 97 }]
+      }
+
+    default:
+      return {
+        type: 'CONTINUOUS',
+        totalDistance: 25,
+        description: 'Moderate long run',
+        segments: [{ distance: 25, pacePercent: 85 }]
+      }
+  }
+}
+
+/**
+ * Canova Interval Session Structure
+ * Emphasizes extension (more volume at same pace) over speed increase
+ */
+export interface CanovaIntervalSession {
+  type: 'SPECIFIC_EXTENSIVE' | 'SPECIFIC_INTENSIVE'
+  reps: number
+  workDistance: number // km per rep
+  workPacePercent: number // % of MP
+  recoveryDistance: number // km (ACTIVE recovery, not rest!)
+  recoveryPacePercent: number // % of MP
+  totalWorkVolume: number // km
+  description: string
+}
+
+/**
+ * Generate Canova interval session
+ * @param type - Extensive (long reps) or Intensive (short reps)
+ * @param weekInPhase - For progression tracking
+ * @returns Complete interval session
+ */
+export function getCanovaIntervals(
+  type: 'SPECIFIC_EXTENSIVE' | 'SPECIFIC_INTENSIVE',
+  weekInPhase: number
+): CanovaIntervalSession {
+  if (type === 'SPECIFIC_EXTENSIVE') {
+    // Long reps, Extension Principle: 4x5k → 5x5k → 4x6k
+    const progressionOptions = [
+      { reps: 4, work: 5, pace: 100 },  // Week 1-2
+      { reps: 5, work: 5, pace: 100 },  // Week 3-4
+      { reps: 4, work: 6, pace: 100 },  // Week 5-6
+      { reps: 5, work: 6, pace: 100 },  // Week 7+
+    ]
+    const option = progressionOptions[Math.min(Math.floor(weekInPhase / 2), 3)]
+
+    return {
+      type: 'SPECIFIC_EXTENSIVE',
+      reps: option.reps,
+      workDistance: option.work,
+      workPacePercent: option.pace,
+      recoveryDistance: 1.0,  // ACTIVE recovery!
+      recoveryPacePercent: 85,  // 85% MP, not easy jog
+      totalWorkVolume: option.reps * option.work,
+      description: `${option.reps} × ${option.work}km @ MP with 1km active recovery @ 85% MP`
+    }
+  } else {
+    // Short reps, higher intensity
+    const progressionOptions = [
+      { reps: 8, work: 1, pace: 103 },   // Week 1-2
+      { reps: 10, work: 1, pace: 103 },  // Week 3-4
+      { reps: 12, work: 1, pace: 105 },  // Week 5+
+    ]
+    const option = progressionOptions[Math.min(Math.floor(weekInPhase / 2), 2)]
+
+    return {
+      type: 'SPECIFIC_INTENSIVE',
+      reps: option.reps,
+      workDistance: option.work,
+      workPacePercent: option.pace,
+      recoveryDistance: 0.4,  // 400m active
+      recoveryPacePercent: 90,
+      totalWorkVolume: option.reps * option.work,
+      description: `${option.reps} × ${option.work}km @ ${option.pace}% MP with 400m recovery @ 90% MP`
+    }
+  }
+}
+
+/**
+ * Select appropriate Canova workout for the week
+ * @param phase - Current phase
+ * @param weekInPhase - Week number within phase
+ * @param dayType - Type of training day
+ * @returns Workout type
+ */
+export function selectCanovaWorkout(
+  phase: CanovaPhase,
+  weekInPhase: number,
+  dayType: 'QUALITY_1' | 'QUALITY_2' | 'LONG' | 'EASY' | 'REGENERATION'
+): string {
+  // Quality 1: Primary quality session
+  if (dayType === 'QUALITY_1') {
+    switch (phase) {
+      case 'GENERAL':
+        return 'FUNDAMENTAL_CONTINUOUS'  // 20km @ 80% MP
+      case 'FUNDAMENTAL':
+        return 'GENERAL_ENDURANCE_INTERVALS'  // Aerobic threshold work
+      case 'SPECIAL':
+        return weekInPhase % 4 === 0 ? 'SPECIAL_BLOCK' : 'SPECIFIC_EXTENSIVE'
+      case 'SPECIFIC':
+        return weekInPhase % 3 === 0 ? 'SPECIAL_BLOCK' : 'SPECIFIC_EXTENSIVE'
+      default:
+        return 'EASY'
+    }
+  }
+
+  // Quality 2: Secondary quality session
+  if (dayType === 'QUALITY_2') {
+    switch (phase) {
+      case 'GENERAL':
+        return 'HILL_SPRINTS'  // 10-15s max effort, alactic
+      case 'FUNDAMENTAL':
+        return 'UPHILL_CIRCUITS'  // Mixed running, bounding, drills
+      case 'SPECIAL':
+        return 'SPECIFIC_INTENSIVE'  // Short intervals @ 105-110% MP
+      case 'SPECIFIC':
+        return 'SPECIFIC_INTENSIVE'
+      default:
+        return 'EASY'
+    }
+  }
+
+  // Long run
+  if (dayType === 'LONG') {
+    switch (phase) {
+      case 'GENERAL':
+        return 'LONG_FUNDAMENTAL'  // 32km @ 80% MP
+      case 'FUNDAMENTAL':
+        return 'LONG_PROGRESSIVE'  // 35km progressive
+      case 'SPECIAL':
+        return 'LONG_ALTERNATING'  // 30km alternating pace
+      case 'SPECIFIC':
+        return 'SPECIFIC_LONG_RUN'  // 35km @ 95-98% MP
+      default:
+        return 'LONG_EASY'
+    }
+  }
+
+  // Regeneration days after blocks
+  if (dayType === 'REGENERATION') {
+    return 'REGENERATION'  // Very slow, 60-70% AnT
+  }
+
+  return 'EASY'  // Default
+}

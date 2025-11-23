@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix Canova workouts to use elite marathon paces\n\nCritical fix: Canova methodology was still using legacy test-based marathon\npace calculation instead of elite paces from VDOT/lactate profile.\n\nChanges:\n- Pass elitePaces parameter to determineWorkoutDistribution()\n- Check for elite paces before falling back to test-based calculation\n- Use elitePaces.canova.marathon.kmh when available (VDOT-calculated)\n- Enhanced logging to show which pace source is being used\n\nThis fixes the issue where a 1:28 HM runner was getting 5:00/km marathon\npace instead of the correct 4:26/km pace.\n\nBefore: 5×5km @ 5:00/km (100% MP) - WRONG\nAfter:  5×5km @ 4:26/km (100% MP) - CORRECT\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

@@ -199,7 +199,7 @@ export function selectOptimalPaces(
     vdotResult,
     lactateProfile,
     restingHR: profile.restingHR,
-    maxHR: profile.maxHR,
+    maxHR: profile.maxHR || 190,
     vo2max: profile.vo2max
   })
 
@@ -449,7 +449,7 @@ function validateConsistency(
     dataQuality: {
       vdotConfidence: vdotResult?.confidence,
       lactateConfidence: lactateProfile?.confidence,
-      dmaxRSquared: lactateProfile?.dmaxResult?.rSquared
+      dmaxRSquared: lactateProfile?.rSquared
     }
   }
 }

@@ -2,7 +2,7 @@
  * Training Methodology Type Definitions
  */
 
-export type MethodologyType = 'POLARIZED' | 'NORWEGIAN' | 'CANOVA' | 'PYRAMIDAL'
+export type MethodologyType = 'POLARIZED' | 'NORWEGIAN' | 'NORWEGIAN_SINGLE' | 'CANOVA' | 'PYRAMIDAL'
 export type AthleteLevel = 'BEGINNER' | 'RECREATIONAL' | 'ADVANCED' | 'ELITE'
 export type TrainingPhase = 'BASE' | 'BUILD' | 'PEAK' | 'TAPER' | 'RECOVERY'
 export type GoalDistance = '5K' | '10K' | 'HALF_MARATHON' | 'MARATHON' | 'ULTRAMARATHON' | 'GENERAL_FITNESS'
