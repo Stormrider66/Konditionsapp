@@ -134,7 +134,7 @@ export function ACWRRiskMonitor() {
   const warnings: ACWRData[] = warningsData?.warnings || []
 
   // Get all athletes from clients data
-  const allClients = clientsData?.clients || []
+  const allClients = clientsData?.data || []
 
   // Categorize athletes by ACWR zone
   const athletesByZone = {

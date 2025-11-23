@@ -55,7 +55,8 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
   const [selectedClient, setSelectedClient] = useState<string>(initialClientId || '')
 
   // Fetch clients
-  const { data: clients } = useSWR<any[]>('/api/clients', fetcher)
+  const { data: clientsResponse } = useSWR<{ success: boolean; data: any[] }>('/api/clients', fetcher)
+  const clients = clientsResponse?.data || []
 
   // Fetch progression data
   const { data, error, isLoading } = useSWR<any>(

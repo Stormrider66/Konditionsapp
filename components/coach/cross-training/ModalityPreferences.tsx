@@ -98,7 +98,8 @@ export default function ModalityPreferences({
   const [draggedItem, setDraggedItem] = useState<number | null>(null)
 
   // Fetch clients
-  const { data: clients } = useSWR<any[]>('/api/clients', fetcher)
+  const { data: clientsResponse } = useSWR<{ success: boolean; data: any[] }>('/api/clients', fetcher)
+  const clients = clientsResponse?.data || []
 
   // Fetch preferences
   const { data, error, isLoading, mutate } = useSWR<any>(

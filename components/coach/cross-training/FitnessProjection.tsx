@@ -110,7 +110,8 @@ export default function FitnessProjection({
   const [selectedModality, setSelectedModality] = useState<Modality>('DWR')
 
   // Fetch clients
-  const { data: clients } = useSWR<any[]>('/api/clients', fetcher)
+  const { data: clientsResponse } = useSWR<{ success: boolean; data: any[] }>('/api/clients', fetcher)
+  const clients = clientsResponse?.data || []
 
   // Fetch projection data
   const { data, error, isLoading } = useSWR<FitnessProjectionData>(

@@ -58,7 +58,8 @@ export default function TestSchedule({}: TestScheduleProps) {
   const [selectedWeeks, setSelectedWeeks] = useState<number>(12)
 
   // Fetch all clients
-  const { data: clients } = useSWR<any[]>('/api/clients', fetcher)
+  const { data: clientsResponse } = useSWR<{ success: boolean; data: any[] }>('/api/clients', fetcher)
+  const clients = clientsResponse?.data || []
 
   // Fetch scheduled tests
   const { data: scheduledTests, mutate } = useSWR<any[]>(

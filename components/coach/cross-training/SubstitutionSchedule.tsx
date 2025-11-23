@@ -115,9 +115,10 @@ export default function SubstitutionSchedule({
   const [selectedModality, setSelectedModality] = useState<Modality | null>(null)
 
   // Fetch clients
-  const { data: clients } = useSWR<any[]>('/api/clients', fetcher, {
+  const { data: clientsResponse } = useSWR<{ success: boolean; data: any[] }>('/api/clients', fetcher, {
     refreshInterval: 30000,
   })
+  const clients = clientsResponse?.data || []
 
   // Fetch substitutions
   const { data, error, isLoading, mutate } = useSWR<SubstitutionData>(
