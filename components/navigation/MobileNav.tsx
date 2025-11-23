@@ -6,8 +6,7 @@ import { usePathname } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
 import {
   Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
-  ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard,
-  HeartPulse, Waves, Activity
+  ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -59,10 +58,6 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
   const coachNavLinks = [
     { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/coach/programs', label: 'Program', icon: Calendar },
-    { href: '/coach/injuries', label: 'Skadehantering', icon: HeartPulse },
-    { href: '/coach/injuries/acwr', label: 'ACWR-övervakning', icon: Waves },
-    { href: '/coach/cross-training', label: 'Cross-training', icon: Activity },
-    { href: '/coach/field-tests', label: 'Fälttester', icon: ClipboardList },
     { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
   ]
 
