@@ -60,6 +60,26 @@ export default function AthleteMessagesPage() {
   const [coachInfo, setCoachInfo] = useState<{ id: string; name: string; email: string } | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
 
+  // Fetch coach info directly from API
+  const fetchCoachInfo = useCallback(async () => {
+    try {
+      const response = await fetch('/api/athlete/coach')
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setCoachInfo({
+          id: result.data.id,
+          name: result.data.name,
+          email: result.data.email,
+        })
+        return true
+      }
+    } catch (error) {
+      console.error('Error fetching coach info:', error)
+    }
+    return false
+  }, [])
+
   const fetchMessages = useCallback(async () => {
     try {
       setLoading(true)
@@ -93,18 +113,22 @@ export default function AthleteMessagesPage() {
           name: coach.name,
           email: coach.email,
         })
+      } else {
+        // No messages yet - fetch coach info directly
+        await fetchCoachInfo()
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod'
       console.error('Error fetching messages:', error)
       toast({
         title: 'Kunde inte hämta meddelanden',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [toast, fetchCoachInfo])
 
   useEffect(() => {
     fetchMessages()
@@ -167,11 +191,12 @@ export default function AthleteMessagesPage() {
 
       setReplyText('')
       await fetchMessages()
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Ett fel uppstod'
       console.error('Error sending message:', error)
       toast({
         title: 'Kunde inte skicka meddelande',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {
@@ -307,12 +332,53 @@ export default function AthleteMessagesPage() {
               </div>
             </CardContent>
           </>
+        ) : coachInfo ? (
+          <CardContent className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <MessageSquare className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-lg font-semibold mb-2">Starta en konversation</p>
+              <p className="text-sm text-muted-foreground mb-6">
+                Skriv ett meddelande till {coachInfo.name} nedan
+              </p>
+              <div className="max-w-md mx-auto space-y-3">
+                <Textarea
+                  placeholder="Skriv ditt meddelande till din coach..."
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  rows={4}
+                  maxLength={1000}
+                  disabled={sending}
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {replyText.length}/1000 tecken
+                  </p>
+                  <Button
+                    onClick={sendMessage}
+                    disabled={!replyText.trim() || sending}
+                  >
+                    {sending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Skickar...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Skicka
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
         ) : (
           <CardContent className="flex items-center justify-center py-20">
             <div className="text-center text-muted-foreground">
               <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-semibold mb-2">Inga meddelanden från din coach ännu</p>
-              <p className="text-sm">När din coach skickar ett meddelande kommer det visas här</p>
+              <p className="text-lg font-semibold mb-2">Ingen coach kopplad</p>
+              <p className="text-sm">Kontakta support om du borde ha en coach kopplad till ditt konto</p>
             </div>
           </CardContent>
         )}
