@@ -10,6 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getProgressionHistory, getWeeklyProgressionSummary } from '@/lib/training-engine/progression'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,8 +37,11 @@ export async function GET(request: NextRequest) {
     const result = await getProgressionHistory(clientId, exerciseId, limit)
 
     return NextResponse.json(result, { status: 200 })
-  } catch (error: any) {
-    console.error('Error fetching progression history:', error)
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const clientId = request.nextUrl.searchParams.get('clientId')
+    const exerciseId = request.nextUrl.searchParams.get('exerciseId')
+    logger.error('Error fetching progression history', { clientId, exerciseId }, error)
+    return NextResponse.json({ error: errorMessage || 'Internal server error' }, { status: 500 })
   }
 }

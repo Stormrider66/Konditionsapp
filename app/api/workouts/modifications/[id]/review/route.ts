@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 export async function PUT(
   request: NextRequest,
@@ -102,7 +103,7 @@ export async function PUT(
         : 'Workout modification flagged for adjustment',
     })
   } catch (error) {
-    console.error('Error reviewing workout modification:', error)
+    logger.error('Error reviewing workout modification', {}, error)
     return NextResponse.json(
       {
         error: 'Failed to review workout modification',

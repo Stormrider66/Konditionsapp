@@ -2,11 +2,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@/lib/supabase/server'
+import { escapeHtml, sanitizeForEmail } from '@/lib/sanitize'
+import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
+import { logger } from '@/lib/logger'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Maximum PDF size: 10MB
+const MAX_PDF_SIZE = 10 * 1024 * 1024
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 emails per minute per client
+    const rateLimitResult = rateLimitResponse(request, RATE_LIMITS.email)
+    if (rateLimitResult) {
+      return rateLimitResult
+    }
+
     const supabase = await createClient()
     const {
       data: { user },
@@ -35,38 +47,69 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Convert base64 to buffer
-    const pdfBuffer = Buffer.from(pdfBase64, 'base64')
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(to)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid email address format',
+        },
+        { status: 400 }
+      )
+    }
 
-    // Format the email
-    const emailSubject = `Ditt konditionstest från ${organization}`
+    // Convert base64 to buffer and validate size
+    const pdfBuffer = Buffer.from(pdfBase64, 'base64')
+    if (pdfBuffer.length > MAX_PDF_SIZE) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'PDF file size exceeds maximum allowed (10MB)',
+        },
+        { status: 400 }
+      )
+    }
+
+    // Sanitize all user inputs for XSS protection
+    const safeClientName = escapeHtml(clientName)
+    const safeTestDate = escapeHtml(testDate)
+    const safeTestLeader = escapeHtml(testLeader)
+    const safeOrganization = escapeHtml(organization)
+    const safeCustomMessage = customMessage ? sanitizeForEmail(customMessage) : ''
+
+    // Format the email with sanitized content
+    const emailSubject = `Ditt konditionstest från ${safeOrganization}`
     const emailBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #667eea;">Konditionstestrapport</h2>
 
-        <p>Hej ${clientName},</p>
+        <p>Hej ${safeClientName},</p>
 
-        <p>Här är resultatet från ditt konditionstest som genomfördes <strong>${testDate}</strong>.</p>
+        <p>Här är resultatet från ditt konditionstest som genomfördes <strong>${safeTestDate}</strong>.</p>
 
-        ${customMessage ? `<p>${customMessage}</p>` : ''}
+        ${safeCustomMessage ? `<p>${safeCustomMessage}</p>` : ''}
 
         <div style="background-color: #f7f7f7; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>Testledare:</strong> ${testLeader}</p>
-          <p style="margin: 5px 0;"><strong>Organisation:</strong> ${organization}</p>
+          <p style="margin: 5px 0;"><strong>Testledare:</strong> ${safeTestLeader}</p>
+          <p style="margin: 5px 0;"><strong>Organisation:</strong> ${safeOrganization}</p>
         </div>
 
         <p>Se bifogad PDF för din fullständiga rapport med resultat och träningszoner.</p>
 
         <p style="margin-top: 30px;">Med vänliga hälsningar,<br/>
-        <strong>${organization}</strong></p>
+        <strong>${safeOrganization}</strong></p>
 
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;"/>
 
         <p style="font-size: 12px; color: #666;">
-          Detta mail är skickat från ${organization}s konditionstestsystem.
+          Detta mail är skickat från ${safeOrganization}s konditionstestsystem.
         </p>
       </div>
     `
+
+    // Sanitize filename
+    const safeFilename = `Konditionstest_${safeClientName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')}_${safeTestDate.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`
 
     // Send email using Resend
     const { data, error } = await resend.emails.send({
@@ -76,19 +119,18 @@ export async function POST(request: NextRequest) {
       html: emailBody,
       attachments: [
         {
-          filename: `Konditionstest_${clientName.replace(/\s+/g, '_')}_${testDate}.pdf`,
+          filename: safeFilename,
           content: pdfBuffer,
         },
       ],
     })
 
     if (error) {
-      console.error('Resend error:', error)
+      logger.error('Resend error', {}, error)
       return NextResponse.json(
         {
           success: false,
           error: 'Failed to send email',
-          details: error,
         },
         { status: 500 }
       )
@@ -99,13 +141,12 @@ export async function POST(request: NextRequest) {
       data: data,
       message: 'Email sent successfully',
     })
-  } catch (error) {
-    console.error('Error sending email:', error)
+  } catch (error: unknown) {
+    logger.error('Error sending email', {}, error)
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to send email',
-        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )

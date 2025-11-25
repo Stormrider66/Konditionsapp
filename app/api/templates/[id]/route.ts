@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 // DELETE /api/templates/[id] - Delete template
 export async function DELETE(
@@ -60,7 +61,7 @@ export async function DELETE(
       message: 'Template deleted successfully',
     })
   } catch (error) {
-    console.error('Error deleting template:', error)
+    logger.error('Error deleting template', { templateId: (await params).id, userId: user?.id }, error)
     return NextResponse.json(
       {
         success: false,

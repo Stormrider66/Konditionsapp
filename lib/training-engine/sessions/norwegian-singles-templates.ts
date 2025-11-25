@@ -713,10 +713,12 @@ export const WEEKLY_MICROCYCLES = {
   }
 };
 
-export default {
+const norwegianSinglesTemplates = {
   DISTANCE_INTERVAL_SESSIONS,
   TIME_INTERVAL_SESSIONS,
   X_FACTOR_SESSIONS,
   RECOVERY_SESSIONS,
   WEEKLY_MICROCYCLES
 };
+
+export default norwegianSinglesTemplates;

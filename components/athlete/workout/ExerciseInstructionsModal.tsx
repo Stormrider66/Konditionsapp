@@ -23,7 +23,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Exercise } from '@prisma/client'
 import {
   Dialog,
@@ -89,14 +89,7 @@ export function ExerciseInstructionsModal({
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('instructions')
 
-  // Fetch exercise details
-  useEffect(() => {
-    if (exerciseId && open) {
-      fetchExerciseDetails(exerciseId)
-    }
-  }, [exerciseId, open])
-
-  const fetchExerciseDetails = async (id: string) => {
+  const fetchExerciseDetails = useCallback(async (id: string) => {
     setIsLoading(true)
 
     try {
@@ -143,7 +136,14 @@ export function ExerciseInstructionsModal({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [clientId, toast])
+
+  // Fetch exercise details when modal opens
+  useEffect(() => {
+    if (exerciseId && open) {
+      fetchExerciseDetails(exerciseId)
+    }
+  }, [exerciseId, open, fetchExerciseDetails])
 
   // Get video embed URL
   const getVideoEmbedUrl = (url: string | null) => {

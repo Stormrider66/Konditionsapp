@@ -44,6 +44,8 @@
     "@supabase/supabase-js": "^2.75.0",
     "@types/node": "^24.7.0",
     "@types/react": "^18.3.26",
+    "@upstash/ratelimit": "^2.0.7",
+    "@upstash/redis": "^1.35.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

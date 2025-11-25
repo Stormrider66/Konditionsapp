@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getProgressionPath } from '@/lib/training-engine/generators/exercise-selector'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
@@ -25,13 +26,14 @@ export async function GET(
     const progressionPath = await getProgressionPath(exerciseId)
 
     return NextResponse.json(progressionPath, { status: 200 })
-  } catch (error: any) {
-    console.error('Error fetching progression path:', error)
+  } catch (error: unknown) {
+    logger.error('Error fetching progression path', { exerciseId: params.id }, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
 
-    if (error.message === 'Exercise not found') {
+    if (errorMessage === 'Exercise not found') {
       return NextResponse.json({ error: 'Exercise not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

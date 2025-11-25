@@ -300,7 +300,7 @@ export function StrengthProgramWizard({
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            Equipment selection will filter available exercises. Select "None" for bodyweight-only programs.
+            Equipment selection will filter available exercises. Select &quot;None&quot; for bodyweight-only programs.
           </AlertDescription>
         </Alert>
       </div>

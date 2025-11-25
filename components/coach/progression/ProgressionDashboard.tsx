@@ -25,7 +25,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -104,20 +104,8 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
   const [timeRange, setTimeRange] = useState<'4weeks' | '12weeks' | 'all'>('12weeks')
   const [isLoading, setIsLoading] = useState(false)
 
-  // Fetch exercise summaries on mount
-  useEffect(() => {
-    fetchProgressionSummary()
-  }, [clientId])
-
-  // Fetch progression history when exercise changes
-  useEffect(() => {
-    if (selectedExercise) {
-      fetchProgressionHistory(selectedExercise)
-    }
-  }, [selectedExercise, timeRange])
-
   // Fetch weekly progression summary
-  const fetchProgressionSummary = async () => {
+  const fetchProgressionSummary = useCallback(async () => {
     setIsLoading(true)
 
     try {
@@ -140,10 +128,10 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [clientId, selectedExercise, toast])
 
   // Fetch progression history for specific exercise
-  const fetchProgressionHistory = async (exerciseId: string) => {
+  const fetchProgressionHistory = useCallback(async (exerciseId: string) => {
     setIsLoading(true)
 
     try {
@@ -165,7 +153,19 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [clientId, timeRange, toast])
+
+  // Fetch exercise summaries on mount
+  useEffect(() => {
+    fetchProgressionSummary()
+  }, [fetchProgressionSummary])
+
+  // Fetch progression history when exercise changes
+  useEffect(() => {
+    if (selectedExercise) {
+      fetchProgressionHistory(selectedExercise)
+    }
+  }, [selectedExercise, fetchProgressionHistory])
 
   // Get status badge
   const getStatusBadge = (status: string) => {

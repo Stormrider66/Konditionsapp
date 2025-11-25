@@ -21,6 +21,7 @@ import {
   type InjuryDetection,
   type InjuryResponse,
 } from '@/lib/training-engine/integration/injury-management'
+import { logger } from '@/lib/logger'
 
 interface CheckInData {
   clientId: string
@@ -152,12 +153,12 @@ export async function POST(request: NextRequest) {
     // ==========================================
     // Step 5: Process injury cascade
     // ==========================================
-    console.log('🚨 INJURY TRIGGER DETECTED')
-    console.log('  Athlete:', client.name)
-    console.log('  Pain level:', injuryPain, '/10')
-    console.log('  Reasons:', triggerDetection.reasons.join(', '))
-    console.log('  Recommended action:', triggerDetection.recommendedAction)
-    console.log('  Processing injury cascade...')
+    logger.info('Injury trigger detected', {
+      athlete: client.name,
+      painLevel: injuryPain,
+      reasons: triggerDetection.reasons.join(', '),
+      recommendedAction: triggerDetection.recommendedAction
+    })
 
     const injuryResponse: InjuryResponse = await processInjuryDetection(
       injuryDetection,
@@ -165,11 +166,12 @@ export async function POST(request: NextRequest) {
       { persistRecord: true }
     )
 
-    console.log('✅ Injury cascade completed')
-    console.log('  Workouts modified:', injuryResponse.workoutModifications.length)
-    console.log('  Cross-training substitutions:', injuryResponse.crossTrainingSubstitutions.length)
-    console.log('  Estimated return:', injuryResponse.estimatedReturnWeeks, 'weeks')
-    console.log('  Coach notification urgency:', injuryResponse.coachNotification.urgency)
+    logger.info('Injury cascade completed', {
+      workoutsModified: injuryResponse.workoutModifications.length,
+      crossTrainingSubstitutions: injuryResponse.crossTrainingSubstitutions.length,
+      estimatedReturnWeeks: injuryResponse.estimatedReturnWeeks,
+      coachNotificationUrgency: injuryResponse.coachNotification.urgency
+    })
 
     // ==========================================
     // Step 6: Send coach notification
@@ -199,7 +201,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error processing injury check-in:', error)
+    logger.error('Error processing injury check-in', {}, error)
     return NextResponse.json(
       {
         error: 'Failed to process injury check-in',
@@ -364,7 +366,7 @@ async function getACWRRisk(clientId: string): Promise<{
 
     return { risk, acwr }
   } catch (error) {
-    console.error('Error fetching ACWR:', error)
+    logger.error('Error fetching ACWR', { clientId }, error)
     return { risk: undefined, acwr: null }
   }
 }
@@ -389,14 +391,14 @@ async function sendCoachNotification(
       },
     })
 
-    console.log('✉️  Coach notification sent:', notification.title)
+    logger.info('Coach notification sent', { title: notification.title, coachUserId })
 
     // TODO: Add email notification via Resend
     // if (notification.urgency === 'CRITICAL' || notification.urgency === 'HIGH') {
     //   await sendEmailNotification(coachUserId, notification)
     // }
   } catch (error) {
-    console.error('Error sending coach notification:', error)
+    logger.error('Error sending coach notification', { coachUserId }, error)
     // Don't throw - notification failure shouldn't block injury processing
   }
 }

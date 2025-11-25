@@ -254,9 +254,9 @@ function calculateSessionDuration(exercises: SelectedExercise[]): number {
   totalMinutes += 10
 
   for (const ex of exercises) {
-    // Work time: sets × (reps × 3 seconds tempo average)
+    // Work time: sets * (reps * 3 seconds tempo average)
     const workTime = ex.sets * (ex.reps * 3) // seconds
-    // Rest time: sets × rest period
+    // Rest time: sets * rest period
     const restTime = ex.sets * ex.restSeconds // seconds
 
     totalMinutes += (workTime + restTime) / 60

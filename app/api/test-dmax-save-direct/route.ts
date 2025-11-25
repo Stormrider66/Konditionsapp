@@ -1,6 +1,7 @@
 // Direct test of saving D-max to database
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -61,7 +62,7 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Direct save test error:', error)
+    logger.error('Direct save test error', {}, error)
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

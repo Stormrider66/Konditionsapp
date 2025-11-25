@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 /**
  * PATCH /api/messages/[id]
@@ -93,7 +94,7 @@ export async function PATCH(
       message: 'Meddelande markerat som läst',
     })
   } catch (error) {
-    console.error('Error marking message as read:', error)
+    logger.error('Error marking message as read', { messageId: id, userId: user?.id }, error)
     return NextResponse.json(
       {
         success: false,

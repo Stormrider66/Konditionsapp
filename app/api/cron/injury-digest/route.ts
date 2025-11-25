@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { Resend } from 'resend'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -439,18 +440,26 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret
+    // Verify cron secret (REQUIRED)
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+      logger.error('CRON_SECRET environment variable is not configured', {})
+      return NextResponse.json(
+        { error: 'Server misconfiguration: CRON_SECRET not set' },
+        { status: 500 }
+      )
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('📧 Starting injury digest email job...')
+    logger.info('Starting injury digest email job')
 
     if (!resend) {
-      console.warn('⚠️  RESEND_API_KEY not configured, skipping email send')
+      logger.warn('RESEND_API_KEY not configured, skipping email send', {})
       return NextResponse.json(
         { success: false, error: 'Resend API key not configured' },
         { status: 500 }
@@ -463,7 +472,7 @@ export async function POST(request: NextRequest) {
       select: { id: true, email: true, name: true },
     })
 
-    console.log(`  Found ${coaches.length} coaches`)
+    logger.info('Found coaches', { count: coaches.length })
 
     let sent = 0
     let skipped = 0
@@ -507,17 +516,14 @@ export async function POST(request: NextRequest) {
         })
 
         sent++
-        console.log(`  ✅ Sent digest to ${coach.name} (${coach.email})`)
-      } catch (coachError: any) {
-        console.error(`  ❌ Error sending to ${coach.email}:`, coachError.message)
+        logger.info('Sent digest', { coachName: coach.name, coachEmail: coach.email })
+      } catch (coachError: unknown) {
+        logger.error('Error sending digest', { coachEmail: coach.email }, coachError)
         errors++
       }
     }
 
-    console.log('✅ Injury digest job complete')
-    console.log(`  Sent: ${sent}`)
-    console.log(`  Skipped: ${skipped}`)
-    console.log(`  Errors: ${errors}`)
+    logger.info('Injury digest job complete', { sent, skipped, errors })
 
     return NextResponse.json({
       success: true,
@@ -526,21 +532,29 @@ export async function POST(request: NextRequest) {
       errors,
       timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
-    console.error('❌ Injury digest job failed:', error)
+  } catch (error: unknown) {
+    logger.error('Injury digest job failed', {}, error)
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
 }
 
-// Allow GET for manual testing
+// Allow GET for manual testing (requires same authentication)
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    return NextResponse.json(
+      { error: 'Server misconfiguration: CRON_SECRET not set' },
+      { status: 500 }
+    )
+  }
+
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

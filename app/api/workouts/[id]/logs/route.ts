@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 /**
  * POST /api/workouts/[id]/logs
@@ -84,7 +85,7 @@ export async function POST(
       { status: 201 }
     )
   } catch (error) {
-    console.error('Error creating workout log:', error)
+    logger.error('Error creating workout log', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -140,7 +141,7 @@ export async function GET(
       data: logs,
     })
   } catch (error) {
-    console.error('Error fetching workout logs:', error)
+    logger.error('Error fetching workout logs', {}, error)
     return NextResponse.json(
       {
         success: false,

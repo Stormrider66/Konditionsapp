@@ -20,7 +20,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Exercise, BiomechanicalPillar, ProgressionLevel } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -89,15 +89,8 @@ export function ExerciseSwapper({
   // Selected exercise state
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
 
-  // Fetch exercise library on mount
-  useEffect(() => {
-    fetchExercises()
-    fetchAlternatives()
-    fetchProgressionPath()
-  }, [])
-
   // Fetch all exercises with filters
-  const fetchExercises = async () => {
+  const fetchExercises = useCallback(async () => {
     setIsLoading(true)
 
     try {
@@ -121,10 +114,10 @@ export function ExerciseSwapper({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [searchTerm, selectedPillar, selectedLevel, equipmentFilter, toast])
 
   // Fetch alternative exercises (same pillar)
-  const fetchAlternatives = async () => {
+  const fetchAlternatives = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/exercises/${currentExercise.id}/alternatives?samePillar=true`
@@ -136,10 +129,10 @@ export function ExerciseSwapper({
     } catch (error: any) {
       console.error('Failed to fetch alternatives:', error)
     }
-  }
+  }, [currentExercise.id])
 
   // Fetch progression path (easier → current → harder)
-  const fetchProgressionPath = async () => {
+  const fetchProgressionPath = useCallback(async () => {
     try {
       const response = await fetch(`/api/exercises/${currentExercise.id}/progression-path`)
       if (!response.ok) throw new Error('Failed to fetch progression path')
@@ -149,7 +142,14 @@ export function ExerciseSwapper({
     } catch (error: any) {
       console.error('Failed to fetch progression path:', error)
     }
-  }
+  }, [currentExercise.id])
+
+  // Fetch exercise library on mount
+  useEffect(() => {
+    fetchExercises()
+    fetchAlternatives()
+    fetchProgressionPath()
+  }, [fetchExercises, fetchAlternatives, fetchProgressionPath])
 
   // Handle search/filter changes
   useEffect(() => {
@@ -158,7 +158,7 @@ export function ExerciseSwapper({
     }, 300)
 
     return () => clearTimeout(debounce)
-  }, [searchTerm, selectedPillar, selectedLevel, equipmentFilter])
+  }, [fetchExercises])
 
   // Handle exercise swap
   const handleSwap = () => {

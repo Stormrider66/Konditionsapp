@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
+import { logger } from '@/lib/logger'
 
 /**
  * POST /api/race-results
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(raceResult, { status: 201 })
   } catch (error) {
-    console.error('Error creating race result:', error)
+    logger.error('Error creating race result', { clientId: body?.clientId }, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -182,7 +183,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(updatedResults)
   } catch (error) {
-    console.error('Error fetching race results:', error)
+    logger.error('Error fetching race results', { clientId }, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

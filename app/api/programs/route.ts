@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessProgram } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/programs
@@ -175,7 +176,7 @@ export async function GET(request: NextRequest) {
       data: programs,
     })
   } catch (error) {
-    console.error('Error fetching programs:', error)
+    logger.error('Error fetching programs', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -361,7 +362,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Error creating program:', error)
+    logger.error('Error creating program', {}, error)
     return NextResponse.json(
       {
         success: false,

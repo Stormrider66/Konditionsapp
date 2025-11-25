@@ -20,8 +20,8 @@ import type {
   Test,
   Client,
   CreateTrainingProgramDTO,
-  ProgramGenerationParams,
 } from '@/types'
+import type { ProgramGenerationParams } from './index'
 
 /**
  * UPDATED: Main program generation function with elite pace integration

@@ -7,6 +7,7 @@ import {
   saveNorwegianSinglesProgram
 } from '@/lib/training-engine/generators/norwegian-singles-generator';
 import { validateNorwegianSinglesEligibility } from '@/lib/training-engine/integration/norwegian-singles-validation';
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/norwegian-singles/generate
@@ -205,12 +206,13 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
-    console.error('[Norwegian Singles Generation] Error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logger.error('[Norwegian Singles Generation] Error', {}, error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Ett fel uppstod vid programgenerering'
+        error: errorMessage || 'Ett fel uppstod vid programgenerering'
       },
       { status: 500 }
     );

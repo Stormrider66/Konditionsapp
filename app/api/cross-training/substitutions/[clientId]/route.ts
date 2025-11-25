@@ -26,6 +26,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -356,10 +357,11 @@ export async function GET(
       modalityRetentionRates: MODALITY_RETENTION,
       recommendedModalities: INJURY_MODALITY_MAP[activeInjury.injuryType] || ['DWR'],
     })
-  } catch (error: any) {
-    console.error('Error fetching cross-training substitutions:', error)
+  } catch (error: unknown) {
+    logger.error('Error fetching cross-training substitutions', { clientId: params.clientId }, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

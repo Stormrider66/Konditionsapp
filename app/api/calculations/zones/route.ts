@@ -8,6 +8,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { validateRequest, successResponse, handleApiError, requireAuth } from '@/lib/api/utils';
 import { calculateIndividualizedZones } from '@/lib/calculations/zones';
+import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
 
 const requestSchema = z.object({
   maxHR: z.number().min(120).max(220),
@@ -21,6 +22,10 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limiting for calculation routes
+  const rateLimited = rateLimitResponse(request, RATE_LIMITS.calculation);
+  if (rateLimited) return rateLimited;
+
   try {
     await requireAuth();
 

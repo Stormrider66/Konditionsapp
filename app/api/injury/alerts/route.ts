@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/injury/alerts
@@ -184,7 +185,7 @@ export async function GET(request: NextRequest) {
       summary,
     })
   } catch (error) {
-    console.error('Error fetching injury alerts:', error)
+    logger.error('Error fetching injury alerts', {}, error)
     return NextResponse.json(
       {
         error: 'Failed to fetch injury alerts',

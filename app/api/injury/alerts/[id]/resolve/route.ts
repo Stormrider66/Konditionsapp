@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 export async function PUT(
   request: NextRequest,
@@ -95,7 +96,7 @@ export async function PUT(
       message: `Injury assessment marked as ${status.toLowerCase()}`,
     })
   } catch (error) {
-    console.error('Error resolving injury alert:', error)
+    logger.error('Error resolving injury alert', { injuryId: params.id }, error)
     return NextResponse.json(
       {
         error: 'Failed to resolve injury alert',

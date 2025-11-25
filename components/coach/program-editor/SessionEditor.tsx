@@ -495,7 +495,7 @@ export function SessionEditor({ workout, programId, onSave, onCancel }: SessionE
           {segments.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <p>No segments added yet.</p>
-              <p className="text-sm">Click "Add Segment" to get started.</p>
+              <p className="text-sm">Click &quot;Add Segment&quot; to get started.</p>
             </div>
           ) : (
             <div className="space-y-2">

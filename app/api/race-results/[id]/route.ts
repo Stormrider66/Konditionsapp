@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/race-results/[id]
@@ -51,7 +52,7 @@ export async function GET(
       ageInDays,
     })
   } catch (error) {
-    console.error('Error fetching race result:', error)
+    logger.error('Error fetching race result', { raceResultId: params.id }, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -159,7 +160,7 @@ export async function PUT(
 
     return NextResponse.json(updatedResult)
   } catch (error) {
-    console.error('Error updating race result:', error)
+    logger.error('Error updating race result', { raceResultId: params.id }, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -210,7 +211,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: 'Race result deleted' })
   } catch (error) {
-    console.error('Error deleting race result:', error)
+    logger.error('Error deleting race result', { raceResultId: params.id }, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

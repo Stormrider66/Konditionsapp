@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 type RouteParams = {
   params: Promise<{
@@ -63,7 +64,7 @@ export async function GET(
       data: team,
     })
   } catch (error) {
-    console.error('Error fetching team:', error)
+    logger.error('Error fetching team', { teamId: id, userId: user?.id }, error)
     return NextResponse.json(
       {
         success: false,
@@ -150,7 +151,7 @@ export async function PUT(
       message: 'Team updated successfully',
     })
   } catch (error) {
-    console.error('Error updating team:', error)
+    logger.error('Error updating team', { teamId: id, userId: user?.id }, error)
     return NextResponse.json(
       {
         success: false,
@@ -212,7 +213,7 @@ export async function DELETE(
       message: 'Team deleted successfully',
     })
   } catch (error) {
-    console.error('Error deleting team:', error)
+    logger.error('Error deleting team', { teamId: id, userId: user?.id }, error)
     return NextResponse.json(
       {
         success: false,

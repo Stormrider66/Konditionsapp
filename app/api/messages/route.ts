@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Validation schema for new messages
 const createMessageSchema = z.object({
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest) {
       data: messages,
     })
   } catch (error) {
-    console.error('Error fetching messages:', error)
+    logger.error('Error fetching messages', { userId: user?.id, filter, conversationWith }, error)
     return NextResponse.json(
       {
         success: false,
@@ -224,7 +225,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Error creating message:', error)
+    logger.error('Error creating message', { senderId: user?.id, receiverId: body?.receiverId }, error)
     return NextResponse.json(
       {
         success: false,

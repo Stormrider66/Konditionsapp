@@ -30,6 +30,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -69,15 +70,23 @@ function calculateEWMA(
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret to prevent unauthorized access
+    // Verify cron secret to prevent unauthorized access (REQUIRED)
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+      logger.error('CRON_SECRET environment variable is not configured', {})
+      return NextResponse.json(
+        { error: 'Server misconfiguration: CRON_SECRET not set' },
+        { status: 500 }
+      )
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    console.log('🔄 Starting nightly ACWR calculation...')
+    logger.info('Starting nightly ACWR calculation')
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -93,7 +102,7 @@ export async function POST(request: NextRequest) {
       select: { id: true, name: true },
     })
 
-    console.log(`  Found ${activeAthletes.length} active athletes`)
+    logger.info('Found active athletes', { count: activeAthletes.length })
 
     let processed = 0
     let updated = 0
@@ -190,19 +199,21 @@ export async function POST(request: NextRequest) {
 
         // Log if athlete is in danger zone
         if (zone === 'DANGER' || zone === 'CRITICAL') {
-          console.log(`  ⚠️  ${athlete.name}: ACWR ${acwr.toFixed(2)} (${zone})`)
+          logger.warn('Athlete in danger zone', { athleteName: athlete.name, acwr: acwr.toFixed(2), zone })
         }
-      } catch (athleteError: any) {
-        console.error(`  ❌ Error processing ${athlete.name}:`, athleteError.message)
+      } catch (athleteError: unknown) {
+        logger.error('Error processing athlete', { athleteName: athlete.name }, athleteError)
         errors++
         processed++
       }
     }
 
-    console.log('✅ ACWR calculation complete')
-    console.log(`  Processed: ${processed}/${activeAthletes.length}`)
-    console.log(`  Updated: ${updated}`)
-    console.log(`  Errors: ${errors}`)
+    logger.info('ACWR calculation complete', {
+      processed,
+      total: activeAthletes.length,
+      updated,
+      errors
+    })
 
     return NextResponse.json({
       success: true,
@@ -211,22 +222,29 @@ export async function POST(request: NextRequest) {
       errors,
       timestamp: today.toISOString(),
     })
-  } catch (error: any) {
-    console.error('❌ ACWR calculation job failed:', error)
+  } catch (error: unknown) {
+    logger.error('ACWR calculation job failed', {}, error)
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500 }
     )
   }
 }
 
-// Allow GET for manual testing
+// Allow GET for manual testing (requires same authentication)
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
 
-  // Require auth for manual triggers too
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    return NextResponse.json(
+      { error: 'Server misconfiguration: CRON_SECRET not set' },
+      { status: 500 }
+    )
+  }
+
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

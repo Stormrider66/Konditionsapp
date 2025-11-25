@@ -1,243 +1,167 @@
-// app/api/exercises/route.ts
-/**
- * Exercise Library API
- *
- * Endpoints:
- * - GET /api/exercises - List exercises with filters, search, pagination
- * - POST /api/exercises - Create custom exercise
- *
- * Query Parameters for GET:
- * - search: Search by name (Swedish or English)
- * - pillar: Filter by biomechanical pillar
- * - level: Filter by progression level
- * - category: Filter by category (STRENGTH, PLYOMETRIC, etc.)
- * - equipment: Filter by equipment (comma-separated)
- * - difficulty: Filter by difficulty (Beginner, Intermediate, Advanced)
- * - intensity: Filter by plyometric intensity (LOW, MODERATE, HIGH)
- * - isPublic: Filter by public/custom (true/false)
- * - userId: Filter by creator (for custom exercises)
- * - limit: Results per page (default: 50)
- * - offset: Pagination offset (default: 0)
- * - sortBy: Sort field (name, difficulty, category)
- * - sortOrder: Sort direction (asc, desc)
- */
-
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { Prisma } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
-const prisma = new PrismaClient()
+// Allowed sort fields to prevent injection
+const ALLOWED_SORT_FIELDS = [
+  'name',
+  'nameSv',
+  'nameEn',
+  'category',
+  'biomechanicalPillar',
+  'progressionLevel',
+  'difficulty',
+  'muscleGroup',
+  'createdAt',
+  'updatedAt',
+] as const
 
-/**
- * GET - List exercises with filters
- */
+type AllowedSortField = typeof ALLOWED_SORT_FIELDS[number]
+
+function isValidSortField(field: string): field is AllowedSortField {
+  return ALLOWED_SORT_FIELDS.includes(field as AllowedSortField)
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
+    await requireAuth()
+    const { searchParams } = new URL(request.url)
 
-    // Pagination
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    // Pagination with limits
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')))
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
 
-    // Sorting
-    const sortBy = searchParams.get('sortBy') || 'name'
-    const sortOrder = searchParams.get('sortOrder') || 'asc'
+    // Validate sortBy to prevent injection
+    const requestedSortBy = searchParams.get('sortBy') || 'name'
+    const sortBy: AllowedSortField = isValidSortField(requestedSortBy) ? requestedSortBy : 'name'
+    const sortOrder = searchParams.get('sortOrder') === 'desc' ? 'desc' : 'asc'
 
     // Filters
     const search = searchParams.get('search')
+    const category = searchParams.get('category')
     const pillar = searchParams.get('pillar')
     const level = searchParams.get('level')
-    const category = searchParams.get('category')
-    const equipment = searchParams.get('equipment')
     const difficulty = searchParams.get('difficulty')
+    const equipment = searchParams.get('equipment')
     const intensity = searchParams.get('intensity')
     const isPublic = searchParams.get('isPublic')
     const userId = searchParams.get('userId')
 
-    // Build where clause
-    const where: any = {}
+    const where: Prisma.ExerciseWhereInput = {}
 
-    // Search (Swedish or English name)
+    if (category && category !== 'ALL') {
+      where.category = category
+    }
+
+    if (pillar && pillar !== 'ALL') {
+      where.biomechanicalPillar = pillar as Prisma.EnumBiomechanicalPillarFilter
+    }
+
+    if (level && level !== 'ALL') {
+      where.progressionLevel = level as Prisma.EnumProgressionLevelFilter
+    }
+
+    if (difficulty && difficulty !== 'ALL') {
+      where.difficulty = difficulty
+    }
+
+    if (equipment) {
+      const equipmentList = equipment.split(',').map((e) => e.trim())
+      where.equipment = { in: equipmentList }
+    }
+
+    if (intensity && intensity !== 'ALL') {
+      where.plyometricIntensity = intensity as Prisma.EnumPlyometricIntensityNullableFilter
+    }
+
+    if (isPublic !== null && isPublic !== undefined) {
+      where.isPublic = isPublic === 'true'
+    }
+
+    if (userId) {
+      where.userId = userId
+    }
+
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { nameSv: { contains: search, mode: 'insensitive' } },
         { nameEn: { contains: search, mode: 'insensitive' } },
+        { muscleGroup: { contains: search, mode: 'insensitive' } },
       ]
     }
 
-    // Biomechanical pillar filter
-    if (pillar && pillar !== 'ALL') {
-      where.biomechanicalPillar = pillar
-    }
-
-    // Progression level filter
-    if (level && level !== 'ALL') {
-      where.progressionLevel = level
-    }
-
-    // Category filter
-    if (category && category !== 'ALL') {
-      where.category = category
-    }
-
-    // Equipment filter (comma-separated)
-    if (equipment) {
-      const equipmentList = equipment.split(',').map((e) => e.trim())
-      where.equipment = {
-        in: equipmentList,
-      }
-    }
-
-    // Difficulty filter
-    if (difficulty && difficulty !== 'ALL') {
-      where.difficulty = difficulty
-    }
-
-    // Plyometric intensity filter
-    if (intensity && intensity !== 'ALL') {
-      where.plyometricIntensity = intensity
-    }
-
-    // Public/custom filter
-    if (isPublic !== null) {
-      where.isPublic = isPublic === 'true'
-    }
-
-    // User filter (for custom exercises)
-    if (userId) {
-      where.userId = userId
-    }
-
-    // Execute query with pagination
-    const [exercises, totalCount] = await Promise.all([
-      prisma.exercise.findMany({
-        where,
-        orderBy: {
-          [sortBy]: sortOrder,
-        },
-        skip: offset,
-        take: limit,
-        select: {
-          id: true,
-          name: true,
-          nameSv: true,
-          nameEn: true,
-          category: true,
-          muscleGroup: true,
-          biomechanicalPillar: true,
-          progressionLevel: true,
-          description: true,
-          instructions: true,
-          equipment: true,
-          difficulty: true,
-          videoUrl: true,
-          imageUrl: true,
-          isPublic: true,
-          plyometricIntensity: true,
-          contactsPerRep: true,
-          userId: true,
-        },
-      }),
-      prisma.exercise.count({ where }),
+    const [exercises, totalCount] = await prisma.$transaction([
+        prisma.exercise.findMany({
+            where,
+            orderBy: { [sortBy]: sortOrder },
+            skip: offset,
+            take: limit
+        }),
+        prisma.exercise.count({ where })
     ])
 
-    // Calculate pagination metadata
     const totalPages = Math.ceil(totalCount / limit)
     const currentPage = Math.floor(offset / limit) + 1
     const hasNextPage = offset + limit < totalCount
     const hasPreviousPage = offset > 0
 
-    return NextResponse.json(
-      {
+    return NextResponse.json({
         exercises,
         pagination: {
-          totalCount,
-          totalPages,
-          currentPage,
-          limit,
-          offset,
-          hasNextPage,
-          hasPreviousPage,
-        },
-        filters: {
-          search,
-          pillar,
-          level,
-          category,
-          equipment,
-          difficulty,
-          intensity,
-          isPublic,
-        },
-      },
-      { status: 200 }
-    )
-  } catch (error: any) {
-    console.error('Error fetching exercises:', error)
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+            totalCount,
+            totalPages,
+            currentPage,
+            limit,
+            offset,
+            hasNextPage,
+            hasPreviousPage
+        }
+    })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
-/**
- * POST - Create custom exercise
- */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
+    try {
+        await requireAuth()
+        const body = await request.json()
+        
+        // Basic validation
+        if (!body.name || !body.category || !body.biomechanicalPillar) {
+             return NextResponse.json(
+                { error: 'Name, Category and Biomechanical Pillar are required' },
+                { status: 400 }
+            )
+        }
 
-    const {
-      name,
-      nameSv,
-      nameEn,
-      category,
-      muscleGroup,
-      biomechanicalPillar,
-      progressionLevel,
-      description,
-      instructions,
-      equipment,
-      difficulty,
-      videoUrl,
-      imageUrl,
-      plyometricIntensity,
-      contactsPerRep,
-      userId,
-    } = body
-
-    // Validation
-    if (!name || !category || !biomechanicalPillar) {
-      return NextResponse.json(
-        { error: 'name, category, and biomechanicalPillar are required' },
-        { status: 400 }
-      )
+        const exercise = await prisma.exercise.create({
+            data: {
+                name: body.name,
+                nameSv: body.nameSv || body.name,
+                nameEn: body.nameEn || body.name,
+                category: body.category,
+                biomechanicalPillar: body.biomechanicalPillar,
+                muscleGroup: body.muscleGroup,
+                progressionLevel: body.progressionLevel,
+                difficulty: body.difficulty,
+                description: body.description,
+                instructions: body.instructions,
+                equipment: body.equipment,
+                videoUrl: body.videoUrl,
+                imageUrl: body.imageUrl,
+                plyometricIntensity: body.plyometricIntensity,
+                contactsPerRep: body.contactsPerRep,
+                isPublic: body.isPublic || false,
+                userId: body.userId
+            }
+        })
+        
+        return NextResponse.json(exercise, { status: 201 })
+    } catch (error) {
+        return handleApiError(error)
     }
-
-    // Create exercise
-    const exercise = await prisma.exercise.create({
-      data: {
-        name,
-        nameSv: nameSv || name,
-        nameEn: nameEn || name,
-        category,
-        muscleGroup,
-        biomechanicalPillar,
-        progressionLevel,
-        description,
-        instructions,
-        equipment,
-        difficulty,
-        videoUrl,
-        imageUrl,
-        isPublic: false, // Custom exercises are private by default
-        plyometricIntensity,
-        contactsPerRep,
-        userId,
-      },
-    })
-
-    return NextResponse.json(exercise, { status: 201 })
-  } catch (error: any) {
-    console.error('Error creating exercise:', error)
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
-  }
 }

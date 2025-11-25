@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
 import { clientSchema } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 type RouteParams = {
   params: Promise<{
@@ -61,7 +62,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error fetching client:', error)
+    logger.error('Error fetching client', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -147,7 +148,7 @@ export async function PUT(
       message: 'Client updated successfully',
     })
   } catch (error) {
-    console.error('Error updating client:', error)
+    logger.error('Error updating client', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -203,7 +204,7 @@ export async function DELETE(
       message: 'Client deleted successfully',
     })
   } catch (error) {
-    console.error('Error deleting client:', error)
+    logger.error('Error deleting client', {}, error)
     return NextResponse.json(
       {
         success: false,

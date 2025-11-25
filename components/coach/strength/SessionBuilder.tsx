@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   DndContext, 
   closestCenter,
@@ -25,7 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { GripVertical, Plus, Trash2, Dumbbell, Timer, RotateCcw } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Dumbbell, Timer, RotateCcw, Search } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 
@@ -50,10 +51,97 @@ const AVAILABLE_EXERCISES = [
 ]
 
 export function SessionBuilder() {
+  const searchParams = useSearchParams()
+  const workoutId = searchParams.get('workoutId')
+
   const [sessionName, setSessionName] = useState('New Strength Session')
   const [phase, setPhase] = useState('Base')
   const [exercises, setExercises] = useState<Exercise[]>([])
+  const [availableExercises, setAvailableExercises] = useState<any[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('ALL')
+  const [pillarFilter, setPillarFilter] = useState('ALL')
+
+  useEffect(() => {
+    async function fetchExercises() {
+      try {
+        const res = await fetch('/api/exercises')
+        if (res.ok) {
+          const data = await res.json()
+          // Handle both array (legacy/direct) and object with exercises property
+          const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
+          
+          setAvailableExercises(exercisesList.map((e: any) => ({
+            id: e.id,
+            name: e.name,
+            category: e.category,
+            pillar: e.biomechanicalPillar,
+            muscleGroup: e.muscleGroup,
+            defaultSets: 3,
+            defaultReps: e.category === 'STRENGTH' ? '8-10' : '10'
+          })))
+        }
+      } catch (e) {
+        console.error("Failed to fetch exercises", e)
+      }
+    }
+    fetchExercises()
+  }, [])
+
+  const filteredAvailableExercises = availableExercises.filter(ex => {
+    const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (ex.muscleGroup && ex.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase()))
+    const matchesCategory = categoryFilter === 'ALL' || ex.category === categoryFilter
+    const matchesPillar = pillarFilter === 'ALL' || ex.pillar === pillarFilter
+    return matchesSearch && matchesCategory && matchesPillar
+  })
+
+  useEffect(() => {
+    async function loadWorkout() {
+      if (!workoutId) return
+
+      try {
+        const res = await fetch(`/api/workouts/${workoutId}`)
+        if (!res.ok) throw new Error('Failed to load workout')
+        
+        const data = await res.json()
+        setSessionName(data.name)
+        
+        // Map segments to exercises
+        const mappedExercises: Exercise[] = data.segments
+          .filter((s: any) => s.exerciseId) // Only include actual exercises
+          .map((s: any) => ({
+            id: s.id,
+            name: s.exercise?.name || 'Unknown Exercise',
+            sets: s.sets || 3,
+            reps: s.reps || '',
+            weight: s.weight || '',
+            rest: s.restTime || 90,
+            notes: s.notes
+          }))
+        
+        setExercises(mappedExercises)
+        
+        // Try to match phase if possible (simple mapping)
+        if (data.day?.week?.phase) {
+           const dbPhase = data.day.week.phase
+           if (dbPhase === 'BASE') setPhase('Base')
+           else if (dbPhase === 'BUILD') setPhase('Strength') 
+           else if (dbPhase === 'PEAK') setPhase('Power')
+           else if (dbPhase === 'TAPER') setPhase('Taper')
+        }
+
+      } catch (error) {
+        console.error('Error loading workout:', error)
+        setSessionName('Error loading workout')
+      }
+    }
+
+    loadWorkout()
+  }, [workoutId])
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -80,14 +168,14 @@ export function SessionBuilder() {
   }
 
   const addExercise = (templateId: string) => {
-    const template = AVAILABLE_EXERCISES.find(e => e.id === templateId)
+    const template = availableExercises.find(e => e.id === templateId)
     if (!template) return
 
     const newExercise: Exercise = {
       id: Math.random().toString(36).substr(2, 9),
       name: template.name,
-      sets: template.defaultSets,
-      reps: template.defaultReps,
+      sets: template.defaultSets || 3,
+      reps: template.defaultReps || '10',
       weight: '',
       rest: 90
     }
@@ -141,7 +229,7 @@ export function SessionBuilder() {
               {exercises.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-2">
                   <Dumbbell className="h-12 w-12 opacity-50" />
-                  <p>Drag exercises here or click "+" to add</p>
+                  <p>Drag exercises here or click &quot;+&quot; to add</p>
                 </div>
               ) : (
                 <DndContext
@@ -187,21 +275,70 @@ export function SessionBuilder() {
       {/* Sidebar / Tools */}
       <div className="space-y-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Add Exercise</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {AVAILABLE_EXERCISES.map(ex => (
+          <CardContent className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search exercises..." 
+                className="pl-8 h-9 text-sm" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Categories</SelectItem>
+                    <SelectItem value="STRENGTH">Strength</SelectItem>
+                    <SelectItem value="PLYOMETRIC">Plyometric</SelectItem>
+                    <SelectItem value="CORE">Core</SelectItem>
+                    <SelectItem value="RECOVERY">Recovery</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={pillarFilter} onValueChange={setPillarFilter}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Pillar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Pillars</SelectItem>
+                    <SelectItem value="KNEE_DOMINANCE">Knee Dom</SelectItem>
+                    <SelectItem value="POSTERIOR_CHAIN">Post. Chain</SelectItem>
+                    <SelectItem value="UNILATERAL">Unilateral</SelectItem>
+                    <SelectItem value="ANTI_ROTATION_CORE">Anti-Rot</SelectItem>
+                    <SelectItem value="FOOT_ANKLE">Foot/Ankle</SelectItem>
+                  </SelectContent>
+                </Select>
+            </div>
+
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+            {filteredAvailableExercises.length > 0 ? filteredAvailableExercises.map(ex => (
               <Button
                 key={ex.id}
                 variant="outline"
-                className="w-full justify-start"
+                className="w-full justify-start text-left h-auto py-2"
                 onClick={() => addExercise(ex.id)}
               >
-                <Plus className="mr-2 h-4 w-4" />
-                {ex.name}
+                <div className="flex flex-col w-full overflow-hidden">
+                    <div className="flex items-center">
+                        <Plus className="mr-2 h-3 w-3 shrink-0" />
+                        <span className="truncate font-medium">{ex.name}</span>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground ml-5 truncate">
+                        {ex.muscleGroup}
+                    </div>
+                </div>
               </Button>
-            ))}
+            )) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No exercises found</p>
+            )}
+            </div>
+            
             <Button variant="ghost" className="w-full text-muted-foreground text-xs mt-2">
               View Full Library...
             </Button>

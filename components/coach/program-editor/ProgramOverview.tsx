@@ -23,7 +23,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { TrainingProgram, TrainingWeek, TrainingDay, Workout, WorkoutSegment } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -95,11 +95,7 @@ export function ProgramOverview({
   })
 
   // Calculate statistics
-  useEffect(() => {
-    calculateStatistics()
-  }, [program])
-
-  const calculateStatistics = () => {
+  const calculateStatistics = useCallback(() => {
     const totalWeeks = program.weeks.length
     let totalWorkouts = 0
     let runningWorkouts = 0
@@ -131,7 +127,11 @@ export function ProgramOverview({
       avgWeeklyDuration,
       interferenceWarnings: 0, // TODO: Calculate interference warnings
     })
-  }
+  }, [program])
+
+  useEffect(() => {
+    calculateStatistics()
+  }, [calculateStatistics])
 
   // Get workouts for selected week
   const getWeekWorkouts = () => {

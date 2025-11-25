@@ -26,7 +26,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Exercise, BiomechanicalPillar, ProgressionLevel } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -110,20 +110,7 @@ export function ExerciseLibraryBrowser({
   } | null>(null)
 
   // Fetch exercises with filters
-  useEffect(() => {
-    fetchExercises()
-  }, [
-    searchTerm,
-    selectedPillar,
-    selectedLevel,
-    selectedCategory,
-    selectedDifficulty,
-    selectedEquipment,
-    showCustomOnly,
-    currentPage,
-  ])
-
-  const fetchExercises = async () => {
+  const fetchExercises = useCallback(async () => {
     setIsLoading(true)
 
     try {
@@ -156,7 +143,23 @@ export function ExerciseLibraryBrowser({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [
+    searchTerm,
+    selectedPillar,
+    selectedLevel,
+    selectedCategory,
+    selectedDifficulty,
+    selectedEquipment,
+    showCustomOnly,
+    userId,
+    pageSize,
+    currentPage,
+    toast,
+  ])
+
+  useEffect(() => {
+    fetchExercises()
+  }, [fetchExercises])
 
   // Fetch progression path when exercise selected
   useEffect(() => {

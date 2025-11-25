@@ -52,6 +52,7 @@ enum WorkoutType {
   RECOVERY
   CYCLING
   SKIING
+  ALTERNATIVE
   OTHER
 }
 

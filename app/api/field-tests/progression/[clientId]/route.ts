@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -313,10 +314,11 @@ export async function GET(
           labTestPoints.length > 0 ? labTestPoints[labTestPoints.length - 1] : null,
       },
     })
-  } catch (error: any) {
-    console.error('Error fetching field test progression:', error)
+  } catch (error: unknown) {
+    logger.error('Error fetching field test progression', { clientId: params.clientId }, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

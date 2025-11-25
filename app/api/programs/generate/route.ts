@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { generateBaseProgram, validateProgramParams, ProgramGenerationParams } from '@/lib/program-generator'
 import { requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 /**
  * POST /api/programs/generate
@@ -125,7 +126,46 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate program
-    const programData = await generateBaseProgram(test as any, client as any, params)
+    let programData;
+
+    if (params.methodology === 'CUSTOM') {
+        // 1. Calculate Start and End Dates
+        // Default to tomorrow if no race date, or back-calculate if needed.
+        // For custom, start tomorrow and create empty structure for manual building
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() + 1); // Start tomorrow
+        startDate.setHours(0, 0, 0, 0);
+
+        const durationWeeks = params.durationWeeks;
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + (durationWeeks * 7));
+
+        // 2. Construct empty program structure
+        programData = {
+            name: `Custom Program - ${params.goalType}`,
+            clientId: params.clientId,
+            coachId: user.id,
+            testId: params.testId,
+            goalType: params.goalType,
+            startDate,
+            endDate,
+            notes: params.notes,
+            weeks: Array.from({ length: durationWeeks }).map((_, i) => ({
+                weekNumber: i + 1,
+                phase: 'BASE',
+                volume: 0,
+                focus: 'General',
+                days: Array.from({ length: 7 }).map((_, j) => ({
+                    dayNumber: j + 1,
+                    notes: '',
+                    workouts: [] // Empty workouts
+                }))
+            }))
+        };
+    } else {
+        // Standard generation
+        programData = await generateBaseProgram(test as any, client as any, params)
+    }
 
     // Validate program data
     if (!programData.weeks || programData.weeks.length === 0) {
@@ -231,12 +271,13 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     )
-  } catch (error: any) {
-    console.error('Error generating program:', error)
+  } catch (error: unknown) {
+    logger.error('Error generating program', {}, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Misslyckades med att skapa träningsprogram',
+        error: 'Misslyckades med att skapa träningsprogram',
       },
       { status: 500 }
     )

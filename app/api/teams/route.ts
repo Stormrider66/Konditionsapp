@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Validation schema for team creation
 const createTeamSchema = z.object({
@@ -45,7 +46,7 @@ export async function GET() {
       data: teams,
     })
   } catch (error) {
-    console.error('Error fetching teams:', error)
+    logger.error('Error fetching teams', { userId: user?.id }, error)
     return NextResponse.json(
       {
         success: false,
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Error creating team:', error)
+    logger.error('Error creating team', { userId: user?.id, teamName: body?.name }, error)
     return NextResponse.json(
       {
         success: false,

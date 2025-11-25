@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getExerciseAlternatives } from '@/lib/training-engine/generators/exercise-selector'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
@@ -34,8 +35,9 @@ export async function GET(
       },
       { status: 200 }
     )
-  } catch (error: any) {
-    console.error('Error fetching alternatives:', error)
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+  } catch (error: unknown) {
+    logger.error('Error fetching alternatives', { exerciseId: params.id }, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -23,7 +23,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -99,12 +99,29 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
     completionRate: 0,
   })
 
-  // Fetch workout history
-  useEffect(() => {
-    fetchWorkoutHistory()
-  }, [clientId, filterType, timeRange])
+  // Calculate statistics
+  const calculateStats = useCallback((workoutList: WorkoutLog[]) => {
+    const totalWorkouts = workoutList.length
+    const totalDuration = workoutList.reduce((sum, w) => sum + w.duration, 0)
+    const avgRPE = totalWorkouts > 0
+      ? workoutList.reduce((sum, w) => sum + w.overallRPE, 0) / totalWorkouts
+      : 0
+    const personalRecords = workoutList.reduce((sum, w) => sum + w.personalRecords, 0)
+    const completionRate = totalWorkouts > 0
+      ? (workoutList.filter((w) => w.completed).length / totalWorkouts) * 100
+      : 0
 
-  const fetchWorkoutHistory = async () => {
+    setStats({
+      totalWorkouts,
+      totalDuration,
+      avgRPE,
+      personalRecords,
+      completionRate,
+    })
+  }, [])
+
+  // Fetch workout history
+  const fetchWorkoutHistory = useCallback(async () => {
     setIsLoading(true)
 
     try {
@@ -174,28 +191,12 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- clientId, filterType, timeRange will be used when real API is implemented
+  }, [clientId, filterType, timeRange, toast, calculateStats])
 
-  // Calculate statistics
-  const calculateStats = (workoutList: WorkoutLog[]) => {
-    const totalWorkouts = workoutList.length
-    const totalDuration = workoutList.reduce((sum, w) => sum + w.duration, 0)
-    const avgRPE = totalWorkouts > 0
-      ? workoutList.reduce((sum, w) => sum + w.overallRPE, 0) / totalWorkouts
-      : 0
-    const personalRecords = workoutList.reduce((sum, w) => sum + w.personalRecords, 0)
-    const completionRate = totalWorkouts > 0
-      ? (workoutList.filter((w) => w.completed).length / totalWorkouts) * 100
-      : 0
-
-    setStats({
-      totalWorkouts,
-      totalDuration,
-      avgRPE,
-      personalRecords,
-      completionRate,
-    })
-  }
+  useEffect(() => {
+    fetchWorkoutHistory()
+  }, [fetchWorkoutHistory])
 
   // Get RPE color
   const getRPEColor = (rpe: number) => {

@@ -1,6 +1,7 @@
 // app/api/users/me/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/users/me
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching current user:', error)
+    logger.error('Error fetching current user', {}, error)
     return NextResponse.json(
       {
         success: false,

@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -43,9 +44,10 @@ export async function PUT(
       default:
         return await editProgramMetadata(programId, body)
     }
-  } catch (error: any) {
-    console.error('Error editing program:', error)
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+  } catch (error: unknown) {
+    logger.error('Error editing program', {}, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -68,9 +70,10 @@ export async function POST(
     }
 
     return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 })
-  } catch (error: any) {
-    console.error('Error adding to program:', error)
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+  } catch (error: unknown) {
+    logger.error('Error adding to program', {}, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -90,9 +93,10 @@ export async function DELETE(
     }
 
     return await removeWorkout(workoutId)
-  } catch (error: any) {
-    console.error('Error removing workout:', error)
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+  } catch (error: unknown) {
+    logger.error('Error removing workout', {}, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 

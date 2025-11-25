@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { requireCoach, hasReachedAthleteLimit, canAccessClient } from '@/lib/auth-utils'
 import { CreateAthleteAccountDTO } from '@/types'
+import { logger } from '@/lib/logger'
 
 /**
  * POST /api/athlete-accounts
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (authError || !authData.user) {
-      console.error('Supabase auth error:', authError)
+      logger.error('Supabase auth error', { email, clientId }, authError)
       return NextResponse.json(
         { error: `Failed to create athlete account: ${authError?.message}` },
         { status: 500 }
@@ -163,7 +164,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Error creating athlete account:', error)
+    logger.error('Error creating athlete account', {}, error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -224,7 +225,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(athleteAccount)
   } catch (error) {
-    console.error('Error fetching athlete account:', error)
+    logger.error('Error fetching athlete account', {}, error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

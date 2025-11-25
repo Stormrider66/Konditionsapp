@@ -3,7 +3,7 @@
 // components/coach/pace-zones/PaceValidationDashboard.tsx
 // Comprehensive dashboard displaying all calculated training zones
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -22,7 +22,7 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
   const [error, setError] = useState<string | null>(null)
   const [paceData, setPaceData] = useState<any>(null)
 
-  const fetchPaceData = async () => {
+  const fetchPaceData = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -40,7 +40,7 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [clientId])
 
   const handleRefresh = async () => {
     setIsRefreshing(true)
@@ -50,7 +50,7 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
 
   useEffect(() => {
     fetchPaceData()
-  }, [clientId])
+  }, [fetchPaceData])
 
   if (isLoading) {
     return (

@@ -16,6 +16,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -86,10 +87,11 @@ export async function GET(
       preferences,
       isDefault: false,
     })
-  } catch (error: any) {
-    console.error('Error fetching cross-training preferences:', error)
+  } catch (error: unknown) {
+    logger.error('Error fetching cross-training preferences', { clientId: params.clientId }, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -173,10 +175,11 @@ export async function POST(
       preferences: updatedPreferences,
       message: 'Cross-training preferences updated successfully',
     })
-  } catch (error: any) {
-    console.error('Error updating cross-training preferences:', error)
+  } catch (error: unknown) {
+    logger.error('Error updating cross-training preferences', { clientId: params.clientId }, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

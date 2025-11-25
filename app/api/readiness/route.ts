@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeReadinessTrend, type ReadinessScore } from '@/lib/training-engine/monitoring'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/readiness?clientId=xxx
@@ -223,7 +224,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error retrieving readiness:', error)
+    logger.error('Error retrieving readiness', {}, error)
     return NextResponse.json(
       { error: 'Failed to retrieve readiness data' },
       { status: 500 }

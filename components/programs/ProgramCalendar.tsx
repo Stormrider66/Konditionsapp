@@ -12,8 +12,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Pencil, Dumbbell, Activity } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 import { ProgramWithWeeks, WeekWithDays, DayWithWorkouts, WorkoutWithSegments } from '@/types/prisma-types'
 
 interface ProgramCalendarProps {
@@ -61,6 +62,18 @@ export function ProgramCalendar({ program }: ProgramCalendarProps) {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Programkalender</h2>
         <div className="flex gap-2">
+          <Link href="/coach/strength">
+            <Button variant="outline" size="sm" className="hidden md:flex">
+              <Dumbbell className="mr-2 h-4 w-4" />
+              Strength Studio
+            </Button>
+          </Link>
+          <Link href={`/coach/cardio?programId=${program.id}`}>
+            <Button variant="outline" size="sm" className="hidden md:flex">
+              <Activity className="mr-2 h-4 w-4" />
+              Cardio Studio
+            </Button>
+          </Link>
           <Button
             variant="outline"
             size="sm"
@@ -312,18 +325,28 @@ function DayCard({ day, date }: DayCardProps) {
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => toggleWorkout(workout.id)}
-            className="flex-shrink-0"
-          >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
-          </Button>
+          <div className="flex flex-col gap-1 flex-shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => toggleWorkout(workout.id)}
+              className="h-8 w-8 p-0"
+            >
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+
+            <Link href={workout.type === 'STRENGTH' 
+                ? `/coach/strength?workoutId=${workout.id}` 
+                : `/coach/cardio?workoutId=${workout.id}`}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" title="Redigera pass">
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
         )
       })}
@@ -398,6 +421,8 @@ function formatSegmentType(type: string): string {
     RECOVERY: 'Återhämtning',
     EXERCISE: 'Övning',
     REST: 'Vila',
+    HILL: 'Backintervaller',
+    DRILLS: 'Löpskolning',
   }
   return types[type] || type
 }

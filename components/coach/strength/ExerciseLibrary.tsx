@@ -17,71 +17,41 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 
-// Mock data until API is ready
-const MOCK_EXERCISES = [
-  {
-    id: '1',
-    name: 'Barbell Back Squat',
-    category: 'STRENGTH',
-    pillar: 'KNEE_DOMINANCE',
-    difficulty: 'Intermediate',
-    muscleGroup: 'Legs',
-    equipment: 'Barbell, Rack',
-    description: 'The king of leg exercises. Focuses on quadriceps, glutes, and core stability.',
-    videoUrl: 'https://youtube.com/...'
-  },
-  {
-    id: '2',
-    name: 'Romanian Deadlift',
-    category: 'STRENGTH',
-    pillar: 'POSTERIOR_CHAIN',
-    difficulty: 'Intermediate',
-    muscleGroup: 'Hamstrings, Glutes',
-    equipment: 'Barbell',
-    description: 'Hip-hinge movement targeting the posterior chain.',
-    videoUrl: 'https://youtube.com/...'
-  },
-  {
-    id: '3',
-    name: 'Box Jump',
-    category: 'PLYOMETRIC',
-    pillar: 'KNEE_DOMINANCE',
-    difficulty: 'Intermediate',
-    muscleGroup: 'Legs',
-    equipment: 'Box',
-    description: 'Explosive power development.',
-    videoUrl: 'https://youtube.com/...'
-  },
-  {
-    id: '4',
-    name: 'Pallof Press',
-    category: 'CORE',
-    pillar: 'ANTI_ROTATION_CORE',
-    difficulty: 'Beginner',
-    muscleGroup: 'Core',
-    equipment: 'Cable or Band',
-    description: 'Anti-rotation core stability exercise.',
-    videoUrl: 'https://youtube.com/...'
-  },
-    {
-    id: '5',
-    name: 'Bulgarian Split Squat',
-    category: 'STRENGTH',
-    pillar: 'UNILATERAL',
-    difficulty: 'Advanced',
-    muscleGroup: 'Legs',
-    equipment: 'Dumbbells, Bench',
-    description: 'Unilateral leg strength and balance.',
-    videoUrl: 'https://youtube.com/...'
-  },
-]
-
 export function ExerciseLibrary() {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [pillarFilter, setPillarFilter] = useState('ALL')
+  const [exercises, setExercises] = useState<any[]>([])
 
-  const filteredExercises = MOCK_EXERCISES.filter(ex => {
+  useEffect(() => {
+    async function fetchExercises() {
+        try {
+            const res = await fetch('/api/exercises')
+            if (res.ok) {
+                const data = await res.json()
+                // Handle both array and object response structure
+                const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
+                
+                setExercises(exercisesList.map((e: any) => ({
+                    id: e.id,
+                    name: e.name,
+                    category: e.category,
+                    pillar: e.biomechanicalPillar || 'UNKNOWN',
+                    difficulty: e.difficulty || 'Intermediate',
+                    muscleGroup: e.muscleGroup || 'General',
+                    equipment: e.equipment || 'None',
+                    description: e.description || '',
+                    videoUrl: e.videoUrl
+                })))
+            }
+        } catch (e) {
+            console.error("Failed to fetch exercises", e)
+        }
+    }
+    fetchExercises()
+  }, [])
+
+  const filteredExercises = exercises.filter(ex => {
     const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           ex.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = categoryFilter === 'ALL' || ex.category === categoryFilter

@@ -21,6 +21,7 @@ import {
   type RHRMeasurement,
   type WellnessResponses,
 } from '@/lib/training-engine/monitoring'
+import { logger } from '@/lib/logger'
 
 /**
  * POST /api/daily-metrics
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
         try {
           hrvBaseline = establishHRVBaseline(historicalHRVMeasurements)
         } catch (error) {
-          console.warn('Failed to build HRV baseline from history:', error)
+          logger.warn('Failed to build HRV baseline from history', { clientId, measurementCount: historicalHRVMeasurements.length }, error)
         }
       }
 
@@ -192,7 +193,7 @@ export async function POST(request: NextRequest) {
         try {
           rhrBaseline = establishRHRBaseline(historicalRHRMeasurements)
         } catch (error) {
-          console.warn('Failed to build RHR baseline from history:', error)
+          logger.warn('Failed to build RHR baseline from history', { clientId, measurementCount: historicalRHRMeasurements.length }, error)
         }
       }
 
@@ -233,15 +234,17 @@ export async function POST(request: NextRequest) {
         motivationToTrain: scaleTo5(injuryPain) as 1 | 2 | 3 | 4 | 5, // 1 = significant pain (low motivation), 10 = no pain (high motivation)
       }
 
-      console.log('Original wellness input (1-10 scale):', {
-        sleepQuality, sleepHours, energyLevel, muscleSoreness, stress, mood, injuryPain
+      logger.debug('Wellness calculation', {
+        clientId,
+        original: { sleepQuality, sleepHours, energyLevel, muscleSoreness, stress, mood, injuryPain },
+        converted: wellnessResponses
       })
-      console.log('Converted wellness (1-5 scale):', wellnessResponses)
 
       wellnessScoreData = calculateWellnessScore(wellnessResponses)
       calculatedWellnessScore = wellnessScoreData.totalScore
 
-      console.log('Wellness score result:', {
+      logger.debug('Wellness score result', {
+        clientId,
         totalScore: wellnessScoreData.totalScore,
         rawScore: wellnessScoreData.rawScore,
         status: wellnessScoreData.status
@@ -403,7 +406,7 @@ export async function POST(request: NextRequest) {
 
     if (shouldTriggerInjury) {
       try {
-        console.log('🔔 Injury trigger detected, processing cascade...')
+        logger.info('Injury trigger detected, processing cascade', { clientId, injuryPain, readinessScore: calculatedReadinessScore })
 
         // Call injury processing endpoint internally
         const injuryResponse = await fetch(
@@ -432,12 +435,12 @@ export async function POST(request: NextRequest) {
           const injuryData = await injuryResponse.json()
           injuryTriggered = injuryData.triggered
           injurySummary = injuryData.summary
-          console.log('✅ Injury cascade completed:', injuryData.summary?.title)
+          logger.info('Injury cascade completed', { clientId, title: injuryData.summary?.title })
         } else {
-          console.error('Failed to process injury cascade:', injuryResponse.statusText)
+          logger.error('Failed to process injury cascade', { clientId, status: injuryResponse.statusText })
         }
       } catch (error) {
-        console.error('Error triggering injury cascade:', error)
+        logger.error('Error triggering injury cascade', { clientId }, error)
         // Don't fail the entire check-in if injury processing fails
       }
     }
@@ -461,7 +464,7 @@ export async function POST(request: NextRequest) {
           },
     })
   } catch (error) {
-    console.error('Error saving daily metrics:', error)
+    logger.error('Error saving daily metrics', {}, error)
     return NextResponse.json(
       { error: 'Failed to save daily metrics' },
       { status: 500 }
@@ -572,7 +575,7 @@ export async function GET(request: NextRequest) {
       summary,
     })
   } catch (error) {
-    console.error('Error retrieving daily metrics:', error)
+    logger.error('Error retrieving daily metrics', {}, error)
     return NextResponse.json(
       { error: 'Failed to retrieve daily metrics' },
       { status: 500 }

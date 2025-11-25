@@ -5,6 +5,7 @@ import { clientSchema } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
 import type { CreateClientDTO } from '@/types'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
+import { logger } from '@/lib/logger'
 
 // GET /api/clients - Hämta alla klienter för inloggad användare
 export async function GET() {
@@ -41,7 +42,7 @@ export async function GET() {
       data: clients,
     })
   } catch (error) {
-    console.error('Error fetching clients:', error)
+    logger.error('Error fetching clients', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
           language: 'sv',
         },
       })
-      console.log('Created user record for:', user.email)
+      logger.info('Created user record for', { email: user.email })
     }
 
     // Convert birthDate string to Date
@@ -132,9 +133,9 @@ export async function POST(request: NextRequest) {
           email: client.email,
           temporaryPassword: athleteResult.temporaryPassword,
         }
-        console.log('Athlete account created automatically for client:', client.name)
+        logger.info('Athlete account created automatically for client', { clientName: client.name })
       } else {
-        console.warn('Could not create athlete account automatically:', athleteResult.error)
+        logger.warn('Could not create athlete account automatically', { error: athleteResult.error })
         // Don't fail the whole request if athlete account creation fails
       }
     }
@@ -151,7 +152,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Error creating client:', error)
+    logger.error('Error creating client', {}, error)
     return NextResponse.json(
       {
         success: false,

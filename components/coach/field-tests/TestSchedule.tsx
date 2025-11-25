@@ -425,7 +425,7 @@ export default function TestSchedule({}: TestScheduleProps) {
                           {isCritical && (
                             <Badge variant="destructive">
                               <AlertCircle className="h-3 w-3 mr-1" />
-                              <7 dagar
+                              &lt;7 dagar
                             </Badge>
                           )}
 

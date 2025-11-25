@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { validateNorwegianSinglesEligibility } from '@/lib/training-engine/integration/norwegian-singles-validation';
 import { validateNorwegianMethodEligibility } from '@/lib/training-engine/integration/norwegian-validation';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/norwegian-singles/eligibility/[clientId]
@@ -68,12 +69,13 @@ export async function GET(
       }
     });
 
-  } catch (error: any) {
-    console.error('[Norwegian Singles Eligibility] Error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logger.error('[Norwegian Singles Eligibility] Error', { clientId: params.clientId }, error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Ett fel uppstod vid kontroll av behörighet'
+        error: errorMessage || 'Ett fel uppstod vid kontroll av behörighet'
       },
       { status: 500 }
     );

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { selectOptimalPaces, type RacePerformance, type AthleteProfileData, type LactateTestData } from '@/lib/training-engine/calculations/pace-selector'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/clients/[id]/paces
@@ -188,7 +189,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error calculating paces:', error)
+    logger.error('Error calculating paces', { clientId: params.id }, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -339,7 +340,7 @@ export async function POST(
 
     return NextResponse.json(paceSelection)
   } catch (error) {
-    console.error('Error recalculating paces:', error)
+    logger.error('Error recalculating paces', { clientId: params.id }, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

@@ -298,7 +298,7 @@ export default function ResultsAnalyzer({ initialTestId }: ResultsAnalyzerProps)
                     <Alert>
                       <CheckCircle className="h-4 w-4" />
                       <AlertDescription>
-                        Låg pulsdrift (<5%) indikerar bra kontrollerat tempo vid eller strax under LT2.
+                        Låg pulsdrift (&lt;5%) indikerar bra kontrollerat tempo vid eller strax under LT2.
                       </AlertDescription>
                     </Alert>
                   )}
@@ -307,7 +307,7 @@ export default function ResultsAnalyzer({ initialTestId }: ResultsAnalyzerProps)
                     <Alert variant="destructive">
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription>
-                        Hög pulsdrift (>10%) indikerar för högt tempo eller otillräcklig återhämtning.
+                        Hög pulsdrift (&gt;10%) indikerar för högt tempo eller otillräcklig återhämtning.
                         Överväg omtest med lägre tempo.
                       </AlertDescription>
                     </Alert>
@@ -412,7 +412,7 @@ export default function ResultsAnalyzer({ initialTestId }: ResultsAnalyzerProps)
                     <Alert variant="destructive" className="mt-4">
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription>
-                        R² <0.90 indikerar dålig linjäritet. Rekommendation: Lägg till minst 1 försök till eller kontrollera att försöken utfördes korrekt.
+                        R² &lt;0.90 indikerar dålig linjäritet. Rekommendation: Lägg till minst 1 försök till eller kontrollera att försöken utfördes korrekt.
                       </AlertDescription>
                     </Alert>
                   )}
@@ -487,7 +487,7 @@ export default function ResultsAnalyzer({ initialTestId }: ResultsAnalyzerProps)
                       <Alert>
                         <CheckCircle className="h-4 w-4" />
                         <AlertDescription>
-                          <strong>Drift <3%:</strong> Tempot är under LT1 (aerob tröskel).
+                          <strong>Drift &lt;3%:</strong> Tempot är under LT1 (aerob tröskel).
                           Estimerat LT1-tempo: {analysis.calculated.estimatedLT1Pace || analysis.pace}
                         </AlertDescription>
                       </Alert>
@@ -508,7 +508,7 @@ export default function ResultsAnalyzer({ initialTestId }: ResultsAnalyzerProps)
                       <Alert variant="destructive">
                         <AlertTriangle className="h-4 w-4" />
                         <AlertDescription>
-                          <strong>Drift >{analysis.drift.assessment === 'WELL_ABOVE_LT1' ? '10' : '5'}%:</strong> Tempot är över LT1. Sänk tempo och kör om testet för att hitta LT1.
+                          <strong>Drift &gt;{analysis.drift.assessment === 'WELL_ABOVE_LT1' ? '10' : '5'}%:</strong> Tempot är över LT1. Sänk tempo och kör om testet för att hitta LT1.
                         </AlertDescription>
                       </Alert>
                     )}

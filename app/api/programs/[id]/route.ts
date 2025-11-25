@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessProgram } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/programs/[id]
@@ -110,7 +111,7 @@ export async function GET(
       data: program,
     })
   } catch (error) {
-    console.error('Error fetching program:', error)
+    logger.error('Error fetching program', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -202,7 +203,7 @@ export async function PUT(
       message: 'Program uppdaterat',
     })
   } catch (error) {
-    console.error('Error updating program:', error)
+    logger.error('Error updating program', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -269,7 +270,7 @@ export async function DELETE(
       message: 'Program raderat',
     })
   } catch (error) {
-    console.error('Error deleting program:', error)
+    logger.error('Error deleting program', {}, error)
     return NextResponse.json(
       {
         success: false,

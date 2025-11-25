@@ -8,6 +8,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { validateRequest, successResponse, handleApiError, requireAuth } from '@/lib/api/utils';
 import { performAllCalculations } from '@/lib/calculations';
+import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
 
 const stageSchema = z.object({
   speed: z.number().optional(),
@@ -32,6 +33,10 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limiting for calculation routes
+  const rateLimited = rateLimitResponse(request, RATE_LIMITS.calculation);
+  if (rateLimited) return rateLimited;
+
   try {
     await requireAuth();
 

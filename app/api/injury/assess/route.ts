@@ -16,6 +16,7 @@ import {
   type InjuryDetection,
 } from '@/lib/training-engine/integration/injury-management';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 const requestSchema = z.object({
   athleteId: z.string(),
@@ -324,7 +325,7 @@ async function runIntegrationCascade(params: {
       estimatedReturnWeeks: response.estimatedReturnWeeks,
     };
   } catch (error) {
-    console.error('Failed to run injury integration cascade', error);
+    logger.error('Failed to run injury integration cascade', { athleteId: params.athleteId }, error);
     return null;
   }
 }

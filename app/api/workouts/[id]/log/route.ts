@@ -28,6 +28,7 @@ import {
   processInjuryDetection,
   type InjuryDetection,
 } from '@/lib/training-engine/integration/injury-management'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -172,10 +173,11 @@ export async function POST(
     // Trigger injury cascade if pain >=5 reported after workout
     if (painLevel && painLevel >= 5 && !skipped) {
       try {
-        console.log('🔔 Post-workout pain detected, processing injury cascade...')
-        console.log(`  Athlete: ${clientId}`)
-        console.log(`  Pain level: ${painLevel}/10`)
-        console.log(`  Workout: ${workout.type}`)
+        logger.info('Post-workout pain detected, processing injury cascade', {
+          athleteId: clientId,
+          painLevel,
+          workoutType: workout.type,
+        })
 
         // Determine injury type from location if provided, otherwise use generic
         const injuryType = painLocation || 'SHIN_SPLINTS' // Default to common overuse injury
@@ -220,11 +222,12 @@ export async function POST(
           coachNotified: true,
         }
 
-        console.log('✅ Post-workout injury cascade completed')
-        console.log(`  Workouts modified: ${injuryResponse.workoutModifications.length}`)
-        console.log(`  Estimated return: ${injuryResponse.estimatedReturnWeeks} weeks`)
+        logger.info('Post-workout injury cascade completed', {
+          workoutsModified: injuryResponse.workoutModifications.length,
+          estimatedReturnWeeks: injuryResponse.estimatedReturnWeeks,
+        })
       } catch (error) {
-        console.error('Error processing post-workout injury detection:', error)
+        logger.error('Error processing post-workout injury detection', { clientId, painLevel }, error)
         // Don't fail the workout log if injury processing fails
       }
     }
@@ -253,8 +256,9 @@ export async function POST(
       },
       { status: 201 }
     )
-  } catch (error: any) {
-    console.error('Error logging workout:', error)
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    logger.error('Error logging workout', {}, error)
+    return NextResponse.json({ error: errorMessage || 'Internal server error' }, { status: 500 })
   }
 }

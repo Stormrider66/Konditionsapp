@@ -73,7 +73,7 @@ const formSchema = z.object({
   scheduleCoreAfterRunning: z.boolean().default(false), // Same day PM session
 
   // Training Methodology
-  methodology: z.enum(['AUTO', 'POLARIZED', 'NORWEGIAN', 'NORWEGIAN_SINGLE', 'CANOVA', 'PYRAMIDAL', 'LYDIARD']),
+  methodology: z.enum(['AUTO', 'POLARIZED', 'NORWEGIAN', 'NORWEGIAN_SINGLE', 'CANOVA', 'PYRAMIDAL', 'LYDIARD', 'CUSTOM']),
 
   // Athlete Profile
   yearsRunning: z.number().min(0).max(50).optional(),
@@ -777,6 +777,14 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                           </div>
                         </div>
                       </SelectItem>
+                      <SelectItem value="CUSTOM">
+                        <div>
+                          <div className="font-medium">Custom (Bygg från grunden)</div>
+                          <div className="text-sm text-muted-foreground">
+                            Skapa ett tomt program och bygg passnivå för passnivå
+                          </div>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>
@@ -786,6 +794,18 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 </FormItem>
               )}
             />
+
+            {/* Custom Methodology Info Banner */}
+            {form.watch('methodology') === 'CUSTOM' && (
+              <Alert className="mt-4">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Custom Program Builder:</strong> Du kommer att skapa ett tomt program med bara datum och veckor.
+                  Efter att programmet har skapats kan du använda kalendervyn för att lägga till löppass, styrkepass,
+                  core-pass och alternativa träningspass på varje dag.
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
 

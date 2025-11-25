@@ -8,6 +8,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { validateRequest, successResponse, handleApiError, requireAuth } from '@/lib/api/utils';
 import { calculateVDOT, getTrainingPaces, getEquivalentTimes } from '@/lib/calculations/vdot';
+import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
 
 const requestSchema = z.object({
   distanceMeters: z.number().min(800).max(100000),
@@ -17,6 +18,10 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Rate limiting for calculation routes
+  const rateLimited = rateLimitResponse(request, RATE_LIMITS.calculation);
+  if (rateLimited) return rateLimited;
+
   try {
     await requireAuth();
 

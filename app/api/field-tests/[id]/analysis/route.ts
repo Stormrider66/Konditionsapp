@@ -19,6 +19,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -441,10 +442,11 @@ export async function GET(
       valid: test.valid,
       analysis,
     })
-  } catch (error: any) {
-    console.error('Error analyzing field test:', error)
+  } catch (error: unknown) {
+    logger.error('Error analyzing field test', { testId: params.id }, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

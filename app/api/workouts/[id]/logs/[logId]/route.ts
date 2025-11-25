@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { logger } from '@/lib/logger'
 
 /**
  * PUT /api/workouts/[id]/logs/[logId]
@@ -86,7 +87,7 @@ export async function PUT(
       message: 'Träningslogg uppdaterad',
     })
   } catch (error) {
-    console.error('Error updating workout log:', error)
+    logger.error('Error updating workout log', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -215,7 +216,7 @@ export async function PATCH(
       message: 'Feedback sparad',
     })
   } catch (error) {
-    console.error('Error adding coach feedback:', error)
+    logger.error('Error adding coach feedback', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -283,7 +284,7 @@ export async function DELETE(
       message: 'Träningslogg raderad',
     })
   } catch (error) {
-    console.error('Error deleting workout log:', error)
+    logger.error('Error deleting workout log', {}, error)
     return NextResponse.json(
       {
         success: false,

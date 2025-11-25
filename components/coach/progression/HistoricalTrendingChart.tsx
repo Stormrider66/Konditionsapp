@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -60,11 +60,7 @@ export function HistoricalTrendingChart({ clientId, clientName }: HistoricalTren
   const [error, setError] = useState<string | null>(null)
   const [timeRange, setTimeRange] = useState<TimeRange>('1year')
 
-  useEffect(() => {
-    fetchHistoricalData()
-  }, [clientId])
-
-  const fetchHistoricalData = async () => {
+  const fetchHistoricalData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -194,7 +190,11 @@ export function HistoricalTrendingChart({ clientId, clientName }: HistoricalTren
     } finally {
       setLoading(false)
     }
-  }
+  }, [clientId])
+
+  useEffect(() => {
+    fetchHistoricalData()
+  }, [fetchHistoricalData])
 
   // Filter data by time range
   const getFilteredData = () => {

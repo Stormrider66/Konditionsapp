@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
 import { createTestSchema } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 import type { CreateTestDTO } from '@/types'
 
 // GET /api/tests - Hämta alla tester för inloggad användare (med optional clientId filter)
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
       data: tests,
     })
   } catch (error) {
-    console.error('Error fetching tests:', error)
+    logger.error('Error fetching tests', { userId: user?.id }, error)
     return NextResponse.json(
       {
         success: false,
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Error creating test:', error)
+    logger.error('Error creating test', { userId: user?.id, clientId: data?.clientId }, error)
     return NextResponse.json(
       {
         success: false,

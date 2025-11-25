@@ -3,7 +3,7 @@
 // components/coach/lactate/LactateCurveChart.tsx
 // Interactive lactate curve chart with manual threshold selection
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -48,7 +48,7 @@ export function LactateCurveChart({
   const maxSpeed = Math.max(...testStages.map(s => s.speed))
 
   // Auto-suggest LT1 and LT2 based on individual ratio method
-  const suggestThresholds = () => {
+  const suggestThresholds = useCallback(() => {
     // LT1: First crossing of 2 mmol/L or 20% of max
     const lt1Threshold = Math.max(2.0, maxLactate * 0.20)
     const lt1Stage = testStages.find(s => s.lactate >= lt1Threshold)
@@ -66,7 +66,7 @@ export function LactateCurveChart({
       lt1: lt1Stage?.sequence || testStages[Math.floor(testStages.length / 3)]?.sequence || 2,
       lt2: lt2Stage?.sequence || testStages[Math.floor(testStages.length * 2 / 3)]?.sequence || 4,
     }
-  }
+  }, [maxLactate, testStages])
 
   // Set initial suggestions if no selection
   useEffect(() => {
@@ -75,7 +75,7 @@ export function LactateCurveChart({
       setSelectedLT1Stage(suggestions.lt1)
       setSelectedLT2Stage(suggestions.lt2)
     }
-  }, [testStages])
+  }, [testStages, selectedLT1Stage, selectedLT2Stage, suggestThresholds])
 
   // Get stage data
   const getLT1Data = () => {
@@ -398,7 +398,7 @@ export function LactateCurveChart({
                 <p className="text-sm mb-2">LT1 = 2.0 mmol/L (fixed)</p>
                 <p className="text-sm mb-2">LT2 = 4.0 mmol/L (fixed)</p>
                 <p className="text-xs text-muted-foreground">
-                  Problem: Doesn't account for individual variation. Paula Radcliffe's max was ~5 mmol/L, so 4.0 would be her max, not LT2!
+                  Problem: Doesn&apos;t account for individual variation. Paula Radcliffe&apos;s max was ~5 mmol/L, so 4.0 would be her max, not LT2!
                 </p>
               </div>
 

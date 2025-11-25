@@ -21,6 +21,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -269,10 +270,11 @@ export async function GET(
         expectedReturn: `${weeks} weeks cross-training + ${RETURN_TIMELINE_WEEKS[recommendedModality]} weeks return = ${weeks + RETURN_TIMELINE_WEEKS[recommendedModality]} weeks total`,
       },
     })
-  } catch (error: any) {
-    console.error('Error calculating fitness projection:', error)
+  } catch (error: unknown) {
+    logger.error('Error calculating fitness projection', { clientId: params.clientId }, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

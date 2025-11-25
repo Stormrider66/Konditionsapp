@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 // GET /api/templates - Get all templates for logged-in user, optionally filtered by testType
 export async function GET(request: NextRequest) {
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
       data: templates,
     })
   } catch (error) {
-    console.error('Error fetching templates:', error)
+    logger.error('Error fetching templates', { userId: user?.id }, error)
     return NextResponse.json(
       {
         success: false,
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Error creating template:', error)
+    logger.error('Error creating template', { userId: user?.id, templateName: body?.name }, error)
     return NextResponse.json(
       {
         success: false,

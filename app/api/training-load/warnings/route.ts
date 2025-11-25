@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
@@ -136,7 +137,7 @@ export async function GET(request: NextRequest) {
       summary,
     })
   } catch (error) {
-    console.error('Error fetching ACWR warnings:', error)
+    logger.error('Error fetching ACWR warnings', {}, error)
     return NextResponse.json(
       {
         error: 'Failed to fetch ACWR warnings',
