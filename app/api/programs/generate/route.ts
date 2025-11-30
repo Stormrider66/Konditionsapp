@@ -114,9 +114,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Fetch test with training zones (only if testId is provided)
+    // Fetch test with training zones (only if testId is provided and not empty)
     let test = null
-    if (params.testId) {
+    if (params.testId && params.testId.trim() !== '') {
       test = await prisma.test.findUnique({
         where: { id: params.testId },
         include: {
@@ -171,68 +171,8 @@ export async function POST(request: NextRequest) {
     // Generate program
     let programData;
 
-    if (params.goalType === 'fitness') {
-      // Generate General Fitness program from templates
-      const fitnessWeeks = getGeneralFitnessProgram(
-        fitnessParams.fitnessGoal,
-        fitnessParams.fitnessLevel,
-        Math.min(6, Math.max(3, params.trainingDaysPerWeek)) as 3 | 4 | 5 | 6,
-        {
-          hasGymAccess: fitnessParams.hasGymAccess,
-          preferredActivities: fitnessParams.preferredActivities,
-        }
-      )
-
-      const programDesc = getProgramDescription(fitnessParams.fitnessGoal)
-      const durationWeeks = fitnessWeeks.length
-
-      const startDate = new Date()
-      startDate.setDate(startDate.getDate() + 1) // Start tomorrow
-      startDate.setHours(0, 0, 0, 0)
-
-      const endDate = new Date(startDate)
-      endDate.setDate(endDate.getDate() + durationWeeks * 7)
-
-      programData = {
-        name: `${programDesc.titleSv} - ${client.name}`,
-        clientId: params.clientId,
-        coachId: user.id,
-        testId: params.testId,
-        goalType: params.goalType,
-        startDate,
-        endDate,
-        notes: params.notes || programDesc.descriptionSv,
-        weeks: fitnessWeeks.map((week, weekIndex) => ({
-          weekNumber: week.week,
-          phase: week.phase,
-          volume: 0,
-          focus: week.focus,
-          days: Array.from({ length: 7 }).map((_, dayIndex) => {
-            // Distribute workouts across available days
-            const workout = week.workouts[dayIndex % week.workouts.length]
-            const hasWorkout = dayIndex < week.workouts.length
-
-            return {
-              dayNumber: dayIndex + 1,
-              notes: hasWorkout ? week.tips[dayIndex % week.tips.length] || '' : '',
-              workouts: hasWorkout && workout
-                ? [
-                    {
-                      type: mapFitnessWorkoutType(workout.type),
-                      name: workout.name,
-                      intensity: mapIntensity(workout.intensity),
-                      duration: workout.duration,
-                      distance: undefined,
-                      instructions: workout.description,
-                      segments: [],
-                    },
-                  ]
-                : [],
-            }
-          }),
-        })),
-      }
-    } else if (isCustomProgram) {
+    // Custom programs always create empty structure (regardless of goalType)
+    if (isCustomProgram) {
         // 1. Calculate Start and End Dates
         // Default to tomorrow if no race date, or back-calculate if needed.
         // For custom, start tomorrow and create empty structure for manual building
@@ -283,6 +223,67 @@ export async function POST(request: NextRequest) {
                 }))
             }))
         };
+    } else if (params.goalType === 'fitness') {
+      // Generate General Fitness program from templates
+      const fitnessWeeks = getGeneralFitnessProgram(
+        fitnessParams.fitnessGoal,
+        fitnessParams.fitnessLevel,
+        Math.min(6, Math.max(3, params.trainingDaysPerWeek)) as 3 | 4 | 5 | 6,
+        {
+          hasGymAccess: fitnessParams.hasGymAccess,
+          preferredActivities: fitnessParams.preferredActivities,
+        }
+      )
+
+      const programDesc = getProgramDescription(fitnessParams.fitnessGoal)
+      const durationWeeks = fitnessWeeks.length
+
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() + 1) // Start tomorrow
+      startDate.setHours(0, 0, 0, 0)
+
+      const endDate = new Date(startDate)
+      endDate.setDate(endDate.getDate() + durationWeeks * 7)
+
+      programData = {
+        name: `${programDesc.titleSv} - ${client.name}`,
+        clientId: params.clientId,
+        coachId: user.id,
+        testId: params.testId || null,
+        goalType: params.goalType,
+        startDate,
+        endDate,
+        notes: params.notes || programDesc.descriptionSv,
+        weeks: fitnessWeeks.map((week, weekIndex) => ({
+          weekNumber: week.week,
+          phase: week.phase,
+          volume: 0,
+          focus: week.focus,
+          days: Array.from({ length: 7 }).map((_, dayIndex) => {
+            // Distribute workouts across available days
+            const workout = week.workouts[dayIndex % week.workouts.length]
+            const hasWorkout = dayIndex < week.workouts.length
+
+            return {
+              dayNumber: dayIndex + 1,
+              notes: hasWorkout ? week.tips[dayIndex % week.tips.length] || '' : '',
+              workouts: hasWorkout && workout
+                ? [
+                    {
+                      type: mapFitnessWorkoutType(workout.type),
+                      name: workout.name,
+                      intensity: mapIntensity(workout.intensity),
+                      duration: workout.duration,
+                      distance: undefined,
+                      instructions: workout.description,
+                      segments: [],
+                    },
+                  ]
+                : [],
+            }
+          }),
+        })),
+      }
     } else {
         // Standard generation
         programData = await generateBaseProgram(test as any, client as any, params)
