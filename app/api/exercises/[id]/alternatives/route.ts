@@ -17,10 +17,10 @@ import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const exerciseId = params.id
+    const { id: exerciseId } = await params
     const searchParams = request.nextUrl.searchParams
     const samePillar = searchParams.get('samePillar') === 'true'
 
@@ -36,7 +36,7 @@ export async function GET(
       { status: 200 }
     )
   } catch (error: unknown) {
-    logger.error('Error fetching alternatives', { exerciseId: params.id }, error)
+    logger.error('Error fetching alternatives', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

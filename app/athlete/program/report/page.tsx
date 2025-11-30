@@ -15,13 +15,14 @@ import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 
 interface ProgramReportPageProps {
-  searchParams: {
+  searchParams: Promise<{
     programId?: string;
-  };
+  }>;
 }
 
 export default async function ProgramReportPage({ searchParams }: ProgramReportPageProps) {
   const user = await requireAthlete();
+  const resolvedParams = await searchParams;
 
   // Get athlete's client
   const client = await prisma.client.findFirst({
@@ -47,7 +48,7 @@ export default async function ProgramReportPage({ searchParams }: ProgramReportP
     notFound();
   }
 
-  const programId = searchParams.programId || client.trainingPrograms[0]?.id;
+  const programId = resolvedParams.programId || client.trainingPrograms[0]?.id;
 
   if (!programId) {
     return (

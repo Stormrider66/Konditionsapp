@@ -64,7 +64,7 @@ export async function GET(
       data: team,
     })
   } catch (error) {
-    logger.error('Error fetching team', { teamId: id, userId: user?.id }, error)
+    logger.error('Error fetching team', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -151,7 +151,7 @@ export async function PUT(
       message: 'Team updated successfully',
     })
   } catch (error) {
-    logger.error('Error updating team', { teamId: id, userId: user?.id }, error)
+    logger.error('Error updating team', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -213,7 +213,7 @@ export async function DELETE(
       message: 'Team deleted successfully',
     })
   } catch (error) {
-    logger.error('Error deleting team', { teamId: id, userId: user?.id }, error)
+    logger.error('Error deleting team', {}, error)
     return NextResponse.json(
       {
         success: false,

@@ -9,30 +9,30 @@ import { requireCoach } from '@/lib/auth-utils';
 import { MonitoringCharts } from '@/components/coach/dashboards/MonitoringCharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface MonitoringPageProps {
-  searchParams: {
+  searchParams: Promise<{
     athleteId?: string;
-  };
+  }>;
 }
 
 export default async function MonitoringPage({ searchParams }: MonitoringPageProps) {
   const user = await requireCoach();
+  const resolvedParams = await searchParams;
 
   // Fetch all athletes for this coach
   const clients = await prisma.client.findMany({
     where: { userId: user.id },
     select: {
       id: true,
-      firstName: true,
-      lastName: true
+      name: true
     },
-    orderBy: { lastName: 'asc' }
+    orderBy: { name: 'asc' }
   });
 
-  const selectedAthleteId = searchParams.athleteId || (clients.length > 0 ? clients[0].id : null);
+  const selectedAthleteId = resolvedParams.athleteId || (clients.length > 0 ? clients[0].id : null);
 
   return (
     <div className="container mx-auto py-8">
@@ -63,7 +63,7 @@ export default async function MonitoringPage({ searchParams }: MonitoringPagePro
               <SelectContent>
                 {clients.map(c => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName}
+                    {c.name}
                   </SelectItem>
                 ))}
               </SelectContent>

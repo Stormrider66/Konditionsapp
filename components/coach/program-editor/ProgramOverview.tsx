@@ -148,7 +148,7 @@ export function ProgramOverview({
 
         workouts.push({
           ...workout,
-          dayName: day.dayOfWeek,
+          dayName: `Day ${day.dayNumber}`,
           weekPhase: week.phase,
           date: day.date,
         })
@@ -245,8 +245,9 @@ export function ProgramOverview({
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
-        {daysOfWeek.map((dayName) => {
-          const day = week.days.find((d) => d.dayOfWeek === dayName)
+        {daysOfWeek.map((dayName, index) => {
+          const dayNumber = index + 1 // Monday = 1, Tuesday = 2, etc.
+          const day = week.days.find((d) => d.dayNumber === dayNumber)
           const workouts = day?.workouts || []
 
           return (

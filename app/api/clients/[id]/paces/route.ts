@@ -2,8 +2,8 @@
 // Calculate optimal training paces using comprehensive pace selector
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import prisma from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { selectOptimalPaces, type RacePerformance, type AthleteProfileData, type LactateTestData } from '@/lib/training-engine/calculations/pace-selector'
 import { logger } from '@/lib/logger'
 
@@ -19,17 +19,17 @@ import { logger } from '@/lib/logger'
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const clientId = params.id
+    const { id: clientId } = await params
 
     // Get client data
     const client = await prisma.client.findUnique({
@@ -56,7 +56,7 @@ export async function GET(
       gender: client.gender as 'MALE' | 'FEMALE',
       weeklyKm: client.athleteProfile?.typicalWeeklyKm || 50,
       trainingAge: client.athleteProfile?.yearsRunning || 2,
-      restingHR: client.athleteProfile?.rhrBaseline,
+      restingHR: client.athleteProfile?.rhrBaseline ?? undefined,
       maxHR: undefined, // Will be set from test if available
     }
 
@@ -95,7 +95,7 @@ export async function GET(
       // Check if we have lactate data
       const hasLactate = latestTest.testStages.some((stage) => stage.lactate > 0)
 
-      if (hasLactate) {
+      if (hasLactate && latestTest.maxHR) {
         lactateTest = {
           testStages: latestTest.testStages.map((stage) => ({
             sequence: stage.sequence,
@@ -103,7 +103,7 @@ export async function GET(
             heartRate: stage.heartRate,
             lactate: stage.lactate,
           })),
-          maxHR: latestTest.maxHR || undefined,
+          maxHR: latestTest.maxHR,
         }
 
         // Set maxHR for profile if available
@@ -189,7 +189,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    logger.error('Error calculating paces', { clientId: params.id }, error)
+    logger.error('Error calculating paces', {}, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -203,10 +203,10 @@ export async function GET(
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -216,7 +216,7 @@ export async function POST(
     const body = await req.json()
     const { preferredSource, maxMismatchPercent, manualLT1Stage, manualLT2Stage } = body
 
-    const clientId = params.id
+    const { id: clientId } = await params
 
     // Get client data
     const client = await prisma.client.findUnique({
@@ -243,7 +243,7 @@ export async function POST(
       gender: client.gender as 'MALE' | 'FEMALE',
       weeklyKm: client.athleteProfile?.typicalWeeklyKm || 50,
       trainingAge: client.athleteProfile?.yearsRunning || 2,
-      restingHR: client.athleteProfile?.rhrBaseline,
+      restingHR: client.athleteProfile?.rhrBaseline ?? undefined,
       maxHR: undefined,
     }
 
@@ -278,7 +278,7 @@ export async function POST(
     })
 
     let lactateTest: LactateTestData | undefined = undefined
-    if (latestTest && latestTest.testStages.length >= 4) {
+    if (latestTest && latestTest.testStages.length >= 4 && latestTest.maxHR) {
       const hasLactate = latestTest.testStages.some((stage) => stage.lactate > 0)
 
       if (hasLactate) {
@@ -289,14 +289,12 @@ export async function POST(
             heartRate: stage.heartRate,
             lactate: stage.lactate,
           })),
-          maxHR: latestTest.maxHR || undefined,
+          maxHR: latestTest.maxHR,
           manualLT1Stage,
           manualLT2Stage,
         }
 
-        if (latestTest.maxHR) {
-          profileData.maxHR = latestTest.maxHR
-        }
+        profileData.maxHR = latestTest.maxHR
       }
     }
 
@@ -340,7 +338,7 @@ export async function POST(
 
     return NextResponse.json(paceSelection)
   } catch (error) {
-    logger.error('Error recalculating paces', { clientId: params.id }, error)
+    logger.error('Error recalculating paces', {}, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

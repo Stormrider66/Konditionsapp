@@ -90,7 +90,7 @@ export async function generateBaseProgramWithElitePaces(
   console.log('\n[3/5] Selecting training methodology')
   let methodology = params.methodology
 
-  if (methodology === 'AUTO' || !methodology) {
+  if ((methodology as string) === 'AUTO' || !methodology) {
     if (elitePaces) {
       // Use elite pace system's recommendation
       const recommended = getRecommendedMethodology(

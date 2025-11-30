@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    logger.error('Error creating user', { userId: body?.id, email: body?.email }, error)
+    logger.error('Error creating user', {}, error)
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

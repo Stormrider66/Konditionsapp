@@ -13,6 +13,7 @@ This is a **VO2max/Konditionstest Report Generator** - a Next.js 15 web applicat
 2. **Training Programs** - Year-round endurance training programs with athlete portals
 3. **Elite Training Engine** - Advanced monitoring, field tests, methodologies (Polarized, Norwegian, Canova)
 4. **Strength Training** - Periodized strength programs with automatic progression tracking
+5. **Multi-Sport Support** - 7 sports (Running, Cycling, Swimming, Triathlon, HYROX, Skiing, General Fitness) with sport-specific onboarding and coach dashboards
 
 ## Development Commands
 
@@ -514,6 +515,148 @@ npx ts-node prisma/seed-exercises.ts  # Seed 84-exercise library
 - Session 2: 3×8 @ 100kg → Completed 3×10 (2 extra reps) ✓
 - Result: Recommend 105kg (5% increase for lower body)
 - Next workout auto-generated with 105kg
+
+---
+
+## Multi-Sport Support System (COMPLETE)
+
+**Overview**: Comprehensive multi-sport platform supporting 7 sport types with sport-specific onboarding, dashboards, and program generation.
+
+### Supported Sports
+
+| Sport | Enum | Key Metrics | Dashboard Features |
+|-------|------|-------------|-------------------|
+| **Running** | `RUNNING` | VDOT, Paces, LT2 | Training zones, race predictions |
+| **Cycling** | `CYCLING` | FTP, W/kg, Power zones | FTP trends, power distribution |
+| **Swimming** | `SWIMMING` | CSS, Pace/100m | CSS-based zones, stroke analysis |
+| **Triathlon** | `TRIATHLON` | CSS, FTP, VDOT | Multi-discipline balance, weakness detection |
+| **HYROX** | `HYROX` | Station times, 5K/10K | Station benchmarks, race time estimation |
+| **Skiing** | `SKIING` | LT, Technique | Classic/Skate, terrain preferences |
+| **General Fitness** | `GENERAL_FITNESS` | Goals, Activity level | Weight progress, BMI, goal tracking |
+
+### Database Model (`SportProfile`)
+
+**Location**: `prisma/schema.prisma` (lines 1611-1661)
+
+```prisma
+model SportProfile {
+  primarySport          SportType           // Main sport (determines dashboard)
+  secondarySports       SportType[]         // Cross-training sports
+  onboardingCompleted   Boolean             // Flow completion flag
+  onboardingStep        Int                 // Current step (0-6)
+
+  // Sport-specific settings (JSON)
+  runningSettings       Json?
+  cyclingSettings       Json?
+  skiingSettings        Json?
+  swimmingSettings      Json?
+  triathlonSettings     Json?
+  hyroxSettings         Json?
+  generalFitnessSettings Json?
+
+  // Experience levels
+  runningExperience     String?             // BEGINNER | INTERMEDIATE | ADVANCED | ELITE
+  cyclingExperience     String?
+  swimmingExperience    String?
+  strengthExperience    String?
+}
+```
+
+### Athlete Onboarding System
+
+**Flow**: 6-step wizard customized per sport
+
+1. **Sport Selection** - Primary sport + optional secondary sports
+2. **Experience Level** - Beginner/Intermediate/Advanced/Elite
+3. **Sport-Specific Setup** - Unique per sport (see below)
+4. **Weekly Availability** - Training days + preferred session length
+5. **Equipment** - Available equipment (treadmill, bike, pool, etc.)
+6. **Goals** - Target goals + target date
+
+**Key Files**:
+- `app/athlete/onboarding/page.tsx` - Server component with auth
+- `components/onboarding/OnboardingWizard.tsx` - Main wizard (680 lines)
+- `components/onboarding/SportSelector.tsx` - Sport picker with icons
+- `components/onboarding/[Sport]Onboarding.tsx` - Sport-specific forms
+
+**Sport-Specific Onboarding Fields**:
+
+| Sport | Onboarding Component | Key Fields |
+|-------|---------------------|------------|
+| Cycling | `CyclingOnboarding.tsx` | Bike types, FTP, indoor/outdoor ratio, disciplines |
+| Swimming | `SwimmingOnboarding.tsx` | Stroke types, CSS, pool length, open water exp |
+| Triathlon | `TriathlonOnboarding.tsx` | Target distance, discipline balance, CSS/FTP/VDOT |
+| HYROX | `HYROXOnboarding.tsx` | Category, station times, equipment access |
+| General Fitness | `GeneralFitnessOnboarding.tsx` | Goals, activities, health metrics, limitations |
+| Skiing | `SkiingOnboarding.tsx` | Technique (classic/skate), equipment, terrain |
+
+### Sport-Specific Coach Dashboards
+
+**Location**: `components/coach/sport-views/`
+
+**Router Component**: `SportSpecificAthleteView.tsx`
+- Renders appropriate dashboard based on `primarySport`
+- Integrated into `/clients/[id]` page
+
+**Dashboard Components**:
+
+| Component | Features |
+|-----------|----------|
+| `HYROXAthleteView.tsx` | Station times with progress bars, benchmark comparison, estimated race time |
+| `CyclingAthleteView.tsx` | FTP zones (6-zone), W/kg calculation, power distribution |
+| `SwimmingAthleteView.tsx` | CSS-based zones (6-zone), stroke analysis, pool/open water |
+| `TriathlonAthleteView.tsx` | Discipline balance (swim/bike/run %), weakness detection |
+| `SkiingAthleteView.tsx` | Technique display, equipment, terrain preferences |
+| `GeneralFitnessAthleteView.tsx` | Goal progress, weight tracking, BMI calculation |
+
+### API Endpoints
+
+**Sport Profile APIs**:
+- `GET/PUT /api/sport-profile/[clientId]` - Get/update sport profile
+- `POST /api/sport-profile` - Create new sport profile
+
+**Request/Response Schema** (PUT):
+```json
+{
+  "primarySport": "CYCLING",
+  "secondarySports": ["RUNNING"],
+  "cyclingSettings": {
+    "bikeTypes": ["road", "gravel"],
+    "currentFtp": 280,
+    "primaryDiscipline": "road"
+  },
+  "onboardingCompleted": true,
+  "onboardingStep": 6
+}
+```
+
+### Mobile UI Optimizations
+
+**WorkoutLoggingForm** (`components/athlete/workout/WorkoutLoggingForm.tsx`):
+- Touch targets: `h-12` (48px) for all inputs and buttons
+- Numeric keyboards: `inputMode="numeric"` / `inputMode="decimal"`
+- Sticky action buttons on mobile with responsive breakpoints
+- Swedish labels (Set, Reps, Belastning, Avbryt, Logga pass)
+
+### Common Tasks
+
+**Complete Athlete Onboarding**:
+1. Athlete logs in for first time
+2. Redirected to `/athlete/onboarding`
+3. Selects primary sport → sport-specific wizard loads
+4. Completes 6-step flow
+5. `onboardingCompleted: true` saved to SportProfile
+6. Redirected to `/athlete/dashboard`
+
+**View Sport-Specific Data (Coach)**:
+1. Navigate to `/clients/[id]`
+2. SportSpecificAthleteView loads based on `primarySport`
+3. Displays sport-relevant metrics and visualizations
+
+**Update Sport Profile (Athlete)**:
+1. Navigate to `/athlete/profile`
+2. Edit sport settings via AthleteProfileEditor
+3. Changes saved via `PUT /api/sport-profile/[clientId]`
 
 ---
 

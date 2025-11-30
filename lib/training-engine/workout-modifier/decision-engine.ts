@@ -136,6 +136,11 @@ function getMethodologyThresholds(methodology: MethodologyType): {
       minForHard: 7.5,
       minForVeryHard: 8.5,
     },
+    NORWEGIAN_SINGLE: {
+      minForThreshold: 6.5, // Single threshold workout per week, slightly lower than double
+      minForHard: 7.0,
+      minForVeryHard: 8.0,
+    },
   }
 
   return thresholds[methodology]

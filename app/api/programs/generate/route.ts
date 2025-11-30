@@ -5,6 +5,13 @@ import { createClient } from '@/lib/supabase/server'
 import { generateBaseProgram, validateProgramParams, ProgramGenerationParams } from '@/lib/program-generator'
 import { requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { WorkoutType, WorkoutIntensity } from '@prisma/client'
+import {
+  getGeneralFitnessProgram,
+  getProgramDescription,
+  type FitnessGoal,
+  type FitnessLevel,
+} from '@/lib/program-generator/templates/general-fitness'
 
 /**
  * POST /api/programs/generate
@@ -53,6 +60,14 @@ export async function POST(request: NextRequest) {
       alternativeTrainingSessionsPerWeek: body.alternativeTrainingSessionsPerWeek || 0,
       scheduleStrengthAfterRunning: body.scheduleStrengthAfterRunning !== undefined ? body.scheduleStrengthAfterRunning : false,
       scheduleCoreAfterRunning: body.scheduleCoreAfterRunning !== undefined ? body.scheduleCoreAfterRunning : false,
+    }
+
+    // Extract General Fitness specific params
+    const fitnessParams = {
+      fitnessGoal: (body.fitnessGoal || 'general_health') as FitnessGoal,
+      fitnessLevel: (body.fitnessLevel || 'moderately_active') as FitnessLevel,
+      hasGymAccess: body.hasGymAccess || false,
+      preferredActivities: body.preferredActivities || [],
     }
 
     // Validate parameters
@@ -128,7 +143,68 @@ export async function POST(request: NextRequest) {
     // Generate program
     let programData;
 
-    if (params.methodology === 'CUSTOM') {
+    if (params.goalType === 'fitness') {
+      // Generate General Fitness program from templates
+      const fitnessWeeks = getGeneralFitnessProgram(
+        fitnessParams.fitnessGoal,
+        fitnessParams.fitnessLevel,
+        Math.min(6, Math.max(3, params.trainingDaysPerWeek)) as 3 | 4 | 5 | 6,
+        {
+          hasGymAccess: fitnessParams.hasGymAccess,
+          preferredActivities: fitnessParams.preferredActivities,
+        }
+      )
+
+      const programDesc = getProgramDescription(fitnessParams.fitnessGoal)
+      const durationWeeks = fitnessWeeks.length
+
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() + 1) // Start tomorrow
+      startDate.setHours(0, 0, 0, 0)
+
+      const endDate = new Date(startDate)
+      endDate.setDate(endDate.getDate() + durationWeeks * 7)
+
+      programData = {
+        name: `${programDesc.titleSv} - ${client.name}`,
+        clientId: params.clientId,
+        coachId: user.id,
+        testId: params.testId,
+        goalType: params.goalType,
+        startDate,
+        endDate,
+        notes: params.notes || programDesc.descriptionSv,
+        weeks: fitnessWeeks.map((week, weekIndex) => ({
+          weekNumber: week.week,
+          phase: week.phase,
+          volume: 0,
+          focus: week.focus,
+          days: Array.from({ length: 7 }).map((_, dayIndex) => {
+            // Distribute workouts across available days
+            const workout = week.workouts[dayIndex % week.workouts.length]
+            const hasWorkout = dayIndex < week.workouts.length
+
+            return {
+              dayNumber: dayIndex + 1,
+              notes: hasWorkout ? week.tips[dayIndex % week.tips.length] || '' : '',
+              workouts: hasWorkout && workout
+                ? [
+                    {
+                      type: mapFitnessWorkoutType(workout.type),
+                      name: workout.name,
+                      intensity: mapIntensity(workout.intensity),
+                      duration: workout.duration,
+                      distance: undefined,
+                      instructions: workout.description,
+                      segments: [],
+                    },
+                  ]
+                : [],
+            }
+          }),
+        })),
+      }
+    } else if ((params.methodology as string) === 'CUSTOM') {
         // 1. Calculate Start and End Dates
         // Default to tomorrow if no race date, or back-calculate if needed.
         // For custom, start tomorrow and create empty structure for manual building
@@ -152,7 +228,7 @@ export async function POST(request: NextRequest) {
             notes: params.notes,
             weeks: Array.from({ length: durationWeeks }).map((_, i) => ({
                 weekNumber: i + 1,
-                phase: 'BASE',
+                phase: 'BASE' as const,
                 volume: 0,
                 focus: 'General',
                 days: Array.from({ length: 7 }).map((_, j) => ({
@@ -282,4 +358,32 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+// Helper function to map fitness workout types to database workout types
+function mapFitnessWorkoutType(
+  type: 'cardio' | 'strength' | 'hiit' | 'mobility' | 'yoga' | 'active-rest' | 'circuit' | 'core'
+): WorkoutType {
+  const typeMap: Record<string, WorkoutType> = {
+    cardio: WorkoutType.RUNNING,
+    strength: WorkoutType.STRENGTH,
+    hiit: WorkoutType.RUNNING, // HIIT typically running-based intervals
+    mobility: WorkoutType.RECOVERY,
+    yoga: WorkoutType.RECOVERY,
+    'active-rest': WorkoutType.RECOVERY,
+    circuit: WorkoutType.STRENGTH,
+    core: WorkoutType.CORE,
+  }
+  return typeMap[type] || WorkoutType.OTHER
+}
+
+// Helper function to map intensity levels
+function mapIntensity(intensity: 'low' | 'moderate' | 'high' | 'very_high'): WorkoutIntensity {
+  const intensityMap: Record<string, WorkoutIntensity> = {
+    low: WorkoutIntensity.EASY,
+    moderate: WorkoutIntensity.MODERATE,
+    high: WorkoutIntensity.THRESHOLD,
+    very_high: WorkoutIntensity.INTERVAL,
+  }
+  return intensityMap[intensity] || WorkoutIntensity.MODERATE
 }

@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       data: templates,
     })
   } catch (error) {
-    logger.error('Error fetching templates', { userId: user?.id }, error)
+    logger.error('Error fetching templates', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    logger.error('Error creating template', { userId: user?.id, templateName: body?.name }, error)
+    logger.error('Error creating template', {}, error)
     return NextResponse.json(
       {
         success: false,

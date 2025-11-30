@@ -257,19 +257,20 @@ function analyzeCriticalVelocity(test: any): CriticalVelocityAnalysis {
   })
 
   // Linear regression: distance = slope * time + intercept
+  type TrialData = { distance: number; time: number; pace: string; velocity: number }
   const n = trialsData.length
-  const sumTime = trialsData.reduce((sum, t) => sum + t.time, 0)
-  const sumDistance = trialsData.reduce((sum, t) => sum + t.distance, 0)
-  const sumTimeDistance = trialsData.reduce((sum, t) => sum + t.time * t.distance, 0)
-  const sumTimeSquared = trialsData.reduce((sum, t) => sum + t.time * t.time, 0)
+  const sumTime = trialsData.reduce((sum: number, t: TrialData) => sum + t.time, 0)
+  const sumDistance = trialsData.reduce((sum: number, t: TrialData) => sum + t.distance, 0)
+  const sumTimeDistance = trialsData.reduce((sum: number, t: TrialData) => sum + t.time * t.distance, 0)
+  const sumTimeSquared = trialsData.reduce((sum: number, t: TrialData) => sum + t.time * t.time, 0)
 
   const slope = (n * sumTimeDistance - sumTime * sumDistance) / (n * sumTimeSquared - sumTime * sumTime)
   const intercept = (sumDistance - slope * sumTime) / n
 
   // Calculate R²
   const yMean = sumDistance / n
-  const ssTotal = trialsData.reduce((sum, t) => sum + Math.pow(t.distance - yMean, 2), 0)
-  const ssResidual = trialsData.reduce((sum, t) => {
+  const ssTotal = trialsData.reduce((sum: number, t: TrialData) => sum + Math.pow(t.distance - yMean, 2), 0)
+  const ssResidual = trialsData.reduce((sum: number, t: TrialData) => {
     const predicted = slope * t.time + intercept
     return sum + Math.pow(t.distance - predicted, 2)
   }, 0)
@@ -400,10 +401,10 @@ function analyzeHRDrift(test: any): HRDriftAnalysis {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const testId = params.id
+    const { id: testId } = await params
 
     // Get field test
     const test = await prisma.fieldTest.findUnique({
@@ -437,13 +438,13 @@ export async function GET(
     return NextResponse.json({
       testId,
       athleteName: test.client.name,
-      testDate: test.testDate,
+      testDate: test.date,
       testType: test.testType,
       valid: test.valid,
       analysis,
     })
   } catch (error: unknown) {
-    logger.error('Error analyzing field test', { testId: params.id }, error)
+    logger.error('Error analyzing field test', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { error: 'Internal server error' },

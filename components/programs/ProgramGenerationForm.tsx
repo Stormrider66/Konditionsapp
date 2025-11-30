@@ -53,10 +53,32 @@ const formSchema = z.object({
     'fitness',
     'cycling',
     'skiing',
+    'swimming',
+    'triathlon',
+    'hyrox',
     'custom',
   ]),
   targetRaceDate: z.date().optional(),
   targetTime: z.string().optional(), // HH:MM:SS format
+
+  // General Fitness specific settings
+  fitnessGoal: z.enum([
+    'weight_loss',
+    'general_health',
+    'strength',
+    'endurance',
+    'flexibility',
+    'stress_relief',
+  ]).optional(),
+  fitnessLevel: z.enum([
+    'sedentary',
+    'lightly_active',
+    'moderately_active',
+    'very_active',
+    'athlete',
+  ]).optional(),
+  hasGymAccess: z.boolean().default(false),
+  preferredActivities: z.array(z.string()).optional(),
 
   // Program Structure
   durationWeeks: z.number().min(4).max(52),
@@ -149,12 +171,16 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
   const [methodologyRecommendation, setMethodologyRecommendation] = useState<string>('')
 
   const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     defaultValues: {
       clientId: '',
       testId: '',
       goalType: 'marathon',
       targetTime: '',
+      fitnessGoal: 'general_health',
+      fitnessLevel: 'moderately_active',
+      hasGymAccess: false,
+      preferredActivities: [],
       durationWeeks: 16,
       trainingDaysPerWeek: 4,
       runningSessionsPerWeek: 4,
@@ -381,9 +407,12 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       <SelectItem value="half-marathon">Halvmaraton (21.1 km)</SelectItem>
                       <SelectItem value="10k">10K</SelectItem>
                       <SelectItem value="5k">5K</SelectItem>
-                      <SelectItem value="fitness">Allmän kondition</SelectItem>
+                      <SelectItem value="fitness">Allmän fitness</SelectItem>
                       <SelectItem value="cycling">Cykling</SelectItem>
                       <SelectItem value="skiing">Skidåkning</SelectItem>
+                      <SelectItem value="swimming">Simning</SelectItem>
+                      <SelectItem value="triathlon">Triathlon</SelectItem>
+                      <SelectItem value="hyrox">HYROX</SelectItem>
                       <SelectItem value="custom">Anpassad</SelectItem>
                     </SelectContent>
                   </Select>
@@ -391,6 +420,91 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 </FormItem>
               )}
             />
+
+            {/* General Fitness Goal Configuration */}
+            {form.watch('goalType') === 'fitness' && (
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                <h4 className="font-medium">Fitness-mål</h4>
+
+                <FormField
+                  control={form.control}
+                  name="fitnessGoal"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Primärt mål *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Välj ditt huvudmål" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="weight_loss">Viktminskning</SelectItem>
+                          <SelectItem value="general_health">Allmän hälsa</SelectItem>
+                          <SelectItem value="strength">Styrka</SelectItem>
+                          <SelectItem value="endurance">Uthållighet</SelectItem>
+                          <SelectItem value="flexibility">Rörlighet</SelectItem>
+                          <SelectItem value="stress_relief">Stresshantering</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Programmet anpassas efter ditt huvudmål
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="fitnessLevel"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nuvarande aktivitetsnivå *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Välj din nivå" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="sedentary">Stillasittande (tränar sällan)</SelectItem>
+                          <SelectItem value="lightly_active">Lätt aktiv (1-2 pass/vecka)</SelectItem>
+                          <SelectItem value="moderately_active">Måttligt aktiv (3-4 pass/vecka)</SelectItem>
+                          <SelectItem value="very_active">Mycket aktiv (5-6 pass/vecka)</SelectItem>
+                          <SelectItem value="athlete">Idrottare (daglig träning)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Påverkar intensitet och volym i programmet
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="hasGymAccess"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Tillgång till gym</FormLabel>
+                        <FormDescription>
+                          Möjliggör styrkeövningar med utrustning
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <FormField
               control={form.control}

@@ -194,11 +194,11 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
       </div>
 
       {/* Program Notes */}
-      {program.notes && (
+      {program.description && (
         <Card>
           <CardContent className="pt-6">
             <h3 className="font-semibold mb-2">Anteckningar</h3>
-            <p className="text-muted-foreground whitespace-pre-wrap">{program.notes}</p>
+            <p className="text-muted-foreground whitespace-pre-wrap">{program.description}</p>
           </CardContent>
         </Card>
       )}

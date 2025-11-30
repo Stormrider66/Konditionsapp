@@ -12,7 +12,7 @@ import {
   handleApiError,
   requireAuth,
 } from '@/lib/api/utils';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import {
   modifyWorkout,
   type ModifyWorkoutInput,
@@ -53,11 +53,11 @@ export async function POST(request: NextRequest) {
     const workout = await prisma.workout.findUnique({
       where: { id: workoutId },
       include: {
-        trainingDay: {
+        day: {
           include: {
-            trainingWeek: {
+            week: {
               include: {
-                trainingProgram: true
+                program: true
               }
             }
           }
@@ -90,9 +90,7 @@ export async function POST(request: NextRequest) {
       currentReadiness,
     );
 
-    const methodology = (
-      workout.trainingDay.trainingWeek.trainingProgram.methodology || 'POLARIZED'
-    ) as MethodologyType;
+    const methodology = 'POLARIZED' as MethodologyType;
 
     const readinessScore = readinessSnapshot?.score ?? 7;
     const readinessComponents = buildReadinessComponents(readinessSnapshot);
@@ -127,14 +125,13 @@ export async function POST(request: NextRequest) {
         plannedIntensity: workout.intensity,
         plannedDetails: {
           description: workout.description,
-          estimatedTSS: workout.estimatedTSS,
           segments: workout.segments,
         },
         modifiedType: modification.modifiedWorkout?.type ?? null,
         modifiedDuration: modification.modifiedWorkout?.durationMinutes ?? null,
         modifiedDistance: modification.modifiedWorkout?.distanceKm ?? null,
         modifiedIntensity: modification.modifiedWorkout?.intensity ?? null,
-        modifiedDetails: modification.modifiedWorkout ?? null,
+        modifiedDetails: modification.modifiedWorkout ?? undefined,
         readinessScore: modification.readinessScore,
         factors: formatFactors(modification),
         reasoning: modification.rationale,

@@ -436,7 +436,7 @@ export default async function CoachDashboardPage() {
                           {log.workout.day.week.program.client.name}
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {format(new Date(log.completedAt), 'MMM d', { locale: sv })}
+                          {log.completedAt ? format(new Date(log.completedAt), 'MMM d', { locale: sv }) : '-'}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
@@ -512,7 +512,7 @@ export default async function CoachDashboardPage() {
                       </p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-xs text-muted-foreground">
-                          {format(new Date(log.completedAt), 'PPp', { locale: sv })}
+                          {log.completedAt ? format(new Date(log.completedAt), 'PPp', { locale: sv }) : '-'}
                         </span>
                         {log.perceivedEffort && (
                           <Badge variant="outline" className="text-xs">

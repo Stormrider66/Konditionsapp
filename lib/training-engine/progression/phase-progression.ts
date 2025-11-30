@@ -27,7 +27,7 @@ export interface PhaseProgression {
   intensity: string
   restPeriod: string
   frequency: string
-  focusgoal: string
+  goal: string
   progressionStrategy: string
 }
 

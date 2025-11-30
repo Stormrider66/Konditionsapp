@@ -142,10 +142,10 @@ function calculateRunningTSS(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
-    const clientId = params.clientId
+    const { clientId } = await params
     const { searchParams } = new URL(request.url)
 
     // Parse query params
@@ -171,9 +171,9 @@ export async function GET(
     const activeInjury = await prisma.injuryAssessment.findFirst({
       where: {
         clientId,
-        resolved: false,
+        status: { not: 'RESOLVED' },
       },
-      orderBy: { assessmentDate: 'desc' },
+      orderBy: { date: 'desc' },
     })
 
     // If no active injury, return empty substitutions
@@ -194,10 +194,10 @@ export async function GET(
     }
 
     // Get athlete's program and upcoming workouts
-    const program = await prisma.trainingProgramEngine.findFirst({
+    const program = await prisma.trainingProgram.findFirst({
       where: {
         clientId,
-        status: 'ACTIVE',
+        isActive: true,
       },
       include: {
         weeks: {
@@ -248,6 +248,8 @@ export async function GET(
       ROWING: 0,
       ELLIPTICAL: 0,
       SWIMMING: 0,
+      XC_SKIING: 0,
+      AIR_BIKE: 0,
     }
 
     for (let i = 0; i < dateRange; i++) {
@@ -263,7 +265,7 @@ export async function GET(
           if (dayDate.toDateString() === currentDate.toDateString()) {
             // Get running workout (if exists)
             const runningWorkout = day.workouts.find(
-              (w) => w.type === 'RUNNING' || w.type === 'EASY' || w.type === 'LONG_RUN'
+              (w) => w.type === 'RUNNING'
             )
             if (runningWorkout) {
               dayWorkout = runningWorkout
@@ -297,7 +299,7 @@ export async function GET(
             duration: dayWorkout.duration || 60,
             intensity: dayWorkout.intensity || 'EASY',
             tss: runningTSS,
-            description: dayWorkout.notes || undefined,
+            description: dayWorkout.description || undefined,
           },
           convertedWorkout: {
             modality: preferredModality,
@@ -355,10 +357,10 @@ export async function GET(
       substitutions,
       summary,
       modalityRetentionRates: MODALITY_RETENTION,
-      recommendedModalities: INJURY_MODALITY_MAP[activeInjury.injuryType] || ['DWR'],
+      recommendedModalities: activeInjury.injuryType ? INJURY_MODALITY_MAP[activeInjury.injuryType] || ['DWR'] : ['DWR'],
     })
   } catch (error: unknown) {
-    logger.error('Error fetching cross-training substitutions', { clientId: params.clientId }, error)
+    logger.error('Error fetching cross-training substitutions', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { error: 'Internal server error' },

@@ -93,5 +93,18 @@ export * from './vo2max'
 export * from './cycling'
 export * from './save-dmax'
 export * from './race-predictions'
-export * from './vdot'
+// Export vdot.ts functions except calculateVDOT (already exported from race-predictions)
+export {
+  getEquivalentRaceTimes,
+  getTrainingPaces,
+  generateVDOTEntry,
+  findVDOTFromRaceTime,
+  categorizeVDOT,
+  estimateVDOTImprovement,
+  compareVDOT,
+  validateRacePerformance,
+  type VDOTEntry,
+  type VDOTCategory,
+  type VDOTCategoryInfo,
+} from './vdot'
 export * from './environmental'

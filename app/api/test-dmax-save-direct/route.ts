@@ -31,18 +31,21 @@ export async function GET() {
     const thresholdCalc = await prisma.thresholdCalculation.create({
       data: {
         testId: demoTest.id,
-        thresholdType: 'LT2',
         method: 'DMAX',
-        thresholdIntensity: 13.6,
-        thresholdLactate: 2.78,
-        thresholdHR: 159,
         confidence: 'HIGH',
         r2: 0.9998,
-        dmaxDistance: 1.3848,
-        polynomialA: 0.0306,
-        polynomialB: -0.9857,
-        polynomialC: 10.8480,
-        polynomialD: -39.2786
+        dmaxIntensity: 13.6,
+        dmaxLactate: 2.78,
+        dmaxHr: 159,
+        polynomialCoeffs: { a: 0.0306, b: -0.9857, c: 10.8480, d: -39.2786 },
+        lt1Intensity: 11.0,
+        lt1Lactate: 1.5,
+        lt1Hr: 140,
+        lt1Method: 'BASELINE_PLUS_0.5',
+        lt2Intensity: 13.6,
+        lt2Lactate: 2.78,
+        lt2Hr: 159,
+        testDate: new Date()
       }
     })
 

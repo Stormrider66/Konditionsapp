@@ -13,9 +13,10 @@ import { logger } from '@/lib/logger'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // Authenticate user
     const supabase = await createClient()
     const {
@@ -43,15 +44,13 @@ export async function PUT(
       )
     }
 
-    const { id } = params
-
     // Verify workout exists and belongs to this coach's athlete
     const workout = await prisma.workout.findUnique({
       where: { id },
       include: {
-        trainingDay: {
+        day: {
           include: {
-            trainingWeek: {
+            week: {
               include: {
                 program: {
                   include: {
@@ -73,7 +72,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
     }
 
-    if (workout.trainingDay.trainingWeek.program.client.userId !== dbUser.id) {
+    if (workout.day.week.program.client.userId !== dbUser.id) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
@@ -82,7 +81,7 @@ export async function PUT(
     const { approved = true, coachNotes } = body
 
     // Update workout with review status
-    // We'll add a "reviewed" flag to notes
+    // We'll add a "reviewed" flag to coachNotes
     const reviewNote = `\n\n[Reviewed by coach at ${new Date().toISOString()}${
       coachNotes ? ` - ${coachNotes}` : ''
     }${approved ? ' - APPROVED' : ' - NEEDS ADJUSTMENT'}]`
@@ -90,8 +89,7 @@ export async function PUT(
     const updatedWorkout = await prisma.workout.update({
       where: { id },
       data: {
-        notes: (workout.notes || '') + reviewNote,
-        updatedAt: new Date(),
+        coachNotes: (workout.coachNotes || '') + reviewNote,
       },
     })
 

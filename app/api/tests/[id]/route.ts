@@ -56,7 +56,7 @@ export async function GET(
       data: test,
     })
   } catch (error) {
-    logger.error('Error fetching test', { testId: (await params).id, userId: user?.id }, error)
+    logger.error('Error fetching test', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -126,7 +126,7 @@ export async function PUT(
       message: 'Test updated successfully',
     })
   } catch (error) {
-    logger.error('Error updating test', { testId: (await params).id, userId: user?.id }, error)
+    logger.error('Error updating test', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -227,7 +227,7 @@ export async function PATCH(
       message: 'Test updated successfully',
     })
   } catch (error) {
-    logger.error('Error updating test', { testId: (await params).id, userId: user?.id }, error)
+    logger.error('Error updating test', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -283,7 +283,7 @@ export async function DELETE(
       message: 'Test deleted successfully',
     })
   } catch (error) {
-    logger.error('Error deleting test', { testId: (await params).id, userId: user?.id }, error)
+    logger.error('Error deleting test', {}, error)
     return NextResponse.json(
       {
         success: false,

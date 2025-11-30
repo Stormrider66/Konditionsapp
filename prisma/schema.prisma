@@ -27,6 +27,18 @@ enum TestType {
   SKIING
 }
 
+// ==================== MULTI-SPORT SYSTEM ====================
+
+enum SportType {
+  RUNNING           // Road, trail, track running
+  CYCLING           // Road, indoor, MTB cycling
+  SKIING            // Cross-country skiing (classic, skate)
+  TRIATHLON         // Swim/Bike/Run combined
+  HYROX             // Functional fitness racing
+  GENERAL_FITNESS   // CrossFit-style, general PT programs
+  SWIMMING          // Pool/open water swimming
+}
+
 enum TestStatus {
   DRAFT
   COMPLETED
@@ -147,6 +159,7 @@ model User {
   receivedMessages  Message[]         @relation("ReceivedMessages")
   athleteAccount    AthleteAccount?
   subscription      Subscription?
+  videoImports      VideoImport[]
 
   @@index([email])
   @@index([role])
@@ -205,6 +218,7 @@ model Client {
   oneRepMaxHistory     OneRepMaxHistory[]
   raceResults          RaceResult[]
   dailyCheckIns        DailyCheckIn[]
+  sportProfile         SportProfile?
 
   @@index([userId])
   @@index([teamId])
@@ -598,6 +612,16 @@ model WorkoutLog {
   avgPace  String? // "5:15/km"
   avgHR    Int?   // bpm
   maxHR    Int?   // bpm
+
+  // Cycling-specific power data
+  avgPower        Int?    // average watts
+  normalizedPower Int?    // normalized power (NP)
+  maxPower        Int?    // peak power
+  avgCadence      Int?    // average RPM
+  elevation       Int?    // total elevation gain in meters
+  tss             Float?  // Training Stress Score
+  intensityFactor Float?  // IF (NP/FTP ratio)
+  powerZone       Int?    // primary zone trained in
 
   // Subjective feedback
   perceivedEffort Int?    // 1-10 RPE scale
@@ -1520,4 +1544,120 @@ model RaceResult {
   @@index([distance, raceDate]) // Compare performances by distance
   @@index([vdot]) // Rank athletes by VDOT
   @@index([confidence]) // Filter high-confidence results
+}
+
+// ============================================
+// VIDEO IMPORT MODELS
+// Added: 2025-01-25
+// Purpose: Import exercise videos from YouTube playlists with auto-matching
+// ============================================
+
+model VideoImport {
+  id              String    @id @default(uuid())
+  userId          String    // Coach who initiated the import
+  playlistId      String    // YouTube playlist ID
+  playlistTitle   String?   // YouTube playlist title
+  playlistUrl     String?   // Full YouTube playlist URL
+  status          String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  errorMessage    String?   // Error message if failed
+  totalVideos     Int       @default(0)
+  matchedVideos   Int       @default(0)
+  appliedVideos   Int       @default(0)
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+
+  user            User         @relation(fields: [userId], references: [id])
+  matches         VideoMatch[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model VideoMatch {
+  id            String    @id @default(uuid())
+  importId      String
+  videoId       String    // YouTube video ID
+  videoTitle    String    // Original YouTube video title
+  videoUrl      String    // Full YouTube video URL
+  thumbnailUrl  String?   // YouTube thumbnail URL
+  duration      String?   // Video duration (e.g., "2:30")
+
+  exerciseId    String?   // Matched exercise ID (null if unmatched)
+  exerciseName  String?   // Cached exercise name for display
+  matchScore    Float?    // Match confidence 0.0 - 1.0
+  matchMethod   String?   // EXACT, FUZZY, MANUAL
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED, APPLIED
+
+  appliedAt     DateTime? // When video was applied to exercise
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  import        VideoImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@index([importId])
+  @@index([exerciseId])
+  @@index([status])
+  @@index([matchScore])
+}
+
+// ============================================
+// MULTI-SPORT PROFILE SYSTEM
+// Added: 2025-11
+// Purpose: Sport-specific athlete profiles for multi-sport platform
+// ============================================
+
+/// Central sport profile for each athlete - determines UI, zones, and program types
+model SportProfile {
+  id              String    @id @default(uuid())
+  clientId        String    @unique
+
+  // Primary sport (determines dashboard variant)
+  primarySport    SportType @default(RUNNING)
+
+  // Secondary sports (for cross-training or multi-sport athletes)
+  secondarySports SportType[] @default([])
+
+  // Onboarding completed
+  onboardingCompleted Boolean @default(false)
+  onboardingStep      Int     @default(0)
+
+  // Sport-specific settings (JSON for flexibility)
+  runningSettings     Json?   // { preferredDistances, terrainPrefs, shoeRotation, etc. }
+  cyclingSettings     Json?   // { bikeType, ftpHistory, indoorOutdoorRatio, etc. }
+  skiingSettings      Json?   // { technique: 'CLASSIC' | 'SKATE', skiLength, etc. }
+  triathlonSettings   Json?   // { primaryDistance: 'SPRINT' | 'OLYMPIC' | 'HALF' | 'FULL', swimCss, etc. }
+  hyroxSettings       Json?   // { division, stationWeaknesses, bestTime, etc. }
+  generalFitnessSettings Json? // { preferredFormats, equipmentAccess, etc. }
+  swimmingSettings    Json?   // { poolLength, cssSpeed, strokePrefs, etc. }
+
+  // Equipment access (affects workout generation)
+  equipment           Json?   // { treadmill, bike, rower, skiErg, pool, gym, etc. }
+
+  // Training availability (weekly schedule)
+  weeklyAvailability  Json?   // { monday: { available: true, maxHours: 2 }, ... }
+  preferredSessionLength Int? // minutes
+
+  // Goals and targets
+  currentGoal         String? // "Marathon PR", "Finish HYROX", "Lose weight", etc.
+  targetDate          DateTime?
+  targetMetric        Json?   // { type: 'TIME' | 'DISTANCE' | 'WEIGHT', value, unit }
+
+  // Experience levels per sport
+  runningExperience   String? // "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "ELITE"
+  cyclingExperience   String?
+  swimmingExperience  String?
+  strengthExperience  String?
+
+  // Active subscription/program info
+  activeStandardProgram String? // ID of purchased standard program template
+  hasCustomProgram    Boolean @default(false)
+
+  client              Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([primarySport])
+  @@index([onboardingCompleted])
 }

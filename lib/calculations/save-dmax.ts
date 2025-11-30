@@ -85,7 +85,7 @@ export async function getDmaxResults(testId: string) {
   try {
     const results = await prisma.thresholdCalculation.findMany({
       where: { testId },
-      orderBy: { calculatedAt: 'desc' }
+      orderBy: { createdAt: 'desc' }
     })
 
     return results

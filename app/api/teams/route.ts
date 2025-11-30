@@ -46,7 +46,7 @@ export async function GET() {
       data: teams,
     })
   } catch (error) {
-    logger.error('Error fetching teams', { userId: user?.id }, error)
+    logger.error('Error fetching teams', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    logger.error('Error creating team', { userId: user?.id, teamName: body?.name }, error)
+    logger.error('Error creating team', {}, error)
     return NextResponse.json(
       {
         success: false,

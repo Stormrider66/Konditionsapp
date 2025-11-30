@@ -49,7 +49,7 @@ export interface EliteZonePaces {
   // Metadata
   source: 'VDOT' | 'LACTATE_RATIO' | 'HR_ESTIMATION' | 'PROFILE_ESTIMATION'
   confidence: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW'
-  athleteLevel: 'ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'RECREATIONAL'
+  athleteLevel: 'ELITE' | 'SUB_ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'RECREATIONAL'
   metabolicType?: string
 }
 

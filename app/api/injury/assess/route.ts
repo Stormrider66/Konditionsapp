@@ -8,14 +8,28 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { validateRequest, successResponse, handleApiError, requireAuth } from '@/lib/api/utils';
 import { assessPainAndRecommend } from '@/lib/training-engine/injury-management/pain-assessment';
-import { checkACWRRisk } from '@/lib/training-engine/injury-management/acwr-monitoring';
 import { generateReturnProtocol } from '@/lib/training-engine/injury-management/return-protocols';
+
+// Local helper function to assess ACWR risk from a single value
+function checkACWRRisk(acwr: number): { zone: string; injuryRisk: string; recommendation: string } {
+  if (acwr < 0.8) {
+    return { zone: 'DETRAINING', injuryRisk: 'LOW', recommendation: 'Gradual load increase recommended (5-10% weekly)' };
+  } else if (acwr <= 1.3) {
+    return { zone: 'OPTIMAL', injuryRisk: 'LOW', recommendation: 'Continue current progression' };
+  } else if (acwr <= 1.5) {
+    return { zone: 'CAUTION', injuryRisk: 'MODERATE', recommendation: 'Maintain current load, do not increase' };
+  } else if (acwr <= 2.0) {
+    return { zone: 'DANGER', injuryRisk: 'HIGH', recommendation: 'Reduce load 20-30%' };
+  } else {
+    return { zone: 'CRITICAL', injuryRisk: 'VERY_HIGH', recommendation: 'Reduce load 40-50% or complete rest' };
+  }
+}
 import { getRehabProtocol } from '@/lib/training-engine/injury-management/rehab-protocols';
 import {
   processInjuryDetection,
   type InjuryDetection,
 } from '@/lib/training-engine/integration/injury-management';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 
 const requestSchema = z.object({
@@ -25,11 +39,11 @@ const requestSchema = z.object({
     'ACHILLES_TENDINOPATHY',
     'IT_BAND_SYNDROME',
     'PATELLOFEMORAL_PAIN',
-    'SHIN_SPLINTS',
+    'MEDIAL_TIBIAL_STRESS',
     'HAMSTRING_STRAIN',
     'HIP_FLEXOR_STRAIN',
     'STRESS_FRACTURE',
-    'GENERAL'
+    'OTHER'
   ]),
   painLevel: z.number().min(0).max(10),
   painTiming: z.enum(['BEFORE', 'DURING', 'AFTER', 'CONSTANT']),
@@ -88,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     const recommendedProtocol = {
       rehab: {
-        name: rehabProtocol.name,
+        injuryType: rehabProtocol.injuryType,
         phases: rehabProtocol.phases.map(phase => ({
           name: phase.name,
           duration: phase.duration,
@@ -119,9 +133,8 @@ export async function POST(request: NextRequest) {
         assessment: painDecision.decision,
         status: 'ACTIVE',
         injuryType,
-        severity,
         phase: painLevel > 7 ? 'ACUTE' : painLevel > 4 ? 'SUBACUTE' : 'CHRONIC',
-        recommendedProtocol,
+        recommendedProtocol: JSON.parse(JSON.stringify(recommendedProtocol)),
         estimatedTimeOff: painDecision.estimatedTimeOff,
         notes: buildAssessmentNotes(functionalLimitations, previousTreatment),
       }
@@ -151,13 +164,13 @@ export async function POST(request: NextRequest) {
         recommendation: acwrRisk.recommendation
       } : null,
       rehabProtocol: {
-        name: rehabProtocol.name,
+        injuryType: rehabProtocol.injuryType,
         phases: rehabProtocol.phases.map(p => ({
           name: p.name,
-          duration: p.durationWeeks,
+          duration: p.duration,
           exercises: p.exercises.slice(0, 3).map(e => e.name) // Top 3 exercises
         })),
-        totalDuration: rehabProtocol.totalWeeks
+        totalDuration: rehabProtocol.totalDuration
       },
       returnToRunning: {
         nextPhase: returnProtocol[0]?.phase ?? null,
@@ -333,16 +346,17 @@ async function runIntegrationCascade(params: {
 function mapInjuryTypeForIntegration(
   type: InjuryAssessmentRequest['injuryType'],
 ): InjuryDetection['injuryType'] | null {
+  // Map from request schema types to InjuryDetection types
   const map: Record<InjuryAssessmentRequest['injuryType'], InjuryDetection['injuryType'] | null> = {
     PLANTAR_FASCIITIS: 'PLANTAR_FASCIITIS',
     ACHILLES_TENDINOPATHY: 'ACHILLES_TENDINOPATHY',
     IT_BAND_SYNDROME: 'IT_BAND_SYNDROME',
     PATELLOFEMORAL_PAIN: 'PATELLOFEMORAL_SYNDROME',
-    SHIN_SPLINTS: 'SHIN_SPLINTS',
+    MEDIAL_TIBIAL_STRESS: 'SHIN_SPLINTS',
     HAMSTRING_STRAIN: 'HAMSTRING_STRAIN',
     HIP_FLEXOR_STRAIN: 'HIP_FLEXOR',
     STRESS_FRACTURE: 'STRESS_FRACTURE',
-    GENERAL: null,
+    OTHER: null,
   };
 
   return map[type] ?? null;

@@ -18,16 +18,16 @@ import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const exerciseId = params.id
+    const { id: exerciseId } = await params
 
     const progressionPath = await getProgressionPath(exerciseId)
 
     return NextResponse.json(progressionPath, { status: 200 })
   } catch (error: unknown) {
-    logger.error('Error fetching progression path', { exerciseId: params.id }, error)
+    logger.error('Error fetching progression path', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
 
     if (errorMessage === 'Exercise not found') {

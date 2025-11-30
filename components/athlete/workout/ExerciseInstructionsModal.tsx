@@ -59,11 +59,11 @@ interface ExerciseInstructionsModalProps {
   clientId?: string
 }
 
-interface ExerciseWithProgression extends Exercise {
+interface ExerciseWithProgression extends Omit<Exercise, 'progressionPath'> {
   progressionPath?: {
     easier: { id: string; name: string } | null
     harder: { id: string; name: string } | null
-  }
+  } | string | null
   personalBest?: {
     load: number
     reps: number
@@ -290,10 +290,23 @@ export function ExerciseInstructionsModal({
       )
     }
 
+    // Handle case where progressionPath is a string (from Prisma)
+    const path = typeof exercise.progressionPath === 'string'
+      ? null
+      : exercise.progressionPath
+
+    if (!path) {
+      return (
+        <div className="text-center py-12 text-gray-500">
+          No progression path available
+        </div>
+      )
+    }
+
     return (
       <div className="space-y-4">
         {/* Easier Variation */}
-        {exercise.progressionPath.easier && (
+        {path.easier && (
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -302,7 +315,7 @@ export function ExerciseInstructionsModal({
                 </div>
                 <div className="flex-1">
                   <p className="text-xs text-gray-600">Easier Variation</p>
-                  <p className="font-semibold">{exercise.progressionPath.easier.name}</p>
+                  <p className="font-semibold">{path.easier.name}</p>
                 </div>
               </div>
             </CardContent>
@@ -325,7 +338,7 @@ export function ExerciseInstructionsModal({
         </Card>
 
         {/* Harder Variation */}
-        {exercise.progressionPath.harder && (
+        {path.harder && (
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -334,7 +347,7 @@ export function ExerciseInstructionsModal({
                 </div>
                 <div className="flex-1">
                   <p className="text-xs text-gray-600">Harder Variation</p>
-                  <p className="font-semibold">{exercise.progressionPath.harder.name}</p>
+                  <p className="font-semibold">{path.harder.name}</p>
                 </div>
               </div>
             </CardContent>

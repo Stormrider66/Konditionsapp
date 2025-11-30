@@ -12,7 +12,7 @@ import { analyzeHRDrift, type HRDriftTestData } from '@/lib/training-engine/fiel
 import { calculateCriticalVelocity, type CriticalVelocityData } from '@/lib/training-engine/field-tests/critical-velocity';
 import { analyzeTwentyMinTT, type TwentyMinTTData } from '@/lib/training-engine/field-tests/twenty-min-tt';
 import { estimateRaceBasedThreshold } from '@/lib/training-engine/field-tests/race-based';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 const ttSchema = z.object({
   testType: z.literal('THIRTY_MIN_TT'),
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
         clientId: data.athleteId,
         testType: data.testType,
         date: new Date(),
-        conditions,
+        conditions: conditions ?? undefined,
         results: result,
         lt1Pace: thresholds.lt1Pace,
         lt1HR: thresholds.lt1HR,
@@ -171,8 +171,8 @@ export async function POST(request: NextRequest) {
         lt2HR: thresholds.lt2HR,
         confidence,
         valid: validationSummary.valid,
-        warnings: validationSummary.warnings,
-        errors: validationSummary.errors,
+        warnings: validationSummary.warnings ?? undefined,
+        errors: validationSummary.errors ?? undefined,
       },
     });
 
@@ -249,13 +249,20 @@ function buildThirtyMinuteInput(data: z.infer<typeof ttSchema>): ThirtyMinTTData
   const hrSeries =
     data.hrSeries ?? Array(30).fill(data.averageHR)
 
+  // Map schema fields to type fields (surface -> terrain)
+  const conditions = data.conditions ? {
+    temperature: data.conditions.temperature ?? 15,
+    wind: data.conditions.wind ?? 'calm',
+    terrain: data.conditions.surface ?? 'track',
+  } : undefined
+
   return {
     totalDistance,
     firstHalfDistance: firstHalf,
     secondHalfDistance: secondHalf,
     splits5min: splits,
     hrData: hrSeries,
-    conditions: data.conditions,
+    conditions,
   }
 }
 
@@ -268,12 +275,19 @@ function buildHRDriftInput(
     data.hrSamples ??
     buildHRSeriesFromHalves(data.duration, data.firstHalfAvgHR, data.secondHalfAvgHR)
 
+  // Map schema fields to type fields with defaults
+  const conditions = data.conditions ? {
+    temperature: data.conditions.temperature ?? 15,
+    humidity: data.conditions.humidity ?? 50,
+    hydrationStatus: data.conditions.hydrationStatus ?? 'normal',
+  } : undefined
+
   return {
     duration: data.duration,
     targetPace: data.pace,
     paceData: paceSamples,
     hrData: hrSamples,
-    conditions: data.conditions,
+    conditions,
   }
 }
 

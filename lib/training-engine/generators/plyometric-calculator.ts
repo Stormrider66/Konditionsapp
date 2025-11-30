@@ -139,7 +139,7 @@ export async function selectPlyometricExercises(
     let reps: number
 
     if (ex.plyometricIntensity === 'HIGH') {
-      // High intensity: Low volume (3-5 sets × 5-8 reps)
+      // High intensity: Low volume (3-5 sets ï¿½ 5-8 reps)
       sets = 4
       reps = 6
 
@@ -152,11 +152,11 @@ export async function selectPlyometricExercises(
 
       highIntensityContacts += exerciseContacts
     } else if (ex.plyometricIntensity === 'MODERATE') {
-      // Moderate intensity: Medium volume (3-4 sets × 8-10 reps)
+      // Moderate intensity: Medium volume (3-4 sets ï¿½ 8-10 reps)
       sets = 3
       reps = 10
     } else {
-      // Low intensity: Higher volume (3-4 sets × 10-15 reps)
+      // Low intensity: Higher volume (3-4 sets ï¿½ 10-15 reps)
       sets = 3
       reps = 12
     }
@@ -292,7 +292,7 @@ export function validateExerciseAddition(
   }
 
   // Check intensity allowed for level
-  if (!limits.allowedIntensities.includes(newExercise.intensity)) {
+  if (!(limits.allowedIntensities as readonly string[]).includes(newExercise.intensity)) {
     return {
       canAdd: false,
       reason: `${newExercise.intensity} intensity not allowed for ${currentSession.athleteLevel} level`,
@@ -364,7 +364,7 @@ export async function calculateWeeklyPlyometricVolume(
 /**
  * Get plyometric progression path
  *
- * Beginner ’ Intermediate ’ Advanced ’ Elite
+ * Beginner ï¿½ Intermediate ï¿½ Advanced ï¿½ Elite
  *
  * @param athleteLevel - Current level
  * @param weeksInPhase - Weeks at current level

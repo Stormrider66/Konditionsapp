@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       data: tests,
     })
   } catch (error) {
-    logger.error('Error fetching tests', { userId: user?.id }, error)
+    logger.error('Error fetching tests', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    logger.error('Error creating test', { userId: user?.id, clientId: data?.clientId }, error)
+    logger.error('Error creating test', {}, error)
     return NextResponse.json(
       {
         success: false,

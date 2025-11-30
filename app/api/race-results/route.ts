@@ -2,8 +2,8 @@
 // CRUD endpoints for race results and VDOT calculation
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import prisma from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
 import { logger } from '@/lib/logger'
 
@@ -13,7 +13,7 @@ import { logger } from '@/lib/logger'
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(raceResult, { status: 201 })
   } catch (error) {
-    logger.error('Error creating race result', { clientId: body?.clientId }, error)
+    logger.error('Error creating race result', {}, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createServerClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(updatedResults)
   } catch (error) {
-    logger.error('Error fetching race results', { clientId }, error)
+    logger.error('Error fetching race results', {}, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

@@ -176,9 +176,9 @@ export async function POST(request: NextRequest) {
           exerciseName: seg.exercise?.name || 'Unknown',
           order: seg.order,
           sets: seg.sets || 3,
-          reps: seg.reps || 10,
-          load: seg.load || '70%',
-          restSeconds: seg.restSeconds || 90,
+          reps: seg.repsCount || '10',
+          load: seg.weight || '70%',
+          restSeconds: seg.rest || 90,
           tempo: seg.tempo,
           notes: seg.notes,
         }))

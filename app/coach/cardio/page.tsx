@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import { Suspense } from 'react'
 import { CardioDashboard } from '@/components/coach/cardio/CardioDashboard'
 
 export const metadata: Metadata = {
@@ -7,6 +8,10 @@ export const metadata: Metadata = {
 }
 
 export default function CardioPage() {
-  return <CardioDashboard />
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <CardioDashboard />
+    </Suspense>
+  )
 }
 

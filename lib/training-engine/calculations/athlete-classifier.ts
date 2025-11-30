@@ -5,7 +5,7 @@
 import { type LactateProfile, type MetabolicType } from './lactate-profile-analyzer'
 import { type VDOTResult } from './vdot'
 
-export type AthleteLevel = 'ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'RECREATIONAL'
+export type AthleteLevel = 'ELITE' | 'SUB_ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'RECREATIONAL'
 
 export interface AthleteProfile {
   // Training history
@@ -377,6 +377,9 @@ function applyGenderAdjustment(
     case 'ELITE':
       adjustmentPercent = 2.0 // Elite females have slight advantage
       break
+    case 'SUB_ELITE':
+      adjustmentPercent = 2.25 // Between elite and advanced
+      break
     case 'ADVANCED':
       adjustmentPercent = 2.5 // Advantage increases at sub-elite
       break
@@ -386,6 +389,8 @@ function applyGenderAdjustment(
     case 'RECREATIONAL':
       adjustmentPercent = 2.5
       break
+    default:
+      adjustmentPercent = 2.5 // Default fallback
   }
 
   const adjustedFactor = compressionFactor * (1 + adjustmentPercent / 100)
@@ -522,6 +527,9 @@ function getTrainingRecommendations(
     case 'ELITE':
       weeklyKmRecommendation = { min: 100, max: 150 }
       break
+    case 'SUB_ELITE':
+      weeklyKmRecommendation = { min: 85, max: 130 }
+      break
     case 'ADVANCED':
       weeklyKmRecommendation = { min: 70, max: 110 }
       break
@@ -531,6 +539,8 @@ function getTrainingRecommendations(
     case 'RECREATIONAL':
       weeklyKmRecommendation = { min: 30, max: 60 }
       break
+    default:
+      weeklyKmRecommendation = { min: 50, max: 80 }
   }
 
   // Adjust for masters athletes

@@ -224,7 +224,7 @@ export function generateCrossTrainingSchedule(
 
   const avgRetention = modalitiesUsed.length > 0
     ? modalitiesUsed
-      .map(modality => MODALITY_EQUIVALENCIES[modality].fitnessRetention)
+      .map((modality: keyof typeof MODALITY_EQUIVALENCIES) => MODALITY_EQUIVALENCIES[modality].fitnessRetention)
       .reduce((sum, retention) => sum + retention, 0) / modalitiesUsed.length
     : 0;
 

@@ -7,7 +7,7 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { validateRequest, successResponse, handleApiError, requireAuth } from '@/lib/api/utils';
-import { calculateVDOT, getTrainingPaces, getEquivalentTimes } from '@/lib/calculations/vdot';
+import { calculateVDOT, getTrainingPaces, getEquivalentRaceTimes } from '@/lib/calculations/vdot';
 import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
 
 const requestSchema = z.object({
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const paces = getTrainingPaces(vdot);
 
     // Get equivalent race times
-    const equivalents = getEquivalentTimes(vdot);
+    const equivalents = getEquivalentRaceTimes(vdot);
 
     // Environmental adjustments
     const adjustments: string[] = [];

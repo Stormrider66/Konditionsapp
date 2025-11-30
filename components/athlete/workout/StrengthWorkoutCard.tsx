@@ -185,7 +185,7 @@ export function StrengthWorkoutCard({
                           {exercise?.name || 'Exercise'}
                         </p>
                         <p className="text-xs text-gray-600">
-                          {segment.sets}×{segment.reps} @ {segment.load || '—'}
+                          {segment.sets}×{segment.reps} @ {segment.weight || '—'}
                         </p>
                       </div>
 
@@ -212,11 +212,11 @@ export function StrengthWorkoutCard({
                         </div>
                         <div>
                           <span className="text-xs text-gray-600">Load</span>
-                          <p className="font-semibold">{segment.load || '—'}</p>
+                          <p className="font-semibold">{segment.weight || '—'}</p>
                         </div>
                         <div>
                           <span className="text-xs text-gray-600">Rest</span>
-                          <p className="font-semibold">{segment.restSeconds || '—'}s</p>
+                          <p className="font-semibold">{segment.rest || '—'}s</p>
                         </div>
                       </div>
 

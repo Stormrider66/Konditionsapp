@@ -195,7 +195,7 @@ export function selectOptimalPaces(
     age: profile.age,
     gender: profile.gender,
     weeklyKm: profile.weeklyKm,
-    trainingAge: profile.trainingAge,
+    yearsRunning: profile.trainingAge,
     vdotResult,
     lactateProfile,
     restingHR: profile.restingHR,
@@ -507,7 +507,7 @@ function buildDanielsZones(
 function buildCanovaZones(
   marathonPaceKmh: number,
   thresholdPaceKmh: number,
-  level: 'ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'RECREATIONAL',
+  level: 'ELITE' | 'SUB_ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'RECREATIONAL',
   lactateProfile?: LactateProfile,
   maxHR?: number
 ): CanovaZones {
@@ -582,7 +582,7 @@ function buildCanovaZones(
  */
 function buildNorwegianZones(
   thresholdPaceKmh: number,
-  level: 'ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'RECREATIONAL',
+  level: 'ELITE' | 'SUB_ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'RECREATIONAL',
   lactateProfile?: LactateProfile,
   maxHR?: number
 ): NorwegianZones {

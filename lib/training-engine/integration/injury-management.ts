@@ -150,7 +150,7 @@ export async function processInjuryDetection(
   );
 
   // Step 7: Generate coach notification
-  const coachNotification = generateCoachNotification(
+  const coachNotification = await generateCoachNotification(
     injury,
     immediateAction,
     estimatedReturnWeeks,
@@ -209,10 +209,10 @@ async function getUpcomingWorkouts(athleteId: string, prisma: PrismaClient) {
 
   return await prisma.trainingDay.findMany({
     where: {
-      trainingWeek: {
+      week: {
         program: {
           clientId: athleteId,
-          status: 'ACTIVE'
+          isActive: true
         }
       },
       date: {
@@ -631,6 +631,16 @@ async function generateCoachNotification(
  * Persist injury record to database
  */
 async function persistInjuryRecord(injury: InjuryDetection, prisma: PrismaClient) {
+  // Derive assessment based on pain level
+  let assessment = 'CONTINUE';
+  if (injury.painLevel > 5) {
+    assessment = 'REST';
+  } else if (injury.painLevel >= 3) {
+    assessment = 'CROSS_TRAIN';
+  } else if (injury.painLevel > 0) {
+    assessment = 'MODIFY';
+  }
+
   await prisma.injuryAssessment.create({
     data: {
       clientId: injury.athleteId,
@@ -638,7 +648,8 @@ async function persistInjuryRecord(injury: InjuryDetection, prisma: PrismaClient
       painLevel: injury.painLevel,
       painTiming: injury.painTiming,
       detectedAt: injury.date,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      assessment
     }
   });
 }
@@ -656,7 +667,7 @@ async function applyWorkoutModifications(
         where: { id: mod.workoutId },
         data: {
           status: 'CANCELLED',
-          notes: mod.reasoning
+          coachNotes: mod.reasoning
         }
       });
     } else if (mod.modifiedWorkout) {
@@ -664,9 +675,9 @@ async function applyWorkoutModifications(
         where: { id: mod.workoutId },
         data: {
           type: mod.modifiedWorkout.type as any,
-          totalDuration: mod.modifiedWorkout.duration,
-          intensityType: mod.modifiedWorkout.intensity as any,
-          notes: mod.modifiedWorkout.notes,
+          duration: mod.modifiedWorkout.duration,
+          intensity: mod.modifiedWorkout.intensity as any,
+          coachNotes: mod.modifiedWorkout.notes,
           status: 'MODIFIED'
         }
       });

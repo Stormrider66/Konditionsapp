@@ -109,21 +109,28 @@ export function analyzeLactateProfile(
 
   // === METHOD 2: D-max (Best Automatic Method) ===
   try {
-    const dmaxResult = calculateDmax(sortedStages)
+    // Convert stages to LactateTestData format expected by calculateDmax
+    const dmaxData = {
+      intensity: sortedStages.map(s => s.speed || s.power || 0),
+      lactate: sortedStages.map(s => s.lactate),
+      heartRate: sortedStages.map(s => s.heartRate),
+      unit: sortedStages[0]?.speed ? 'km/h' : 'watt'
+    }
+    const dmaxResult = calculateDmax(dmaxData)
 
-    if (dmaxResult.rSquared >= 0.90) {
+    if (dmaxResult.r2 >= 0.90) {
       // D-max successful with high confidence
       const profile = createProfileFromDmax(dmaxResult, maxLactate, sortedStages, curvePattern)
       return profile
-    } else if (dmaxResult.rSquared >= 0.85) {
+    } else if (dmaxResult.r2 >= 0.85) {
       // D-max marginal - use with warning
       const profile = createProfileFromDmax(dmaxResult, maxLactate, sortedStages, curvePattern)
-      profile.warnings.push(`D-max curve fit marginal (R²=${dmaxResult.rSquared.toFixed(3)}). Consider manual threshold selection.`)
+      profile.warnings.push(`D-max curve fit marginal (R²=${dmaxResult.r2.toFixed(3)}). Consider manual threshold selection.`)
       profile.lt2.confidence = 'MEDIUM'
       return profile
     } else {
       // D-max failed
-      warnings.push(`D-max failed (R²=${dmaxResult.rSquared.toFixed(3)} < 0.85). Using individual ratio method.`)
+      warnings.push(`D-max failed (R²=${dmaxResult.r2.toFixed(3)} < 0.85). Using individual ratio method.`)
     }
   } catch (error) {
     warnings.push('D-max calculation failed. Using individual ratio method.')
@@ -165,16 +172,16 @@ function createProfileFromDmax(
 ): LactateProfile {
   // LT2 = D-max point
   const lt2 = {
-    lactate: dmaxResult.dmaxLactate,
-    lactatePercent: (dmaxResult.dmaxLactate / maxLactate) * 100,
-    speed: dmaxResult.dmaxSpeed,
-    heartRate: dmaxResult.dmaxHR,
+    lactate: dmaxResult.lactate,
+    lactatePercent: (dmaxResult.lactate / maxLactate) * 100,
+    speed: dmaxResult.intensity,
+    heartRate: dmaxResult.heartRate,
     confidence: 'VERY_HIGH' as const,
     method: 'DMAX' as const
   }
 
   // LT1 = Estimate as ~40-50% of LT2 lactate
-  const lt1LactateTarget = dmaxResult.dmaxLactate * 0.45
+  const lt1LactateTarget = dmaxResult.lactate * 0.45
   const lt1Stage = findStageNearLactate(stages, lt1LactateTarget)
 
   const lt1 = {
@@ -199,7 +206,7 @@ function createProfileFromDmax(
     athleteLevel,
     curvePattern,
     confidence: 'VERY_HIGH',
-    rSquared: dmaxResult.rSquared,
+    rSquared: dmaxResult.r2,
     warnings: [],
     errors: []
   }

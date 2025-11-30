@@ -77,7 +77,7 @@ function estimateThreshold(stages: TestStage[], targetLactate: number): Threshol
  * Try to calculate threshold using D-max method
  * Falls back to linear interpolation if D-max fails or has low confidence
  */
-function tryDmaxThreshold(stages: TestStage[]): (Threshold & { method: string; confidence: string; r2?: number }) | null {
+function tryDmaxThreshold(stages: TestStage[]): (Threshold & { method: string; confidence: string; r2?: number; coefficients?: any; dmaxDistance?: number }) | null {
   if (stages.length < 4) {
     console.log('Not enough stages for D-max (need 4+), skipping')
     return null
@@ -163,7 +163,7 @@ export function calculateAerobicThreshold(stages: TestStage[]): Threshold | null
 
   // Try D-max first
   const dmaxResult = tryDmaxThreshold(stages)
-  if (dmaxResult && dmaxResult.lactate <= 2.5 && dmaxResult.lactate >= 1.5) {
+  if (dmaxResult && dmaxResult.lactate !== undefined && dmaxResult.lactate <= 2.5 && dmaxResult.lactate >= 1.5) {
     // D-max found a threshold in reasonable aerobic range (1.5-2.5 mmol/L)
     console.log('Using D-max for aerobic threshold:', dmaxResult)
     return dmaxResult

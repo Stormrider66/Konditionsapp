@@ -332,47 +332,6 @@ export default function AthleteMessagesPage() {
               </div>
             </CardContent>
           </>
-        ) : coachInfo ? (
-          <CardContent className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <MessageSquare className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-lg font-semibold mb-2">Starta en konversation</p>
-              <p className="text-sm text-muted-foreground mb-6">
-                Skriv ett meddelande till {coachInfo.name} nedan
-              </p>
-              <div className="max-w-md mx-auto space-y-3">
-                <Textarea
-                  placeholder="Skriv ditt meddelande till din coach..."
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  rows={4}
-                  maxLength={1000}
-                  disabled={sending}
-                />
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    {replyText.length}/1000 tecken
-                  </p>
-                  <Button
-                    onClick={sendMessage}
-                    disabled={!replyText.trim() || sending}
-                  >
-                    {sending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Skickar...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-2" />
-                        Skicka
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
         ) : (
           <CardContent className="flex items-center justify-center py-20">
             <div className="text-center text-muted-foreground">

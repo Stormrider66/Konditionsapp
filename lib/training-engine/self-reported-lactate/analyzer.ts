@@ -123,7 +123,7 @@ export function analyzeSelfReportedTest(
       unit,
     })
 
-    if (!dmaxResult.valid || dmaxResult.confidence === 'LOW') {
+    if (dmaxResult.r2 < 0.9 || dmaxResult.confidence === 'LOW') {
       warnings.push('D-max calculation confidence is low - curve fit may be poor')
 
       // Try fallback to 4.0 mmol/L interpolation
@@ -164,9 +164,9 @@ export function analyzeSelfReportedTest(
       hasEnoughData: true,
       estimatedLT1: lt1,
       estimatedLT2: {
-        intensity: dmaxResult.lt2Value,
-        lactate: dmaxResult.lt2Lactate,
-        heartRate: dmaxResult.lt2HR || 0,
+        intensity: dmaxResult.intensity,
+        lactate: dmaxResult.lactate,
+        heartRate: dmaxResult.heartRate || 0,
         unit,
       },
       confidence,

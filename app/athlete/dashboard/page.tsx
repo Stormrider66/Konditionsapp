@@ -9,24 +9,44 @@ import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
 import { RecentActivity } from '@/components/athlete/RecentActivity'
 import { ActivePrograms } from '@/components/athlete/ActivePrograms'
 import { AthleteStats } from '@/components/athlete/AthleteStats'
+import { CyclingDashboard } from '@/components/athlete/CyclingDashboard'
+import { SkiingDashboard } from '@/components/athlete/SkiingDashboard'
+import { SwimmingDashboard } from '@/components/athlete/SwimmingDashboard'
+import { TriathlonDashboard } from '@/components/athlete/TriathlonDashboard'
+import { HYROXDashboard } from '@/components/athlete/HYROXDashboard'
+import { GeneralFitnessDashboard } from '@/components/athlete/GeneralFitnessDashboard'
 import { Card, CardContent } from '@/components/ui/card'
-import { TrendingUp, Trophy, Calendar, Activity } from 'lucide-react'
+import { TrendingUp, Trophy, Calendar, Activity, Zap, Snowflake, Waves, Medal, Target, Heart } from 'lucide-react'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 
 export default async function AthleteDashboardPage() {
   const user = await requireAthlete()
 
-  // Get athlete account
+  // Get athlete account with sport profile
   const athleteAccount = await prisma.athleteAccount.findUnique({
     where: { userId: user.id },
     include: {
-      client: true,
+      client: {
+        include: {
+          sportProfile: true,
+        },
+      },
     },
   })
 
   if (!athleteAccount) {
     redirect('/login')
   }
+
+  // Get sport profile for sport-aware dashboard
+  const sportProfile = athleteAccount.client.sportProfile
+  const primarySport = sportProfile?.primarySport
+  const isCyclist = primarySport === 'CYCLING'
+  const isSkier = primarySport === 'SKIING'
+  const isSwimmer = primarySport === 'SWIMMING'
+  const isTriathlete = primarySport === 'TRIATHLON'
+  const isHyroxAthlete = primarySport === 'HYROX'
+  const isGeneralFitnessAthlete = primarySport === 'GENERAL_FITNESS'
 
   const now = new Date()
   const todayStart = startOfDay(now)
@@ -299,16 +319,75 @@ export default async function AthleteDashboardPage() {
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <AthleteStats
-        totalWorkouts={totalWorkoutsThisWeek}
-        totalDistance={totalDistanceThisWeek}
-        totalDuration={totalDurationThisWeek}
-        avgEffort={avgEffortThisWeek}
-        plannedWorkouts={plannedWorkoutsThisWeek}
-        plannedDistance={plannedDistanceThisWeek}
-        plannedDuration={plannedDurationThisWeek}
-      />
+      {/* Sport-Specific Dashboard */}
+      {isCyclist && (
+        <div className="mb-6">
+          <CyclingDashboard
+            cyclingSettings={sportProfile?.cyclingSettings as any}
+            experience={sportProfile?.cyclingExperience || null}
+            clientName={athleteAccount.client.name}
+          />
+        </div>
+      )}
+
+      {isSkier && (
+        <div className="mb-6">
+          <SkiingDashboard
+            skiingSettings={sportProfile?.skiingSettings as any}
+            experience={null}
+            clientName={athleteAccount.client.name}
+          />
+        </div>
+      )}
+
+      {isSwimmer && (
+        <div className="mb-6">
+          <SwimmingDashboard
+            swimmingSettings={sportProfile?.swimmingSettings as any}
+            experience={null}
+            clientName={athleteAccount.client.name}
+          />
+        </div>
+      )}
+
+      {isTriathlete && (
+        <div className="mb-6">
+          <TriathlonDashboard
+            triathlonSettings={sportProfile?.triathlonSettings as any}
+            experience={null}
+            clientName={athleteAccount.client.name}
+          />
+        </div>
+      )}
+
+      {isHyroxAthlete && (
+        <div className="mb-6">
+          <HYROXDashboard
+            settings={sportProfile?.hyroxSettings as any}
+          />
+        </div>
+      )}
+
+      {isGeneralFitnessAthlete && (
+        <div className="mb-6">
+          <GeneralFitnessDashboard
+            settings={sportProfile?.generalFitnessSettings as any}
+          />
+        </div>
+      )}
+
+      {/* Stats Cards - Show for runners (non-cyclists, non-skiers, non-swimmers, non-triathletes, non-hyrox, non-general-fitness) */}
+      {!isCyclist && !isSkier && !isSwimmer && !isTriathlete && !isHyroxAthlete && !isGeneralFitnessAthlete && (
+        <AthleteStats
+          totalWorkouts={totalWorkoutsThisWeek}
+          totalDistance={totalDistanceThisWeek}
+          totalDuration={totalDurationThisWeek}
+          avgEffort={avgEffortThisWeek}
+          plannedWorkouts={plannedWorkoutsThisWeek}
+          plannedDistance={plannedDistanceThisWeek}
+          plannedDuration={plannedDurationThisWeek}
+        />
+      )}
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-2 mt-4 sm:mt-6">
         {/* Left Column */}
@@ -338,9 +417,11 @@ export default async function AthleteDashboardPage() {
               <div className="flex items-center gap-3">
                 <Activity className="h-8 w-8 text-red-500" />
                 <div>
-                  <p className="font-semibold">Konditionstester</p>
+                  <p className="font-semibold">
+                    {isCyclist ? 'FTP & Tester' : isSkier ? 'Tröskeltester' : isSwimmer ? 'CSS & Simtester' : isTriathlete ? 'Tröskeltester' : isHyroxAthlete ? 'Benchmark-tester' : isGeneralFitnessAthlete ? 'Fitnesstester' : 'Konditionstester'}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    Resultat och rapporter
+                    {isCyclist ? 'Effektdata och resultat' : isSkier ? 'Tempo och resultat' : isSwimmer ? 'Tempo och resultat' : isTriathlete ? 'CSS, FTP och löptempo' : isHyroxAthlete ? 'Stationstider och löpform' : isGeneralFitnessAthlete ? 'Styrka och kondition' : 'Resultat och rapporter'}
                   </p>
                 </div>
               </div>
@@ -356,7 +437,7 @@ export default async function AthleteDashboardPage() {
                 <div>
                   <p className="font-semibold">Träningshistorik</p>
                   <p className="text-sm text-muted-foreground">
-                    Analys och framsteg
+                    {isCyclist ? 'TSS, tid och watt' : isSkier ? 'Tid, tempo och distans' : isSwimmer ? 'Yardage, tempo och tid' : isTriathlete ? 'Sim, cykel och löp' : isHyroxAthlete ? 'Stationer och löpning' : isGeneralFitnessAthlete ? 'Vikt, styrka och aktivitet' : 'Analys och framsteg'}
                   </p>
                 </div>
               </div>
@@ -364,21 +445,119 @@ export default async function AthleteDashboardPage() {
           </Card>
         </Link>
 
-        <Link href="/athlete/history" className="block">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Trophy className="h-8 w-8 text-yellow-500" />
-                <div>
-                  <p className="font-semibold">Personliga rekord</p>
-                  <p className="text-sm text-muted-foreground">
-                    Dina bästa prestationer
-                  </p>
+        {isCyclist ? (
+          <Link href="/athlete/profile" className="block">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Zap className="h-8 w-8 text-yellow-500" />
+                  <div>
+                    <p className="font-semibold">Cykelinställningar</p>
+                    <p className="text-sm text-muted-foreground">
+                      FTP, vikt och zoner
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+              </CardContent>
+            </Card>
+          </Link>
+        ) : isSkier ? (
+          <Link href="/athlete/profile" className="block">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Snowflake className="h-8 w-8 text-cyan-500" />
+                  <div>
+                    <p className="font-semibold">Skidinställningar</p>
+                    <p className="text-sm text-muted-foreground">
+                      Tempo, teknik och zoner
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ) : isSwimmer ? (
+          <Link href="/athlete/profile" className="block">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Waves className="h-8 w-8 text-blue-500" />
+                  <div>
+                    <p className="font-semibold">Siminställningar</p>
+                    <p className="text-sm text-muted-foreground">
+                      CSS, simtag och zoner
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ) : isTriathlete ? (
+          <Link href="/athlete/profile" className="block">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Medal className="h-8 w-8 text-yellow-500" />
+                  <div>
+                    <p className="font-semibold">Triathloninställningar</p>
+                    <p className="text-sm text-muted-foreground">
+                      Sim/Cykel/Löp-profil
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ) : isHyroxAthlete ? (
+          <Link href="/athlete/profile" className="block">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Target className="h-8 w-8 text-orange-500" />
+                  <div>
+                    <p className="font-semibold">HYROX-inställningar</p>
+                    <p className="text-sm text-muted-foreground">
+                      Stationer och benchmark
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ) : isGeneralFitnessAthlete ? (
+          <Link href="/athlete/profile" className="block">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Heart className="h-8 w-8 text-red-500" />
+                  <div>
+                    <p className="font-semibold">Fitnessinställningar</p>
+                    <p className="text-sm text-muted-foreground">
+                      Mål, aktiviteter och hälsa
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        ) : (
+          <Link href="/athlete/history" className="block">
+            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Trophy className="h-8 w-8 text-yellow-500" />
+                  <div>
+                    <p className="font-semibold">Personliga rekord</p>
+                    <p className="text-sm text-muted-foreground">
+                      Dina bästa prestationer
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
 
         <Link href="/athlete/programs" className="block">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">

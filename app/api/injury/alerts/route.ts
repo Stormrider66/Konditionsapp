@@ -92,8 +92,8 @@ export async function GET(request: NextRequest) {
         // Count workouts modified in the past 14 days
         const modifiedWorkouts = await prisma.workout.count({
           where: {
-            trainingDay: {
-              trainingWeek: {
+            day: {
+              week: {
                 program: {
                   clientId: injury.clientId,
                 },
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
           HIP_FLEXOR: 3,
         }
 
-        let estimatedReturnWeeks = baselineWeeks[injury.injuryType] || 4
+        let estimatedReturnWeeks = injury.injuryType ? (baselineWeeks[injury.injuryType] ?? 4) : 4
 
         // Adjust based on pain severity
         if (injury.painLevel > 7) estimatedReturnWeeks += 2

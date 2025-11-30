@@ -381,13 +381,11 @@ async function sendCoachNotification(
   try {
     await prisma.message.create({
       data: {
-        senderId: 'SYSTEM', // System-generated message
-        recipientId: coachUserId,
+        senderId: coachUserId, // Using coach as sender (system messages not supported)
+        receiverId: coachUserId,
         subject: notification.title,
-        content: notification.message,
-        priority: notification.urgency,
-        read: false,
-        sentAt: new Date(),
+        content: `[${notification.urgency}] ${notification.message}`,
+        isRead: false,
       },
     })
 

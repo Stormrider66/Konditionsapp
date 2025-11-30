@@ -76,7 +76,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
   const baselineSlope = (lastPoint.lactate - firstPoint.lactate) / (lastPoint.intensity - firstPoint.intensity)
   const baselineIntercept = firstPoint.lactate - baselineSlope * firstPoint.intensity
 
-  const baseline = []
+  const baseline: { intensity: number; lactate: number }[] = []
   for (let intensity = minIntensity; intensity <= maxIntensity; intensity += step) {
     const lactate = baselineSlope * intensity + baselineIntercept
     baseline.push({

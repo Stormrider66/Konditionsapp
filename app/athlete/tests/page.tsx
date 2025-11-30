@@ -196,13 +196,13 @@ export default async function AthleteTestsPage() {
                         {test.maxHR ? `${test.maxHR} bpm` : '-'}
                       </TableCell>
                       <TableCell className="text-center">
-                        {test.aerobicThreshold?.heartRate
-                          ? `${test.aerobicThreshold.heartRate} bpm`
+                        {(test.aerobicThreshold as any)?.heartRate
+                          ? `${(test.aerobicThreshold as any).heartRate} bpm`
                           : '-'}
                       </TableCell>
                       <TableCell className="text-center">
-                        {test.anaerobicThreshold?.heartRate
-                          ? `${test.anaerobicThreshold.heartRate} bpm`
+                        {(test.anaerobicThreshold as any)?.heartRate
+                          ? `${(test.anaerobicThreshold as any).heartRate} bpm`
                           : '-'}
                       </TableCell>
                       <TableCell className="text-right">

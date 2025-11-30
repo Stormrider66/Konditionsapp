@@ -161,7 +161,7 @@ export function estimateThresholdsFromPBWithImprovement(
 
   return {
     method: 'PB_WITH_IMPROVEMENT',
-    confidence: validation.confidence,
+    confidence: validation.confidence as 'LOW' | 'HIGH' | 'MEDIUM' | 'MEDIUM_HIGH',
 
     LT1: {
       pace: currentThresholds.LT1.pace, // Use current for initial weeks

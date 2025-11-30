@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 200 })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    logger.error('Error calculating progression', { clientId: body?.clientId, exerciseId: body?.exerciseId }, error)
+    logger.error('Error calculating progression', {}, error)
     return NextResponse.json({ error: errorMessage || 'Internal server error' }, { status: 500 })
   }
 }

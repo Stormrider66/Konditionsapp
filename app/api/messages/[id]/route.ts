@@ -94,7 +94,7 @@ export async function PATCH(
       message: 'Meddelande markerat som läst',
     })
   } catch (error) {
-    logger.error('Error marking message as read', { messageId: id, userId: user?.id }, error)
+    logger.error('Error marking message as read', {}, error)
     return NextResponse.json(
       {
         success: false,

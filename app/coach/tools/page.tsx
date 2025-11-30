@@ -14,7 +14,7 @@ import { VDOTCalculator } from '@/components/coach/calculators/VDOTCalculator';
 import { EnvironmentalCalculator } from '@/components/coach/calculators/EnvironmentalCalculator';
 import { WorkoutConverter } from '@/components/coach/cross-training/WorkoutConverter';
 import { InjuryAssessmentForm } from '@/components/coach/injury/InjuryAssessmentForm';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { Calculator, Thermometer, Activity, AlertTriangle } from 'lucide-react';
 
 export default async function CoachToolsPage() {
@@ -25,15 +25,14 @@ export default async function CoachToolsPage() {
     where: { userId: user.id },
     select: {
       id: true,
-      firstName: true,
-      lastName: true
+      name: true
     },
-    orderBy: { lastName: 'asc' }
+    orderBy: { name: 'asc' }
   });
 
   const athletes = clients.map(c => ({
     id: c.id,
-    name: `${c.firstName} ${c.lastName}`
+    name: c.name
   }));
 
   return (

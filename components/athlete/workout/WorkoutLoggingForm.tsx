@@ -109,7 +109,7 @@ export function WorkoutLoggingForm({
         setsPlanned: segment.sets || 0,
         repsCompleted: segment.reps || 0,
         repsPlanned: segment.reps || 0,
-        loadUsed: parseFloat(segment.load?.replace(/[^\d.]/g, '') || '0'),
+        loadUsed: parseFloat(segment.weight?.replace(/[^\d.]/g, '') || '0'),
         rpe: 5,
         notes: '',
         skipped: false,
@@ -183,7 +183,6 @@ export function WorkoutLoggingForm({
     try {
       const logData = {
         workoutId: workout.id,
-        clientId: workout.trainingDayId, // This should come from auth context
         completedAt: new Date().toISOString(),
         duration: actualDuration,
         overallRPE,
@@ -252,14 +251,15 @@ export function WorkoutLoggingForm({
           <div className="flex items-center gap-4">
             <Input
               type="number"
+              inputMode="numeric"
               value={actualDuration}
               onChange={(e) => setActualDuration(parseInt(e.target.value) || 0)}
-              className="w-24"
+              className="w-24 h-12 text-lg"
               min="1"
             />
-            <span className="text-sm text-gray-600">minutes</span>
+            <span className="text-sm text-gray-600">minuter</span>
             <span className="text-xs text-gray-500">
-              (Planned: {workout.duration} min)
+              (Planerat: {workout.duration} min)
             </span>
           </div>
         </CardContent>
@@ -285,7 +285,7 @@ export function WorkoutLoggingForm({
                     <div>
                       <h3 className="font-semibold text-sm">{exercise?.name || 'Exercise'}</h3>
                       <p className="text-xs text-gray-600">
-                        Target: {segment.sets}×{segment.reps} @ {segment.load || '—'}
+                        Target: {segment.sets}×{segment.reps} @ {segment.weight || '—'}
                       </p>
                     </div>
                   </div>
@@ -305,43 +305,49 @@ export function WorkoutLoggingForm({
               {!log?.skipped && (
                 <CardContent className="space-y-4">
                   {/* Sets and Reps */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs">Sets Completed</Label>
+                      <Label className="text-xs mb-1 block">Set</Label>
                       <Input
                         type="number"
+                        inputMode="numeric"
                         value={log?.setsCompleted || 0}
                         onChange={(e) =>
                           updateExerciseLog(segment.id, 'setsCompleted', parseInt(e.target.value) || 0)
                         }
                         min="0"
                         max={segment.sets || 10}
+                        className="h-12 text-lg text-center"
                       />
                     </div>
                     <div>
-                      <Label className="text-xs">Reps Completed</Label>
+                      <Label className="text-xs mb-1 block">Reps</Label>
                       <Input
                         type="number"
+                        inputMode="numeric"
                         value={log?.repsCompleted || 0}
                         onChange={(e) =>
                           updateExerciseLog(segment.id, 'repsCompleted', parseInt(e.target.value) || 0)
                         }
                         min="0"
+                        className="h-12 text-lg text-center"
                       />
                     </div>
                   </div>
 
                   {/* Load */}
                   <div>
-                    <Label className="text-xs">Load Used (kg)</Label>
+                    <Label className="text-xs mb-1 block">Belastning (kg)</Label>
                     <Input
                       type="number"
+                      inputMode="decimal"
                       step="0.5"
                       value={log?.loadUsed || 0}
                       onChange={(e) =>
                         updateExerciseLog(segment.id, 'loadUsed', parseFloat(e.target.value) || 0)
                       }
                       min="0"
+                      className="h-12 text-lg"
                     />
                   </div>
 
@@ -451,16 +457,27 @@ export function WorkoutLoggingForm({
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-3">
-        <Button variant="outline" onClick={onCancel} className="flex-1" disabled={isSaving}>
-          <X className="h-4 w-4 mr-2" />
-          Cancel
-        </Button>
-        <Button onClick={handleSubmit} className="flex-1" disabled={isSaving}>
-          <Send className="h-4 w-4 mr-2" />
-          {isSaving ? 'Submitting...' : 'Submit Workout'}
-        </Button>
+      {/* Action Buttons - Sticky on mobile */}
+      <div className="sticky bottom-0 bg-white border-t pt-4 pb-2 -mx-4 px-4 sm:static sm:bg-transparent sm:border-0 sm:pt-0 sm:pb-0 sm:mx-0 sm:px-0">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            className="flex-1 h-12 text-base"
+            disabled={isSaving}
+          >
+            <X className="h-5 w-5 mr-2" />
+            Avbryt
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            className="flex-1 h-12 text-base"
+            disabled={isSaving}
+          >
+            <Send className="h-5 w-5 mr-2" />
+            {isSaving ? 'Sparar...' : 'Logga pass'}
+          </Button>
+        </div>
       </div>
 
       {/* Warning */}

@@ -42,8 +42,14 @@ export async function POST(request: NextRequest) {
 
     const { workout, targetModality, injuryContext, altergSettings } = validation.data;
 
+    // Ensure workout has required structure field with default
+    const runningWorkout = {
+      ...workout,
+      structure: workout.structure || { type: 'continuous', description: '' },
+    };
+
     // Convert workout
-    const conversion = convertRunningWorkout(workout, targetModality);
+    const conversion = convertRunningWorkout(runningWorkout, targetModality);
 
     // Get modality details
     const equivalency = MODALITY_EQUIVALENCIES[targetModality];

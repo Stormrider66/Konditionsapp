@@ -8,6 +8,7 @@ import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import type { Client, Test, TestType, TrainingZone } from '@/types'
 import { ProgressionChart } from '@/components/charts/ProgressionChart'
+import { SportSpecificAthleteView } from '@/components/coach/sport-views'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2 } from 'lucide-react'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
@@ -52,6 +53,8 @@ export default function ClientDetailPage() {
   const [user, setUser] = useState<User | null>(null)
   const [programs, setPrograms] = useState<any[]>([])
   const [programsLoading, setProgramsLoading] = useState(true)
+  const [sportProfile, setSportProfile] = useState<any>(null)
+  const [sportProfileLoading, setSportProfileLoading] = useState(true)
 
   // Sorting and filtering state
   const [sortField, setSortField] = useState<SortField>('date')
@@ -114,11 +117,31 @@ export default function ClientDetailPage() {
     }
   }, [id])
 
+  const fetchSportProfile = useCallback(async () => {
+    try {
+      setSportProfileLoading(true)
+      const response = await fetch(`/api/sport-profile/${id}`)
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        setSportProfile(result.data)
+      } else {
+        setSportProfile(null)
+      }
+    } catch (err) {
+      console.error('Error fetching sport profile:', err)
+      setSportProfile(null)
+    } finally {
+      setSportProfileLoading(false)
+    }
+  }, [id])
+
   useEffect(() => {
     fetchClient()
     fetchUser()
     fetchPrograms()
-  }, [fetchClient, fetchPrograms, fetchUser])
+    fetchSportProfile()
+  }, [fetchClient, fetchPrograms, fetchUser, fetchSportProfile])
 
   const calculateAge = (birthDate: Date) => {
     const today = new Date()
@@ -380,6 +403,18 @@ export default function ClientDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Sport-Specific Dashboard */}
+        {!sportProfileLoading && sportProfile && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">Sportspecifik Data</h2>
+            <SportSpecificAthleteView
+              clientId={id}
+              clientName={client.name}
+              sportProfile={sportProfile}
+            />
+          </div>
+        )}
 
         {/* Athlete Workout Logs Section - Only show if athlete account exists */}
         {(client as any).athleteAccount && (

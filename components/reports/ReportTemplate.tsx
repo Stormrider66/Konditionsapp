@@ -291,7 +291,7 @@ export function ReportTemplate({
             <DmaxCurveChart
               stages={test.testStages}
               dmaxResult={calculations.anaerobicThreshold as any}
-              intensityUnit={calculations.anaerobicThreshold.unit}
+              intensityUnit={(calculations.anaerobicThreshold as any)?.unit}
             />
           </div>
         </section>

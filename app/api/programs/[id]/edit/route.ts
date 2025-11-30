@@ -22,10 +22,10 @@ const prisma = new PrismaClient()
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const programId = params.id
+    const { id: programId } = await params
     const searchParams = request.nextUrl.searchParams
     const editType = searchParams.get('type') // 'day', 'workout', 'reorder', 'segments'
 
@@ -56,10 +56,10 @@ export async function PUT(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const programId = params.id
+    const { id: programId } = await params
     const searchParams = request.nextUrl.searchParams
     const addType = searchParams.get('type') // 'workout'
 
@@ -82,9 +82,10 @@ export async function POST(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await params // Consume params even if not used directly
     const searchParams = request.nextUrl.searchParams
     const workoutId = searchParams.get('workoutId')
 
@@ -142,7 +143,7 @@ async function editDay(programId: string, body: any) {
  * Add new workout to a day
  */
 async function addWorkout(programId: string, body: any) {
-  const { dayId, type, intensity, duration, description, segments } = body
+  const { dayId, name, type, intensity, duration, description, segments } = body
 
   if (!dayId || !type) {
     return NextResponse.json({ error: 'dayId and type required' }, { status: 400 })
@@ -150,18 +151,18 @@ async function addWorkout(programId: string, body: any) {
 
   // Get current workout count for this day (for ordering)
   const existingWorkouts = await prisma.workout.findMany({
-    where: { trainingDayId: dayId },
+    where: { dayId: dayId },
   })
 
   const workout = await prisma.workout.create({
     data: {
-      trainingDayId: dayId,
+      dayId: dayId,
+      name: name || `${type} Workout`,
       type,
       intensity: intensity || 'MODERATE',
       duration: duration || 60,
       description,
       order: existingWorkouts.length, // Add at end
-      completed: false,
       isCustom: true, // User-added workout
       segments: segments
         ? {

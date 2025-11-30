@@ -46,10 +46,10 @@ interface ExerciseLog {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const workoutId = params.id
+    const { id: workoutId } = await params
     const body = await request.json()
 
     const {
@@ -91,15 +91,12 @@ export async function POST(
     const workoutLog = await prisma.workoutLog.create({
       data: {
         workoutId,
-        clientId,
+        athleteId: clientId,
+        completed: !skipped,
         completedAt: completedAt ? new Date(completedAt) : new Date(),
         duration: duration || workout.duration,
-        plannedDuration: workout.duration,
-        overallRPE: overallRPE || null,
-        notes: notes || null,
-        uploadedFiles: uploadedFiles || [],
-        skipped: skipped || false,
-        skippedReason: skippedReason || null,
+        perceivedEffort: overallRPE || null,
+        notes: notes ? (skippedReason ? `${notes}\n\nSkipped reason: ${skippedReason}` : notes) : (skippedReason || null),
       },
     })
 
@@ -136,7 +133,7 @@ export async function POST(
     await prisma.workout.update({
       where: { id: workoutId },
       data: {
-        completed: !skipped,
+        status: skipped ? 'CANCELLED' : 'COMPLETED',
       },
     })
 

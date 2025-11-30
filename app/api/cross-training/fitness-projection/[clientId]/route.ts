@@ -110,10 +110,10 @@ function calculateVO2maxRetention(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
-    const clientId = params.clientId
+    const { clientId } = await params
     const { searchParams } = new URL(request.url)
 
     // Parse query params
@@ -148,9 +148,9 @@ export async function GET(
     const activeInjury = await prisma.injuryAssessment.findFirst({
       where: {
         clientId,
-        resolved: false,
+        status: { not: 'RESOLVED' },
       },
-      orderBy: { assessmentDate: 'desc' },
+      orderBy: { date: 'desc' },
       select: { injuryType: true },
     })
 
@@ -173,8 +173,9 @@ export async function GET(
         HIP_FLEXOR: 'SWIMMING',
       }
 
-      selectedModality =
-        injuryRecommendations[activeInjury.injuryType] || 'DWR'
+      selectedModality = activeInjury.injuryType
+        ? injuryRecommendations[activeInjury.injuryType] || 'DWR'
+        : 'DWR'
     }
 
     // Calculate weekly projection for selected modality
@@ -238,8 +239,9 @@ export async function GET(
         HIP_FLEXOR: ['SWIMMING', 'DWR', 'AIR_BIKE', 'ROWING'],
       }
 
-      const safeModalities =
-        injurySafeModalities[activeInjury.injuryType] || ['DWR']
+      const safeModalities = activeInjury.injuryType
+        ? injurySafeModalities[activeInjury.injuryType] || ['DWR']
+        : ['DWR']
 
       // Find best safe modality
       const bestSafe = modalityComparisons.find((m) =>
@@ -271,7 +273,7 @@ export async function GET(
       },
     })
   } catch (error: unknown) {
-    logger.error('Error calculating fitness projection', { clientId: params.clientId }, error)
+    logger.error('Error calculating fitness projection', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { error: 'Internal server error' },

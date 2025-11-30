@@ -160,7 +160,7 @@ export default async function AthleteTestDetailPage({ params }: AthleteTestDetai
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <TestChart test={test as any} client={test.client as any} />
+            <TestChart data={test.testStages as any} testType={test.testType} />
           </CardContent>
         </Card>
       )}
@@ -185,7 +185,7 @@ export default async function AthleteTestDetailPage({ params }: AthleteTestDetai
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="text-muted-foreground">Puls:</div>
                     <div className="font-medium">
-                      {test.aerobicThreshold.heartRate} bpm
+                      {(test.aerobicThreshold as any).heartRate} bpm
                     </div>
                     <div className="text-muted-foreground">
                       {test.testType === 'RUNNING'
@@ -195,12 +195,12 @@ export default async function AthleteTestDetailPage({ params }: AthleteTestDetai
                         : 'Tempo:'}
                     </div>
                     <div className="font-medium">
-                      {test.aerobicThreshold.value.toFixed(1)}{' '}
-                      {test.aerobicThreshold.unit}
+                      {(test.aerobicThreshold as any).value?.toFixed(1)}{' '}
+                      {(test.aerobicThreshold as any).unit}
                     </div>
                     <div className="text-muted-foreground">Laktat:</div>
                     <div className="font-medium">
-                      {test.aerobicThreshold.lactate?.toFixed(1) || '-'} mmol/L
+                      {(test.aerobicThreshold as any).lactate?.toFixed(1) || '-'} mmol/L
                     </div>
                   </div>
                 </div>
@@ -215,7 +215,7 @@ export default async function AthleteTestDetailPage({ params }: AthleteTestDetai
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="text-muted-foreground">Puls:</div>
                     <div className="font-medium">
-                      {test.anaerobicThreshold.heartRate} bpm
+                      {(test.anaerobicThreshold as any).heartRate} bpm
                     </div>
                     <div className="text-muted-foreground">
                       {test.testType === 'RUNNING'
@@ -225,12 +225,12 @@ export default async function AthleteTestDetailPage({ params }: AthleteTestDetai
                         : 'Tempo:'}
                     </div>
                     <div className="font-medium">
-                      {test.anaerobicThreshold.value.toFixed(1)}{' '}
-                      {test.anaerobicThreshold.unit}
+                      {(test.anaerobicThreshold as any).value?.toFixed(1)}{' '}
+                      {(test.anaerobicThreshold as any).unit}
                     </div>
                     <div className="text-muted-foreground">Laktat:</div>
                     <div className="font-medium">
-                      {test.anaerobicThreshold.lactate?.toFixed(1) || '-'} mmol/L
+                      {(test.anaerobicThreshold as any).lactate?.toFixed(1) || '-'} mmol/L
                     </div>
                   </div>
                 </div>

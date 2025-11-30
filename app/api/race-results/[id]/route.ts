@@ -2,8 +2,8 @@
 // Individual race result operations
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase/server'
-import prisma from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
 import { logger } from '@/lib/logger'
 
@@ -13,10 +13,11 @@ import { logger } from '@/lib/logger'
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerClient()
+    const { id } = await params
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -24,7 +25,7 @@ export async function GET(
     }
 
     const raceResult = await prisma.raceResult.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         client: {
           select: {
@@ -52,7 +53,7 @@ export async function GET(
       ageInDays,
     })
   } catch (error) {
-    logger.error('Error fetching race result', { raceResultId: params.id }, error)
+    logger.error('Error fetching race result', {}, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -66,10 +67,11 @@ export async function GET(
  */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerClient()
+    const { id } = await params
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -80,7 +82,7 @@ export async function PUT(
 
     // Get existing race result
     const existingResult = await prisma.raceResult.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         client: true,
       },
@@ -117,7 +119,7 @@ export async function PUT(
 
     // Update race result
     const updatedResult = await prisma.raceResult.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         raceName: body.raceName,
         raceDate: body.raceDate ? new Date(body.raceDate) : undefined,
@@ -153,14 +155,14 @@ export async function PUT(
     if (body.usedForZones && !existingResult.usedForZones && vdotResult) {
       await updateAthleteProfileFromRace(
         existingResult.clientId,
-        params.id,
+        id,
         vdotResult
       )
     }
 
     return NextResponse.json(updatedResult)
   } catch (error) {
-    logger.error('Error updating race result', { raceResultId: params.id }, error)
+    logger.error('Error updating race result', {}, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -174,10 +176,11 @@ export async function PUT(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createServerClient()
+    const { id } = await params
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -186,7 +189,7 @@ export async function DELETE(
 
     // Check if race exists
     const raceResult = await prisma.raceResult.findUnique({
-      where: { id: params.id },
+      where: { id },
     })
 
     if (!raceResult) {
@@ -206,12 +209,12 @@ export async function DELETE(
 
     // Delete race result
     await prisma.raceResult.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ success: true, message: 'Race result deleted' })
   } catch (error) {
-    logger.error('Error deleting race result', { raceResultId: params.id }, error)
+    logger.error('Error deleting race result', {}, error)
     return NextResponse.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

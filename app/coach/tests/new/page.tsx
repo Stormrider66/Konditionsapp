@@ -9,7 +9,7 @@
 
 import { requireCoach } from '@/lib/auth-utils';
 import { FieldTestForm } from '@/components/coach/tests/FieldTestForm';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export default async function NewFieldTestPage() {
   const user = await requireCoach();
@@ -19,15 +19,14 @@ export default async function NewFieldTestPage() {
     where: { userId: user.id },
     select: {
       id: true,
-      firstName: true,
-      lastName: true
+      name: true
     },
-    orderBy: { lastName: 'asc' }
+    orderBy: { name: 'asc' }
   });
 
   const athletes = clients.map(c => ({
     id: c.id,
-    name: `${c.firstName} ${c.lastName}`
+    name: c.name
   }));
 
   return (

@@ -166,24 +166,6 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                 </div>
               </div>
             )}
-            {workout.targetHeartRate && (
-              <div className="flex items-center gap-2">
-                <Heart className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Målpuls</p>
-                  <p className="font-semibold">{workout.targetHeartRate} slag/min</p>
-                </div>
-              </div>
-            )}
-            {workout.targetPace && (
-              <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Måltempo</p>
-                  <p className="font-semibold">{workout.targetPace}</p>
-                </div>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -367,7 +349,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
             )}
 
             <div className="text-xs text-muted-foreground border-t pt-4">
-              Loggad {format(new Date(existingLog.completedAt), 'PPP HH:mm', { locale: sv })}
+              Loggad {existingLog.completedAt ? format(new Date(existingLog.completedAt), 'PPP HH:mm', { locale: sv }) : '-'}
             </div>
           </CardContent>
         </Card>

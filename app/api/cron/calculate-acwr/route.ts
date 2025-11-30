@@ -91,12 +91,12 @@ export async function POST(request: NextRequest) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Get all active athletes (have workouts or programs)
+    // Get all active athletes (have training loads or programs)
     const activeAthletes = await prisma.client.findMany({
       where: {
         OR: [
-          { workouts: { some: {} } },
-          { programs: { some: {} } },
+          { trainingLoads: { some: {} } },
+          { trainingPrograms: { some: {} } },
         ],
       },
       select: { id: true, name: true },
@@ -110,49 +110,23 @@ export async function POST(request: NextRequest) {
 
     for (const athlete of activeAthletes) {
       try {
-        // Get yesterday's training load (daily TSS/TRIMP)
+        // Get yesterday's date range
         const yesterday = new Date(today)
         yesterday.setDate(yesterday.getDate() - 1)
 
-        const yesterdayLog = await prisma.workoutLog.findFirst({
+        // Check if there's already a training load entry for yesterday
+        const existingLoad = await prisma.trainingLoad.findFirst({
           where: {
             clientId: athlete.id,
-            completedAt: {
+            date: {
               gte: yesterday,
               lt: today,
             },
           },
-          select: { id: true },
         })
 
-        // Calculate TSS for yesterday (if workout was logged)
-        let dailyTSS = 0
-        if (yesterdayLog) {
-          // Get workout details
-          const workoutLog = await prisma.workoutLog.findUnique({
-            where: { id: yesterdayLog.id },
-            include: {
-              workout: true,
-            },
-          })
-
-          if (workoutLog) {
-            // Simple TSS calculation based on duration and intensity
-            const duration = workoutLog.duration || workoutLog.workout?.duration || 0
-            const intensityMultiplier = {
-              RECOVERY: 0.5,
-              EASY: 0.6,
-              MODERATE: 0.75,
-              THRESHOLD: 1.0,
-              INTERVAL: 1.2,
-              MAX: 1.5,
-            }
-
-            const intensity = workoutLog.workout?.intensity as keyof typeof intensityMultiplier
-            const multiplier = intensityMultiplier[intensity] || 0.7
-            dailyTSS = duration * multiplier
-          }
-        }
+        // Calculate TSS for yesterday based on existing training load
+        let dailyTSS = existingLoad?.dailyLoad || 0
 
         // Get most recent ACWR entry for this athlete
         const previousEntry = await prisma.trainingLoad.findFirst({
@@ -184,8 +158,10 @@ export async function POST(request: NextRequest) {
           data: {
             clientId: athlete.id,
             date: today,
-            tss: dailyTSS > 0 ? dailyTSS : null,
-            trimp: null, // TODO: Calculate TRIMP if HR data available
+            dailyLoad: dailyTSS,
+            loadType: 'TSS',
+            duration: 0, // Will be updated from actual workout logs
+            intensity: 'MODERATE', // Default
             acuteLoad,
             chronicLoad,
             acwr,

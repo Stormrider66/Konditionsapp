@@ -34,7 +34,7 @@ const stageSchema = z.object({
   pace: z.number().min(2).max(10).optional(),
   heartRate: z.number().min(80).max(220),
   lactate: z.number().min(0).max(25),
-  duration: z.number().min(1).max(30).default(3)
+  duration: z.number().min(1).max(30)
 });
 
 const lactateFormSchema = z.object({

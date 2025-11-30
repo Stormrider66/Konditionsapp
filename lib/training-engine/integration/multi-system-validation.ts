@@ -76,7 +76,7 @@ export interface ValidationBlocker {
 
 export interface ValidationWarning {
   system: 'INJURY' | 'READINESS' | 'NORWEGIAN' | 'LACTATE' | 'FIELD_TEST' | 'PROGRAM';
-  severity: 'MEDIUM' | 'LOW';
+  severity: 'HIGH' | 'MEDIUM' | 'LOW';
   message: string;
   recommendation: string;
 }
@@ -263,9 +263,9 @@ async function checkInjuryState(athleteId: string, prisma: PrismaClient) {
 
   return {
     active: true,
-    type: activeInjury.injuryType,
+    type: activeInjury.injuryType ?? undefined,
     painLevel: activeInjury.painLevel,
-    restrictedModalities: restrictionMap[activeInjury.injuryType] || ['RUNNING']
+    restrictedModalities: restrictionMap[activeInjury.injuryType ?? ''] || ['RUNNING']
   };
 }
 
@@ -337,7 +337,7 @@ async function checkLactateState(athleteId: string, prisma: PrismaClient) {
       testDate: 'desc'
     },
     include: {
-      stages: true
+      testStages: true
     }
   });
 
@@ -353,7 +353,7 @@ async function checkLactateState(athleteId: string, prisma: PrismaClient) {
   const testValid = testAge <= 56; // 8 weeks
 
   // Check if we have valid zones (aerobic and anaerobic thresholds)
-  const hasValidZones = !!recentTest.aerobicThresholdHr && !!recentTest.anaerobicThresholdHr;
+  const hasValidZones = !!recentTest.aerobicThreshold && !!recentTest.anaerobicThreshold;
 
   return {
     lastTestAge: testAge,
@@ -370,7 +370,7 @@ async function checkNorwegianState(athleteId: string, prisma: PrismaClient) {
     where: { clientId: athleteId }
   });
 
-  const activeProgram = await prisma.trainingProgram.findFirst({
+  const activeProgram = await prisma.trainingProgramEngine.findFirst({
     where: {
       clientId: athleteId,
       status: 'ACTIVE'
@@ -392,7 +392,7 @@ async function checkNorwegianState(athleteId: string, prisma: PrismaClient) {
   return {
     enabled: true,
     eligible: eligibility.eligible,
-    currentPhase: profile?.norwegianPhase,
+    currentPhase: profile?.norwegianPhase ?? undefined,
     canProgress: eligibility.eligible
   };
 }
@@ -442,8 +442,8 @@ async function checkFieldTestReadiness(
   const recentHardWorkouts = await prisma.workoutLog.findMany({
     where: {
       workout: {
-        trainingDay: {
-          trainingWeek: {
+        day: {
+          week: {
             program: {
               clientId: athleteId
             }
@@ -453,7 +453,7 @@ async function checkFieldTestReadiness(
       completedAt: {
         gte: twoDaysAgo
       },
-      rpe: {
+      perceivedEffort: {
         gte: 8
       }
     }
@@ -477,7 +477,7 @@ async function checkProgramState(athleteId: string, prisma: PrismaClient) {
   const program = await prisma.trainingProgram.findFirst({
     where: {
       clientId: athleteId,
-      status: 'ACTIVE'
+      isActive: true
     },
     include: {
       weeks: {
@@ -505,8 +505,8 @@ async function checkProgramState(athleteId: string, prisma: PrismaClient) {
 
   return {
     active: true,
-    paused: program.status === 'PAUSED',
-    methodology: program.methodology,
+    paused: !program.isActive,
+    methodology: 'STANDARD',
     weekNumber: program.weeks[0]?.weekNumber || 0
   };
 }
@@ -515,7 +515,7 @@ async function getCurrentWeekNumber(athleteId: string, prisma: PrismaClient): Pr
   const program = await prisma.trainingProgram.findFirst({
     where: {
       clientId: athleteId,
-      status: 'ACTIVE'
+      isActive: true
     }
   });
 

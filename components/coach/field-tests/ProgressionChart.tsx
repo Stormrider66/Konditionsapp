@@ -318,9 +318,9 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
                 name="Fälttest LT2"
                 stroke="#3b82f6"
                 strokeWidth={2}
-                dot={(props) => {
+                dot={(props: any) => {
                   const { cx, cy, payload } = props
-                  if (!payload.fieldTestPace) return null
+                  if (!payload.fieldTestPace) return <circle cx={0} cy={0} r={0} fill="transparent" />
 
                   // Size based on confidence
                   const size =

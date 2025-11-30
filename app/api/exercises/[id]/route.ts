@@ -19,10 +19,10 @@ const prisma = new PrismaClient()
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const exerciseId = params.id
+    const { id: exerciseId } = await params
 
     const exercise = await prisma.exercise.findUnique({
       where: { id: exerciseId },
@@ -41,7 +41,7 @@ export async function GET(
 
     return NextResponse.json(exercise, { status: 200 })
   } catch (error: unknown) {
-    logger.error('Error fetching exercise', { exerciseId: params.id }, error)
+    logger.error('Error fetching exercise', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -52,10 +52,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const exerciseId = params.id
+    const { id: exerciseId } = await params
     const body = await request.json()
 
     const {
@@ -85,15 +85,35 @@ export async function PUT(
       return NextResponse.json({ error: 'Exercise not found' }, { status: 404 })
     }
 
-    // Only allow updating custom exercises (not public library)
+    // For public exercises, only allow updating videoUrl (for video import feature)
+    // Other fields cannot be modified on public library exercises
     if (existingExercise.isPublic) {
-      return NextResponse.json(
-        { error: 'Cannot modify public library exercises. Create a custom version instead.' },
-        { status: 403 }
-      )
+      const allowedPublicFields = ['videoUrl']
+      const attemptedFields = Object.keys(body).filter(key => body[key] !== undefined)
+      const disallowedFields = attemptedFields.filter(field => !allowedPublicFields.includes(field))
+
+      if (disallowedFields.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'Cannot modify public library exercises. Only video URL can be updated.',
+            disallowedFields,
+          },
+          { status: 403 }
+        )
+      }
+
+      // Update only videoUrl for public exercises
+      const updated = await prisma.exercise.update({
+        where: { id: exerciseId },
+        data: {
+          ...(videoUrl !== undefined && { videoUrl }),
+        },
+      })
+
+      return NextResponse.json(updated, { status: 200 })
     }
 
-    // Update exercise
+    // Update exercise (custom exercises can update all fields)
     const updated = await prisma.exercise.update({
       where: { id: exerciseId },
       data: {
@@ -117,7 +137,7 @@ export async function PUT(
 
     return NextResponse.json(updated, { status: 200 })
   } catch (error: unknown) {
-    logger.error('Error updating exercise', { exerciseId: params.id }, error)
+    logger.error('Error updating exercise', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -128,10 +148,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const exerciseId = params.id
+    const { id: exerciseId } = await params
 
     // Check if exercise exists
     const existingExercise = await prisma.exercise.findUnique({
@@ -140,7 +160,7 @@ export async function DELETE(
         _count: {
           select: {
             progressionTracking: true,
-            workoutSegments: true,
+            segments: true,
           },
         },
       },
@@ -161,15 +181,15 @@ export async function DELETE(
     // Check if exercise is in use
     const inUse =
       existingExercise._count.progressionTracking > 0 ||
-      existingExercise._count.workoutSegments > 0
+      existingExercise._count.segments > 0
 
     if (inUse) {
       return NextResponse.json(
         {
           error: 'Exercise is in use',
-          message: `This exercise is used in ${existingExercise._count.workoutSegments} workouts and has ${existingExercise._count.progressionTracking} progression records. Archive it instead of deleting.`,
+          message: `This exercise is used in ${existingExercise._count.segments} workouts and has ${existingExercise._count.progressionTracking} progression records. Archive it instead of deleting.`,
           inUse: {
-            workouts: existingExercise._count.workoutSegments,
+            workouts: existingExercise._count.segments,
             progressionRecords: existingExercise._count.progressionTracking,
           },
         },
@@ -187,7 +207,7 @@ export async function DELETE(
       { status: 200 }
     )
   } catch (error: unknown) {
-    logger.error('Error deleting exercise', { exerciseId: params.id }, error)
+    logger.error('Error deleting exercise', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

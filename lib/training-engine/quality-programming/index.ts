@@ -21,12 +21,15 @@ export * from './types';
 // ============================================================================
 
 export {
-  generateStrengthProgram
+  STRENGTH_PHASES,
+  calculatePhaseVolume,
+  generatePeriodizationPlan,
+  recommendPhaseForRunningCycle,
 } from './strength-periodization';
 
 export type {
-  StrengthSchedule,
-  ProgressionPlan
+  PhaseProtocol,
+  PeriodizationPlan,
 } from './strength-periodization';
 
 // ============================================================================

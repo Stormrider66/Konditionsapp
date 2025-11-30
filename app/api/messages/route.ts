@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
       data: messages,
     })
   } catch (error) {
-    logger.error('Error fetching messages', { userId: user?.id, filter, conversationWith }, error)
+    logger.error('Error fetching messages', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    logger.error('Error creating message', { senderId: user?.id, receiverId: body?.receiverId }, error)
+    logger.error('Error creating message', {}, error)
     return NextResponse.json(
       {
         success: false,

@@ -223,12 +223,14 @@ export function LactateCurveChart({
               {/* Highlighted points */}
               <Scatter
                 dataKey="lactate"
-                fill={(entry: any) => {
-                  if (entry.isLT1) return '#22c55e'
-                  if (entry.isLT2) return '#f59e0b'
-                  return '#ef4444'
+                fill="#ef4444"
+                shape={(props: any) => {
+                  const { cx, cy, payload } = props
+                  let fill = '#ef4444'
+                  if (payload?.isLT1) fill = '#22c55e'
+                  else if (payload?.isLT2) fill = '#f59e0b'
+                  return <circle cx={cx} cy={cy} r={6} fill={fill} stroke="#fff" strokeWidth={2} />
                 }}
-                shape="circle"
               />
             </ComposedChart>
           </ResponsiveContainer>

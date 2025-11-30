@@ -11,7 +11,6 @@ import {
   calculateTemperatureEffect,
   calculateAltitudeEffect,
   calculateWindEffect,
-  calculateCombinedEffect
 } from '@/lib/calculations/environmental';
 import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
 
@@ -49,37 +48,34 @@ export async function POST(request: NextRequest) {
     const data = validation.data;
 
     // Calculate temperature effect
-    const tempEffect = calculateTemperatureEffect({
-      temperatureC: data.temperatureC,
-      humidityPercent: data.humidityPercent || 50,
-      isAcclimated: data.heatAcclimated || false
-    });
+    const tempEffect = calculateTemperatureEffect(
+      data.temperatureC,
+      data.humidityPercent || 50
+    );
 
     // Calculate altitude effect
     let altitudeEffect = 0;
     if (data.altitudeMeters && data.altitudeMeters > 1000) {
-      altitudeEffect = calculateAltitudeEffect({
-        altitudeMeters: data.altitudeMeters,
-        acclimatizationDays: data.acclimatizationDays || 0
-      });
+      altitudeEffect = calculateAltitudeEffect(
+        data.altitudeMeters,
+        data.plannedDurationMinutes
+      );
     }
 
     // Calculate wind effect
     let windEffect = 0;
-    if (data.windSpeedMps && data.windDirection !== undefined && data.runnerDirection !== undefined) {
-      windEffect = calculateWindEffect({
-        windSpeedMps: data.windSpeedMps,
-        windDirection: data.windDirection,
-        runnerDirection: data.runnerDirection
-      });
+    if (data.windSpeedMps) {
+      // Calculate running speed from pace
+      const runningSpeedKmh = 3600 / data.plannedPaceSecPerKm;
+      windEffect = calculateWindEffect(
+        data.windSpeedMps * 3.6, // Convert m/s to km/h
+        runningSpeedKmh,
+        data.plannedDurationMinutes
+      );
     }
 
-    // Calculate combined adjustment
-    const totalAdjustment = calculateCombinedEffect({
-      temperature: tempEffect,
-      altitude: altitudeEffect,
-      wind: windEffect
-    });
+    // Calculate combined adjustment (additive, per research)
+    const totalAdjustment = tempEffect + altitudeEffect + windEffect;
 
     // Adjust pace
     const adjustedPaceSecPerKm = data.plannedPaceSecPerKm * (1 + totalAdjustment / 100);

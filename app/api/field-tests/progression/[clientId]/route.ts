@@ -66,63 +66,64 @@ function minKmToSeconds(pace: string): number {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
-    const clientId = params.clientId
+    const { clientId } = await params
 
     // Get all field tests for this client
     const fieldTests = await prisma.fieldTest.findMany({
       where: { clientId },
-      orderBy: { testDate: 'asc' },
+      orderBy: { date: 'asc' },
       select: {
         id: true,
-        testDate: true,
+        date: true,
         testType: true,
         lt2Pace: true,
         lt2HR: true,
         confidence: true,
         valid: true,
-        validationErrors: true,
+        errors: true,
       },
     })
 
-    // Get lab tests for comparison
-    const labTests = await prisma.test.findMany({
-      where: {
-        clientId,
-        anaerobicThresholdPace: { not: null },
-      },
+    // Get lab tests for comparison (filter in JS since Json filtering is complex)
+    const allLabTests = await prisma.test.findMany({
+      where: { clientId },
       orderBy: { testDate: 'asc' },
       select: {
         id: true,
         testDate: true,
-        anaerobicThresholdPace: true,
-        anaerobicThresholdHR: true,
+        anaerobicThreshold: true,
       },
     })
+    const labTests = allLabTests.filter(t => t.anaerobicThreshold !== null)
 
     // Transform field tests
+    // lt2Pace in DB is stored as Float (seconds per km), convert to formatted string
     const fieldTestPoints: FieldTestPoint[] = fieldTests.map((test) => {
-      const lt2PaceSeconds = test.lt2Pace ? minKmToSeconds(test.lt2Pace) : null
+      const lt2PaceSeconds = test.lt2Pace // Already in seconds per km
+      const lt2PaceFormatted = lt2PaceSeconds ? secondsToMinKm(lt2PaceSeconds) : null
 
       return {
         id: test.id,
-        date: test.testDate.toISOString().split('T')[0],
+        date: test.date.toISOString().split('T')[0],
         testType: test.testType as any,
-        lt2Pace: test.lt2Pace,
+        lt2Pace: lt2PaceFormatted,
         lt2PaceSeconds,
         lt2HR: test.lt2HR,
         confidence: test.confidence as any,
         valid: test.valid,
-        validationErrors: test.validationErrors as string[],
+        validationErrors: (test.errors as string[]) || [],
       }
     })
 
     // Transform lab tests
     const labTestPoints: LabTestPoint[] = labTests.map((test) => {
-      // anaerobicThresholdPace is stored as km/h, convert to min/km
-      const kmh = test.anaerobicThresholdPace || 0
+      // anaerobicThreshold is stored as Json {hr: number, value: number, unit: string}
+      // Value is speed in km/h, convert to min/km
+      const threshold = test.anaerobicThreshold as { hr?: number; value?: number; unit?: string } | null
+      const kmh = threshold?.value || 0
       const minPerKm = kmh > 0 ? 60 / kmh : 0
       const lt2PaceSeconds = minPerKm * 60
 
@@ -131,7 +132,7 @@ export async function GET(
         date: test.testDate.toISOString().split('T')[0],
         lt2Pace: kmh > 0 ? secondsToMinKm(lt2PaceSeconds) : null,
         lt2PaceSeconds: kmh > 0 ? lt2PaceSeconds : null,
-        lt2HR: test.anaerobicThresholdHR,
+        lt2HR: threshold?.hr || null,
         source: 'LAB',
       }
     })
@@ -315,7 +316,7 @@ export async function GET(
       },
     })
   } catch (error: unknown) {
-    logger.error('Error fetching field test progression', { clientId: params.clientId }, error)
+    logger.error('Error fetching field test progression', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { error: 'Internal server error' },

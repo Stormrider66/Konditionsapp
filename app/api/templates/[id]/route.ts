@@ -61,7 +61,7 @@ export async function DELETE(
       message: 'Template deleted successfully',
     })
   } catch (error) {
-    logger.error('Error deleting template', { templateId: (await params).id, userId: user?.id }, error)
+    logger.error('Error deleting template', {}, error)
     return NextResponse.json(
       {
         success: false,

@@ -351,7 +351,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                   {logs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="font-medium">
-                        {format(new Date(log.completedAt), 'PPP', { locale: sv })}
+                        {log.completedAt ? format(new Date(log.completedAt), 'PPP', { locale: sv }) : '-'}
                       </TableCell>
                       <TableCell>
                         <div>

@@ -13,13 +13,12 @@ import { logger } from '@/lib/logger';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
+    const { clientId } = await params
     // Authenticate
     const user = await requireCoach();
-
-    const clientId = params.clientId;
 
     // Verify client belongs to this coach
     const client = await prisma.client.findUnique({
@@ -71,7 +70,7 @@ export async function GET(
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    logger.error('[Norwegian Singles Eligibility] Error', { clientId: params.clientId }, error);
+    logger.error('[Norwegian Singles Eligibility] Error', {}, error);
     return NextResponse.json(
       {
         success: false,

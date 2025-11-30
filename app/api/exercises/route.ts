@@ -52,15 +52,15 @@ export async function GET(request: NextRequest) {
     const where: Prisma.ExerciseWhereInput = {}
 
     if (category && category !== 'ALL') {
-      where.category = category
+      where.category = category as any // WorkoutType enum
     }
 
     if (pillar && pillar !== 'ALL') {
-      where.biomechanicalPillar = pillar as Prisma.EnumBiomechanicalPillarFilter
+      where.biomechanicalPillar = pillar as any // BiomechanicalPillar enum
     }
 
     if (level && level !== 'ALL') {
-      where.progressionLevel = level as Prisma.EnumProgressionLevelFilter
+      where.progressionLevel = level as any // ProgressionLevel enum
     }
 
     if (difficulty && difficulty !== 'ALL') {
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (userId) {
-      where.userId = userId
+      where.coachId = userId // Exercise.coachId links to User
     }
 
     if (search) {
@@ -152,11 +152,10 @@ export async function POST(request: NextRequest) {
                 instructions: body.instructions,
                 equipment: body.equipment,
                 videoUrl: body.videoUrl,
-                imageUrl: body.imageUrl,
                 plyometricIntensity: body.plyometricIntensity,
                 contactsPerRep: body.contactsPerRep,
                 isPublic: body.isPublic || false,
-                userId: body.userId
+                coachId: body.userId || body.coachId
             }
         })
         

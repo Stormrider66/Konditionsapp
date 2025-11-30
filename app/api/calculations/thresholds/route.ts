@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const { testType, stages, maxHeartRate, client } = validation.data;
 
     // Perform calculations
-    const results = performAllCalculations(
+    const results = await performAllCalculations(
       {
         testType,
         testStages: stages as any,
@@ -57,27 +57,23 @@ export async function POST(request: NextRequest) {
     );
 
     return successResponse({
-      aerobicThreshold: {
+      aerobicThreshold: results.aerobicThreshold ? {
         speed: results.aerobicThreshold.value,
-        heartRate: results.aerobicThreshold.hr,
+        heartRate: results.aerobicThreshold.heartRate,
         lactate: results.aerobicThreshold.lactate,
         percentOfMax: results.aerobicThreshold.percentOfMax
-      },
-      anaerobicThreshold: {
+      } : null,
+      anaerobicThreshold: results.anaerobicThreshold ? {
         speed: results.anaerobicThreshold.value,
-        heartRate: results.anaerobicThreshold.hr,
+        heartRate: results.anaerobicThreshold.heartRate,
         lactate: results.anaerobicThreshold.lactate,
         percentOfMax: results.anaerobicThreshold.percentOfMax
-      },
-      vo2max: {
-        absolute: results.vo2max?.absolute,
-        relative: results.vo2max?.relative,
-        category: results.vo2max?.category
-      },
-      zones: results.zones,
+      } : null,
+      vo2max: results.vo2max,
+      zones: results.trainingZones,
       method: {
-        aerobic: results.aerobicThreshold.lactate < 2.5 ? 'INTERPOLATION' : 'DMAX',
-        anaerobic: results.anaerobicThreshold.lactate > 3.5 && results.anaerobicThreshold.lactate < 4.5 ? 'INTERPOLATION' : 'DMAX'
+        aerobic: results.aerobicThreshold?.lactate && results.aerobicThreshold.lactate < 2.5 ? 'INTERPOLATION' : 'DMAX',
+        anaerobic: results.anaerobicThreshold?.lactate && results.anaerobicThreshold.lactate > 3.5 && results.anaerobicThreshold.lactate < 4.5 ? 'INTERPOLATION' : 'DMAX'
       },
       confidence: stages.length >= 5 ? 'HIGH' : stages.length >= 4 ? 'MEDIUM' : 'LOW',
       warnings: generateThresholdWarnings(results, stages.length)
@@ -94,9 +90,11 @@ function generateThresholdWarnings(results: any, stageCount: number): string[] {
     warnings.push('Low number of test stages - results may be less accurate');
   }
 
-  const gap = results.anaerobicThreshold.hr - results.aerobicThreshold.hr;
-  if (gap < 10) {
-    warnings.push('Very close thresholds detected - verify test data');
+  if (results.anaerobicThreshold && results.aerobicThreshold) {
+    const gap = results.anaerobicThreshold.heartRate - results.aerobicThreshold.heartRate;
+    if (gap < 10) {
+      warnings.push('Very close thresholds detected - verify test data');
+    }
   }
 
   if (results.vo2max && !results.vo2max.relative) {

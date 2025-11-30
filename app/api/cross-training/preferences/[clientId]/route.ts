@@ -57,38 +57,26 @@ const DEFAULT_PREFERENCES: ModalityPreferences = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
-    const clientId = params.clientId
+    const { clientId } = await params
 
-    // Get athlete profile
+    // Check if athlete profile exists
     const profile = await prisma.athleteProfile.findUnique({
       where: { clientId },
-      select: {
-        crossTrainingPreferences: true,
-      },
+      select: { id: true },
     })
 
-    if (!profile || !profile.crossTrainingPreferences) {
-      // Return default preferences
-      return NextResponse.json({
-        clientId,
-        preferences: DEFAULT_PREFERENCES,
-        isDefault: true,
-      })
-    }
-
-    // Parse JSON preferences
-    const preferences = profile.crossTrainingPreferences as ModalityPreferences
-
+    // crossTrainingPreferences field not yet added to schema
+    // Return default preferences for now
     return NextResponse.json({
       clientId,
-      preferences,
-      isDefault: false,
+      preferences: DEFAULT_PREFERENCES,
+      isDefault: true,
     })
   } catch (error: unknown) {
-    logger.error('Error fetching cross-training preferences', { clientId: params.clientId }, error)
+    logger.error('Error fetching cross-training preferences', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { error: 'Internal server error' },
@@ -99,84 +87,19 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { clientId: string } }
+  { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
-    const clientId = params.clientId
-    const body = await request.json()
+    const { clientId } = await params
 
-    const {
-      preferredOrder,
-      equipment,
-      limitations,
-      injuryOverrides,
-    } = body as Partial<ModalityPreferences>
-
-    // Validation
-    if (preferredOrder) {
-      // Validate modalities are valid
-      const validModalities: Modality[] = ['DWR', 'XC_SKIING', 'ALTERG', 'AIR_BIKE', 'CYCLING', 'ROWING', 'ELLIPTICAL', 'SWIMMING']
-      const invalidModalities = preferredOrder.filter(
-        (m) => !validModalities.includes(m)
-      )
-      if (invalidModalities.length > 0) {
-        return NextResponse.json(
-          { error: `Invalid modalities: ${invalidModalities.join(', ')}` },
-          { status: 400 }
-        )
-      }
-
-      // Validate no duplicates
-      const uniqueModalities = new Set(preferredOrder)
-      if (uniqueModalities.size !== preferredOrder.length) {
-        return NextResponse.json(
-          { error: 'Preferred order contains duplicate modalities' },
-          { status: 400 }
-        )
-      }
-    }
-
-    // Get existing preferences or use defaults
-    const existingProfile = await prisma.athleteProfile.findUnique({
-      where: { clientId },
-      select: { crossTrainingPreferences: true },
-    })
-
-    const existingPreferences = (existingProfile?.crossTrainingPreferences ||
-      DEFAULT_PREFERENCES) as ModalityPreferences
-
-    // Merge with existing preferences
-    const updatedPreferences: ModalityPreferences = {
-      preferredOrder: preferredOrder || existingPreferences.preferredOrder,
-      equipment: equipment
-        ? { ...existingPreferences.equipment, ...equipment }
-        : existingPreferences.equipment,
-      limitations: limitations !== undefined ? limitations : existingPreferences.limitations,
-      injuryOverrides: injuryOverrides
-        ? { ...existingPreferences.injuryOverrides, ...injuryOverrides }
-        : existingPreferences.injuryOverrides,
-    }
-
-    // Upsert athlete profile with updated preferences
-    const profile = await prisma.athleteProfile.upsert({
-      where: { clientId },
-      create: {
-        clientId,
-        categorization: 'INTERMEDIATE', // Default
-        crossTrainingPreferences: updatedPreferences as any,
-      },
-      update: {
-        crossTrainingPreferences: updatedPreferences as any,
-      },
-    })
-
-    return NextResponse.json({
-      clientId,
-      preferences: updatedPreferences,
-      message: 'Cross-training preferences updated successfully',
-    })
+    // crossTrainingPreferences field not yet added to schema
+    // Return not implemented for now
+    return NextResponse.json(
+      { error: 'Cross-training preferences storage not yet implemented' },
+      { status: 501 }
+    )
   } catch (error: unknown) {
-    logger.error('Error updating cross-training preferences', { clientId: params.clientId }, error)
+    logger.error('Error updating cross-training preferences', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { error: 'Internal server error' },

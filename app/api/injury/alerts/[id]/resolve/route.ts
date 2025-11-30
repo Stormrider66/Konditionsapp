@@ -13,9 +13,10 @@ import { logger } from '@/lib/logger'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     // Authenticate user
     const supabase = await createClient()
     const {
@@ -42,8 +43,6 @@ export async function PUT(
         { status: 403 }
       )
     }
-
-    const { id } = params
 
     // Verify injury assessment exists and belongs to this coach's athlete
     const injury = await prisma.injuryAssessment.findUnique({
@@ -84,9 +83,8 @@ export async function PUT(
       data: {
         status,
         resolved: status === 'RESOLVED',
-        resolvedAt: status === 'RESOLVED' ? new Date() : null,
-        coachNotes: notes || null,
-        updatedAt: new Date(),
+        resolvedDate: status === 'RESOLVED' ? new Date() : null,
+        notes: notes || null,
       },
     })
 
@@ -96,7 +94,7 @@ export async function PUT(
       message: `Injury assessment marked as ${status.toLowerCase()}`,
     })
   } catch (error) {
-    logger.error('Error resolving injury alert', { injuryId: params.id }, error)
+    logger.error('Error resolving injury alert', {}, error)
     return NextResponse.json(
       {
         error: 'Failed to resolve injury alert',

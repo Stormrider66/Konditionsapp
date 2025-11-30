@@ -283,28 +283,29 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
 
   const athleteIds = athletes.map((a) => a.id)
 
-  // 1. Pending workout modifications (not reviewed)
-  const pendingModifications = await prisma.workoutModification.findMany({
+  // 1. Pending workout modifications (future only)
+  // Note: WorkoutModification doesn't have direct relation to Workout in schema
+  // Get modifications via workoutIds from athlete's programs
+  // Path: Workout -> day (TrainingDay) -> week (TrainingWeek) -> program (TrainingProgram) -> clientId
+  const athleteWorkouts = await prisma.workout.findMany({
     where: {
-      workout: {
-        program: {
-          clientId: { in: athleteIds },
-        },
-      },
-      reviewed: false,
-      date: {
-        gte: new Date(), // Future modifications only
-      },
-    },
-    include: {
-      workout: {
-        include: {
+      day: {
+        week: {
           program: {
-            include: {
-              client: true,
-            },
+            clientId: { in: athleteIds },
           },
         },
+      },
+    },
+    select: { id: true },
+  })
+  const workoutIds = athleteWorkouts.map((w) => w.id)
+
+  const pendingModifications = await prisma.workoutModification.findMany({
+    where: {
+      workoutId: { in: workoutIds },
+      date: {
+        gte: new Date(), // Future modifications only
       },
     },
     orderBy: { date: 'asc' },
@@ -315,12 +316,12 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
   const activeInjuries = await prisma.injuryAssessment.findMany({
     where: {
       clientId: { in: athleteIds },
-      resolved: false,
+      status: { not: 'RESOLVED' },
     },
     include: {
       client: true,
     },
-    orderBy: { assessmentDate: 'desc' },
+    orderBy: { date: 'desc' },
     take: 10,
   })
 
@@ -408,28 +409,28 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
     lowReadinessAthletes: lowReadinessAthletes.length,
     details: {
       modifications: pendingModifications.map((mod) => ({
-        athleteName: mod.workout.program?.client.name || 'Unknown',
+        athleteName: 'See workout', // Workout relation not available in current schema
         workoutDate: mod.date.toLocaleDateString('sv-SE'),
-        originalType: mod.originalType || 'Unknown',
-        modifiedType: mod.currentType || 'Unknown',
-        reason: mod.reason || 'No reason provided',
+        originalType: mod.plannedType || 'Unknown',
+        modifiedType: mod.modifiedType || 'Unknown',
+        reason: mod.reasoning || 'No reason provided',
       })),
       injuries: activeInjuries.map((injury) => {
         const daysActive = Math.floor(
-          (new Date().getTime() - injury.assessmentDate.getTime()) / (1000 * 60 * 60 * 24)
+          (new Date().getTime() - injury.date.getTime()) / (1000 * 60 * 60 * 24)
         )
         return {
           athleteName: injury.client.name,
-          injuryType: injury.injuryType,
+          injuryType: injury.injuryType || 'Unknown',
           painLevel: injury.painLevel,
           daysActive,
-          currentPhase: injury.phase || 1,
+          currentPhase: 1, // Default phase number
         }
       }),
       highRisk: highRiskACWR.map((load) => ({
-        athleteName: load.client.name,
-        acwr: load.acwr,
-        zone: load.acwrZone,
+        athleteName: load.client?.name || 'Unknown',
+        acwr: load.acwr ?? 0,
+        zone: load.acwrZone ?? 'Unknown',
       })),
       lowReadiness: lowReadinessAthletes,
     },

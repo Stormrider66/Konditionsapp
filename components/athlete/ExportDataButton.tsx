@@ -45,7 +45,7 @@ export function ExportDataButton({ logs }: ExportDataButtonProps) {
 
     // Create CSV rows
     const rows = logs.map((log) => [
-      format(new Date(log.completedAt), 'yyyy-MM-dd', { locale: sv }),
+      log.completedAt ? format(new Date(log.completedAt), 'yyyy-MM-dd', { locale: sv }) : '',
       log.workout.name,
       log.workout.day.week.program.name,
       formatWorkoutType(log.workout.type),
@@ -90,7 +90,7 @@ export function ExportDataButton({ logs }: ExportDataButtonProps) {
       exportDate: new Date().toISOString(),
       totalWorkouts: logs.length,
       workouts: logs.map((log) => ({
-        date: format(new Date(log.completedAt), 'yyyy-MM-dd'),
+        date: log.completedAt ? format(new Date(log.completedAt), 'yyyy-MM-dd') : '',
         workout: {
           name: log.workout.name,
           type: log.workout.type,

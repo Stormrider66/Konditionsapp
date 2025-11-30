@@ -636,16 +636,19 @@ export async function saveNorwegianSinglesProgram(
       status: 'ACTIVE',
       startDate: program.startDate,
       endDate: program.endDate,
+      totalWeeks: program.weeks.length,
       currentWeek: 1,
       currentPhase: 'BASE',
-      periodization: JSON.stringify(periodization),
-      weeklyPlans: JSON.stringify(program.weeks),
-      targetRaces: JSON.stringify([]),
-      volumeProgression: JSON.stringify({
-        base: program.config.baseWeeklyVolume,
-        target: program.config.targetWeeklyVolume
-      }),
-      config: JSON.stringify(program.config)
+      periodization: periodization as any,
+      weeklyPlans: program.weeks as any,
+      generatedBy: 'AUTO',
+      methodologyConfig: {
+        config: program.config,
+        volumeProgression: {
+          base: program.config.baseWeeklyVolume,
+          target: program.config.targetWeeklyVolume
+        }
+      }
     }
   });
 

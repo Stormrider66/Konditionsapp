@@ -19,11 +19,10 @@ import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; exerciseId: string } }
+  { params }: { params: Promise<{ id: string; exerciseId: string }> }
 ) {
   try {
-    const clientId = params.id
-    const exerciseId = params.exerciseId
+    const { id: clientId, exerciseId } = await params
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '20')
 
@@ -32,7 +31,7 @@ export async function GET(
     return NextResponse.json(history, { status: 200 })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    logger.error('Error fetching progression history', { clientId: params.id, exerciseId: params.exerciseId }, error)
+    logger.error('Error fetching progression history', {}, error)
     return NextResponse.json({ error: errorMessage || 'Internal server error' }, { status: 500 })
   }
 }

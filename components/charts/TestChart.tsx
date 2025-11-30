@@ -20,14 +20,28 @@ interface TestChartProps {
 }
 
 export function TestChart({ data, testType, showLegend = true, height = 400 }: TestChartProps) {
-  const chartData = data.map((stage) => ({
-    x: testType === 'RUNNING' ? stage.speed : stage.power,
-    heartRate: stage.heartRate,
-    lactate: stage.lactate,
-    vo2: stage.vo2,
-  }))
+  const chartData = data.map((stage) => {
+    let x: number | undefined
+    if (testType === 'RUNNING') {
+      x = stage.speed
+    } else if (testType === 'SKIING') {
+      x = stage.pace
+    } else {
+      x = stage.power
+    }
+    return {
+      x,
+      heartRate: stage.heartRate,
+      lactate: stage.lactate,
+      vo2: stage.vo2,
+    }
+  })
 
-  const xAxisLabel = testType === 'RUNNING' ? 'Hastighet (km/h)' : 'Effekt (watt)'
+  const xAxisLabel = testType === 'RUNNING'
+    ? 'Hastighet (km/h)'
+    : testType === 'SKIING'
+      ? 'Tempo (min/km)'
+      : 'Effekt (watt)'
 
   return (
     <div className="w-full bg-gradient-to-br from-white to-gray-50 p-3 sm:p-4 lg:p-6 rounded-lg sm:rounded-xl shadow-md smooth-transition hover:shadow-lg overflow-hidden">

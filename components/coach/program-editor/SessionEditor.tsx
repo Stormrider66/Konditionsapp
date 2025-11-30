@@ -139,8 +139,8 @@ export function SessionEditor({ workout, programId, onSave, onCancel }: SessionE
             heartRate: seg.heartRate,
             sets: seg.sets,
             reps: seg.reps,
-            load: seg.load,
-            restSeconds: seg.restSeconds,
+            weight: seg.weight,
+            rest: seg.rest,
             exerciseId: seg.exerciseId,
             notes: seg.notes,
           })),
@@ -189,8 +189,8 @@ export function SessionEditor({ workout, programId, onSave, onCancel }: SessionE
       heartRate: undefined,
       sets: type === 'STRENGTH' || type === 'PLYOMETRIC' || type === 'CORE' ? 3 : undefined,
       reps: type === 'STRENGTH' || type === 'PLYOMETRIC' || type === 'CORE' ? 10 : undefined,
-      load: undefined,
-      restSeconds: type === 'STRENGTH' ? 90 : undefined,
+      weight: undefined,
+      rest: type === 'STRENGTH' ? 90 : undefined,
       exerciseId: null,
       notes: null,
     }
@@ -344,16 +344,16 @@ export function SessionEditor({ workout, programId, onSave, onCancel }: SessionE
                     <Input
                       type="text"
                       placeholder="80kg or 85%"
-                      value={segment.load || ''}
-                      onChange={(e) => handleUpdateSegment(index, 'load', e.target.value)}
+                      value={segment.weight || ''}
+                      onChange={(e) => handleUpdateSegment(index, 'weight', e.target.value)}
                     />
                   </div>
                   <div>
                     <Label>Rest (sec)</Label>
                     <Input
                       type="number"
-                      value={segment.restSeconds || ''}
-                      onChange={(e) => handleUpdateSegment(index, 'restSeconds', parseInt(e.target.value))}
+                      value={segment.rest || ''}
+                      onChange={(e) => handleUpdateSegment(index, 'rest', parseInt(e.target.value))}
                     />
                   </div>
                 </>

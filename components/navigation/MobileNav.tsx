@@ -4,23 +4,50 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
+import { SportType } from '@prisma/client'
 import {
   Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
-  ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard
+  ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { UserNav } from './UserNav'
 
+// Sport icons and labels
+const SPORT_DISPLAY: Record<SportType, { icon: string; label: string; labelSv: string }> = {
+  RUNNING: { icon: '🏃', label: 'Running', labelSv: 'Löpning' },
+  CYCLING: { icon: '🚴', label: 'Cycling', labelSv: 'Cykling' },
+  SKIING: { icon: '⛷️', label: 'Cross-Country Skiing', labelSv: 'Längdskidåkning' },
+  TRIATHLON: { icon: '🏊', label: 'Triathlon', labelSv: 'Triathlon' },
+  HYROX: { icon: '💪', label: 'HYROX', labelSv: 'HYROX' },
+  GENERAL_FITNESS: { icon: '🏋️', label: 'General Fitness', labelSv: 'Allmän Fitness' },
+  SWIMMING: { icon: '🏊‍♂️', label: 'Swimming', labelSv: 'Simning' },
+}
+
+interface SportProfile {
+  id: string
+  clientId: string
+  primarySport: SportType
+  secondarySports: SportType[]
+  onboardingCompleted: boolean
+}
+
 interface MobileNavProps {
   user: User | null
   userRole?: 'COACH' | 'ATHLETE' | 'ADMIN' | null
+  sportProfile?: SportProfile | null
+  clientId?: string
 }
 
-export function MobileNav({ user, userRole }: MobileNavProps) {
+export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
+
+  // Get sport display info
+  const currentSport = sportProfile?.primarySport
+  const sportDisplay = currentSport ? SPORT_DISPLAY[currentSport] : null
+  const needsOnboarding = userRole === 'ATHLETE' && clientId && !sportProfile?.onboardingCompleted
 
   const toggleMenu = () => setIsOpen(!isOpen)
   const closeMenu = () => setIsOpen(false)
@@ -58,6 +85,7 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
   const coachNavLinks = [
     { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/coach/programs', label: 'Program', icon: Calendar },
+    { href: '/coach/videos', label: 'Videor', icon: Video },
     { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
   ]
 
@@ -77,6 +105,11 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
     // Communication & Reports
     { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount, description: 'Chatta med coach' },
     { href: '/athlete/program/report', label: 'Rapport', icon: FileText, description: 'Program PDF' },
+
+    // Sport Profile (only show if needs onboarding or for settings)
+    ...(needsOnboarding
+      ? [{ href: `/athlete/onboarding`, label: 'Sportprofil', icon: Settings, description: 'Slutför din profil', highlight: true }]
+      : [{ href: '/athlete/profile', label: 'Profil', icon: Settings, description: 'Inställningar' }]),
   ]
 
   // Determine which links to show
@@ -112,6 +145,12 @@ export function MobileNav({ user, userRole }: MobileNavProps) {
               </button>
               <div>
                 <h1 className="text-lg sm:text-xl font-bold">Star by Thomson</h1>
+                {userRole === 'ATHLETE' && sportDisplay && (
+                  <p className="text-xs text-white/80 flex items-center gap-1">
+                    <span>{sportDisplay.icon}</span>
+                    <span>{sportDisplay.labelSv}</span>
+                  </p>
+                )}
               </div>
             </div>
             <UserNav user={user} />
