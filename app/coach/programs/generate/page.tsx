@@ -12,7 +12,7 @@ export default async function GenerateProgramPage() {
   // Require coach authentication
   const user = await requireCoach()
 
-  // Fetch clients with their tests
+  // Fetch ALL clients with their tests (tests are optional for CUSTOM methodology)
   const clients = await prisma.client.findMany({
     where: {
       userId: user.id,
@@ -35,16 +35,21 @@ export default async function GenerateProgramPage() {
           vo2max: true,
         },
       },
+      // Also fetch sport profile for context
+      sportProfile: {
+        select: {
+          primarySport: true,
+          onboardingCompleted: true,
+        },
+      },
     },
     orderBy: {
       name: 'asc',
     },
   })
 
-  // Filter clients that have at least one test with training zones
-  const clientsWithTests = clients.filter((c) => c.tests.length > 0)
-
-  if (clientsWithTests.length === 0) {
+  // No clients at all
+  if (clients.length === 0) {
     return (
       <div className="container mx-auto py-8 px-4 max-w-2xl">
         <Link href="/coach/programs">
@@ -55,18 +60,21 @@ export default async function GenerateProgramPage() {
         </Link>
 
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-2">Inga testresultat tillgängliga</h2>
+          <h2 className="text-xl font-semibold mb-2">Inga klienter tillgängliga</h2>
           <p className="text-muted-foreground mb-4">
-            För att skapa ett träningsprogram behöver du först ha genomfört och
-            beräknat träningszoner för minst ett konditionstest.
+            Du behöver skapa en klient innan du kan skapa ett träningsprogram.
           </p>
-          <Link href="/test">
-            <Button>Skapa test</Button>
+          <Link href="/clients/new">
+            <Button>Skapa klient</Button>
           </Link>
         </div>
       </div>
     )
   }
+
+  // Check if any clients have tests (for info display)
+  const clientsWithTests = clients.filter((c) => c.tests.length > 0)
+  const hasClientsWithTests = clientsWithTests.length > 0
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
@@ -80,11 +88,20 @@ export default async function GenerateProgramPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Skapa träningsprogram</h1>
         <p className="text-muted-foreground">
-          Generera ett personligt träningsprogram baserat på testresultat
+          Generera ett personligt träningsprogram baserat på testresultat, eller skapa ett anpassat program manuellt
         </p>
       </div>
 
-      <ProgramGenerationForm clients={clientsWithTests as any} />
+      {!hasClientsWithTests && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <p className="text-sm text-blue-800">
+            <strong>Tips:</strong> Ingen av dina klienter har genomförda tester med träningszoner.
+            Välj &quot;Custom&quot; som metodik för att skapa ett tomt program och lägga till pass manuellt.
+          </p>
+        </div>
+      )}
+
+      <ProgramGenerationForm clients={clients as any} />
     </div>
   )
 }

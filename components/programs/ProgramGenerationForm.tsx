@@ -42,7 +42,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const formSchema = z.object({
   clientId: z.string().min(1, 'Välj en klient'),
-  testId: z.string().min(1, 'Välj ett test'),
+  testId: z.string().optional(), // Optional for CUSTOM methodology
 
   // Goal Configuration
   goalType: z.enum([
@@ -308,13 +308,75 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
     }
   }
 
+  const isCustomMode = form.watch('methodology') === 'CUSTOM'
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Program Mode Selection */}
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle>Programtyp</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                onClick={() => form.setValue('methodology', 'AUTO')}
+                className={cn(
+                  'p-4 border-2 rounded-lg cursor-pointer transition-all',
+                  !isCustomMode
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted hover:border-muted-foreground/50'
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={cn(
+                    'w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5',
+                    !isCustomMode ? 'border-primary' : 'border-muted-foreground'
+                  )}>
+                    {!isCustomMode && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Testbaserat program</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Generera program baserat på konditionstest med träningszoner
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                onClick={() => form.setValue('methodology', 'CUSTOM')}
+                className={cn(
+                  'p-4 border-2 rounded-lg cursor-pointer transition-all',
+                  isCustomMode
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted hover:border-muted-foreground/50'
+                )}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={cn(
+                    'w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5',
+                    isCustomMode ? 'border-primary' : 'border-muted-foreground'
+                  )}>
+                    {isCustomMode && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Anpassat program</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Skapa tomt program och bygg pass manuellt - inget test krävs
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Client & Test Selection */}
         <Card>
           <CardHeader>
-            <CardTitle>1. Välj klient och test</CardTitle>
+            <CardTitle>1. Välj klient {!isCustomMode && 'och test'}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -350,29 +412,35 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
               )}
             />
 
-            {selectedClient && (
+            {selectedClient && form.watch('methodology') !== 'CUSTOM' && (
               <FormField
                 control={form.control}
                 name="testId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Konditionstest *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Välj test" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {selectedClient.tests.map((test: any) => (
-                          <SelectItem key={test.id} value={test.id}>
-                            {format(new Date(test.testDate), 'PPP', { locale: sv })} -{' '}
-                            {test.testType}
-                            {test.vo2max && ` (VO2max: ${test.vo2max.toFixed(1)})`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {selectedClient.tests && selectedClient.tests.length > 0 ? (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Välj test" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {selectedClient.tests.map((test: any) => (
+                            <SelectItem key={test.id} value={test.id}>
+                              {format(new Date(test.testDate), 'PPP', { locale: sv })} -{' '}
+                              {test.testType}
+                              {test.vo2max && ` (VO2max: ${test.vo2max.toFixed(1)})`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/30">
+                        Ingen test tillgänglig. Välj &quot;Custom&quot; metodik för att skapa program utan test.
+                      </div>
+                    )}
                     <FormDescription>
                       Välj det test som programmet ska baseras på
                     </FormDescription>
@@ -380,6 +448,16 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                   </FormItem>
                 )}
               />
+            )}
+
+            {selectedClient && form.watch('methodology') === 'CUSTOM' && (
+              <Alert className="bg-blue-50 border-blue-200">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  <strong>Custom-läge:</strong> Du skapar ett tomt program utan testdata.
+                  Lägg till pass manuellt efter att programmet skapats.
+                </AlertDescription>
+              </Alert>
             )}
           </CardContent>
         </Card>
@@ -553,8 +631,8 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
           </CardContent>
         </Card>
 
-        {/* Target Time */}
-        {form.watch('goalType') !== 'fitness' && (
+        {/* Target Time - only for test-based programs */}
+        {!isCustomMode && form.watch('goalType') !== 'fitness' && (
           <Card>
             <CardHeader>
               <CardTitle>3. Tidsmål (valfritt)</CardTitle>
@@ -583,7 +661,8 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
           </Card>
         )}
 
-        {/* Athlete Profile */}
+        {/* Athlete Profile - only for test-based programs */}
+        {!isCustomMode && (
         <Card>
           <CardHeader>
             <CardTitle>4. Löparprofil</CardTitle>
@@ -729,8 +808,10 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
             </div>
           </CardContent>
         </Card>
+        )}
 
-        {/* Equipment & Monitoring */}
+        {/* Equipment & Monitoring - only for test-based programs */}
+        {!isCustomMode && (
         <Card>
           <CardHeader>
             <CardTitle>5. Utrustning & Monitorering</CardTitle>
@@ -806,8 +887,10 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
             />
           </CardContent>
         </Card>
+        )}
 
-        {/* Methodology Selection */}
+        {/* Methodology Selection - Only show for test-based programs */}
+        {!isCustomMode && (
         <Card>
           <CardHeader>
             <CardTitle>6. Träningsmetodik</CardTitle>
@@ -922,11 +1005,12 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Program Structure */}
         <Card>
           <CardHeader>
-            <CardTitle>7. Programstruktur</CardTitle>
+            <CardTitle>{isCustomMode ? '2' : '7'}. Programstruktur</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -997,9 +1081,27 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                 <FormField
                   control={form.control}
                   name="runningSessionsPerWeek"
-                  render={({ field }) => (
+                  render={({ field }) => {
+                    // Sport-specific label
+                    const goalType = form.watch('goalType')
+                    const sessionLabels: Record<string, string> = {
+                      'cycling': 'Cykelpass',
+                      'swimming': 'Simpass',
+                      'skiing': 'Skidpass',
+                      'triathlon': 'Huvudpass',
+                      'hyrox': 'HYROX-pass',
+                      'fitness': 'Konditionspass',
+                      'marathon': 'Löppass',
+                      'half-marathon': 'Löppass',
+                      '10k': 'Löppass',
+                      '5k': 'Löppass',
+                      'custom': 'Huvudpass',
+                    }
+                    const sessionLabel = sessionLabels[goalType] || 'Löppass'
+
+                    return (
                     <FormItem>
-                      <FormLabel>Löppass per vecka *</FormLabel>
+                      <FormLabel>{sessionLabel} per vecka *</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -1019,7 +1121,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
-                  )}
+                  )}}
                 />
 
                 <FormField
@@ -1111,59 +1213,81 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
             {/* Session Scheduling Options */}
             <div className="border-t pt-4 mt-4">
               <h4 className="font-medium mb-3">Schemaläggning av pass</h4>
-              <Alert className="mb-4">
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>Rekommendation:</strong> Schemalägg styrka och core direkt efter löppass för att optimera återhämtning och spara tid.
-                </AlertDescription>
-              </Alert>
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="scheduleStrengthAfterRunning"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          Lägg styrkepass direkt efter löppass
-                        </FormLabel>
-                        <FormDescription>
-                          Samma dag PM-session (rekommenderas för tidseffektivitet)
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+              {(() => {
+                const goalType = form.watch('goalType')
+                const sessionLabelsLower: Record<string, string> = {
+                  'cycling': 'cykelpass',
+                  'swimming': 'simpass',
+                  'skiing': 'skidpass',
+                  'triathlon': 'huvudpass',
+                  'hyrox': 'HYROX-pass',
+                  'fitness': 'konditionspass',
+                  'marathon': 'löppass',
+                  'half-marathon': 'löppass',
+                  '10k': 'löppass',
+                  '5k': 'löppass',
+                  'custom': 'huvudpass',
+                }
+                const mainSessionLabel = sessionLabelsLower[goalType] || 'löppass'
 
-                <FormField
-                  control={form.control}
-                  name="scheduleCoreAfterRunning"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          Lägg core-pass direkt efter löppass
-                        </FormLabel>
-                        <FormDescription>
-                          Samma dag PM-session (effektivt för core-aktivering)
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
+                return (
+                  <>
+                    <Alert className="mb-4">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Rekommendation:</strong> Schemalägg styrka och core direkt efter {mainSessionLabel} för att optimera återhämtning och spara tid.
+                      </AlertDescription>
+                    </Alert>
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="scheduleStrengthAfterRunning"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                Lägg styrkepass direkt efter {mainSessionLabel}
+                              </FormLabel>
+                              <FormDescription>
+                                Samma dag PM-session (rekommenderas för tidseffektivitet)
+                              </FormDescription>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="scheduleCoreAfterRunning"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                Lägg core-pass direkt efter {mainSessionLabel}
+                              </FormLabel>
+                              <FormDescription>
+                                Samma dag PM-session (effektivt för core-aktivering)
+                              </FormDescription>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           </CardContent>
         </Card>
@@ -1171,7 +1295,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {/* Injury & Health */}
         <Card>
           <CardHeader>
-            <CardTitle>8. Skador & Hälsa</CardTitle>
+            <CardTitle>{isCustomMode ? '3' : '8'}. Skador & Hälsa</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -1225,7 +1349,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
         {/* Notes */}
         <Card>
           <CardHeader>
-            <CardTitle>9. Anteckningar (valfritt)</CardTitle>
+            <CardTitle>{isCustomMode ? '4' : '9'}. Anteckningar (valfritt)</CardTitle>
           </CardHeader>
           <CardContent>
             <FormField
@@ -1259,7 +1383,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
           </Button>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Generera program
+            {isCustomMode ? 'Skapa tomt program' : 'Generera program'}
           </Button>
         </div>
       </form>

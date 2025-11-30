@@ -70,51 +70,25 @@ export async function POST(request: NextRequest) {
       preferredActivities: body.preferredActivities || [],
     }
 
-    // Validate parameters
-    const validationErrors = validateProgramParams(params)
-    if (validationErrors.length > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Valideringsfel',
-          details: validationErrors,
-        },
-        { status: 400 }
-      )
+    // For CUSTOM methodology, testId is optional
+    const isCustomProgram = (params.methodology as string) === 'CUSTOM'
+
+    // Validate parameters (skip testId validation for custom programs)
+    if (!isCustomProgram) {
+      const validationErrors = validateProgramParams(params)
+      if (validationErrors.length > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Valideringsfel',
+            details: validationErrors,
+          },
+          { status: 400 }
+        )
+      }
     }
 
-    // Fetch test with training zones
-    const test = await prisma.test.findUnique({
-      where: { id: params.testId },
-      include: {
-        testStages: {
-          orderBy: { sequence: 'asc' },
-        },
-      },
-    })
-
-    if (!test) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Test hittades inte',
-        },
-        { status: 404 }
-      )
-    }
-
-    // Verify test has training zones
-    if (!test.trainingZones || (test.trainingZones as any[]).length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Testet saknar träningszoner. Vänligen beräkna zoner först.',
-        },
-        { status: 400 }
-      )
-    }
-
-    // Fetch client
+    // Fetch client first (always required)
     const client = await prisma.client.findUnique({
       where: { id: params.clientId },
     })
@@ -129,14 +103,68 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify ownership
-    if (test.userId !== user.id || client.userId !== user.id) {
+    // Verify client ownership
+    if (client.userId !== user.id) {
       return NextResponse.json(
         {
           success: false,
           error: 'Obehörig åtkomst',
         },
         { status: 403 }
+      )
+    }
+
+    // Fetch test with training zones (only if testId is provided)
+    let test = null
+    if (params.testId) {
+      test = await prisma.test.findUnique({
+        where: { id: params.testId },
+        include: {
+          testStages: {
+            orderBy: { sequence: 'asc' },
+          },
+        },
+      })
+
+      if (!test) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Test hittades inte',
+          },
+          { status: 404 }
+        )
+      }
+
+      // Verify test ownership
+      if (test.userId !== user.id) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Obehörig åtkomst',
+          },
+          { status: 403 }
+        )
+      }
+
+      // Verify test has training zones (only for non-custom programs)
+      if (!isCustomProgram && (!test.trainingZones || (test.trainingZones as any[]).length === 0)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Testet saknar träningszoner. Vänligen beräkna zoner först.',
+          },
+          { status: 400 }
+        )
+      }
+    } else if (!isCustomProgram) {
+      // Test is required for non-custom programs
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Test krävs för detta programtyp',
+        },
+        { status: 400 }
       )
     }
 
@@ -204,7 +232,7 @@ export async function POST(request: NextRequest) {
           }),
         })),
       }
-    } else if ((params.methodology as string) === 'CUSTOM') {
+    } else if (isCustomProgram) {
         // 1. Calculate Start and End Dates
         // Default to tomorrow if no race date, or back-calculate if needed.
         // For custom, start tomorrow and create empty structure for manual building
@@ -216,16 +244,33 @@ export async function POST(request: NextRequest) {
         const endDate = new Date(startDate);
         endDate.setDate(endDate.getDate() + (durationWeeks * 7));
 
+        // Map goal type to display name
+        const goalTypeLabels: Record<string, string> = {
+          'marathon': 'Marathon',
+          'half-marathon': 'Halvmaraton',
+          '10k': '10K',
+          '5k': '5K',
+          'fitness': 'Fitness',
+          'cycling': 'Cykling',
+          'skiing': 'Skidåkning',
+          'swimming': 'Simning',
+          'triathlon': 'Triathlon',
+          'hyrox': 'HYROX',
+          'custom': 'Anpassad',
+        }
+
+        const goalLabel = goalTypeLabels[params.goalType] || params.goalType
+
         // 2. Construct empty program structure
         programData = {
-            name: `Custom Program - ${params.goalType}`,
+            name: `${goalLabel} - ${client.name}`,
             clientId: params.clientId,
             coachId: user.id,
-            testId: params.testId,
+            testId: params.testId || null, // testId is optional for custom programs
             goalType: params.goalType,
             startDate,
             endDate,
-            notes: params.notes,
+            notes: params.notes || `Anpassat ${goalLabel.toLowerCase()}-program`,
             weeks: Array.from({ length: durationWeeks }).map((_, i) => ({
                 weekNumber: i + 1,
                 phase: 'BASE' as const,

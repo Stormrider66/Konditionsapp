@@ -37,13 +37,13 @@ vi.mock('@/lib/calculations/vdot', () => ({
     return 30
   }),
   getTrainingPaces: vi.fn(() => ({
-    easy: '5:30-6:00',
-    marathon: '4:45',
-    threshold: '4:20',
-    interval: '4:00',
-    repetition: '3:45'
+    easy: { min: 390, max: 330, formatted: '5:30 - 6:30' },
+    marathon: { pace: 285, formatted: '4:45' },
+    threshold: { pace: 260, formatted: '4:20' },
+    interval: { pace: 240, formatted: '4:00' },
+    repetition: { pace: 225, formatted: '3:45' }
   })),
-  getEquivalentTimes: vi.fn(() => ({
+  getEquivalentRaceTimes: vi.fn(() => ({
     '5K': '20:00',
     '10K': '41:30',
     'HALF_MARATHON': '1:31:00',
