@@ -315,13 +315,26 @@ function distributeNormalCanovaWeek(
   }
 
   // === EASY DAYS ===
-  const runningSessionsNeeded = (programParams.runningSessionsPerWeek || trainingDays) -
-    workouts.filter(w => w.type !== 'strength' && w.type !== 'core').length
+  // Calculate how many running sessions we already have
+  const existingRunningSessions = workouts.filter(w =>
+    w.type !== 'strength' && w.type !== 'core'
+  ).length
+
+  // Target running sessions - use runningSessionsPerWeek if provided, otherwise trainingDays
+  const targetRunningSessions = programParams.runningSessionsPerWeek || trainingDays || 4
+
+  // How many more running sessions do we need?
+  const runningSessionsNeeded = Math.max(0, targetRunningSessions - existingRunningSessions)
+
+  console.log(`[Canova] Running sessions: ${existingRunningSessions} existing, ${targetRunningSessions} target, need ${runningSessionsNeeded} more`)
+
+  // Available days for easy runs (days not already used for quality sessions)
   const availableDays = [1, 3, 5, 6]
 
   let addedSessions = 0
   for (const dayNum of availableDays) {
     if (addedSessions >= runningSessionsNeeded) break
+    // Only add if this day doesn't already have a workout
     if (!workouts.some(w => w.dayNumber === dayNum)) {
       workouts.push({
         dayNumber: dayNum,
@@ -334,8 +347,11 @@ function distributeNormalCanovaWeek(
         }
       })
       addedSessions++
+      console.log(`[Canova] Added easy run on day ${dayNum}`)
     }
   }
+
+  console.log(`[Canova] Final running session count: ${existingRunningSessions + addedSessions}`)
 
   // === STRENGTH SESSIONS ===
   addStrengthSessions(workouts, canovaPhase, programParams)

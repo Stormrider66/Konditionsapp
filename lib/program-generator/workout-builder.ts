@@ -15,10 +15,13 @@ import { ZonePaces, ZonePowers, getZonePace, getZonePower, getZoneHR, speedToPac
  * Build a long run workout
  */
 export function buildLongRun(
-  distanceKm: number,
+  distanceKm: number | undefined,
   zones: ZonePaces,
   trainingZones: TrainingZone[]
 ): CreateWorkoutDTO {
+  // Default to 15km if distance is undefined
+  const distance = distanceKm ?? 15
+
   // Long runs are typically Zone 2 with some Zone 3
   const segments: CreateWorkoutSegmentDTO[] = []
 
@@ -34,12 +37,12 @@ export function buildLongRun(
   })
 
   // Main portion (mostly Zone 2)
-  const mainDuration = Math.round((distanceKm - 2) * 6) // Estimate based on Zone 2 pace
+  const mainDuration = Math.round((distance - 2) * 6) // Estimate based on Zone 2 pace
   segments.push({
     order: 2,
     type: 'work',
     duration: mainDuration,
-    distance: distanceKm - 2,
+    distance: distance - 2,
     zone: 2,
     pace: zones.zone2,
     heartRate: getZoneHR(trainingZones, 2),
@@ -61,9 +64,9 @@ export function buildLongRun(
     type: 'RUNNING',
     name: 'Långpass',
     intensity: 'EASY',
-    distance: distanceKm,
+    distance: distance,
     duration: mainDuration + 20,
-    instructions: `Lugnt långpass på ${distanceKm} km. Håll jämnt tempo i Zon 2. Fokusera på löpform och uthalllighet.`,
+    instructions: `Lugnt långpass på ${distance} km. Håll jämnt tempo i Zon 2. Fokusera på löpform och uthalllighet.`,
     segments,
   }
 }
