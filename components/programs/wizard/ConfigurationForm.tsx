@@ -208,8 +208,11 @@ export function ConfigurationForm({
                     <Input
                       type="number"
                       placeholder="t.ex. 280"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                      value={field.value ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        field.onChange(val === '' ? undefined : parseInt(val))
+                      }}
                     />
                   </FormControl>
                   <FormDescription>Watt vid tröskel (1 timmes max)</FormDescription>
@@ -227,7 +230,11 @@ export function ConfigurationForm({
                 <FormItem>
                   <FormLabel>CSS (Critical Swim Speed) *</FormLabel>
                   <FormControl>
-                    <Input placeholder="t.ex. 1:45" {...field} />
+                    <Input
+                      placeholder="t.ex. 1:45"
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value || undefined)}
+                    />
                   </FormControl>
                   <FormDescription>Tid per 100m (MM:SS)</FormDescription>
                   <FormMessage />
@@ -247,8 +254,11 @@ export function ConfigurationForm({
                     <Input
                       type="number"
                       placeholder="t.ex. 45"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                      value={field.value ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        field.onChange(val === '' ? undefined : parseInt(val))
+                      }}
                     />
                   </FormControl>
                   <FormDescription>Daniels VDOT (valfritt)</FormDescription>
