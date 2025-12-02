@@ -28,6 +28,7 @@ export const SPORT_ICONS: Record<SportType, string> = {
   HYROX: '💪',
   GENERAL_FITNESS: '🏋️',
   SWIMMING: '🏊‍♂️',
+  STRENGTH: '🏋️',
 }
 
 // Sport labels for display
@@ -39,6 +40,7 @@ export const SPORT_LABELS: Record<SportType, { en: string; sv: string }> = {
   HYROX: { en: 'HYROX', sv: 'HYROX' },
   GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän Fitness' },
   SWIMMING: { en: 'Swimming', sv: 'Simning' },
+  STRENGTH: { en: 'Strength Training', sv: 'Styrketräning' },
 }
 
 export function useSportProfile(clientId?: string): UseSportProfileResult {

@@ -22,6 +22,7 @@ const SPORT_DISPLAY: Record<SportType, { icon: string; label: string; labelSv: s
   HYROX: { icon: '💪', label: 'HYROX', labelSv: 'HYROX' },
   GENERAL_FITNESS: { icon: '🏋️', label: 'General Fitness', labelSv: 'Allmän Fitness' },
   SWIMMING: { icon: '🏊‍♂️', label: 'Swimming', labelSv: 'Simning' },
+  STRENGTH: { icon: '🏋️', label: 'Strength Training', labelSv: 'Styrketräning' },
 }
 
 interface SportProfile {

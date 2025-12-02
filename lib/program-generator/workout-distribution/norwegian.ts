@@ -9,7 +9,44 @@ import {
   getNorwegianSinglesSession,
   calculateNorwegianSinglesIntensity
 } from '@/lib/training-engine/methodologies/norwegian'
+import { selectReliableMarathonPace } from '../pace-validator'
+import { validateEliteZones } from '../elite-pace-integration'
+import { getCurrentFitnessPace, formatPace } from '../pace-progression'
 import { WorkoutSlot, WorkoutDistributionParams } from './types'
+
+/**
+ * Calculate marathon pace from available data sources
+ */
+function calculateMarathonPaceForNorwegian(params: WorkoutDistributionParams): number {
+  const { test, params: programParams, elitePaces, recentRaceResult } = params
+  let marathonPaceKmh = 12.0 // Default ~5:00/km
+
+  // Try elite paces first
+  if (elitePaces && validateEliteZones(elitePaces)) {
+    marathonPaceKmh = elitePaces.canova?.marathon?.kmh || 12.0
+    console.log(`[Norwegian] Using elite pace: ${formatPace(marathonPaceKmh)}/km`)
+  } else {
+    // Try test-based or race-based pace
+    const paceValidation = selectReliableMarathonPace(
+      test as any,
+      programParams.goalType,
+      programParams.targetRaceDate,
+      recentRaceResult
+    )
+
+    const currentFitness = getCurrentFitnessPace(
+      programParams.recentRaceDistance,
+      programParams.recentRaceTime,
+      paceValidation.marathonPaceKmh,
+      paceValidation.source
+    )
+
+    marathonPaceKmh = currentFitness.marathonPaceKmh
+    console.log(`[Norwegian] Using ${currentFitness.source} pace: ${formatPace(marathonPaceKmh)}/km`)
+  }
+
+  return marathonPaceKmh
+}
 
 export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionParams): WorkoutSlot[] {
   const { phase, trainingDays, weekInPhase, test } = params
@@ -17,6 +54,9 @@ export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionPa
 
   console.log(`[Workout Distribution] Using NORWEGIAN DOUBLES methodology for ${phase} phase, week ${weekInPhase}`)
   console.log(`[Norwegian Doubles] Elite training: AM (2.0-3.0 mmol/L) + PM (3.0-4.0 mmol/L) sessions`)
+
+  // Calculate marathon pace for distance calculations
+  const marathonPaceKmh = calculateMarathonPaceForNorwegian(params)
 
   // Calculate individualized Norwegian Doubles intensity from lactate test
   let doublesIntensity: ReturnType<typeof calculateNorwegianDoublesIntensity> | null = null
@@ -121,13 +161,23 @@ export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionPa
     workouts.push({
       dayNumber: dayNum,
       type: 'easy',
-      params: { duration: 40, sessionTime: 'AM' }
+      params: {
+        duration: 40,
+        pacePercent: 75,
+        marathonPace: marathonPaceKmh,
+        sessionTime: 'AM'
+      }
     })
     if (trainingDays >= 10) {
       workouts.push({
         dayNumber: dayNum,
         type: 'easy',
-        params: { duration: 40, sessionTime: 'PM' }
+        params: {
+          duration: 40,
+          pacePercent: 75,
+          marathonPace: marathonPaceKmh,
+          sessionTime: 'PM'
+        }
       })
     }
   }
@@ -149,7 +199,12 @@ export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionPa
   workouts.push({
     dayNumber: 7,
     type: 'long',
-    params: { distance: 18 }
+    params: {
+      distance: 18,
+      pacePercent: 75,
+      marathonPace: marathonPaceKmh,
+      description: 'Long easy run at Green zone pace'
+    }
   })
 
   return workouts
@@ -161,6 +216,9 @@ export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionPa
 
   console.log(`[Workout Distribution] Using NORWEGIAN_SINGLE methodology for ${phase} phase, week ${weekInPhase}`)
   console.log(`[Norwegian Singles] SUB-threshold training at LT2 - 0.7 to 1.7 mmol/L`)
+
+  // Calculate marathon pace for distance calculations
+  const marathonPaceKmh = calculateMarathonPaceForNorwegian(params)
 
   // Calculate individualized Norwegian Singles intensity from lactate test
   let singlesIntensity: ReturnType<typeof calculateNorwegianSinglesIntensity> | null = null
@@ -235,7 +293,11 @@ export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionPa
       workouts.push({
         dayNumber: dayNum,
         type: 'easy',
-        params: { duration: 45 }
+        params: {
+          duration: 45,
+          pacePercent: 75,
+          marathonPace: marathonPaceKmh
+        }
       })
     }
   }
@@ -244,7 +306,12 @@ export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionPa
   workouts.push({
     dayNumber: 7,
     type: 'long',
-    params: { distance: 16 }
+    params: {
+      distance: 16,
+      pacePercent: 75,
+      marathonPace: marathonPaceKmh,
+      description: 'Long easy run'
+    }
   })
 
   // Add minimal strength for Norwegian Single

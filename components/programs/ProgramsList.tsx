@@ -79,7 +79,7 @@ export function ProgramsList({ programs }: ProgramsListProps) {
           <p className="text-muted-foreground mb-6">
             Kom igång genom att skapa ditt första träningsprogram
           </p>
-          <Link href="/coach/programs/generate">
+          <Link href="/coach/programs/new">
             <Button>Skapa program</Button>
           </Link>
         </CardContent>

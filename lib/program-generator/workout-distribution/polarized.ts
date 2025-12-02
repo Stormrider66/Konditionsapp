@@ -8,13 +8,49 @@ import {
   calculateSessionDistribution,
   type PolarizedPhase,
 } from '@/lib/training-engine/methodologies/polarized'
+import { selectReliableMarathonPace } from '../pace-validator'
+import { validateEliteZones } from '../elite-pace-integration'
+import { getCurrentFitnessPace, formatPace } from '../pace-progression'
 import { WorkoutSlot, WorkoutDistributionParams } from './types'
 
 export function distributePolarizedWorkouts(params: WorkoutDistributionParams): WorkoutSlot[] {
-  const { phase, trainingDays, weekInPhase } = params
+  const { phase, trainingDays, weekInPhase, test, params: programParams, elitePaces, recentRaceResult } = params
   const workouts: WorkoutSlot[] = []
 
   console.log(`[Workout Distribution] Using POLARIZED methodology (Seiler) for ${phase} phase, week ${weekInPhase}`)
+
+  // === CALCULATE MARATHON PACE FOR DISTANCE CALCULATIONS ===
+  let marathonPaceKmh = 12.0 // Default ~5:00/km
+
+  // Try elite paces first
+  if (elitePaces && validateEliteZones(elitePaces)) {
+    marathonPaceKmh = elitePaces.canova?.marathon?.kmh || elitePaces.core?.marathon ?
+      parseFloat(elitePaces.core.marathon.replace(/[^0-9.]/g, '')) || 12.0 : 12.0
+    console.log(`[Polarized] Using elite pace: ${formatPace(marathonPaceKmh)}/km`)
+  } else {
+    // Try test-based or race-based pace
+    let testPaceKmh: number | undefined
+    let testPaceSource: string | undefined
+
+    const paceValidation = selectReliableMarathonPace(
+      test as any,
+      programParams.goalType,
+      programParams.targetRaceDate,
+      recentRaceResult
+    )
+    testPaceKmh = paceValidation.marathonPaceKmh
+    testPaceSource = paceValidation.source
+
+    const currentFitness = getCurrentFitnessPace(
+      programParams.recentRaceDistance,
+      programParams.recentRaceTime,
+      testPaceKmh,
+      testPaceSource
+    )
+
+    marathonPaceKmh = currentFitness.marathonPaceKmh
+    console.log(`[Polarized] Using ${currentFitness.source} pace: ${formatPace(marathonPaceKmh)}/km`)
+  }
 
   // Map periodization phases to Polarized phases
   const polarizedPhase: PolarizedPhase =
@@ -42,12 +78,16 @@ export function distributePolarizedWorkouts(params: WorkoutDistributionParams): 
   for (const session of polarizedSchedule) {
     if (session.type === 'LSD') {
       const lsdSession = session.session as ReturnType<typeof getLSDSession>
+      // Calculate distance from duration at easy pace (~70% MP)
+      const easyPaceKmh = marathonPaceKmh * 0.70
+      const distance = Math.round((lsdSession.duration / 60) * easyPaceKmh * 10) / 10
       workouts.push({
         dayNumber: session.dayNumber,
         type: 'long',
         params: {
-          duration: lsdSession.duration,
-          zone: 1,
+          distance,
+          pacePercent: 70,
+          marathonPace: marathonPaceKmh,
           description: lsdSession.description,
           hrDriftMonitoring: lsdSession.driftMonitoring,
           maxHRPercent: lsdSession.maxHeartRate
@@ -109,7 +149,8 @@ export function distributePolarizedWorkouts(params: WorkoutDistributionParams): 
         type: 'tempo',
         params: {
           duration: tempoSession.duration,
-          zone: 4,
+          pacePercent: 90, // Threshold pace ~90% MP
+          marathonPace: marathonPaceKmh,
           description: tempoSession.description + ' (Canova integration in SPECIFIC phase)'
         }
       })
@@ -119,7 +160,8 @@ export function distributePolarizedWorkouts(params: WorkoutDistributionParams): 
         type: 'easy',
         params: {
           duration: session.session.duration,
-          zone: 1,
+          pacePercent: 75,
+          marathonPace: marathonPaceKmh,
           description: session.session.description,
           maxHRPercent: 75
         }
@@ -127,9 +169,11 @@ export function distributePolarizedWorkouts(params: WorkoutDistributionParams): 
     } else if (session.type === 'RECOVERY') {
       workouts.push({
         dayNumber: session.dayNumber,
-        type: 'recovery',
+        type: 'easy', // Use easy builder for accurate distance
         params: {
           duration: session.session.duration,
+          pacePercent: 70, // Recovery is slower
+          marathonPace: marathonPaceKmh,
           description: session.session.description,
           maxHRPercent: 70
         }

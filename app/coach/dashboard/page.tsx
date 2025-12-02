@@ -600,7 +600,7 @@ export default async function CoachDashboardPage() {
           </Card>
         </Link>
 
-        <Link href="/coach/programs/generate" className="block">
+        <Link href="/coach/programs/new" className="block">
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">

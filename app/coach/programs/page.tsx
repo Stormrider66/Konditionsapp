@@ -65,7 +65,7 @@ export default async function CoachProgramsPage() {
             Hantera och skapa träningsprogram för dina atleter
           </p>
         </div>
-        <Link href="/coach/programs/generate">
+        <Link href="/coach/programs/new">
           <Button size="lg" disabled={!canCreateMore}>
             <PlusIcon className="mr-2 h-5 w-5" />
             Skapa nytt program

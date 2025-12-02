@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { generateBaseProgram, validateProgramParams, ProgramGenerationParams } from '@/lib/program-generator'
+import { generateSportProgram, SportProgramParams, DataSourceType } from '@/lib/program-generator/sport-router'
 import { requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-import { WorkoutType, WorkoutIntensity } from '@prisma/client'
+import { WorkoutType, WorkoutIntensity, SportType } from '@prisma/client'
 import {
   getGeneralFitnessProgram,
   getProgramDescription,
@@ -36,6 +37,190 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    // ========================================
+    // NEW: Multi-Sport Program Generation
+    // ========================================
+    // If `sport` is provided, use the new sport router
+    if (body.sport && Object.values(SportType).includes(body.sport as SportType)) {
+      console.log(`[API] Using sport router for sport: ${body.sport}`)
+
+      // Fetch client
+      const client = await prisma.client.findUnique({
+        where: { id: body.clientId },
+      })
+
+      if (!client) {
+        return NextResponse.json(
+          { success: false, error: 'Klient hittades inte' },
+          { status: 404 }
+        )
+      }
+
+      // Verify client ownership
+      if (client.userId !== user.id) {
+        return NextResponse.json(
+          { success: false, error: 'Obehörig åtkomst' },
+          { status: 403 }
+        )
+      }
+
+      // Fetch test if testId provided
+      let test = null
+      if (body.testId && body.testId.trim() !== '') {
+        test = await prisma.test.findUnique({
+          where: { id: body.testId },
+          include: {
+            testStages: { orderBy: { sequence: 'asc' } },
+          },
+        })
+
+        if (test && test.userId !== user.id) {
+          return NextResponse.json(
+            { success: false, error: 'Obehörig åtkomst till test' },
+            { status: 403 }
+          )
+        }
+      }
+
+      // Build sport program params
+      const sportParams: SportProgramParams = {
+        clientId: body.clientId,
+        coachId: user.id,
+        sport: body.sport as SportType,
+        goal: body.goal || body.goalType || 'custom',
+        dataSource: (body.dataSource || 'MANUAL') as DataSourceType,
+        durationWeeks: body.durationWeeks || 12,
+        sessionsPerWeek: body.sessionsPerWeek || body.trainingDaysPerWeek || 4,
+        notes: body.notes,
+        targetRaceDate: body.targetRaceDate ? new Date(body.targetRaceDate) : undefined,
+        testId: body.testId,
+
+        // Manual values
+        manualFtp: body.manualFtp || body.ftp,
+        manualCss: body.manualCss || body.css,
+        manualVdot: body.manualVdot || body.vdot,
+
+        // Sport-specific
+        methodology: body.methodology,
+        weeklyHours: body.weeklyHours,
+        bikeType: body.bikeType,
+        technique: body.technique,
+        poolLength: body.poolLength,
+
+        // Strength integration
+        includeStrength: body.includeStrength,
+        strengthSessionsPerWeek: body.strengthSessionsPerWeek,
+
+        // General Fitness
+        fitnessGoal: body.fitnessGoal,
+        fitnessLevel: body.fitnessLevel,
+        hasGymAccess: body.hasGymAccess,
+        preferredActivities: body.preferredActivities,
+      }
+
+      // Generate program using sport router
+      const programData = await generateSportProgram(
+        sportParams,
+        client as any,
+        test as any
+      )
+
+      // Save to database
+      const program = await prisma.trainingProgram.create({
+        data: {
+          clientId: programData.clientId,
+          coachId: programData.coachId,
+          testId: programData.testId || null,
+          name: programData.name,
+          goalType: programData.goalType,
+          startDate: programData.startDate,
+          endDate: programData.endDate,
+          description: programData.notes || null,
+          generatedFromTest: !!programData.testId,
+          weeks: {
+            create: programData.weeks?.map((week) => ({
+              weekNumber: week.weekNumber,
+              startDate: new Date(
+                programData.startDate.getTime() + (week.weekNumber - 1) * 7 * 24 * 60 * 60 * 1000
+              ),
+              endDate: new Date(
+                programData.startDate.getTime() + week.weekNumber * 7 * 24 * 60 * 60 * 1000
+              ),
+              phase: week.phase,
+              weeklyVolume: week.volume,
+              focus: week.focus,
+              days: {
+                create: week.days.map((day) => ({
+                  dayNumber: day.dayNumber,
+                  date: new Date(
+                    programData.startDate.getTime() + (week.weekNumber - 1) * 7 * 24 * 60 * 60 * 1000 + (day.dayNumber - 1) * 24 * 60 * 60 * 1000
+                  ),
+                  notes: day.notes,
+                  workouts: {
+                    create: day.workouts.map((workout, index) => ({
+                      type: workout.type,
+                      name: workout.name,
+                      order: index + 1,
+                      intensity: workout.intensity,
+                      duration: workout.duration,
+                      distance: workout.distance,
+                      instructions: workout.instructions,
+                      segments: {
+                        create: workout.segments?.map((segment) => ({
+                          order: segment.order,
+                          type: segment.type,
+                          duration: segment.duration,
+                          distance: segment.distance,
+                          zone: segment.zone,
+                          pace: segment.pace,
+                          power: segment.power,
+                          heartRate: segment.heartRate,
+                          reps: segment.reps,
+                          sets: segment.sets,
+                          repsCount: segment.repsCount,
+                          rest: segment.rest,
+                          tempo: segment.tempo,
+                          weight: segment.weight,
+                          exerciseId: segment.exerciseId,
+                          description: segment.description,
+                          notes: segment.notes,
+                        })) || [],
+                      },
+                    })),
+                  },
+                })),
+              },
+            })) || [],
+          },
+        },
+        include: {
+          weeks: {
+            include: {
+              days: {
+                include: {
+                  workouts: {
+                    include: { segments: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      })
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: program,
+          message: 'Träningsprogram skapat',
+        },
+        { status: 201 }
+      )
+    }
+
+    // ========================================
+    // LEGACY: Original Program Generation
+    // ========================================
     // Validate parameters
     const params: ProgramGenerationParams = {
       testId: body.testId,
@@ -43,11 +228,16 @@ export async function POST(request: NextRequest) {
       coachId: user.id,
       goalType: body.goalType || 'fitness',
       targetRaceDate: body.targetRaceDate ? new Date(body.targetRaceDate) : undefined,
+      targetTime: body.targetTime, // Target race time (e.g., "3:00:00" for 3h marathon)
       durationWeeks: body.durationWeeks || 12,
       trainingDaysPerWeek: body.trainingDaysPerWeek || 4,
       experienceLevel: body.experienceLevel || 'intermediate',
       currentWeeklyVolume: body.currentWeeklyVolume,
       notes: body.notes,
+
+      // Recent race result for current fitness (Canova: "10k/HM PRs used to calculate baseline")
+      recentRaceDistance: body.recentRaceDistance, // e.g., "HALF", "10K", "5K"
+      recentRaceTime: body.recentRaceTime, // e.g., "1:28:00" for half marathon
 
       // Phase 6: Methodology integration
       methodology: body.methodology, // Optional - defaults to POLARIZED if not provided

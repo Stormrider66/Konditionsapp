@@ -33,10 +33,11 @@ enum SportType {
   RUNNING           // Road, trail, track running
   CYCLING           // Road, indoor, MTB cycling
   SKIING            // Cross-country skiing (classic, skate)
+  SWIMMING          // Pool/open water swimming
   TRIATHLON         // Swim/Bike/Run combined
   HYROX             // Functional fitness racing
   GENERAL_FITNESS   // CrossFit-style, general PT programs
-  SWIMMING          // Pool/open water swimming
+  STRENGTH          // Standalone strength training programs
 }
 
 enum TestStatus {
@@ -64,6 +65,9 @@ enum WorkoutType {
   RECOVERY
   CYCLING
   SKIING
+  SWIMMING
+  TRIATHLON
+  HYROX
   ALTERNATIVE
   OTHER
 }

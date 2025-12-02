@@ -11,6 +11,9 @@ import {
   type PyramidalPhase,
   type PyramidalEventType,
 } from '@/lib/training-engine/methodologies/pyramidal'
+import { selectReliableMarathonPace } from '../pace-validator'
+import { validateEliteZones } from '../elite-pace-integration'
+import { getCurrentFitnessPace, formatPace } from '../pace-progression'
 import { WorkoutSlot, WorkoutDistributionParams } from './types'
 
 export function distributePyramidalWorkouts(params: WorkoutDistributionParams): WorkoutSlot[] {
@@ -18,12 +21,42 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
     phase,
     trainingDays,
     weekInPhase,
-    params: programParams
+    test,
+    params: programParams,
+    elitePaces,
+    recentRaceResult
   } = params
 
   const workouts: WorkoutSlot[] = []
 
   console.log(`[Workout Distribution] Using PYRAMIDAL methodology (Daniels/Pfitzinger/Lydiard) for ${phase} phase, week ${weekInPhase}`)
+
+  // === CALCULATE MARATHON PACE FOR DISTANCE CALCULATIONS ===
+  let marathonPaceKmh = 12.0 // Default ~5:00/km
+
+  // Try elite paces first
+  if (elitePaces && validateEliteZones(elitePaces)) {
+    marathonPaceKmh = elitePaces.canova?.marathon?.kmh || 12.0
+    console.log(`[Pyramidal] Using elite pace: ${formatPace(marathonPaceKmh)}/km`)
+  } else {
+    // Try test-based or race-based pace
+    const paceValidation = selectReliableMarathonPace(
+      test as any,
+      programParams.goalType,
+      programParams.targetRaceDate,
+      recentRaceResult
+    )
+
+    const currentFitness = getCurrentFitnessPace(
+      programParams.recentRaceDistance,
+      programParams.recentRaceTime,
+      paceValidation.marathonPaceKmh,
+      paceValidation.source
+    )
+
+    marathonPaceKmh = currentFitness.marathonPaceKmh
+    console.log(`[Pyramidal] Using ${currentFitness.source} pace: ${formatPace(marathonPaceKmh)}/km`)
+  }
 
   // Map periodization phases to Pyramidal (Lydiard) phases
   const pyramidalPhase: PyramidalPhase =
@@ -112,7 +145,11 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
     workouts.push({
       dayNumber: 2,
       type: 'easy',
-      params: { duration: 45 }
+      params: {
+        duration: 45,
+        pacePercent: 75,
+        marathonPace: marathonPaceKmh
+      }
     })
   }
 
@@ -158,7 +195,11 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
     workouts.push({
       dayNumber: 4,
       type: 'easy',
-      params: { duration: 40 }
+      params: {
+        duration: 40,
+        pacePercent: 75,
+        marathonPace: marathonPaceKmh
+      }
     })
   }
 
@@ -203,6 +244,8 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
     type: 'long',
     params: {
       distance: longRunDistance,
+      pacePercent: 70,
+      marathonPace: marathonPaceKmh,
       description: 'Long Slow Distance - strict Zone 1'
     }
   })
@@ -216,6 +259,8 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
         type: 'easy',
         params: {
           duration: 40,
+          pacePercent: 75,
+          marathonPace: marathonPaceKmh,
           description: 'General Aerobic - conversational pace'
         }
       })

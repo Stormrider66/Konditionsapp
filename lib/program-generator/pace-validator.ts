@@ -5,6 +5,7 @@ import { selectOptimalPaces, type RacePerformance, type AthleteProfileData, type
 import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
 import { analyzeLactateProfile } from '@/lib/training-engine/calculations/lactate-profile-analyzer'
 import { classifyAthlete } from '@/lib/training-engine/calculations/athlete-classifier'
+import { calculateVDOT } from '@/lib/calculations/race-predictions'
 
 /**
  * TEST CASE 1: User's 1:28 HM athlete
@@ -313,13 +314,67 @@ export function runAllValidationTests() {
 }
 
 /**
+ * Race result data for VDOT-based pace calculation
+ */
+export interface RaceResultForPace {
+  distanceMeters: number  // e.g., 21097.5 for half marathon
+  timeSeconds: number     // e.g., 5280 for 1:28:00
+  date?: Date
+}
+
+/**
+ * Calculate marathon pace from race result using VDOT
+ */
+function calculateMarathonPaceFromRace(raceResult: RaceResultForPace): number {
+  // Calculate VDOT from race performance
+  const vdot = calculateVDOT(raceResult.distanceMeters, raceResult.timeSeconds)
+
+  // Marathon time prediction (using same VDOT logic)
+  // For half marathon to marathon: multiply time by ~2.1 (typical ratio)
+  // But VDOT is more accurate - use the VDOT to predict marathon pace directly
+
+  // Marathon pace in sec/km = predicted marathon time / 42.195
+  // Using VDOT-based prediction
+  const marathonDistanceKm = 42.195
+
+  // Solve for marathon pace from VDOT
+  // percentMax for marathon ≈ 0.80-0.85
+  const percentMax = 0.82
+
+  const targetVO2 = vdot * percentMax
+
+  // Solve: targetVO2 = -4.60 + 0.182258*v + 0.000104*v^2
+  const a = 0.000104
+  const b = 0.182258
+  const c = -4.60 - targetVO2
+  const velocity = (-b + Math.sqrt(b * b - 4 * a * c)) / (2 * a) // m/min
+
+  const marathonPaceKmh = velocity * 60 / 1000 // Convert m/min to km/h
+
+  console.log(`[Pace Validator] Race result: ${(raceResult.distanceMeters/1000).toFixed(1)}km in ${Math.floor(raceResult.timeSeconds/60)}:${String(raceResult.timeSeconds%60).padStart(2,'0')}`)
+  console.log(`[Pace Validator] Calculated VDOT: ${vdot.toFixed(1)}`)
+  console.log(`[Pace Validator] Predicted marathon pace: ${marathonPaceKmh.toFixed(1)} km/h`)
+
+  return marathonPaceKmh
+}
+
+/**
  * Select the most reliable marathon pace from a test
  * Used by program generator for Canova methodology
+ *
+ * PRIORITY ORDER (Updated):
+ * 1. Real D-max calculated LT2 (individual physiological data - highest priority)
+ * 2. Recent race results (VDOT) - Performance validation
+ * 3. Coach manual input (clicked graph to set LT2)
+ * 4. Default LT2 (4.0 mmol/L) - Lowest priority, with warning
+ * 5. Training zones fallback
+ * 6. Default fallback
  */
 export function selectReliableMarathonPace(
   test: any,
   goalType: string,
-  targetRaceDate?: Date
+  targetRaceDate?: Date,
+  recentRaceResult?: RaceResultForPace // Optional race result for VDOT
 ): {
   marathonPaceKmh: number
   source: string
@@ -330,20 +385,75 @@ export function selectReliableMarathonPace(
   const warnings: string[] = []
   const errors: string[] = []
 
-  // Try to get marathon pace from test's anaerobic threshold
-  if (test.anaerobicThreshold && test.testStages) {
-    const lt2Stage = test.testStages.find(
-      (stage: any) => stage.sequence === test.anaerobicThreshold.sequence
-    )
+  // Check LT2 status
+  const lt2Status = classifyLT2Source(test)
 
-    if (lt2Stage && lt2Stage.speed) {
-      // Use threshold speed to estimate marathon pace
-      // Marathon pace is typically 88-92% of LT2 pace
-      const marathonPaceKmh = lt2Stage.speed * 0.90
+  console.log(`[Pace Validator] LT2 Status: ${lt2Status.source} (lactate: ${lt2Status.lactateAtLT2?.toFixed(1) || 'unknown'} mmol/L)`)
+
+  // ===== PRIORITY 1: Real D-max calculated LT2 =====
+  // D-max from lactate test is the gold standard - individualized physiological data
+  if (lt2Status.source === 'DMAX' || lt2Status.source === 'CALCULATED') {
+    const thresholdValue = test.anaerobicThreshold?.value
+    const thresholdUnit = test.anaerobicThreshold?.unit
+
+    if (thresholdValue && thresholdUnit) {
+      let lt2SpeedKmh: number = convertToKmh(thresholdValue, thresholdUnit)
+
+      if (lt2SpeedKmh > 0) {
+        const marathonPaceKmh = lt2SpeedKmh * 0.90
+
+        console.log(`[Pace Validator] ✓ PRIORITY 1: Using D-max LT2: ${lt2SpeedKmh.toFixed(1)} km/h`)
+        console.log(`[Pace Validator]   LT2 lactate: ${lt2Status.lactateAtLT2?.toFixed(1)} mmol/L`)
+        console.log(`[Pace Validator]   Marathon pace: ${marathonPaceKmh.toFixed(1)} km/h (90% of LT2)`)
+
+        return {
+          marathonPaceKmh,
+          source: 'LACTATE_TEST_DMAX',
+          confidence: 'VERY_HIGH',
+          warnings,
+          errors,
+        }
+      }
+    }
+
+    // Fallback: Try to find stage by matching heart rate
+    if (test.testStages && test.anaerobicThreshold?.heartRate) {
+      const lt2HR = test.anaerobicThreshold.heartRate
+      const lt2Stage = test.testStages.find(
+        (stage: any) => Math.abs(stage.heartRate - lt2HR) <= 2
+      )
+
+      if (lt2Stage && lt2Stage.speed) {
+        const marathonPaceKmh = lt2Stage.speed * 0.90
+        console.log(`[Pace Validator] ✓ PRIORITY 1: D-max LT2 from HR match: ${lt2Stage.speed.toFixed(1)} km/h`)
+        console.log(`[Pace Validator]   Marathon pace: ${marathonPaceKmh.toFixed(1)} km/h`)
+
+        return {
+          marathonPaceKmh,
+          source: 'LACTATE_TEST_DMAX',
+          confidence: 'VERY_HIGH',
+          warnings,
+          errors,
+        }
+      }
+    }
+  }
+
+  // ===== PRIORITY 2: Recent race result (VDOT-based) =====
+  // Race performance provides validation of actual capability
+  if (recentRaceResult && recentRaceResult.distanceMeters && recentRaceResult.timeSeconds) {
+    const marathonPaceKmh = calculateMarathonPaceFromRace(recentRaceResult)
+
+    if (marathonPaceKmh > 8 && marathonPaceKmh < 25) { // Sanity check: 2:24/km to 7:30/km pace
+      console.log('[Pace Validator] ✓ PRIORITY 2: Using race result (VDOT)')
+
+      if (lt2Status.source === 'DEFAULT') {
+        warnings.push('D-max calculation failed - using race result instead')
+      }
 
       return {
         marathonPaceKmh,
-        source: 'LACTATE_TEST',
+        source: 'RACE_RESULT_VDOT',
         confidence: 'HIGH',
         warnings,
         errors,
@@ -351,7 +461,64 @@ export function selectReliableMarathonPace(
     }
   }
 
-  // Fallback: Use zone 2 from training zones
+  // ===== PRIORITY 3: Coach manual input (non-default, non-D-max LT2) =====
+  // Coach clicked graph to manually set LT2 point
+  if (lt2Status.source === 'MANUAL' && test.anaerobicThreshold) {
+    const thresholdValue = test.anaerobicThreshold.value
+    const thresholdUnit = test.anaerobicThreshold.unit
+
+    if (thresholdValue && thresholdUnit) {
+      let lt2SpeedKmh: number = convertToKmh(thresholdValue, thresholdUnit)
+
+      if (lt2SpeedKmh > 0) {
+        const marathonPaceKmh = lt2SpeedKmh * 0.90
+
+        console.log(`[Pace Validator] ✓ PRIORITY 3: Using coach manual LT2: ${lt2SpeedKmh.toFixed(1)} km/h`)
+        console.log(`[Pace Validator]   Marathon pace: ${marathonPaceKmh.toFixed(1)} km/h (90% of LT2)`)
+
+        return {
+          marathonPaceKmh,
+          source: 'COACH_MANUAL_INPUT',
+          confidence: 'MEDIUM',
+          warnings,
+          errors,
+        }
+      }
+    }
+  }
+
+  // ===== PRIORITY 4: Default LT2 (4.0 mmol/L) - WITH WARNING =====
+  if (lt2Status.source === 'DEFAULT' && test.anaerobicThreshold) {
+    const thresholdValue = test.anaerobicThreshold.value
+    const thresholdUnit = test.anaerobicThreshold.unit
+
+    if (thresholdValue && thresholdUnit) {
+      let lt2SpeedKmh: number = convertToKmh(thresholdValue, thresholdUnit)
+
+      if (lt2SpeedKmh > 0) {
+        const marathonPaceKmh = lt2SpeedKmh * 0.90
+
+        // Add warning about default LT2
+        warnings.push('⚠️ LT2 based on default 4.0 mmol/L (D-max calculation failed)')
+        warnings.push('For high lactate producers, this may underestimate true threshold')
+        warnings.push('Consider: 1) Adding race result, 2) Manually set LT2 on graph')
+
+        console.log(`[Pace Validator] ⚠️ PRIORITY 4: Using DEFAULT LT2: ${lt2SpeedKmh.toFixed(1)} km/h`)
+        console.log(`[Pace Validator]   WARNING: May be inaccurate for this athlete!`)
+        console.log(`[Pace Validator]   Marathon pace: ${marathonPaceKmh.toFixed(1)} km/h`)
+
+        return {
+          marathonPaceKmh,
+          source: 'LACTATE_TEST_DEFAULT',
+          confidence: 'LOW',
+          warnings,
+          errors,
+        }
+      }
+    }
+  }
+
+  // ===== PRIORITY 5: Training zones fallback =====
   if (test.trainingZones && test.trainingZones.length >= 2) {
     const zone2 = test.trainingZones[1] // Zone 2 = Marathon zone
 
@@ -363,23 +530,108 @@ export function selectReliableMarathonPace(
       return {
         marathonPaceKmh,
         source: 'TRAINING_ZONES',
-        confidence: 'MEDIUM',
+        confidence: 'LOW',
         warnings,
         errors,
       }
     }
   }
 
-  // No reliable pace available
+  // ===== PRIORITY 6: Default fallback =====
   errors.push('No reliable marathon pace available from test')
 
   return {
-    marathonPaceKmh: 12.0, // Fallback default
+    marathonPaceKmh: 12.0, // Fallback default (~5:00/km)
     source: 'DEFAULT',
-    confidence: 'LOW',
+    confidence: 'VERY_LOW',
     warnings,
     errors,
   }
+}
+
+/**
+ * Convert threshold value to km/h
+ */
+function convertToKmh(value: number, unit: string): number {
+  if (unit === 'km/h') {
+    return value
+  } else if (unit === 'min/km') {
+    return 60 / value
+  } else if (unit === 'watt') {
+    console.log('[Pace Validator] Power-based threshold, cannot convert to pace')
+    return 0
+  } else {
+    return value // Assume km/h
+  }
+}
+
+/**
+ * Classify the source of LT2 threshold
+ * Returns: 'DMAX' | 'CALCULATED' | 'MANUAL' | 'DEFAULT' | 'NONE'
+ */
+function classifyLT2Source(test: any): {
+  source: 'DMAX' | 'CALCULATED' | 'MANUAL' | 'DEFAULT' | 'NONE'
+  lactateAtLT2: number | null
+} {
+  if (!test.anaerobicThreshold) {
+    return { source: 'NONE', lactateAtLT2: null }
+  }
+
+  // Check if we have a ThresholdCalculation record
+  if (test.thresholdCalculation) {
+    const method = test.thresholdCalculation.method
+    const lt2Lactate = test.thresholdCalculation.lt2Lactate
+
+    if (method === 'D-MAX' || method === 'MOD-DMAX') {
+      return { source: 'DMAX', lactateAtLT2: lt2Lactate }
+    }
+    if (method === 'MANUAL' || method === 'COACH_INPUT') {
+      return { source: 'MANUAL', lactateAtLT2: lt2Lactate }
+    }
+    if (method === 'OBLA') {
+      return { source: 'DEFAULT', lactateAtLT2: 4.0 }
+    }
+    // Other calculation methods
+    return { source: 'CALCULATED', lactateAtLT2: lt2Lactate }
+  }
+
+  // Fallback: Check lactate at LT2 HR from test stages
+  if (!test.testStages || test.testStages.length === 0) {
+    return { source: 'DEFAULT', lactateAtLT2: 4.0 }
+  }
+
+  const lt2HR = test.anaerobicThreshold.heartRate
+  if (!lt2HR) {
+    return { source: 'DEFAULT', lactateAtLT2: 4.0 }
+  }
+
+  const lt2Stage = test.testStages.find(
+    (stage: any) => Math.abs(stage.heartRate - lt2HR) <= 2
+  )
+
+  if (!lt2Stage) {
+    return { source: 'DEFAULT', lactateAtLT2: 4.0 }
+  }
+
+  const lactateAtLT2 = lt2Stage.lactate
+
+  // If lactate at LT2 is exactly 4.0 or very close, it's likely a default OBLA value
+  if (Math.abs(lactateAtLT2 - 4.0) < 0.2) {
+    console.log('[Pace Validator] ⚠️ LT2 lactate is ~4.0 mmol/L - likely default OBLA')
+    return { source: 'DEFAULT', lactateAtLT2 }
+  }
+
+  // Non-4.0 lactate - could be D-max or manual
+  // Without ThresholdCalculation, we assume it's a real calculation
+  // If it's far from typical D-max values (usually 2-6 mmol/L for most athletes),
+  // it might be manual input
+  if (lactateAtLT2 < 1.5 || lactateAtLT2 > 8.0) {
+    // Unusual value - might be manual
+    return { source: 'MANUAL', lactateAtLT2 }
+  }
+
+  // Assume real D-max calculation
+  return { source: 'CALCULATED', lactateAtLT2 }
 }
 
 /**

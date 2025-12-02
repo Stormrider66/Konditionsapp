@@ -63,7 +63,7 @@ import {
   buildPlyometricWorkout,
   buildRecoveryWorkout,
 } from './workout-builder'
-import { selectReliableMarathonPace, formatPaceValidation } from './pace-validator'
+import { selectReliableMarathonPace, formatPaceValidation, type RaceResultForPace } from './pace-validator'
 import { determineWorkoutDistribution } from './workout-distribution'
 
 export interface ProgramGenerationParams {
@@ -72,11 +72,16 @@ export interface ProgramGenerationParams {
   coachId: string
   goalType: 'marathon' | 'half-marathon' | '10k' | '5k' | 'fitness' | 'cycling' | 'skiing' | 'custom'
   targetRaceDate?: Date
+  targetTime?: string // Target race time in format "H:MM:SS" or "HH:MM:SS" (e.g., "3:00:00" for 3h marathon)
   durationWeeks: number
   trainingDaysPerWeek: number
   experienceLevel: 'beginner' | 'intermediate' | 'advanced'
   currentWeeklyVolume?: number // km or hours
   notes?: string
+
+  // Recent race result for current fitness calculation (Canova: "10k/HM PRs used to calculate baseline")
+  recentRaceDistance?: 'NONE' | '5K' | '10K' | 'HALF' | 'MARATHON' // Recent race distance
+  recentRaceTime?: string // Recent race time in format "H:MM:SS" or "MM:SS"
 
   // Methodology integration (Phase 6)
   methodology?: MethodologyType // Optional - will auto-select if not provided
@@ -103,6 +108,10 @@ export async function generateBaseProgram(
   console.log('=====================================')
   console.log('PROGRAM GENERATION: Starting')
   console.log('=====================================\n')
+
+  // Step 0.5: Fetch recent race results for VDOT-based pace calculation
+  console.log('[0/6] Fetching recent race results...')
+  const recentRaceResult = await fetchRecentRaceResult(params.clientId)
 
   // Step 1: Fetch elite paces from comprehensive pace selector
   console.log('[1/6] Fetching elite paces...')
@@ -184,9 +193,9 @@ export async function generateBaseProgram(
   console.log(`[Program Generator] Using methodology: ${methodology} (requested: ${params.methodology})`)
   console.log(`[Program Generator] Methodology config type: ${methodologyConfig.type}`)
 
-  // Calculate periodization
-  const phases = calculatePhases(params.durationWeeks)
-  console.log(`[Program Generator] Phase distribution for ${params.durationWeeks} weeks:`, phases)
+  // Calculate periodization (methodology-aware for Canova)
+  const phases = calculatePhases(params.durationWeeks, methodology)
+  console.log(`[Program Generator] Phase distribution for ${params.durationWeeks} weeks (${methodology}):`, phases)
   console.log(`[Program Generator] Total phase weeks: ${phases.base + phases.build + phases.peak + phases.taper}`)
 
   // Determine volume based on experience and goal
@@ -309,7 +318,8 @@ export async function generateBaseProgram(
       weekInPhase,
       test, // Pass test for lactate-based calculations
       params, // Pass params for granular session control
-      elitePaces // Pass elite paces for methodology-specific zones
+      elitePaces, // Pass elite paces for methodology-specific zones
+      recentRaceResult // Pass race result for VDOT-based pace calculation
     )
 
     weeks.push(week)
@@ -352,7 +362,8 @@ async function buildWeek(
   weekInPhase: number,
   test: Test,
   params: ProgramGenerationParams,
-  elitePaces: EliteZonePaces | null // Elite pace data (if available)
+  elitePaces: EliteZonePaces | null, // Elite pace data (if available)
+  recentRaceResult?: RaceResultForPace // Race result for VDOT-based pace calculation
 ): Promise<CreateTrainingWeekDTO> {
   // Log elite pace usage for this week
   if (elitePaces) {
@@ -370,9 +381,12 @@ async function buildWeek(
     methodologyConfig,
     athleteLevel,
     weekInPhase,
+    weekNumber,       // Pass overall week number for progressive pacing
+    totalWeeks: params.durationWeeks, // Pass total weeks for progressive pacing
     test,
     params,
-    elitePaces
+    elitePaces,
+    recentRaceResult
   })
 
   // Build each training day
@@ -423,10 +437,10 @@ async function createWorkout(
 ): Promise<CreateWorkoutDTO> {
   switch (type) {
     case 'long':
-      return buildLongRun(params.distance, zones as ZonePaces, trainingZones)
+      return buildLongRun(params, zones as ZonePaces, trainingZones)
 
     case 'tempo':
-      return buildTempoRun(params.duration, zones as ZonePaces, trainingZones)
+      return buildTempoRun(params, zones as ZonePaces, trainingZones)
 
     case 'intervals':
       return buildIntervals(
@@ -460,7 +474,7 @@ async function createWorkout(
       )
 
     case 'easy':
-      return buildEasyRun(params.duration, zones as ZonePaces, trainingZones)
+      return buildEasyRun(params, zones as ZonePaces, trainingZones)
 
     case 'strength':
       // Fetch actual exercise IDs from database
@@ -614,6 +628,68 @@ function generateProgramName(goalType: string, weeks: number): string {
 
   const name = goalNames[goalType] || 'Träningsprogram'
   return `${name} (${weeks} veckor)`
+}
+
+/**
+ * Fetch the most recent race result for a client
+ * Returns formatted data for VDOT-based pace calculation
+ */
+async function fetchRecentRaceResult(clientId: string): Promise<RaceResultForPace | undefined> {
+  const { prisma } = await import('@/lib/prisma')
+
+  // Standard race distances in meters
+  const distanceMap: Record<string, number> = {
+    '5K': 5000,
+    '10K': 10000,
+    'HALF_MARATHON': 21097.5,
+    'MARATHON': 42195,
+  }
+
+  try {
+    // Fetch the most recent race result from the RaceResult model
+    const recentRace = await prisma.raceResult.findFirst({
+      where: { clientId },
+      orderBy: { raceDate: 'desc' },
+      select: {
+        distance: true,
+        customDistanceKm: true,
+        timeMinutes: true,
+        raceDate: true,
+      },
+    })
+
+    if (!recentRace) {
+      console.log('[Program Generator] No race results found for client')
+      return undefined
+    }
+
+    // Convert distance to meters
+    let distanceMeters: number
+    if (recentRace.distance === 'CUSTOM' && recentRace.customDistanceKm) {
+      distanceMeters = recentRace.customDistanceKm * 1000
+    } else {
+      distanceMeters = distanceMap[recentRace.distance] || 0
+    }
+
+    if (distanceMeters === 0) {
+      console.log(`[Program Generator] Unknown distance: ${recentRace.distance}`)
+      return undefined
+    }
+
+    // Convert timeMinutes to seconds
+    const timeSeconds = recentRace.timeMinutes * 60
+
+    console.log(`[Program Generator] ✓ Found race result: ${(distanceMeters/1000).toFixed(1)}km in ${Math.floor(timeSeconds/60)}:${String(Math.round(timeSeconds%60)).padStart(2,'0')}`)
+
+    return {
+      distanceMeters,
+      timeSeconds,
+      date: recentRace.raceDate,
+    }
+  } catch (error) {
+    console.error('[Program Generator] Error fetching race result:', error)
+    return undefined
+  }
 }
 
 /**
