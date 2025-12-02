@@ -94,6 +94,14 @@ export interface ProgramGenerationParams {
   alternativeTrainingSessionsPerWeek?: number // 0-7 (cross-training)
   scheduleStrengthAfterRunning?: boolean // Same-day PM session
   scheduleCoreAfterRunning?: boolean // Same-day PM session
+
+  // Additional athlete profile fields from wizard
+  yearsRunning?: number // Years of running experience
+  longestLongRun?: number // Longest long run in km in last 6 months
+
+  // Equipment & Monitoring
+  hasLactateMeter?: boolean // Enables Norwegian method
+  hasHRVMonitor?: boolean // Daily recovery tracking
 }
 
 /**

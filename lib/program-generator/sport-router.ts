@@ -50,6 +50,32 @@ export interface SportProgramParams {
   includeStrength?: boolean
   strengthSessionsPerWeek?: number
 
+  // ===== NEW FIELDS FROM WIZARD =====
+
+  // Athlete Profile (Running/HYROX/Triathlon)
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced'
+  yearsRunning?: number
+  currentWeeklyVolume?: number
+  longestLongRun?: number
+
+  // Race Results for VDOT (pure running races only)
+  recentRaceDistance?: 'NONE' | '5K' | '10K' | 'HALF' | 'MARATHON'
+  recentRaceTime?: string // HH:MM:SS or MM:SS format
+
+  // Target Race Goal Time (for progressive pace calculation)
+  targetTime?: string // HH:MM:SS format - the goal time for the target race
+
+  // Core & Alternative Training
+  coreSessionsPerWeek?: number
+  alternativeTrainingSessionsPerWeek?: number
+  scheduleStrengthAfterRunning?: boolean
+  scheduleCoreAfterRunning?: boolean
+
+  // Equipment & Monitoring
+  hasLactateMeter?: boolean
+  hasHRVMonitor?: boolean
+  hasPowerMeter?: boolean // Cycling/Triathlon only
+
   // General Fitness specific
   fitnessGoal?: FitnessGoal
   fitnessLevel?: FitnessLevel
@@ -107,6 +133,10 @@ export async function generateSportProgram(
     case 'HYROX':
       return generateHyroxProgram({
         ...params,
+        experienceLevel: params.experienceLevel,
+        // Pass race result data for VDOT calculation (pure running races only)
+        recentRaceDistance: params.recentRaceDistance,
+        recentRaceTime: params.recentRaceTime,
       } as HyroxProgramParams, client)
 
     case 'STRENGTH':
@@ -146,11 +176,24 @@ async function generateRunningProgram(
     goalType: goalTypeMap[params.goal] || 'fitness',
     durationWeeks: params.durationWeeks,
     trainingDaysPerWeek: params.sessionsPerWeek,
-    experienceLevel: 'intermediate',
+    experienceLevel: params.experienceLevel || 'intermediate',
     targetRaceDate: params.targetRaceDate,
+    targetTime: params.targetTime, // Goal time for progressive pace calculation
     notes: params.notes,
     methodology: params.methodology as any,
     strengthSessionsPerWeek: params.includeStrength ? (params.strengthSessionsPerWeek || 2) : 0,
+    // New fields from wizard
+    currentWeeklyVolume: params.currentWeeklyVolume,
+    longestLongRun: params.longestLongRun,
+    yearsRunning: params.yearsRunning,
+    recentRaceDistance: params.recentRaceDistance,
+    recentRaceTime: params.recentRaceTime,
+    coreSessionsPerWeek: params.coreSessionsPerWeek,
+    alternativeTrainingSessionsPerWeek: params.alternativeTrainingSessionsPerWeek,
+    scheduleStrengthAfterRunning: params.scheduleStrengthAfterRunning,
+    scheduleCoreAfterRunning: params.scheduleCoreAfterRunning,
+    hasLactateMeter: params.hasLactateMeter,
+    hasHRVMonitor: params.hasHRVMonitor,
   }
 
   if (!test && params.dataSource === 'TEST') {

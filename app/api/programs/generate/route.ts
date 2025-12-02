@@ -111,6 +111,32 @@ export async function POST(request: NextRequest) {
         includeStrength: body.includeStrength,
         strengthSessionsPerWeek: body.strengthSessionsPerWeek,
 
+        // ===== NEW FIELDS FROM WIZARD =====
+
+        // Athlete Profile (Running/HYROX/Triathlon)
+        experienceLevel: body.experienceLevel,
+        yearsRunning: body.yearsRunning,
+        currentWeeklyVolume: body.currentWeeklyVolume,
+        longestLongRun: body.longestLongRun,
+
+        // Race Results for VDOT (pure running races only)
+        recentRaceDistance: body.recentRaceDistance,
+        recentRaceTime: body.recentRaceTime,
+
+        // Target Race Goal Time (for progressive pace calculation)
+        targetTime: body.targetTime,
+
+        // Core & Alternative Training
+        coreSessionsPerWeek: body.coreSessionsPerWeek,
+        alternativeTrainingSessionsPerWeek: body.alternativeTrainingSessionsPerWeek,
+        scheduleStrengthAfterRunning: body.scheduleStrengthAfterRunning,
+        scheduleCoreAfterRunning: body.scheduleCoreAfterRunning,
+
+        // Equipment & Monitoring
+        hasLactateMeter: body.hasLactateMeter,
+        hasHRVMonitor: body.hasHRVMonitor,
+        hasPowerMeter: body.hasPowerMeter,
+
         // General Fitness
         fitnessGoal: body.fitnessGoal,
         fitnessLevel: body.fitnessLevel,

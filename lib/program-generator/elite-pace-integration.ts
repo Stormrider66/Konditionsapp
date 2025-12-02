@@ -1,8 +1,15 @@
 // lib/program-generator/elite-pace-integration.ts
 // Integration layer between elite pace selector and program generator
 
-import { type PaceSelection } from '@/lib/training-engine/calculations/pace-selector'
+import {
+  type PaceSelection,
+  type RacePerformance,
+  type AthleteProfileData,
+  type LactateTestData,
+  selectOptimalPaces
+} from '@/lib/training-engine/calculations/pace-selector'
 import { type ZonePaces } from './zone-calculator'
+import { prisma } from '@/lib/prisma'
 
 /**
  * Enhanced zone paces with all training systems
@@ -54,7 +61,7 @@ export interface EliteZonePaces {
 }
 
 /**
- * Fetch elite paces from API for a client
+ * Fetch elite paces from API for a client (client-side)
  */
 export async function fetchElitePaces(clientId: string): Promise<EliteZonePaces | null> {
   try {
@@ -70,6 +77,113 @@ export async function fetchElitePaces(clientId: string): Promise<EliteZonePaces 
     return convertPaceSelectionToEliteZones(paceData)
   } catch (error) {
     console.error('Error fetching elite paces:', error)
+    return null
+  }
+}
+
+/**
+ * Fetch elite paces directly using Prisma (server-side)
+ * Use this in server-side code like program generators
+ */
+export async function fetchElitePacesServer(clientId: string): Promise<EliteZonePaces | null> {
+  try {
+    // Get client data
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      include: {
+        athleteProfile: true,
+      },
+    })
+
+    if (!client) {
+      console.error('[fetchElitePacesServer] Client not found:', clientId)
+      return null
+    }
+
+    // Calculate age
+    const birthDate = new Date(client.birthDate)
+    const now = new Date()
+    const age = Math.floor(
+      (now.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+    )
+
+    // Build athlete profile data
+    const profileData: AthleteProfileData = {
+      age,
+      gender: client.gender as 'MALE' | 'FEMALE',
+      weeklyKm: client.athleteProfile?.typicalWeeklyKm || 50,
+      trainingAge: client.athleteProfile?.yearsRunning || 2,
+      restingHR: client.athleteProfile?.rhrBaseline ?? undefined,
+      maxHR: undefined,
+    }
+
+    // Get race performances (most recent 5)
+    const raceResults = await prisma.raceResult.findMany({
+      where: { clientId },
+      orderBy: { raceDate: 'desc' },
+      take: 5,
+    })
+
+    const races: RacePerformance[] = raceResults.map((race) => ({
+      distance: race.distance as '5K' | '10K' | 'HALF_MARATHON' | 'MARATHON' | 'CUSTOM',
+      timeMinutes: race.timeMinutes,
+      customDistanceKm: race.customDistanceKm || undefined,
+      date: new Date(race.raceDate),
+      age,
+      gender: client.gender as 'MALE' | 'FEMALE',
+    }))
+
+    // Get most recent lactate test (from Test model)
+    const latestTest = await prisma.test.findFirst({
+      where: {
+        clientId,
+        testType: 'RUNNING',
+      },
+      orderBy: { testDate: 'desc' },
+      include: {
+        testStages: {
+          orderBy: { sequence: 'asc' },
+        },
+      },
+    })
+
+    let lactateTest: LactateTestData | undefined = undefined
+    if (latestTest && latestTest.testStages.length >= 4) {
+      const hasLactate = latestTest.testStages.some((stage) => stage.lactate > 0)
+
+      if (hasLactate && latestTest.maxHR) {
+        lactateTest = {
+          testStages: latestTest.testStages.map((stage) => ({
+            sequence: stage.sequence,
+            speed: stage.speed || 0,
+            heartRate: stage.heartRate,
+            lactate: stage.lactate,
+          })),
+          maxHR: latestTest.maxHR,
+        }
+
+        if (latestTest.maxHR) {
+          profileData.maxHR = latestTest.maxHR
+        }
+      }
+    }
+
+    // Call pace selector
+    const paceSelection = selectOptimalPaces(
+      profileData,
+      races.length > 0 ? races : undefined,
+      lactateTest
+    )
+
+    console.log(`[fetchElitePacesServer] Pace selection for ${client.name}:`)
+    console.log(`  Source: ${paceSelection.primarySource}`)
+    console.log(`  Confidence: ${paceSelection.confidence}`)
+    console.log(`  Has lactate test: ${!!lactateTest}`)
+    console.log(`  Has race results: ${races.length > 0}`)
+
+    return convertPaceSelectionToEliteZones(paceSelection)
+  } catch (error) {
+    console.error('[fetchElitePacesServer] Error:', error)
     return null
   }
 }

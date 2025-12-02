@@ -32,8 +32,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
-import { CalendarIcon, Loader2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { CalendarIcon, Loader2, ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DataSourceType } from './DataSourceSelector'
 
@@ -45,7 +51,7 @@ const configSchema = z.object({
   sessionsPerWeek: z.coerce.number().min(2).max(14),
 
   // Methodology (for running)
-  methodology: z.enum(['AUTO', 'POLARIZED', 'NORWEGIAN', 'CANOVA', 'PYRAMIDAL']).optional(),
+  methodology: z.enum(['AUTO', 'POLARIZED', 'NORWEGIAN', 'NORWEGIAN_SINGLES', 'CANOVA', 'PYRAMIDAL']).optional(),
 
   // Manual values
   manualFtp: z.coerce.number().optional(),
@@ -65,6 +71,32 @@ const configSchema = z.object({
   // Strength integration
   includeStrength: z.boolean(),
   strengthSessionsPerWeek: z.coerce.number().min(0).max(3),
+
+  // ===== NEW FIELDS =====
+
+  // Athlete Profile (Running/HYROX/Triathlon)
+  experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
+  yearsRunning: z.coerce.number().min(0).max(50).optional(),
+  currentWeeklyVolume: z.coerce.number().min(0).max(300).optional(),
+  longestLongRun: z.coerce.number().min(0).max(100).optional(),
+
+  // Race Results for VDOT (Running/HYROX/Triathlon - pure running races only)
+  recentRaceDistance: z.enum(['NONE', '5K', '10K', 'HALF', 'MARATHON']).optional(),
+  recentRaceTime: z.string().optional(), // HH:MM:SS format
+
+  // Target Race Goal Time (for progressive pace calculation)
+  targetTime: z.string().optional(), // HH:MM:SS format - the goal time for the target race
+
+  // Core & Alternative Training
+  coreSessionsPerWeek: z.coerce.number().min(0).max(7).optional(),
+  alternativeTrainingSessionsPerWeek: z.coerce.number().min(0).max(7).optional(),
+  scheduleStrengthAfterRunning: z.boolean().optional(),
+  scheduleCoreAfterRunning: z.boolean().optional(),
+
+  // Equipment & Monitoring
+  hasLactateMeter: z.boolean().optional(),
+  hasHRVMonitor: z.boolean().optional(),
+  hasPowerMeter: z.boolean().optional(), // Cycling/Triathlon only
 
   notes: z.string().optional(),
 })
@@ -96,6 +128,8 @@ export function ConfigurationForm({
   onSubmit,
   isSubmitting,
 }: ConfigurationFormProps) {
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+
   const form = useForm<ConfigFormData>({
     resolver: zodResolver(configSchema),
     defaultValues: {
@@ -109,6 +143,21 @@ export function ConfigurationForm({
       poolLength: '25',
       bikeType: 'road',
       notes: '',
+      // New defaults
+      experienceLevel: 'intermediate',
+      yearsRunning: undefined,
+      currentWeeklyVolume: undefined,
+      longestLongRun: undefined,
+      recentRaceDistance: 'NONE',
+      recentRaceTime: '',
+      targetTime: '',
+      coreSessionsPerWeek: 0,
+      alternativeTrainingSessionsPerWeek: 0,
+      scheduleStrengthAfterRunning: false,
+      scheduleCoreAfterRunning: false,
+      hasLactateMeter: false,
+      hasHRVMonitor: false,
+      hasPowerMeter: false,
     },
   })
 
@@ -116,6 +165,11 @@ export function ConfigurationForm({
   const selectedClient = clients.find((c) => c.id === watchClientId)
   const watchTargetDate = form.watch('targetRaceDate')
   const watchIncludeStrength = form.watch('includeStrength')
+  const watchRaceDistance = form.watch('recentRaceDistance')
+
+  // Check if sport needs running-specific fields
+  const needsRunningFields = sport === 'RUNNING' || sport === 'HYROX' || sport === 'TRIATHLON'
+  const needsPowerMeter = sport === 'CYCLING' || sport === 'TRIATHLON'
 
   // Auto-calculate duration from target date
   useEffect(() => {
@@ -312,6 +366,35 @@ export function ConfigurationForm({
             )}
           />
 
+          {/* Target Time / Goal Time (Running only) */}
+          {needsRunningFields && (
+            <FormField
+              control={form.control}
+              name="targetTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Måltid för tävling</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={
+                        goal === 'marathon' ? 'H:MM:SS (t.ex. 3:30:00)' :
+                        goal === 'half-marathon' ? 'H:MM:SS (t.ex. 1:45:00)' :
+                        goal === '10k' ? 'MM:SS (t.ex. 45:00)' :
+                        goal === '5k' ? 'MM:SS (t.ex. 22:00)' :
+                        'H:MM:SS'
+                      }
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Programmet bygger gradvis upp tempo från nuvarande form till måltempo
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
           {/* Duration */}
           <FormField
             control={form.control}
@@ -375,6 +458,7 @@ export function ConfigurationForm({
                       <SelectItem value="AUTO">Automatiskt val</SelectItem>
                       <SelectItem value="POLARIZED">Polarized (80/20)</SelectItem>
                       <SelectItem value="NORWEGIAN">Norwegian (Dubbel tröskel)</SelectItem>
+                      <SelectItem value="NORWEGIAN_SINGLES">Norwegian Singles (Enkel tröskel)</SelectItem>
                       <SelectItem value="CANOVA">Canova (Marathon-specialist)</SelectItem>
                       <SelectItem value="PYRAMIDAL">Pyramidal</SelectItem>
                     </SelectContent>
@@ -385,6 +469,126 @@ export function ConfigurationForm({
             />
           )}
 
+          {/* Experience Level (Running/HYROX/Triathlon) */}
+          {needsRunningFields && (
+            <FormField
+              control={form.control}
+              name="experienceLevel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Erfarenhetsnivå</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Välj nivå" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="beginner">Nybörjare</SelectItem>
+                      <SelectItem value="intermediate">Mellanliggande</SelectItem>
+                      <SelectItem value="advanced">Avancerad</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          {/* Current Weekly Volume (Running/HYROX/Triathlon) */}
+          {needsRunningFields && (
+            <FormField
+              control={form.control}
+              name="currentWeeklyVolume"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nuvarande veckodistans (km)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="t.ex. 40"
+                      value={field.value ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        field.onChange(val === '' ? undefined : parseInt(val))
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>Genomsnittlig km/vecka senaste månaden</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
+
+        {/* Race Results Section (for VDOT calculation) */}
+        {needsRunningFields && (
+          <div className="border rounded-lg p-4 mt-6">
+            <h3 className="font-medium mb-3">Tävlingsresultat för tempokalkylering</h3>
+            <Alert className="mb-4">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                {sport === 'HYROX'
+                  ? 'Ange ett resultat från en ren löptävling (5K, 10K, etc.) - EJ HYROX-tid. HYROX-tid inkluderar stationstider och kan inte användas för löptempo.'
+                  : 'Ange ditt bästa tävlingsresultat från de senaste 12 månaderna för att beräkna VDOT och optimala träningstempo.'}
+              </AlertDescription>
+            </Alert>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="recentRaceDistance"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tävlingsdistans</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Välj distans" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="NONE">Inget tävlingsresultat</SelectItem>
+                        <SelectItem value="5K">5 km</SelectItem>
+                        <SelectItem value="10K">10 km</SelectItem>
+                        <SelectItem value="HALF">Halvmaraton (21,1 km)</SelectItem>
+                        <SelectItem value="MARATHON">Maraton (42,2 km)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {watchRaceDistance && watchRaceDistance !== 'NONE' && (
+                <FormField
+                  control={form.control}
+                  name="recentRaceTime"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sluttid</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder={watchRaceDistance === '5K' || watchRaceDistance === '10K' ? 'MM:SS' : 'H:MM:SS'}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {watchRaceDistance === '5K' && 't.ex. 22:30'}
+                        {watchRaceDistance === '10K' && 't.ex. 47:15'}
+                        {watchRaceDistance === 'HALF' && 't.ex. 1:45:00'}
+                        {watchRaceDistance === 'MARATHON' && 't.ex. 3:45:00'}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Cycling specific: Weekly hours */}
           {sport === 'CYCLING' && (
             <FormField
@@ -468,59 +672,337 @@ export function ConfigurationForm({
           )}
         </div>
 
-        {/* Strength Integration (not for pure strength programs) */}
+        {/* Strength & Core Integration (not for pure strength programs) */}
         {sport !== 'STRENGTH' && (
           <div className="border-t pt-6 mt-6">
+            <h3 className="font-medium mb-4">Tillägg i programmet</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Strength Column */}
+              <div className="space-y-3">
+                <FormField
+                  control={form.control}
+                  name="includeStrength"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Inkludera styrketräning</FormLabel>
+                        <FormDescription>
+                          Periodiserad styrketräning
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {watchIncludeStrength && (
+                  <FormField
+                    control={form.control}
+                    name="strengthSessionsPerWeek"
+                    render={({ field }) => (
+                      <FormItem className="ml-7">
+                        <FormLabel>Styrkepass per vecka</FormLabel>
+                        <Select
+                          onValueChange={(v) => field.onChange(parseInt(v))}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="1">1x</SelectItem>
+                            <SelectItem value="2">2x</SelectItem>
+                            <SelectItem value="3">3x</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              {/* Core Column */}
+              <div className="space-y-3">
+                <FormField
+                  control={form.control}
+                  name="coreSessionsPerWeek"
+                  render={({ field }) => {
+                    const hasCoreTraining = (field.value ?? 0) > 0
+                    return (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={hasCoreTraining}
+                            onCheckedChange={(checked) => {
+                              field.onChange(checked ? 2 : 0)
+                            }}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Inkludera core-träning</FormLabel>
+                          <FormDescription>
+                            Core/bålstabilitet
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )
+                  }}
+                />
+
+                {(form.watch('coreSessionsPerWeek') ?? 0) > 0 && (
+                  <FormField
+                    control={form.control}
+                    name="coreSessionsPerWeek"
+                    render={({ field }) => (
+                      <FormItem className="ml-7">
+                        <FormLabel>Core-pass per vecka</FormLabel>
+                        <Select
+                          onValueChange={(v) => field.onChange(parseInt(v))}
+                          value={field.value?.toString() || '2'}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="1">1x</SelectItem>
+                            <SelectItem value="2">2x</SelectItem>
+                            <SelectItem value="3">3x</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Advanced Settings (Collapsible) */}
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="w-full justify-between mt-6">
+              Avancerade inställningar
+              {advancedOpen ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="border rounded-lg p-4 mt-2 space-y-6">
+            {/* Running-specific advanced fields */}
+            {needsRunningFields && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="yearsRunning"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>År av löpning</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="t.ex. 5"
+                            value={field.value ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              field.onChange(val === '' ? undefined : parseInt(val))
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription>Antal år med regelbunden löpträning</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="longestLongRun"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Längsta långpass (km)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="t.ex. 25"
+                            value={field.value ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              field.onChange(val === '' ? undefined : parseInt(val))
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription>Längsta distans på ett långpass senaste 6 mån</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Alternative Training */}
             <FormField
               control={form.control}
-              name="includeStrength"
+              name="alternativeTrainingSessionsPerWeek"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Inkludera styrketräning</FormLabel>
-                    <FormDescription>
-                      Lägg till periodiserad styrketräning i programmet
-                    </FormDescription>
-                  </div>
+                <FormItem>
+                  <FormLabel>Alternativ träning per vecka</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(parseInt(v))}
+                    value={field.value?.toString() || '0'}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="0" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="0">0</SelectItem>
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                      <SelectItem value="3">3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>Cykling, simning, etc. för aktiv återhämtning</FormDescription>
+                  <FormMessage />
                 </FormItem>
               )}
             />
 
-            {watchIncludeStrength && (
+            {/* Scheduling Options */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Schemaläggning</h4>
               <FormField
                 control={form.control}
-                name="strengthSessionsPerWeek"
+                name="scheduleStrengthAfterRunning"
                 render={({ field }) => (
-                  <FormItem className="mt-4 ml-7">
-                    <FormLabel>Styrkepass per vecka</FormLabel>
-                    <Select
-                      onValueChange={(v) => field.onChange(parseInt(v))}
-                      value={field.value?.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="1">1x</SelectItem>
-                        <SelectItem value="2">2x</SelectItem>
-                        <SelectItem value="3">3x</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Schemalägg styrka efter löpning</FormLabel>
+                      <FormDescription>
+                        Styrkepass placeras efter löppass samma dag
+                      </FormDescription>
+                    </div>
                   </FormItem>
                 )}
               />
-            )}
-          </div>
-        )}
+
+              <FormField
+                control={form.control}
+                name="scheduleCoreAfterRunning"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Schemalägg core efter löpning</FormLabel>
+                      <FormDescription>
+                        Core-pass placeras efter löppass samma dag
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Equipment & Monitoring */}
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Utrustning & Övervakning</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="hasLactateMeter"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Har laktatmätare</FormLabel>
+                        <FormDescription>
+                          Möjliggör Norwegian-metoden
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="hasHRVMonitor"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Har HRV-övervakning</FormLabel>
+                        <FormDescription>
+                          Mäter daglig återhämtning
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Power Meter (Cycling/Triathlon only) */}
+                {needsPowerMeter && (
+                  <FormField
+                    control={form.control}
+                    name="hasPowerMeter"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>Har wattmätare</FormLabel>
+                          <FormDescription>
+                            Aktiverar wattbaserad träning
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Notes */}
         <FormField

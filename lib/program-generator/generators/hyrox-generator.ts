@@ -1,9 +1,10 @@
 // lib/program-generator/generators/hyrox-generator.ts
 // HYROX program generator (Functional Fitness Racing)
 
-import { Client, CreateTrainingProgramDTO, PeriodPhase } from '@/types'
-import { HYROX_BEGINNER_12_WEEK, HYROX_INTERMEDIATE_16_WEEK, HYROXTemplateWeek } from '../templates/hyrox'
+import { Client, CreateTrainingProgramDTO, CreateWorkoutSegmentDTO, PeriodPhase } from '@/types'
+import { HYROX_BEGINNER_12_WEEK, HYROX_INTERMEDIATE_16_WEEK, HYROXTemplateWeek, HYROXTemplateWorkout } from '../templates/hyrox'
 import { mapHyroxWeekToWorkouts } from '../workout-mapper'
+import { fetchElitePacesServer, validateEliteZones, type EliteZonePaces } from '../elite-pace-integration'
 
 export interface HyroxProgramParams {
   clientId: string
@@ -16,6 +17,9 @@ export interface HyroxProgramParams {
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced'
   includeStrength?: boolean
   strengthSessionsPerWeek?: number
+  // Race results for VDOT calculation (pure running races only, NOT HYROX times)
+  recentRaceDistance?: 'NONE' | '5K' | '10K' | 'HALF' | 'MARATHON'
+  recentRaceTime?: string // HH:MM:SS or MM:SS format
 }
 
 /**
@@ -35,6 +39,28 @@ export async function generateHyroxProgram(
 
   const endDate = new Date(startDate)
   endDate.setDate(endDate.getDate() + params.durationWeeks * 7)
+
+  // Fetch elite paces from LT2 test data (if available)
+  let elitePaces: EliteZonePaces | null = null
+  try {
+    console.log('[HYROX Generator] Fetching elite paces for client:', client.id)
+    elitePaces = await fetchElitePacesServer(client.id)
+
+    if (elitePaces && validateEliteZones(elitePaces)) {
+      console.log('[HYROX Generator] ✓ Elite paces fetched successfully')
+      console.log(`  Source: ${elitePaces.source}`)
+      console.log(`  Confidence: ${elitePaces.confidence}`)
+      console.log(`  Core paces:`)
+      console.log(`    Easy: ${elitePaces.core.easy}`)
+      console.log(`    Marathon: ${elitePaces.core.marathon}`)
+      console.log(`    Threshold: ${elitePaces.core.threshold}`)
+      console.log(`    Interval: ${elitePaces.core.interval}`)
+    } else {
+      console.log('[HYROX Generator] ⚠ No elite paces available - workouts will not include pace targets')
+    }
+  } catch (error) {
+    console.error('[HYROX Generator] Error fetching elite paces:', error)
+  }
 
   // Select template based on goal and experience level
   let template
@@ -72,7 +98,7 @@ export async function generateHyroxProgram(
         intensity: mapIntensity(w.intensity),
         duration: w.duration,
         instructions: w.structure,
-        segments: [],
+        segments: createRunningSegments(w, elitePaces),
       })),
     }))
 
@@ -205,4 +231,157 @@ function getHyroxFocus(goal: string, weekNum: number, totalWeeks: number): strin
   if (progress < 0.75) return 'Race-simuleringar och övergångar'
   if (progress < 0.9) return 'Tävlingstempo och finjustering'
   return 'Taper och vila'
+}
+
+/**
+ * Create running segments with pace data based on workout type and intensity
+ * Returns empty array for non-running workouts or if no pace data is available
+ */
+function createRunningSegments(
+  workout: HYROXTemplateWorkout,
+  elitePaces: EliteZonePaces | null
+): CreateWorkoutSegmentDTO[] {
+  // Skip if not a running workout
+  const runningTypes = ['running', 'interval', 'endurance']
+  if (!runningTypes.includes(workout.type)) {
+    return []
+  }
+
+  // Skip if no pace data available
+  if (!elitePaces || !validateEliteZones(elitePaces)) {
+    return []
+  }
+
+  const segments: CreateWorkoutSegmentDTO[] = []
+
+  // Determine main workout pace based on intensity
+  const mainPace = getWorkoutPace(workout.intensity, elitePaces)
+  const mainZone = getWorkoutZone(workout.intensity)
+
+  // Check if this is an interval workout (has structure with intervals)
+  const isIntervalWorkout = workout.structure && (
+    workout.structure.includes('x') ||
+    workout.structure.includes('×') ||
+    workout.structure.includes('intervall') ||
+    workout.structure.includes('800m') ||
+    workout.structure.includes('1km') ||
+    workout.structure.includes('400m')
+  )
+
+  if (isIntervalWorkout && workout.structure) {
+    // Parse interval structure (e.g., "6x1km", "8x400m", "5x1km med 2 min vila")
+    const intervalMatch = workout.structure.match(/(\d+)\s*[x×]\s*(\d+)\s*(km|m)/i)
+
+    if (intervalMatch) {
+      const reps = parseInt(intervalMatch[1])
+      const distance = parseInt(intervalMatch[2])
+      const unit = intervalMatch[3].toLowerCase()
+      const distanceKm = unit === 'km' ? distance : distance / 1000
+
+      // Add warmup segment (10-15 min easy)
+      segments.push({
+        order: 1,
+        type: 'warmup',
+        duration: 10,
+        pace: elitePaces.core.easy,
+        zone: 1,
+        description: `Uppvärmning @ ${elitePaces.core.easy}`,
+      })
+
+      // Add interval work segment
+      segments.push({
+        order: 2,
+        type: 'interval',
+        distance: distanceKm,
+        pace: mainPace,
+        zone: mainZone,
+        reps: reps,
+        description: `${reps} × ${distance}${unit} @ ${mainPace}`,
+      })
+
+      // Add cooldown segment (5-10 min easy)
+      segments.push({
+        order: 3,
+        type: 'cooldown',
+        duration: 5,
+        pace: elitePaces.core.easy,
+        zone: 1,
+        description: `Nedvarvning @ ${elitePaces.core.easy}`,
+      })
+    } else {
+      // Generic interval structure - create single work segment
+      segments.push({
+        order: 1,
+        type: 'work',
+        duration: workout.duration,
+        pace: mainPace,
+        zone: mainZone,
+        description: `${workout.name} @ ${mainPace}`,
+      })
+    }
+  } else {
+    // Continuous run (easy, tempo, long run)
+    const distanceKm = workout.runningDistance ? workout.runningDistance / 1000 : undefined
+
+    // For long runs (>8km), add easy pace range
+    if (distanceKm && distanceKm > 8 && workout.intensity === 'easy') {
+      const easyPaceRange = `${elitePaces.daniels.easy.minPace} - ${elitePaces.daniels.easy.maxPace}`
+      segments.push({
+        order: 1,
+        type: 'work',
+        distance: distanceKm,
+        pace: easyPaceRange,
+        zone: 1,
+        description: `Långpass ${distanceKm} km @ ${easyPaceRange}`,
+      })
+    } else {
+      segments.push({
+        order: 1,
+        type: 'work',
+        duration: workout.duration,
+        distance: distanceKm,
+        pace: mainPace,
+        zone: mainZone,
+        description: `${workout.name} @ ${mainPace}`,
+      })
+    }
+  }
+
+  return segments
+}
+
+/**
+ * Get pace string based on workout intensity
+ */
+function getWorkoutPace(intensity: string, elitePaces: EliteZonePaces): string {
+  switch (intensity) {
+    case 'easy':
+      return elitePaces.core.easy
+    case 'moderate':
+      return elitePaces.core.marathon // Marathon pace for moderate efforts
+    case 'hard':
+      return elitePaces.core.threshold // Threshold/LT2 pace for hard efforts
+    case 'race_pace':
+      return elitePaces.core.interval // Interval pace for race-pace efforts
+    default:
+      return elitePaces.core.easy
+  }
+}
+
+/**
+ * Get training zone based on workout intensity
+ */
+function getWorkoutZone(intensity: string): number {
+  switch (intensity) {
+    case 'easy':
+      return 1
+    case 'moderate':
+      return 2
+    case 'hard':
+      return 3
+    case 'race_pace':
+      return 4
+    default:
+      return 2
+  }
 }
