@@ -217,7 +217,7 @@ export function ProgramWizard({ clients }: ProgramWizardProps) {
 
       const result = await response.json()
       toast.success('Program skapat!')
-      router.push(`/coach/programs/${result.programId}`)
+      router.push(`/coach/programs/${result.data.id}`)
     } catch (error: any) {
       toast.error(error.message || 'Ett fel uppstod')
       setIsSubmitting(false)
