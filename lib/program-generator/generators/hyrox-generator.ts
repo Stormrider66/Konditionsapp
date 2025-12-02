@@ -40,11 +40,21 @@ export async function generateHyroxProgram(
   let template
   if (params.goal === 'beginner' || params.experienceLevel === 'beginner') {
     template = HYROX_BEGINNER_12_WEEK
-  } else if (params.goal === 'intermediate' || params.experienceLevel === 'intermediate') {
+  } else if (
+    params.goal === 'pro' ||
+    params.goal === 'age-group' ||
+    params.goal === 'intermediate' ||
+    params.experienceLevel === 'intermediate' ||
+    params.experienceLevel === 'advanced'
+  ) {
+    // Pro, age-group, intermediate and advanced all use the 16-week template
     template = HYROX_INTERMEDIATE_16_WEEK
-  } else {
-    // Custom or unsupported goal - create empty structure
+  } else if (params.goal === 'custom') {
+    // Custom goal - create empty structure for coach to fill
     return createEmptyHyroxProgram(params, client, startDate, endDate)
+  } else {
+    // Default to intermediate template for any other goal
+    template = HYROX_INTERMEDIATE_16_WEEK
   }
 
   // Map template weeks to program structure
