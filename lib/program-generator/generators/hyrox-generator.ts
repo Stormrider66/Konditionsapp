@@ -278,35 +278,38 @@ function createRunningSegments(
       const unit = intervalMatch[3].toLowerCase()
       const distanceKm = unit === 'km' ? distance : distance / 1000
 
-      // Add warmup segment (10-15 min easy)
+      // Add warmup segment (10-15 min easy) - use slow end of easy pace
+      const warmupPace = elitePaces.daniels.easy.minPace
       segments.push({
         order: 1,
         type: 'warmup',
         duration: 10,
-        pace: elitePaces.core.easy,
-        zone: 1,
-        description: `Uppvärmning @ ${elitePaces.core.easy}`,
+        pace: warmupPace,
+        zone: 2, // Zone 2 for warmup (aerobic, not recovery)
+        description: `Uppvärmning @ ${warmupPace}`,
       })
 
-      // Add interval work segment
+      // Add interval work segment - force zone 4 for race-pace intervals
+      const intervalZone = workout.name.toLowerCase().includes('race') ||
+                           workout.structure?.toLowerCase().includes('race') ? 4 : mainZone
       segments.push({
         order: 2,
         type: 'interval',
         distance: distanceKm,
         pace: mainPace,
-        zone: mainZone,
+        zone: intervalZone,
         reps: reps,
         description: `${reps} × ${distance}${unit} @ ${mainPace}`,
       })
 
-      // Add cooldown segment (5-10 min easy)
+      // Add cooldown segment (5-10 min easy) - use slow end of easy pace
       segments.push({
         order: 3,
         type: 'cooldown',
         duration: 5,
-        pace: elitePaces.core.easy,
-        zone: 1,
-        description: `Nedvarvning @ ${elitePaces.core.easy}`,
+        pace: warmupPace,
+        zone: 2, // Zone 2 for cooldown
+        description: `Nedvarvning @ ${warmupPace}`,
       })
     } else {
       // Generic interval structure - create single work segment
@@ -332,7 +335,7 @@ function createRunningSegments(
         distance: distanceKm,
         pace: easyPaceRange,
         zone: 1,
-        description: `Långpass ${distanceKm} km @ ${easyPaceRange}`,
+        description: `Långpass ${distanceKm} km`, // Don't include pace in description, it's in the pace field
       })
     } else {
       segments.push({
@@ -342,7 +345,7 @@ function createRunningSegments(
         distance: distanceKm,
         pace: mainPace,
         zone: mainZone,
-        description: `${workout.name} @ ${mainPace}`,
+        description: workout.name, // Just the name, pace is in the pace field
       })
     }
   }

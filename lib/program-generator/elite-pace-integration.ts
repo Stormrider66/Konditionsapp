@@ -207,7 +207,7 @@ export function convertPaceSelectionToEliteZones(paceData: PaceSelection): Elite
     canova: paceData.zones.canova,
     norwegian: paceData.zones.norwegian,
     core: {
-      easy: paceData.easyPace.maxPace,
+      easy: paceData.easyPace.minPace, // Use slow end of easy pace (more appropriate for easy running)
       marathon: paceData.marathonPace.pace,
       threshold: paceData.thresholdPace.pace,
       interval: paceData.intervalPace.pace,
