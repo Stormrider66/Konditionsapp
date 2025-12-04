@@ -92,6 +92,18 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
     baseline: baseline[index]?.lactate || 0
   }))
 
+  // Add data points to chart data for scatter plotting
+  // We need to include actual measured points and the D-max point
+  const scatterDataPoints = dataPoints.map(p => ({
+    intensity: p.intensity,
+    measuredLactate: p.lactate
+  }))
+
+  const dmaxPoint = {
+    intensity: dmaxResult.intensity,
+    dmaxLactate: dmaxResult.lactate
+  }
+
   // Determine axis label
   const intensityLabel = intensityUnit === 'km/h' ? 'Hastighet (km/h)' :
                         intensityUnit === 'watt' ? 'Effekt (watt)' :
@@ -176,7 +188,8 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
 
           {/* Actual test data points */}
           <Scatter
-            data={dataPoints.map(p => ({ intensity: p.intensity, y: p.lactate }))}
+            data={scatterDataPoints}
+            dataKey="measuredLactate"
             name="Uppmätta värden"
             fill="#ef4444"
             line={false}
@@ -185,7 +198,8 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
 
           {/* D-max threshold point */}
           <Scatter
-            data={[{ intensity: dmaxResult.intensity, y: dmaxResult.lactate }]}
+            data={[dmaxPoint]}
+            dataKey="dmaxLactate"
             name="D-max tröskel"
             fill="#f59e0b"
             shape="star"

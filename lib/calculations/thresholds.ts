@@ -1,6 +1,12 @@
 // lib/calculations/thresholds.ts
 import { TestStage, Threshold } from '@/types'
 import { calculateDmax, calculateModDmax } from '@/lib/training-engine'
+import {
+  detectEliteThresholds,
+  convertToLactateData,
+  classifyAthleteProfile,
+  type AthleteProfile
+} from './elite-threshold-detection'
 
 function linearInterpolation(
   below: TestStage,
@@ -158,15 +164,59 @@ function tryDmaxThreshold(stages: TestStage[]): (Threshold & { method: string; c
   }
 }
 
-export function calculateAerobicThreshold(stages: TestStage[]): Threshold | null {
+export function calculateAerobicThreshold(stages: TestStage[]): (Threshold & { method?: string; confidence?: string; profileType?: string }) | null {
   const targetLactate = 2.0
 
-  // Try D-max first
+  // Convert stages to lactate data points for elite detection
+  const lactateData = convertToLactateData(stages)
+
+  // Classify athlete profile first
+  const profile = classifyAthleteProfile(lactateData)
+
+  console.log('[Aerobic Threshold] Athlete profile:', profile.type)
+
+  // For elite athletes with flat curves, use the ensemble detection system
+  if (profile.type === 'ELITE_FLAT' && lactateData.length >= 5) {
+    console.log('[Aerobic Threshold] Using elite detection system for flat curve')
+
+    const eliteResult = detectEliteThresholds(lactateData)
+
+    if (eliteResult.lt1) {
+      // Determine unit based on test type
+      let unit: 'km/h' | 'watt' | 'min/km' = 'km/h'
+      if (stages[0]?.power !== undefined && stages[0].power !== null) {
+        unit = 'watt'
+      } else if (stages[0]?.pace !== undefined && stages[0].pace !== null) {
+        unit = 'min/km'
+      }
+
+      console.log('[Aerobic Threshold] Elite LT1 detected:', {
+        intensity: eliteResult.lt1.intensity,
+        lactate: eliteResult.lt1.lactate,
+        method: eliteResult.lt1.method,
+        confidence: eliteResult.lt1.confidence
+      })
+
+      return {
+        heartRate: Math.round(eliteResult.lt1.heartRate),
+        value: Number(eliteResult.lt1.intensity.toFixed(1)),
+        unit,
+        lactate: Number(eliteResult.lt1.lactate.toFixed(2)),
+        percentOfMax: 0,
+        method: eliteResult.lt1.method,
+        confidence: eliteResult.lt1.confidence,
+        profileType: eliteResult.profile.type
+      }
+    }
+  }
+
+  // For standard/recreational profiles or if elite detection fails,
+  // try D-max for aerobic threshold
   const dmaxResult = tryDmaxThreshold(stages)
   if (dmaxResult && dmaxResult.lactate !== undefined && dmaxResult.lactate <= 2.5 && dmaxResult.lactate >= 1.5) {
     // D-max found a threshold in reasonable aerobic range (1.5-2.5 mmol/L)
     console.log('Using D-max for aerobic threshold:', dmaxResult)
-    return dmaxResult
+    return { ...dmaxResult, profileType: profile.type }
   }
 
   console.log('D-max not suitable for aerobic threshold, using linear interpolation at 2.0 mmol/L')
@@ -185,6 +235,47 @@ export function calculateAerobicThreshold(stages: TestStage[]): Threshold | null
   }
 
   if (!below || !above) {
+    // For elite athletes who never reach 2.0, use baseline + adaptive delta
+    if (profile.type === 'ELITE_FLAT') {
+      const delta = 0.3
+      const targetForElite = profile.baselineAvg + delta
+
+      console.log('[Aerobic Threshold] Elite fallback: using baseline +', delta, '=', targetForElite.toFixed(2))
+
+      // Find point closest to baseline + delta
+      let closestIndex = 0
+      let closestDiff = Infinity
+      for (let i = 0; i < stages.length; i++) {
+        const diff = Math.abs(stages[i].lactate - targetForElite)
+        if (diff < closestDiff) {
+          closestDiff = diff
+          closestIndex = i
+        }
+      }
+
+      const stage = stages[closestIndex]
+      let unit: 'km/h' | 'watt' | 'min/km' = 'km/h'
+      let value = stage.speed || 0
+      if (stage.power !== undefined && stage.power !== null) {
+        unit = 'watt'
+        value = stage.power
+      } else if (stage.pace !== undefined && stage.pace !== null) {
+        unit = 'min/km'
+        value = stage.pace
+      }
+
+      return {
+        heartRate: Math.round(stage.heartRate),
+        value: Number(value.toFixed(1)),
+        unit,
+        lactate: stage.lactate,
+        percentOfMax: 0,
+        method: 'BASELINE_PLUS_0.3',
+        confidence: 'MEDIUM',
+        profileType: profile.type
+      }
+    }
+
     // Estimera baserat på tillgänglig data
     return estimateThreshold(stages, targetLactate)
   }
@@ -210,6 +301,8 @@ export function calculateAerobicThreshold(stages: TestStage[]): Threshold | null
     unit,
     lactate: targetLactate,
     percentOfMax: 0, // Beräknas senare när maxHR är känd
+    method: 'LINEAR_2.0',
+    profileType: profile.type
   }
 }
 
@@ -220,10 +313,17 @@ export function calculateAnaerobicThreshold(stages: TestStage[]): Threshold | nu
 
   // Try D-max first - this is the preferred method for anaerobic threshold
   const dmaxResult = tryDmaxThreshold(stages)
-  if (dmaxResult) {
+
+  // Only use D-max if the lactate value is in a reasonable anaerobic range (≥2.5 mmol/L)
+  // D-max values below 2.5 mmol/L likely represent LT1, not LT2
+  if (dmaxResult && dmaxResult.lactate !== undefined && dmaxResult.lactate >= 2.5) {
     // D-max represents the lactate turnpoint - ideal for anaerobic threshold
     console.log('Using D-max for anaerobic threshold:', dmaxResult)
     return dmaxResult
+  }
+
+  if (dmaxResult && dmaxResult.lactate !== undefined && dmaxResult.lactate < 2.5) {
+    console.log('D-max lactate too low for anaerobic threshold:', dmaxResult.lactate, 'mmol/L - falling back to 4.0 mmol/L method')
   }
 
   console.log('D-max not available, using traditional 4.0 mmol/L method')

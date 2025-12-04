@@ -20,11 +20,53 @@ export async function performAllCalculations(test: Test, client: Client): Promis
   const vo2max = identifyVO2max(stages) || 0
 
   // Trösklar
-  const aerobicThreshold = calculateAerobicThreshold(stages)
-  const anaerobicThreshold = calculateAnaerobicThreshold(stages)
+  let aerobicThreshold = calculateAerobicThreshold(stages)
+  let anaerobicThreshold = calculateAnaerobicThreshold(stages)
 
   if (!aerobicThreshold || !anaerobicThreshold) {
     throw new Error('Kunde inte beräkna tröskelvärden')
+  }
+
+  // Sanity check: LT1 (aerobic) should always be at lower intensity than LT2 (anaerobic)
+  // If not, something went wrong and we should swap or recalculate
+  if (aerobicThreshold.value >= anaerobicThreshold.value) {
+    console.warn('[Threshold Sanity Check] LT1 >= LT2 detected. LT1:', aerobicThreshold.value, 'LT2:', anaerobicThreshold.value)
+    console.warn('[Threshold Sanity Check] This is physiologically incorrect. Recalculating using traditional methods.')
+
+    // The aerobic threshold should be lower, so if they're swapped, the D-max
+    // might have found LT1 instead of LT2. Use traditional 2.0 and 4.0 mmol/L methods.
+    // Create a simple interpolation-based aerobic threshold at 2.0 mmol/L
+    const sortedStages = [...stages].sort((a, b) => a.sequence - b.sequence)
+
+    // Force traditional method by finding 2.0 mmol/L crossing
+    let lt1Below: typeof sortedStages[0] | null = null
+    let lt1Above: typeof sortedStages[0] | null = null
+    for (let i = 0; i < sortedStages.length; i++) {
+      if (sortedStages[i].lactate <= 2.0) {
+        lt1Below = sortedStages[i]
+      } else if (!lt1Above && sortedStages[i].lactate > 2.0) {
+        lt1Above = sortedStages[i]
+        break
+      }
+    }
+
+    if (lt1Below && lt1Above) {
+      const factor = (2.0 - lt1Below.lactate) / (lt1Above.lactate - lt1Below.lactate)
+      const hr = lt1Below.heartRate + factor * (lt1Above.heartRate - lt1Below.heartRate)
+      const speed = (lt1Below.speed || 0) + factor * ((lt1Above.speed || 0) - (lt1Below.speed || 0))
+      const power = (lt1Below.power || 0) + factor * ((lt1Above.power || 0) - (lt1Below.power || 0))
+      const value = speed > 0 ? speed : power
+      const unit = speed > 0 ? 'km/h' : 'watt'
+
+      aerobicThreshold = {
+        heartRate: Math.round(hr),
+        value: Number(value.toFixed(1)),
+        unit: unit as 'km/h' | 'watt' | 'min/km',
+        lactate: 2.0,
+        percentOfMax: 0
+      }
+      console.log('[Threshold Sanity Check] Recalculated aerobic threshold:', aerobicThreshold)
+    }
   }
 
   // Uppdatera procent av max
@@ -108,3 +150,4 @@ export {
   type VDOTCategoryInfo,
 } from './vdot'
 export * from './environmental'
+export * from './elite-threshold-detection'
