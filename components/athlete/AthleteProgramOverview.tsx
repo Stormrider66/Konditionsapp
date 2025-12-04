@@ -6,6 +6,7 @@ import { sv } from 'date-fns/locale'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Target, TrendingUp, Activity } from 'lucide-react'
+import { HyroxRaceAnalysisCard } from './HyroxRaceAnalysisCard'
 
 interface AthleteProgramOverviewProps {
   program: any
@@ -137,6 +138,15 @@ export function AthleteProgramOverview({ program }: AthleteProgramOverviewProps)
           </CardContent>
         </Card>
       )}
+
+      {/* HYROX Race Time Analysis - show for HYROX programs */}
+      {isHyroxProgram(program) && program.client?.sportProfile?.hyroxSettings && (
+        <HyroxRaceAnalysisCard
+          stationTimes={extractHyroxStationTimes(program.client.sportProfile.hyroxSettings)}
+          averageRunPace={extractRunPace(program.client.sportProfile.hyroxSettings)}
+          compact={false}
+        />
+      )}
     </div>
   )
 }
@@ -200,4 +210,34 @@ function getPhaseBadgeClass(phase: string): string {
     TRANSITION: 'border-gray-500 text-gray-700',
   }
   return classes[phase] || ''
+}
+
+function isHyroxProgram(program: any): boolean {
+  // Check if program name contains HYROX or if goalType indicates HYROX
+  const name = program.name?.toLowerCase() || ''
+  const goalType = program.goalType?.toLowerCase() || ''
+  return name.includes('hyrox') || goalType.includes('hyrox') || goalType === 'pro' || goalType === 'beginner' || goalType === 'intermediate'
+}
+
+function extractHyroxStationTimes(settings: any): Record<string, number | null> {
+  if (!settings) return {}
+  return {
+    skierg: settings.skiErgTime ?? null,
+    sledPush: settings.sledPushTime ?? null,
+    sledPull: settings.sledPullTime ?? null,
+    burpeeBroadJump: settings.burpeeBroadJumpTime ?? null,
+    rowing: settings.rowingTime ?? null,
+    farmersCarry: settings.farmersCarryTime ?? null,
+    sandbagLunge: settings.sandbagLungeTime ?? null,
+    wallBalls: settings.wallBallTime ?? null,
+  }
+}
+
+function extractRunPace(settings: any): number | undefined {
+  if (!settings) return undefined
+  // If we have a 5K time, calculate average pace per km with fatigue factor
+  if (settings.fiveKmTime) {
+    return Math.round((settings.fiveKmTime / 5) * 1.1) // 10% slower due to HYROX fatigue
+  }
+  return undefined
 }

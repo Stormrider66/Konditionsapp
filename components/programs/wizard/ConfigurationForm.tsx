@@ -42,6 +42,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CalendarIcon, Loader2, ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DataSourceType } from './DataSourceSelector'
+import { HyroxRaceTimeAnalysis } from './HyroxRaceTimeAnalysis'
+import { HyroxAthleteProfileCard } from './HyroxAthleteProfileCard'
 
 const configSchema = z.object({
   clientId: z.string().min(1, 'Välj en atlet'),
@@ -98,6 +100,34 @@ const configSchema = z.object({
   hasHRVMonitor: z.boolean().optional(),
   hasPowerMeter: z.boolean().optional(), // Cycling/Triathlon only
 
+  // ===== HYROX Station Times (MM:SS format) =====
+  hyroxStationTimes: z.object({
+    skierg: z.string().optional(),          // 1000m time
+    sledPush: z.string().optional(),        // 50m time
+    sledPull: z.string().optional(),        // 50m time
+    burpeeBroadJump: z.string().optional(), // 80m time
+    rowing: z.string().optional(),          // 1000m time
+    farmersCarry: z.string().optional(),    // 200m time
+    sandbagLunge: z.string().optional(),    // 100m time
+    wallBalls: z.string().optional(),       // 75/100 reps time
+    averageRunPace: z.string().optional(),  // Average 1km run pace
+  }).optional(),
+
+  // HYROX Division
+  hyroxDivision: z.enum(['open', 'pro', 'doubles']).optional(),
+  hyroxGender: z.enum(['male', 'female']).optional(),
+  hyroxBodyweight: z.coerce.number().min(30).max(200).optional(), // kg
+
+  // ===== Strength PRs (kg) =====
+  strengthPRs: z.object({
+    deadlift: z.coerce.number().optional(),
+    backSquat: z.coerce.number().optional(),
+    benchPress: z.coerce.number().optional(),
+    overheadPress: z.coerce.number().optional(),
+    barbellRow: z.coerce.number().optional(),
+    pullUps: z.coerce.number().optional(), // max reps
+  }).optional(),
+
   notes: z.string().optional(),
 })
 
@@ -130,6 +160,8 @@ export function ConfigurationForm({
 }: ConfigurationFormProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
+  const isHyroxSport = sport === 'HYROX'
+
   const form = useForm<ConfigFormData>({
     resolver: zodResolver(configSchema),
     defaultValues: {
@@ -137,8 +169,8 @@ export function ConfigurationForm({
       durationWeeks: getDefaultDuration(sport, goal),
       sessionsPerWeek: 4,
       methodology: 'AUTO',
-      includeStrength: false,
-      strengthSessionsPerWeek: 2,
+      includeStrength: isHyroxSport, // HYROX always includes strength training
+      strengthSessionsPerWeek: isHyroxSport ? 2 : 2,
       technique: 'both',
       poolLength: '25',
       bikeType: 'road',
@@ -158,6 +190,30 @@ export function ConfigurationForm({
       hasLactateMeter: false,
       hasHRVMonitor: false,
       hasPowerMeter: false,
+      // HYROX specific
+      hyroxStationTimes: {
+        skierg: '',
+        sledPush: '',
+        sledPull: '',
+        burpeeBroadJump: '',
+        rowing: '',
+        farmersCarry: '',
+        sandbagLunge: '',
+        wallBalls: '',
+        averageRunPace: '',
+      },
+      hyroxDivision: 'open',
+      hyroxGender: undefined,
+      hyroxBodyweight: undefined,
+      // Strength PRs
+      strengthPRs: {
+        deadlift: undefined,
+        backSquat: undefined,
+        benchPress: undefined,
+        overheadPress: undefined,
+        barbellRow: undefined,
+        pullUps: undefined,
+      },
     },
   })
 
@@ -170,6 +226,11 @@ export function ConfigurationForm({
   // Check if sport needs running-specific fields
   const needsRunningFields = sport === 'RUNNING' || sport === 'HYROX' || sport === 'TRIATHLON'
   const needsPowerMeter = sport === 'CYCLING' || sport === 'TRIATHLON'
+  const isHyrox = sport === 'HYROX'
+
+  // HYROX-specific state
+  const [stationTimesOpen, setStationTimesOpen] = useState(false)
+  const [strengthPRsOpen, setStrengthPRsOpen] = useState(false)
 
   // Auto-calculate duration from target date
   useEffect(() => {
@@ -586,6 +647,421 @@ export function ConfigurationForm({
               )}
             </div>
           </div>
+        )}
+
+        {/* HYROX Station Times Section */}
+        {isHyrox && (
+          <Collapsible open={stationTimesOpen} onOpenChange={setStationTimesOpen} className="border rounded-lg p-4 mt-6">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
+                <div className="text-left">
+                  <h3 className="font-medium">HYROX Stationstider</h3>
+                  <p className="text-sm text-muted-foreground">Ange dina nuvarande stationstider för analys</p>
+                </div>
+                {stationTimesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Division & Gender */}
+                <FormField
+                  control={form.control}
+                  name="hyroxDivision"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Division</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Välj division" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="open">Open</SelectItem>
+                          <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="doubles">Doubles</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="hyroxGender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kön (för benchmarks)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Välj kön" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Man</SelectItem>
+                          <SelectItem value="female">Kvinna</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="hyroxBodyweight"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Kroppsvikt (kg)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="t.ex. 80"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? undefined : parseFloat(val))
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3 text-sm">Stationstider (MM:SS)</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="hyroxStationTimes.skierg"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">SkiErg 1km</FormLabel>
+                        <FormControl>
+                          <Input placeholder="3:45" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hyroxStationTimes.sledPush"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Sled Push 50m</FormLabel>
+                        <FormControl>
+                          <Input placeholder="2:30" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hyroxStationTimes.sledPull"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Sled Pull 50m</FormLabel>
+                        <FormControl>
+                          <Input placeholder="3:00" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hyroxStationTimes.burpeeBroadJump"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Burpee BJ 80m</FormLabel>
+                        <FormControl>
+                          <Input placeholder="2:40" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hyroxStationTimes.rowing"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Rowing 1km</FormLabel>
+                        <FormControl>
+                          <Input placeholder="3:45" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hyroxStationTimes.farmersCarry"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Farmers 200m</FormLabel>
+                        <FormControl>
+                          <Input placeholder="1:30" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hyroxStationTimes.sandbagLunge"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Lunge 100m</FormLabel>
+                        <FormControl>
+                          <Input placeholder="3:00" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="hyroxStationTimes.wallBalls"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Wall Balls</FormLabel>
+                        <FormControl>
+                          <Input placeholder="3:30" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <FormField
+                    control={form.control}
+                    name="hyroxStationTimes.averageRunPace"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm">Genomsnittligt löptempo (min/km)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="4:30" className="max-w-[150px]" {...field} />
+                        </FormControl>
+                        <FormDescription>Tempo för 1km-avsnitten mellan stationer</FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Stationstider används för att identifiera svagheter och prioritera träningen.
+                  Sled Pull och Wall Balls är vanliga &quot;time sinks&quot; för nybörjare.
+                </AlertDescription>
+              </Alert>
+
+              {/* Real-time Race Time Analysis */}
+              <HyroxRaceTimeAnalysis
+                stationTimes={{
+                  skierg: form.watch('hyroxStationTimes.skierg'),
+                  sledPush: form.watch('hyroxStationTimes.sledPush'),
+                  sledPull: form.watch('hyroxStationTimes.sledPull'),
+                  burpeeBroadJump: form.watch('hyroxStationTimes.burpeeBroadJump'),
+                  rowing: form.watch('hyroxStationTimes.rowing'),
+                  farmersCarry: form.watch('hyroxStationTimes.farmersCarry'),
+                  sandbagLunge: form.watch('hyroxStationTimes.sandbagLunge'),
+                  wallBalls: form.watch('hyroxStationTimes.wallBalls'),
+                  averageRunPace: form.watch('hyroxStationTimes.averageRunPace'),
+                }}
+                gender={form.watch('hyroxGender')}
+                targetTime={form.watch('targetTime')}
+              />
+
+              {/* Athlete Profile Analysis */}
+              <HyroxAthleteProfileCard
+                recentRaceDistance={watchRaceDistance as '5K' | '10K' | 'HALF' | 'MARATHON' | undefined}
+                recentRaceTime={form.watch('recentRaceTime')}
+                hyroxAverageRunPace={form.watch('hyroxStationTimes.averageRunPace')}
+                stationTimes={{
+                  skierg: form.watch('hyroxStationTimes.skierg'),
+                  sledPush: form.watch('hyroxStationTimes.sledPush'),
+                  sledPull: form.watch('hyroxStationTimes.sledPull'),
+                  burpeeBroadJump: form.watch('hyroxStationTimes.burpeeBroadJump'),
+                  rowing: form.watch('hyroxStationTimes.rowing'),
+                  farmersCarry: form.watch('hyroxStationTimes.farmersCarry'),
+                  sandbagLunge: form.watch('hyroxStationTimes.sandbagLunge'),
+                  wallBalls: form.watch('hyroxStationTimes.wallBalls'),
+                }}
+                gender={form.watch('hyroxGender')}
+                experienceLevel={form.watch('experienceLevel')}
+                currentWeeklyKm={form.watch('currentWeeklyVolume')}
+                goalTime={form.watch('targetTime')}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+
+        {/* Strength PRs Section (HYROX and when strength is included) */}
+        {(isHyrox || watchIncludeStrength) && (
+          <Collapsible open={strengthPRsOpen} onOpenChange={setStrengthPRsOpen} className="border rounded-lg p-4 mt-6">
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
+                <div className="text-left">
+                  <h3 className="font-medium">Styrke-PRs</h3>
+                  <p className="text-sm text-muted-foreground">Ange dina 1RM för att beräkna träningsvikter</p>
+                </div>
+                {strengthPRsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4 space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="strengthPRs.deadlift"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Marklyft (kg)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="t.ex. 150"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? undefined : parseFloat(val))
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">1RM</FormDescription>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="strengthPRs.backSquat"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Knäböj (kg)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="t.ex. 120"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? undefined : parseFloat(val))
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">1RM</FormDescription>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="strengthPRs.benchPress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bänkpress (kg)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="t.ex. 100"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? undefined : parseFloat(val))
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">1RM</FormDescription>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="strengthPRs.overheadPress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Axelpress (kg)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="t.ex. 60"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? undefined : parseFloat(val))
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">1RM</FormDescription>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="strengthPRs.barbellRow"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rodd (kg)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="t.ex. 80"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? undefined : parseFloat(val))
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">1RM</FormDescription>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="strengthPRs.pullUps"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Chins (reps)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="t.ex. 10"
+                          value={field.value ?? ''}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            field.onChange(val === '' ? undefined : parseInt(val))
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">Max strikta</FormDescription>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  Styrke-PRs används för att beräkna träningsvikter (% av 1RM).
+                  {isHyrox && ' För HYROX Pro Division rekommenderas minst 1.5x kroppsvikt i marklyft.'}
+                </AlertDescription>
+              </Alert>
+            </CollapsibleContent>
+          </Collapsible>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

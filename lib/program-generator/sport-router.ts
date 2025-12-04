@@ -76,6 +76,34 @@ export interface SportProgramParams {
   hasHRVMonitor?: boolean
   hasPowerMeter?: boolean // Cycling/Triathlon only
 
+  // ===== HYROX Station Times (seconds) =====
+  hyroxStationTimes?: {
+    skierg?: number | null
+    sledPush?: number | null
+    sledPull?: number | null
+    burpeeBroadJump?: number | null
+    rowing?: number | null
+    farmersCarry?: number | null
+    sandbagLunge?: number | null
+    wallBalls?: number | null
+    averageRunPace?: number | null
+  }
+
+  // HYROX Division
+  hyroxDivision?: 'open' | 'pro' | 'doubles'
+  hyroxGender?: 'male' | 'female'
+  hyroxBodyweight?: number
+
+  // ===== Strength PRs (kg) =====
+  strengthPRs?: {
+    deadlift?: number
+    backSquat?: number
+    benchPress?: number
+    overheadPress?: number
+    barbellRow?: number
+    pullUps?: number // max reps
+  }
+
   // General Fitness specific
   fitnessGoal?: FitnessGoal
   fitnessLevel?: FitnessLevel
@@ -137,6 +165,12 @@ export async function generateSportProgram(
         // Pass race result data for VDOT calculation (pure running races only)
         recentRaceDistance: params.recentRaceDistance,
         recentRaceTime: params.recentRaceTime,
+        // Pass HYROX-specific data
+        hyroxStationTimes: params.hyroxStationTimes,
+        hyroxDivision: params.hyroxDivision,
+        hyroxGender: params.hyroxGender,
+        hyroxBodyweight: params.hyroxBodyweight,
+        strengthPRs: params.strengthPRs,
       } as HyroxProgramParams, client)
 
     case 'STRENGTH':

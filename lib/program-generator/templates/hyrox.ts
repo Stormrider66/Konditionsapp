@@ -200,7 +200,7 @@ export const HYROX_BEGINNER_12_WEEK: HYROXTemplate = {
       focus: 'Bygga löpbas och stationsteknik',
       totalHours: 5.5,
       days: [
-        { dayNumber: 1, workouts: [createRunningWorkout('Tempo-löpning', 4000, 'moderate')] },
+        { dayNumber: 1, workouts: [createRunningWorkout('Tempo-löpning', 4000, 'hard')] },
         { dayNumber: 2, workouts: [createStrengthWorkout('Underkropp', 45, 'moderate', '4x8 goblet squats, RDL, step-ups, wall balls intro')] },
         createRestDay(3),
         { dayNumber: 4, workouts: [createRunningWorkout('Fartlek', 5000, 'moderate', '5 min lugnt, 2 min hårt x 4')] },
@@ -248,7 +248,7 @@ export const HYROX_BEGINNER_12_WEEK: HYROXTemplate = {
       focus: 'Öka intensitet och volym',
       totalHours: 6.5,
       days: [
-        { dayNumber: 1, workouts: [createRunningWorkout('Tempo', 5000, 'moderate')] },
+        { dayNumber: 1, workouts: [createRunningWorkout('Tempo', 5000, 'hard')] },
         { dayNumber: 2, workouts: [createStrengthWorkout('HYROX-styrka', 50, 'moderate', 'Wall balls, farmers carry, sled work')] },
         { dayNumber: 3, workouts: [createStationWorkout('Halv HYROX', ['skierg', 'sled_push', 'rowing', 'wall_balls'], 'moderate', 45, '4 stationer + 4x1km löpning')] },
         createRestDay(4),
@@ -268,7 +268,7 @@ export const HYROX_BEGINNER_12_WEEK: HYROXTemplate = {
         { dayNumber: 2, workouts: [createStrengthWorkout('Överkropp & Core', 45, 'moderate', 'Pull-ups, push-ups, KB swings, planks')] },
         { dayNumber: 3, workouts: [createStationWorkout('Roxzone-träning', ['skierg', 'sled_push', 'sled_pull', 'burpee_broad_jump'], 'hard', 40, 'Stationer 1-4 i race-tempo')] },
         createRestDay(4),
-        { dayNumber: 5, workouts: [createRunningWorkout('Tempo', 6000, 'moderate')] },
+        { dayNumber: 5, workouts: [createRunningWorkout('Tempo', 6000, 'hard')] },
         { dayNumber: 6, workouts: [createRunningWorkout('Lång löpning', 12000, 'easy')] },
         createRestDay(7),
       ],
@@ -280,7 +280,7 @@ export const HYROX_BEGINNER_12_WEEK: HYROXTemplate = {
       focus: 'Race-simulation',
       totalHours: 7,
       days: [
-        { dayNumber: 1, workouts: [createRunningWorkout('Tempo-intervaller', 5000, 'moderate', '5x1km @ race pace')] },
+        { dayNumber: 1, workouts: [createRunningWorkout('Tempo-intervaller', 5000, 'race_pace', '5x1km @ race pace')] },
         { dayNumber: 2, workouts: [createStrengthWorkout('HYROX-specifik', 50, 'moderate', 'Focus på svaga stationer')] },
         { dayNumber: 3, workouts: [createStationWorkout('Roxzone stationer 5-8', ['rowing', 'farmers_carry', 'sandbag_lunge', 'wall_balls'], 'hard', 45, 'Stationer 5-8 i race-tempo')] },
         createRestDay(4),
@@ -328,7 +328,7 @@ export const HYROX_BEGINNER_12_WEEK: HYROXTemplate = {
       focus: 'Finslipa race-strategier',
       totalHours: 7,
       days: [
-        { dayNumber: 1, workouts: [createRunningWorkout('Tempo', 5000, 'moderate')] },
+        { dayNumber: 1, workouts: [createRunningWorkout('Tempo', 5000, 'hard')] },
         { dayNumber: 2, workouts: [createStationWorkout('Race-pace stationer', ['sled_push', 'sled_pull', 'farmers_carry'], 'hard', 35, 'Fokus på svagaste stationer')] },
         createRestDay(3),
         { dayNumber: 4, workouts: [createRunningWorkout('Intervaller', 5000, 'hard', '10x500m')] },
@@ -460,7 +460,7 @@ function generateBaseWeekDays(week: number): HYROXTemplateDay[] {
   return [
     {
       dayNumber: 1,
-      workouts: [createRunningWorkout('Tempolöpning', Math.round(6000 * distanceMultiplier), isRecoveryWeek ? 'easy' : 'moderate')],
+      workouts: [createRunningWorkout('Tempolöpning', Math.round(6000 * distanceMultiplier), isRecoveryWeek ? 'easy' : 'hard')],
     },
     {
       dayNumber: 2,
@@ -492,7 +492,7 @@ function generateBuildWeekDays(week: number): HYROXTemplateDay[] {
   return [
     {
       dayNumber: 1,
-      workouts: [createRunningWorkout('Race-pace intervaller', isRecoveryWeek ? 4000 : 6000, isRecoveryWeek ? 'moderate' : 'hard', `${isRecoveryWeek ? 4 : 6}x1km @ race pace`)],
+      workouts: [createRunningWorkout('Race-pace intervaller', isRecoveryWeek ? 4000 : 6000, isRecoveryWeek ? 'moderate' : 'race_pace', `${isRecoveryWeek ? 4 : 6}x1km @ race pace`)],
     },
     {
       dayNumber: 2,
@@ -514,7 +514,7 @@ function generateBuildWeekDays(week: number): HYROXTemplateDay[] {
     {
       dayNumber: 5,
       workouts: [
-        createRunningWorkout('Tempo', isRecoveryWeek ? 5000 : 8000, isRecoveryWeek ? 'easy' : 'moderate'),
+        createRunningWorkout('Tempo', isRecoveryWeek ? 5000 : 8000, isRecoveryWeek ? 'easy' : 'hard'),
         createStationWorkout('Stationer 5-8', ['rowing', 'farmers_carry', 'sandbag_lunge', 'wall_balls'], isRecoveryWeek ? 'easy' : 'moderate', isRecoveryWeek ? 25 : 40, 'Fokus på senare stationer'),
       ],
     },

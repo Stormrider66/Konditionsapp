@@ -12,6 +12,7 @@ import {
   Zap,
   Activity
 } from 'lucide-react'
+import { HyroxRaceAnalysisCard } from './HyroxRaceAnalysisCard'
 
 interface HYROXSettings {
   raceCategory: 'open' | 'pro' | 'doubles' | 'relay'
@@ -228,6 +229,25 @@ export function HYROXDashboard({ settings }: HYROXDashboardProps) {
           )}
         </div>
       </div>
+
+      {/* Advanced Race Time Analysis */}
+      <HyroxRaceAnalysisCard
+        stationTimes={{
+          skierg: settings.skiErgTime,
+          sledPush: settings.sledPushTime,
+          sledPull: settings.sledPullTime,
+          burpeeBroadJump: settings.burpeeBroadJumpTime,
+          rowing: settings.rowingTime,
+          farmersCarry: settings.farmersCarryTime,
+          sandbagLunge: settings.sandbagLungeTime,
+          wallBalls: settings.wallBallTime,
+        }}
+        averageRunPace={settings.fiveKmTime ? Math.round(settings.fiveKmTime / 5 * 1.1) : undefined}
+        gender={'male'} // TODO: Get from sport profile
+        targetLevel={settings.experienceLevel === 'elite' ? 'elite' :
+                     settings.experienceLevel === 'advanced' ? 'advanced' :
+                     settings.experienceLevel === 'intermediate' ? 'intermediate' : 'beginner'}
+      />
 
       {/* Running Stats */}
       <Card>

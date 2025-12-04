@@ -137,6 +137,15 @@ export async function POST(request: NextRequest) {
         hasHRVMonitor: body.hasHRVMonitor,
         hasPowerMeter: body.hasPowerMeter,
 
+        // ===== HYROX Station Times =====
+        hyroxStationTimes: body.hyroxStationTimes ? parseHyroxStationTimes(body.hyroxStationTimes) : undefined,
+        hyroxDivision: body.hyroxDivision,
+        hyroxGender: body.hyroxGender,
+        hyroxBodyweight: body.hyroxBodyweight,
+
+        // ===== Strength PRs =====
+        strengthPRs: body.strengthPRs,
+
         // General Fitness
         fitnessGoal: body.fitnessGoal,
         fitnessLevel: body.fitnessLevel,
@@ -648,4 +657,53 @@ function mapIntensity(intensity: 'low' | 'moderate' | 'high' | 'very_high'): Wor
     very_high: WorkoutIntensity.INTERVAL,
   }
   return intensityMap[intensity] || WorkoutIntensity.MODERATE
+}
+
+// Helper function to parse HYROX station times from MM:SS strings to seconds
+function parseHyroxStationTimes(times: {
+  skierg?: string
+  sledPush?: string
+  sledPull?: string
+  burpeeBroadJump?: string
+  rowing?: string
+  farmersCarry?: string
+  sandbagLunge?: string
+  wallBalls?: string
+  averageRunPace?: string
+}): {
+  skierg?: number | null
+  sledPush?: number | null
+  sledPull?: number | null
+  burpeeBroadJump?: number | null
+  rowing?: number | null
+  farmersCarry?: number | null
+  sandbagLunge?: number | null
+  wallBalls?: number | null
+  averageRunPace?: number | null
+} {
+  const parseTimeToSeconds = (timeStr?: string): number | null => {
+    if (!timeStr || timeStr.trim() === '') return null
+    const parts = timeStr.split(':').map(Number)
+    if (parts.some(isNaN)) return null
+    if (parts.length === 2) {
+      // MM:SS
+      return parts[0] * 60 + parts[1]
+    } else if (parts.length === 3) {
+      // H:MM:SS
+      return parts[0] * 3600 + parts[1] * 60 + parts[2]
+    }
+    return null
+  }
+
+  return {
+    skierg: parseTimeToSeconds(times.skierg),
+    sledPush: parseTimeToSeconds(times.sledPush),
+    sledPull: parseTimeToSeconds(times.sledPull),
+    burpeeBroadJump: parseTimeToSeconds(times.burpeeBroadJump),
+    rowing: parseTimeToSeconds(times.rowing),
+    farmersCarry: parseTimeToSeconds(times.farmersCarry),
+    sandbagLunge: parseTimeToSeconds(times.sandbagLunge),
+    wallBalls: parseTimeToSeconds(times.wallBalls),
+    averageRunPace: parseTimeToSeconds(times.averageRunPace),
+  }
 }
