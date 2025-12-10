@@ -2331,6 +2331,14 @@ model HybridWorkout {
   // Tags for filtering
   tags            String[]     @default([])
 
+  // Versioning
+  version         Int          @default(1)
+  versionNotes    String?      @db.Text
+  parentId        String?      // Original workout this was versioned from
+  parent          HybridWorkout? @relation("WorkoutVersions", fields: [parentId], references: [id], onDelete: SetNull)
+  versions        HybridWorkout[] @relation("WorkoutVersions")
+  versionHistory  HybridWorkoutVersion[]
+
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -2339,6 +2347,29 @@ model HybridWorkout {
   @@index([benchmarkSource])
   @@index([format])
   @@index([scalingLevel])
+  @@index([parentId])
+}
+
+/// Version history for workout changes
+model HybridWorkoutVersion {
+  id              String       @id @default(uuid())
+
+  workout         HybridWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workoutId       String
+
+  // Version info
+  versionNumber   Int
+  changeType      String       // "CREATED", "MODIFIED", "MOVEMENTS_CHANGED", "SCALING_UPDATED"
+  changeNotes     String?      @db.Text
+  changedBy       String?      // User ID who made the change
+
+  // Snapshot of workout at this version
+  snapshot        Json         // Full workout data at this point in time
+
+  createdAt       DateTime     @default(now())
+
+  @@index([workoutId])
+  @@index([versionNumber])
 }
 
 /// Movement within a hybrid workout
