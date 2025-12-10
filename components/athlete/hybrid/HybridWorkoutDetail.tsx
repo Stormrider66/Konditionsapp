@@ -46,8 +46,10 @@ import {
   History,
   Edit,
   AlertCircle,
+  StopCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { WorkoutTimer } from './WorkoutTimer';
 
 interface HybridMovement {
   id: string;
@@ -138,10 +140,39 @@ const scalingLabels: Record<string, { label: string; labelSv: string; color: str
   CUSTOM: { label: 'Custom', labelSv: 'Egen anpassning', color: 'bg-purple-500' },
 };
 
+// Map workout format to timer mode
+function getTimerMode(format: string): 'FOR_TIME' | 'AMRAP' | 'EMOM' | 'TABATA' | 'INTERVALS' | 'STOPWATCH' {
+  switch (format) {
+    case 'AMRAP':
+      return 'AMRAP';
+    case 'EMOM':
+      return 'EMOM';
+    case 'TABATA':
+      return 'TABATA';
+    case 'INTERVALS':
+      return 'INTERVALS';
+    case 'FOR_TIME':
+    case 'CHIPPER':
+    case 'LADDER':
+    case 'HYROX_SIM':
+    default:
+      return 'FOR_TIME';
+  }
+}
+
 export function HybridWorkoutDetail({ workout, clientId, personalBest }: HybridWorkoutDetailProps) {
   const router = useRouter();
   const [isLoggingOpen, setIsLoggingOpen] = useState(false);
+  const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('workout');
+  const [timerResult, setTimerResult] = useState<number | null>(null);
+
+  // Handle timer completion - capture time and open logging form
+  const handleTimerComplete = (finalTimeMs: number) => {
+    setTimerResult(finalTimeMs);
+    setIsTimerOpen(false);
+    setIsLoggingOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -165,31 +196,71 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest }: HybridW
             )}
           </div>
         </div>
-        <Dialog open={isLoggingOpen} onOpenChange={setIsLoggingOpen}>
-          <DialogTrigger asChild>
-            <Button size="lg" className="gap-2">
-              <Play className="h-5 w-5" />
-              Logga Resultat
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Logga Resultat - {workout.name}</DialogTitle>
-              <DialogDescription>
-                Fyll i ditt resultat och välj skalningsnivå.
-              </DialogDescription>
-            </DialogHeader>
-            <ScoreLoggingForm
-              workout={workout}
-              clientId={clientId}
-              personalBest={personalBest}
-              onSuccess={() => {
-                setIsLoggingOpen(false);
-                router.refresh();
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          {/* Timer Button */}
+          <Dialog open={isTimerOpen} onOpenChange={setIsTimerOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="lg" className="gap-2">
+                <StopCircle className="h-5 w-5" />
+                <span className="hidden sm:inline">Timer</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Workout Timer - {workout.name}</DialogTitle>
+                <DialogDescription>
+                  Starta timern när du börjar passet.
+                </DialogDescription>
+              </DialogHeader>
+              <WorkoutTimer
+                mode={getTimerMode(workout.format)}
+                totalSeconds={
+                  workout.format === 'AMRAP'
+                    ? workout.totalMinutes ? workout.totalMinutes * 60 : 0
+                    : workout.timeCap || 0
+                }
+                workSeconds={workout.workTime || 20}
+                restSeconds={workout.restTime || 10}
+                rounds={
+                  workout.format === 'EMOM'
+                    ? workout.totalMinutes || 10
+                    : workout.totalRounds || 8
+                }
+                onComplete={handleTimerComplete}
+              />
+            </DialogContent>
+          </Dialog>
+
+          {/* Log Result Button */}
+          <Dialog open={isLoggingOpen} onOpenChange={setIsLoggingOpen}>
+            <DialogTrigger asChild>
+              <Button size="lg" className="gap-2">
+                <Play className="h-5 w-5" />
+                <span className="hidden sm:inline">Logga Resultat</span>
+                <span className="sm:hidden">Logga</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Logga Resultat - {workout.name}</DialogTitle>
+                <DialogDescription>
+                  Fyll i ditt resultat och välj skalningsnivå.
+                </DialogDescription>
+              </DialogHeader>
+              <ScoreLoggingForm
+                workout={workout}
+                clientId={clientId}
+                personalBest={personalBest}
+                initialTimeMs={timerResult}
+                onSuccess={() => {
+                  setIsLoggingOpen(false);
+                  setTimerResult(null);
+                  router.refresh();
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* PR Card */}
@@ -421,17 +492,22 @@ interface ScoreLoggingFormProps {
   workout: HybridWorkout;
   clientId: string;
   personalBest: HybridWorkoutResult | null;
+  initialTimeMs?: number | null;
   onSuccess: () => void;
 }
 
-function ScoreLoggingForm({ workout, clientId, personalBest, onSuccess }: ScoreLoggingFormProps) {
+function ScoreLoggingForm({ workout, clientId, personalBest, initialTimeMs, onSuccess }: ScoreLoggingFormProps) {
   const [loading, setLoading] = useState(false);
   const [scalingLevel, setScalingLevel] = useState<string>(workout.scalingLevel);
   const [showCustomScaling, setShowCustomScaling] = useState(false);
 
+  // Convert initialTimeMs to minutes and seconds if provided
+  const initialMinutes = initialTimeMs ? Math.floor(initialTimeMs / 60000).toString() : '';
+  const initialSeconds = initialTimeMs ? Math.floor((initialTimeMs % 60000) / 1000).toString().padStart(2, '0') : '';
+
   // Score fields
-  const [minutes, setMinutes] = useState('');
-  const [seconds, setSeconds] = useState('');
+  const [minutes, setMinutes] = useState(initialMinutes);
+  const [seconds, setSeconds] = useState(initialSeconds);
   const [rounds, setRounds] = useState('');
   const [reps, setReps] = useState('');
   const [notes, setNotes] = useState('');

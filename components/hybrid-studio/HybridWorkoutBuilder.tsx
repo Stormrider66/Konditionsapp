@@ -11,6 +11,23 @@
  */
 
 import { useState, useEffect } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -122,6 +139,126 @@ const categoryLabels: Record<string, string> = {
   HYROX_STATION: 'HYROX',
 };
 
+// Sortable movement card component
+interface SortableMovementCardProps {
+  movement: WorkoutMovement;
+  index: number;
+  onRemove: (id: string) => void;
+  onUpdate: (id: string, updates: Partial<WorkoutMovement>) => void;
+}
+
+function SortableMovementCard({ movement, index, onRemove, onUpdate }: SortableMovementCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: movement.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style} className={`p-4 ${isDragging ? 'shadow-lg ring-2 ring-primary' : ''}`}>
+      <div className="flex items-start gap-3">
+        <div className="flex flex-col items-center gap-1">
+          <button
+            className="touch-none cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-5 w-5 text-muted-foreground" />
+          </button>
+          <span className="text-xs text-muted-foreground">{index + 1}</span>
+        </div>
+
+        <div className="flex-1 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-medium">
+                {movement.exercise.standardAbbreviation || movement.exercise.name}
+              </span>
+              {movement.exercise.nameSv && (
+                <span className="text-muted-foreground ml-2">
+                  ({movement.exercise.nameSv})
+                </span>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onRemove(movement.id)}
+            >
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Reps</Label>
+              <Input
+                type="number"
+                value={movement.reps || ''}
+                onChange={(e) =>
+                  onUpdate(movement.id, {
+                    reps: e.target.value ? parseInt(e.target.value) : undefined,
+                  })
+                }
+                placeholder="Antal"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Distans (m)</Label>
+              <Input
+                type="number"
+                value={movement.distance || ''}
+                onChange={(e) =>
+                  onUpdate(movement.id, {
+                    distance: e.target.value ? parseFloat(e.target.value) : undefined,
+                  })
+                }
+                placeholder="Meter"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Vikt Herr (kg)</Label>
+              <Input
+                type="number"
+                value={movement.weightMale || ''}
+                onChange={(e) =>
+                  onUpdate(movement.id, {
+                    weightMale: e.target.value ? parseFloat(e.target.value) : undefined,
+                  })
+                }
+                placeholder="kg"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Vikt Dam (kg)</Label>
+              <Input
+                type="number"
+                value={movement.weightFemale || ''}
+                onChange={(e) =>
+                  onUpdate(movement.id, {
+                    weightFemale: e.target.value ? parseFloat(e.target.value) : undefined,
+                  })
+                }
+                placeholder="kg"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWorkoutBuilderProps) {
   const [step, setStep] = useState(1);
   const [name, setName] = useState(initialData?.name || '');
@@ -141,6 +278,32 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [exercisePopoverOpen, setExercisePopoverOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // DnD Kit sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setMovements((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        // Update order numbers
+        return newItems.map((item, index) => ({ ...item, order: index + 1 }));
+      });
+    }
+  }
 
   useEffect(() => {
     fetchExercises();
@@ -515,95 +678,28 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
               </p>
             </Card>
           ) : (
-            <div className="space-y-3">
-              {movements.map((movement, index) => (
-                <Card key={movement.id} className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex flex-col items-center gap-1">
-                      <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                      <span className="text-xs text-muted-foreground">{index + 1}</span>
-                    </div>
-
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-medium">
-                            {movement.exercise.standardAbbreviation || movement.exercise.name}
-                          </span>
-                          {movement.exercise.nameSv && (
-                            <span className="text-muted-foreground ml-2">
-                              ({movement.exercise.nameSv})
-                            </span>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeMovement(movement.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-
-                      <div className="grid gap-3 md:grid-cols-4">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Reps</Label>
-                          <Input
-                            type="number"
-                            value={movement.reps || ''}
-                            onChange={(e) =>
-                              updateMovement(movement.id, {
-                                reps: e.target.value ? parseInt(e.target.value) : undefined,
-                              })
-                            }
-                            placeholder="Antal"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Distans (m)</Label>
-                          <Input
-                            type="number"
-                            value={movement.distance || ''}
-                            onChange={(e) =>
-                              updateMovement(movement.id, {
-                                distance: e.target.value ? parseFloat(e.target.value) : undefined,
-                              })
-                            }
-                            placeholder="Meter"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Vikt Herr (kg)</Label>
-                          <Input
-                            type="number"
-                            value={movement.weightMale || ''}
-                            onChange={(e) =>
-                              updateMovement(movement.id, {
-                                weightMale: e.target.value ? parseFloat(e.target.value) : undefined,
-                              })
-                            }
-                            placeholder="kg"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Vikt Dam (kg)</Label>
-                          <Input
-                            type="number"
-                            value={movement.weightFemale || ''}
-                            onChange={(e) =>
-                              updateMovement(movement.id, {
-                                weightFemale: e.target.value ? parseFloat(e.target.value) : undefined,
-                              })
-                            }
-                            placeholder="kg"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={movements.map((m) => m.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-3">
+                  {movements.map((movement, index) => (
+                    <SortableMovementCard
+                      key={movement.id}
+                      movement={movement}
+                      index={index}
+                      onRemove={removeMovement}
+                      onUpdate={updateMovement}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       )}

@@ -245,6 +245,7 @@ model Client {
 
   // Hybrid Studio relations
   hybridWorkoutResults HybridWorkoutResult[]
+  hybridWorkoutAssignments HybridWorkoutAssignment[]
 
   @@index([userId])
   @@index([teamId])
@@ -2325,6 +2326,7 @@ model HybridWorkout {
 
   // Stats
   results         HybridWorkoutResult[]
+  assignments     HybridWorkoutAssignment[]
 
   // Tags for filtering
   tags            String[]     @default([])
@@ -2425,4 +2427,46 @@ model HybridWorkoutResult {
   @@index([completedAt])
   @@index([isPR])
   @@unique([workoutId, athleteId, completedAt])
+}
+
+/// Workout assignment - coach assigns workout to athlete(s) for specific date
+model HybridWorkoutAssignment {
+  id              String       @id @default(uuid())
+
+  workout         HybridWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workoutId       String
+
+  athlete         Client       @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId       String
+
+  // Assignment details
+  assignedDate    DateTime     @db.Date // When workout should be done
+  assignedBy      String       // Coach user ID
+  notes           String?      @db.Text // Coach notes for athlete
+
+  // Status tracking
+  status          AssignmentStatus @default(PENDING)
+  completedAt     DateTime?    // When athlete marked it complete
+  resultId        String?      // Link to the result if completed
+
+  // Customization
+  customScaling   String?      // Suggested scaling for this athlete
+  scalingNotes    String?      // "Use 30kg for thrusters"
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([workoutId])
+  @@index([athleteId])
+  @@index([assignedDate])
+  @@index([status])
+  @@unique([workoutId, athleteId, assignedDate])
+}
+
+enum AssignmentStatus {
+  PENDING     // Not started
+  SCHEDULED   // Athlete acknowledged
+  COMPLETED   // Done
+  SKIPPED     // Athlete skipped
+  MODIFIED    // Coach modified assignment
 }
