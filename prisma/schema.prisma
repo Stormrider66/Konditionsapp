@@ -2233,6 +2233,7 @@ enum ScalingLevel {
   RX             // Prescribed/competition standard
   SCALED         // Reduced load/modified movements
   FOUNDATIONS    // Beginner-friendly version
+  CUSTOM         // Custom modifications for individual athlete
 }
 
 /// Score types for hybrid workout results
@@ -2397,6 +2398,7 @@ model HybridWorkoutResult {
   // Scaling used
   scalingLevel    ScalingLevel
   scalingNotes    String?      // e.g., "Used 30kg instead of 43kg"
+  customModifications Json?    // For CUSTOM scaling: [{movementId, modification, originalValue, newValue}]
 
   // Context
   completedAt     DateTime     @default(now())

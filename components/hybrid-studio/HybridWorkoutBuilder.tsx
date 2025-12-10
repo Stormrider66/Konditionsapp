@@ -423,13 +423,37 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
           )}
 
           {(format === 'FOR_TIME' || format === 'CHIPPER' || format === 'LADDER') && (
-            <div className="space-y-2">
-              <Label htmlFor="repScheme">Rep-schema</Label>
+            <div className="space-y-3">
+              <Label>Rep-schema</Label>
+              {/* Preset buttons */}
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: '21-15-9', value: '21-15-9' },
+                  { label: '15-12-9', value: '15-12-9' },
+                  { label: '10-9-8-7-6-5-4-3-2-1', value: '10-9-8-7-6-5-4-3-2-1' },
+                  { label: '50-40-30-20-10', value: '50-40-30-20-10' },
+                  { label: '1-2-3-4-5-6-7-8-9-10', value: '1-2-3-4-5-6-7-8-9-10' },
+                  { label: '5 Rundor', value: '5 rounds' },
+                  { label: '3 Rundor', value: '3 rounds' },
+                  { label: '7 Rundor', value: '7 rounds' },
+                  { label: '10 Rundor', value: '10 rounds' },
+                ].map((preset) => (
+                  <Button
+                    key={preset.value}
+                    type="button"
+                    variant={repScheme === preset.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setRepScheme(preset.value)}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
               <Input
                 id="repScheme"
                 value={repScheme}
                 onChange={(e) => setRepScheme(e.target.value)}
-                placeholder="t.ex. 21-15-9 eller 50-40-30-20-10"
+                placeholder="Eller skriv eget schema..."
               />
             </div>
           )}

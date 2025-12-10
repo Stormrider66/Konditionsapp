@@ -145,6 +145,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
     // Training & History
     { href: '/athlete/history', label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
+    { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame, description: 'CrossFit & HYROX' },
 
     // Tests & Data
     { href: '/athlete/tests', label: 'Tester', icon: FlaskConical, description: 'Testresultat' },
