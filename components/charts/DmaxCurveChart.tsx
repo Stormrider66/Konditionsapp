@@ -3,6 +3,12 @@
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ReferenceLine } from 'recharts'
 import { TestStage } from '@/types'
 
+interface ThresholdValue {
+  intensity: number
+  lactate: number
+  method?: string
+}
+
 interface DmaxCurveChartProps {
   stages: TestStage[]
   dmaxResult?: {
@@ -18,6 +24,8 @@ interface DmaxCurveChartProps {
     confidence?: string
   }
   intensityUnit: 'km/h' | 'watt' | 'min/km'
+  aerobicThreshold?: ThresholdValue
+  anaerobicThreshold?: ThresholdValue
 }
 
 /**
@@ -26,9 +34,10 @@ interface DmaxCurveChartProps {
  * Shows:
  * - Actual test data points (scatter)
  * - Fitted polynomial curve
- * - D-max threshold point
+ * - LT1 (aerobic threshold) marker
+ * - LT2 (anaerobic threshold) marker
  */
-export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveChartProps) {
+export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThreshold, anaerobicThreshold }: DmaxCurveChartProps) {
   if (!dmaxResult || !dmaxResult.coefficients) {
     return null
   }
@@ -93,16 +102,27 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
   }))
 
   // Add data points to chart data for scatter plotting
-  // We need to include actual measured points and the D-max point
   const scatterDataPoints = dataPoints.map(p => ({
     intensity: p.intensity,
     measuredLactate: p.lactate
   }))
 
-  const dmaxPoint = {
+  // Prepare threshold points for visualization
+  const lt1Point = aerobicThreshold ? {
+    intensity: aerobicThreshold.intensity,
+    lt1Lactate: aerobicThreshold.lactate
+  } : null
+
+  const lt2Point = anaerobicThreshold ? {
+    intensity: anaerobicThreshold.intensity,
+    lt2Lactate: anaerobicThreshold.lactate
+  } : null
+
+  // Legacy D-max point (for fallback if no thresholds provided)
+  const dmaxPoint = (!aerobicThreshold && !anaerobicThreshold) ? {
     intensity: dmaxResult.intensity,
     dmaxLactate: dmaxResult.lactate
-  }
+  } : null
 
   // Determine axis label
   const intensityLabel = intensityUnit === 'km/h' ? 'Hastighet (km/h)' :
@@ -120,19 +140,10 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="font-semibold">D-max Laktatkurva</h4>
+        <h4 className="font-semibold">Laktatkurva med tröskelvärden</h4>
         {dmaxResult.r2 && (
           <span className="text-sm text-gray-600">
             R² = {(dmaxResult.r2 * 100).toFixed(1)}%
-            {dmaxResult.confidence && (
-              <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                dmaxResult.confidence === 'HIGH' ? 'bg-green-100 text-green-800' :
-                dmaxResult.confidence === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-orange-100 text-orange-800'
-              }`}>
-                {dmaxResult.confidence}
-              </span>
-            )}
           </span>
         )}
       </div>
@@ -196,41 +207,85 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
             shape="circle"
           />
 
-          {/* D-max threshold point */}
-          <Scatter
-            data={[dmaxPoint]}
-            dataKey="dmaxLactate"
-            name="D-max tröskel"
-            fill="#f59e0b"
-            shape="star"
-            line={false}
-            legendType="star"
-          />
+          {/* LT1 (Aerobic Threshold) marker - green */}
+          {lt1Point && (
+            <>
+              <Scatter
+                data={[lt1Point]}
+                dataKey="lt1Lactate"
+                name="LT1 (Aerob)"
+                fill="#22c55e"
+                shape="circle"
+                line={false}
+              />
+              <ReferenceLine
+                x={lt1Point.intensity}
+                stroke="#22c55e"
+                strokeWidth={2}
+                strokeDasharray="3 3"
+                label={{
+                  value: `LT1: ${lt1Point.intensity}`,
+                  position: 'top',
+                  fill: '#22c55e',
+                  fontSize: 11
+                }}
+              />
+            </>
+          )}
 
-          <ReferenceLine
-            x={dmaxResult.intensity}
-            stroke="#f59e0b"
-            strokeWidth={2}
-            strokeDasharray="3 3"
-            label={{
-              value: `D-max: ${dmaxResult.intensity}`,
-              position: 'top',
-              fill: '#f59e0b',
-              fontSize: 12
-            }}
-          />
-          <ReferenceLine
-            y={dmaxResult.lactate}
-            stroke="#f59e0b"
-            strokeWidth={2}
-            strokeDasharray="3 3"
-            label={{
-              value: `${dmaxResult.lactate}`,
-              position: 'right',
-              fill: '#f59e0b',
-              fontSize: 12
-            }}
-          />
+          {/* LT2 (Anaerobic Threshold) marker - orange */}
+          {lt2Point && (
+            <>
+              <Scatter
+                data={[lt2Point]}
+                dataKey="lt2Lactate"
+                name="LT2 (Anaerob)"
+                fill="#f59e0b"
+                shape="star"
+                line={false}
+                legendType="star"
+              />
+              <ReferenceLine
+                x={lt2Point.intensity}
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeDasharray="3 3"
+                label={{
+                  value: `LT2: ${lt2Point.intensity}`,
+                  position: 'top',
+                  fill: '#f59e0b',
+                  fontSize: 11
+                }}
+              />
+            </>
+          )}
+
+          {/* Legacy D-max point (only shown if no thresholds provided) */}
+          {dmaxPoint && (
+            <>
+              <Scatter
+                data={[dmaxPoint]}
+                dataKey="dmaxLactate"
+                name="D-max tröskel"
+                fill="#f59e0b"
+                shape="star"
+                line={false}
+                legendType="star"
+              />
+              <ReferenceLine
+                x={dmaxResult.intensity}
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeDasharray="3 3"
+                label={{
+                  value: `D-max: ${dmaxResult.intensity}`,
+                  position: 'top',
+                  fill: '#f59e0b',
+                  fontSize: 12
+                }}
+              />
+            </>
+          )}
         </ComposedChart>
       </ResponsiveContainer>
 
@@ -242,9 +297,16 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit }: DmaxCurveC
         <p>
           <strong>Streckad grå linje:</strong> Baslinje från första till sista mätpunkten
         </p>
-        <p>
-          <strong>Orange stjärna:</strong> D-max punkten - maximalt avstånd mellan kurvan och baslinjen
-        </p>
+        {lt1Point && (
+          <p>
+            <strong className="text-green-600">Grön cirkel (LT1):</strong> Aerob tröskel vid {lt1Point.intensity} {intensityUnit} ({aerobicThreshold?.lactate?.toFixed(2)} mmol/L)
+          </p>
+        )}
+        {lt2Point && (
+          <p>
+            <strong className="text-orange-500">Orange stjärna (LT2):</strong> Anaerob tröskel vid {lt2Point.intensity} {intensityUnit} ({anaerobicThreshold?.lactate?.toFixed(2)} mmol/L)
+          </p>
+        )}
         <p>
           <strong>Röda punkter:</strong> Dina uppmätta laktatvärden från testet
         </p>

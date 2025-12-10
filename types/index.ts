@@ -123,6 +123,17 @@ export interface TrainingZone {
   effect: string // "Återhämtning", "Grundkondition", etc
 }
 
+// D-max visualization data (always calculated when possible, regardless of threshold method used)
+export interface DmaxVisualization {
+  intensity: number
+  lactate: number
+  heartRate: number
+  r2: number
+  confidence: string
+  coefficients: { a: number; b: number; c: number; d: number }
+  unit: 'km/h' | 'watt' | 'min/km'
+}
+
 // Beräkningsresultat
 export interface TestCalculations {
   bmi: number
@@ -134,6 +145,7 @@ export interface TestCalculations {
   maxLactate: number
   economyData?: EconomyData[]
   cyclingData?: CyclingData
+  dmaxVisualization?: DmaxVisualization | null  // Always stored for chart display
 }
 
 export interface EconomyData {

@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useState } from 'react'
 
 import { ProgramWithWeeks } from '@/types/prisma-types'
+import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 
 interface ProgramOverviewProps {
   program: ProgramWithWeeks
@@ -93,7 +94,30 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <AIContextButton
+            athleteId={program.client?.id}
+            athleteName={program.client?.name}
+            buttonText="AI-analys"
+            quickActions={[
+              {
+                label: 'Analysera programmet',
+                prompt: `Analysera träningsprogrammet "${program.name}" för ${program.client?.name || 'atleten'}. Det är ett ${totalWeeks}-veckors program som för närvarande är på vecka ${currentWeek}. Ge mig en översiktlig bedömning av programmets struktur och ge förslag på eventuella justeringar.`,
+              },
+              {
+                label: 'Justera belastning',
+                prompt: `Baserat på var vi är i programmet (vecka ${currentWeek} av ${totalWeeks}), behöver jag hjälp med att justera träningsbelastningen för ${program.client?.name || 'atleten'}. Vilka tecken ska jag leta efter och hur bör jag anpassa?`,
+              },
+              {
+                label: 'Förbered nästa fas',
+                prompt: `Vi är på vecka ${currentWeek} av ${totalWeeks} i programmet "${program.name}". Hjälp mig förbereda för nästa träningsfas. Vad bör jag fokusera på och vilka anpassningar kan behövas?`,
+              },
+              {
+                label: 'Hantera avvikelser',
+                prompt: `${program.client?.name || 'Atleten'} har missat några träningspass i programmet. Hur bör jag hantera detta och anpassa den återstående träningen för att fortfarande nå målet?`,
+              },
+            ]}
+          />
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
             Exportera

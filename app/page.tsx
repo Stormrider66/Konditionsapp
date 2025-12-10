@@ -109,127 +109,178 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gray-50">
         <MobileNav user={user} userRole={userRole} />
-        <main className="max-w-7xl mx-auto px-4 py-6 lg:py-12">
-          {/* Statistik */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+        <main className="max-w-7xl mx-auto px-4 py-6 lg:py-8">
+          {/* Welcome Section */}
+          <div className="mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Välkommen tillbaka!</h1>
+            <p className="text-muted-foreground mt-1">Här är en översikt av din verksamhet</p>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {stats.loading ? (
               <>
+                <LoadingStats />
+                <LoadingStats />
                 <LoadingStats />
                 <LoadingStats />
               </>
             ) : (
               <>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Totalt antal klienter</p>
-                        <p className="text-3xl font-bold text-blue-600 mt-1">
-                          {stats.clientCount}
-                        </p>
-                      </div>
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Users className="w-6 h-6 text-blue-600" />
-                      </div>
-                    </div>
+                <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                  <CardContent className="p-4">
+                    <Users className="w-8 h-8 opacity-80 mb-2" />
+                    <p className="text-3xl font-bold">{stats.clientCount}</p>
+                    <p className="text-sm text-blue-100">Atleter</p>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Totalt antal tester</p>
-                        <p className="text-3xl font-bold text-green-600 mt-1">
-                          {stats.testCount}
-                        </p>
-                      </div>
-                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                        <ClipboardList className="w-6 h-6 text-green-600" />
-                      </div>
-                    </div>
+                <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+                  <CardContent className="p-4">
+                    <ClipboardList className="w-8 h-8 opacity-80 mb-2" />
+                    <p className="text-3xl font-bold">{stats.testCount}</p>
+                    <p className="text-sm text-green-100">Laktattester</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                  <CardContent className="p-4">
+                    <Calendar className="w-8 h-8 opacity-80 mb-2" />
+                    <p className="text-3xl font-bold">-</p>
+                    <p className="text-sm text-purple-100">Program</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                  <CardContent className="p-4">
+                    <Activity className="w-8 h-8 opacity-80 mb-2" />
+                    <p className="text-3xl font-bold">-</p>
+                    <p className="text-sm text-orange-100">Aktiva denna vecka</p>
                   </CardContent>
                 </Card>
               </>
             )}
           </div>
 
-          {/* Huvudmeny */}
-          <Card className="p-4 md:p-8">
-            <h2 className="text-xl md:text-2xl font-semibold mb-3 md:mb-4">Välkommen!</h2>
-            <p className="text-muted-foreground mb-4 md:mb-6 text-sm md:text-base">
-              Denna applikation hjälper dig att automatiskt generera professionella
-              konditionstestrapporter.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              <Link href="/test">
-                <Card className="h-full hover:shadow-lg hover:border-blue-300 transition cursor-pointer">
-                  <CardContent className="p-6">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                      <Plus className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">Nytt Test</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Skapa ett nytt konditionstest och generera rapport
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Main Actions */}
+            <div className="lg:col-span-2">
+              <h2 className="text-lg font-semibold mb-4">Snabbåtgärder</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <Link href="/test">
+                  <Card className="h-full hover:shadow-lg hover:border-blue-300 transition cursor-pointer group">
+                    <CardContent className="p-4 text-center">
+                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-200 transition">
+                        <Plus className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <h3 className="font-semibold text-sm">Nytt Test</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Laktattest</p>
+                    </CardContent>
+                  </Card>
+                </Link>
 
-              <Link href="/clients">
-                <Card className="h-full hover:shadow-lg hover:border-blue-300 transition cursor-pointer">
-                  <CardContent className="p-6">
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-                      <User2 className="w-6 h-6 text-green-600" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">Klientregister</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Hantera klientinformation och testhistorik
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+                <Link href="/clients">
+                  <Card className="h-full hover:shadow-lg hover:border-green-300 transition cursor-pointer group">
+                    <CardContent className="p-4 text-center">
+                      <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-green-200 transition">
+                        <User2 className="w-6 h-6 text-green-600" />
+                      </div>
+                      <h3 className="font-semibold text-sm">Atleter</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Hantera klienter</p>
+                    </CardContent>
+                  </Card>
+                </Link>
 
-              <Link href="/coach/programs">
-                <Card className="h-full hover:shadow-lg hover:border-purple-300 transition cursor-pointer">
-                  <CardContent className="p-6">
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-                      <Calendar className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">Träningsprogram</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Visa och hantera alla träningsprogram
-                    </p>
-                  </CardContent>
-                </Card>
-              </Link>
+                <Link href="/coach/programs">
+                  <Card className="h-full hover:shadow-lg hover:border-purple-300 transition cursor-pointer group">
+                    <CardContent className="p-4 text-center">
+                      <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-200 transition">
+                        <Calendar className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <h3 className="font-semibold text-sm">Program</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Träningsplaner</p>
+                    </CardContent>
+                  </Card>
+                </Link>
 
-              <Card className="opacity-50 cursor-not-allowed">
-                <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                    <FileText className="w-6 h-6 text-gray-400" />
+                <Link href="/coach/ai-studio">
+                  <Card className="h-full hover:shadow-lg hover:border-amber-300 transition cursor-pointer group">
+                    <CardContent className="p-4 text-center">
+                      <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-amber-200 transition">
+                        <Sparkles className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <h3 className="font-semibold text-sm">AI Studio</h3>
+                      <p className="text-xs text-muted-foreground mt-1">AI-assistent</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href="/coach/video-analysis">
+                  <Card className="h-full hover:shadow-lg hover:border-pink-300 transition cursor-pointer group">
+                    <CardContent className="p-4 text-center">
+                      <div className="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-pink-200 transition">
+                        <Activity className="w-6 h-6 text-pink-600" />
+                      </div>
+                      <h3 className="font-semibold text-sm">Video</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Löpanalys</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href="/coach/monitoring">
+                  <Card className="h-full hover:shadow-lg hover:border-cyan-300 transition cursor-pointer group">
+                    <CardContent className="p-4 text-center">
+                      <div className="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-cyan-200 transition">
+                        <TrendingUp className="w-6 h-6 text-cyan-600" />
+                      </div>
+                      <h3 className="font-semibold text-sm">Monitorering</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Träningsbelastning</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </div>
+            </div>
+
+            {/* Getting Started Guide */}
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Kom igång</h2>
+              <Card className="bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200">
+                <CardContent className="p-4">
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
+                      <div>
+                        <p className="font-medium text-sm">Lägg till atleter</p>
+                        <p className="text-xs text-muted-foreground">Skapa klienter i registret</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
+                      <div>
+                        <p className="font-medium text-sm">Genomför laktattest</p>
+                        <p className="text-xs text-muted-foreground">Registrera testdata</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
+                      <div>
+                        <p className="font-medium text-sm">Skapa program</p>
+                        <p className="text-xs text-muted-foreground">Bygg träningsplaner</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</div>
+                      <div>
+                        <p className="font-medium text-sm">Följ upp</p>
+                        <p className="text-xs text-muted-foreground">Monitorera & analysera</p>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">Rapporter</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Visa och exportera genererade rapporter (Kommer snart)
-                  </p>
                 </CardContent>
               </Card>
             </div>
-          </Card>
-
-          {/* Info box */}
-          <Card className="mt-6 md:mt-8 bg-blue-50 border-blue-200">
-            <CardContent className="p-4 md:p-6">
-              <h3 className="font-semibold text-blue-900 mb-2 text-sm md:text-base">Kom igång</h3>
-              <ol className="list-decimal list-inside space-y-2 text-xs md:text-sm text-blue-800">
-                <li>Skapa en ny klient i klientregistret</li>
-                <li>Genomför ett konditionstest och registrera testdata</li>
-                <li>Generera en professionell rapport automatiskt</li>
-                <li>Spara och jämför tester över tid</li>
-              </ol>
-            </CardContent>
-          </Card>
+          </div>
         </main>
       </div>
     )

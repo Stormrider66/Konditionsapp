@@ -9,6 +9,7 @@ import { sv } from 'date-fns/locale'
 import type { Client, Test, TestType, TrainingZone } from '@/types'
 import { ProgressionChart } from '@/components/charts/ProgressionChart'
 import { SportSpecificAthleteView } from '@/components/coach/sport-views'
+import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2 } from 'lucide-react'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
@@ -339,12 +340,18 @@ export default function ClientDetailPage() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Personuppgifter</h2>
-            <Link href={`/clients/${id}/edit`}>
-              <Button variant="outline" size="sm">
-                <Edit2 className="w-4 h-4 mr-2" />
-                Redigera
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <AIContextButton
+                athleteId={id}
+                athleteName={client.name}
+              />
+              <Link href={`/clients/${id}/edit`}>
+                <Button variant="outline" size="sm">
+                  <Edit2 className="w-4 h-4 mr-2" />
+                  Redigera
+                </Button>
+              </Link>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>

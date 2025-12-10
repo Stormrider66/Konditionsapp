@@ -7,10 +7,19 @@ import { User } from '@supabase/supabase-js'
 import { SportType } from '@prisma/client'
 import {
   Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
-  ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings
+  ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings,
+  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { UserNav } from './UserNav'
 
 // Sport icons and labels
@@ -74,21 +83,57 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     }
   }
 
-  // Base navigation links (always visible for coaches/admins)
-  const baseNavLinks = [
+  // Simplified main navigation for coaches (desktop header)
+  const mainNavLinks = [
     { href: '/', label: 'Hem', icon: Home },
-    { href: '/clients', label: 'Klienter', icon: Users },
-    { href: '/teams', label: 'Lag', icon: Users2 },
-    { href: '/test', label: 'Nytt Test', icon: Plus },
+    { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/clients', label: 'Atleter', icon: Users },
+    { href: '/coach/programs', label: 'Program', icon: Calendar },
   ]
 
-  // Coach-specific links
-  const coachNavLinks = [
+  // Grouped navigation for dropdown menus
+  const navGroups = {
+    tools: {
+      label: 'Verktyg',
+      icon: Wrench,
+      items: [
+        { href: '/test', label: 'Nytt Laktattest', icon: TestTube },
+        { href: '/coach/ai-studio', label: 'AI Studio', icon: Sparkles },
+        { href: '/coach/video-analysis', label: 'Videoanalys', icon: Video },
+        { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
+      ],
+    },
+    more: {
+      label: 'Mer',
+      icon: Menu,
+      items: [
+        { href: '/teams', label: 'Lag', icon: Users2 },
+        { href: '/coach/documents', label: 'Dokument', icon: FileStack },
+        { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
+        { href: '/coach/settings/ai', label: 'Inställningar', icon: Settings },
+      ],
+    },
+  }
+
+  // Mobile navigation - flat list with all items
+  const mobileNavLinks = [
+    { href: '/', label: 'Hem', icon: Home },
     { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/clients', label: 'Atleter', icon: Users },
     { href: '/coach/programs', label: 'Program', icon: Calendar },
-    { href: '/coach/videos', label: 'Videor', icon: Video },
+    { href: '/test', label: 'Nytt Laktattest', icon: TestTube },
+    { href: '/coach/ai-studio', label: 'AI Studio', icon: Sparkles },
+    { href: '/coach/video-analysis', label: 'Videoanalys', icon: Video },
+    { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
+    { href: '/teams', label: 'Lag', icon: Users2 },
+    { href: '/coach/documents', label: 'Dokument', icon: FileStack },
     { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
+    { href: '/coach/settings/ai', label: 'Inställningar', icon: Settings },
   ]
+
+  // Legacy base + coach links for backwards compatibility
+  const baseNavLinks = mainNavLinks
+  const coachNavLinks = [] as typeof mainNavLinks
 
   // Athlete-specific links
   const athleteNavLinks = [
@@ -113,10 +158,10 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       : [{ href: '/athlete/profile', label: 'Profil', icon: Settings, description: 'Inställningar' }]),
   ]
 
-  // Determine which links to show
+  // Determine which links to show for mobile
   let navLinks = baseNavLinks
   if (userRole === 'COACH' || userRole === 'ADMIN') {
-    navLinks = [...baseNavLinks, ...coachNavLinks]
+    navLinks = mobileNavLinks
   } else if (userRole === 'ATHLETE') {
     navLinks = athleteNavLinks
   }
@@ -208,43 +253,128 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
       {/* Desktop Header */}
       <header className="hidden lg:block gradient-primary text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold">Star by Thomson</h1>
-              <p className="text-white/90 mt-1">Konditionstest Rapportgenerator</p>
+              <h1 className="text-2xl font-bold">Star by Thomson</h1>
+              <p className="text-white/80 text-sm">Konditionstest & Träningsplanering</p>
             </div>
-            <div className="flex items-center gap-6">
-              {navLinks.map((link) => {
-                const Icon = link.icon
-                const active = isActive(link.href)
-                const badge = (link as any).badge
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition relative ${
-                      active
-                        ? 'bg-white/20'
-                        : 'hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="relative">
-                      <Icon className="w-5 h-5" />
-                      {badge > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="absolute -top-2 -right-2 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
-                        >
-                          {badge > 9 ? '9+' : badge}
-                        </Badge>
-                      )}
-                    </div>
-                    <span className="font-medium">{link.label}</span>
-                  </Link>
-                )
-              })}
-              <div className="border-l border-white/20 pl-4">
+            <div className="flex items-center gap-2">
+              {/* Main nav links */}
+              {(userRole === 'COACH' || userRole === 'ADMIN') ? (
+                <>
+                  {mainNavLinks.map((link) => {
+                    const Icon = link.icon
+                    const active = isActive(link.href)
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm ${
+                          active ? 'bg-white/20' : 'hover:bg-white/10'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="font-medium">{link.label}</span>
+                      </Link>
+                    )
+                  })}
+
+                  {/* Tools Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm hover:bg-white/10">
+                        <navGroups.tools.icon className="w-4 h-4" />
+                        <span className="font-medium">{navGroups.tools.label}</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {navGroups.tools.items.map((item) => {
+                        const Icon = item.icon
+                        return (
+                          <DropdownMenuItem key={item.href} asChild>
+                            <Link href={item.href} className="flex items-center gap-2">
+                              <Icon className="w-4 h-4" />
+                              {item.label}
+                            </Link>
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* More Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm hover:bg-white/10 relative">
+                        <Menu className="w-4 h-4" />
+                        <span className="font-medium">Mer</span>
+                        <ChevronDown className="w-3 h-3" />
+                        {unreadCount > 0 && (
+                          <Badge
+                            variant="destructive"
+                            className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                          >
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                          </Badge>
+                        )}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {navGroups.more.items.map((item) => {
+                        const Icon = item.icon
+                        const badge = (item as any).badge
+                        return (
+                          <DropdownMenuItem key={item.href} asChild>
+                            <Link href={item.href} className="flex items-center gap-2 justify-between">
+                              <span className="flex items-center gap-2">
+                                <Icon className="w-4 h-4" />
+                                {item.label}
+                              </span>
+                              {badge > 0 && (
+                                <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
+                                  {badge > 9 ? '9+' : badge}
+                                </Badge>
+                              )}
+                            </Link>
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              ) : (
+                /* Athlete or other users - simple nav */
+                navLinks.map((link) => {
+                  const Icon = link.icon
+                  const active = isActive(link.href)
+                  const badge = (link as any).badge
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm relative ${
+                        active ? 'bg-white/20' : 'hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="relative">
+                        <Icon className="w-4 h-4" />
+                        {badge > 0 && (
+                          <Badge
+                            variant="destructive"
+                            className="absolute -top-2 -right-2 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                          >
+                            {badge > 9 ? '9+' : badge}
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="font-medium">{link.label}</span>
+                    </Link>
+                  )
+                })
+              )}
+              <div className="border-l border-white/20 pl-3 ml-2">
                 <UserNav user={user} />
               </div>
             </div>

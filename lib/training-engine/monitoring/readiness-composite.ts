@@ -6,15 +6,18 @@
  * - Wellness (30% weight) - Subjective but comprehensive
  * - RHR (20% weight) - Simple, reliable recovery marker
  * - ACWR (15% weight) - Injury risk and load management
+ * - Menstrual Cycle Phase (modifier) - Adjusts intensity/volume recommendations
  *
  * Decision Logic:
  * - Red flags from ANY metric trigger conservative recommendations
  * - Critical overrides bypass composite score
  * - Methodology-specific adjustments (Norwegian model requires higher readiness)
+ * - Cycle phase modifies final recommendations (not the score itself)
  *
  * References:
  * - Saw, A. E., et al. (2016). Monitoring the athlete training response.
  * - Gabbett, T. J. (2016). The training-injury prevention paradox.
+ * - McNulty, K. L., et al. (2020). The Effects of Menstrual Cycle Phase on Exercise Performance.
  *
  * @module readiness-composite
  */
@@ -30,12 +33,69 @@ export interface ACWRAssessment {
   warning?: string
 }
 
+/**
+ * Menstrual cycle phase with training modifiers
+ *
+ * Based on research by McNulty et al. (2020) and Bruinvels et al. (2017):
+ * - MENSTRUAL: Reduced capacity, prioritize recovery
+ * - FOLLICULAR: Optimal for high-intensity and strength training
+ * - OVULATORY: Peak performance window, but higher injury risk
+ * - LUTEAL: Elevated core temp, higher RPE, favor steady-state
+ */
+export type MenstrualPhase = 'MENSTRUAL' | 'FOLLICULAR' | 'OVULATORY' | 'LUTEAL'
+
+export interface CyclePhaseData {
+  phase: MenstrualPhase
+  cycleDay: number
+  intensityModifier: number // 0.8-1.1
+  volumeModifier: number // 0.8-1.05
+  warning?: string
+}
+
+/**
+ * Get cycle phase modifiers based on current phase
+ *
+ * @param phase - Current menstrual phase
+ * @param cycleDay - Day in current cycle
+ * @returns Phase data with training modifiers
+ */
+export function getCyclePhaseModifiers(phase: MenstrualPhase, cycleDay: number): CyclePhaseData {
+  const phaseData: Record<MenstrualPhase, Omit<CyclePhaseData, 'phase' | 'cycleDay'>> = {
+    MENSTRUAL: {
+      intensityModifier: 0.85,
+      volumeModifier: 0.80,
+      warning: 'Menstruationsfas - prioritera återhämtning, minska intensitet',
+    },
+    FOLLICULAR: {
+      intensityModifier: 1.0,
+      volumeModifier: 1.0,
+    },
+    OVULATORY: {
+      intensityModifier: 1.1,
+      volumeModifier: 1.05,
+      warning: 'Ovulationsfas - ökad prestationsförmåga men högre ligamentrisk',
+    },
+    LUTEAL: {
+      intensityModifier: 0.90,
+      volumeModifier: 0.85,
+      warning: 'Lutealfas - högre upplevd ansträngning, reducera intensitet',
+    },
+  }
+
+  return {
+    phase,
+    cycleDay,
+    ...phaseData[phase],
+  }
+}
+
 export interface ReadinessInputs {
   hrv?: HRVAssessment
   rhr?: RHRAssessment
   wellness: WellnessScore // Mandatory (can always be collected)
   acwr?: ACWRAssessment
   methodology?: 'POLARIZED' | 'NORWEGIAN' | 'CANOVA' | 'PYRAMIDAL'
+  cyclePhase?: CyclePhaseData // Optional: menstrual cycle phase for female athletes
 }
 
 export interface ReadinessScore {
@@ -56,6 +116,14 @@ export interface ReadinessScore {
     intensityAdjustment?: number // Percentage (-50 to +10)
     volumeAdjustment?: number // Percentage (-50 to 0)
     reasoning: string
+  }
+  // Cycle phase adjustments (applied on top of base modifications)
+  cyclePhaseAdjustment?: {
+    phase: MenstrualPhase
+    cycleDay: number
+    additionalIntensityMod: number // Multiplier (0.8-1.1)
+    additionalVolumeMod: number // Multiplier (0.8-1.05)
+    phaseRecommendation: string
   }
 }
 
@@ -232,6 +300,30 @@ export function calculateReadinessScore(
     inputs
   )
 
+  // Add cycle phase warning if present
+  if (inputs.cyclePhase?.warning) {
+    warnings.push(inputs.cyclePhase.warning)
+  }
+
+  // Build cycle phase adjustment if applicable
+  let cyclePhaseAdjustment: ReadinessScore['cyclePhaseAdjustment']
+  if (inputs.cyclePhase) {
+    const phaseRecommendations: Record<MenstrualPhase, string> = {
+      MENSTRUAL: 'Menstruationsfas: Prioritera återhämtning. Lätt rörelse och yoga passar bäst. Minska intensiteten med 15%.',
+      FOLLICULAR: 'Follikelfas: Optimal tid för hård träning! Energin ökar - utnyttja det för styrka och höga intensiteter.',
+      OVULATORY: 'Ovulationsfas: Toppform! Bra tid för tävling och personbästa. Var medveten om ökad ligamentrisk.',
+      LUTEAL: 'Lutealfas: Förvänta dig högre upplevd ansträngning. Fokusera på steady-state och teknik. Minska intensiteten med 10%.',
+    }
+
+    cyclePhaseAdjustment = {
+      phase: inputs.cyclePhase.phase,
+      cycleDay: inputs.cyclePhase.cycleDay,
+      additionalIntensityMod: inputs.cyclePhase.intensityModifier,
+      additionalVolumeMod: inputs.cyclePhase.volumeModifier,
+      phaseRecommendation: phaseRecommendations[inputs.cyclePhase.phase],
+    }
+  }
+
   return {
     score: Math.round(score * 10) / 10,
     status,
@@ -241,6 +333,7 @@ export function calculateReadinessScore(
     warnings,
     recommendation,
     workoutModification,
+    cyclePhaseAdjustment,
   }
 }
 

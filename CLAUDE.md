@@ -700,6 +700,168 @@ model SportProfile {
 - `create-athlete-account.ts` - Create athlete accounts
 - `check-data.ts`, `diagnose-program.ts` - Debugging tools
 
+## AI Studio System (~90% Complete)
+
+**Overview**: Production-ready AI-powered training program creation system with multi-model support, document-based RAG, and advanced intelligence features.
+
+### Key Capabilities
+
+- 🤖 **Multi-Model Support**: Claude 4.5 Opus + Gemini 2.5 Pro with dynamic model selection
+- 📄 **Document RAG**: Upload PDFs, Excel, videos with semantic search (pgvector)
+- 💬 **Conversational Program Design**: Iterative AI-assisted program creation
+- 🌐 **Web Search Integration**: DuckDuckGo for research context
+- 🎥 **Video Analysis**: MediaPipe BlazePose + Gemini for technique analysis
+- 📊 **Body Composition**: Bioimpedance tracking with nutrition planning
+- 🧠 **Advanced Intelligence**: Pattern recognition, injury prediction, goal setting
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     AI STUDIO                                │
+├─────────────────────────────────────────────────────────────┤
+│  Context Panel (Left)    │  Chat Interface (Center)         │
+│  • Athlete data toggles  │  • Streaming responses           │
+│  • Document selection    │  • Program preview               │
+│  • Web search toggle     │  • Natural language editing      │
+├─────────────────────────────────────────────────────────────┤
+│  AI Providers            │  RAG System                       │
+│  • Claude (Anthropic)    │  • pgvector embeddings           │
+│  • Gemini (Google)       │  • OpenAI ada-002 embeddings     │
+│  • BYOK (user keys)      │  • Semantic + keyword search     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Files & Directories
+
+**UI Components** (`components/ai-studio/`):
+- `AIStudioClient.tsx` (~550 lines) - Main coach dashboard
+- `FloatingAIChat.tsx` (~395 lines) - Floating chat widget
+- `AIContextButton.tsx` (~327 lines) - Context-aware AI button
+- `ContextPanel.tsx` - Document/data selection sidebar
+- `ModelSelector.tsx` - Claude/Gemini model dropdown
+- `ChatMessage.tsx` - Message rendering with markdown
+
+**API Routes** (`app/api/ai/`):
+- `chat/route.ts` (475 lines) - Streaming chat with context injection
+- `conversations/route.ts` - Conversation CRUD
+- `conversations/[id]/message/route.ts` - Message handling
+- `save-program/route.ts` - Save AI-generated programs
+- `nutrition-plan/route.ts` - Nutrition recommendations
+- `advanced-intelligence/` - Pattern analysis, predictions, injury risk
+
+**Library** (`lib/ai/`):
+- `program-prompts.ts` (500+ lines) - Methodology definitions, sport context
+- `sport-context-builder.ts` - Rich athlete data compilation
+- `embeddings.ts` - OpenAI embedding generation, text chunking
+- `web-search.ts` - DuckDuckGo integration
+- `nutrition-calculator.ts` - BMR/TDEE/macro calculations
+- `program-parser.ts` - Parse AI output to database format
+- `document-processor.ts` - PDF, Excel, video parsing
+- `advanced-intelligence/` - Training patterns, predictive goals, injury risk
+
+### Database Models
+
+```prisma
+// AI Provider enum
+enum AIProvider { ANTHROPIC, GOOGLE, OPENAI }
+
+// Document management
+model CoachDocument { ... }      // Uploaded files (PDF, Excel, video)
+model KnowledgeChunk { ... }     // Chunked text with embeddings (pgvector)
+
+// Conversation persistence
+model AIConversation { ... }     // Chat sessions with token tracking
+model AIMessage { ... }          // Messages with role, tokens, latency
+
+// Generated content
+model AIGeneratedProgram { ... } // JSON program structure
+model VideoAnalysis { ... }      // MediaPipe landmarks + Gemini analysis
+model BodyComposition { ... }    // Bioimpedance measurements
+
+// User configuration
+model UserApiKey { ... }         // Encrypted BYOK keys
+model AIModel { ... }            // Dynamic model configuration
+```
+
+### API Endpoints
+
+**AI Chat & Generation**:
+- `POST /api/ai/chat` - Streaming chat with context
+- `POST/GET /api/ai/conversations` - Conversation management
+- `POST /api/ai/conversations/[id]/message` - Send message
+- `POST /api/ai/save-program` - Save generated program
+- `POST /api/ai/nutrition-plan` - Generate nutrition plan
+
+**Document Management**:
+- `POST /api/documents/upload` - Upload with parsing
+- `GET/DELETE /api/documents/[id]` - Document CRUD
+- `POST /api/knowledge/search` - Semantic search
+- `POST /api/knowledge/context` - Build RAG context
+
+**Advanced Intelligence**:
+- `POST /api/ai/advanced-intelligence/patterns` - Training patterns
+- `POST /api/ai/advanced-intelligence/predictions` - Goal predictions
+- `POST /api/ai/advanced-intelligence/injury-risk` - Injury prediction
+- `POST /api/ai/advanced-intelligence/periodization` - Auto-adjustments
+- `POST /api/ai/advanced-intelligence/coach-style` - Style extraction
+
+**Video Analysis**:
+- `POST /api/video-analysis/upload` - Upload video
+- `POST /api/video-analysis/analyze` - Gemini analysis
+
+**Body Composition**:
+- `POST/GET /api/body-composition/[clientId]` - Bioimpedance data
+
+**Settings**:
+- `GET/POST /api/settings/api-keys` - BYOK key management
+- `POST /api/settings/api-keys/validate` - Key validation
+
+### Dependencies
+
+```json
+{
+  "ai": "^4.3.19",              // Vercel AI SDK
+  "@ai-sdk/anthropic": "^1.2.12", // Claude integration
+  "@ai-sdk/google": "^1.2.22",    // Gemini integration
+  "@ai-sdk/react": "^2.0.109",    // React hooks (useChat)
+  "@anthropic-ai/sdk": "^0.71.2", // Direct Anthropic API
+  "openai": "^6.10.0",            // Embeddings
+  "pdf-parse": "^2.4.5",          // PDF parsing
+  "xlsx": "^0.18.5",              // Excel parsing
+  "@mediapipe/pose": "^0.5.x"     // Video skeletal tracking
+}
+```
+
+### Common Tasks
+
+**Use AI Studio (Coach)**:
+1. Navigate to `/coach/ai-studio`
+2. Select athlete from dropdown
+3. Toggle context (test data, goals, documents)
+4. Select model (Claude/Gemini)
+5. Chat to design program iteratively
+6. Save generated program to database
+
+**Upload Documents**:
+1. Navigate to `/coach/documents`
+2. Drag-and-drop PDF/Excel/video
+3. System auto-chunks and embeds
+4. Documents available in AI Studio context panel
+
+**Configure API Keys (BYOK)**:
+1. Navigate to `/coach/settings/ai`
+2. Enter Anthropic/Google/OpenAI keys
+3. Keys encrypted and validated
+4. Used automatically in AI Studio
+
+### Documentation
+
+- `docs/AI_STUDIO_IMPLEMENTATION_PLAN.md` - Master plan (800+ lines)
+- `docs/Architecting_the_Cognitive_Athlete.md` - Technical architecture
+
+---
+
 ## Known Issues & Considerations
 
 - **Lactate curve validation**: Not enforced - users can input decreasing lactate values
@@ -707,6 +869,7 @@ model SportProfile {
 - **PDF export**: Large reports may timeout on slow connections
 - **Database**: Currently uses Supabase PostgreSQL (not local development DB by default)
 - **Norwegian Singles**: Standalone system may need audit/cleanup (see `INJURY_CROSS_TRAINING_IMPLEMENTATION.md`)
+- **Gemini Video API**: Infrastructure complete, needs integration verification
 
 ---
 

@@ -145,6 +145,7 @@ interface ConfigurationFormProps {
   dataSource: DataSourceType
   clients: Client[]
   selectedClientId?: string
+  onClientChange?: (clientId: string) => void
   onSubmit: (data: ConfigFormData) => Promise<void>
   isSubmitting: boolean
 }
@@ -155,6 +156,7 @@ export function ConfigurationForm({
   dataSource,
   clients,
   selectedClientId,
+  onClientChange,
   onSubmit,
   isSubmitting,
 }: ConfigurationFormProps) {
@@ -242,6 +244,13 @@ export function ConfigurationForm({
       form.setValue('durationWeeks', clampedWeeks)
     }
   }, [watchTargetDate, form])
+
+  // Notify parent when client selection changes
+  useEffect(() => {
+    if (watchClientId && onClientChange) {
+      onClientChange(watchClientId)
+    }
+  }, [watchClientId, onClientChange])
 
   const handleSubmit = form.handleSubmit(onSubmit)
 
@@ -469,7 +478,11 @@ export function ConfigurationForm({
                     min={4}
                     max={52}
                     {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    value={field.value ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : parseInt(e.target.value)
+                      field.onChange(isNaN(val as number) ? undefined : val)
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -490,7 +503,11 @@ export function ConfigurationForm({
                     min={2}
                     max={14}
                     {...field}
-                    onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    value={field.value ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? undefined : parseInt(e.target.value)
+                      field.onChange(isNaN(val as number) ? undefined : val)
+                    }}
                   />
                 </FormControl>
                 <FormDescription>

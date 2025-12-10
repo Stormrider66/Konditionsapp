@@ -20,8 +20,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertTriangle } from 'lucide-react';
+import { CheckCircle, AlertTriangle, Droplets } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { LactateScanButton } from '@/components/shared/LactateScanButton';
+import type { LactateMeterOCRResult } from '@/lib/validations/gemini-schemas';
 
 const thirtyMinTTSchema = z.object({
   testType: z.literal('THIRTY_MIN_TT'),
@@ -30,6 +32,8 @@ const thirtyMinTTSchema = z.object({
   duration: z.number().min(1700).max(1900),
   averageHR: z.number().min(120).max(200),
   maxHR: z.number().min(130).max(220),
+  lactatePostTest: z.number().min(0).max(25).optional(),
+  lactateConfidence: z.number().min(0).max(1).optional(),
   conditions: z.object({
     temperature: z.number().optional(),
     wind: z.string().optional(),
@@ -283,6 +287,53 @@ function ThirtyMinTTForm({ athletes, onSubmit, submitting }: {
                 </FormItem>
               )}
             />
+
+            {/* Lactate Post-Test with AI Scan */}
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Droplets className="h-4 w-4 text-red-500" />
+                <span className="font-medium">Laktat efter test (valfritt)</span>
+              </div>
+              <div className="flex gap-3 items-end">
+                <FormField
+                  control={form.control}
+                  name="lactatePostTest"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel>Laktat (mmol/L)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min={0}
+                          max={25}
+                          placeholder="t.ex. 4.2"
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={e => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <LactateScanButton
+                  onValueDetected={(value, confidence) => {
+                    form.setValue('lactatePostTest', value);
+                    form.setValue('lactateConfidence', confidence);
+                  }}
+                  clientId={form.watch('athleteId')}
+                  testStageContext="Post 30-min time trial"
+                  variant="outline"
+                  buttonText="Scanna"
+                />
+              </div>
+              {form.watch('lactateConfidence') && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  AI-konfidens: {Math.round((form.watch('lactateConfidence') || 0) * 100)}%
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
 

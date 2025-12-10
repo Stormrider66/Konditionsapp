@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(tree /F /L 3 C:UsersHenrikDocumentskonditionstest-applib)"
+      "Bash(tree /F /L 3 C:UsersHenrikDocumentskonditionstest-applib)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(powershell:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

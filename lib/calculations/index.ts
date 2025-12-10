@@ -1,11 +1,12 @@
 // lib/calculations/index.ts
 import { Test, Client, TestCalculations } from '@/types'
 import { calculateBMI, calculateAge } from './basic'
-import { calculateAerobicThreshold, calculateAnaerobicThreshold } from './thresholds'
+import { calculateAerobicThreshold, calculateAnaerobicThreshold, calculateDmaxForVisualization, detectLT2Unified } from './thresholds'
 import { calculateTrainingZones } from './zones'
 import { calculateAllEconomy } from './economy'
 import { identifyVO2max } from './vo2max'
 import { calculateCyclingData, calculateStageWattsPerKg } from './cycling'
+import { convertToLactateData, classifyAthleteProfile } from './elite-threshold-detection'
 
 export async function performAllCalculations(test: Test, client: Client): Promise<TestCalculations> {
   const stages = test.testStages.sort((a, b) => a.sequence - b.sequence)
@@ -28,50 +29,67 @@ export async function performAllCalculations(test: Test, client: Client): Promis
   }
 
   // Sanity check: LT1 (aerobic) should always be at lower intensity than LT2 (anaerobic)
-  // If not, something went wrong and we should swap or recalculate
+  // If not, something went wrong - likely Standard D-max found LT1 instead of LT2
   if (aerobicThreshold.value >= anaerobicThreshold.value) {
-    console.warn('[Threshold Sanity Check] LT1 >= LT2 detected. LT1:', aerobicThreshold.value, 'LT2:', anaerobicThreshold.value)
-    console.warn('[Threshold Sanity Check] This is physiologically incorrect. Recalculating using traditional methods.')
+    console.warn('╔══════════════════════════════════════════════════════════════╗')
+    console.warn('║     THRESHOLD SANITY CHECK - LT1 >= LT2 DETECTED!           ║')
+    console.warn('╚══════════════════════════════════════════════════════════════╝')
+    console.warn(`LT1: ${aerobicThreshold.value} ${aerobicThreshold.unit}, LT2: ${anaerobicThreshold.value} ${anaerobicThreshold.unit}`)
+    console.warn('For elite athletes, Standard D-max often finds LT1 instead of LT2.')
+    console.warn('SWAPPING: D-max result becomes LT1, using UNIFIED LT2 DETECTION...')
 
-    // The aerobic threshold should be lower, so if they're swapped, the D-max
-    // might have found LT1 instead of LT2. Use traditional 2.0 and 4.0 mmol/L methods.
-    // Create a simple interpolation-based aerobic threshold at 2.0 mmol/L
     const sortedStages = [...stages].sort((a, b) => a.sequence - b.sequence)
 
-    // Force traditional method by finding 2.0 mmol/L crossing
-    let lt1Below: typeof sortedStages[0] | null = null
-    let lt1Above: typeof sortedStages[0] | null = null
-    for (let i = 0; i < sortedStages.length; i++) {
-      if (sortedStages[i].lactate <= 2.0) {
-        lt1Below = sortedStages[i]
-      } else if (!lt1Above && sortedStages[i].lactate > 2.0) {
-        lt1Above = sortedStages[i]
-        break
-      }
-    }
+    // The D-max result (currently labeled as anaerobic) is actually the FIRST turnpoint (LT1)
+    const dmaxLT1 = { ...anaerobicThreshold }
+    dmaxLT1.lactate = anaerobicThreshold.lactate || 0
 
-    if (lt1Below && lt1Above) {
-      const factor = (2.0 - lt1Below.lactate) / (lt1Above.lactate - lt1Below.lactate)
-      const hr = lt1Below.heartRate + factor * (lt1Above.heartRate - lt1Below.heartRate)
-      const speed = (lt1Below.speed || 0) + factor * ((lt1Above.speed || 0) - (lt1Below.speed || 0))
-      const power = (lt1Below.power || 0) + factor * ((lt1Above.power || 0) - (lt1Below.power || 0))
-      const value = speed > 0 ? speed : power
-      const unit = speed > 0 ? 'km/h' : 'watt'
+    // Classify athlete profile for unified LT2 detection
+    const lactateData = convertToLactateData(sortedStages)
+    const profile = classifyAthleteProfile(lactateData)
 
+    // Use unified LT2 detection with 3-method hierarchy:
+    // 1. Modified D-max (Bishop) - Primary
+    // 2. Exponential Rise Detection - Fallback
+    // 3. Baseline + 1.0 mmol/L - Last resort
+    const unifiedLT2 = detectLT2Unified(sortedStages, profile)
+
+    if (unifiedLT2) {
+      // Swap: D-max result becomes aerobic (LT1), unified detection becomes anaerobic (LT2)
       aerobicThreshold = {
-        heartRate: Math.round(hr),
-        value: Number(value.toFixed(1)),
-        unit: unit as 'km/h' | 'watt' | 'min/km',
-        lactate: 2.0,
-        percentOfMax: 0
-      }
-      console.log('[Threshold Sanity Check] Recalculated aerobic threshold:', aerobicThreshold)
+        heartRate: dmaxLT1.heartRate,
+        value: dmaxLT1.value,
+        unit: dmaxLT1.unit,
+        lactate: dmaxLT1.lactate,
+        percentOfMax: 0,
+        method: 'DMAX_LT1' // Indicates D-max found LT1
+      } as typeof aerobicThreshold
+
+      anaerobicThreshold = {
+        heartRate: unifiedLT2.heartRate,
+        value: unifiedLT2.value,
+        unit: unifiedLT2.unit,
+        lactate: unifiedLT2.lactate,
+        percentOfMax: 0,
+        method: unifiedLT2.method // MOD_DMAX, EXPONENTIAL_RISE, or BASELINE_PLUS_1.0
+      } as typeof anaerobicThreshold
+
+      console.log('┌── SWAPPED THRESHOLDS ──────────────────────────────────────┐')
+      console.log(`│ LT1 (from D-max): ${aerobicThreshold.value} ${aerobicThreshold.unit} @ ${aerobicThreshold.lactate} mmol/L`)
+      console.log(`│ LT2 (${unifiedLT2.method}): ${anaerobicThreshold.value} ${anaerobicThreshold.unit} @ ${anaerobicThreshold.lactate} mmol/L`)
+      console.log('└─────────────────────────────────────────────────────────────┘')
+    } else {
+      console.warn('⚠️ Unified LT2 detection failed - keeping original thresholds')
     }
   }
 
   // Uppdatera procent av max
   aerobicThreshold.percentOfMax = Math.round((aerobicThreshold.heartRate / maxHR) * 100)
   anaerobicThreshold.percentOfMax = Math.round((anaerobicThreshold.heartRate / maxHR) * 100)
+
+  // Always calculate D-max for visualization (separate from threshold selection)
+  // This ensures the D-max chart is shown even when another method is used for thresholds
+  const dmaxVisualization = calculateDmaxForVisualization(stages)
 
   // Träningszoner (använder nytt 3-nivå system: laktattest > fälttest > %HRmax)
   const zoneResult = calculateTrainingZones(
@@ -123,6 +141,7 @@ export async function performAllCalculations(test: Test, client: Client): Promis
     maxLactate,
     economyData,
     cyclingData,
+    dmaxVisualization,
   }
 }
 

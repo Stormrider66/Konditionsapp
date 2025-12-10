@@ -105,10 +105,28 @@ export function classifyAthleteProfile(data: LactateDataPoint[]): AthleteProfile
   const maxLactate = Math.max(...data.map(d => d.lactate));
   const lactateRange = maxLactate - baselineAvg;
 
-  // Classification logic from the research document
+  // Classification logic - enhanced for better elite detection
+  // The key insight: elite athletes have LOW baseline + HIGH lactate range
+  // Their curve is "L-shaped" (flat then sharp rise) rather than gradually curved
   let type: AthleteProfile['type'];
 
-  if (baselineAvg < 1.5 && Math.abs(baselineSlope) < 0.05) {
+  // Method 1: Traditional criteria (baseline < 1.5 AND slope < 0.05)
+  const traditionalElite = baselineAvg < 1.5 && Math.abs(baselineSlope) < 0.05;
+
+  // Method 2: Low baseline with high lactate range (strong indicator of L-shaped curve)
+  // If baseline is low (<1.5) and lactate range is high (>3.5), this indicates elite flat
+  // Even with a slightly higher slope, this profile needs Bishop Modified D-max
+  const highRangeElite = baselineAvg < 1.5 && lactateRange > 3.5;
+
+  // Method 3: Very low baseline with moderate slope
+  // A baseline < 1.2 is extremely low - almost certainly elite even with some slope
+  const veryLowBaseline = baselineAvg < 1.2 && Math.abs(baselineSlope) < 0.15;
+
+  // Method 4: Relaxed slope criteria for low baselines
+  // Slope of 0.08 per km/h (0.8 mmol/L over 10 km/h) is still quite flat
+  const relaxedElite = baselineAvg < 1.5 && Math.abs(baselineSlope) < 0.08;
+
+  if (traditionalElite || highRangeElite || veryLowBaseline || relaxedElite) {
     type = 'ELITE_FLAT';
   } else if (baselineAvg < 2.5 && Math.abs(baselineSlope) < 0.15) {
     type = 'STANDARD';
@@ -121,7 +139,13 @@ export function classifyAthleteProfile(data: LactateDataPoint[]): AthleteProfile
     baselineAvg: baselineAvg.toFixed(2),
     baselineSlope: baselineSlope.toFixed(4),
     maxLactate: maxLactate.toFixed(2),
-    lactateRange: lactateRange.toFixed(2)
+    lactateRange: lactateRange.toFixed(2),
+    criteria: {
+      traditionalElite,
+      highRangeElite,
+      veryLowBaseline,
+      relaxedElite
+    }
   });
 
   return { type, baselineAvg, baselineSlope, maxLactate, lactateRange };

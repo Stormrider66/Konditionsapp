@@ -6,6 +6,7 @@ import { sv } from 'date-fns/locale'
 import { TestChart } from '../charts/TestChart'
 import { PowerChart } from '../charts/PowerChart'
 import { DmaxCurveChart } from '../charts/DmaxCurveChart'
+import { LactateHeartRateChart } from '../charts/LactateHeartRateChart'
 
 interface ReportTemplateProps {
   client: Client
@@ -261,9 +262,8 @@ export function ReportTemplate({
           )}
         </div>
 
-        {/* D-max Explanation */}
-        {((calculations.anaerobicThreshold as any)?.method === 'DMAX' ||
-          (calculations.anaerobicThreshold as any)?.method === 'MOD_DMAX') && (
+        {/* D-max Explanation - shown when D-max visualization is available */}
+        {calculations.dmaxVisualization && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h4 className="font-semibold text-sm mb-2 flex items-center">
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -272,26 +272,52 @@ export function ReportTemplate({
               Om D-max metoden
             </h4>
             <p className="text-sm text-gray-700">
-              D-max är en matematisk metod som identifierar laktattrö skeln genom att hitta punkten med
-              maximalt avstånd från baslinjen till den uppmätta laktatkurvan. Detta ger en mer individualiserad
-              och exakt tröskel än den traditionella 4 mmol/L-metoden.
-              R² visar hur väl den polynomiska kurvan passar dina data ({((calculations.anaerobicThreshold as any).r2 >= 0.95 ? 'utmärkt' : 'god')} passning).
+              D-max är en matematisk metod som identifierar laktattröskeln genom att hitta punkten med
+              maximalt avstånd från baslinjen till den uppmätta laktatkurvan. Detta är särskilt viktigt
+              för vältränade atleter med &quot;platta&quot; laktatkurvor, där den traditionella 4 mmol/L-metoden
+              kan överskatta tröskeln och leda till överträning.
+              R² visar hur väl den polynomiska kurvan passar dina data ({calculations.dmaxVisualization.r2 >= 0.95 ? 'utmärkt' : 'god'} passning).
             </p>
           </div>
         )}
       </section>
 
-      {/* D-max Curve Visualization */}
-      {((calculations.anaerobicThreshold as any)?.method === 'DMAX' ||
-        (calculations.anaerobicThreshold as any)?.method === 'MOD_DMAX') &&
-        (calculations.anaerobicThreshold as any)?.coefficients && (
+      {/* D-max Curve Visualization - shown when D-max visualization is available */}
+      {calculations.dmaxVisualization && calculations.dmaxVisualization.coefficients && calculations.aerobicThreshold && calculations.anaerobicThreshold && (
         <section className="mt-6 border-b pb-6 print:break-inside-avoid">
-          <h2 className="text-2xl font-semibold mb-4">D-max Analys</h2>
+          <h2 className="text-2xl font-semibold mb-4">Tröskelanalys</h2>
           <div className="bg-white p-4 rounded-lg border">
             <DmaxCurveChart
               stages={test.testStages}
-              dmaxResult={calculations.anaerobicThreshold as any}
-              intensityUnit={(calculations.anaerobicThreshold as any)?.unit}
+              dmaxResult={calculations.dmaxVisualization}
+              intensityUnit={calculations.dmaxVisualization.unit}
+              aerobicThreshold={{
+                intensity: calculations.aerobicThreshold.value,
+                lactate: calculations.aerobicThreshold.lactate || 0,
+                method: (calculations.aerobicThreshold as any).method
+              }}
+              anaerobicThreshold={{
+                intensity: calculations.anaerobicThreshold.value,
+                lactate: calculations.anaerobicThreshold.lactate || 0,
+                method: (calculations.anaerobicThreshold as any).method
+              }}
+            />
+          </div>
+
+          {/* Lactate vs Heart Rate Chart */}
+          <div className="bg-white p-4 rounded-lg border mt-6">
+            <LactateHeartRateChart
+              stages={test.testStages}
+              aerobicThreshold={{
+                heartRate: calculations.aerobicThreshold.heartRate,
+                lactate: calculations.aerobicThreshold.lactate || 0,
+                method: (calculations.aerobicThreshold as any).method
+              }}
+              anaerobicThreshold={{
+                heartRate: calculations.anaerobicThreshold.heartRate,
+                lactate: calculations.anaerobicThreshold.lactate || 0,
+                method: (calculations.anaerobicThreshold as any).method
+              }}
             />
           </div>
         </section>

@@ -165,6 +165,12 @@ model User {
   subscription      Subscription?
   videoImports      VideoImport[]
 
+  // AI Studio relations
+  coachDocuments    CoachDocument[]   @relation("CoachDocuments")
+  aiConversations   AIConversation[]  @relation("CoachConversations")
+  videoAnalyses     VideoAnalysis[]   @relation("CoachVideoAnalyses")
+  apiKeys           UserApiKey?       @relation("UserApiKeys")
+
   @@index([email])
   @@index([role])
 }
@@ -223,6 +229,16 @@ model Client {
   raceResults          RaceResult[]
   dailyCheckIns        DailyCheckIn[]
   sportProfile         SportProfile?
+
+  // AI Studio relations
+  aiConversations      AIConversation[]  @relation("AthleteConversations")
+  videoAnalyses        VideoAnalysis[]   @relation("AthleteVideoAnalyses")
+  bodyCompositions     BodyComposition[] @relation("ClientBodyComposition")
+
+  // Gemini 3 Pro features
+  audioJournals        AudioJournal[]
+  menstrualCycles      MenstrualCycle[]
+  menstrualDailyLogs   MenstrualDailyLog[]
 
   @@index([userId])
   @@index([teamId])
@@ -589,6 +605,9 @@ model Exercise {
   progressionTracking  ProgressionTracking[]
   oneRepMaxHistory     OneRepMaxHistory[]
 
+  // AI Studio relations
+  videoAnalyses        VideoAnalysis[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -844,6 +863,9 @@ model DailyCheckIn {
 
   // Notes
   notes               String?
+
+  // Audio journal (if populated from voice input)
+  audioJournal        AudioJournal?
 
   client              Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt           DateTime  @default(now())
@@ -1664,4 +1686,506 @@ model SportProfile {
   @@index([clientId])
   @@index([primarySport])
   @@index([onboardingCompleted])
+}
+
+// ============================================
+// AI STUDIO MODELS
+// Added: 2024-12
+// Purpose: AI-powered training program generation with RAG
+// ============================================
+
+/// Provider for AI models
+enum AIProvider {
+  ANTHROPIC   // Claude models
+  GOOGLE      // Gemini models
+  OPENAI      // GPT models & embeddings
+}
+
+/// Document types for coach uploads
+enum DocumentType {
+  PDF
+  EXCEL
+  MARKDOWN
+  VIDEO
+  TEXT
+}
+
+/// Coach document library for RAG knowledge base
+model CoachDocument {
+  id              String       @id @default(uuid())
+  coachId         String
+  name            String       // Display name
+  description     String?      @db.Text
+  fileType        DocumentType
+  fileUrl         String       // Supabase Storage URL
+  fileSize        Int?         // bytes
+  mimeType        String?      // e.g., "application/pdf"
+
+  // System vs coach uploaded
+  isSystem        Boolean      @default(false)
+
+  // Processing status
+  processingStatus String      @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  processingError String?
+  chunkCount      Int          @default(0)
+
+  // Metadata
+  metadata        Json?        // page count, sheet names, duration, etc.
+
+  coach           User         @relation("CoachDocuments", fields: [coachId], references: [id], onDelete: Cascade)
+  chunks          KnowledgeChunk[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([coachId])
+  @@index([fileType])
+  @@index([isSystem])
+  @@index([processingStatus])
+}
+
+/// Knowledge chunks for RAG - embeddings stored separately via pgvector
+model KnowledgeChunk {
+  id              String       @id @default(uuid())
+  documentId      String
+  coachId         String
+
+  content         String       @db.Text // Actual text content
+  chunkIndex      Int          // Order within document
+
+  // Embedding stored via raw SQL (pgvector)
+  // embedding    vector(1536) -- Added via migration
+  embeddingModel  String?      // e.g., "text-embedding-ada-002"
+
+  // Chunk metadata
+  metadata        Json?        // page number, section header, etc.
+  tokenCount      Int?         // Tokens in this chunk
+
+  document        CoachDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime     @default(now())
+
+  @@index([documentId])
+  @@index([coachId])
+  @@index([chunkIndex])
+}
+
+/// AI conversation sessions in AI Studio
+model AIConversation {
+  id              String       @id @default(uuid())
+  coachId         String
+  athleteId       String?      // Optional - can be general knowledge query
+
+  title           String?      // Auto-generated or user-set
+  modelUsed       String       // e.g., "claude-4.5-opus", "gemini-3-pro"
+  provider        AIProvider   @default(ANTHROPIC)
+
+  // Context configuration
+  contextDocuments String[]    @default([]) // Array of document IDs included
+  athleteDataIncluded Json?    // Which athlete data points are included
+  webSearchEnabled Boolean     @default(false)
+
+  // Usage tracking
+  totalTokensUsed Int          @default(0)
+  totalCost       Float        @default(0) // Estimated cost in USD
+
+  // Status
+  status          String       @default("ACTIVE") // ACTIVE, ARCHIVED, DELETED
+
+  coach           User         @relation("CoachConversations", fields: [coachId], references: [id], onDelete: Cascade)
+  athlete         Client?      @relation("AthleteConversations", fields: [athleteId], references: [id], onDelete: SetNull)
+  messages        AIMessage[]
+  generatedPrograms AIGeneratedProgram[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Individual messages in AI conversations
+model AIMessage {
+  id              String       @id @default(uuid())
+  conversationId  String
+
+  role            String       // "user", "assistant", "system"
+  content         String       @db.Text
+
+  // Token usage for this message
+  inputTokens     Int?
+  outputTokens    Int?
+
+  // If assistant used tools
+  toolCalls       Json?        // Array of tool calls made
+  toolResults     Json?        // Results from tools
+
+  // Metadata
+  modelUsed       String?      // Model that generated this (for assistant messages)
+  latencyMs       Int?         // Response time
+
+  conversation    AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime     @default(now())
+
+  @@index([conversationId])
+  @@index([role])
+  @@index([createdAt])
+}
+
+/// Programs generated by AI (before saving to TrainingProgram)
+model AIGeneratedProgram {
+  id              String       @id @default(uuid())
+  conversationId  String
+  programId       String?      // Link to TrainingProgram if saved
+
+  // Program data (JSON structure matching TrainingProgram)
+  programJson     Json
+
+  // Generation metadata
+  prompt          String?      @db.Text // The prompt that generated this
+  reasoning       String?      @db.Text // AI's reasoning/explanation
+
+  // Status
+  isSaved         Boolean      @default(false)
+
+  conversation    AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([conversationId])
+  @@index([programId])
+  @@index([isSaved])
+}
+
+/// Video analysis results (technique analysis using Gemini)
+model VideoAnalysis {
+  id              String       @id @default(uuid())
+  coachId         String
+  athleteId       String?
+  exerciseId      String?      // Link to exercise from library
+
+  // Video source
+  videoUrl        String       // Supabase Storage URL
+  videoType       String       // "STRENGTH", "RUNNING_GAIT", "SPORT_SPECIFIC"
+  duration        Int?         // seconds
+
+  // MediaPipe landmarks data (if processed locally)
+  landmarksData   Json?        // Skeletal tracking data
+
+  // AI analysis results
+  aiAnalysis      String?      @db.Text
+  aiProvider      AIProvider   @default(GOOGLE)
+  modelUsed       String?      // e.g., "gemini-3-pro"
+
+  // Structured results
+  formScore       Int?         // 0-100
+  issuesDetected  Json?        // Array of {issue, severity, timestamp}
+  recommendations Json?        // Array of recommended corrections
+  comparisonData  Json?        // If comparing to previous video
+
+  // Processing status
+  status          String       @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  processingError String?
+
+  coach           User         @relation("CoachVideoAnalyses", fields: [coachId], references: [id], onDelete: Cascade)
+  athlete         Client?      @relation("AthleteVideoAnalyses", fields: [athleteId], references: [id], onDelete: SetNull)
+  exercise        Exercise?    @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  // Extended analysis (for RUNNING_GAIT type)
+  runningGaitAnalysis RunningGaitAnalysis?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([exerciseId])
+  @@index([status])
+}
+
+/// Body composition tracking (bioimpedance measurements)
+model BodyComposition {
+  id              String       @id @default(uuid())
+  clientId        String
+
+  measurementDate DateTime     @db.Date
+
+  // Core measurements
+  weightKg        Float?
+  bodyFatPercent  Float?
+  muscleMassKg    Float?
+
+  // Additional bioimpedance data
+  visceralFat     Int?         // Scale typically 1-59
+  boneMassKg      Float?
+  waterPercent    Float?
+
+  // Metabolic data
+  bmrKcal         Int?         // Basal Metabolic Rate
+  metabolicAge    Int?
+
+  // Calculated fields
+  bmi             Float?       // Calculated from weight/height
+  ffmi            Float?       // Fat-Free Mass Index
+
+  // Source and quality
+  deviceBrand     String?      // "Tanita", "InBody", "Omron", etc.
+  measurementTime String?      // "MORNING_FASTED", "POST_WORKOUT", etc.
+
+  notes           String?      @db.Text
+
+  client          Client       @relation("ClientBodyComposition", fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([clientId, measurementDate])
+  @@index([clientId])
+  @@index([measurementDate])
+}
+
+/// User API keys for BYOK (Bring Your Own Key) model
+model UserApiKey {
+  id              String       @id @default(uuid())
+  userId          String       @unique
+
+  // Encrypted API keys (encrypted at application level)
+  anthropicKeyEncrypted String?  // Claude API key
+  googleKeyEncrypted    String?  // Gemini API key
+  openaiKeyEncrypted    String?  // OpenAI API key (for embeddings)
+
+  // Key status (validated = successfully tested)
+  anthropicKeyValid Boolean     @default(false)
+  googleKeyValid    Boolean     @default(false)
+  openaiKeyValid    Boolean     @default(false)
+
+  // Last validation timestamps
+  anthropicKeyLastValidated DateTime?
+  googleKeyLastValidated    DateTime?
+  openaiKeyLastValidated    DateTime?
+
+  // Default AI model preference (used across all AI features)
+  defaultModelId  String?
+  defaultModel    AIModel?     @relation("UserDefaultModel", fields: [defaultModelId], references: [id], onDelete: SetNull)
+
+  user            User         @relation("UserApiKeys", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([userId])
+}
+
+/// Available AI models (admin-configurable)
+model AIModel {
+  id              String       @id @default(uuid())
+
+  provider        AIProvider
+  modelId         String       @unique // e.g., "claude-4.5-opus-20250101"
+  displayName     String       // e.g., "Claude 4.5 Opus"
+  description     String?
+
+  // Capabilities
+  capabilities    String[]     @default([]) // ["text", "vision", "code", "web_search"]
+  maxTokens       Int?         // Max context window
+  maxOutputTokens Int?         // Max output tokens
+
+  // Pricing (per 1K tokens)
+  inputCostPer1k  Float?
+  outputCostPer1k Float?
+
+  // Availability
+  isActive        Boolean      @default(true)
+  isDefault       Boolean      @default(false) // Default model for new conversations
+
+  // Versioning
+  releasedAt      DateTime?
+  deprecatedAt    DateTime?
+
+  // User preferences
+  userDefaults    UserApiKey[] @relation("UserDefaultModel")
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([provider])
+  @@index([isActive])
+  @@index([isDefault])
+}
+
+// ==================== GEMINI 3 PRO FEATURES ====================
+
+/// Extended running gait analysis data (Gemini 3 Pro structured output)
+model RunningGaitAnalysis {
+  id                    String    @id @default(uuid())
+  videoAnalysisId       String    @unique
+
+  // Biometric data (structured from video)
+  cadence               Int?      // steps per minute
+  groundContactTime     Float?    // milliseconds
+  verticalOscillation   Float?    // centimeters
+  strideLength          Float?    // meters
+  footStrikePattern     String?   // "HEEL", "MIDFOOT", "FOREFOOT"
+
+  // Asymmetry data (left/right differences)
+  asymmetryPercent      Float?    // overall asymmetry %
+  leftContactTime       Float?
+  rightContactTime      Float?
+  leftStrideLength      Float?
+  rightStrideLength     Float?
+
+  // Injury risk assessment
+  injuryRiskLevel       String?   // "LOW", "MODERATE", "HIGH"
+  injuryRiskScore       Int?      // 0-10
+  injuryRiskFactors     Json?     // Array of risk factor objects
+
+  // Efficiency metrics
+  runningEfficiency     String?   // "EXCELLENT", "GOOD", "MODERATE", "POOR"
+  energyLeakages        Json?     // Array of identified inefficiencies
+
+  // Phase-specific analysis
+  stancePhaseData       Json?     // { duration, issues, recommendations }
+  swingPhaseData        Json?     // { duration, issues, recommendations }
+
+  // Coaching cues (Swedish)
+  coachingCues          Json?     // Array of { cue, priority, drillName, explanation }
+  drillRecommendations  Json?     // Array of corrective drills
+
+  // Comparison data
+  previousComparison    Json?     // Delta from previous analysis
+
+  // Overall assessment
+  overallScore          Int?      // 0-100
+  summary               String?   @db.Text // Swedish summary
+
+  videoAnalysis         VideoAnalysis @relation(fields: [videoAnalysisId], references: [id], onDelete: Cascade)
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([videoAnalysisId])
+  @@index([injuryRiskLevel])
+  @@index([cadence])
+}
+
+/// Audio recordings for voice-based daily check-in (Gemini 3 Pro transcription)
+model AudioJournal {
+  id                    String    @id @default(uuid())
+  clientId              String
+  date                  DateTime  @db.Date
+
+  // Audio file data
+  audioUrl              String    // Supabase Storage URL
+  duration              Int       // seconds (30-60 typical)
+  mimeType              String?   // "audio/webm", "audio/mp4", etc.
+  fileSize              Int?      // bytes
+
+  // Transcription
+  transcription         String?   @db.Text  // Full text from Gemini
+  transcriptionModel    String?   // "gemini-3-pro"
+  transcriptionConfidence Float?
+
+  // Structured extraction (from transcription)
+  extractedData         Json?     // { rpe, sleepQuality, soreness, energy, etc. }
+  extractionConfidence  Float?
+
+  // AI interpretation
+  aiInterpretation      Json?     // { readinessEstimate, recommendedAction, flaggedConcerns }
+
+  // Link to DailyCheckIn (if populated from audio)
+  dailyCheckInId        String?   @unique
+
+  // Processing status
+  status                String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  processingError       String?
+  processingTimeMs      Int?
+
+  client                Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dailyCheckIn          DailyCheckIn? @relation(fields: [dailyCheckInId], references: [id], onDelete: SetNull)
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([clientId, date])
+  @@index([clientId, date])
+  @@index([status])
+}
+
+/// Menstrual cycle tracking for female athletes
+model MenstrualCycle {
+  id                    String    @id @default(uuid())
+  clientId              String
+
+  // Cycle metadata
+  cycleNumber           Int?      // Sequential cycle number
+  startDate             DateTime  @db.Date
+  endDate               DateTime? @db.Date
+  cycleLength           Int?      // days
+
+  // Phase tracking
+  currentPhase          String?   // "MENSTRUAL", "FOLLICULAR", "OVULATORY", "LUTEAL"
+  ovulationDate         DateTime? @db.Date
+
+  // AI-generated insights
+  phaseRecommendations  Json?     // { phase: { intensityModifier, volumeModifier, focusAreas } }
+  aiInsights            Json?     // Patterns, predictions, recommendations
+
+  // Notes
+  notes                 String?   @db.Text
+
+  client                Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  dailyLogs             MenstrualDailyLog[]
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([clientId, startDate])
+  @@index([currentPhase])
+}
+
+/// Daily menstrual symptom log
+model MenstrualDailyLog {
+  id                    String    @id @default(uuid())
+  clientId              String
+  cycleId               String?
+  date                  DateTime  @db.Date
+
+  // Current phase (auto-calculated)
+  cycleDay              Int?      // Day 1-28+ in current cycle
+  phase                 String?   // Current phase
+
+  // Symptom tracking (1-5 scale)
+  flowIntensity         Int?      // 0=none, 1-5 for flow days
+  cramps                Int?      // 1=none, 5=severe
+  bloating              Int?
+  breastTenderness      Int?
+  headache              Int?
+  fatigue               Int?      // 1=low fatigue, 5=extreme
+  moodScore             Int?      // 1=very low, 5=excellent
+  cravings              Int?
+
+  // Training performance
+  perceivedEffort       Int?      // RPE for that day
+  actualVsPlanned       String?   // "EXCEEDED", "MET", "REDUCED", "SKIPPED"
+
+  // Notes
+  notes                 String?   @db.Text
+
+  // AI flags
+  aiWarnings            Json?     // Flagged patterns
+
+  client                Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  cycle                 MenstrualCycle? @relation(fields: [cycleId], references: [id], onDelete: SetNull)
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([clientId, date])
+  @@index([clientId, date])
+  @@index([phase])
+  @@index([cycleId])
 }

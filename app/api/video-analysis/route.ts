@@ -1,0 +1,140 @@
+/**
+ * Video Analysis API
+ *
+ * POST /api/video-analysis - Create new video analysis
+ * GET /api/video-analysis - List video analyses for coach
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { requireCoach } from '@/lib/auth-utils';
+import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
+
+const createAnalysisSchema = z.object({
+  videoUrl: z.string().url(),
+  videoType: z.enum(['STRENGTH', 'RUNNING_GAIT', 'SPORT_SPECIFIC']),
+  athleteId: z.string().uuid().optional(),
+  exerciseId: z.string().uuid().optional(),
+  duration: z.number().optional(),
+  landmarksData: z.any().optional(),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await requireCoach();
+    const body = await request.json();
+    const validated = createAnalysisSchema.parse(body);
+
+    // Verify athlete belongs to coach if provided
+    if (validated.athleteId) {
+      const athlete = await prisma.client.findFirst({
+        where: { id: validated.athleteId, userId: user.id },
+      });
+      if (!athlete) {
+        return NextResponse.json(
+          { error: 'Athlete not found' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Verify exercise exists if provided
+    if (validated.exerciseId) {
+      const exercise = await prisma.exercise.findUnique({
+        where: { id: validated.exerciseId },
+      });
+      if (!exercise) {
+        return NextResponse.json(
+          { error: 'Exercise not found' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Create video analysis record
+    const analysis = await prisma.videoAnalysis.create({
+      data: {
+        coachId: user.id,
+        athleteId: validated.athleteId,
+        exerciseId: validated.exerciseId,
+        videoUrl: validated.videoUrl,
+        videoType: validated.videoType,
+        duration: validated.duration,
+        landmarksData: validated.landmarksData,
+        status: 'PENDING',
+      },
+      include: {
+        athlete: { select: { id: true, name: true } },
+        exercise: { select: { id: true, name: true, nameSv: true } },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      analysis,
+    });
+  } catch (error) {
+    console.error('Video analysis creation error:', error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation error', details: error.errors },
+        { status: 400 }
+      );
+    }
+
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create video analysis' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const user = await requireCoach();
+    const { searchParams } = new URL(request.url);
+
+    const athleteId = searchParams.get('athleteId');
+    const exerciseId = searchParams.get('exerciseId');
+    const status = searchParams.get('status');
+    const videoType = searchParams.get('videoType');
+    const limit = parseInt(searchParams.get('limit') || '20');
+
+    const analyses = await prisma.videoAnalysis.findMany({
+      where: {
+        coachId: user.id,
+        ...(athleteId && { athleteId }),
+        ...(exerciseId && { exerciseId }),
+        ...(status && { status }),
+        ...(videoType && { videoType }),
+      },
+      include: {
+        athlete: { select: { id: true, name: true } },
+        exercise: { select: { id: true, name: true, nameSv: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    return NextResponse.json({
+      success: true,
+      analyses,
+    });
+  } catch (error) {
+    console.error('Video analysis list error:', error);
+
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to list video analyses' },
+      { status: 500 }
+    );
+  }
+}

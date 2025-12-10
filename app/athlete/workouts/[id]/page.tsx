@@ -6,9 +6,10 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, CheckCircle2, Clock, MapPin, Heart, Zap, Calendar, Edit } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock, MapPin, Calendar, Edit } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { WorkoutSegments } from '@/components/athlete/workout/WorkoutSegments'
 
 interface WorkoutDetailPageProps {
   params: Promise<{
@@ -170,47 +171,16 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
         </CardContent>
       </Card>
 
-      {/* Workout Structure */}
+      {/* Workout Structure with Lactate Capture Buttons */}
       {workout.segments && workout.segments.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Pass-struktur</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {workout.segments.map((segment, index) => (
-                <div
-                  key={segment.id}
-                  className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
-                >
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-sm">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="secondary" className="text-xs">
-                        {formatSegmentType(segment.type)}
-                      </Badge>
-                      {segment.exercise && (
-                        <span className="font-medium">{segment.exercise.nameSv}</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {segment.description}
-                      {segment.duration && ` • ${segment.duration} min`}
-                      {segment.pace && ` • ${segment.pace}`}
-                      {segment.heartRate && ` • ${segment.heartRate}`}
-                      {segment.sets && segment.repsCount && (
-                        <> • {segment.sets} set × {segment.repsCount} reps</>
-                      )}
-                      {segment.rest && ` • ${segment.rest}s vila`}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-6">
+          <WorkoutSegments
+            segments={workout.segments}
+            workoutId={workout.id}
+            clientId={athleteAccount.clientId}
+            workoutName={workout.name}
+          />
+        </div>
       )}
 
       {/* Completed Workout Log */}
@@ -402,24 +372,6 @@ function formatIntensity(intensity: string): string {
     MAX: 'Max',
   }
   return intensities[intensity] || intensity
-}
-
-function formatSegmentType(type: string): string {
-  const types: Record<string, string> = {
-    warmup: 'Uppvärmning',
-    interval: 'Intervall',
-    cooldown: 'Nedvärmning',
-    work: 'Arbete',
-    rest: 'Vila',
-    exercise: 'Övning',
-    WARMUP: 'Uppvärmning',
-    INTERVAL: 'Intervall',
-    COOLDOWN: 'Nedvärmning',
-    WORK: 'Arbete',
-    REST: 'Vila',
-    EXERCISE: 'Övning',
-  }
-  return types[type] || type
 }
 
 function getIntensityBadgeClass(intensity: string): string {

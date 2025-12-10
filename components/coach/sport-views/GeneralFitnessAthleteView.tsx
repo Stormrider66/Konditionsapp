@@ -1,9 +1,13 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Target, Heart, Scale, Dumbbell, Calendar, CheckCircle2 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Target, Heart, Scale, Dumbbell, Calendar, CheckCircle2, Utensils, Activity } from 'lucide-react'
+import { BodyCompositionTracker } from '@/components/coach/body-composition/BodyCompositionTracker'
+import { NutritionRecommendations } from '@/components/coach/body-composition/NutritionRecommendations'
 
 interface GeneralFitnessSettings {
   primaryGoal?: string
@@ -27,6 +31,11 @@ interface GeneralFitnessAthleteViewProps {
   clientId: string
   clientName: string
   settings?: Record<string, unknown>
+  clientData?: {
+    gender?: 'MALE' | 'FEMALE'
+    birthDate?: string
+    height?: number
+  }
 }
 
 const GOAL_LABELS: Record<string, { label: string; icon: string; color: string }> = {
@@ -61,24 +70,67 @@ const ACTIVITY_LABELS: Record<string, string> = {
   outdoor: 'Friluftsliv',
 }
 
-export function GeneralFitnessAthleteView({ clientId, clientName, settings }: GeneralFitnessAthleteViewProps) {
+export function GeneralFitnessAthleteView({ clientId, clientName, settings, clientData }: GeneralFitnessAthleteViewProps) {
   const fitnessSettings = settings as GeneralFitnessSettings | undefined
+  const [activeTab, setActiveTab] = useState('overview')
+
+  // Build client data for nutrition component
+  const nutritionClientData = clientData && fitnessSettings ? {
+    name: clientName,
+    gender: clientData.gender || 'MALE',
+    birthDate: clientData.birthDate || new Date().toISOString(),
+    height: clientData.height || fitnessSettings.height || 170,
+    weight: fitnessSettings.currentWeight || undefined,
+    sport: 'GENERAL_FITNESS',
+  } : null
 
   if (!fitnessSettings) {
+    // Still show body composition even without fitness settings
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <span>🏋️</span> Fitness Profil
-          </CardTitle>
-          <CardDescription>Ingen fitnessdata tillgänglig</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Atleten har inte angett fitnessinställningar ännu.
-          </p>
-        </CardContent>
-      </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="overview" className="gap-2">
+            <Activity className="h-4 w-4" />
+            Översikt
+          </TabsTrigger>
+          <TabsTrigger value="body" className="gap-2">
+            <Scale className="h-4 w-4" />
+            Kroppssammansättning
+          </TabsTrigger>
+          <TabsTrigger value="nutrition" className="gap-2">
+            <Utensils className="h-4 w-4" />
+            Näring
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span>🏋️</span> Fitness Profil
+              </CardTitle>
+              <CardDescription>Ingen fitnessdata tillgänglig</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Atleten har inte angett fitnessinställningar ännu.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="body">
+          <BodyCompositionTracker clientId={clientId} clientName={clientName} />
+        </TabsContent>
+
+        <TabsContent value="nutrition">
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              Lägg till kroppssammansättningsdata först för näringsrekommendationer.
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     )
   }
 
@@ -110,9 +162,26 @@ export function GeneralFitnessAthleteView({ clientId, clientName, settings }: Ge
     : null
 
   return (
-    <div className="space-y-4">
-      {/* Goals Overview */}
-      <Card>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <TabsList className="mb-4">
+        <TabsTrigger value="overview" className="gap-2">
+          <Activity className="h-4 w-4" />
+          Översikt
+        </TabsTrigger>
+        <TabsTrigger value="body" className="gap-2">
+          <Scale className="h-4 w-4" />
+          Kroppssammansättning
+        </TabsTrigger>
+        <TabsTrigger value="nutrition" className="gap-2">
+          <Utensils className="h-4 w-4" />
+          Näring
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="overview">
+        <div className="space-y-4">
+          {/* Goals Overview */}
+          <Card>
         <CardHeader className="pb-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
@@ -293,6 +362,27 @@ export function GeneralFitnessAthleteView({ clientId, clientName, settings }: Ge
           )}
         </CardContent>
       </Card>
-    </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="body">
+        <BodyCompositionTracker clientId={clientId} clientName={clientName} />
+      </TabsContent>
+
+      <TabsContent value="nutrition">
+        {nutritionClientData ? (
+          <NutritionRecommendations
+            clientId={clientId}
+            clientData={nutritionClientData}
+          />
+        ) : (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              Lägg till kroppssammansättningsdata först för näringsrekommendationer.
+            </CardContent>
+          </Card>
+        )}
+      </TabsContent>
+    </Tabs>
   )
 }

@@ -7,6 +7,7 @@
  * - HRV (Heart Rate Variability)
  * - RHR (Resting Heart Rate)
  * - Wellness Questionnaire (7 questions)
+ * - Voice Check-In (via Gemini audio analysis)
  *
  * Automatically calculates readiness score on submission.
  */
@@ -39,6 +40,8 @@ import { Slider } from '@/components/ui/slider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
+import { Mic, ClipboardList } from 'lucide-react'
+import { AudioRecorder } from '@/components/athlete/audio-journal/AudioRecorder'
 
 // Form schema
 const checkInSchema = z.object({
@@ -69,12 +72,35 @@ interface DailyCheckInFormProps {
   onSuccess?: () => void
 }
 
+// Audio recording result type
+interface AudioJournalResult {
+  transcription: string;
+  wellness: {
+    sleepQuality?: number;
+    sleepHours?: number;
+    fatigue?: number;
+    soreness?: number;
+    sorenessLocation?: string;
+    stress?: number;
+    mood?: number;
+    motivation?: number;
+    rpe?: number;
+  };
+  aiInterpretation: {
+    readinessEstimate: number;
+    recommendedAction: 'PROCEED' | 'REDUCE' | 'EASY' | 'REST';
+    flaggedConcerns: string[];
+  };
+}
+
 export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [readinessResult, setReadinessResult] = useState<any>(null)
   const [injuryResponse, setInjuryResponse] = useState<any>(null)
+  const [voiceMode, setVoiceMode] = useState(false)
+  const [voiceResult, setVoiceResult] = useState<AudioJournalResult | null>(null)
 
   const form = useForm<CheckInFormData>({
     resolver: zodResolver(checkInSchema),
@@ -175,12 +201,86 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
     }
   }
 
+  // Handle voice recording completion
+  const handleVoiceComplete = (result: AudioJournalResult) => {
+    setVoiceResult(result)
+
+    // Create a pseudo-readiness result from voice analysis
+    setReadinessResult({
+      score: result.aiInterpretation.readinessEstimate,
+      status: result.aiInterpretation.recommendedAction === 'PROCEED' ? 'OPTIMAL'
+        : result.aiInterpretation.recommendedAction === 'REDUCE' ? 'MODERATE'
+        : result.aiInterpretation.recommendedAction === 'EASY' ? 'LOW'
+        : 'CRITICAL',
+      recommendation: result.aiInterpretation.recommendedAction === 'PROCEED'
+        ? 'Kör enligt plan - du verkar redo för dagens träning!'
+        : result.aiInterpretation.recommendedAction === 'REDUCE'
+        ? 'Minska intensiteten något idag baserat på din incheckning.'
+        : result.aiInterpretation.recommendedAction === 'EASY'
+        ? 'Ta det lugnt idag - fokusera på återhämtning.'
+        : 'Vila rekommenderas. Lyssna på kroppen och återhämta dig.',
+      warnings: result.aiInterpretation.flaggedConcerns,
+      criticalFlags: [],
+    })
+
+    toast({
+      title: 'Röstincheckning klar',
+      description: 'Din incheckning har analyserats och sparats.',
+    })
+
+    if (onSuccess) {
+      onSuccess()
+    } else {
+      router.refresh()
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* HRV Section */}
-          <Card>
+      {/* Mode Toggle */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+            <Button
+              type="button"
+              variant={voiceMode ? 'outline' : 'default'}
+              className="w-full sm:w-auto gap-2"
+              onClick={() => setVoiceMode(false)}
+            >
+              <ClipboardList className="h-4 w-4" />
+              Formulär
+            </Button>
+            <Button
+              type="button"
+              variant={voiceMode ? 'default' : 'outline'}
+              className="w-full sm:w-auto gap-2"
+              onClick={() => setVoiceMode(true)}
+            >
+              <Mic className="h-4 w-4" />
+              Röstincheckning
+            </Button>
+          </div>
+          {voiceMode && (
+            <p className="text-sm text-muted-foreground text-center mt-3">
+              Berätta hur du mår - sömn, energi, ömhet, stress och motivation.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Voice Mode: AudioRecorder */}
+      {voiceMode ? (
+        <AudioRecorder
+          clientId={clientId}
+          onRecordingComplete={handleVoiceComplete}
+          onCancel={() => setVoiceMode(false)}
+        />
+      ) : (
+        /* Form Mode: Manual form */
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* HRV Section */}
+            <Card>
             <CardHeader>
               <CardTitle>Heart Rate Variability (HRV)</CardTitle>
               <CardDescription>
@@ -483,6 +583,7 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
           </Button>
         </form>
       </Form>
+      )}
 
       {/* Injury Auto-Response Alert */}
       {injuryResponse?.triggered && (

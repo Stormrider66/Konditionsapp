@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -142,6 +143,18 @@ export default function ResultsAnalyzer({ initialTestId }: ResultsAnalyzerProps)
               ? 'Medel tillförlitlighet'
               : 'Låg tillförlitlighet'}
           </Badge>
+
+          {/* AI Analysis Button */}
+          <AIContextButton
+            athleteName={athleteName}
+            buttonText="Analysera"
+            quickActions={[
+              { label: 'Förklara testresultat', prompt: `Förklara dessa fälttestresultat för ${athleteName} och vad de betyder för träningen` },
+              { label: 'Rekommendera träningszoner', prompt: `Baserat på fälttestresultaten för ${athleteName}, rekommendera optimala träningszoner` },
+              { label: 'Jämför med normvärden', prompt: `Jämför ${athleteName}s fälttestresultat med typiska normvärden för deras nivå` },
+              { label: 'Föreslå nästa steg', prompt: `Baserat på fälttestresultaten, vad bör ${athleteName} fokusera på i sin träning framöver?` },
+            ]}
+          />
 
           {/* Test selector */}
           <Select value={selectedTest} onValueChange={handleTestChange}>

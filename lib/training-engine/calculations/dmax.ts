@@ -259,54 +259,204 @@ function checkMonotonicity(lactate: number[]): boolean {
 }
 
 /**
- * Modified D-max algorithm with constraints
- * Ensures threshold is in physiological range (1.5-4.5 mmol/L)
+ * Bishop Modified D-max algorithm (Bishop et al., 1998)
+ *
+ * Key difference from Standard D-max:
+ * - Standard D-max connects FIRST point to LAST point (shallow baseline for flat curves)
+ * - Modified D-max connects the point PRECEDING THE FIRST RISE to LAST point (steeper baseline)
+ *
+ * This is critical for elite athletes with "flat" lactate curves:
+ * - Standard D-max finds the first turnpoint (often LT1)
+ * - Modified D-max finds the second turnpoint (LT2/MLSS)
+ *
+ * Algorithm:
+ * 1. Calculate robust baseline (trimmed mean of first 40% of points)
+ * 2. Find first point where lactate rises ≥0.4 mmol/L above baseline
+ * 3. Use the point BEFORE that rise (index j-1) as the modified start point
+ * 4. Calculate D-max using line from modified start to end point
  *
  * @param data - Lactate test data
- * @returns Mod-Dmax threshold result
+ * @returns Bishop Mod-Dmax threshold result
  */
 export function calculateModDmax(data: LactateTestData): DmaxResult {
-  const result = calculateDmax(data);
+  const { intensity, lactate, heartRate, unit } = data;
 
-  // Apply physiological constraints
-  const MIN_LACTATE = 1.5;
-  const MAX_LACTATE = 4.5;
-
-  if (result.lactate < MIN_LACTATE || result.lactate > MAX_LACTATE) {
-    // Threshold outside physiological range - recalculate with constraints
-    const { intensity, lactate, heartRate } = data;
-    const regression = fitPolynomial3(intensity, lactate);
-
-    // Find first point where lactate reaches 2.0 mmol/L (aerobic threshold)
-    let thresholdIntensity = intensity[0];
-    let thresholdLactate = lactate[0];
-    let thresholdHR = heartRate[0];
-
-    for (let i = 1; i < lactate.length; i++) {
-      if (lactate[i] >= 2.0 && lactate[i - 1] < 2.0) {
-        const ratio = (2.0 - lactate[i - 1]) / (lactate[i] - lactate[i - 1]);
-        thresholdIntensity = intensity[i - 1] + ratio * (intensity[i] - intensity[i - 1]);
-        thresholdHR = heartRate[i - 1] + ratio * (heartRate[i] - heartRate[i - 1]);
-        thresholdLactate = 2.0;
-        break;
-      }
-    }
-
-    return {
-      intensity: parseFloat(thresholdIntensity.toFixed(2)),
-      lactate: parseFloat(thresholdLactate.toFixed(2)),
-      heartRate: Math.round(thresholdHR),
-      method: 'MOD_DMAX',
-      r2: result.r2,
-      confidence: 'MEDIUM',
-      warning: `D-max threshold (${result.lactate.toFixed(1)} mmol/L) outside physiological range. Using 2.0 mmol/L instead.`,
-      coefficients: result.coefficients,
-      dmaxDistance: result.dmaxDistance
-    };
+  // Validation
+  if (intensity.length < 4) {
+    throw new Error('Modified D-max requires minimum 4 test stages');
   }
 
+  // Step 1: Calculate robust baseline
+  // Use trimmed mean of first 40% of data points (excluding highest outlier)
+  const baselineCount = Math.max(2, Math.floor(lactate.length * 0.4));
+  const baselineValues = lactate.slice(0, baselineCount);
+  const sortedBaseline = [...baselineValues].sort((a, b) => a - b);
+  // Exclude the highest value (trimmed mean)
+  const trimmedBaseline = sortedBaseline.slice(0, -1);
+  const baselineAvg = trimmedBaseline.reduce((sum, v) => sum + v, 0) / trimmedBaseline.length;
+
+  console.log('[Bishop Mod-Dmax] Baseline calculation:', {
+    baselineCount,
+    baselineValues: baselineValues.map(v => v.toFixed(2)),
+    trimmedBaseline: trimmedBaseline.map(v => v.toFixed(2)),
+    baselineAvg: baselineAvg.toFixed(2)
+  });
+
+  // Step 2: Find first rise of 0.4 mmol/L above baseline
+  const RISE_THRESHOLD = 0.4; // Bishop et al. criterion
+  let firstRiseIndex = -1;
+
+  for (let i = 0; i < lactate.length; i++) {
+    if (lactate[i] >= baselineAvg + RISE_THRESHOLD) {
+      firstRiseIndex = i;
+      break;
+    }
+  }
+
+  // Step 3: Determine modified start point
+  // Use the point BEFORE the first rise (j-1), minimum index 0
+  let modifiedStartIndex: number;
+
+  if (firstRiseIndex === -1) {
+    // No rise detected - curve is completely flat
+    // This is extremely unusual; fall back to using the midpoint
+    console.warn('[Bishop Mod-Dmax] No rise detected above baseline + 0.4. Using midpoint as start.');
+    modifiedStartIndex = Math.floor(lactate.length / 2);
+  } else if (firstRiseIndex === 0) {
+    // Rise happens at first point - use first point
+    modifiedStartIndex = 0;
+  } else {
+    // Normal case: use point before the rise
+    modifiedStartIndex = firstRiseIndex - 1;
+  }
+
+  console.log('[Bishop Mod-Dmax] First rise detection:', {
+    riseThreshold: RISE_THRESHOLD,
+    baselinePlusThreshold: (baselineAvg + RISE_THRESHOLD).toFixed(2),
+    firstRiseIndex,
+    firstRiseLactate: firstRiseIndex >= 0 ? lactate[firstRiseIndex].toFixed(2) : 'none',
+    modifiedStartIndex,
+    modifiedStartIntensity: intensity[modifiedStartIndex].toFixed(1),
+    modifiedStartLactate: lactate[modifiedStartIndex].toFixed(2)
+  });
+
+  // Step 4: Fit polynomial to the data
+  const regression = fitPolynomial3(intensity, lactate);
+  const { coefficients, r2 } = regression;
+
+  if (r2 < 0.90) {
+    // Poor fit - fall back to traditional method
+    return calculateFallbackThreshold(data, coefficients, r2);
+  }
+
+  // Step 5: Calculate D-max using MODIFIED baseline
+  // Line from modified start point to last point
+  const x1 = intensity[modifiedStartIndex];
+  const y1 = lactate[modifiedStartIndex];
+  const x2 = intensity[intensity.length - 1];
+  const y2 = lactate[lactate.length - 1];
+
+  const modifiedSlope = (y2 - y1) / (x2 - x1);
+  const modifiedIntercept = y1 - modifiedSlope * x1;
+
+  console.log('[Bishop Mod-Dmax] Modified baseline:', {
+    startPoint: `(${x1.toFixed(1)}, ${y1.toFixed(2)})`,
+    endPoint: `(${x2.toFixed(1)}, ${y2.toFixed(2)})`,
+    slope: modifiedSlope.toFixed(4),
+    intercept: modifiedIntercept.toFixed(4)
+  });
+
+  // Find point of maximum perpendicular distance using MODIFIED baseline
+  // Only search from the modified start point onwards
+  const dmaxPoint = findMaxPerpendicularDistanceInRange(
+    coefficients,
+    modifiedSlope,
+    modifiedIntercept,
+    x1,  // Start from modified start point
+    x2
+  );
+
+  // Interpolate heart rate at D-max intensity
+  const dmaxHR = interpolateHeartRate(intensity, heartRate, dmaxPoint.intensity);
+
+  // Calculate confidence
+  const lactateRange = Math.max(...lactate) - Math.min(...lactate);
+  const relativeDistance = dmaxPoint.distance / lactateRange;
+
+  console.log('[Bishop Mod-Dmax] Confidence calculation:', {
+    dmaxDistance: dmaxPoint.distance.toFixed(4),
+    lactateRange: lactateRange.toFixed(2),
+    relativeDistance: relativeDistance.toFixed(4),
+    r2: r2.toFixed(4),
+    thresholdFor005: (0.05 * lactateRange).toFixed(4),
+    thresholdFor010: (0.10 * lactateRange).toFixed(4)
+  });
+
+  const confidence = calculateConfidence(r2, dmaxPoint.distance, lactate);
+
+  console.log('[Bishop Mod-Dmax] ★★★ FINAL RESULT ★★★:', {
+    intensity: dmaxPoint.intensity.toFixed(2),
+    lactate: dmaxPoint.lactate.toFixed(2),
+    heartRate: Math.round(dmaxHR),
+    r2: r2.toFixed(4),
+    confidence,
+    dmaxDistance: dmaxPoint.distance.toFixed(4)
+  });
+
   return {
-    ...result,
-    method: 'MOD_DMAX'
+    intensity: parseFloat(dmaxPoint.intensity.toFixed(2)),
+    lactate: parseFloat(dmaxPoint.lactate.toFixed(2)),
+    heartRate: Math.round(dmaxHR),
+    method: 'MOD_DMAX',
+    r2: parseFloat(r2.toFixed(4)),
+    confidence,
+    coefficients,
+    dmaxDistance: parseFloat(dmaxPoint.distance.toFixed(4))
   };
+}
+
+/**
+ * Find point of maximum perpendicular distance in a specific range
+ * Used by Bishop Modified D-max to search only after the modified start point
+ */
+function findMaxPerpendicularDistanceInRange(
+  coeffs: PolynomialCoefficients,
+  m: number,
+  b: number,
+  xMin: number,
+  xMax: number
+): { intensity: number; lactate: number; distance: number } {
+  let maxDistance = 0;
+  let maxPoint = { intensity: xMin, lactate: 0, distance: 0 };
+
+  // Sample 1000 points along the curve in the specified range
+  const numSamples = 1000;
+  const step = (xMax - xMin) / numSamples;
+
+  for (let i = 0; i <= numSamples; i++) {
+    const x = xMin + i * step;
+
+    // Calculate y on polynomial curve
+    const yCurve = coeffs.a * Math.pow(x, 3) +
+                   coeffs.b * Math.pow(x, 2) +
+                   coeffs.c * x +
+                   coeffs.d;
+
+    // Calculate y on baseline
+    const yBaseline = m * x + b;
+
+    // Perpendicular distance
+    const distance = Math.abs(yCurve - yBaseline) / Math.sqrt(1 + m * m);
+
+    if (distance > maxDistance) {
+      maxDistance = distance;
+      maxPoint = {
+        intensity: x,
+        lactate: yCurve,
+        distance
+      };
+    }
+  }
+
+  return maxPoint;
 }

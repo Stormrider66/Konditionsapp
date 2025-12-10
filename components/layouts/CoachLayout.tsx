@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { MobileNav } from '@/components/navigation/MobileNav'
 import { createClient } from '@/lib/supabase/client'
+import { FloatingAIChat } from '@/components/ai-studio/FloatingAIChat'
 import type { User } from '@supabase/supabase-js'
 
 export function CoachLayout({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,8 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gray-50">
       <MobileNav user={user} userRole="COACH" />
       <div>{children}</div>
+      {/* Floating AI Chat - available on all coach pages */}
+      <FloatingAIChat />
     </div>
   )
 }

@@ -24,8 +24,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Trash2, Upload, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Upload, AlertTriangle, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { LactateScanButton } from '@/components/shared/LactateScanButton';
 
 const stageSchema = z.object({
   sequence: z.number().min(1),
@@ -331,14 +332,26 @@ export function SelfReportedLactateForm({ clientId }: SelfReportedLactateFormPro
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Laktat (mmol/L)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.1"
-                              {...field}
-                              onChange={e => field.onChange(parseFloat(e.target.value))}
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                {...field}
+                                onChange={e => field.onChange(parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                            <LactateScanButton
+                              onValueDetected={(value) => {
+                                form.setValue(`stages.${index}.lactate`, value);
+                              }}
+                              clientId={clientId}
+                              testStageContext={`Steg ${index + 1}`}
+                              size="icon"
+                              iconOnly
+                              variant="outline"
                             />
-                          </FormControl>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
