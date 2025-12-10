@@ -8,7 +8,7 @@ import { SportType } from '@prisma/client'
 import {
   Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
   ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings,
-  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench
+  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -99,6 +99,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       items: [
         { href: '/test', label: 'Nytt Laktattest', icon: TestTube },
         { href: '/coach/ai-studio', label: 'AI Studio', icon: Sparkles },
+        { href: '/coach/hybrid-studio', label: 'Hybrid Studio', icon: Flame },
         { href: '/coach/video-analysis', label: 'Videoanalys', icon: Video },
         { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
       ],
@@ -123,6 +124,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: '/coach/programs', label: 'Program', icon: Calendar },
     { href: '/test', label: 'Nytt Laktattest', icon: TestTube },
     { href: '/coach/ai-studio', label: 'AI Studio', icon: Sparkles },
+    { href: '/coach/hybrid-studio', label: 'Hybrid Studio', icon: Flame },
     { href: '/coach/video-analysis', label: 'Videoanalys', icon: Video },
     { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
     { href: '/teams', label: 'Lag', icon: Users2 },

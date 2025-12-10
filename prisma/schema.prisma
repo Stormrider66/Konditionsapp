@@ -171,6 +171,9 @@ model User {
   videoAnalyses     VideoAnalysis[]   @relation("CoachVideoAnalyses")
   apiKeys           UserApiKey?       @relation("UserApiKeys")
 
+  // Hybrid Studio relations
+  hybridWorkouts    HybridWorkout[]   @relation("CoachHybridWorkouts")
+
   @@index([email])
   @@index([role])
 }
@@ -239,6 +242,9 @@ model Client {
   audioJournals        AudioJournal[]
   menstrualCycles      MenstrualCycle[]
   menstrualDailyLogs   MenstrualDailyLog[]
+
+  // Hybrid Studio relations
+  hybridWorkoutResults HybridWorkoutResult[]
 
   @@index([userId])
   @@index([teamId])
@@ -600,6 +606,18 @@ model Exercise {
   substitutes         String?              // JSON array of alternative exercise IDs
   progressionPath     String?              // JSON array: [easier_id, current_id, harder_id]
 
+  // Hybrid Studio Fields
+  isHybridMovement    Boolean              @default(false) // Is this a CrossFit/HYROX movement?
+  movementCategory    MovementCategory?    // OLYMPIC_LIFT, POWERLIFTING, GYMNASTICS, etc.
+  equipmentTypes      EquipmentType[]      @default([]) // Required equipment
+  defaultReps         Int?                 // Default rep count for this movement
+  defaultWeightMale   Float?               // Default male Rx weight (kg)
+  defaultWeightFemale Float?               // Default female Rx weight (kg)
+  scaledWeightMale    Float?               // Scaled male weight (kg)
+  scaledWeightFemale  Float?               // Scaled female weight (kg)
+  foundationMovement  String?              // Alternative for Foundations level
+  standardAbbreviation String?             // e.g., "C&J" for Clean & Jerk, "MU" for Muscle-Up
+
   coach                User?                 @relation(fields: [coachId], references: [id], onDelete: SetNull)
   segments             WorkoutSegment[]
   progressionTracking  ProgressionTracking[]
@@ -607,6 +625,9 @@ model Exercise {
 
   // AI Studio relations
   videoAnalyses        VideoAnalysis[]
+
+  // Hybrid Studio relations
+  hybridMovements      HybridMovement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -617,6 +638,8 @@ model Exercise {
   @@index([isPublic])
   @@index([biomechanicalPillar])
   @@index([progressionLevel])
+  @@index([isHybridMovement])
+  @@index([movementCategory])
 }
 
 // ==================== WORKOUT LOGGING ====================
@@ -2188,4 +2211,216 @@ model MenstrualDailyLog {
   @@index([clientId, date])
   @@index([phase])
   @@index([cycleId])
+}
+
+// ==================== HYBRID STUDIO ====================
+
+/// Hybrid workout formats (CrossFit, HYROX, functional fitness)
+enum HybridFormat {
+  AMRAP          // As Many Rounds As Possible
+  FOR_TIME       // Complete work as fast as possible
+  EMOM           // Every Minute On the Minute
+  TABATA         // 20s work / 10s rest × 8
+  CHIPPER        // Long sequence of movements done once
+  LADDER         // Ascending/descending rep scheme
+  INTERVALS      // Work/rest intervals with movements
+  HYROX_SIM      // HYROX simulation (run + stations)
+  CUSTOM         // Custom format
+}
+
+/// Scaling levels for hybrid workouts
+enum ScalingLevel {
+  RX             // Prescribed/competition standard
+  SCALED         // Reduced load/modified movements
+  FOUNDATIONS    // Beginner-friendly version
+}
+
+/// Score types for hybrid workout results
+enum HybridScoreType {
+  TIME           // Completion time (For Time, Chipper)
+  ROUNDS_REPS    // Rounds + extra reps (AMRAP)
+  LOAD           // Weight lifted (max effort)
+  REPS           // Total reps (Tabata)
+  CALORIES       // Total calories
+  COMPLETION     // Pass/fail (EMOM)
+}
+
+/// Equipment types for movements
+enum EquipmentType {
+  BARBELL
+  KETTLEBELL
+  DUMBBELL
+  BODYWEIGHT
+  PULL_UP_BAR
+  RINGS
+  BOX
+  ROPE
+  GHD
+  MACHINE_ROW
+  MACHINE_BIKE
+  MACHINE_SKI
+  ASSAULT_BIKE
+  WALL_BALL
+  MEDICINE_BALL
+  SANDBAG
+  SLED
+  RUNNING
+  JUMP_ROPE
+  YOKE
+  SWIMMING
+  PARALLETTES
+}
+
+/// Movement categories for hybrid workouts
+enum MovementCategory {
+  OLYMPIC_LIFT      // Clean, Snatch, Jerk variations
+  POWERLIFTING      // Squat, Deadlift, Bench
+  GYMNASTICS        // Pull-ups, Muscle-ups, HSPU
+  MONOSTRUCTURAL    // Run, Row, Bike, Ski
+  KETTLEBELL_WORK   // Swings, Turkish Get-up
+  STRONGMAN         // Carries, Sled work
+  CORE_WORK         // Sit-ups, Toes-to-Bar, Planks
+  ACCESSORY         // Lunges, Step-ups
+  HYROX_STATION     // HYROX-specific movements
+}
+
+/// Hybrid workout template (AMRAP, For Time, EMOM, etc.)
+model HybridWorkout {
+  id              String       @id @default(uuid())
+  name            String
+  description     String?      @db.Text
+
+  // Workout format
+  format          HybridFormat
+
+  // Time configuration
+  timeCap         Int?         // seconds (0 = no cap)
+  workTime        Int?         // EMOM/Tabata work portion (seconds)
+  restTime        Int?         // EMOM/Tabata rest portion (seconds)
+  totalRounds     Int?         // for fixed round workouts
+  totalMinutes    Int?         // for EMOM total duration
+
+  // Rep scheme (for display)
+  repScheme       String?      // "21-15-9", "10-9-8-7-6-5-4-3-2-1", etc.
+
+  // Movements in this workout
+  movements       HybridMovement[]
+
+  // Scaling
+  scalingLevel    ScalingLevel @default(RX)
+  rxVersionId     String?
+  rxVersion       HybridWorkout? @relation("WorkoutScaling", fields: [rxVersionId], references: [id], onDelete: SetNull)
+  scaledVersions  HybridWorkout[] @relation("WorkoutScaling")
+
+  // Benchmark/Template info
+  isBenchmark     Boolean      @default(false)
+  benchmarkSource String?      // "CrossFit", "HYROX", "Hero WOD", "The Girls", "Open"
+  benchmarkYear   Int?         // e.g., 2024 for Open 24.1
+
+  // Ownership
+  coachId         String?
+  coach           User?        @relation("CoachHybridWorkouts", fields: [coachId], references: [id], onDelete: SetNull)
+  isPublic        Boolean      @default(false)
+
+  // Stats
+  results         HybridWorkoutResult[]
+
+  // Tags for filtering
+  tags            String[]     @default([])
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([coachId])
+  @@index([isBenchmark])
+  @@index([benchmarkSource])
+  @@index([format])
+  @@index([scalingLevel])
+}
+
+/// Movement within a hybrid workout
+model HybridMovement {
+  id              String       @id @default(uuid())
+
+  workout         HybridWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workoutId       String
+
+  exercise        Exercise     @relation(fields: [exerciseId], references: [id])
+  exerciseId      String
+
+  // Position in workout
+  order           Int
+  roundNumber     Int?         // for EMOM alternating minutes (1=odd, 2=even)
+  setNumber       Int?         // for rep schemes (1=first set of 21, 2=second set of 15, etc.)
+
+  // Movement prescription
+  reps            Int?
+  calories        Int?
+  distance        Float?       // meters
+  duration        Int?         // seconds (for holds, cardio)
+
+  // Load
+  weightMale      Float?       // kg
+  weightFemale    Float?       // kg
+  weightUnit      String?      @default("kg") // "kg" or "lb"
+  percentOfMax    Float?       // e.g., 0.7 for 70% of 1RM
+
+  // Special modifiers
+  isUnbroken      Boolean      @default(false) // Must complete without rest
+  alternateSides  Boolean      @default(false) // e.g., single-arm DB snatch
+
+  // Notes for this specific movement
+  notes           String?
+
+  @@index([workoutId])
+  @@index([exerciseId])
+}
+
+/// Athlete's workout result/score
+model HybridWorkoutResult {
+  id              String       @id @default(uuid())
+
+  workout         HybridWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workoutId       String
+
+  athlete         Client       @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId       String
+
+  // Score
+  scoreType       HybridScoreType
+  timeScore       Int?         // seconds (for time-based)
+  roundsCompleted Int?         // for AMRAP
+  repsCompleted   Int?         // additional reps in AMRAP, or total for Tabata
+  loadUsed        Float?       // kg (for max effort)
+  caloriesScore   Int?         // for calorie-based workouts
+
+  // Scaling used
+  scalingLevel    ScalingLevel
+  scalingNotes    String?      // e.g., "Used 30kg instead of 43kg"
+
+  // Context
+  completedAt     DateTime     @default(now())
+  workoutDate     DateTime?    @db.Date // When they did it (may differ from logged time)
+
+  // PR tracking
+  isPR            Boolean      @default(false)
+  previousBestId  String?      // ID of previous best result
+
+  // Notes and feedback
+  notes           String?      @db.Text
+  coachFeedback   String?      @db.Text
+  perceivedEffort Int?         // RPE 1-10
+  difficulty      Int?         // 1-10 how hard vs expected
+
+  // Optional detailed splits
+  movementSplits  Json?        // [{movementId, time, reps, notes}]
+
+  // Video link
+  videoUrl        String?
+
+  @@index([workoutId])
+  @@index([athleteId])
+  @@index([completedAt])
+  @@index([isPR])
+  @@unique([workoutId, athleteId, completedAt])
 }
