@@ -188,15 +188,15 @@ export function VideoUploader({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Video className="h-5 w-5" />
             Ladda upp video för analys
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1 pr-2">
           {/* Video Type Selection */}
           <div className="space-y-2">
             <Label>Typ av analys *</Label>
@@ -281,12 +281,15 @@ export function VideoUploader({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="athlete">Atlet (valfritt)</Label>
-              <Select value={athleteId} onValueChange={setAthleteId}>
+              <Select
+                value={athleteId || "none"}
+                onValueChange={(val) => setAthleteId(val === "none" ? "" : val)}
+              >
                 <SelectTrigger id="athlete">
                   <SelectValue placeholder="Välj atlet" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Ingen vald</SelectItem>
+                  <SelectItem value="none">Ingen vald</SelectItem>
                   {athletes.map((athlete) => (
                     <SelectItem key={athlete.id} value={athlete.id}>
                       {athlete.name}
@@ -299,12 +302,15 @@ export function VideoUploader({
             {videoType === 'STRENGTH' && (
               <div className="space-y-2">
                 <Label htmlFor="exercise">Övning (valfritt)</Label>
-                <Select value={exerciseId} onValueChange={setExerciseId}>
+                <Select
+                  value={exerciseId || "none"}
+                  onValueChange={(val) => setExerciseId(val === "none" ? "" : val)}
+                >
                   <SelectTrigger id="exercise">
                     <SelectValue placeholder="Välj övning" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Ingen vald</SelectItem>
+                    <SelectItem value="none">Ingen vald</SelectItem>
                     {exercises.map((exercise) => (
                       <SelectItem key={exercise.id} value={exercise.id}>
                         {exercise.nameSv || exercise.name}
@@ -330,7 +336,7 @@ export function VideoUploader({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0 pt-4 border-t">
           <Button variant="outline" onClick={handleClose} disabled={isUploading}>
             Avbryt
           </Button>

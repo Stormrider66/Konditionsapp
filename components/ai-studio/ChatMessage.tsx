@@ -6,6 +6,7 @@ import { Bot, User, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { ProgramPreview } from './ProgramPreview'
 
 interface Message {
@@ -68,6 +69,7 @@ export function ChatMessage({ message, athleteId, conversationId, onProgramSaved
             <p className="whitespace-pre-wrap m-0">{message.content}</p>
           ) : (
             <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 p: ({ children }) => (
                   <p className="mb-2 last:mb-0">{children}</p>

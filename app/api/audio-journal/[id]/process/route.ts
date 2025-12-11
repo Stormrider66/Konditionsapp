@@ -1,18 +1,24 @@
 /**
  * Audio Journal Processing API
  *
- * POST /api/audio-journal/[id]/process - Process audio with Gemini 3 Pro
+ * POST /api/audio-journal/[id]/process - Process audio with Gemini
  *
- * Uses generateObject() for structured extraction of wellness data from speech.
+ * Uses Google's official @google/genai SDK for audio transcription
+ * and structured wellness data extraction.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAthlete, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { generateObject } from 'ai';
-import { AudioExtractionSchema, type AudioExtractionResult } from '@/lib/validations/gemini-schemas';
-import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
+import {
+  createGoogleGenAIClient,
+  generateContent,
+  fetchAsBase64,
+  createInlineData,
+  createText,
+  getGeminiModelId,
+} from '@/lib/ai/google-genai-client';
+import type { AudioExtractionResult } from '@/lib/validations/gemini-schemas';
 
 export async function POST(
   request: NextRequest,
@@ -82,10 +88,9 @@ export async function POST(
     });
 
     try {
-      // Create Google AI provider
-      const google = createGoogleGenerativeAI({
-        apiKey: apiKeys.googleKeyEncrypted,
-      });
+      // Create Google GenAI client (official SDK)
+      const client = createGoogleGenAIClient(apiKeys.googleKeyEncrypted);
+      const modelId = getGeminiModelId('audio');
 
       // Build Swedish prompt for extraction
       const prompt = `Du är en erfaren idrottscoach som lyssnar på en atletnodagsincheckning.
@@ -108,33 +113,88 @@ UPPGIFT: Transkribera inspelningen och extrahera strukturerad data för träning
 - "dålig/trött" = 3-4
 - "mycket dålig/sliten" = 1-2
 
-## OUTPUT
-Ge:
-- Full transkription på svenska
-- Strukturerade värden (1-10 skalor)
-- AI-tolkning med readiness score (1-10)
-- Rekommenderad träningsåtgärd (PROCEED/REDUCE/EASY/REST)
-- Flaggade bekymmer som kräver coach-uppmärksamhet
+## OUTPUT FORMAT
+Svara i följande JSON-format:
 
-VIKTIGT: Om atleten INTE nämner något (t.ex. sömn), lämna det fältet tomt (null/optional).
+\`\`\`json
+{
+  "transcription": "<full transkription på svenska>",
+  "confidence": <0.0-1.0>,
+  "wellness": {
+    "sleepQuality": <1-10 eller null om ej nämnt>,
+    "sleepHours": <antal timmar eller null>,
+    "fatigue": <1-10 eller null>,
+    "soreness": <1-10 eller null>,
+    "stress": <1-10 eller null>,
+    "mood": <1-10 eller null>,
+    "motivation": <1-10 eller null>,
+    "sorenessLocation": "<kroppsdel eller null>"
+  },
+  "physicalSymptoms": [
+    {"symptom": "<symptom>", "severity": "MILD|MODERATE|SEVERE", "location": "<plats eller null>"}
+  ],
+  "trainingNotes": {
+    "yesterdayPerformance": "<kommentar om gårdagens träning eller null>",
+    "plannedAdjustments": "<planerade ändringar eller null>",
+    "concerns": ["<bekymmer>"]
+  },
+  "aiInterpretation": {
+    "readinessEstimate": <1-10>,
+    "recommendedAction": "PROCEED|REDUCE|EASY|REST",
+    "flaggedConcerns": ["<bekymmer som kräver coach-uppmärksamhet>"],
+    "keyInsights": ["<viktiga insikter från inspelningen>"]
+  }
+}
+\`\`\`
+
+VIKTIGT: Om atleten INTE nämner något (t.ex. sömn), lämna det fältet som null.
 Gissa inte värden som inte nämndes.`;
 
-      // Use generateObject for structured extraction
-      const result = await generateObject({
-        model: google(GEMINI_MODELS.AUDIO_TRANSCRIPTION),
-        schema: AudioExtractionSchema,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: prompt },
-              { type: 'file', data: audioJournal.audioUrl, mimeType: audioJournal.mimeType || 'audio/webm' },
-            ],
-          },
-        ],
-      });
+      // Fetch audio and convert to base64
+      const { base64, mimeType } = await fetchAsBase64(audioJournal.audioUrl);
 
-      const extracted = result.object as AudioExtractionResult;
+      // Call Gemini with audio
+      const result = await generateContent(client, modelId, [
+        createText(prompt),
+        createInlineData(base64, audioJournal.mimeType || mimeType),
+      ]);
+
+      // Parse the response
+      let extracted: AudioExtractionResult;
+      try {
+        const jsonMatch = result.text.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          extracted = JSON.parse(jsonMatch[1]);
+        } else {
+          extracted = JSON.parse(result.text);
+        }
+      } catch {
+        // Fallback if JSON parsing fails
+        extracted = {
+          transcription: result.text,
+          confidence: 0.5,
+          wellness: {
+            sleepQuality: undefined,
+            sleepHours: undefined,
+            fatigue: undefined,
+            soreness: undefined,
+            stress: undefined,
+            mood: undefined,
+            motivation: undefined,
+          },
+          physicalSymptoms: [],
+          trainingNotes: {
+            concerns: [],
+          },
+          aiInterpretation: {
+            readinessEstimate: 5,
+            recommendedAction: 'PROCEED' as const,
+            flaggedConcerns: [],
+            keyInsights: ['Kunde inte tolka inspelningen strukturerat'],
+          },
+        };
+      }
+
       const processingTime = Date.now() - startTime;
 
       // Update audio journal with results
@@ -143,7 +203,7 @@ Gissa inte värden som inte nämndes.`;
         data: {
           status: 'COMPLETED',
           transcription: extracted.transcription,
-          transcriptionModel: GEMINI_MODELS.AUDIO_TRANSCRIPTION,
+          transcriptionModel: modelId,
           transcriptionConfidence: extracted.confidence,
           extractedData: extracted.wellness,
           extractionConfidence: extracted.confidence,

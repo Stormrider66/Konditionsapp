@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { VideoUploader } from './VideoUploader'
 import { VideoAnalysisCard } from './VideoAnalysisCard'
 import {
@@ -62,6 +63,7 @@ interface Exercise {
 
 export function VideoAnalysisList() {
   const { toast } = useToast()
+  const pageContextValue = usePageContextOptional()
   const [analyses, setAnalyses] = useState<VideoAnalysis[]>([])
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -73,6 +75,55 @@ export function VideoAnalysisList() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [athleteFilter, setAthleteFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Update page context when analyses change so FloatingAIChat can access them
+  useEffect(() => {
+    if (pageContextValue?.setPageContext && analyses.length > 0) {
+      // Build a summary of video analyses for the AI
+      const completedAnalyses = analyses.filter(a => a.status === 'COMPLETED')
+      const summary = completedAnalyses.length > 0
+        ? `${completedAnalyses.length} videoanalyser klara av ${analyses.length} totalt. ` +
+          `Övningar: ${[...new Set(completedAnalyses.map(a => a.exercise?.nameSv || a.exercise?.name).filter(Boolean))].join(', ')}.`
+        : `${analyses.length} videoanalyser laddade, ingen klar ännu.`
+
+      pageContextValue.setPageContext({
+        type: 'video-analysis',
+        title: 'Videoanalyser',
+        summary,
+        data: {
+          totalAnalyses: analyses.length,
+          completedCount: completedAnalyses.length,
+          analyses: analyses.map(a => ({
+            id: a.id,
+            videoType: a.videoType,
+            status: a.status,
+            formScore: a.formScore,
+            athleteName: a.athlete?.name || 'Okänd',
+            exerciseName: a.exercise?.nameSv || a.exercise?.name || 'Okänd övning',
+            issuesDetected: a.issuesDetected?.map(i => ({
+              issue: i.issue,
+              severity: i.severity,
+              description: i.description,
+            })) || [],
+            recommendations: a.recommendations?.map(r => ({
+              priority: r.priority,
+              recommendation: r.recommendation,
+              explanation: r.explanation,
+            })) || [],
+            aiAnalysis: a.aiAnalysis,
+            createdAt: a.createdAt,
+          })),
+        },
+      })
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (pageContextValue?.clearPageContext) {
+        pageContextValue.clearPageContext()
+      }
+    }
+  }, [analyses, pageContextValue])
 
   const fetchAnalyses = useCallback(async () => {
     try {

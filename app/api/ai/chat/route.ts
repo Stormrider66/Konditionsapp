@@ -5,9 +5,10 @@
  */
 
 import { NextRequest } from 'next/server';
-import { streamText, type CoreMessage } from 'ai';
+import { streamText, type CoreMessage, type LanguageModelV1 } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { searchSimilarChunks } from '@/lib/ai/embeddings';
@@ -21,10 +22,12 @@ interface ChatRequest {
     content: string;
   }>;
   model: string;
-  provider: 'ANTHROPIC' | 'GOOGLE';
+  provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI';
   athleteId?: string;
   documentIds?: string[];
   webSearchEnabled?: boolean;
+  /** Page-specific context data (video analysis, test results, etc.) */
+  pageContext?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -40,6 +43,7 @@ export async function POST(request: NextRequest) {
       athleteId,
       documentIds = [],
       webSearchEnabled = false,
+      pageContext = '',
     } = body;
 
     // Get API keys
@@ -380,10 +384,12 @@ ${athleteContext}
 ${sportSpecificContext}
 ${documentContext}
 ${webSearchContext}
+${pageContext}
 `;
 
     // Create AI provider based on selection
-    let aiModel;
+    // Different SDKs return slightly different model types, using any for compatibility
+    let aiModel: unknown;
 
     if (provider === 'ANTHROPIC' && apiKeys.anthropicKeyEncrypted) {
       const anthropic = createAnthropic({
@@ -394,7 +400,13 @@ ${webSearchContext}
       const google = createGoogleGenerativeAI({
         apiKey: apiKeys.googleKeyEncrypted,
       });
-      aiModel = google(model || 'gemini-3-pro-preview');
+      aiModel = google(model || 'gemini-2.5-flash');
+    } else if (provider === 'OPENAI' && apiKeys.openaiKeyEncrypted) {
+      const openai = createOpenAI({
+        apiKey: apiKeys.openaiKeyEncrypted,
+      });
+      // OpenAI SDK returns LanguageModelV2 which is compatible with streamText
+      aiModel = openai(model || 'gpt-4.1');
     } else {
       return new Response(
         JSON.stringify({ error: 'No valid API key for selected provider' }),
@@ -412,7 +424,7 @@ ${webSearchContext}
 
     // Stream the response
     const result = streamText({
-      model: aiModel,
+      model: aiModel as LanguageModelV1,
       system: systemPrompt,
       messages: messages as CoreMessage[],
       maxTokens: 4096,

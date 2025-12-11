@@ -29,11 +29,13 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires unsafe-inline/eval
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net", // Next.js requires unsafe-inline/eval, MediaPipe from CDN
       "style-src 'self' 'unsafe-inline'", // Tailwind/inline styles
       "img-src 'self' data: https: blob:",
+      "media-src 'self' blob: https://*.supabase.co", // Allow video previews and Supabase media
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net", // MediaPipe WASM files
+      "worker-src 'self' blob:", // MediaPipe web workers
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

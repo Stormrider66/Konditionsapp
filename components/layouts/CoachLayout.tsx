@@ -5,7 +5,13 @@ import { useEffect, useState } from 'react'
 import { MobileNav } from '@/components/navigation/MobileNav'
 import { createClient } from '@/lib/supabase/client'
 import { FloatingAIChat } from '@/components/ai-studio/FloatingAIChat'
+import { PageContextProvider, usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import type { User } from '@supabase/supabase-js'
+
+function FloatingAIChatWithContext() {
+  const pageContextValue = usePageContextOptional()
+  return <FloatingAIChat pageContext={pageContextValue?.pageContext} />
+}
 
 export function CoachLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -22,11 +28,13 @@ export function CoachLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <MobileNav user={user} userRole="COACH" />
-      <div>{children}</div>
-      {/* Floating AI Chat - available on all coach pages */}
-      <FloatingAIChat />
-    </div>
+    <PageContextProvider>
+      <div className="min-h-screen bg-gray-50">
+        <MobileNav user={user} userRole="COACH" />
+        <div>{children}</div>
+        {/* Floating AI Chat - available on all coach pages with page context */}
+        <FloatingAIChatWithContext />
+      </div>
+    </PageContextProvider>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -37,6 +37,7 @@ import {
   Scan,
 } from 'lucide-react'
 import { PoseAnalyzer, PoseFrame } from './PoseAnalyzer'
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 
 interface Issue {
   issue: string
@@ -106,22 +107,184 @@ function getScoreLabel(score: number): string {
   return 'Behöver betydande förbättring'
 }
 
+// Helper to parse AI analysis that might be JSON or plain text
+function parseAIAnalysis(aiAnalysis: string): { isJson: boolean; data: unknown; text: string } {
+  let text = aiAnalysis.trim()
+
+  // Remove markdown code blocks if present
+  if (text.startsWith('```json')) {
+    text = text.slice(7)
+  } else if (text.startsWith('```')) {
+    text = text.slice(3)
+  }
+  if (text.endsWith('```')) {
+    text = text.slice(0, -3)
+  }
+  text = text.trim()
+
+  // Try to parse as JSON
+  try {
+    const data = JSON.parse(text)
+    return { isJson: true, data, text }
+  } catch {
+    return { isJson: false, data: null, text: aiAnalysis }
+  }
+}
+
+// Render parsed AI analysis in a formatted way
+function FormattedAIAnalysis({ aiAnalysis }: { aiAnalysis: string }) {
+  const { isJson, data } = parseAIAnalysis(aiAnalysis)
+
+  if (!isJson || !data || typeof data !== 'object') {
+    // Plain text - just display as-is
+    return <div className="whitespace-pre-wrap">{aiAnalysis}</div>
+  }
+
+  const analysis = data as {
+    formScore?: number
+    summary?: string
+    interpretation?: string
+    issues?: Array<{ issue: string; severity: string; timestamp?: string; description: string }>
+    recommendations?: Array<{ priority?: number; recommendation?: string; title?: string; description?: string; explanation?: string }>
+    overallAssessment?: string
+    patterns?: Array<{ pattern: string; significance: string }>
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Score */}
+      {analysis.formScore && (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">Poäng:</span>
+          <span className={`text-lg font-bold ${getScoreColor(analysis.formScore)}`}>
+            {analysis.formScore}/100
+          </span>
+        </div>
+      )}
+
+      {/* Summary/Interpretation */}
+      {(analysis.summary || analysis.interpretation) && (
+        <div>
+          <h4 className="font-medium mb-1">Sammanfattning</h4>
+          <p className="text-sm text-muted-foreground">{analysis.summary || analysis.interpretation}</p>
+        </div>
+      )}
+
+      {/* Issues */}
+      {analysis.issues && analysis.issues.length > 0 && (
+        <div>
+          <h4 className="font-medium mb-2">Identifierade problem</h4>
+          <div className="space-y-2">
+            {analysis.issues.map((issue, idx) => (
+              <div key={idx} className="p-3 rounded-lg bg-background border">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant={issue.severity === 'HIGH' ? 'destructive' : issue.severity === 'MEDIUM' ? 'default' : 'secondary'}>
+                    {issue.severity}
+                  </Badge>
+                  <span className="font-medium text-sm">{issue.issue}</span>
+                  {issue.timestamp && <span className="text-xs text-muted-foreground">@ {issue.timestamp}</span>}
+                </div>
+                <p className="text-sm text-muted-foreground">{issue.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recommendations */}
+      {analysis.recommendations && analysis.recommendations.length > 0 && (
+        <div>
+          <h4 className="font-medium mb-2">Rekommendationer</h4>
+          <div className="space-y-2">
+            {analysis.recommendations.map((rec, idx) => (
+              <div key={idx} className="p-3 rounded-lg bg-background border">
+                <div className="flex items-center gap-2 mb-1">
+                  {rec.priority && <Badge variant="outline">Prioritet {rec.priority}</Badge>}
+                  <span className="font-medium text-sm">{rec.recommendation || rec.title}</span>
+                </div>
+                {(rec.explanation || rec.description) && (
+                  <p className="text-sm text-muted-foreground">{rec.explanation || rec.description}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Patterns */}
+      {analysis.patterns && analysis.patterns.length > 0 && (
+        <div>
+          <h4 className="font-medium mb-2">Observerade mönster</h4>
+          <div className="space-y-2">
+            {analysis.patterns.map((pattern, idx) => (
+              <div key={idx} className="p-3 rounded-lg bg-background border">
+                <span className="font-medium text-sm">{pattern.pattern}</span>
+                <p className="text-sm text-muted-foreground mt-1">{pattern.significance}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Overall Assessment */}
+      {analysis.overallAssessment && (
+        <div className="p-3 rounded-lg bg-green-50 border border-green-200">
+          <h4 className="font-medium mb-1 text-green-800">Övergripande bedömning</h4>
+          <p className="text-sm text-green-700">{analysis.overallAssessment}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function VideoAnalysisCard({
   analysis,
   onDelete,
   onAnalysisComplete,
 }: VideoAnalysisCardProps) {
   const { toast } = useToast()
+  const pageContextValue = usePageContextOptional()
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showVideoDialog, setShowVideoDialog] = useState(false)
   const [showResultsDialog, setShowResultsDialog] = useState(false)
   const [showPoseDialog, setShowPoseDialog] = useState(false)
   const [isSavingPose, setIsSavingPose] = useState(false)
+  const [poseAnalysisData, setPoseAnalysisData] = useState<Record<string, unknown> | null>(null)
 
   const typeInfo = VIDEO_TYPE_INFO[analysis.videoType as keyof typeof VIDEO_TYPE_INFO] || VIDEO_TYPE_INFO.SPORT_SPECIFIC
   const statusInfo = STATUS_INFO[analysis.status as keyof typeof STATUS_INFO] || STATUS_INFO.PENDING
   const TypeIcon = typeInfo.icon
+
+  // Update page context when viewing results or pose analysis
+  useEffect(() => {
+    if ((showResultsDialog || showPoseDialog) && analysis.status === 'COMPLETED' && pageContextValue) {
+      const exerciseName = analysis.exercise?.nameSv || analysis.exercise?.name || 'Okänd övning'
+
+      pageContextValue.setPageContext({
+        type: 'video-analysis',
+        title: `Videoanalys: ${exerciseName}`,
+        summary: `Analys av ${typeInfo.label} för ${analysis.athlete?.name || 'okänd atlet'}`,
+        data: {
+          videoType: typeInfo.label,
+          exerciseName,
+          formScore: analysis.formScore,
+          issues: analysis.issuesDetected,
+          recommendations: analysis.recommendations,
+          aiAnalysis: analysis.aiAnalysis,
+          poseAnalysis: poseAnalysisData,
+        },
+      })
+    } else if (!showResultsDialog && !showPoseDialog && pageContextValue) {
+      // Clear context when dialogs are closed
+      pageContextValue.clearPageContext()
+    }
+  }, [showResultsDialog, showPoseDialog, analysis, typeInfo.label, pageContextValue, poseAnalysisData])
+
+  // Callback to receive pose analysis data from PoseAnalyzer
+  const handlePoseAnalysisUpdate = (data: Record<string, unknown>) => {
+    setPoseAnalysisData(data)
+  }
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true)
@@ -518,8 +681,8 @@ export function VideoAnalysisCard({
                   <ThumbsUp className="h-4 w-4 text-green-500" />
                   Fullständig analys
                 </h3>
-                <div className="p-4 bg-muted rounded-lg text-sm whitespace-pre-wrap">
-                  {analysis.aiAnalysis}
+                <div className="p-4 bg-muted rounded-lg text-sm">
+                  <FormattedAIAnalysis aiAnalysis={analysis.aiAnalysis} />
                 </div>
               </div>
             )}
@@ -542,7 +705,14 @@ export function VideoAnalysisCard({
             videoType={analysis.videoType as 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'}
             exerciseName={analysis.exercise?.name}
             exerciseNameSv={analysis.exercise?.nameSv || undefined}
+            aiAnalysis={{
+              formScore: analysis.formScore,
+              issuesDetected: analysis.issuesDetected,
+              recommendations: analysis.recommendations,
+              aiAnalysis: analysis.aiAnalysis,
+            }}
             onAnalysisComplete={handlePoseAnalysisComplete}
+            onAIPoseAnalysis={handlePoseAnalysisUpdate}
             isSaving={isSavingPose}
           />
         </DialogContent>

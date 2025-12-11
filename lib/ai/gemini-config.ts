@@ -12,20 +12,23 @@
  * Check https://ai.google.dev/gemini-api/docs/models for current model IDs.
  */
 export const GEMINI_MODELS = {
-  /** Best for complex video/audio analysis with structured output (Gemini 3 Pro) */
-  VIDEO_ANALYSIS: 'gemini-3-pro-preview',
+  /** Best for video/audio analysis - fast, stable (December 2025) */
+  VIDEO_ANALYSIS: 'gemini-2.5-flash',
 
-  /** Best for audio transcription and extraction (Gemini 3 Pro) */
-  AUDIO_TRANSCRIPTION: 'gemini-3-pro-preview',
+  /** Best for audio transcription and extraction */
+  AUDIO_TRANSCRIPTION: 'gemini-2.5-flash',
 
-  /** Best for chat conversations with long context (Gemini 2.5 Pro) */
-  CHAT: 'gemini-2.5-pro',
+  /** Best for chat conversations with long context */
+  CHAT: 'gemini-2.5-flash',
 
   /** Best for quick responses where latency matters */
   FLASH: 'gemini-2.5-flash',
 
-  /** Legacy model */
-  LEGACY: 'gemini-2.5-flash',
+  /** Advanced reasoning */
+  PRO: 'gemini-2.5-pro',
+
+  /** Newest capability, advanced reasoning */
+  PRO_PREVIEW: 'gemini-3-pro-preview',
 } as const;
 
 /**

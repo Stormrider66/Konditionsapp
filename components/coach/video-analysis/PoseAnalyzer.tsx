@@ -20,7 +20,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   Save,
+  Sparkles,
+  Brain,
 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 import { FormFeedbackPanel } from './FormFeedbackPanel'
 
 // BlazePose landmark indices
@@ -78,16 +81,36 @@ interface JointAngle {
   status: 'good' | 'warning' | 'critical'
 }
 
+// AI Analysis data from Gemini
+interface AIAnalysisData {
+  formScore: number | null
+  issuesDetected: Array<{
+    issue: string
+    severity: 'LOW' | 'MEDIUM' | 'HIGH'
+    timestamp?: string
+    description: string
+  }> | null
+  recommendations: Array<{
+    priority: number
+    recommendation: string
+    explanation: string
+  }> | null
+  aiAnalysis: string | null
+}
+
 interface PoseAnalyzerProps {
   videoUrl: string
   videoType: 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'
   exerciseName?: string
   exerciseNameSv?: string
+  aiAnalysis?: AIAnalysisData
   onAnalysisComplete?: (data: {
     frames: PoseFrame[]
     angles: JointAngle[]
     summary: string
   }) => void
+  /** Called when secondary AI pose analysis (Gemini) completes */
+  onAIPoseAnalysis?: (data: Record<string, unknown>) => void
   isSaving?: boolean
 }
 
@@ -112,9 +135,12 @@ export function PoseAnalyzer({
   videoType,
   exerciseName,
   exerciseNameSv,
+  aiAnalysis,
   onAnalysisComplete,
+  onAIPoseAnalysis,
   isSaving = false,
 }: PoseAnalyzerProps) {
+  const { toast } = useToast()
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -125,16 +151,72 @@ export function PoseAnalyzer({
   const [frames, setFrames] = useState<PoseFrame[]>([])
   const [currentAngles, setCurrentAngles] = useState<JointAngle[]>([])
   const [isAnalysisComplete, setIsAnalysisComplete] = useState(false)
+  const [isAnalyzingWithAI, setIsAnalyzingWithAI] = useState(false)
+  const [aiPoseAnalysis, setAiPoseAnalysis] = useState<{
+    interpretation: string
+    technicalFeedback: Array<{
+      area: string
+      observation: string
+      impact: string
+      suggestion: string
+    }>
+    patterns: Array<{
+      pattern: string
+      significance: string
+    }>
+    recommendations: Array<{
+      priority: number
+      title: string
+      description: string
+      exercises: string[]
+    }>
+    overallAssessment: string
+    score?: number
+  } | null>(null)
   const poseRef = useRef<any>(null)
   const animationFrameRef = useRef<number | null>(null)
 
-  // Load MediaPipe Pose
+  // Load MediaPipe Pose via CDN script (more reliable than npm package with Webpack 5)
   useEffect(() => {
     const loadPose = async () => {
       try {
-        // Dynamic import for client-side only
-        const { Pose } = await import('@mediapipe/pose')
+        // Check if already loaded globally
+        if ((window as any).Pose) {
+          initializePose((window as any).Pose)
+          return
+        }
 
+        // Load MediaPipe Pose from CDN
+        const script = document.createElement('script')
+        script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js'
+        script.crossOrigin = 'anonymous'
+
+        await new Promise<void>((resolve, reject) => {
+          script.onload = () => resolve()
+          script.onerror = () => reject(new Error('Failed to load MediaPipe Pose from CDN'))
+          document.head.appendChild(script)
+        })
+
+        // Wait for Pose to be available on window
+        let attempts = 0
+        while (!(window as any).Pose && attempts < 50) {
+          await new Promise(r => setTimeout(r, 100))
+          attempts++
+        }
+
+        if (!(window as any).Pose) {
+          throw new Error('MediaPipe Pose not available after loading script')
+        }
+
+        initializePose((window as any).Pose)
+      } catch (err) {
+        console.error('Error loading MediaPipe Pose:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load pose detection')
+      }
+    }
+
+    const initializePose = (Pose: any) => {
+      try {
         const pose = new Pose({
           locateFile: (file: string) => {
             return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
@@ -174,7 +256,7 @@ export function PoseAnalyzer({
         poseRef.current = pose
         setPoseLoaded(true)
       } catch (err) {
-        console.error('Failed to load MediaPipe Pose:', err)
+        console.error('Failed to initialize MediaPipe Pose:', err)
         setError('Kunde inte ladda poseanalys. Försök igen.')
       }
     }
@@ -381,6 +463,63 @@ export function PoseAnalyzer({
       const goodCount = currentAngles.filter(a => a.status === 'good').length
       const summary = `Analyserade ${frames.length} frames. ${goodCount}/${currentAngles.length} ledvinklar inom optimalt intervall.`
       onAnalysisComplete({ frames, angles: currentAngles, summary })
+    }
+  }
+
+  // Analyze pose data with Gemini AI
+  const analyzeWithGemini = async () => {
+    if (currentAngles.length === 0) {
+      toast({
+        title: 'Ingen data',
+        description: 'Kör poseanalysen först för att få data att analysera.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsAnalyzingWithAI(true)
+    setAiPoseAnalysis(null)
+
+    try {
+      const response = await fetch('/api/video-analysis/analyze-pose-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoType,
+          exerciseName,
+          exerciseNameSv,
+          angles: currentAngles,
+          frames,
+          frameCount: frames.length,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'AI-analysen misslyckades')
+      }
+
+      setAiPoseAnalysis(data.analysis)
+
+      // Notify parent about the AI analysis for page context
+      if (onAIPoseAnalysis) {
+        onAIPoseAnalysis(data.analysis)
+      }
+
+      toast({
+        title: 'AI-analys klar',
+        description: `Gemini har analyserat ${currentAngles.length} ledvinklar från ${frames.length} frames.`,
+      })
+    } catch (err) {
+      console.error('Gemini analysis error:', err)
+      toast({
+        title: 'Analysfel',
+        description: err instanceof Error ? err.message : 'Kunde inte analysera med AI',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsAnalyzingWithAI(false)
     }
   }
 
@@ -593,10 +732,33 @@ export function PoseAnalyzer({
             </div>
           )}
 
-          {/* Frame count */}
+          {/* Frame count and AI analysis button */}
           {frames.length > 0 && (
-            <div className="text-sm text-muted-foreground">
-              Analyserade frames: {frames.length}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="text-sm text-muted-foreground">
+                Analyserade frames: {frames.length}
+              </div>
+              {currentAngles.length > 0 && !isPlaying && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={analyzeWithGemini}
+                  disabled={isAnalyzingWithAI}
+                  className="gap-2"
+                >
+                  {isAnalyzingWithAI ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyserar med AI...
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="h-4 w-4" />
+                      Analysera med Gemini
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           )}
 
@@ -609,6 +771,107 @@ export function PoseAnalyzer({
         </CardContent>
       </Card>
 
+      {/* AI Pose Analysis Results */}
+      {aiPoseAnalysis && (
+        <Card className="border-purple-200 bg-purple-50/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Brain className="h-5 w-5 text-purple-600" />
+              Gemini AI-analys av posedata
+              <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">
+                Gemini
+              </Badge>
+            </CardTitle>
+            {aiPoseAnalysis.score !== undefined && (
+              <CardDescription className="flex items-center gap-2">
+                <span>AI-poäng:</span>
+                <span className={`font-bold ${aiPoseAnalysis.score >= 70 ? 'text-green-600' : aiPoseAnalysis.score >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {aiPoseAnalysis.score}%
+                </span>
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Interpretation */}
+            <div className="p-3 bg-white rounded-lg border">
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                Tolkning
+              </h4>
+              <p className="text-sm text-muted-foreground">{aiPoseAnalysis.interpretation}</p>
+            </div>
+
+            {/* Technical Feedback */}
+            {aiPoseAnalysis.technicalFeedback.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Teknisk feedback</h4>
+                {aiPoseAnalysis.technicalFeedback.map((fb, i) => (
+                  <div key={i} className="p-3 bg-white rounded-lg border">
+                    <div className="font-medium text-sm text-purple-700">{fb.area}</div>
+                    <p className="text-sm mt-1"><strong>Observation:</strong> {fb.observation}</p>
+                    <p className="text-sm text-orange-600"><strong>Påverkan:</strong> {fb.impact}</p>
+                    <p className="text-sm text-green-600"><strong>Förslag:</strong> {fb.suggestion}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Patterns */}
+            {aiPoseAnalysis.patterns.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Identifierade mönster</h4>
+                <div className="grid gap-2">
+                  {aiPoseAnalysis.patterns.map((p, i) => (
+                    <div key={i} className="p-2 bg-white rounded-lg border flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="text-sm font-medium">{p.pattern}</span>
+                        <p className="text-xs text-muted-foreground">{p.significance}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recommendations */}
+            {aiPoseAnalysis.recommendations.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Rekommendationer</h4>
+                {aiPoseAnalysis.recommendations
+                  .sort((a, b) => a.priority - b.priority)
+                  .map((rec, i) => (
+                    <div key={i} className="p-3 bg-white rounded-lg border">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          #{rec.priority}
+                        </Badge>
+                        <span className="font-medium text-sm">{rec.title}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{rec.description}</p>
+                      {rec.exercises.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {rec.exercises.map((ex, j) => (
+                            <Badge key={j} variant="secondary" className="text-xs">
+                              {ex}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* Overall Assessment */}
+            <div className="p-3 bg-purple-100 rounded-lg border border-purple-200">
+              <h4 className="text-sm font-medium mb-1 text-purple-800">Sammanfattning</h4>
+              <p className="text-sm text-purple-700">{aiPoseAnalysis.overallAssessment}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Exercise Form Feedback Panel */}
       {currentAngles.length > 0 && (
         <FormFeedbackPanel
@@ -616,6 +879,7 @@ export function PoseAnalyzer({
           videoType={videoType}
           exerciseName={exerciseName}
           exerciseNameSv={exerciseNameSv}
+          aiAnalysis={aiAnalysis}
         />
       )}
     </div>

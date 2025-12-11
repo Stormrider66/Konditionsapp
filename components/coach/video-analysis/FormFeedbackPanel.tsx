@@ -17,6 +17,8 @@ import {
   Target,
   Lightbulb,
   TrendingUp,
+  Sparkles,
+  Info,
 } from 'lucide-react'
 import {
   getExerciseFormCriteria,
@@ -31,11 +33,29 @@ interface JointAngle {
   status: 'good' | 'warning' | 'critical'
 }
 
+// AI Analysis data from Gemini
+interface AIAnalysisData {
+  formScore: number | null
+  issuesDetected: Array<{
+    issue: string
+    severity: 'LOW' | 'MEDIUM' | 'HIGH'
+    timestamp?: string
+    description: string
+  }> | null
+  recommendations: Array<{
+    priority: number
+    recommendation: string
+    explanation: string
+  }> | null
+  aiAnalysis: string | null
+}
+
 interface FormFeedbackPanelProps {
   angles: JointAngle[]
   videoType: 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'
   exerciseName?: string
   exerciseNameSv?: string
+  aiAnalysis?: AIAnalysisData
 }
 
 export function FormFeedbackPanel({
@@ -43,6 +63,7 @@ export function FormFeedbackPanel({
   videoType,
   exerciseName,
   exerciseNameSv,
+  aiAnalysis,
 }: FormFeedbackPanelProps) {
   const criteria = useMemo(
     () => getExerciseFormCriteria(exerciseName, exerciseNameSv, videoType),
@@ -59,9 +80,26 @@ export function FormFeedbackPanel({
     const warning = feedback.filter((f) => f.status === 'warning').length
     const critical = feedback.filter((f) => f.status === 'critical').length
     const total = feedback.length
-    const score = total > 0 ? Math.round((good / total) * 100) : 0
-    return { good, warning, critical, total, score }
-  }, [feedback])
+    // Use AI score if available, otherwise calculate from MediaPipe feedback
+    const mediaPipeScore = total > 0 ? Math.round((good / total) * 100) : 0
+    const score = aiAnalysis?.formScore ?? mediaPipeScore
+
+    // Count AI issues by severity
+    const aiIssues = aiAnalysis?.issuesDetected || []
+    const aiHigh = aiIssues.filter(i => i.severity === 'HIGH').length
+    const aiMedium = aiIssues.filter(i => i.severity === 'MEDIUM').length
+    const aiLow = aiIssues.filter(i => i.severity === 'LOW').length
+
+    return {
+      good,
+      warning,
+      critical,
+      total,
+      score,
+      hasAiAnalysis: !!aiAnalysis?.formScore,
+      aiIssues: { high: aiHigh, medium: aiMedium, low: aiLow }
+    }
+  }, [feedback, aiAnalysis])
 
   if (!criteria || angles.length === 0) {
     return null
@@ -181,8 +219,102 @@ export function FormFeedbackPanel({
           </Accordion>
         </div>
 
-        {/* General coaching cues */}
-        {criteria.generalCues.length > 0 && (
+        {/* AI Analysis - Issues Detected */}
+        {aiAnalysis?.issuesDetected && aiAnalysis.issuesDetected.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-purple-500" />
+              AI-identifierade problem
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                Gemini
+              </Badge>
+            </h4>
+            <div className="space-y-2">
+              {aiAnalysis.issuesDetected.map((issue, index) => (
+                <div
+                  key={index}
+                  className={`p-3 rounded-lg border ${
+                    issue.severity === 'HIGH'
+                      ? 'bg-red-50 border-red-200'
+                      : issue.severity === 'MEDIUM'
+                      ? 'bg-orange-50 border-orange-200'
+                      : 'bg-yellow-50 border-yellow-200'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {issue.severity === 'HIGH' ? (
+                      <XCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                    ) : issue.severity === 'MEDIUM' ? (
+                      <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <Info className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                    )}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-sm">{issue.issue}</span>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${
+                            issue.severity === 'HIGH'
+                              ? 'bg-red-100 text-red-800 border-red-200'
+                              : issue.severity === 'MEDIUM'
+                              ? 'bg-orange-100 text-orange-800 border-orange-200'
+                              : 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                          }`}
+                        >
+                          {issue.severity === 'HIGH' ? 'Hög' : issue.severity === 'MEDIUM' ? 'Medel' : 'Låg'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{issue.description}</p>
+                      {issue.timestamp && (
+                        <span className="text-xs text-muted-foreground">Tidpunkt: {issue.timestamp}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI Analysis - Recommendations */}
+        {aiAnalysis?.recommendations && aiAnalysis.recommendations.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium flex items-center gap-2">
+              <Target className="h-4 w-4 text-blue-500" />
+              AI-rekommendationer
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                Gemini
+              </Badge>
+            </h4>
+            <div className="space-y-2">
+              {aiAnalysis.recommendations
+                .sort((a, b) => a.priority - b.priority)
+                .map((rec, index) => (
+                  <div
+                    key={index}
+                    className="p-3 bg-blue-50 rounded-lg border border-blue-200"
+                  >
+                    <div className="flex items-start gap-2">
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-100 text-blue-800 border-blue-300 text-xs flex-shrink-0"
+                      >
+                        #{rec.priority}
+                      </Badge>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{rec.recommendation}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{rec.explanation}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* General coaching cues (MediaPipe) */}
+        {criteria.generalCues.length > 0 && !aiAnalysis?.recommendations?.length && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Lightbulb className="h-4 w-4 text-yellow-500" />

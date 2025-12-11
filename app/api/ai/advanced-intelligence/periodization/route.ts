@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
           programId,
           analysis: deepThinkAnalysis,
           analysisType: 'deep_think',
-          model: 'gemini-3-pro-preview',
+          model: 'gemini-2.0-flash',
           generatedAt: new Date().toISOString(),
         })
       } catch (deepThinkError) {

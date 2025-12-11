@@ -9,6 +9,10 @@ import { requireCoach } from '@/lib/auth-utils';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 
+// Next.js 15 App Router route segment config
+export const maxDuration = 60; // Allow up to 60 seconds for upload
+export const dynamic = 'force-dynamic';
+
 const ALLOWED_VIDEO_TYPES = [
   'video/mp4',
   'video/quicktime',
@@ -20,9 +24,12 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[Video Upload] Starting upload...');
     const user = await requireCoach();
+    console.log('[Video Upload] User authenticated:', user.id);
 
     const formData = await request.formData();
+    console.log('[Video Upload] FormData received');
     const file = formData.get('file') as File | null;
     const videoType = formData.get('videoType') as string;
     const athleteId = formData.get('athleteId') as string | null;
@@ -76,11 +83,27 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const extension = file.name.split('.').pop() || 'mp4';
     const filename = `${user.id}/${timestamp}-${Math.random().toString(36).substring(7)}.${extension}`;
+    console.log('[Video Upload] File validated, filename:', filename, 'size:', file.size);
 
     // Upload to Supabase Storage
     const supabase = await createClient();
-    const buffer = Buffer.from(await file.arrayBuffer());
 
+    // Convert file to ArrayBuffer then to Buffer
+    console.log('[Video Upload] Converting to buffer...');
+    let buffer: Buffer;
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+      console.log('[Video Upload] Buffer created, size:', buffer.length);
+    } catch (bufferError) {
+      console.error('[Video Upload] Buffer conversion failed:', bufferError);
+      return NextResponse.json(
+        { error: 'Failed to process video file', details: String(bufferError) },
+        { status: 500 }
+      );
+    }
+
+    console.log('[Video Upload] Uploading to Supabase storage bucket "video-analysis"...');
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('video-analysis')
       .upload(filename, buffer, {
@@ -90,12 +113,27 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Upload error:', uploadError);
+      console.error('[Video Upload] Supabase upload error:', uploadError);
+      // Check for common errors
+      if (uploadError.message?.includes('Bucket not found')) {
+        return NextResponse.json(
+          { error: 'Storage bucket "video-analysis" not found. Please create it in Supabase Dashboard → Storage.' },
+          { status: 500 }
+        );
+      }
+      if (uploadError.message?.includes('exceeded') || uploadError.message?.includes('size')) {
+        return NextResponse.json(
+          { error: 'File too large for Supabase storage. Check bucket size limits.' },
+          { status: 413 }
+        );
+      }
       return NextResponse.json(
         { error: 'Failed to upload video', details: uploadError.message },
         { status: 500 }
       );
     }
+
+    console.log('[Video Upload] Upload successful, path:', uploadData.path);
 
     // Get public URL
     const { data: urlData } = supabase.storage

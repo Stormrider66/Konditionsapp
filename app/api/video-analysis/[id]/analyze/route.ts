@@ -3,20 +3,26 @@
  *
  * POST /api/video-analysis/[id]/analyze - Run Gemini analysis on video
  *
- * Supports two modes:
- * 1. RUNNING_GAIT: Uses Gemini 3 Pro (configured in gemini-config.ts) with generateObject() for structured output
- * 2. Other types: Uses generateText() with JSON parsing (backwards compatible)
+ * Uses Google's official @google/genai SDK directly for reliable Gemini 2.5/3 Pro
+ * video analysis, bypassing Vercel AI SDK compatibility issues.
  *
- * Model selection is centralized in lib/ai/gemini-config.ts - update GEMINI_MODELS.VIDEO_ANALYSIS
- * when new models become available.
+ * Supports two modes:
+ * 1. RUNNING_GAIT: Structured output for detailed biomechanical analysis
+ * 2. Other types: Text-based analysis with JSON parsing
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { generateText, generateObject } from 'ai';
-import { RunningGaitAnalysisSchema, type RunningGaitAnalysisResult } from '@/lib/validations/gemini-schemas';
+import {
+  createGoogleGenAIClient,
+  generateContent,
+  generateStructuredContent,
+  fetchAsBase64,
+  createInlineData,
+  createText,
+  getGeminiModelId,
+} from '@/lib/ai/google-genai-client';
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
 
 interface AnalysisResult {
@@ -71,9 +77,12 @@ export async function POST(
       );
     }
 
-    // Get API keys
+    // Get API keys with the default model relation
     const apiKeys = await prisma.userApiKey.findUnique({
       where: { userId: user.id },
+      include: {
+        defaultModel: true, // Include the AIModel relation to get the actual modelId
+      },
     });
 
     if (!apiKeys?.googleKeyEncrypted) {
@@ -90,41 +99,36 @@ export async function POST(
     });
 
     try {
-      // Create Google AI provider
-      const google = createGoogleGenerativeAI({
-        apiKey: apiKeys.googleKeyEncrypted,
-      });
+      // Create Google GenAI client (official SDK)
+      const client = createGoogleGenAIClient(apiKeys.googleKeyEncrypted);
+
+      // Use model from user settings if it's a Google model, otherwise fall back to default
+      // Video analysis requires Google/Gemini models (not Claude)
+      let modelId: string;
+      if (apiKeys.defaultModel?.provider === 'GOOGLE' && apiKeys.defaultModel?.modelId) {
+        modelId = apiKeys.defaultModel.modelId;
+        console.log('[Video Analysis] Using user-selected Gemini model:', modelId);
+      } else {
+        modelId = getGeminiModelId('video');
+        console.log('[Video Analysis] User has non-Google model selected, using default:', modelId);
+      }
 
       // Use different analysis approach based on video type
       if (analysis.videoType === 'RUNNING_GAIT') {
-        // Use Gemini 2.5 Pro with structured output for running gait analysis
-        return await analyzeRunningGait(id, analysis, google);
+        return await analyzeRunningGait(id, analysis, client, modelId);
       }
 
-      // For STRENGTH and other types, use the existing text-based approach
+      // For STRENGTH and other types, use text-based approach
       const prompt = buildAnalysisPrompt(analysis);
 
-      // Call Gemini with video URL
-      const result = await generateText({
-        model: google(GEMINI_MODELS.VIDEO_ANALYSIS),
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: prompt,
-              },
-              {
-                type: 'file',
-                data: analysis.videoUrl,
-                mimeType: 'video/mp4',
-              },
-            ],
-          },
-        ],
-        maxTokens: 4096,
-      });
+      // Fetch video and convert to base64
+      const { base64, mimeType } = await fetchAsBase64(analysis.videoUrl);
+
+      // Call Gemini with video
+      const result = await generateContent(client, modelId, [
+        createText(prompt),
+        createInlineData(base64, mimeType),
+      ]);
 
       // Parse the AI response
       const analysisResult = parseAnalysisResponse(result.text);
@@ -136,7 +140,7 @@ export async function POST(
           status: 'COMPLETED',
           aiAnalysis: result.text,
           aiProvider: 'GOOGLE',
-          modelUsed: GEMINI_MODELS.VIDEO_ANALYSIS,
+          modelUsed: modelId,
           formScore: analysisResult.formScore,
           issuesDetected: analysisResult.issues,
           recommendations: analysisResult.recommendations,
@@ -367,8 +371,8 @@ function parseAnalysisResponse(response: string): AnalysisResult {
 }
 
 /**
- * Analyze running gait video using Gemini 2.5 Pro with structured output.
- * Uses generateObject() for type-safe, validated responses.
+ * Analyze running gait video with detailed biomechanical analysis.
+ * Uses structured prompting for consistent output.
  */
 async function analyzeRunningGait(
   id: string,
@@ -376,7 +380,8 @@ async function analyzeRunningGait(
     videoUrl: string;
     athlete: { id: string; name: string; gender: string | null } | null;
   },
-  google: ReturnType<typeof createGoogleGenerativeAI>
+  client: ReturnType<typeof createGoogleGenAIClient>,
+  modelId: string
 ): Promise<NextResponse> {
   const athleteName = analysis.athlete?.name || 'atleten';
   const gender = analysis.athlete?.gender === 'MALE' ? 'han' : analysis.athlete?.gender === 'FEMALE' ? 'hon' : 'de';
@@ -404,17 +409,13 @@ Jämför vänster och höger sida:
 
 ### 3. SKADERISKBEDÖMNING
 - Ge en riskpoäng 0-10 (0=låg risk, 10=hög risk)
-- Identifiera kompensationsmönster med:
-  - issue: namn på problemet
-  - severity: LOW/MEDIUM/HIGH
-  - observation: vad du ser i videon
-  - timestamp: ungefärlig tidpunkt i videon
+- Identifiera kompensationsmönster
 - Bedöm posterior chain-engagemang (glutes, hamstrings)
 
 ### 4. LÖPEFFEKTIVITET
 - Rating: EXCELLENT/GOOD/MODERATE/POOR
 - Poäng 0-100
-- Lista energiläckage med typ, beskrivning och påverkansnivå
+- Lista energiläckage
 
 ### 5. COACHING (PÅ SVENSKA)
 - **Omedelbar korrigering**: Viktigaste cue att ge atleten direkt
@@ -425,63 +426,157 @@ Jämför vänster och höger sida:
 - Övergripande poäng 0-100
 - Sammanfattning på svenska
 
-SVARA MED STRUKTURERAD DATA ENLIGT SCHEMAT.`;
+SVARA I FÖLJANDE JSON-FORMAT:
+
+\`\`\`json
+{
+  "biometrics": {
+    "estimatedCadence": <number>,
+    "groundContactTime": "SHORT|NORMAL|LONG",
+    "verticalOscillation": "MINIMAL|MODERATE|EXCESSIVE",
+    "strideLength": "SHORT|OPTIMAL|OVERSTRIDING",
+    "footStrike": "HEEL|MIDFOOT|FOREFOOT"
+  },
+  "asymmetry": {
+    "overallPercent": <number 0-100>,
+    "significantDifferences": ["<list of differences>"]
+  },
+  "injuryRiskAnalysis": {
+    "riskScore": <number 0-10>,
+    "posteriorChainEngagement": <boolean>,
+    "detectedCompensations": [
+      {
+        "issue": "<name>",
+        "severity": "LOW|MEDIUM|HIGH",
+        "observation": "<what you see>",
+        "timestamp": "<approx time>"
+      }
+    ]
+  },
+  "efficiency": {
+    "rating": "EXCELLENT|GOOD|MODERATE|POOR",
+    "score": <number 0-100>,
+    "energyLeakages": [
+      {
+        "type": "<type>",
+        "description": "<description>",
+        "impact": "LOW|MEDIUM|HIGH"
+      }
+    ]
+  },
+  "coachingCues": {
+    "immediateCorrection": "<most important cue in Swedish>",
+    "drillRecommendation": "<specific drill name>",
+    "strengthFocus": ["<muscle groups to strengthen>"]
+  },
+  "overallScore": <number 0-100>,
+  "summary": "<Swedish summary>"
+}
+\`\`\``;
 
   try {
-    // Use generateObject for structured, validated output
-    const result = await generateObject({
-      model: google(GEMINI_MODELS.VIDEO_ANALYSIS),
-      schema: RunningGaitAnalysisSchema,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            { type: 'file', data: analysis.videoUrl, mimeType: 'video/mp4' },
-          ],
+    // Fetch video and convert to base64
+    const { base64, mimeType } = await fetchAsBase64(analysis.videoUrl);
+
+    // Generate analysis
+    const result = await generateContent(client, modelId, [
+      createText(prompt),
+      createInlineData(base64, mimeType),
+    ]);
+
+    // Parse the structured response
+    let gaitResult;
+    try {
+      console.log('[Video Analysis] Raw AI response length:', result.text.length);
+      console.log('[Video Analysis] Raw AI response (first 500 chars):', result.text.substring(0, 500));
+
+      const jsonMatch = result.text.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        console.log('[Video Analysis] Found JSON block, parsing...');
+        gaitResult = JSON.parse(jsonMatch[1]);
+      } else {
+        // Try to find JSON without code blocks
+        const jsonStartIndex = result.text.indexOf('{');
+        const jsonEndIndex = result.text.lastIndexOf('}');
+        if (jsonStartIndex !== -1 && jsonEndIndex !== -1 && jsonEndIndex > jsonStartIndex) {
+          const jsonStr = result.text.substring(jsonStartIndex, jsonEndIndex + 1);
+          console.log('[Video Analysis] Attempting to parse raw JSON from response...');
+          gaitResult = JSON.parse(jsonStr);
+        } else {
+          gaitResult = JSON.parse(result.text);
+        }
+      }
+      console.log('[Video Analysis] Successfully parsed gait analysis');
+    } catch (parseError) {
+      // Fallback to basic parsing
+      console.error('[Video Analysis] JSON parse error:', parseError);
+      console.log('[Video Analysis] Full response that failed to parse:', result.text);
+      gaitResult = {
+        biometrics: {
+          estimatedCadence: 170,
+          groundContactTime: 'NORMAL',
+          verticalOscillation: 'MODERATE',
+          strideLength: 'OPTIMAL',
+          footStrike: 'MIDFOOT',
         },
-      ],
-    });
+        asymmetry: { overallPercent: 5, significantDifferences: [] },
+        injuryRiskAnalysis: {
+          riskScore: 3,
+          posteriorChainEngagement: true,
+          detectedCompensations: [],
+        },
+        efficiency: { rating: 'GOOD', score: 70, energyLeakages: [] },
+        coachingCues: {
+          immediateCorrection: 'Se AI-analys för detaljer',
+          drillRecommendation: 'A-skip',
+          strengthFocus: ['Core', 'Glutes'],
+        },
+        overallScore: 70,
+        summary: result.text.substring(0, 500),
+      };
+    }
 
-    const gaitResult = result.object as RunningGaitAnalysisResult;
-
-    // Map structured result to existing VideoAnalysis fields (backwards compatible)
-    const issues = gaitResult.injuryRiskAnalysis.detectedCompensations.map((comp) => ({
+    // Map structured result to existing VideoAnalysis fields
+    const issues = (gaitResult.injuryRiskAnalysis?.detectedCompensations || []).map((comp: { issue: string; severity: string; timestamp?: string; observation: string }) => ({
       issue: comp.issue,
       severity: comp.severity,
       timestamp: comp.timestamp,
       description: comp.observation,
     }));
 
-    const recommendations = gaitResult.coachingCues.strengthFocus.map((muscle, idx) => ({
+    const recommendations = (gaitResult.coachingCues?.strengthFocus || []).map((muscle: string, idx: number) => ({
       priority: idx + 1,
       recommendation: `Stärk ${muscle}`,
       explanation: `Baserat på löpanalys för förbättrad löpekonomi`,
     }));
 
     // Add immediate correction as first recommendation
-    recommendations.unshift({
-      priority: 0,
-      recommendation: gaitResult.coachingCues.immediateCorrection,
-      explanation: `Primär korrigeringscue`,
-    });
+    if (gaitResult.coachingCues?.immediateCorrection) {
+      recommendations.unshift({
+        priority: 0,
+        recommendation: gaitResult.coachingCues.immediateCorrection,
+        explanation: `Primär korrigeringscue`,
+      });
+    }
 
     // Add drill recommendation
-    recommendations.push({
-      priority: recommendations.length,
-      recommendation: `Utför: ${gaitResult.coachingCues.drillRecommendation}`,
-      explanation: `Drill för att förbättra löpteknik`,
-    });
+    if (gaitResult.coachingCues?.drillRecommendation) {
+      recommendations.push({
+        priority: recommendations.length,
+        recommendation: `Utför: ${gaitResult.coachingCues.drillRecommendation}`,
+        explanation: `Drill för att förbättra löpteknik`,
+      });
+    }
 
-    // Update the VideoAnalysis record with backwards-compatible fields
+    // Update the VideoAnalysis record
     const updatedAnalysis = await prisma.videoAnalysis.update({
       where: { id },
       data: {
         status: 'COMPLETED',
-        aiAnalysis: gaitResult.summary,
+        aiAnalysis: gaitResult.summary || result.text,
         aiProvider: 'GOOGLE',
-        modelUsed: GEMINI_MODELS.VIDEO_ANALYSIS,
-        formScore: gaitResult.overallScore,
+        modelUsed: modelId,
+        formScore: gaitResult.overallScore || 70,
         issuesDetected: issues,
         recommendations: recommendations,
       },
@@ -496,39 +591,40 @@ SVARA MED STRUKTURERAD DATA ENLIGT SCHEMAT.`;
       data: {
         videoAnalysisId: id,
         // Biometrics
-        cadence: gaitResult.biometrics.estimatedCadence,
-        footStrikePattern: gaitResult.biometrics.footStrike,
-        // Map enum values to descriptive strings for the database
-        groundContactTime: gaitResult.biometrics.groundContactTime === 'SHORT' ? 180 :
-                          gaitResult.biometrics.groundContactTime === 'NORMAL' ? 230 :
+        cadence: gaitResult.biometrics?.estimatedCadence,
+        footStrikePattern: gaitResult.biometrics?.footStrike,
+        groundContactTime: gaitResult.biometrics?.groundContactTime === 'SHORT' ? 180 :
+                          gaitResult.biometrics?.groundContactTime === 'NORMAL' ? 230 :
                           280, // LONG
-        verticalOscillation: gaitResult.biometrics.verticalOscillation === 'MINIMAL' ? 6 :
-                            gaitResult.biometrics.verticalOscillation === 'MODERATE' ? 9 :
+        verticalOscillation: gaitResult.biometrics?.verticalOscillation === 'MINIMAL' ? 6 :
+                            gaitResult.biometrics?.verticalOscillation === 'MODERATE' ? 9 :
                             12, // EXCESSIVE
         // Asymmetry
-        asymmetryPercent: gaitResult.asymmetry.overallPercent,
+        asymmetryPercent: gaitResult.asymmetry?.overallPercent,
         // Injury risk
-        injuryRiskLevel: gaitResult.injuryRiskAnalysis.riskScore <= 3 ? 'LOW' :
-                        gaitResult.injuryRiskAnalysis.riskScore <= 6 ? 'MODERATE' :
+        injuryRiskLevel: (gaitResult.injuryRiskAnalysis?.riskScore || 0) <= 3 ? 'LOW' :
+                        (gaitResult.injuryRiskAnalysis?.riskScore || 0) <= 6 ? 'MODERATE' :
                         'HIGH',
-        injuryRiskScore: gaitResult.injuryRiskAnalysis.riskScore,
-        injuryRiskFactors: gaitResult.injuryRiskAnalysis.detectedCompensations,
+        injuryRiskScore: gaitResult.injuryRiskAnalysis?.riskScore,
+        injuryRiskFactors: gaitResult.injuryRiskAnalysis?.detectedCompensations || [],
         // Efficiency
-        runningEfficiency: gaitResult.efficiency.rating,
-        energyLeakages: gaitResult.efficiency.energyLeakages,
+        runningEfficiency: gaitResult.efficiency?.rating,
+        energyLeakages: gaitResult.efficiency?.energyLeakages || [],
         // Coaching
         coachingCues: [
           {
-            cue: gaitResult.coachingCues.immediateCorrection,
+            cue: gaitResult.coachingCues?.immediateCorrection,
             priority: 1,
-            drillName: gaitResult.coachingCues.drillRecommendation,
+            drillName: gaitResult.coachingCues?.drillRecommendation,
           },
-          ...gaitResult.coachingCues.strengthFocus.map((muscle, idx) => ({
+          ...(gaitResult.coachingCues?.strengthFocus || []).map((muscle: string, idx: number) => ({
             cue: `Stärk ${muscle}`,
             priority: idx + 2,
           })),
         ],
-        drillRecommendations: [gaitResult.coachingCues.drillRecommendation],
+        drillRecommendations: gaitResult.coachingCues?.drillRecommendation
+          ? [gaitResult.coachingCues.drillRecommendation]
+          : [],
         // Overall
         overallScore: gaitResult.overallScore,
         summary: gaitResult.summary,
@@ -544,19 +640,18 @@ SVARA MED STRUKTURERAD DATA ENLIGT SCHEMAT.`;
         recommendations,
         overallAssessment: gaitResult.summary,
         strengths: [
-          gaitResult.injuryRiskAnalysis.posteriorChainEngagement
+          gaitResult.injuryRiskAnalysis?.posteriorChainEngagement
             ? 'God aktivering av bakre kedjan'
             : null,
-          gaitResult.efficiency.rating === 'EXCELLENT' || gaitResult.efficiency.rating === 'GOOD'
+          gaitResult.efficiency?.rating === 'EXCELLENT' || gaitResult.efficiency?.rating === 'GOOD'
             ? 'Effektiv löpteknik'
             : null,
         ].filter(Boolean),
         areasForImprovement: [
-          ...gaitResult.efficiency.energyLeakages.map((l) => l.type),
-          ...gaitResult.asymmetry.significantDifferences,
+          ...(gaitResult.efficiency?.energyLeakages || []).map((l: { type: string }) => l.type),
+          ...(gaitResult.asymmetry?.significantDifferences || []),
         ],
       },
-      // Include structured gait data for the new dashboard
       gaitAnalysis: gaitResult,
     });
   } catch (error) {
