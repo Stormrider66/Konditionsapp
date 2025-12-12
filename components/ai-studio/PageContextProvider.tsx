@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
 import { type PageContext } from './FloatingAIChat'
 
 interface PageContextValue {
@@ -30,15 +30,16 @@ export function PageContextProvider({ children }: { children: ReactNode }) {
     setPageContextState(undefined)
   }, [])
 
+  // Memoize the context value to prevent unnecessary re-renders
+  const value = useMemo(() => ({
+    pageContext,
+    setPageContext,
+    updatePageContext,
+    clearPageContext,
+  }), [pageContext, setPageContext, updatePageContext, clearPageContext])
+
   return (
-    <PageContextContext.Provider
-      value={{
-        pageContext,
-        setPageContext,
-        updatePageContext,
-        clearPageContext,
-      }}
-    >
+    <PageContextContext.Provider value={value}>
       {children}
     </PageContextContext.Provider>
   )

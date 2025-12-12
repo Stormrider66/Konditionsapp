@@ -19,6 +19,7 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { GEMINI_MODELS, getGeminiThinkingOptions } from '@/lib/ai/gemini-config';
 import { LactateMeterOCRSchema } from '@/lib/validations/gemini-schemas';
+import { decryptSecret } from '@/lib/crypto/secretbox';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,7 +52,16 @@ export async function POST(request: NextRequest) {
       where: { userId: user.id },
     });
 
-    if (!apiKeys?.googleKeyEncrypted) {
+    let googleKey: string | undefined
+    if (apiKeys?.googleKeyEncrypted) {
+      try {
+        googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
+      } catch {
+        googleKey = undefined
+      }
+    }
+
+    if (!googleKey) {
       return NextResponse.json(
         { error: 'Google API-nyckel saknas. Konfigurera i Inställningar.' },
         { status: 400 }
@@ -64,14 +74,14 @@ export async function POST(request: NextRequest) {
 
     // Initialize Gemini
     const google = createGoogleGenerativeAI({
-      apiKey: apiKeys.googleKeyEncrypted,
+      apiKey: googleKey,
     });
 
     // Build context for better accuracy
     let contextInfo = '';
     if (clientId) {
-      const client = await prisma.client.findUnique({
-        where: { id: clientId },
+      const client = await prisma.client.findFirst({
+        where: { id: clientId, userId: user.id },
         select: { name: true },
       });
       if (client) {

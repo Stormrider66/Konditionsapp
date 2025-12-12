@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { decryptSecret } from '@/lib/crypto/secretbox'
 import {
   buildNutritionContext,
   generateNutritionPlan,
@@ -47,12 +48,29 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Prevent IDOR: ensure the authenticated user owns the clientId
+    const client = await prisma.client.findFirst({
+      where: { id: clientId, userId: user.id },
+      select: { id: true },
+    })
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+
     // Get API key for the user
     const apiKey = await prisma.userApiKey.findUnique({
       where: { userId: user.id },
     })
 
-    const anthropicKey = apiKey?.anthropicKeyEncrypted || process.env.ANTHROPIC_API_KEY
+    let anthropicKey: string | undefined
+    if (apiKey?.anthropicKeyEncrypted) {
+      try {
+        anthropicKey = decryptSecret(apiKey.anthropicKeyEncrypted)
+      } catch {
+        anthropicKey = undefined
+      }
+    }
+    anthropicKey = anthropicKey || process.env.ANTHROPIC_API_KEY || undefined
 
     if (!anthropicKey) {
       return NextResponse.json(

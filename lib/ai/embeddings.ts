@@ -7,6 +7,7 @@
 
 import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
+import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
 
 // Default embedding model
 const EMBEDDING_MODEL = 'text-embedding-ada-002';
@@ -167,18 +168,8 @@ export function chunkText(
  * Get user's OpenAI API key from database
  */
 export async function getUserOpenAIKey(userId: string): Promise<string | null> {
-  const apiKeys = await prisma.userApiKey.findUnique({
-    where: { userId },
-    select: { openaiKeyEncrypted: true, openaiKeyValid: true },
-  });
-
-  if (!apiKeys?.openaiKeyEncrypted || !apiKeys.openaiKeyValid) {
-    return null;
-  }
-
-  // In production, decrypt the key
-  // For now, we're storing it directly (should be encrypted)
-  return apiKeys.openaiKeyEncrypted;
+  const keys = await getDecryptedUserApiKeys(userId)
+  return keys.openaiKey
 }
 
 /**

@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAthlete, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@supabase/supabase-js';
+import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -101,17 +102,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('audio-journals')
-      .getPublicUrl(fileName);
-
     // Create database record
     const audioJournal = await prisma.audioJournal.create({
       data: {
         clientId,
         date: today,
-        audioUrl: urlData.publicUrl,
+        // Store storage path (works for private buckets)
+        audioUrl: uploadData.path,
         duration,
         mimeType: audioFile.type,
         fileSize: audioFile.size,
@@ -119,10 +116,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    const signedUrl = await createSignedUrl('audio-journals', uploadData.path, 60 * 60);
+
     return NextResponse.json({
       success: true,
       id: audioJournal.id,
-      audioUrl: urlData.publicUrl,
+      audioUrl: signedUrl,
     });
   } catch (error) {
     console.error('Audio journal upload error:', error);
@@ -172,7 +171,21 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ journals });
+    // Return signed URLs for playback/download (ready for private buckets)
+    const signedJournals = await Promise.all(
+      journals.map(async (j) => {
+        const path = normalizeStoragePath('audio-journals', j.audioUrl)
+        if (!path) return j
+        try {
+          const signedUrl = await createSignedUrl('audio-journals', path, 60 * 60)
+          return { ...j, audioUrl: signedUrl }
+        } catch {
+          return j
+        }
+      })
+    )
+
+    return NextResponse.json({ journals: signedJournals });
   } catch (error) {
     console.error('Audio journal list error:', error);
 

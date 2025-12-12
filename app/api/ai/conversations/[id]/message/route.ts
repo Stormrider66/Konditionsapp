@@ -9,6 +9,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { searchSimilarChunks, getUserOpenAIKey } from '@/lib/ai/embeddings'
 import Anthropic from '@anthropic-ai/sdk'
+import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
 
 interface SendMessageRequest {
   content: string
@@ -67,11 +68,12 @@ export async function POST(
     }
 
     // Get API keys
-    const apiKeys = await prisma.userApiKey.findUnique({
+    const apiKeysRow = await prisma.userApiKey.findUnique({
       where: { userId: user.id },
     })
+    const decryptedKeys = await getDecryptedUserApiKeys(user.id)
 
-    if (!apiKeys) {
+    if (!apiKeysRow) {
       return NextResponse.json(
         { error: 'API keys not configured' },
         { status: 400 }
@@ -89,12 +91,12 @@ export async function POST(
 
     // Build context from documents if available
     let documentContext = ''
-    if (contextDocuments.length > 0 && apiKeys.openaiKeyEncrypted) {
+    if (contextDocuments.length > 0 && decryptedKeys.openaiKey) {
       try {
         const chunks = await searchSimilarChunks(
           content,
           user.id,
-          apiKeys.openaiKeyEncrypted,
+          decryptedKeys.openaiKey,
           {
             matchThreshold: 0.75,
             matchCount: 5,
@@ -169,10 +171,10 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
     const startTime = Date.now()
 
     // Call AI based on provider
-    if (conversation.provider === 'ANTHROPIC' && apiKeys.anthropicKeyEncrypted) {
+    if (conversation.provider === 'ANTHROPIC' && decryptedKeys.anthropicKey) {
       try {
         const anthropic = new Anthropic({
-          apiKey: apiKeys.anthropicKeyEncrypted,
+          apiKey: decryptedKeys.anthropicKey,
         })
 
         const response = await anthropic.messages.create({
@@ -192,11 +194,11 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
           `AI API error: ${error instanceof Error ? error.message : 'Unknown error'}`
         )
       }
-    } else if (conversation.provider === 'GOOGLE' && apiKeys.googleKeyEncrypted) {
+    } else if (conversation.provider === 'GOOGLE' && decryptedKeys.googleKey) {
       // Google/Gemini API call
       try {
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1/models/${conversation.modelUsed || 'gemini-pro'}:generateContent?key=${apiKeys.googleKeyEncrypted}`,
+          `https://generativelanguage.googleapis.com/v1/models/${conversation.modelUsed || 'gemini-pro'}:generateContent?key=${decryptedKeys.googleKey}`,
           {
             method: 'POST',
             headers: {

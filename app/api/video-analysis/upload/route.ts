@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { createSignedUrl } from '@/lib/storage/supabase-storage';
 
 // Next.js 15 App Router route segment config
 export const maxDuration = 60; // Allow up to 60 seconds for upload
@@ -135,18 +136,14 @@ export async function POST(request: NextRequest) {
 
     console.log('[Video Upload] Upload successful, path:', uploadData.path);
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('video-analysis')
-      .getPublicUrl(filename);
-
     // Create video analysis record
     const analysis = await prisma.videoAnalysis.create({
       data: {
         coachId: user.id,
         athleteId: athleteId || null,
         exerciseId: exerciseId || null,
-        videoUrl: urlData.publicUrl,
+        // Store storage path (works for private buckets)
+        videoUrl: uploadData.path,
         videoType,
         status: 'PENDING',
       },
@@ -156,9 +153,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    const signedUrl = await createSignedUrl('video-analysis', uploadData.path, 60 * 60);
+
     return NextResponse.json({
       success: true,
-      analysis,
+      analysis: {
+        ...analysis,
+        videoUrl: signedUrl,
+      },
       uploadPath: uploadData.path,
     });
   } catch (error) {

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { escapeHtml, sanitizeForEmail } from '@/lib/sanitize'
 import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -31,6 +32,18 @@ export async function POST(request: NextRequest) {
           error: 'Unauthorized',
         },
         { status: 401 }
+      )
+    }
+
+    // Require COACH or ADMIN (athletes should not be able to send outbound emails)
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (!dbUser || (dbUser.role !== 'COACH' && dbUser.role !== 'ADMIN')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Forbidden',
+        },
+        { status: 403 }
       )
     }
 

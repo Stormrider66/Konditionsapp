@@ -24,6 +24,8 @@ import {
   getGeminiModelId,
 } from '@/lib/ai/google-genai-client';
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
+import { decryptSecret } from '@/lib/crypto/secretbox';
+import { downloadAsBase64, isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
 
 interface AnalysisResult {
   formScore: number;
@@ -85,7 +87,16 @@ export async function POST(
       },
     });
 
-    if (!apiKeys?.googleKeyEncrypted) {
+    let googleKey: string | undefined
+    if (apiKeys?.googleKeyEncrypted) {
+      try {
+        googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
+      } catch {
+        googleKey = undefined
+      }
+    }
+
+    if (!googleKey) {
       return NextResponse.json(
         { error: 'Google API key not configured. Please add your API key in settings.' },
         { status: 400 }
@@ -100,12 +111,12 @@ export async function POST(
 
     try {
       // Create Google GenAI client (official SDK)
-      const client = createGoogleGenAIClient(apiKeys.googleKeyEncrypted);
+      const client = createGoogleGenAIClient(googleKey);
 
       // Use model from user settings if it's a Google model, otherwise fall back to default
       // Video analysis requires Google/Gemini models (not Claude)
       let modelId: string;
-      if (apiKeys.defaultModel?.provider === 'GOOGLE' && apiKeys.defaultModel?.modelId) {
+      if (apiKeys?.defaultModel?.provider === 'GOOGLE' && apiKeys?.defaultModel?.modelId) {
         modelId = apiKeys.defaultModel.modelId;
         console.log('[Video Analysis] Using user-selected Gemini model:', modelId);
       } else {
@@ -122,7 +133,12 @@ export async function POST(
       const prompt = buildAnalysisPrompt(analysis);
 
       // Fetch video and convert to base64
-      const { base64, mimeType } = await fetchAsBase64(analysis.videoUrl);
+      const fetched = isHttpUrl(analysis.videoUrl)
+        ? await fetchAsBase64(analysis.videoUrl)
+        : await downloadAsBase64('video-analysis', normalizeStoragePath('video-analysis', analysis.videoUrl) || analysis.videoUrl)
+
+      const base64 = fetched.base64
+      const mimeType = fetched.mimeType || 'video/mp4'
 
       // Call Gemini with video
       const result = await generateContent(client, modelId, [
@@ -475,8 +491,13 @@ SVARA I FÖLJANDE JSON-FORMAT:
 \`\`\``;
 
   try {
-    // Fetch video and convert to base64
-    const { base64, mimeType } = await fetchAsBase64(analysis.videoUrl);
+    // Fetch video and convert to base64 (supports both legacy public URLs and storage paths)
+    const fetched = isHttpUrl(analysis.videoUrl)
+      ? await fetchAsBase64(analysis.videoUrl)
+      : await downloadAsBase64('video-analysis', normalizeStoragePath('video-analysis', analysis.videoUrl) || analysis.videoUrl)
+
+    const base64 = fetched.base64
+    const mimeType = fetched.mimeType || 'video/mp4'
 
     // Generate analysis
     const result = await generateContent(client, modelId, [

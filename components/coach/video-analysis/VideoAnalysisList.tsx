@@ -77,8 +77,12 @@ export function VideoAnalysisList() {
   const [searchQuery, setSearchQuery] = useState('')
 
   // Update page context when analyses change so FloatingAIChat can access them
+  // Extract stable references to avoid infinite loops
+  const setPageContext = pageContextValue?.setPageContext
+  const clearPageContext = pageContextValue?.clearPageContext
+
   useEffect(() => {
-    if (pageContextValue?.setPageContext && analyses.length > 0) {
+    if (setPageContext && analyses.length > 0) {
       // Build a summary of video analyses for the AI
       const completedAnalyses = analyses.filter(a => a.status === 'COMPLETED')
       const summary = completedAnalyses.length > 0
@@ -86,7 +90,7 @@ export function VideoAnalysisList() {
           `Övningar: ${[...new Set(completedAnalyses.map(a => a.exercise?.nameSv || a.exercise?.name).filter(Boolean))].join(', ')}.`
         : `${analyses.length} videoanalyser laddade, ingen klar ännu.`
 
-      pageContextValue.setPageContext({
+      setPageContext({
         type: 'video-analysis',
         title: 'Videoanalyser',
         summary,
@@ -119,11 +123,11 @@ export function VideoAnalysisList() {
 
     // Cleanup on unmount
     return () => {
-      if (pageContextValue?.clearPageContext) {
-        pageContextValue.clearPageContext()
+      if (clearPageContext) {
+        clearPageContext()
       }
     }
-  }, [analyses, pageContextValue])
+  }, [analyses, setPageContext, clearPageContext])
 
   const fetchAnalyses = useCallback(async () => {
     try {

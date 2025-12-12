@@ -64,8 +64,8 @@ Phase 5 (User Authentication) has been successfully implemented! The codebase no
    NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_actual_anon_key_here
 
-   # Database URL (already configured)
-   DATABASE_URL="postgresql://postgres.rzvznvaxpxsfqfmhbept:zmajquwoslxm@aws-1-eu-north-1.pooler.supabase.com:5432/postgres"
+   # Database URL (DO NOT COMMIT REAL CREDENTIALS)
+   DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?pgbouncer=true"
 
    # App Configuration
    NEXT_PUBLIC_APP_URL=http://localhost:3001

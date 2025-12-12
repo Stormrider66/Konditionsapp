@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma';
 import { searchSimilarChunks } from '@/lib/ai/embeddings';
 import { buildSportSpecificContext, type AthleteData } from '@/lib/ai/sport-context-builder';
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
+import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
 
 interface ChatRequest {
   conversationId?: string;
@@ -47,11 +48,12 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Get API keys
-    const apiKeys = await prisma.userApiKey.findUnique({
+    const apiKeysRow = await prisma.userApiKey.findUnique({
       where: { userId: user.id },
-    });
+    })
+    const decryptedKeys = await getDecryptedUserApiKeys(user.id)
 
-    if (!apiKeys) {
+    if (!apiKeysRow) {
       return new Response(
         JSON.stringify({ error: 'API keys not configured' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -290,14 +292,14 @@ ${prog.goalRace ? `- **Mållopp**: ${prog.goalRace}` : ''}
 
     // Build context from documents using RAG
     let documentContext = '';
-    if (documentIds.length > 0 && apiKeys.openaiKeyEncrypted) {
+    if (documentIds.length > 0 && decryptedKeys.openaiKey) {
       const lastUserMessage = messages.filter(m => m.role === 'user').pop();
       if (lastUserMessage) {
         try {
           const chunks = await searchSimilarChunks(
             lastUserMessage.content,
             user.id,
-            apiKeys.openaiKeyEncrypted,
+            decryptedKeys.openaiKey,
             {
               matchThreshold: 0.75,
               matchCount: 5,
@@ -391,19 +393,19 @@ ${pageContext}
     // Different SDKs return slightly different model types, using any for compatibility
     let aiModel: unknown;
 
-    if (provider === 'ANTHROPIC' && apiKeys.anthropicKeyEncrypted) {
+    if (provider === 'ANTHROPIC' && decryptedKeys.anthropicKey) {
       const anthropic = createAnthropic({
-        apiKey: apiKeys.anthropicKeyEncrypted,
+        apiKey: decryptedKeys.anthropicKey,
       });
       aiModel = anthropic(model || 'claude-sonnet-4-5-20250929');
-    } else if (provider === 'GOOGLE' && apiKeys.googleKeyEncrypted) {
+    } else if (provider === 'GOOGLE' && decryptedKeys.googleKey) {
       const google = createGoogleGenerativeAI({
-        apiKey: apiKeys.googleKeyEncrypted,
+        apiKey: decryptedKeys.googleKey,
       });
       aiModel = google(model || 'gemini-2.5-flash');
-    } else if (provider === 'OPENAI' && apiKeys.openaiKeyEncrypted) {
+    } else if (provider === 'OPENAI' && decryptedKeys.openaiKey) {
       const openai = createOpenAI({
-        apiKey: apiKeys.openaiKeyEncrypted,
+        apiKey: decryptedKeys.openaiKey,
       });
       // OpenAI SDK returns LanguageModelV2 which is compatible with streamText
       aiModel = openai(model || 'gpt-4.1');
@@ -418,7 +420,7 @@ ${pageContext}
     console.log('AI Chat Request:', {
       provider,
       model,
-      hasApiKey: !!apiKeys.anthropicKeyEncrypted || !!apiKeys.googleKeyEncrypted,
+      hasApiKey: !!decryptedKeys.anthropicKey || !!decryptedKeys.googleKey || !!decryptedKeys.openaiKey,
       messageCount: messages.length,
     });
 

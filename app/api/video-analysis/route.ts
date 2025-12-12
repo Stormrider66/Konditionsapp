@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
 
 const createAnalysisSchema = z.object({
   videoUrl: z.string().url(),
@@ -121,9 +122,23 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
+    // Return signed URLs (supports private buckets)
+    const signedAnalyses = await Promise.all(
+      analyses.map(async (a) => {
+        const path = normalizeStoragePath('video-analysis', a.videoUrl)
+        if (!path) return a
+        try {
+          const signedUrl = await createSignedUrl('video-analysis', path, 60 * 60)
+          return { ...a, videoUrl: signedUrl }
+        } catch {
+          return a
+        }
+      })
+    )
+
     return NextResponse.json({
       success: true,
-      analyses,
+      analyses: signedAnalyses,
     });
   } catch (error) {
     console.error('Video analysis list error:', error);

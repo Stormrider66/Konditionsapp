@@ -7,6 +7,7 @@ import {
   createText,
   getGeminiModelId,
 } from '@/lib/ai/google-genai-client'
+import { decryptSecret } from '@/lib/crypto/secretbox'
 
 interface JointAngle {
   name: string
@@ -49,7 +50,16 @@ export async function POST(request: NextRequest) {
       include: { defaultModel: true },
     })
 
-    if (!apiKeys?.googleKeyEncrypted) {
+    let googleKey: string | undefined
+    if (apiKeys?.googleKeyEncrypted) {
+      try {
+        googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
+      } catch {
+        googleKey = undefined
+      }
+    }
+
+    if (!googleKey) {
       return NextResponse.json(
         { error: 'Google API key not configured. Go to Settings to add your API key.' },
         { status: 400 }
@@ -67,11 +77,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Gemini client
-    const client = createGoogleGenAIClient(apiKeys.googleKeyEncrypted)
+    const client = createGoogleGenAIClient(googleKey)
 
     // Determine model
     let modelId: string
-    if (apiKeys.defaultModel?.provider === 'GOOGLE' && apiKeys.defaultModel?.modelId) {
+    if (apiKeys?.defaultModel?.provider === 'GOOGLE' && apiKeys?.defaultModel?.modelId) {
       modelId = apiKeys.defaultModel.modelId
     } else {
       modelId = getGeminiModelId('chat')

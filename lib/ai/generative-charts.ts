@@ -14,6 +14,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
+import { decryptSecret } from '@/lib/crypto/secretbox';
 
 // Zod schema for chart configurations
 const ChartDataPointSchema = z.object({
@@ -82,7 +83,16 @@ export async function generateChartFromQuery(
     where: { userId: coachUserId },
   });
 
-  if (!apiKeys?.googleKeyEncrypted) {
+  let googleKey: string | undefined
+  if (apiKeys?.googleKeyEncrypted) {
+    try {
+      googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
+    } catch {
+      googleKey = undefined
+    }
+  }
+
+  if (!googleKey) {
     return {
       success: false,
       chart: null,
@@ -90,6 +100,21 @@ export async function generateChartFromQuery(
       query,
       generatedAt: new Date().toISOString(),
     };
+  }
+
+  // Prevent IDOR: ensure this client belongs to the requesting coach
+  const ownedClient = await prisma.client.findFirst({
+    where: { id: clientId, userId: coachUserId },
+    select: { id: true },
+  })
+  if (!ownedClient) {
+    return {
+      success: false,
+      chart: null,
+      error: 'Client not found or not accessible',
+      query,
+      generatedAt: new Date().toISOString(),
+    }
   }
 
   // Fetch relevant data based on context
@@ -107,7 +132,7 @@ export async function generateChartFromQuery(
 
   // Initialize Gemini
   const google = createGoogleGenerativeAI({
-    apiKey: apiKeys.googleKeyEncrypted,
+    apiKey: googleKey,
   });
 
   try {

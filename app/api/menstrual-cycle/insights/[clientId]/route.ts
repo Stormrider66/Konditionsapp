@@ -13,6 +13,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { CycleInsightsSchema } from '@/lib/validations/gemini-schemas';
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
+import { decryptSecret } from '@/lib/crypto/secretbox';
 
 export async function GET(
   request: NextRequest,
@@ -98,10 +99,19 @@ export async function GET(
       where: { userId: client.userId },
     });
 
-    if (apiKeys?.googleKeyEncrypted && allLogs.length >= 10) {
+    let googleKey: string | undefined
+    if (apiKeys?.googleKeyEncrypted) {
+      try {
+        googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
+      } catch {
+        googleKey = undefined
+      }
+    }
+
+    if (googleKey && allLogs.length >= 10) {
       try {
         const google = createGoogleGenerativeAI({
-          apiKey: apiKeys.googleKeyEncrypted,
+          apiKey: googleKey,
         });
 
         const prompt = buildInsightsPrompt({

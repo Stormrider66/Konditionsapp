@@ -11,6 +11,7 @@ import { generateText } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { prisma } from '@/lib/prisma';
 import { GEMINI_MODELS, getGeminiThinkingOptions } from '@/lib/ai/gemini-config';
+import { decryptSecret } from '@/lib/crypto/secretbox';
 import type {
   PeriodizationAnalysis,
   PeriodizationAdjustment,
@@ -61,8 +62,26 @@ export async function analyzeWithDeepThink(
     where: { userId: coachUserId },
   });
 
-  if (!apiKeys?.googleKeyEncrypted) {
+  let googleKey: string | undefined
+  if (apiKeys?.googleKeyEncrypted) {
+    try {
+      googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
+    } catch {
+      googleKey = undefined
+    }
+  }
+
+  if (!googleKey) {
     throw new Error('Google API key not configured');
+  }
+
+  // Prevent IDOR: ensure the client belongs to this coach
+  const ownedClient = await prisma.client.findFirst({
+    where: { id: clientId, userId: coachUserId },
+    select: { id: true },
+  })
+  if (!ownedClient) {
+    throw new Error('Client not found or not accessible')
   }
 
   // Fetch comprehensive training data
@@ -150,7 +169,7 @@ export async function analyzeWithDeepThink(
 
   // Initialize Gemini with Deep Think
   const google = createGoogleGenerativeAI({
-    apiKey: apiKeys.googleKeyEncrypted,
+    apiKey: googleKey,
   });
 
   // Use Gemini 3 Pro with high thinkingLevel for complex reasoning

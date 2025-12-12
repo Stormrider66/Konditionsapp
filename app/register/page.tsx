@@ -64,15 +64,13 @@ export default function RegisterPage() {
       }
 
       if (authData.user) {
-        // Create user in database
+        // Create/update user in database (identity is derived from session server-side)
         const response = await fetch('/api/users', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            id: authData.user.id,
-            email: data.email,
             name: data.name,
           }),
         })

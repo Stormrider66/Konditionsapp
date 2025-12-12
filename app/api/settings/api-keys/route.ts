@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
+import { encryptIfPresent } from '@/lib/user-api-keys';
 
 interface ApiKeyStatus {
   provider: string;
@@ -196,14 +197,33 @@ export async function POST(request: NextRequest) {
 
     // Upsert API keys
     const now = new Date();
+    let anthropicKeyEncrypted: string | null | undefined
+    let googleKeyEncrypted: string | null | undefined
+    let openaiKeyEncrypted: string | null | undefined
+
+    try {
+      anthropicKeyEncrypted = encryptIfPresent(anthropicKey)
+      googleKeyEncrypted = encryptIfPresent(googleKey)
+      openaiKeyEncrypted = encryptIfPresent(openaiKey)
+    } catch (e) {
+      return NextResponse.json(
+        {
+          error:
+            e instanceof Error
+              ? e.message
+              : 'Failed to encrypt API keys. Ensure API_KEY_ENCRYPTION_KEY is configured.',
+        },
+        { status: 500 }
+      )
+    }
+
     await prisma.userApiKey.upsert({
       where: { userId: user.id },
       create: {
         userId: user.id,
-        // NOTE: In production, encrypt these keys using Supabase Vault or similar
-        anthropicKeyEncrypted: anthropicKey || null,
-        googleKeyEncrypted: googleKey || null,
-        openaiKeyEncrypted: openaiKey || null,
+        anthropicKeyEncrypted: anthropicKeyEncrypted ?? null,
+        googleKeyEncrypted: googleKeyEncrypted ?? null,
+        openaiKeyEncrypted: openaiKeyEncrypted ?? null,
         anthropicKeyValid: anthropicKey ? validationResults.anthropic?.valid ?? false : false,
         googleKeyValid: googleKey ? validationResults.google?.valid ?? false : false,
         openaiKeyValid: openaiKey ? validationResults.openai?.valid ?? false : false,
@@ -214,21 +234,21 @@ export async function POST(request: NextRequest) {
       update: {
         ...(anthropicKey !== undefined
           ? {
-              anthropicKeyEncrypted: anthropicKey || null,
+              anthropicKeyEncrypted: anthropicKeyEncrypted ?? null,
               anthropicKeyValid: validationResults.anthropic?.valid ?? false,
               anthropicKeyLastValidated: now,
             }
           : {}),
         ...(googleKey !== undefined
           ? {
-              googleKeyEncrypted: googleKey || null,
+              googleKeyEncrypted: googleKeyEncrypted ?? null,
               googleKeyValid: validationResults.google?.valid ?? false,
               googleKeyLastValidated: now,
             }
           : {}),
         ...(openaiKey !== undefined
           ? {
-              openaiKeyEncrypted: openaiKey || null,
+              openaiKeyEncrypted: openaiKeyEncrypted ?? null,
               openaiKeyValid: validationResults.openai?.valid ?? false,
               openaiKeyLastValidated: now,
             }

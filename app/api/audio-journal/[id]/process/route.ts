@@ -19,6 +19,8 @@ import {
   getGeminiModelId,
 } from '@/lib/ai/google-genai-client';
 import type { AudioExtractionResult } from '@/lib/validations/gemini-schemas';
+import { decryptSecret } from '@/lib/crypto/secretbox';
+import { downloadAsBase64, isHttpUrl } from '@/lib/storage/supabase-storage';
 
 export async function POST(
   request: NextRequest,
@@ -73,7 +75,16 @@ export async function POST(
       where: { userId: audioJournal.client.userId },
     });
 
-    if (!apiKeys?.googleKeyEncrypted) {
+    let googleKey: string | undefined
+    if (apiKeys?.googleKeyEncrypted) {
+      try {
+        googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
+      } catch {
+        googleKey = undefined
+      }
+    }
+
+    if (!googleKey) {
       return NextResponse.json(
         { error: 'Google API key not configured. Coach must add API key in settings.' },
         { status: 400 }
@@ -89,7 +100,7 @@ export async function POST(
 
     try {
       // Create Google GenAI client (official SDK)
-      const client = createGoogleGenAIClient(apiKeys.googleKeyEncrypted);
+      const client = createGoogleGenAIClient(googleKey);
       const modelId = getGeminiModelId('audio');
 
       // Build Swedish prompt for extraction
@@ -150,13 +161,18 @@ Svara i följande JSON-format:
 VIKTIGT: Om atleten INTE nämner något (t.ex. sömn), lämna det fältet som null.
 Gissa inte värden som inte nämndes.`;
 
-      // Fetch audio and convert to base64
-      const { base64, mimeType } = await fetchAsBase64(audioJournal.audioUrl);
+      // Fetch audio and convert to base64 (supports both legacy public URLs and storage paths)
+      const fetched = isHttpUrl(audioJournal.audioUrl)
+        ? await fetchAsBase64(audioJournal.audioUrl)
+        : await downloadAsBase64('audio-journals', audioJournal.audioUrl)
+
+      const base64 = fetched.base64
+      const mimeType = audioJournal.mimeType || fetched.mimeType || 'audio/mpeg'
 
       // Call Gemini with audio
       const result = await generateContent(client, modelId, [
         createText(prompt),
-        createInlineData(base64, audioJournal.mimeType || mimeType),
+        createInlineData(base64, mimeType),
       ]);
 
       // Parse the response

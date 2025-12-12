@@ -19,9 +19,61 @@ export async function getCurrentUser(): Promise<User | null> {
     return null
   }
 
-  // Fetch user from our database with role
-  const user = await prisma.user.findUnique({
-    where: { email: supabaseUser.email },
+  const email = supabaseUser.email || null
+
+  // Prefer ID match (Supabase user id), fallback to email for legacy rows
+  let user =
+    (await prisma.user.findUnique({
+      where: { id: supabaseUser.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        language: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })) ||
+    (email
+      ? await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            language: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        })
+      : null)
+
+  if (user) return user
+
+  // Auto-create DB user row on first authenticated request.
+  // This prevents flows (like signup/login) from depending on an insecure public endpoint.
+  if (!email) {
+    return null
+  }
+
+  const nameFromMetadata =
+    (supabaseUser.user_metadata &&
+      typeof supabaseUser.user_metadata === 'object' &&
+      'name' in supabaseUser.user_metadata &&
+      typeof (supabaseUser.user_metadata as any).name === 'string' &&
+      ((supabaseUser.user_metadata as any).name as string).trim()) ||
+    email.split('@')[0]
+
+  user = await prisma.user.create({
+    data: {
+      id: supabaseUser.id,
+      email,
+      name: nameFromMetadata,
+      role: 'COACH',
+      language: 'sv',
+    },
     select: {
       id: true,
       email: true,

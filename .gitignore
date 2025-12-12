@@ -32,6 +32,9 @@ pnpm-debug.log*
 .vercel/
 tsconfig.tsbuildinfo
 
+# Playwright
+playwright-report/
+
 # Prisma
 prisma/dev.db
 prisma/dev.db-journal

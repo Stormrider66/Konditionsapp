@@ -8,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
+import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
 
 export async function GET(
   request: NextRequest,
@@ -44,7 +45,18 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      analysis,
+      analysis: {
+        ...analysis,
+        videoUrl: await (async () => {
+          const path = normalizeStoragePath('video-analysis', analysis.videoUrl)
+          if (!path) return analysis.videoUrl
+          try {
+            return await createSignedUrl('video-analysis', path, 60 * 60)
+          } catch {
+            return analysis.videoUrl
+          }
+        })(),
+      },
     });
   } catch (error) {
     console.error('Get analysis error:', error);
@@ -82,14 +94,10 @@ export async function DELETE(
     // Delete video from Supabase Storage
     if (analysis.videoUrl) {
       try {
-        const supabase = await createClient();
-        // Extract path from URL
-        const url = new URL(analysis.videoUrl);
-        const pathMatch = url.pathname.match(/\/storage\/v1\/object\/public\/video-analysis\/(.+)/);
-        if (pathMatch) {
-          await supabase.storage
-            .from('video-analysis')
-            .remove([pathMatch[1]]);
+        const admin = createAdminSupabaseClient()
+        const path = normalizeStoragePath('video-analysis', analysis.videoUrl)
+        if (path) {
+          await admin.storage.from('video-analysis').remove([path])
         }
       } catch (storageError) {
         console.error('Storage deletion error:', storageError);
