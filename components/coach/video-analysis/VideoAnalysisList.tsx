@@ -10,8 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
-import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { VideoUploader } from './VideoUploader'
 import { VideoAnalysisCard } from './VideoAnalysisCard'
 import {
@@ -62,8 +60,6 @@ interface Exercise {
 }
 
 export function VideoAnalysisList() {
-  const { toast } = useToast()
-  const pageContextValue = usePageContextOptional()
   const [analyses, setAnalyses] = useState<VideoAnalysis[]>([])
   const [athletes, setAthletes] = useState<Athlete[]>([])
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -75,59 +71,6 @@ export function VideoAnalysisList() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [athleteFilter, setAthleteFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
-
-  // Update page context when analyses change so FloatingAIChat can access them
-  // Extract stable references to avoid infinite loops
-  const setPageContext = pageContextValue?.setPageContext
-  const clearPageContext = pageContextValue?.clearPageContext
-
-  useEffect(() => {
-    if (setPageContext && analyses.length > 0) {
-      // Build a summary of video analyses for the AI
-      const completedAnalyses = analyses.filter(a => a.status === 'COMPLETED')
-      const summary = completedAnalyses.length > 0
-        ? `${completedAnalyses.length} videoanalyser klara av ${analyses.length} totalt. ` +
-          `Övningar: ${[...new Set(completedAnalyses.map(a => a.exercise?.nameSv || a.exercise?.name).filter(Boolean))].join(', ')}.`
-        : `${analyses.length} videoanalyser laddade, ingen klar ännu.`
-
-      setPageContext({
-        type: 'video-analysis',
-        title: 'Videoanalyser',
-        summary,
-        data: {
-          totalAnalyses: analyses.length,
-          completedCount: completedAnalyses.length,
-          analyses: analyses.map(a => ({
-            id: a.id,
-            videoType: a.videoType,
-            status: a.status,
-            formScore: a.formScore,
-            athleteName: a.athlete?.name || 'Okänd',
-            exerciseName: a.exercise?.nameSv || a.exercise?.name || 'Okänd övning',
-            issuesDetected: a.issuesDetected?.map(i => ({
-              issue: i.issue,
-              severity: i.severity,
-              description: i.description,
-            })) || [],
-            recommendations: a.recommendations?.map(r => ({
-              priority: r.priority,
-              recommendation: r.recommendation,
-              explanation: r.explanation,
-            })) || [],
-            aiAnalysis: a.aiAnalysis,
-            createdAt: a.createdAt,
-          })),
-        },
-      })
-    }
-
-    // Cleanup on unmount
-    return () => {
-      if (clearPageContext) {
-        clearPageContext()
-      }
-    }
-  }, [analyses, setPageContext, clearPageContext])
 
   const fetchAnalyses = useCallback(async () => {
     try {
@@ -145,15 +88,13 @@ export function VideoAnalysisList() {
 
       setAnalyses(data.analyses || [])
     } catch (error) {
-      toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte hämta analyser',
-        variant: 'destructive',
-      })
+      // Toast is called outside the dependency array to prevent infinite loops
+      const errorMessage = error instanceof Error ? error.message : 'Kunde inte hämta analyser'
+      console.error('Failed to fetch analyses:', errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }, [statusFilter, typeFilter, athleteFilter, toast])
+  }, [statusFilter, typeFilter, athleteFilter])
 
   const fetchAthletes = async () => {
     try {

@@ -10,6 +10,9 @@ import type { Client, Test, TestType, TrainingZone } from '@/types'
 import { ProgressionChart } from '@/components/charts/ProgressionChart'
 import { SportSpecificAthleteView } from '@/components/coach/sport-views'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
+import { ClientVideoAnalyses } from '@/components/coach/video-analysis/ClientVideoAnalyses'
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
+import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2 } from 'lucide-react'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
@@ -70,6 +73,43 @@ export default function ClientDetailPage() {
   const [deleting, setDeleting] = useState(false)
 
   const { toast } = useToast()
+  const pageContextApi = usePageContextOptional()
+
+  // Handler for loading video analysis to AI Studio
+  const handleLoadVideoAnalysisToAI = useCallback((analysis: {
+    id: string
+    videoType: string
+    formScore: number | null
+    aiAnalysis: string | null
+    issuesDetected: Array<{ issue: string; severity: string; description: string }> | null
+    recommendations: Array<{ priority: number; recommendation: string; explanation: string }> | null
+    exercise: { name: string; nameSv: string | null } | null
+  }) => {
+    if (!pageContextApi?.setPageContext) {
+      toast({
+        title: 'AI Studio ej tillgänglig',
+        description: 'Öppna AI-chatten för att ladda videoanalys som kontext',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const context: PageContext = {
+      type: 'video-analysis',
+      title: `Videoanalys: ${analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType}`,
+      data: {
+        analysisId: analysis.id,
+        videoType: analysis.videoType,
+        formScore: analysis.formScore,
+        exercise: analysis.exercise?.nameSv || analysis.exercise?.name,
+        issues: analysis.issuesDetected,
+        recommendations: analysis.recommendations,
+      },
+      summary: `Videoanalys för ${client?.name || 'atlet'} - ${analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType}. Poäng: ${analysis.formScore ?? 'Ej bedömd'}. ${analysis.issuesDetected?.length || 0} problem identifierade.`,
+    }
+
+    pageContextApi.setPageContext(context)
+  }, [pageContextApi, client?.name, toast])
 
   const fetchUser = useCallback(async () => {
     const supabase = createSupabaseClient()
@@ -513,6 +553,13 @@ export default function ClientDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Video Analysis Section */}
+        <ClientVideoAnalyses
+          clientId={id}
+          clientName={client.name}
+          onLoadToAI={handleLoadVideoAnalysisToAI}
+        />
 
         {/* Progression Chart */}
         {client.tests && client.tests.length >= 2 && (
