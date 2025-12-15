@@ -186,9 +186,12 @@ export async function POST(request: NextRequest) {
           ? Math.floor((Date.now() - new Date(athlete.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
           : null;
 
-        // Build basic info
+        // Create anonymous athlete reference (GDPR compliance - no PII sent to AI)
+        const athleteRef = `Atlet-${athlete.id.slice(0, 8)}`;
+
+        // Build basic info - NO personal identifiers sent to AI
         let basicInfo = `## ATLET INFORMATION
-- **Namn**: ${athlete.name}
+- **Referens**: ${athleteRef}
 - **Kön**: ${athlete.gender || 'Ej angivet'}
 - **Ålder**: ${age ? `${age} år` : 'Okänd'}
 - **Längd**: ${athlete.height ? `${athlete.height} cm` : 'Ej angivet'}

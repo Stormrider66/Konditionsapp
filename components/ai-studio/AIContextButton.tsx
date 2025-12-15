@@ -90,6 +90,14 @@ export function AIContextButton({
   } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/ai/chat',
+      body: {
+        conversationId,
+        model: 'claude-sonnet-4-5-20250929',
+        provider: 'ANTHROPIC',
+        athleteId,
+        documentIds: [],
+        webSearchEnabled: false,
+      },
     }),
     onError: (error) => {
       toast({
@@ -111,22 +119,10 @@ export function AIContextButton({
   useEffect(() => {
     if (dialogOpen && initialPrompt && messages.length === 0) {
       // Auto-send the initial prompt
-      sendMessage(
-        { text: initialPrompt },
-        {
-          body: {
-            conversationId: conversationId ?? undefined,
-            model: 'claude-sonnet-4-5-20250929',
-            provider: 'ANTHROPIC',
-            athleteId,
-            documentIds: [],
-            webSearchEnabled: false,
-          },
-        }
-      )
+      sendMessage({ text: initialPrompt })
       setInitialPrompt('') // Clear to prevent re-sending
     }
-  }, [dialogOpen, initialPrompt, messages.length, sendMessage, athleteId, conversationId])
+  }, [dialogOpen, initialPrompt, messages.length, sendMessage])
 
   async function handleActionClick(prompt: string) {
     // Create conversation
@@ -135,7 +131,7 @@ export function AIContextButton({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          modelUsed: 'claude-sonnet-4-5-20250929',
+          modelUsed: 'claude-sonnet-4-20250514',
           provider: 'ANTHROPIC',
           athleteId,
         }),
@@ -191,19 +187,7 @@ export function AIContextButton({
 
     const messageContent = input.trim()
     setInput('') // Clear input
-    sendMessage(
-      { text: messageContent },
-      {
-        body: {
-          conversationId: conversationId ?? undefined,
-          model: 'claude-sonnet-4-5-20250929',
-          provider: 'ANTHROPIC',
-          athleteId,
-          documentIds: [],
-          webSearchEnabled: false,
-        },
-      }
-    )
+    sendMessage({ text: messageContent })
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
