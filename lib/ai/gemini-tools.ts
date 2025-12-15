@@ -14,7 +14,7 @@ import { z } from 'zod';
  */
 export const modifyWorkoutTool = tool({
   description: 'Modify an athlete workout based on readiness, injury, or periodization needs. Use this when the athlete needs their workout adjusted.',
-  parameters: z.object({
+  inputSchema: z.object({
     workoutId: z.string().describe('ID of the workout to modify'),
     modificationType: z.enum([
       'REDUCE_INTENSITY',
@@ -54,7 +54,7 @@ export const modifyWorkoutTool = tool({
  */
 export const createAlertTool = tool({
   description: 'Create an alert for the coach about an athlete concern. Use this when you detect overtraining risk, injury signs, or other important patterns.',
-  parameters: z.object({
+  inputSchema: z.object({
     athleteId: z.string().describe('ID of the athlete'),
     alertType: z.enum([
       'OVERTRAINING_RISK',
@@ -101,7 +101,7 @@ export const createAlertTool = tool({
  */
 export const suggestProgressionTool = tool({
   description: 'Suggest a training progression update based on athlete performance data. Use this when data indicates the athlete is ready for progression.',
-  parameters: z.object({
+  inputSchema: z.object({
     athleteId: z.string().describe('ID of the athlete'),
     progressionType: z.enum(['PACE', 'LOAD', 'VOLUME', 'FREQUENCY', 'INTENSITY']).describe('Type of progression'),
     currentValue: z.number().describe('Current training value'),
@@ -139,7 +139,7 @@ export const suggestProgressionTool = tool({
  */
 export const calculateZonesTool = tool({
   description: 'Calculate or recalculate training zones based on test results or performance data.',
-  parameters: z.object({
+  inputSchema: z.object({
     athleteId: z.string().describe('ID of the athlete'),
     zoneSystem: z.enum(['5_ZONE', 'DANIELS', 'NORWEGIAN', 'POLARIZED']).describe('Zone system to use'),
     baseMetric: z.enum(['LACTATE_THRESHOLD', 'VDOT', 'MAX_HR', 'FTP']).describe('Base metric for calculation'),
@@ -185,7 +185,7 @@ export const calculateZonesTool = tool({
  */
 export const searchKnowledgeTool = tool({
   description: 'Search the knowledge base for relevant training information, scientific studies, or methodology documentation.',
-  parameters: z.object({
+  inputSchema: z.object({
     query: z.string().describe('Search query'),
     maxResults: z.number().min(1).max(10).default(5).describe('Maximum number of results'),
     documentTypes: z.array(z.enum(['PDF', 'METHODOLOGY', 'STUDY', 'PROTOCOL'])).optional().describe('Filter by document type'),

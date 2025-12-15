@@ -2,11 +2,34 @@
  * Program Parser for AI Output
  *
  * Extracts and validates structured training program data from AI-generated responses.
+ * Enhanced to support detailed workout segments with pace, HR zones, and power targets.
  */
 
 import { z } from 'zod';
 
-// Schema for a single workout/session
+// Schema for a workout segment (warmup, work, interval, cooldown, etc.)
+const WorkoutSegmentSchema = z.object({
+  order: z.number(),
+  type: z.enum(['warmup', 'work', 'interval', 'cooldown', 'rest', 'exercise']),
+  duration: z.number().optional(), // minutes
+  distance: z.number().optional(), // km
+  pace: z.string().optional(), // "5:00/km" format
+  zone: z.number().min(1).max(5).optional(), // Training zone 1-5
+  heartRate: z.string().optional(), // "140-150 bpm" or zone-based range
+  power: z.number().optional(), // watts (for cycling)
+  reps: z.number().optional(), // repetitions for intervals
+  // Strength/exercise specific
+  exerciseId: z.string().optional(),
+  sets: z.number().optional(),
+  repsCount: z.string().optional(), // "10" or "10-12" or "AMRAP"
+  weight: z.string().optional(), // "80kg" or "BW" or "50% 1RM"
+  tempo: z.string().optional(), // "3-1-1"
+  rest: z.number().optional(), // seconds between sets
+  description: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+// Schema for a single workout/session - enhanced version
 const WorkoutSchema = z.object({
   type: z.enum([
     'REST',
@@ -17,14 +40,21 @@ const WorkoutSchema = z.object({
     'CROSS_TRAINING',
     'HYROX',
     'SKIING',
+    'CORE',
+    'PLYOMETRIC',
+    'RECOVERY',
+    'ALTERNATIVE',
     'OTHER'
   ]),
   name: z.string().optional(),
-  duration: z.number().optional(), // minutes
-  distance: z.number().optional(), // km
-  zone: z.string().optional(),
+  duration: z.number().optional(), // total minutes
+  distance: z.number().optional(), // total km
+  zone: z.union([z.string(), z.number()]).optional(), // primary zone
   description: z.string(),
-  intensity: z.enum(['easy', 'moderate', 'hard', 'race_pace']).optional(),
+  intensity: z.enum(['recovery', 'easy', 'moderate', 'threshold', 'interval', 'max', 'hard', 'race_pace']).optional(),
+  // Enhanced: detailed segments with pace/HR/power targets
+  segments: z.array(WorkoutSegmentSchema).optional(),
+  // Legacy interval support (converted to segments)
   intervals: z.array(z.object({
     repetitions: z.number(),
     workDuration: z.number(), // seconds or meters
@@ -32,6 +62,14 @@ const WorkoutSchema = z.object({
     restDuration: z.number(),
     restIntensity: z.string().optional()
   })).optional(),
+  // Running-specific targets
+  targetPace: z.string().optional(), // "5:00/km"
+  targetHR: z.string().optional(), // "140-150 bpm"
+  // Cycling-specific targets
+  targetPower: z.number().optional(), // watts
+  targetPowerZone: z.number().optional(), // 1-7
+  // Swimming-specific
+  targetPace100m: z.string().optional(), // "1:45/100m"
   notes: z.string().optional()
 });
 
@@ -72,6 +110,7 @@ const ProgramSchema = z.object({
 export type ParsedProgram = z.infer<typeof ProgramSchema>;
 export type ParsedPhase = z.infer<typeof PhaseSchema>;
 export type ParsedWorkout = z.infer<typeof WorkoutSchema>;
+export type ParsedWorkoutSegment = z.infer<typeof WorkoutSegmentSchema>;
 
 // Result type for parsing
 export type ParseResult = {
@@ -217,8 +256,12 @@ function mapToWorkoutIntensity(intensity?: string): WorkoutIntensity {
   if (normalized === 'moderate' || normalized === 'medel') return 'MODERATE';
   if (normalized === 'hard' || normalized === 'hård' || normalized === 'threshold') return 'THRESHOLD';
   if (normalized === 'race_pace' || normalized === 'interval' || normalized === 'intervall') return 'INTERVAL';
-  if (normalized === 'recovery' || normalized === 'vila') return 'RECOVERY';
-  if (normalized === 'max') return 'MAX';
+  if (normalized === 'recovery' || normalized === 'vila' || normalized === 'återhämtning') return 'RECOVERY';
+  if (normalized === 'max' || normalized === 'maximal') return 'MAX';
+  // Additional mappings for enhanced schema
+  if (normalized === 'tempo') return 'THRESHOLD';
+  if (normalized === 'easy_long') return 'EASY';
+  if (normalized === 'steady') return 'MODERATE';
 
   return 'EASY';
 }
@@ -290,14 +333,10 @@ export function convertToDbFormat(
         type: WorkoutType;
         intensity: WorkoutIntensity;
         duration?: number;
+        distance?: number;
         description?: string;
-        segments?: Array<{
-          order: number;
-          type: string;
-          duration?: number;
-          zone?: number;
-          description?: string;
-        }>;
+        instructions?: string;
+        segments?: DbSegment[];
       }>;
     }>;
   }>;
@@ -347,14 +386,10 @@ function generateWeeksFromPhases(
       type: WorkoutType;
       intensity: WorkoutIntensity;
       duration?: number;
+      distance?: number;
       description?: string;
-      segments?: Array<{
-        order: number;
-        type: string;
-        duration?: number;
-        zone?: number;
-        description?: string;
-      }>;
+      instructions?: string;
+      segments?: DbSegment[];
     }>;
   }>;
 }> {
@@ -373,14 +408,10 @@ function generateWeeksFromPhases(
         type: WorkoutType;
         intensity: WorkoutIntensity;
         duration?: number;
+        distance?: number;
         description?: string;
-        segments?: Array<{
-          order: number;
-          type: string;
-          duration?: number;
-          zone?: number;
-          description?: string;
-        }>;
+        instructions?: string;
+        segments?: DbSegment[];
       }>;
     }>;
   }> = [];
@@ -427,6 +458,152 @@ function findPhaseForWeek(phases: ParsedPhase[], weekNumber: number): ParsedPhas
   return phases[phases.length - 1]; // Default to last phase
 }
 
+// Detailed segment type for database
+interface DbSegment {
+  order: number;
+  type: string;
+  duration?: number;
+  distance?: number;
+  pace?: string;
+  zone?: number;
+  heartRate?: string;
+  power?: number;
+  reps?: number;
+  sets?: number;
+  repsCount?: string;
+  weight?: string;
+  tempo?: string;
+  rest?: number;
+  description?: string;
+  notes?: string;
+}
+
+/**
+ * Convert AI segments to database-ready format
+ */
+function convertSegmentsToDbFormat(workout: ParsedWorkout): DbSegment[] {
+  // If workout has detailed segments, use them directly
+  if (workout.segments && workout.segments.length > 0) {
+    return workout.segments.map((seg) => ({
+      order: seg.order,
+      type: seg.type,
+      duration: seg.duration,
+      distance: seg.distance,
+      pace: seg.pace,
+      zone: seg.zone,
+      heartRate: seg.heartRate,
+      power: seg.power,
+      reps: seg.reps,
+      sets: seg.sets,
+      repsCount: seg.repsCount,
+      weight: seg.weight,
+      tempo: seg.tempo,
+      rest: seg.rest,
+      description: seg.description,
+      notes: seg.notes,
+    }));
+  }
+
+  // Convert legacy intervals to segments
+  if (workout.intervals && workout.intervals.length > 0) {
+    const segments: DbSegment[] = [];
+    let order = 1;
+
+    // Add warmup segment
+    segments.push({
+      order: order++,
+      type: 'warmup',
+      duration: 15,
+      zone: 1,
+      description: 'Uppvärmning',
+    });
+
+    // Add interval segments
+    workout.intervals.forEach((interval, idx) => {
+      // Work segment
+      segments.push({
+        order: order++,
+        type: 'interval',
+        duration: interval.workDuration / 60, // Convert seconds to minutes
+        zone: parseInt(interval.workIntensity) || 4,
+        reps: interval.repetitions,
+        description: `Intervall ${idx + 1}`,
+      });
+
+      // Rest segment (if not last)
+      if (idx < workout.intervals!.length - 1) {
+        segments.push({
+          order: order++,
+          type: 'rest',
+          duration: interval.restDuration / 60,
+          zone: 1,
+          description: 'Vila',
+        });
+      }
+    });
+
+    // Add cooldown segment
+    segments.push({
+      order: order++,
+      type: 'cooldown',
+      duration: 10,
+      zone: 1,
+      description: 'Nedvarvning',
+    });
+
+    return segments;
+  }
+
+  // Create a simple work segment from the workout details
+  const segments: DbSegment[] = [];
+
+  // For running/cycling workouts, add warmup-work-cooldown structure
+  if (['RUNNING', 'CYCLING', 'SWIMMING', 'SKIING'].includes(workout.type)) {
+    // Warmup
+    segments.push({
+      order: 1,
+      type: 'warmup',
+      duration: 10,
+      zone: 1,
+      pace: undefined,
+      description: 'Uppvärmning',
+    });
+
+    // Main work
+    const mainDuration = (workout.duration || 45) - 20; // Subtract warmup/cooldown time
+    segments.push({
+      order: 2,
+      type: 'work',
+      duration: mainDuration > 0 ? mainDuration : 25,
+      distance: workout.distance,
+      pace: workout.targetPace,
+      zone: typeof workout.zone === 'number' ? workout.zone : parseInt(String(workout.zone)) || undefined,
+      heartRate: workout.targetHR,
+      power: workout.targetPower,
+      description: workout.description,
+    });
+
+    // Cooldown
+    segments.push({
+      order: 3,
+      type: 'cooldown',
+      duration: 10,
+      zone: 1,
+      description: 'Nedvarvning',
+    });
+  } else {
+    // For strength/other workouts, single work segment
+    segments.push({
+      order: 1,
+      type: 'work',
+      duration: workout.duration,
+      description: workout.description,
+    });
+  }
+
+  return segments;
+}
+
 /**
  * Generate days from weekly template
  */
@@ -441,14 +618,10 @@ function generateDaysFromTemplate(
     type: WorkoutType;
     intensity: WorkoutIntensity;
     duration?: number;
+    distance?: number;
     description?: string;
-    segments?: Array<{
-      order: number;
-      type: string;
-      duration?: number;
-      zone?: number;
-      description?: string;
-    }>;
+    instructions?: string;
+    segments?: DbSegment[];
   }>;
 }> {
   const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -461,14 +634,10 @@ function generateDaysFromTemplate(
       type: WorkoutType;
       intensity: WorkoutIntensity;
       duration?: number;
+      distance?: number;
       description?: string;
-      segments?: Array<{
-        order: number;
-        type: string;
-        duration?: number;
-        zone?: number;
-        description?: string;
-      }>;
+      instructions?: string;
+      segments?: DbSegment[];
     }>;
   }> = [];
 
@@ -489,13 +658,7 @@ function generateDaysFromTemplate(
       });
     } else {
       const workout = dayTemplate as ParsedWorkout;
-      const segments = workout.intervals?.map((interval, idx) => ({
-        order: idx + 1,
-        type: 'interval',
-        duration: interval.workDuration,
-        zone: parseInt(interval.workIntensity) || undefined,
-        description: `${interval.repetitions}x - ${interval.workDuration}s work / ${interval.restDuration}s rest`
-      })) || [];
+      const segments = convertSegmentsToDbFormat(workout);
 
       days.push({
         dayNumber: i + 1, // 1-7 instead of 0-6
@@ -505,7 +668,9 @@ function generateDaysFromTemplate(
           type: mapToWorkoutType(workout.type),
           intensity: mapToWorkoutIntensity(workout.intensity),
           duration: workout.duration,
+          distance: workout.distance,
           description: workout.description,
+          instructions: workout.notes,
           segments: segments.length > 0 ? segments : undefined
         }]
       });

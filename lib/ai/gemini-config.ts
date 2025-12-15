@@ -73,9 +73,10 @@ export const GEMINI_CAPABILITIES = {
 
 /**
  * Cost estimates per 1K tokens (USD).
- * Based on Google AI pricing as of December 2025.
+ * Based on provider pricing as of December 2025.
  */
-export const GEMINI_PRICING = {
+export const GEMINI_PRICING: Record<string, { input: number; output: number }> = {
+  // Google Gemini models
   'gemini-3-pro-preview': {
     input: 0.002, // $2.00 per 1M input tokens
     output: 0.012, // $12.00 per 1M output tokens
@@ -88,7 +89,33 @@ export const GEMINI_PRICING = {
     input: 0.00015, // $0.15 per 1M input tokens
     output: 0.0006, // $0.60 per 1M output tokens
   },
-} as const;
+  // Anthropic Claude models
+  'claude-sonnet-4-5-20250929': {
+    input: 0.003, // $3.00 per 1M input tokens
+    output: 0.015, // $15.00 per 1M output tokens
+  },
+  'claude-opus-4-5-20251101': {
+    input: 0.005, // $5.00 per 1M input tokens
+    output: 0.025, // $25.00 per 1M output tokens
+  },
+  'claude-haiku-4-5-20251001': {
+    input: 0.001, // $1.00 per 1M input tokens
+    output: 0.005, // $5.00 per 1M output tokens
+  },
+  // OpenAI GPT models
+  'gpt-5.2-thinking': {
+    input: 0.010, // $10.00 per 1M input tokens
+    output: 0.030, // $30.00 per 1M output tokens
+  },
+  'gpt-5.2': {
+    input: 0.005, // $5.00 per 1M input tokens
+    output: 0.015, // $15.00 per 1M output tokens
+  },
+  'gpt-5.2-instant': {
+    input: 0.001, // $1.00 per 1M input tokens
+    output: 0.003, // $3.00 per 1M output tokens
+  },
+};
 
 /**
  * Estimate cost for a video analysis request.

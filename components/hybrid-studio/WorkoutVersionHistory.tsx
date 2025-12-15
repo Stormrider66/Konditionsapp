@@ -6,7 +6,7 @@
  * Displays version history for a workout and allows creating new versions.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -110,11 +110,7 @@ export function WorkoutVersionHistory({
   const [changeNotes, setChangeNotes] = useState('');
   const [createCopy, setCreateCopy] = useState(false);
 
-  useEffect(() => {
-    fetchVersionHistory();
-  }, [workoutId]);
-
-  async function fetchVersionHistory() {
+  const fetchVersionHistory = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/hybrid-workouts/${workoutId}/versions`);
@@ -128,7 +124,11 @@ export function WorkoutVersionHistory({
     } finally {
       setLoading(false);
     }
-  }
+  }, [workoutId]);
+
+  useEffect(() => {
+    fetchVersionHistory();
+  }, [fetchVersionHistory]);
 
   async function handleCreateVersion() {
     if (!changeNotes.trim() && !createCopy) {

@@ -73,6 +73,8 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
   const [deleteDocument, setDeleteDocument] = useState<Document | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false)
+  const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0 })
 
   const filteredDocuments = documents.filter(
     (doc) =>
@@ -136,14 +138,47 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  const handleUploadComplete = useCallback(() => {
+  // Fetch documents from API
+  const fetchDocuments = useCallback(async () => {
+    try {
+      const response = await fetch('/api/documents')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.documents) {
+          setDocuments(data.documents.map((doc: {
+            id: string
+            name: string
+            description: string | null
+            fileType: string
+            fileUrl: string
+            fileSize: number | null
+            mimeType: string | null
+            isSystem: boolean
+            processingStatus: string
+            processingError: string | null
+            chunkCount?: number
+            metadata?: { chunkCount?: number }
+            createdAt: string
+            updatedAt: string
+          }) => ({
+            ...doc,
+            chunkCount: doc.chunkCount ?? 0,
+            createdAt: new Date(doc.createdAt),
+            updatedAt: new Date(doc.updatedAt),
+          })))
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch documents:', error)
+    }
+  }, [])
+
+  const handleUploadComplete = useCallback(async () => {
     setShowUploader(false)
+    // Fetch fresh documents from API instead of relying on router.refresh()
+    await fetchDocuments()
     router.refresh()
-    toast({
-      title: 'Dokument uppladdat',
-      description: 'Dokumentet har laddats upp. Klicka på "Generera embeddings" för att aktivera sökning.',
-    })
-  }, [router, toast])
+  }, [router, fetchDocuments])
 
   const handleProcessDocument = async (docId: string) => {
     if (!hasOpenAIKey) {
@@ -175,6 +210,8 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
         description: `Dokumentet har bearbetats till ${data.chunksCreated} chunks.`,
       })
 
+      // Fetch fresh documents
+      await fetchDocuments()
       router.refresh()
     } catch (error) {
       toast({
@@ -185,6 +222,69 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
     } finally {
       setProcessingId(null)
     }
+  }
+
+  // Get pending documents count
+  const pendingDocuments = documents.filter(d => d.processingStatus === 'PENDING' || d.processingStatus === 'FAILED')
+
+  const handleProcessAllDocuments = async () => {
+    if (!hasOpenAIKey) {
+      toast({
+        title: 'OpenAI API-nyckel saknas',
+        description: 'Konfigurera din OpenAI API-nyckel i Inställningar för att generera embeddings.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const docsToProcess = documents.filter(d => d.processingStatus === 'PENDING' || d.processingStatus === 'FAILED')
+    if (docsToProcess.length === 0) {
+      toast({
+        title: 'Inga dokument att bearbeta',
+        description: 'Alla dokument är redan bearbetade.',
+      })
+      return
+    }
+
+    setIsBatchProcessing(true)
+    setBatchProgress({ current: 0, total: docsToProcess.length })
+
+    let successCount = 0
+    let failCount = 0
+
+    for (let i = 0; i < docsToProcess.length; i++) {
+      const doc = docsToProcess[i]
+      setBatchProgress({ current: i + 1, total: docsToProcess.length })
+
+      try {
+        const response = await fetch(`/api/documents/${doc.id}/embed`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ force: false }),
+        })
+
+        if (response.ok) {
+          successCount++
+        } else {
+          failCount++
+        }
+      } catch {
+        failCount++
+      }
+    }
+
+    setIsBatchProcessing(false)
+    setBatchProgress({ current: 0, total: 0 })
+
+    toast({
+      title: 'Bearbetning klar',
+      description: `${successCount} dokument bearbetade${failCount > 0 ? `, ${failCount} misslyckades` : ''}.`,
+      variant: failCount > 0 ? 'destructive' : 'default',
+    })
+
+    // Fetch fresh documents
+    await fetchDocuments()
+    router.refresh()
   }
 
   const handleDeleteDocument = async () => {
@@ -240,6 +340,25 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
               AI Studio
             </Link>
           </Button>
+          {pendingDocuments.length > 0 && hasOpenAIKey && (
+            <Button
+              variant="outline"
+              onClick={handleProcessAllDocuments}
+              disabled={isBatchProcessing}
+            >
+              {isBatchProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {batchProgress.current}/{batchProgress.total}
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Bearbeta alla ({pendingDocuments.length})
+                </>
+              )}
+            </Button>
+          )}
           <Button onClick={() => setShowUploader(true)}>
             <Upload className="h-4 w-4 mr-2" />
             Ladda upp
@@ -435,6 +554,8 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
         <DocumentUploader
           onClose={() => setShowUploader(false)}
           onUploadComplete={handleUploadComplete}
+          hasOpenAIKey={hasOpenAIKey}
+          autoProcess={true}
         />
       )}
 

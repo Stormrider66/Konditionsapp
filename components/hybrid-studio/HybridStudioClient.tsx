@@ -9,7 +9,7 @@
  * - Create new workout dialog
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -109,11 +109,7 @@ export function HybridStudioClient() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
 
-  useEffect(() => {
-    fetchWorkouts();
-  }, [search, formatFilter, benchmarkOnly]);
-
-  async function fetchWorkouts() {
+  const fetchWorkouts = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -132,7 +128,11 @@ export function HybridStudioClient() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [search, formatFilter, benchmarkOnly]);
+
+  useEffect(() => {
+    fetchWorkouts();
+  }, [fetchWorkouts]);
 
   function formatWorkoutDescription(workout: HybridWorkout): string {
     const parts: string[] = [];

@@ -13,7 +13,7 @@ import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 import { ClientVideoAnalyses } from '@/components/coach/video-analysis/ClientVideoAnalyses'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle } from 'lucide-react'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
   Select,
@@ -381,6 +381,12 @@ export default function ClientDetailPage() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Personuppgifter</h2>
             <div className="flex items-center gap-2">
+              <Link href={`/clients/${id}/profile`}>
+                <Button variant="default" size="sm">
+                  <UserCircle className="w-4 h-4 mr-2" />
+                  Fullständig profil
+                </Button>
+              </Link>
               <AIContextButton
                 athleteId={id}
                 athleteName={client.name}

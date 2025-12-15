@@ -3,8 +3,16 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { AIStudioClient } from '@/components/ai-studio/AIStudioClient'
 
-export default async function AIStudioPage() {
+interface PageProps {
+  searchParams: Promise<{
+    mode?: string
+    clientId?: string
+  }>
+}
+
+export default async function AIStudioPage({ searchParams }: PageProps) {
   const user = await requireCoach()
+  const params = await searchParams
 
   // Fetch coach's clients for athlete selection
   const clients = await prisma.client.findMany({
@@ -22,11 +30,10 @@ export default async function AIStudioPage() {
     orderBy: { name: 'asc' },
   })
 
-  // Fetch coach's documents
+  // Fetch coach's documents (include all statuses so user can see pending/failed)
   const documents = await prisma.coachDocument.findMany({
     where: {
       coachId: user.id,
-      processingStatus: 'COMPLETED',
     },
     select: {
       id: true,
@@ -35,14 +42,14 @@ export default async function AIStudioPage() {
       fileType: true,
       chunkCount: true,
       createdAt: true,
+      processingStatus: true,
     },
     orderBy: { createdAt: 'desc' },
   })
 
-  // Fetch available AI models
+  // Fetch available AI models (for finding default model)
   const models = await prisma.aIModel.findMany({
     where: { isActive: true },
-    orderBy: [{ isDefault: 'desc' }, { displayName: 'asc' }],
   })
 
   // Check if user has API keys configured and get default model
@@ -92,7 +99,6 @@ export default async function AIStudioPage() {
     <AIStudioClient
       clients={clients}
       documents={documents}
-      models={models}
       conversations={conversations}
       hasApiKeys={hasApiKeys}
       apiKeyStatus={{
@@ -101,6 +107,8 @@ export default async function AIStudioPage() {
         openai: apiKeys?.openaiKeyValid ?? false,
       }}
       defaultModel={defaultModel || null}
+      initialMode={params.mode}
+      initialClientId={params.clientId}
     />
   )
 }

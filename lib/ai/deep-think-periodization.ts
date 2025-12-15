@@ -176,7 +176,7 @@ export async function analyzeWithDeepThink(
   const result = await generateText({
     model: google(GEMINI_MODELS.VIDEO_ANALYSIS),
     prompt: buildDeepThinkPrompt(contextString),
-    maxTokens: 8192,
+    maxOutputTokens: 8192,
     // Enable deep thinking mode for complex multi-week periodization analysis
     providerOptions: getGeminiThinkingOptions('deep'),
   });

@@ -5,7 +5,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { streamText, type CoreMessage, type LanguageModelV1 } from 'ai';
+import { streamText, type CoreMessage, type LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
@@ -16,12 +16,22 @@ import { buildSportSpecificContext, type AthleteData } from '@/lib/ai/sport-cont
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
 
+// Support both old (content) and new (parts) message formats
+interface UIMessagePart {
+  type: 'text';
+  text: string;
+}
+
+interface ChatRequestMessage {
+  id?: string;
+  role: 'user' | 'assistant' | 'system';
+  content?: string;
+  parts?: UIMessagePart[];
+}
+
 interface ChatRequest {
   conversationId?: string;
-  messages: Array<{
-    role: 'user' | 'assistant' | 'system';
-    content: string;
-  }>;
+  messages: ChatRequestMessage[];
   model: string;
   provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI';
   athleteId?: string;
@@ -29,6 +39,32 @@ interface ChatRequest {
   webSearchEnabled?: boolean;
   /** Page-specific context data (video analysis, test results, etc.) */
   pageContext?: string;
+}
+
+/**
+ * Extract text content from a message (handles both old and new formats)
+ * AI SDK 5 sends messages with `parts` array, older format uses `content` string
+ */
+function getMessageContent(message: ChatRequestMessage): string {
+  // New format: parts array
+  if (message.parts && message.parts.length > 0) {
+    return message.parts
+      .filter((part): part is UIMessagePart => part.type === 'text')
+      .map((part) => part.text)
+      .join('');
+  }
+  // Old format: content string
+  return message.content || '';
+}
+
+/**
+ * Convert UIMessage format to CoreMessage format for streamText
+ */
+function convertToCoreMessages(messages: ChatRequestMessage[]): CoreMessage[] {
+  return messages.map((msg) => ({
+    role: msg.role,
+    content: getMessageContent(msg),
+  }));
 }
 
 export async function POST(request: NextRequest) {
@@ -296,8 +332,9 @@ ${prog.goalRace ? `- **Mållopp**: ${prog.goalRace}` : ''}
       const lastUserMessage = messages.filter(m => m.role === 'user').pop();
       if (lastUserMessage) {
         try {
+          const lastUserContent = getMessageContent(lastUserMessage);
           const chunks = await searchSimilarChunks(
-            lastUserMessage.content,
+            lastUserContent,
             user.id,
             decryptedKeys.openaiKey,
             {
@@ -336,7 +373,7 @@ ${c.content}
       if (lastUserMessage) {
         try {
           // Extract search-worthy terms from the user's message
-          const searchQuery = lastUserMessage.content;
+          const searchQuery = getMessageContent(lastUserMessage);
 
           // Only search if the query seems to be asking for research/information
           const searchTerms = ['forskning', 'research', 'studie', 'senaste', 'aktuell',
@@ -408,7 +445,7 @@ ${pageContext}
         apiKey: decryptedKeys.openaiKey,
       });
       // OpenAI SDK returns LanguageModelV2 which is compatible with streamText
-      aiModel = openai(model || 'gpt-4.1');
+      aiModel = openai(model || 'gpt-5.2');
     } else {
       return new Response(
         JSON.stringify({ error: 'No valid API key for selected provider' }),
@@ -416,20 +453,25 @@ ${pageContext}
       );
     }
 
+    // Convert UIMessage format to CoreMessage format for streamText
+    const coreMessages = convertToCoreMessages(messages);
+
     // Log request details for debugging
+    const firstContent = coreMessages[0]?.content;
     console.log('AI Chat Request:', {
       provider,
       model,
       hasApiKey: !!decryptedKeys.anthropicKey || !!decryptedKeys.googleKey || !!decryptedKeys.openaiKey,
       messageCount: messages.length,
+      firstMessagePreview: typeof firstContent === 'string' ? firstContent.substring(0, 100) : '[non-text content]',
     });
 
     // Stream the response
     const result = streamText({
-      model: aiModel as LanguageModelV1,
+      model: aiModel as LanguageModel,
       system: systemPrompt,
-      messages: messages as CoreMessage[],
-      maxTokens: 4096,
+      messages: coreMessages,
+      maxOutputTokens: 4096,
       experimental_telemetry: { isEnabled: false },
       onError: (error) => {
         console.error('Stream error during generation:', error);
@@ -446,7 +488,7 @@ ${pageContext}
                 data: {
                   conversationId,
                   role: 'user',
-                  content: lastUserMessage.content,
+                  content: getMessageContent(lastUserMessage),
                 },
               });
             }
@@ -457,8 +499,8 @@ ${pageContext}
                 conversationId,
                 role: 'assistant',
                 content: text,
-                inputTokens: usage?.promptTokens,
-                outputTokens: usage?.completionTokens,
+                inputTokens: usage?.inputTokens,
+                outputTokens: usage?.outputTokens,
                 modelUsed: model,
               },
             });
@@ -468,7 +510,7 @@ ${pageContext}
               where: { id: conversationId },
               data: {
                 totalTokensUsed: {
-                  increment: (usage?.promptTokens || 0) + (usage?.completionTokens || 0),
+                  increment: (usage?.inputTokens || 0) + (usage?.outputTokens || 0),
                 },
                 updatedAt: new Date(),
               },
@@ -482,10 +524,8 @@ ${pageContext}
 
     // Create the stream response with error handling
     try {
-      // Consume the text stream to catch any API errors
-      const textStream = result.textStream;
-
-      const response = result.toDataStreamResponse();
+      // AI SDK 5: Use toUIMessageStreamResponse for DefaultChatTransport compatibility
+      const response = result.toUIMessageStreamResponse();
       console.log('Stream response created successfully');
       return response;
     } catch (streamError) {

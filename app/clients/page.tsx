@@ -43,7 +43,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { LoadingTable } from '@/components/ui/loading'
 import { useToast } from '@/hooks/use-toast'
-import { MoreVertical, UserPlus, Eye, Trash2, ArrowLeft, Phone, Mail, Download } from 'lucide-react'
+import { MoreVertical, UserPlus, Eye, Trash2, ArrowLeft, Phone, Mail, Download, UserCircle } from 'lucide-react'
 import { MobileNav } from '@/components/navigation/MobileNav'
 import { exportClientsToCSV } from '@/lib/utils/csv-export'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
@@ -317,6 +317,12 @@ export default function ClientsPage() {
                                   Visa
                                 </Link>
                               </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/clients/${client.id}/profile`} className="cursor-pointer">
+                                  <UserCircle className="w-4 h-4 mr-2" />
+                                  Fullständig profil
+                                </Link>
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleDeleteClick(client)}
                                 className="text-red-600 focus:text-red-600"
@@ -420,6 +426,15 @@ export default function ClientsPage() {
                                 >
                                   <Eye className="w-4 h-4 mr-2" />
                                   Visa
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  href={`/clients/${client.id}/profile`}
+                                  className="cursor-pointer"
+                                >
+                                  <UserCircle className="w-4 h-4 mr-2" />
+                                  Fullständig profil
                                 </Link>
                               </DropdownMenuItem>
                               <DropdownMenuItem

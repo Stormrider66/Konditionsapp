@@ -172,6 +172,49 @@ export async function getUserOpenAIKey(userId: string): Promise<string | null> {
   return keys.openaiKey
 }
 
+// Track if we've initialized the vector column
+let vectorColumnInitialized = false;
+
+/**
+ * Ensure the embedding column exists with the correct type
+ */
+async function ensureVectorColumn(): Promise<void> {
+  if (vectorColumnInitialized) return;
+
+  try {
+    // Check if the column exists
+    const columnCheck = await prisma.$queryRaw<{ exists: boolean }[]>`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'KnowledgeChunk' AND column_name = 'embedding'
+      ) as exists
+    `;
+
+    if (!columnCheck[0]?.exists) {
+      console.log('[Embeddings] Creating embedding column...');
+      // Try to add the column with extensions schema (Supabase default)
+      try {
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "KnowledgeChunk"
+          ADD COLUMN IF NOT EXISTS embedding extensions.vector(1536)
+        `);
+      } catch {
+        // Fallback to unqualified vector type
+        await prisma.$executeRawUnsafe(`
+          ALTER TABLE "KnowledgeChunk"
+          ADD COLUMN IF NOT EXISTS embedding vector(1536)
+        `);
+      }
+      console.log('[Embeddings] Embedding column created');
+    }
+
+    vectorColumnInitialized = true;
+  } catch (error) {
+    console.error('[Embeddings] Failed to ensure vector column:', error);
+    throw error;
+  }
+}
+
 /**
  * Store embeddings for a document's chunks
  */
@@ -182,6 +225,9 @@ export async function storeChunkEmbeddings(
   apiKey: string
 ): Promise<{ success: boolean; chunksStored: number; error?: string }> {
   try {
+    // Ensure the embedding column exists
+    await ensureVectorColumn();
+
     // Generate embeddings for all chunks
     const contents = chunks.map((c) => c.content);
     const embeddings = await generateEmbeddings(contents, apiKey);
@@ -205,12 +251,24 @@ export async function storeChunkEmbeddings(
       });
 
       // Update embedding using raw SQL (pgvector)
+      // Use schema-qualified type for Supabase compatibility (extensions.vector)
       const embeddingArray = `[${embedding.embedding.join(',')}]`;
-      await prisma.$executeRawUnsafe(
-        `UPDATE "KnowledgeChunk" SET embedding = $1::vector WHERE id = $2`,
-        embeddingArray,
-        knowledgeChunk.id
-      );
+      try {
+        // Try with extensions schema first (Supabase default)
+        await prisma.$executeRawUnsafe(
+          `UPDATE "KnowledgeChunk" SET embedding = $1::extensions.vector WHERE id = $2`,
+          embeddingArray,
+          knowledgeChunk.id
+        );
+      } catch {
+        // Fallback to public schema if extensions doesn't work
+        console.log('[Embeddings] extensions.vector failed, trying public.vector...');
+        await prisma.$executeRawUnsafe(
+          `UPDATE "KnowledgeChunk" SET embedding = $1::vector WHERE id = $2`,
+          embeddingArray,
+          knowledgeChunk.id
+        );
+      }
     }
 
     // Update document chunk count
@@ -271,70 +329,112 @@ export async function searchSimilarChunks(
   const embeddingArray = `[${embedding.join(',')}]`;
 
   // Search using pgvector
+  // Try extensions.vector first (Supabase), fallback to unqualified
   let results;
 
-  if (documentIds && documentIds.length > 0) {
-    // Filter by specific documents
-    results = await prisma.$queryRawUnsafe<
-      {
-        id: string;
-        document_id: string;
-        content: string;
-        metadata: Record<string, unknown> | null;
-        similarity: number;
-      }[]
-    >(
-      `
+  const searchQuery = (vectorType: string, withDocs: boolean) => withDocs
+    ? `
       SELECT
         id,
         "documentId" as document_id,
         content,
         metadata,
-        1 - (embedding <=> $1::vector) as similarity
+        1 - (embedding <=> $1::${vectorType}) as similarity
       FROM "KnowledgeChunk"
       WHERE "coachId" = $2
         AND "documentId" = ANY($3)
         AND embedding IS NOT NULL
-        AND 1 - (embedding <=> $1::vector) > $4
-      ORDER BY embedding <=> $1::vector
+        AND 1 - (embedding <=> $1::${vectorType}) > $4
+      ORDER BY embedding <=> $1::${vectorType}
       LIMIT $5
-    `,
-      embeddingArray,
-      coachId,
-      documentIds,
-      matchThreshold,
-      matchCount
-    );
-  } else {
-    // Search all coach documents
-    results = await prisma.$queryRawUnsafe<
-      {
-        id: string;
-        document_id: string;
-        content: string;
-        metadata: Record<string, unknown> | null;
-        similarity: number;
-      }[]
-    >(
-      `
+    `
+    : `
       SELECT
         id,
         "documentId" as document_id,
         content,
         metadata,
-        1 - (embedding <=> $1::vector) as similarity
+        1 - (embedding <=> $1::${vectorType}) as similarity
       FROM "KnowledgeChunk"
       WHERE "coachId" = $2
         AND embedding IS NOT NULL
-        AND 1 - (embedding <=> $1::vector) > $3
-      ORDER BY embedding <=> $1::vector
+        AND 1 - (embedding <=> $1::${vectorType}) > $3
+      ORDER BY embedding <=> $1::${vectorType}
       LIMIT $4
-    `,
-      embeddingArray,
-      coachId,
-      matchThreshold,
-      matchCount
-    );
+    `;
+
+  try {
+    if (documentIds && documentIds.length > 0) {
+      results = await prisma.$queryRawUnsafe<
+        {
+          id: string;
+          document_id: string;
+          content: string;
+          metadata: Record<string, unknown> | null;
+          similarity: number;
+        }[]
+      >(
+        searchQuery('extensions.vector', true),
+        embeddingArray,
+        coachId,
+        documentIds,
+        matchThreshold,
+        matchCount
+      );
+    } else {
+      results = await prisma.$queryRawUnsafe<
+        {
+          id: string;
+          document_id: string;
+          content: string;
+          metadata: Record<string, unknown> | null;
+          similarity: number;
+        }[]
+      >(
+        searchQuery('extensions.vector', false),
+        embeddingArray,
+        coachId,
+        matchThreshold,
+        matchCount
+      );
+    }
+  } catch {
+    // Fallback to unqualified vector type
+    console.log('[Embeddings] Search fallback to unqualified vector type');
+    if (documentIds && documentIds.length > 0) {
+      results = await prisma.$queryRawUnsafe<
+        {
+          id: string;
+          document_id: string;
+          content: string;
+          metadata: Record<string, unknown> | null;
+          similarity: number;
+        }[]
+      >(
+        searchQuery('vector', true),
+        embeddingArray,
+        coachId,
+        documentIds,
+        matchThreshold,
+        matchCount
+      );
+    } else {
+      results = await prisma.$queryRawUnsafe<
+        {
+          id: string;
+          document_id: string;
+          content: string;
+          metadata: Record<string, unknown> | null;
+          similarity: number;
+        }[]
+      >(
+        searchQuery('vector', false),
+        embeddingArray,
+        coachId,
+        matchThreshold,
+        matchCount
+      );
+    }
   }
 
   return results.map((r) => ({

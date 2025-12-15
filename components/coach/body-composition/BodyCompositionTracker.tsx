@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -103,7 +103,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
   const [editingMeasurement, setEditingMeasurement] = useState<BodyComposition | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const response = await fetch(`/api/body-composition?clientId=${clientId}&analysis=true`)
       const data = await response.json()
@@ -123,11 +123,11 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [clientId, toast])
 
   useEffect(() => {
     fetchData()
-  }, [clientId])
+  }, [fetchData])
 
   const handleDelete = async () => {
     if (!deleteId) return

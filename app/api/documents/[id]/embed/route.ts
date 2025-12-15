@@ -198,7 +198,8 @@ export async function POST(
       message: `Successfully processed document into ${result.chunksStored} chunks with embeddings.`,
     });
   } catch (error) {
-    console.error('Document embedding error:', error);
+    console.error('[Document Embed] Error:', error);
+    console.error('[Document Embed] Error stack:', error instanceof Error ? error.stack : 'No stack');
 
     // Try to update status to failed
     const { id } = await params;
@@ -211,8 +212,8 @@ export async function POST(
             error instanceof Error ? error.message : 'Unknown error',
         },
       });
-    } catch {
-      // Ignore update error
+    } catch (updateError) {
+      console.error('[Document Embed] Failed to update status:', updateError);
     }
 
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -223,6 +224,7 @@ export async function POST(
       {
         error: 'Failed to process document',
         message: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
       },
       { status: 500 }
     );

@@ -12,6 +12,7 @@
  */
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -209,10 +210,12 @@ export function LactateScanButton({
             {/* Image preview */}
             {previewUrl && (
               <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                <img
+                <Image
                   src={previewUrl}
                   alt="Laktatmätare"
-                  className="w-full h-full object-contain"
+                  fill
+                  className="object-contain"
+                  unoptimized
                 />
                 {isProcessing && (
                   <div className="absolute inset-0 bg-background/80 flex items-center justify-center">

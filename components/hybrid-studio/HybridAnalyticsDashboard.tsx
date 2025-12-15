@@ -7,7 +7,7 @@
  * Used by both athletes (own data) and coaches (athlete data).
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -82,11 +82,7 @@ export function HybridAnalyticsDashboard({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [athleteId]);
-
-  async function fetchAnalytics() {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const url = isCoachView
@@ -106,7 +102,11 @@ export function HybridAnalyticsDashboard({
     } finally {
       setLoading(false);
     }
-  }
+  }, [athleteId, isCoachView]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   if (loading) {
     return <AnalyticsSkeleton />;

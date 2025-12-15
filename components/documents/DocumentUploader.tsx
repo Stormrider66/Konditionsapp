@@ -28,6 +28,8 @@ import {
 interface DocumentUploaderProps {
   onClose: () => void
   onUploadComplete: () => void
+  hasOpenAIKey?: boolean
+  autoProcess?: boolean
 }
 
 type FileTypeInfo = {
@@ -66,13 +68,20 @@ const getFileTypeInfo = (file: File): FileTypeInfo | null => {
   return null
 }
 
-export function DocumentUploader({ onClose, onUploadComplete }: DocumentUploaderProps) {
+export function DocumentUploader({
+  onClose,
+  onUploadComplete,
+  hasOpenAIKey = false,
+  autoProcess = true
+}: DocumentUploaderProps) {
   const { toast } = useToast()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileTypeInfo, setFileTypeInfo] = useState<FileTypeInfo | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [isUploading, setIsUploading] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'processing' | 'done'>('idle')
   const [textContent, setTextContent] = useState<string | null>(null)
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -131,55 +140,99 @@ export function DocumentUploader({ onClose, onUploadComplete }: DocumentUploader
     }
 
     setIsUploading(true)
+    setUploadStatus('uploading')
 
     try {
-      // For TEXT and MARKDOWN, we can store content directly
-      // For PDF/EXCEL/VIDEO, we need to upload to storage first
-      let fileUrl = ''
-
-      if (fileTypeInfo.type === 'TEXT' || fileTypeInfo.type === 'MARKDOWN') {
-        // Store text content directly - use a data URL or just reference
-        fileUrl = `data:text/plain;base64,${btoa(unescape(encodeURIComponent(textContent || '')))}`
-      } else {
-        // For now, show message that file upload to storage is needed
-        // In production, you would upload to Supabase Storage here
-        toast({
-          title: 'Filuppladdning till lagring',
-          description: 'PDF- och Excel-filer kräver lagring (Supabase Storage). Kontakta administratör.',
-          variant: 'destructive',
-        })
-        setIsUploading(false)
-        return
+      // Use FormData for all file types - the API handles storage appropriately
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      formData.append('name', name.trim())
+      if (description.trim()) {
+        formData.append('description', description.trim())
       }
 
-      // Create document record
-      const response = await fetch('/api/documents', {
+      console.log('[DocumentUploader] Starting upload:', {
+        fileName: selectedFile.name,
+        fileType: fileTypeInfo?.type,
+        fileSize: selectedFile.size,
+        name: name.trim(),
+      })
+
+      // Upload via the new upload endpoint
+      const response = await fetch('/api/documents/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim() || null,
-          fileType: fileTypeInfo.type,
-          fileUrl,
-          fileSize: selectedFile.size,
-          mimeType: selectedFile.type,
-          content: textContent, // For text/markdown
-        }),
+        body: formData,
       })
 
       const data = await response.json()
+      console.log('[DocumentUploader] Upload response:', { ok: response.ok, status: response.status, data })
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create document')
+        // Check for storage bucket not found error
+        if (data.setupInstructions) {
+          toast({
+            title: data.error || 'Uppladdning misslyckades',
+            description: data.details || 'Se konsolen för detaljer.',
+            variant: 'destructive',
+          })
+          console.error('Storage setup instructions:', data.setupInstructions)
+          throw new Error(data.error)
+        }
+        throw new Error(data.error || 'Failed to upload document')
       }
 
-      toast({
-        title: 'Dokument uppladdat',
-        description: 'Dokumentet har sparats. Generera embeddings för att aktivera sökning.',
-      })
+      // Auto-process if OpenAI key is available and autoProcess is enabled
+      if (hasOpenAIKey && autoProcess && data.document?.id) {
+        setUploadStatus('processing')
+        setIsProcessing(true)
 
+        try {
+          const embedResponse = await fetch(`/api/documents/${data.document.id}/embed`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force: false }),
+          })
+
+          const embedData = await embedResponse.json()
+
+          if (embedResponse.ok) {
+            setUploadStatus('done')
+            toast({
+              title: 'Dokument klart!',
+              description: `Uppladdat och bearbetat till ${embedData.chunksCreated} sökbara delar.`,
+            })
+          } else {
+            // Upload succeeded but processing failed - still complete but warn
+            toast({
+              title: 'Dokument uppladdat',
+              description: `Uppladdning klar, men bearbetning misslyckades: ${embedData.error}. Försök igen från Dokument-sidan.`,
+              variant: 'destructive',
+            })
+          }
+        } catch (embedError) {
+          // Upload succeeded but processing failed
+          toast({
+            title: 'Dokument uppladdat',
+            description: 'Uppladdning klar, men bearbetning misslyckades. Försök igen från Dokument-sidan.',
+            variant: 'destructive',
+          })
+        } finally {
+          setIsProcessing(false)
+        }
+      } else {
+        toast({
+          title: 'Dokument uppladdat',
+          description: hasOpenAIKey
+            ? 'Dokumentet har sparats. Klicka "Generera" för att aktivera AI-sökning.'
+            : 'Dokumentet har sparats. Konfigurera OpenAI API-nyckel för att aktivera sökning.',
+        })
+      }
+
+      console.log('[DocumentUploader] Upload successful, calling onUploadComplete')
       onUploadComplete()
     } catch (error) {
+      console.error('[DocumentUploader] Upload failed:', error)
+      setUploadStatus('idle')
       toast({
         title: 'Uppladdning misslyckades',
         description: error instanceof Error ? error.message : 'Okänt fel',
@@ -292,7 +345,7 @@ export function DocumentUploader({ onClose, onUploadComplete }: DocumentUploader
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Fillagring</p>
-                    <p>PDF- och Excel-filer kräver Supabase Storage för att lagras. Text och Markdown kan laddas upp direkt.</p>
+                    <p>PDF- och Excel-filer lagras i Supabase Storage. Efter uppladdning, klicka &quot;Generera&quot; för att göra innehållet sökbart för AI.</p>
                   </div>
                 </div>
               )}
@@ -312,19 +365,24 @@ export function DocumentUploader({ onClose, onUploadComplete }: DocumentUploader
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isUploading}>
+          <Button variant="outline" onClick={onClose} disabled={isUploading || isProcessing}>
             Avbryt
           </Button>
-          <Button onClick={handleUpload} disabled={!selectedFile || !name.trim() || isUploading}>
-            {isUploading ? (
+          <Button onClick={handleUpload} disabled={!selectedFile || !name.trim() || isUploading || isProcessing}>
+            {uploadStatus === 'uploading' ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Laddar upp...
               </>
+            ) : uploadStatus === 'processing' ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Bearbetar för AI...
+              </>
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
-                Ladda upp
+                {hasOpenAIKey ? 'Ladda upp & bearbeta' : 'Ladda upp'}
               </>
             )}
           </Button>

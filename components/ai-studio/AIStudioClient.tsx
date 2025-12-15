@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useChat } from 'ai/react'
+import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -25,9 +26,17 @@ import {
   AlertCircle,
   Sparkles,
   StopCircle,
+  ArrowLeft,
+  Wand2,
 } from 'lucide-react'
+import {
+  getProgramContext,
+  clearProgramContext,
+  buildProgramPrompt,
+  type ProgramContext,
+} from '@/lib/ai/program-context-builder'
 import { ContextPanel } from './ContextPanel'
-import { ModelSelector } from './ModelSelector'
+import { GlobalModelDisplay } from './GlobalModelDisplay'
 import { ChatMessage } from './ChatMessage'
 import { CostEstimate, SessionCostSummary } from './CostEstimate'
 import type { AIProvider } from '@prisma/client'
@@ -48,6 +57,7 @@ interface Document {
   fileType: string
   chunkCount: number
   createdAt: Date
+  processingStatus: string
 }
 
 interface AIModel {
@@ -76,7 +86,6 @@ interface Conversation {
 interface AIStudioClientProps {
   clients: Client[]
   documents: Document[]
-  models: AIModel[]
   conversations: Conversation[]
   hasApiKeys: boolean
   apiKeyStatus: {
@@ -85,51 +94,54 @@ interface AIStudioClientProps {
     openai: boolean
   }
   defaultModel: AIModel | null
+  initialMode?: string
+  initialClientId?: string
 }
 
 export function AIStudioClient({
   clients,
   documents,
-  models,
   conversations: initialConversations,
   hasApiKeys,
   apiKeyStatus,
   defaultModel,
+  initialMode,
+  initialClientId,
 }: AIStudioClientProps) {
   const router = useRouter()
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Program mode state
+  const [programMode, setProgramMode] = useState(initialMode === 'program')
+  const [programContext, setProgramContext] = useState<ProgramContext | null>(null)
+  const [programContextLoaded, setProgramContextLoaded] = useState(false)
+
   // State
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [selectedAthlete, setSelectedAthlete] = useState<string | null>(null)
+  const [selectedAthlete, setSelectedAthlete] = useState<string | null>(initialClientId || null)
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
-  // Use user's global default model (passed from server)
-  const [selectedModel, setSelectedModel] = useState<AIModel | null>(defaultModel)
   const [conversations, setConversations] = useState(initialConversations)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
 
-  // Vercel AI SDK useChat hook (v4 API)
+  // Manual input state (AI SDK 5 no longer manages input state)
+  const [input, setInput] = useState('')
+
+  // Vercel AI SDK useChat hook (v5 API)
+  // Note: Dynamic values (athleteId, model, etc.) are passed via sendMessage options
+  // because DefaultChatTransport body is captured at initialization time
   const {
     messages,
-    input,
-    setInput,
-    handleSubmit,
-    isLoading,
+    sendMessage,
+    status,
     stop,
     setMessages,
     error,
   } = useChat({
-    api: '/api/ai/chat',
-    body: {
-      conversationId: currentConversationId,
-      model: selectedModel?.modelId,
-      provider: selectedModel?.provider,
-      athleteId: selectedAthlete,
-      documentIds: selectedDocuments,
-      webSearchEnabled,
-    },
+    transport: new DefaultChatTransport({
+      api: '/api/ai/chat',
+    }),
     onError: (error) => {
       toast({
         title: 'Kunde inte skicka meddelande',
@@ -141,6 +153,18 @@ export function AIStudioClient({
       router.refresh()
     },
   })
+
+  // Helper to get current body params for sendMessage
+  const getCurrentBodyParams = () => ({
+    conversationId: currentConversationId,
+    model: defaultModel?.modelId,
+    provider: defaultModel?.provider,
+    athleteId: selectedAthlete,
+    documentIds: selectedDocuments,
+    webSearchEnabled,
+  })
+
+  const isLoading = status === 'streaming' || status === 'submitted'
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -158,12 +182,64 @@ export function AIStudioClient({
     }
   }, [error, toast])
 
+  // Load program context from sessionStorage when in program mode
+  useEffect(() => {
+    if (programMode && !programContextLoaded) {
+      const context = getProgramContext()
+      if (context) {
+        setProgramContext(context)
+        // Auto-select the athlete from context
+        if (context.wizardData.clientId) {
+          setSelectedAthlete(context.wizardData.clientId)
+        }
+      }
+      setProgramContextLoaded(true)
+    }
+  }, [programMode, programContextLoaded])
+
+  // Handle "Start with context" button click - send initial message with program context
+  async function handleStartWithContext() {
+    if (!programContext) return
+
+    if (!hasApiKeys) {
+      toast({
+        title: 'API-nycklar saknas',
+        description: 'Konfigurera dina API-nycklar i Inställningar för att använda AI Studio.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Create conversation if needed
+    if (!currentConversationId) {
+      const convId = await createConversation()
+      if (!convId) return
+    }
+
+    const prompt = buildProgramPrompt(programContext)
+    sendMessage({ text: prompt }, { body: getCurrentBodyParams() })
+  }
+
+  // Handle "Back to wizard" button
+  function handleBackToWizard() {
+    router.push('/coach/programs/new')
+  }
+
+  // Exit program mode
+  function exitProgramMode() {
+    setProgramMode(false)
+    setProgramContext(null)
+    clearProgramContext()
+    setMessages([])
+    setCurrentConversationId(null)
+  }
+
   // Create new conversation
   async function createConversation() {
-    if (!selectedModel) {
+    if (!defaultModel) {
       toast({
-        title: 'Välj en AI-modell',
-        description: 'Du måste välja en AI-modell innan du kan starta en konversation.',
+        title: 'Ingen AI-modell konfigurerad',
+        description: 'Gå till Inställningar → AI för att välja en standardmodell.',
         variant: 'destructive',
       })
       return null
@@ -174,8 +250,8 @@ export function AIStudioClient({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          modelUsed: selectedModel.modelId,
-          provider: selectedModel.provider,
+          modelUsed: defaultModel.modelId,
+          provider: defaultModel.provider,
           athleteId: selectedAthlete,
           contextDocuments: selectedDocuments,
           webSearchEnabled,
@@ -222,7 +298,9 @@ export function AIStudioClient({
       if (!convId) return
     }
 
-    handleSubmit(e)
+    const messageContent = input.trim()
+    setInput('') // Clear input
+    sendMessage({ text: messageContent }, { body: getCurrentBodyParams() })
   }
 
   // Load conversation messages
@@ -357,6 +435,30 @@ export function AIStudioClient({
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Program Mode Banner */}
+        {programMode && programContext && (
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-b px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Wand2 className="h-5 w-5 text-blue-600" />
+              <div>
+                <span className="font-medium text-sm">Programskapningsläge</span>
+                <span className="text-muted-foreground text-sm ml-2">
+                  {programContext.wizardData.clientName} • {getSportLabel(programContext.wizardData.sport)} • {getGoalLabel(programContext.wizardData.goal)}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={handleBackToWizard}>
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Tillbaka till guiden
+              </Button>
+              <Button variant="ghost" size="sm" onClick={exitProgramMode}>
+                Avsluta läge
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="border-b p-4 flex items-center justify-between bg-background">
           <div className="flex items-center gap-4">
@@ -384,12 +486,7 @@ export function AIStudioClient({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <ModelSelector
-              models={models}
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-              apiKeyStatus={apiKeyStatus}
-            />
+            <GlobalModelDisplay model={defaultModel} />
             <Button variant="outline" size="sm" onClick={startNewChat}>
               <Plus className="h-4 w-4 mr-1" />
               Ny chatt
@@ -401,97 +498,155 @@ export function AIStudioClient({
         <ScrollArea className="flex-1 p-4">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
-              <Sparkles className="h-16 w-16 text-blue-600/20 mb-4" />
-              <h2 className="text-2xl font-semibold mb-2">Välkommen till AI Studio</h2>
-              <p className="text-muted-foreground max-w-md mb-6">
-                Skapa träningsprogram med hjälp av AI. Välj en atlet, lägg till dokument
-                som kontext, och börja chatta.
-              </p>
-              <div className="grid gap-2 max-w-lg w-full">
-                <Button
-                  variant="outline"
-                  className="justify-start h-auto py-3 px-4"
-                  onClick={() => setInput('Skapa ett 8-veckors träningsprogram för en maratonlöpare')}
-                >
-                  <span className="text-left">
-                    <span className="font-medium">Skapa träningsprogram</span>
-                    <span className="text-muted-foreground text-sm block">
-                      8-veckors maratonprogram
-                    </span>
-                  </span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="justify-start h-auto py-3 px-4"
-                  onClick={() => setInput('Analysera min athletes laktattest och föreslå tröskelvärden')}
-                >
-                  <span className="text-left">
-                    <span className="font-medium">Analysera testresultat</span>
-                    <span className="text-muted-foreground text-sm block">
-                      Laktattest & tröskelvärden
-                    </span>
-                  </span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="justify-start h-auto py-3 px-4"
-                  onClick={() => setInput('Hjälp mig planera en periodisering för HYROX')}
-                >
-                  <span className="text-left">
-                    <span className="font-medium">HYROX-planering</span>
-                    <span className="text-muted-foreground text-sm block">
-                      Periodisering & stationer
-                    </span>
-                  </span>
-                </Button>
-              </div>
+              {/* Program Mode Welcome */}
+              {programMode && programContext ? (
+                <>
+                  <Wand2 className="h-16 w-16 text-blue-600/40 mb-4" />
+                  <h2 className="text-2xl font-semibold mb-2">Skapa program med AI</h2>
+                  <p className="text-muted-foreground max-w-md mb-6">
+                    All information från programguiden har laddats in. Välj dokument i sidopanelen
+                    för att ge AI extra kontext, och klicka sedan på knappen nedan för att starta.
+                  </p>
 
-              {/* Recent Conversations */}
-              {conversations.length > 0 && (
-                <div className="mt-8 w-full max-w-lg">
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
-                    <History className="h-4 w-4" />
-                    Senaste konversationer
-                  </h3>
-                  <div className="space-y-1">
-                    {conversations.slice(0, 5).map((conv) => (
-                      <button
-                        key={conv.id}
-                        onClick={() => loadConversation(conv.id)}
-                        className="w-full text-left p-2 rounded-lg hover:bg-muted transition text-sm"
-                      >
-                        <span className="font-medium">
-                          {conv.title || 'Ny konversation'}
-                        </span>
-                        {conv.athlete && (
-                          <span className="text-muted-foreground ml-2">
-                            - {conv.athlete.name}
-                          </span>
-                        )}
-                      </button>
-                    ))}
+                  {/* Context Summary */}
+                  <div className="bg-muted/50 rounded-lg p-4 max-w-lg w-full mb-6 text-left">
+                    <h3 className="font-medium mb-2">Inläst kontext:</h3>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• <strong>Atlet:</strong> {programContext.wizardData.clientName}</li>
+                      <li>• <strong>Sport:</strong> {getSportLabel(programContext.wizardData.sport)}</li>
+                      <li>• <strong>Mål:</strong> {getGoalLabel(programContext.wizardData.goal)}</li>
+                      <li>• <strong>Längd:</strong> {programContext.wizardData.durationWeeks} veckor</li>
+                      <li>• <strong>Pass/vecka:</strong> {programContext.wizardData.sessionsPerWeek}</li>
+                      {programContext.wizardData.targetTime && (
+                        <li>• <strong>Måltid:</strong> {programContext.wizardData.targetTime}</li>
+                      )}
+                      {programContext.wizardData.methodology && programContext.wizardData.methodology !== 'AUTO' && (
+                        <li>• <strong>Metodik:</strong> {programContext.wizardData.methodology}</li>
+                      )}
+                      {programContext.wizardData.includeStrength && (
+                        <li>• <strong>Styrka:</strong> {programContext.wizardData.strengthSessionsPerWeek}x/vecka</li>
+                      )}
+                    </ul>
                   </div>
-                </div>
+
+                  <div className="flex flex-col gap-3 max-w-lg w-full">
+                    <Button
+                      size="lg"
+                      className="w-full"
+                      onClick={handleStartWithContext}
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Starta programskapande med all kontext
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Tips: Välj relevanta dokument i sidopanelen för att inkludera träningsmetodik,
+                      fysiologisk kunskap, eller tidigare programmallar.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Normal Welcome */}
+                  <Sparkles className="h-16 w-16 text-blue-600/20 mb-4" />
+                  <h2 className="text-2xl font-semibold mb-2">Välkommen till AI Studio</h2>
+                  <p className="text-muted-foreground max-w-md mb-6">
+                    Skapa träningsprogram med hjälp av AI. Välj en atlet, lägg till dokument
+                    som kontext, och börja chatta.
+                  </p>
+                  <div className="grid gap-2 max-w-lg w-full">
+                    <Button
+                      variant="outline"
+                      className="justify-start h-auto py-3 px-4"
+                      onClick={() => setInput('Skapa ett 8-veckors träningsprogram för en maratonlöpare')}
+                    >
+                      <span className="text-left">
+                        <span className="font-medium">Skapa träningsprogram</span>
+                        <span className="text-muted-foreground text-sm block">
+                          8-veckors maratonprogram
+                        </span>
+                      </span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="justify-start h-auto py-3 px-4"
+                      onClick={() => setInput('Analysera min athletes laktattest och föreslå tröskelvärden')}
+                    >
+                      <span className="text-left">
+                        <span className="font-medium">Analysera testresultat</span>
+                        <span className="text-muted-foreground text-sm block">
+                          Laktattest & tröskelvärden
+                        </span>
+                      </span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="justify-start h-auto py-3 px-4"
+                      onClick={() => setInput('Hjälp mig planera en periodisering för HYROX')}
+                    >
+                      <span className="text-left">
+                        <span className="font-medium">HYROX-planering</span>
+                        <span className="text-muted-foreground text-sm block">
+                          Periodisering & stationer
+                        </span>
+                      </span>
+                    </Button>
+                  </div>
+
+                  {/* Recent Conversations */}
+                  {conversations.length > 0 && (
+                    <div className="mt-8 w-full max-w-lg">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                        <History className="h-4 w-4" />
+                        Senaste konversationer
+                      </h3>
+                      <div className="space-y-1">
+                        {conversations.slice(0, 5).map((conv) => (
+                          <button
+                            key={conv.id}
+                            onClick={() => loadConversation(conv.id)}
+                            className="w-full text-left p-2 rounded-lg hover:bg-muted transition text-sm"
+                          >
+                            <span className="font-medium">
+                              {conv.title || 'Ny konversation'}
+                            </span>
+                            {conv.athlete && (
+                              <span className="text-muted-foreground ml-2">
+                                - {conv.athlete.name}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ) : (
             <div className="space-y-4 max-w-4xl mx-auto">
-              {messages.map((message) => (
-                <ChatMessage
-                  key={message.id}
-                  message={{
-                    id: message.id,
-                    role: message.role as 'user' | 'assistant' | 'system',
-                    content: message.content,
-                    createdAt: new Date(),
-                  }}
-                  athleteId={selectedAthlete}
-                  conversationId={currentConversationId}
-                  onProgramSaved={(programId) => {
-                    router.push(`/coach/programs/${programId}`)
-                  }}
-                />
-              ))}
+              {messages.map((message) => {
+                // AI SDK 5: Extract text from message parts
+                const textContent = message.parts
+                  ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+                  .map((part) => part.text)
+                  .join('') || ''
+                return (
+                  <ChatMessage
+                    key={message.id}
+                    message={{
+                      id: message.id,
+                      role: message.role as 'user' | 'assistant' | 'system',
+                      content: textContent,
+                      createdAt: new Date(),
+                    }}
+                    athleteId={selectedAthlete}
+                    conversationId={currentConversationId}
+                    onProgramSaved={(programId) => {
+                      router.push(`/coach/programs/${programId}`)
+                    }}
+                  />
+                )
+              })}
               {isLoading && (
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -542,7 +697,7 @@ export function AIStudioClient({
             </div>
             <div className="flex items-center justify-between mt-2">
               <p className="text-xs text-muted-foreground">
-                {selectedModel?.displayName || 'Ingen modell vald'} -{' '}
+                {defaultModel?.displayName || 'Ingen modell vald'} -{' '}
                 {input.length} tecken
                 {isLoading && ' - Streamar svar...'}
               </p>
@@ -551,15 +706,21 @@ export function AIStudioClient({
                 {input.length > 0 && (
                   <CostEstimate
                     inputText={input}
-                    model={selectedModel?.modelId}
+                    model={defaultModel?.modelId}
                   />
                 )}
                 {/* Session total */}
                 {messages.length > 0 && (
                   <SessionCostSummary
-                    totalTokens={messages.reduce((acc, m) => acc + (m.content?.length || 0) / 4, 0)}
+                    totalTokens={messages.reduce((acc, m) => {
+                      // AI SDK 5: Extract text length from message parts
+                      const textLength = m.parts
+                        ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+                        .reduce((sum, part) => sum + part.text.length, 0) || 0
+                      return acc + textLength / 4
+                    }, 0)}
                     messageCount={messages.length}
-                    model={selectedModel?.modelId}
+                    model={defaultModel?.modelId}
                   />
                 )}
               </div>
@@ -569,4 +730,41 @@ export function AIStudioClient({
       </div>
     </div>
   )
+}
+
+// Helper functions for displaying labels
+function getSportLabel(sport: string): string {
+  const labels: Record<string, string> = {
+    RUNNING: 'Löpning',
+    CYCLING: 'Cykling',
+    STRENGTH: 'Styrka',
+    SKIING: 'Skidåkning',
+    SWIMMING: 'Simning',
+    TRIATHLON: 'Triathlon',
+    HYROX: 'HYROX',
+    GENERAL_FITNESS: 'Allmän Fitness',
+  }
+  return labels[sport] || sport
+}
+
+function getGoalLabel(goal: string): string {
+  const labels: Record<string, string> = {
+    marathon: 'Maraton',
+    'half-marathon': 'Halvmaraton',
+    '10k': '10 km',
+    '5k': '5 km',
+    'ftp-builder': 'FTP-uppbyggnad',
+    'base-builder': 'Basbyggnad',
+    'gran-fondo': 'Gran Fondo',
+    sprint: 'Sprint',
+    olympic: 'Olympisk distans',
+    'half-ironman': 'Halv-Ironman',
+    ironman: 'Ironman',
+    pro: 'Pro Division',
+    'age-group': 'Age Group',
+    doubles: 'Doubles',
+    vasaloppet: 'Vasaloppet',
+    custom: 'Anpassat',
+  }
+  return labels[goal] || goal
 }

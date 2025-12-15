@@ -39,7 +39,13 @@ import {
 } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CalendarIcon, Loader2, ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { CalendarIcon, Loader2, ChevronDown, ChevronUp, Info, Sparkles } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import {
+  storeProgramContext,
+  type WizardFormData,
+  type ProgramContext,
+} from '@/lib/ai/program-context-builder'
 import { cn } from '@/lib/utils'
 import { DataSourceType } from './DataSourceSelector'
 import { HyroxRaceTimeAnalysis } from './HyroxRaceTimeAnalysis'
@@ -160,6 +166,7 @@ export function ConfigurationForm({
   onSubmit,
   isSubmitting,
 }: ConfigurationFormProps) {
+  const router = useRouter()
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const isHyroxSport = sport === 'HYROX'
@@ -253,6 +260,66 @@ export function ConfigurationForm({
   }, [watchClientId, onClientChange])
 
   const handleSubmit = form.handleSubmit(onSubmit)
+
+  // Handle "Continue with AI Studio" button
+  const handleContinueWithAI = () => {
+    const formData = form.getValues()
+    const selectedClient = clients.find(c => c.id === formData.clientId)
+
+    // Build the wizard form data
+    const wizardFormData: WizardFormData = {
+      sport,
+      goal,
+      dataSource,
+      clientId: formData.clientId,
+      clientName: selectedClient?.name || 'Okänd atlet',
+      testId: formData.testId,
+      durationWeeks: formData.durationWeeks,
+      targetRaceDate: formData.targetRaceDate,
+      sessionsPerWeek: formData.sessionsPerWeek,
+      methodology: formData.methodology,
+      manualFtp: formData.manualFtp,
+      manualCss: formData.manualCss,
+      manualVdot: formData.manualVdot,
+      weeklyHours: formData.weeklyHours,
+      bikeType: formData.bikeType,
+      technique: formData.technique,
+      poolLength: formData.poolLength,
+      experienceLevel: formData.experienceLevel,
+      yearsRunning: formData.yearsRunning,
+      currentWeeklyVolume: formData.currentWeeklyVolume,
+      longestLongRun: formData.longestLongRun,
+      recentRaceDistance: formData.recentRaceDistance,
+      recentRaceTime: formData.recentRaceTime,
+      targetTime: formData.targetTime,
+      includeStrength: formData.includeStrength,
+      strengthSessionsPerWeek: formData.strengthSessionsPerWeek,
+      coreSessionsPerWeek: formData.coreSessionsPerWeek,
+      alternativeTrainingSessionsPerWeek: formData.alternativeTrainingSessionsPerWeek,
+      scheduleStrengthAfterRunning: formData.scheduleStrengthAfterRunning,
+      scheduleCoreAfterRunning: formData.scheduleCoreAfterRunning,
+      hasLactateMeter: formData.hasLactateMeter,
+      hasHRVMonitor: formData.hasHRVMonitor,
+      hasPowerMeter: formData.hasPowerMeter,
+      hyroxStationTimes: formData.hyroxStationTimes,
+      hyroxDivision: formData.hyroxDivision,
+      hyroxGender: formData.hyroxGender,
+      hyroxBodyweight: formData.hyroxBodyweight,
+      strengthPRs: formData.strengthPRs,
+      notes: formData.notes,
+    }
+
+    // Build the context
+    const context: ProgramContext = {
+      wizardData: wizardFormData,
+    }
+
+    // Store context in sessionStorage
+    storeProgramContext(context)
+
+    // Navigate to AI Studio in program mode
+    router.push(`/coach/ai-studio?mode=program&clientId=${formData.clientId}`)
+  }
 
   return (
     <Form {...form}>
@@ -1516,8 +1583,18 @@ export function ConfigurationForm({
           )}
         />
 
-        {/* Submit Button */}
-        <div className="flex justify-end pt-4">
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            onClick={handleContinueWithAI}
+            disabled={!watchClientId || isSubmitting}
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            Fortsätt med AI Studio
+          </Button>
           <Button type="submit" size="lg" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Generera program

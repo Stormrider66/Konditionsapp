@@ -18,7 +18,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Sparkles, ChevronDown, Bot, Loader2, Send } from 'lucide-react'
-import { useChat } from 'ai/react'
+import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
 import { useToast } from '@/hooks/use-toast'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -77,24 +78,27 @@ export function AIContextButton({
 
   const actions = quickActions || (athleteId ? DEFAULT_ATHLETE_ACTIONS : DEFAULT_TEST_ACTIONS)
 
-  // Vercel AI SDK useChat hook
+  // Manual input state (AI SDK 5 no longer manages input state)
+  const [input, setInput] = useState('')
+
+  // Vercel AI SDK useChat hook (v5 API)
   const {
     messages,
-    input,
-    setInput,
-    handleSubmit: handleChatSubmit,
-    isLoading,
+    sendMessage,
+    status,
     setMessages,
   } = useChat({
-    api: '/api/ai/chat',
-    body: {
-      conversationId,
-      model: 'claude-sonnet-4-20250514',
-      provider: 'ANTHROPIC',
-      athleteId,
-      documentIds: [],
-      webSearchEnabled: false,
-    },
+    transport: new DefaultChatTransport({
+      api: '/api/ai/chat',
+      body: {
+        conversationId,
+        model: 'claude-sonnet-4-5-20250929',
+        provider: 'ANTHROPIC',
+        athleteId,
+        documentIds: [],
+        webSearchEnabled: false,
+      },
+    }),
     onError: (error) => {
       toast({
         title: 'Kunde inte skicka meddelande',
@@ -104,6 +108,8 @@ export function AIContextButton({
     },
   })
 
+  const isLoading = status === 'streaming' || status === 'submitted'
+
   // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -112,14 +118,11 @@ export function AIContextButton({
   // Send initial prompt when dialog opens
   useEffect(() => {
     if (dialogOpen && initialPrompt && messages.length === 0) {
-      setInput(initialPrompt)
-      // Auto-submit after a short delay
-      setTimeout(() => {
-        const form = document.getElementById('ai-context-form') as HTMLFormElement
-        if (form) form.requestSubmit()
-      }, 100)
+      // Auto-send the initial prompt
+      sendMessage({ text: initialPrompt })
+      setInitialPrompt('') // Clear to prevent re-sending
     }
-  }, [dialogOpen, initialPrompt, messages.length, setInput])
+  }, [dialogOpen, initialPrompt, messages.length, sendMessage])
 
   async function handleActionClick(prompt: string) {
     // Create conversation
@@ -168,7 +171,7 @@ export function AIContextButton({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            modelUsed: 'claude-sonnet-4-20250514',
+            modelUsed: 'claude-sonnet-4-5-20250929',
             provider: 'ANTHROPIC',
             athleteId,
           }),
@@ -182,7 +185,9 @@ export function AIContextButton({
       }
     }
 
-    handleChatSubmit(e)
+    const messageContent = input.trim()
+    setInput('') // Clear input
+    sendMessage({ text: messageContent })
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -236,19 +241,26 @@ export function AIContextButton({
               </div>
             ) : (
               <div className="space-y-4 py-4">
-                {messages.map((message) => (
-                  <ChatMessage
-                    key={message.id}
-                    message={{
-                      id: message.id,
-                      role: message.role as 'user' | 'assistant' | 'system',
-                      content: message.content,
-                      createdAt: message.createdAt || new Date(),
-                    }}
-                    athleteId={athleteId}
-                    conversationId={conversationId}
-                  />
-                ))}
+                {messages.map((message) => {
+                  // AI SDK 5: Extract text from message parts
+                  const textContent = message.parts
+                    ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+                    .map((part) => part.text)
+                    .join('') || ''
+                  return (
+                    <ChatMessage
+                      key={message.id}
+                      message={{
+                        id: message.id,
+                        role: message.role as 'user' | 'assistant' | 'system',
+                        content: textContent,
+                        createdAt: new Date(),
+                      }}
+                      athleteId={athleteId}
+                      conversationId={conversationId}
+                    />
+                  )
+                })}
                 {isLoading && (
                   <div className="flex gap-3">
                     <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">

@@ -53,13 +53,25 @@ export async function GET(request: NextRequest) {
         metadata: true,
         createdAt: true,
         updatedAt: true,
+        _count: {
+          select: {
+            chunks: true,
+          },
+        },
       },
     });
 
+    // Transform to include chunk count
+    const transformedDocuments = documents.map(doc => ({
+      ...doc,
+      chunkCount: doc.chunkCount ?? doc._count?.chunks ?? 0,
+      _count: undefined,
+    }));
+
     return NextResponse.json({
       success: true,
-      documents,
-      count: documents.length,
+      documents: transformedDocuments,
+      count: transformedDocuments.length,
     });
   } catch (error) {
     console.error('List documents error:', error);

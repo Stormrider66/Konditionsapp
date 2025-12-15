@@ -8,6 +8,7 @@
  */
 
 import { DocumentType } from '@prisma/client';
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 
 export interface ProcessedDocument {
   content: string;
@@ -17,6 +18,30 @@ export interface ProcessedDocument {
     wordCount: number;
     extractedAt: string;
   };
+}
+
+/**
+ * Get a signed URL for a file stored in Supabase Storage
+ * @param storagePath - The path in the storage bucket (e.g., "userId/timestamp-file.pdf")
+ * @returns The signed URL or null if failed
+ */
+async function getSignedUrl(storagePath: string): Promise<string | null> {
+  try {
+    const supabase = createAdminSupabaseClient();
+    const { data, error } = await supabase.storage
+      .from('coach-documents')
+      .createSignedUrl(storagePath, 3600); // 1 hour expiry
+
+    if (error) {
+      console.error('[Document Processor] Failed to get signed URL:', error);
+      return null;
+    }
+
+    return data.signedUrl;
+  } catch (error) {
+    console.error('[Document Processor] Error getting signed URL:', error);
+    return null;
+  }
 }
 
 export interface ProcessingError {
@@ -109,15 +134,33 @@ export async function parsePDF(
     // eslint-disable-next-line
     const pdfParse = require('pdf-parse');
 
-    const response = await fetch(fileUrl);
+    // Check if this is a storage path (not a full URL) and get signed URL
+    let fetchUrl = fileUrl;
+    if (!fileUrl.startsWith('http') && !fileUrl.startsWith('data:')) {
+      console.log('[Document Processor] Getting signed URL for PDF:', fileUrl);
+      const signedUrl = await getSignedUrl(fileUrl);
+      if (!signedUrl) {
+        return {
+          error: 'Failed to get signed URL for PDF',
+          code: 'STORAGE_ERROR',
+          details: 'Could not get a signed URL from Supabase Storage',
+        };
+      }
+      fetchUrl = signedUrl;
+    }
+
+    console.log('[Document Processor] Fetching PDF from:', fetchUrl.substring(0, 100) + '...');
+    const response = await fetch(fetchUrl);
     if (!response.ok) {
       return {
         error: 'Failed to fetch PDF',
         code: 'FETCH_ERROR',
+        details: `HTTP ${response.status}: ${response.statusText}`,
       };
     }
 
     const buffer = Buffer.from(await response.arrayBuffer());
+    console.log('[Document Processor] PDF buffer size:', buffer.length);
     const data = await pdfParse(buffer);
 
     return {
@@ -129,6 +172,7 @@ export async function parsePDF(
       },
     };
   } catch (error) {
+    console.error('[Document Processor] PDF parsing error:', error);
     if (
       error instanceof Error &&
       error.message.includes("Cannot find module 'pdf-parse'")
@@ -160,15 +204,33 @@ export async function parseExcel(
     // eslint-disable-next-line
     const XLSX = require('xlsx');
 
-    const response = await fetch(fileUrl);
+    // Check if this is a storage path (not a full URL) and get signed URL
+    let fetchUrl = fileUrl;
+    if (!fileUrl.startsWith('http') && !fileUrl.startsWith('data:')) {
+      console.log('[Document Processor] Getting signed URL for Excel:', fileUrl);
+      const signedUrl = await getSignedUrl(fileUrl);
+      if (!signedUrl) {
+        return {
+          error: 'Failed to get signed URL for Excel file',
+          code: 'STORAGE_ERROR',
+          details: 'Could not get a signed URL from Supabase Storage',
+        };
+      }
+      fetchUrl = signedUrl;
+    }
+
+    console.log('[Document Processor] Fetching Excel from:', fetchUrl.substring(0, 100) + '...');
+    const response = await fetch(fetchUrl);
     if (!response.ok) {
       return {
         error: 'Failed to fetch Excel file',
         code: 'FETCH_ERROR',
+        details: `HTTP ${response.status}: ${response.statusText}`,
       };
     }
 
     const buffer = Buffer.from(await response.arrayBuffer());
+    console.log('[Document Processor] Excel buffer size:', buffer.length);
     const workbook = XLSX.read(buffer, { type: 'buffer' });
 
     // Convert all sheets to text
@@ -190,6 +252,7 @@ export async function parseExcel(
       },
     };
   } catch (error) {
+    console.error('[Document Processor] Excel parsing error:', error);
     if (
       error instanceof Error &&
       error.message.includes("Cannot find module 'xlsx'")

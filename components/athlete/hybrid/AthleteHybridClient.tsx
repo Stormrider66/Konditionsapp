@@ -6,7 +6,7 @@
  * Main client component for athletes to browse and log hybrid workouts.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -123,12 +123,7 @@ export function AthleteHybridClient({ clientId }: AthleteHybridClientProps) {
   const [formatFilter, setFormatFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('workouts');
 
-  useEffect(() => {
-    fetchWorkouts();
-    fetchResults();
-  }, [search, formatFilter]);
-
-  async function fetchWorkouts() {
+  const fetchWorkouts = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -146,9 +141,9 @@ export function AthleteHybridClient({ clientId }: AthleteHybridClientProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [search, formatFilter]);
 
-  async function fetchResults() {
+  const fetchResults = useCallback(async () => {
     try {
       const response = await fetch(`/api/athletes/${clientId}/hybrid-results`);
       if (response.ok) {
@@ -159,7 +154,12 @@ export function AthleteHybridClient({ clientId }: AthleteHybridClientProps) {
     } catch (error) {
       console.error('Failed to fetch results:', error);
     }
-  }
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchWorkouts();
+    fetchResults();
+  }, [fetchWorkouts, fetchResults]);
 
   function formatWorkoutDescription(workout: HybridWorkout): string {
     const parts: string[] = [];

@@ -4,10 +4,11 @@ import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { Bot, User, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ProgramPreview } from './ProgramPreview'
+import { JsonDataCard, tryParseJson } from './JsonDataCard'
 
 interface Message {
   id: string
@@ -27,6 +28,19 @@ export function ChatMessage({ message, athleteId, conversationId, onProgramSaved
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
+
+  // Try to extract JSON data from the message for special rendering
+  const jsonData = useMemo(() => {
+    if (isUser || isSystem) return null
+    return tryParseJson(message.content)
+  }, [message.content, isUser, isSystem])
+
+  // Remove JSON code block from content if we're rendering it as a card
+  const displayContent = useMemo(() => {
+    if (!jsonData) return message.content
+    // Remove the JSON code block from display since we're showing it as a card
+    return message.content.replace(/```(?:json)?\s*[\s\S]*?```/g, '').trim()
+  }, [message.content, jsonData])
 
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(message.content)
@@ -68,71 +82,77 @@ export function ChatMessage({ message, athleteId, conversationId, onProgramSaved
           {isUser ? (
             <p className="whitespace-pre-wrap m-0">{message.content}</p>
           ) : (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                p: ({ children }) => (
-                  <p className="mb-2 last:mb-0">{children}</p>
-                ),
-                ul: ({ children }) => (
-                  <ul className="list-disc pl-4 mb-2">{children}</ul>
-                ),
-                ol: ({ children }) => (
-                  <ol className="list-decimal pl-4 mb-2">{children}</ol>
-                ),
-                li: ({ children }) => <li className="mb-1">{children}</li>,
-                code: ({ children, className }) => {
-                  const isInline = !className
-                  return isInline ? (
-                    <code className="bg-muted-foreground/20 px-1 py-0.5 rounded text-sm">
-                      {children}
-                    </code>
-                  ) : (
-                    <code className="block bg-muted-foreground/10 p-3 rounded-lg overflow-x-auto text-sm">
-                      {children}
-                    </code>
-                  )
-                },
-                pre: ({ children }) => (
-                  <pre className="bg-muted-foreground/10 p-3 rounded-lg overflow-x-auto mb-2">
-                    {children}
-                  </pre>
-                ),
-                h1: ({ children }) => (
-                  <h1 className="text-lg font-bold mb-2">{children}</h1>
-                ),
-                h2: ({ children }) => (
-                  <h2 className="text-base font-bold mb-2">{children}</h2>
-                ),
-                h3: ({ children }) => (
-                  <h3 className="text-sm font-bold mb-1">{children}</h3>
-                ),
-                blockquote: ({ children }) => (
-                  <blockquote className="border-l-2 border-muted-foreground/30 pl-3 italic">
-                    {children}
-                  </blockquote>
-                ),
-                table: ({ children }) => (
-                  <div className="overflow-x-auto mb-2">
-                    <table className="min-w-full border-collapse text-sm">
-                      {children}
-                    </table>
-                  </div>
-                ),
-                th: ({ children }) => (
-                  <th className="border border-muted-foreground/30 px-2 py-1 bg-muted/50 font-semibold text-left">
-                    {children}
-                  </th>
-                ),
-                td: ({ children }) => (
-                  <td className="border border-muted-foreground/30 px-2 py-1">
-                    {children}
-                  </td>
-                ),
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
+            <>
+              {displayContent && (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({ children }) => (
+                      <p className="mb-2 last:mb-0">{children}</p>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="list-disc pl-4 mb-2">{children}</ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal pl-4 mb-2">{children}</ol>
+                    ),
+                    li: ({ children }) => <li className="mb-1">{children}</li>,
+                    code: ({ children, className }) => {
+                      const isInline = !className
+                      return isInline ? (
+                        <code className="bg-muted-foreground/20 px-1 py-0.5 rounded text-sm">
+                          {children}
+                        </code>
+                      ) : (
+                        <code className="block bg-muted-foreground/10 p-3 rounded-lg overflow-x-auto text-sm">
+                          {children}
+                        </code>
+                      )
+                    },
+                    pre: ({ children }) => (
+                      <pre className="bg-muted-foreground/10 p-3 rounded-lg overflow-x-auto mb-2">
+                        {children}
+                      </pre>
+                    ),
+                    h1: ({ children }) => (
+                      <h1 className="text-lg font-bold mb-2">{children}</h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="text-base font-bold mb-2">{children}</h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-sm font-bold mb-1">{children}</h3>
+                    ),
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-2 border-muted-foreground/30 pl-3 italic">
+                        {children}
+                      </blockquote>
+                    ),
+                    table: ({ children }) => (
+                      <div className="overflow-x-auto mb-2">
+                        <table className="min-w-full border-collapse text-sm">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    th: ({ children }) => (
+                      <th className="border border-muted-foreground/30 px-2 py-1 bg-muted/50 font-semibold text-left">
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="border border-muted-foreground/30 px-2 py-1">
+                        {children}
+                      </td>
+                    ),
+                  }}
+                >
+                  {displayContent}
+                </ReactMarkdown>
+              )}
+              {/* Render JSON data as a nice card */}
+              {jsonData && <JsonDataCard data={jsonData} />}
+            </>
           )}
         </div>
 

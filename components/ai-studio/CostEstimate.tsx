@@ -22,6 +22,9 @@ import {
   estimateTokensFromText,
 } from '@/lib/ai/gemini-config';
 
+// Default pricing fallback for unknown models
+const DEFAULT_PRICING = { input: 0.003, output: 0.015 };
+
 interface CostEstimateProps {
   /** Current input text for estimation */
   inputText?: string;
@@ -48,7 +51,7 @@ export function CostEstimate({
   sessionTotalTokens,
   className,
 }: CostEstimateProps) {
-  const pricing = GEMINI_PRICING[model as keyof typeof GEMINI_PRICING] || GEMINI_PRICING['gemini-3-pro-preview'];
+  const pricing = GEMINI_PRICING[model] || DEFAULT_PRICING;
 
   const estimate = useMemo(() => {
     // Use actual tokens if available, otherwise estimate from input text
@@ -191,7 +194,7 @@ export function MessageCostBadge({
 }) {
   if (!inputTokens && !outputTokens) return null;
 
-  const pricing = GEMINI_PRICING[(model || 'gemini-3-pro-preview') as keyof typeof GEMINI_PRICING];
+  const pricing = GEMINI_PRICING[model || ''] || DEFAULT_PRICING;
   const cost = ((inputTokens || 0) / 1000) * pricing.input +
     ((outputTokens || 0) / 1000) * pricing.output;
 
@@ -214,7 +217,7 @@ export function SessionCostSummary({
   messageCount: number;
   model?: string;
 }) {
-  const pricing = GEMINI_PRICING[(model || 'gemini-3-pro-preview') as keyof typeof GEMINI_PRICING];
+  const pricing = GEMINI_PRICING[model || ''] || DEFAULT_PRICING;
   // Estimate 50/50 split between input and output
   const estimatedCost = (totalTokens / 1000) * ((pricing.input + pricing.output) / 2);
 

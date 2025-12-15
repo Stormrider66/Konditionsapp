@@ -96,9 +96,22 @@ const AI_MODELS = [
   // Source: https://platform.openai.com/docs/models
   {
     provider: 'OPENAI' as const,
-    modelId: 'gpt-5.1',
-    displayName: 'GPT-5.1',
-    description: 'OpenAIs senaste flaggskeppsmodell med resonemang',
+    modelId: 'gpt-5.2-thinking',
+    displayName: 'GPT-5.2 Thinking',
+    description: 'Avancerad resonemangsmodell med steg-för-steg-tänkande',
+    capabilities: ['text', 'code', 'vision', 'reasoning', 'thinking'],
+    maxTokens: 256000,
+    maxOutputTokens: 65536,
+    inputCostPer1k: 0.010,
+    outputCostPer1k: 0.030,
+    isActive: true,
+    isDefault: false,
+  },
+  {
+    provider: 'OPENAI' as const,
+    modelId: 'gpt-5.2',
+    displayName: 'GPT-5.2',
+    description: 'OpenAIs senaste flaggskeppsmodell',
     capabilities: ['text', 'code', 'vision', 'reasoning'],
     maxTokens: 256000,
     maxOutputTokens: 32768,
@@ -109,9 +122,9 @@ const AI_MODELS = [
   },
   {
     provider: 'OPENAI' as const,
-    modelId: 'gpt-5.1-instant',
-    displayName: 'GPT-5.1 Instant',
-    description: 'Snabbare version av GPT-5.1, bra för vardagsuppgifter',
+    modelId: 'gpt-5.2-instant',
+    displayName: 'GPT-5.2 Instant',
+    description: 'Snabbare version av GPT-5.2, bra för vardagsuppgifter',
     capabilities: ['text', 'code', 'vision'],
     maxTokens: 128000,
     maxOutputTokens: 16384,
@@ -125,6 +138,14 @@ const AI_MODELS = [
 async function main() {
   console.log('Seeding AI models...');
 
+  // First, deactivate all existing models
+  const deactivated = await prisma.aIModel.updateMany({
+    where: { isActive: true },
+    data: { isActive: false },
+  });
+  console.log(`  → Deactivated ${deactivated.count} existing models`);
+
+  // Then upsert and activate the current models
   for (const model of AI_MODELS) {
     await prisma.aIModel.upsert({
       where: { modelId: model.modelId },

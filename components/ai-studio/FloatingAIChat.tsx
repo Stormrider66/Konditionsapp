@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { useChat } from 'ai/react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -17,6 +18,8 @@ import {
   Sparkles,
   MessageSquare,
   Settings,
+  Check,
+  Database,
 } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
 import { cn } from '@/lib/utils'
@@ -68,6 +71,10 @@ export function FloatingAIChat({
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null)
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
+  const [isContextEnabled, setIsContextEnabled] = useState(true)
+
+  // Track if context is available
+  const hasContext = !!pageContext && Object.keys(pageContext.data || {}).length > 0
 
   // Fetch model configuration from settings
   useEffect(() => {
@@ -126,7 +133,7 @@ export function FloatingAIChat({
             } else if (anthropicKey?.configured) {
               // Fallback to Anthropic if available
               setModelConfig({
-                model: 'claude-sonnet-4-20250514',
+                model: 'claude-sonnet-4-5-20250929',
                 provider: 'ANTHROPIC',
                 displayName: 'Claude Sonnet 4',
               })
@@ -153,7 +160,7 @@ export function FloatingAIChat({
               setHasApiKey(true)
             } else if (anthropicKey?.configured) {
               setModelConfig({
-                model: 'claude-sonnet-4-20250514',
+                model: 'claude-sonnet-4-5-20250929',
                 provider: 'ANTHROPIC',
                 displayName: 'Claude Sonnet 4',
               })
@@ -183,7 +190,7 @@ export function FloatingAIChat({
 
   // Build page context string for the AI
   const buildPageContextString = useCallback(() => {
-    if (!pageContext) return ''
+    if (!pageContext || !isContextEnabled) return ''
 
     let contextStr = `\n\n## AKTUELL SIDKONTEXT: ${pageContext.title}\n`
 
@@ -302,28 +309,30 @@ export function FloatingAIChat({
     }
 
     return contextStr
-  }, [pageContext])
+  }, [pageContext, isContextEnabled])
 
-  // Vercel AI SDK useChat hook with dynamic model
+  // Ref to store the current context string - updated when context changes
+  const contextStringRef = useRef('')
+  useEffect(() => {
+    contextStringRef.current = buildPageContextString()
+  }, [buildPageContextString])
+
+  // Manual input state (AI SDK 5 no longer manages input state)
+  const [input, setInput] = useState('')
+
+  // Vercel AI SDK useChat hook with dynamic model (v5 API)
+  // Note: All dynamic values are passed via sendMessage options
+  // because DefaultChatTransport body is captured at initialization time
   const {
     messages,
-    input,
-    setInput,
-    handleSubmit: handleChatSubmit,
-    isLoading,
+    sendMessage,
+    status,
     setMessages,
     error,
   } = useChat({
-    api: '/api/ai/chat',
-    body: {
-      conversationId,
-      model: modelConfig?.model || 'claude-sonnet-4-20250514',
-      provider: modelConfig?.provider || 'ANTHROPIC',
-      athleteId,
-      documentIds: [],
-      webSearchEnabled: false,
-      pageContext: buildPageContextString(),
-    },
+    transport: new DefaultChatTransport({
+      api: '/api/ai/chat',
+    }),
     onError: (error) => {
       toast({
         title: 'Kunde inte skicka meddelande',
@@ -332,6 +341,8 @@ export function FloatingAIChat({
       })
     },
   })
+
+  const isLoading = status === 'streaming' || status === 'submitted'
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -350,7 +361,7 @@ export function FloatingAIChat({
     if (isOpen && initialMessage && messages.length === 0) {
       setInput(initialMessage)
     }
-  }, [isOpen, initialMessage, messages.length, setInput])
+  }, [isOpen, initialMessage, messages.length])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -377,7 +388,21 @@ export function FloatingAIChat({
       }
     }
 
-    handleChatSubmit(e)
+    // Pass all dynamic values at submission time via options
+    // This ensures we use the current modelConfig and conversationId
+    const messageContent = input.trim()
+    setInput('') // Clear input
+    sendMessage({ text: messageContent }, {
+      body: {
+        conversationId,
+        model: modelConfig?.model,
+        provider: modelConfig?.provider,
+        athleteId,
+        documentIds: [],
+        webSearchEnabled: false,
+        pageContext: contextStringRef.current,
+      },
+    })
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -575,12 +600,37 @@ export function FloatingAIChat({
         </div>
       </div>
 
-      {/* Context indicator */}
-      {contextLabel && (
-        <div className="px-3 py-2 bg-muted/50 border-b text-xs text-muted-foreground flex items-center gap-2">
-          <Sparkles className="h-3 w-3" />
-          <span>Kontext: {contextLabel}</span>
-        </div>
+      {/* Context indicator with toggle */}
+      {hasContext && (
+        <button
+          onClick={() => setIsContextEnabled(!isContextEnabled)}
+          className={cn(
+            'w-full px-3 py-2 border-b text-xs flex items-center justify-between gap-2 transition-colors',
+            isContextEnabled
+              ? 'bg-green-50 text-green-700 hover:bg-green-100'
+              : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Database className="h-3 w-3" />
+            <span>{pageContext?.title || 'Sidkontext'}</span>
+          </div>
+          <div className={cn(
+            'flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium',
+            isContextEnabled
+              ? 'bg-green-200 text-green-800'
+              : 'bg-gray-200 text-gray-600'
+          )}>
+            {isContextEnabled ? (
+              <>
+                <Check className="h-3 w-3" />
+                Aktiv
+              </>
+            ) : (
+              'Inaktiv'
+            )}
+          </div>
+        </button>
       )}
 
       {/* Messages */}
@@ -590,13 +640,15 @@ export function FloatingAIChat({
             <Sparkles className="h-10 w-10 text-muted-foreground mb-3" />
             <h3 className="font-medium mb-1">Hur kan jag hjälpa dig?</h3>
             <p className="text-sm text-muted-foreground max-w-[250px]">
-              {pageContext
-                ? `Jag har tillgång till ${pageContext.title.toLowerCase()}. Fråga mig vad som helst om det!`
+              {hasContext && isContextEnabled
+                ? `Jag har tillgång till ${pageContext?.title?.toLowerCase() || 'sidkontext'}. Fråga mig vad som helst om det!`
+                : hasContext && !isContextEnabled
+                ? 'Kontext är inaktiverad. Klicka på knappen ovan för att aktivera.'
                 : 'Fråga mig om träningsprogram, testanalyser, eller andra frågor om dina atleter.'}
             </p>
             {/* Quick prompts */}
             <div className="mt-4 flex flex-wrap gap-2 justify-center">
-              {pageContext?.type === 'video-analysis' && (
+              {pageContext?.type === 'video-analysis' && hasContext && isContextEnabled && (
                 <>
                   <Button
                     variant="outline"
@@ -668,19 +720,26 @@ export function FloatingAIChat({
           </div>
         ) : (
           <div className="space-y-4">
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                message={{
-                  id: message.id,
-                  role: message.role as 'user' | 'assistant' | 'system',
-                  content: message.content,
-                  createdAt: message.createdAt || new Date(),
-                }}
-                athleteId={athleteId}
-                conversationId={conversationId}
-              />
-            ))}
+            {messages.map((message) => {
+              // AI SDK 5: Extract text from message parts
+              const textContent = message.parts
+                ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+                .map((part) => part.text)
+                .join('') || ''
+              return (
+                <ChatMessage
+                  key={message.id}
+                  message={{
+                    id: message.id,
+                    role: message.role as 'user' | 'assistant' | 'system',
+                    content: textContent,
+                    createdAt: new Date(),
+                  }}
+                  athleteId={athleteId}
+                  conversationId={conversationId}
+                />
+              )
+            })}
             {isLoading && (
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
