@@ -50,6 +50,7 @@ export default async function AIStudioPage({ searchParams }: PageProps) {
   // Fetch available AI models (for finding default model)
   const models = await prisma.aIModel.findMany({
     where: { isActive: true },
+    orderBy: [{ isDefault: 'desc' }, { displayName: 'asc' }],
   })
 
   // Check if user has API keys configured and get default model
