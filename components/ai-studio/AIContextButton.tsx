@@ -60,6 +60,10 @@ const DEFAULT_TEST_ACTIONS: QuickAction[] = [
   { label: 'Rekommendera träningszoner', prompt: 'Baserat på testresultaten, rekommendera optimala träningszoner' },
 ]
 
+// Constants for AI model (ensures consistency across all calls)
+const MODEL = 'claude-sonnet-4-5-20250929'
+const PROVIDER = 'ANTHROPIC' as const
+
 export function AIContextButton({
   athleteId,
   athleteName,
@@ -72,7 +76,6 @@ export function AIContextButton({
   const { toast } = useToast()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const [initialPrompt, setInitialPrompt] = useState<string>('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -82,6 +85,7 @@ export function AIContextButton({
   const [input, setInput] = useState('')
 
   // Vercel AI SDK useChat hook (v5 API)
+  // Note: Transport body is static at init time, so pass dynamic values via sendMessage()
   const {
     messages,
     sendMessage,
@@ -90,14 +94,6 @@ export function AIContextButton({
   } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/ai/chat',
-      body: {
-        conversationId,
-        model: 'claude-sonnet-4-5-20250929',
-        provider: 'ANTHROPIC',
-        athleteId,
-        documentIds: [],
-        webSearchEnabled: false,
-      },
     }),
     onError: (error) => {
       toast({
@@ -115,41 +111,47 @@ export function AIContextButton({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Send initial prompt when dialog opens
-  useEffect(() => {
-    if (dialogOpen && initialPrompt && messages.length === 0) {
-      // Auto-send the initial prompt
-      sendMessage({ text: initialPrompt })
-      setInitialPrompt('') // Clear to prevent re-sending
-    }
-  }, [dialogOpen, initialPrompt, messages.length, sendMessage])
-
   async function handleActionClick(prompt: string) {
-    // Create conversation
+    setDialogOpen(true)
+
+    // Create conversation and get fresh ID
+    let ensuredConversationId: string | null = null
     try {
       const response = await fetch('/api/ai/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          modelUsed: 'claude-sonnet-4-20250514',
-          provider: 'ANTHROPIC',
+          modelUsed: MODEL,
+          provider: PROVIDER,
           athleteId,
         }),
       })
       const data = await response.json()
       if (data.conversation?.id) {
+        ensuredConversationId = data.conversation.id
         setConversationId(data.conversation.id)
       }
     } catch (error) {
       console.error('Failed to create conversation:', error)
     }
 
-    setInitialPrompt(prompt)
-    setDialogOpen(true)
+    // Send immediately with fresh conversation ID (don't wait for React state)
+    sendMessage(
+      { text: prompt },
+      {
+        body: {
+          conversationId: ensuredConversationId ?? undefined,
+          model: MODEL,
+          provider: PROVIDER,
+          athleteId,
+          documentIds: [],
+          webSearchEnabled: false,
+        },
+      }
+    )
   }
 
   function handleOpenFreeform() {
-    setInitialPrompt('')
     setDialogOpen(true)
   }
 
@@ -158,26 +160,29 @@ export function AIContextButton({
     setMessages([])
     setConversationId(null)
     setInput('')
-    setInitialPrompt('')
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!input.trim() || isLoading) return
 
-    if (!conversationId) {
+    // Use local variable for conversation ID to avoid React state timing issues
+    let ensuredConversationId = conversationId
+
+    if (!ensuredConversationId) {
       try {
         const response = await fetch('/api/ai/conversations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            modelUsed: 'claude-sonnet-4-5-20250929',
-            provider: 'ANTHROPIC',
+            modelUsed: MODEL,
+            provider: PROVIDER,
             athleteId,
           }),
         })
         const data = await response.json()
         if (data.conversation?.id) {
+          ensuredConversationId = data.conversation.id
           setConversationId(data.conversation.id)
         }
       } catch (error) {
@@ -187,7 +192,19 @@ export function AIContextButton({
 
     const messageContent = input.trim()
     setInput('') // Clear input
-    sendMessage({ text: messageContent })
+    sendMessage(
+      { text: messageContent },
+      {
+        body: {
+          conversationId: ensuredConversationId ?? undefined,
+          model: MODEL,
+          provider: PROVIDER,
+          athleteId,
+          documentIds: [],
+          webSearchEnabled: false,
+        },
+      }
+    )
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
