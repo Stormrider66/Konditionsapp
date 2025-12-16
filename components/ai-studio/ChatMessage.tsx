@@ -20,11 +20,13 @@ interface Message {
 interface ChatMessageProps {
   message: Message
   athleteId?: string | null
+  athleteName?: string | null
+  coachName?: string | null
   conversationId?: string | null
   onProgramSaved?: (programId: string) => void
 }
 
-export function ChatMessage({ message, athleteId, conversationId, onProgramSaved }: ChatMessageProps) {
+export function ChatMessage({ message, athleteId, athleteName, coachName, conversationId, onProgramSaved }: ChatMessageProps) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
@@ -186,6 +188,8 @@ export function ChatMessage({ message, athleteId, conversationId, onProgramSaved
           <ProgramPreview
             content={message.content}
             athleteId={athleteId}
+            athleteName={athleteName}
+            coachName={coachName}
             conversationId={conversationId}
             onProgramSaved={onProgramSaved}
           />

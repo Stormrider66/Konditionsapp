@@ -736,6 +736,7 @@ export function FloatingAIChat({
                     createdAt: new Date(),
                   }}
                   athleteId={athleteId}
+                  athleteName={athleteName}
                   conversationId={conversationId}
                 />
               )

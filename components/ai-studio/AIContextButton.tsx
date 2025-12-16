@@ -249,7 +249,7 @@ export function AIContextButton({
 
           {/* Messages */}
           <ScrollArea className="flex-1 px-6">
-            {messages.length === 0 && !initialPrompt ? (
+            {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full py-8 text-center">
                 <Sparkles className="h-10 w-10 text-muted-foreground mb-3" />
                 <p className="text-sm text-muted-foreground">
@@ -274,6 +274,7 @@ export function AIContextButton({
                         createdAt: new Date(),
                       }}
                       athleteId={athleteId}
+                      athleteName={athleteName}
                       conversationId={conversationId}
                     />
                   )

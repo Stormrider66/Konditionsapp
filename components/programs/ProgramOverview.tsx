@@ -14,7 +14,6 @@ import {
   TrendingUp,
   Edit,
   Trash2,
-  Download,
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -29,10 +28,12 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 
 import { ProgramWithWeeks } from '@/types/prisma-types'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
+import { ProgramExportButton } from '@/components/coach/programs/ProgramExportButton'
+import { convertDatabaseProgramToParsed } from '@/lib/exports/program-converter'
 
 interface ProgramOverviewProps {
   program: ProgramWithWeeks
@@ -47,6 +48,12 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
   const totalWeeks = program.weeks?.length || 0
   const progressPercent = totalWeeks > 0 ? Math.round((currentWeek / totalWeeks) * 100) : 0
   const isActive = isActiveProgram(program)
+
+  // Memoize parsed program for export
+  const parsedProgram = useMemo(
+    () => convertDatabaseProgramToParsed(program),
+    [program]
+  )
 
   async function handleDelete() {
     setIsDeleting(true)
@@ -118,10 +125,12 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
               },
             ]}
           />
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Exportera
-          </Button>
+          <ProgramExportButton
+            program={parsedProgram}
+            athleteName={program.client?.name}
+            startDate={new Date(program.startDate)}
+            size="sm"
+          />
           <Button variant="outline" size="sm">
             <Edit className="mr-2 h-4 w-4" />
             Redigera

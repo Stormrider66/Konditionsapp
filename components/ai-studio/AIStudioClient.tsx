@@ -640,6 +640,7 @@ export function AIStudioClient({
                       createdAt: new Date(),
                     }}
                     athleteId={selectedAthlete}
+                    athleteName={selectedAthleteData?.name}
                     conversationId={currentConversationId}
                     onProgramSaved={(programId) => {
                       router.push(`/coach/programs/${programId}`)
