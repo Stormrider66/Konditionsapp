@@ -557,3 +557,78 @@ export interface CreateMessageDTO {
   content: string
   workoutId?: string
 }
+
+// ==================== Hybrid Workout Section Types ====================
+
+export type HybridFormat = 'AMRAP' | 'FOR_TIME' | 'EMOM' | 'TABATA' | 'CHIPPER' | 'LADDER' | 'INTERVALS' | 'HYROX_SIM' | 'CUSTOM'
+export type ScalingLevel = 'RX' | 'SCALED' | 'FOUNDATIONS' | 'CUSTOM'
+export type HybridSectionType = 'WARMUP' | 'STRENGTH' | 'METCON' | 'COOLDOWN'
+
+export interface HybridSectionMovement {
+  exerciseId: string
+  exerciseName: string
+  order: number
+  sets?: number
+  reps?: number
+  duration?: number  // seconds
+  distance?: number  // meters
+  weightMale?: number
+  weightFemale?: number
+  restSeconds?: number
+  notes?: string
+}
+
+export interface HybridSectionData {
+  notes?: string
+  duration?: number  // expected section duration in seconds
+  movements?: HybridSectionMovement[]
+}
+
+export interface HybridWorkoutWithSections {
+  id: string
+  name: string
+  description?: string
+  format: HybridFormat
+  timeCap?: number
+  workTime?: number
+  restTime?: number
+  totalRounds?: number
+  totalMinutes?: number
+  repScheme?: string
+  scalingLevel: ScalingLevel
+  isBenchmark: boolean
+  benchmarkSource?: string
+  tags: string[]
+  coachId?: string
+  isPublic: boolean
+  // Section data
+  warmupData?: HybridSectionData
+  strengthData?: HybridSectionData
+  cooldownData?: HybridSectionData
+  // Metcon movements (existing)
+  movements: HybridMovementData[]
+  // Stats
+  _count?: {
+    results: number
+  }
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface HybridMovementData {
+  id: string
+  order: number
+  reps?: number
+  calories?: number
+  distance?: number
+  duration?: number
+  weightMale?: number
+  weightFemale?: number
+  exercise: {
+    id: string
+    name: string
+    nameSv?: string
+    standardAbbreviation?: string
+    equipmentTypes: string[]
+  }
+}

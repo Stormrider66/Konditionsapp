@@ -6,6 +6,7 @@
  * A multi-step form for creating hybrid workouts with:
  * - Format selection
  * - Time/round configuration
+ * - Sections: Warmup, Strength, Metcon, Cooldown
  * - Movement selection with drag-and-drop
  * - Weight/rep configuration per movement
  */
@@ -35,6 +36,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -42,24 +48,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import {
   Plus,
   Trash2,
   GripVertical,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Timer,
   Repeat,
   Dumbbell,
@@ -67,8 +61,10 @@ import {
   Zap,
   Clock,
   Target,
-  Search,
+  Activity,
 } from 'lucide-react';
+import { SectionEditor } from './SectionEditor';
+import type { HybridSectionData } from '@/types';
 
 interface Exercise {
   id: string;
@@ -113,6 +109,10 @@ interface HybridWorkoutBuilderProps {
     scalingLevel?: string;
     movements?: WorkoutMovement[];
     tags?: string[];
+    // Section data
+    warmupData?: HybridSectionData;
+    strengthData?: HybridSectionData;
+    cooldownData?: HybridSectionData;
   };
 }
 
@@ -274,6 +274,21 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
   const [movements, setMovements] = useState<WorkoutMovement[]>(initialData?.movements || []);
   const [tags, setTags] = useState<string[]>(initialData?.tags || []);
 
+  // Section data
+  const [warmupData, setWarmupData] = useState<HybridSectionData | undefined>(initialData?.warmupData);
+  const [strengthData, setStrengthData] = useState<HybridSectionData | undefined>(initialData?.strengthData);
+  const [cooldownData, setCooldownData] = useState<HybridSectionData | undefined>(initialData?.cooldownData);
+
+  // Section visibility toggles
+  const [showWarmup, setShowWarmup] = useState(!!initialData?.warmupData);
+  const [showStrength, setShowStrength] = useState(!!initialData?.strengthData);
+  const [showCooldown, setShowCooldown] = useState(!!initialData?.cooldownData);
+
+  // Section open/closed state
+  const [warmupOpen, setWarmupOpen] = useState(false);
+  const [strengthOpen, setStrengthOpen] = useState(false);
+  const [cooldownOpen, setCooldownOpen] = useState(false);
+
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [exercisePopoverOpen, setExercisePopoverOpen] = useState(false);
@@ -314,7 +329,9 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
       const response = await fetch('/api/hybrid-movements?limit=200');
       if (response.ok) {
         const data = await response.json();
-        setExercises(data.movements);
+        setExercises(data.movements || []);
+      } else {
+        console.error('Failed to fetch exercises, status:', response.status);
       }
     } catch (error) {
       console.error('Failed to fetch exercises:', error);
@@ -322,6 +339,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
   }
 
   function addMovement(exercise: Exercise) {
+    console.log('Adding movement:', exercise.name);
     const newMovement: WorkoutMovement = {
       id: `temp-${Date.now()}`,
       exerciseId: exercise.id,
@@ -331,9 +349,10 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
       weightMale: exercise.defaultWeightMale,
       weightFemale: exercise.defaultWeightFemale,
     };
-    setMovements([...movements, newMovement]);
+    setMovements((prev) => [...prev, newMovement]);
     setExercisePopoverOpen(false);
     setExerciseSearch('');
+    console.log('Movement added, new count:', movements.length + 1);
   }
 
   function removeMovement(id: string) {
@@ -377,6 +396,10 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
           weightFemale: m.weightFemale,
           notes: m.notes,
         })),
+        // Section data - only include if section is enabled
+        warmupData: showWarmup ? warmupData : null,
+        strengthData: showStrength ? strengthData : null,
+        cooldownData: showCooldown ? cooldownData : null,
       };
 
       const method = initialData?.id ? 'PUT' : 'POST';
@@ -419,6 +442,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
     },
     {} as Record<string, Exercise[]>
   );
+
 
   const canProceedStep1 = format !== '';
   const canProceedStep2 = name.trim() !== '';
@@ -623,84 +647,254 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
         </div>
       )}
 
-      {/* Step 3: Movements */}
+      {/* Step 3: Sections & Movements */}
       {step === 3 && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Rörelser</h3>
-            <Popover open={exercisePopoverOpen} onOpenChange={setExercisePopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Lägg till rörelse
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="end">
-                <Command>
-                  <CommandInput
-                    placeholder="Sök rörelser..."
-                    value={exerciseSearch}
-                    onValueChange={setExerciseSearch}
-                  />
-                  <CommandList>
-                    <CommandEmpty>Inga rörelser hittades.</CommandEmpty>
-                    {Object.entries(groupedExercises).map(([category, exs]) => (
-                      <CommandGroup key={category} heading={categoryLabels[category] || category}>
-                        {exs.slice(0, 10).map((exercise) => (
-                          <CommandItem
-                            key={exercise.id}
-                            onSelect={() => addMovement(exercise)}
-                          >
-                            <div className="flex items-center gap-2 w-full">
-                              <span className="font-medium">
-                                {exercise.standardAbbreviation || exercise.name}
-                              </span>
-                              <span className="text-muted-foreground text-sm">
-                                {exercise.nameSv}
-                              </span>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    ))}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
+          <h3 className="text-lg font-semibold">Passinnehåll</h3>
+          <p className="text-sm text-muted-foreground">
+            Lägg till sektioner för ditt pass. Metcon är obligatoriskt, övriga är valfria.
+          </p>
 
-          {movements.length === 0 ? (
-            <Card className="p-8 text-center">
-              <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h4 className="font-medium mb-2">Inga rörelser än</h4>
-              <p className="text-sm text-muted-foreground">
-                Klicka på &quot;Lägg till rörelse&quot; för att börja bygga ditt pass.
-              </p>
-            </Card>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={movements.map((m) => m.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-3">
-                  {movements.map((movement, index) => (
-                    <SortableMovementCard
-                      key={movement.id}
-                      movement={movement}
-                      index={index}
-                      onRemove={removeMovement}
-                      onUpdate={updateMovement}
-                    />
-                  ))}
+          {/* WARMUP SECTION */}
+          <Card className={`overflow-hidden ${showWarmup ? 'border-orange-500/50' : ''}`}>
+            <Collapsible open={showWarmup && warmupOpen} onOpenChange={setWarmupOpen}>
+              <div className="flex items-center justify-between p-3 bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="warmup-toggle"
+                    checked={showWarmup}
+                    onChange={(e) => {
+                      setShowWarmup(e.target.checked);
+                      if (e.target.checked) setWarmupOpen(true);
+                      if (!e.target.checked) setWarmupData(undefined);
+                    }}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Activity className="h-4 w-4 text-orange-500" />
+                  <Label htmlFor="warmup-toggle" className="font-medium cursor-pointer">
+                    Uppvärmning
+                  </Label>
+                  {warmupData?.duration && (
+                    <Badge variant="outline" className="text-xs">
+                      ~{Math.ceil(warmupData.duration / 60)} min
+                    </Badge>
+                  )}
                 </div>
-              </SortableContext>
-            </DndContext>
-          )}
+                {showWarmup && (
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <ChevronDown className={`h-4 w-4 transition-transform ${warmupOpen ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                )}
+              </div>
+              <CollapsibleContent>
+                <CardContent className="pt-4">
+                  <SectionEditor
+                    sectionType="WARMUP"
+                    data={warmupData}
+                    onChange={setWarmupData}
+                    exercises={exercises}
+                  />
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+
+          {/* STRENGTH SECTION */}
+          <Card className={`overflow-hidden ${showStrength ? 'border-red-500/50' : ''}`}>
+            <Collapsible open={showStrength && strengthOpen} onOpenChange={setStrengthOpen}>
+              <div className="flex items-center justify-between p-3 bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="strength-toggle"
+                    checked={showStrength}
+                    onChange={(e) => {
+                      setShowStrength(e.target.checked);
+                      if (e.target.checked) setStrengthOpen(true);
+                      if (!e.target.checked) setStrengthData(undefined);
+                    }}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Dumbbell className="h-4 w-4 text-red-500" />
+                  <Label htmlFor="strength-toggle" className="font-medium cursor-pointer">
+                    Styrka
+                  </Label>
+                  {strengthData?.movements && strengthData.movements.length > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      {strengthData.movements.length} övningar
+                    </Badge>
+                  )}
+                </div>
+                {showStrength && (
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <ChevronDown className={`h-4 w-4 transition-transform ${strengthOpen ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                )}
+              </div>
+              <CollapsibleContent>
+                <CardContent className="pt-4">
+                  <SectionEditor
+                    sectionType="STRENGTH"
+                    data={strengthData}
+                    onChange={setStrengthData}
+                    exercises={exercises}
+                  />
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+
+          {/* METCON SECTION - Always visible, required */}
+          <Card className="border-primary/50 overflow-hidden">
+            <div className="p-3 bg-primary/10">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" />
+                <span className="font-medium">Metcon</span>
+                <Badge variant="secondary" className="text-xs">Obligatorisk</Badge>
+                {movements.length > 0 && (
+                  <Badge variant="outline" className="text-xs ml-auto">
+                    {movements.length} rörelser
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <CardContent className="pt-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Rörelser</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setExercisePopoverOpen(!exercisePopoverOpen)}>
+                    <Plus className="mr-1 h-3.5 w-3.5" />
+                    {exercisePopoverOpen ? 'Stäng' : 'Lägg till'}
+                  </Button>
+                </div>
+
+                {/* Exercise selector - inline */}
+                {exercisePopoverOpen && (
+                  <Card className="border-dashed">
+                    <CardContent className="p-3">
+                      <Input
+                        placeholder="Sök rörelser..."
+                        value={exerciseSearch}
+                        onChange={(e) => setExerciseSearch(e.target.value)}
+                        className="mb-3 h-9"
+                      />
+                      <div className="max-h-[200px] overflow-y-auto">
+                        {filteredExercises.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-3">Inga rörelser hittades.</p>
+                        ) : (
+                          Object.entries(groupedExercises).map(([category, exs]) => (
+                            <div key={category} className="mb-3">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                                {categoryLabels[category] || category}
+                              </p>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {exs.slice(0, 8).map((exercise) => (
+                                  <Button
+                                    key={exercise.id}
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="justify-start h-auto py-1.5 px-2 text-xs"
+                                    onClick={() => addMovement(exercise)}
+                                  >
+                                    {exercise.standardAbbreviation || exercise.name}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {movements.length === 0 ? (
+                  <div className="py-6 text-center">
+                    <Dumbbell className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-sm text-muted-foreground">
+                      Klicka på &quot;Lägg till&quot; för att börja bygga metcon.
+                    </p>
+                  </div>
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={movements.map((m) => m.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-2">
+                        {movements.map((movement, index) => (
+                          <SortableMovementCard
+                            key={movement.id}
+                            movement={movement}
+                            index={index}
+                            onRemove={removeMovement}
+                            onUpdate={updateMovement}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* COOLDOWN SECTION */}
+          <Card className={`overflow-hidden ${showCooldown ? 'border-blue-500/50' : ''}`}>
+            <Collapsible open={showCooldown && cooldownOpen} onOpenChange={setCooldownOpen}>
+              <div className="flex items-center justify-between p-3 bg-muted/30">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="cooldown-toggle"
+                    checked={showCooldown}
+                    onChange={(e) => {
+                      setShowCooldown(e.target.checked);
+                      if (e.target.checked) setCooldownOpen(true);
+                      if (!e.target.checked) setCooldownData(undefined);
+                    }}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <Activity className="h-4 w-4 text-blue-500" />
+                  <Label htmlFor="cooldown-toggle" className="font-medium cursor-pointer">
+                    Nedvarvning
+                  </Label>
+                  {cooldownData?.duration && (
+                    <Badge variant="outline" className="text-xs">
+                      ~{Math.ceil(cooldownData.duration / 60)} min
+                    </Badge>
+                  )}
+                </div>
+                {showCooldown && (
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <ChevronDown className={`h-4 w-4 transition-transform ${cooldownOpen ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </CollapsibleTrigger>
+                )}
+              </div>
+              <CollapsibleContent>
+                <CardContent className="pt-4">
+                  <SectionEditor
+                    sectionType="COOLDOWN"
+                    data={cooldownData}
+                    onChange={setCooldownData}
+                    exercises={exercises}
+                  />
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
         </div>
       )}
 

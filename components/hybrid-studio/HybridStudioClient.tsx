@@ -40,8 +40,30 @@ import {
   Zap,
   Clock,
   Target,
+  Trash2,
+  Edit,
+  MoreVertical,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { HybridWorkoutBuilder } from './HybridWorkoutBuilder';
+import { WorkoutDetailSheet } from './WorkoutDetailSheet';
+import { WorkoutAssignmentDialog } from './WorkoutAssignmentDialog';
+import type { HybridWorkoutWithSections, HybridSectionData } from '@/types';
 
 interface HybridMovement {
   id: string;
@@ -77,9 +99,17 @@ interface HybridWorkout {
   benchmarkSource?: string;
   tags: string[];
   movements: HybridMovement[];
+  // Section data
+  warmupData?: HybridSectionData;
+  strengthData?: HybridSectionData;
+  cooldownData?: HybridSectionData;
+  coachId?: string;
+  isPublic?: boolean;
   _count: {
     results: number;
   };
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 const formatLabels: Record<string, { label: string; labelSv: string; icon: React.ReactNode }> = {
@@ -108,6 +138,65 @@ export function HybridStudioClient() {
   const [benchmarkOnly, setBenchmarkOnly] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [selectedWorkout, setSelectedWorkout] = useState<HybridWorkout | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [deleteWorkout, setDeleteWorkout] = useState<HybridWorkout | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  // Detail sheet state
+  const [sheetWorkout, setSheetWorkout] = useState<HybridWorkout | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteWorkout) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/hybrid-workouts/${deleteWorkout.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setDeleteWorkout(null);
+        fetchWorkouts();
+      } else {
+        console.error('Failed to delete workout');
+      }
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleEdit = (workout: HybridWorkout) => {
+    setSelectedWorkout(workout);
+    setIsEditOpen(true);
+  };
+
+  const handleOpenSheet = (workout: HybridWorkout) => {
+    setSheetWorkout(workout);
+    setIsSheetOpen(true);
+  };
+
+  const handleSheetEdit = () => {
+    if (sheetWorkout) {
+      setSelectedWorkout(sheetWorkout);
+      setIsSheetOpen(false);
+      setIsEditOpen(true);
+    }
+  };
+
+  const handleSheetDelete = () => {
+    if (sheetWorkout) {
+      setDeleteWorkout(sheetWorkout);
+      setIsSheetOpen(false);
+    }
+  };
+
+  const handleSheetAssign = () => {
+    setIsAssignOpen(true);
+  };
 
   const fetchWorkouts = useCallback(async () => {
     setLoading(true);
@@ -254,6 +343,9 @@ export function HybridStudioClient() {
             scalingLabels={scalingLabels}
             formatWorkoutDescription={formatWorkoutDescription}
             getMovementSummary={getMovementSummary}
+            onView={handleOpenSheet}
+            onEdit={handleEdit}
+            onDelete={setDeleteWorkout}
           />
         </TabsContent>
 
@@ -280,6 +372,9 @@ export function HybridStudioClient() {
                     scalingLabels={scalingLabels}
                     formatWorkoutDescription={formatWorkoutDescription}
                     getMovementSummary={getMovementSummary}
+                    onView={handleOpenSheet}
+                    onEdit={handleEdit}
+                    onDelete={setDeleteWorkout}
                   />
                 </div>
               );
@@ -308,10 +403,113 @@ export function HybridStudioClient() {
               scalingLabels={scalingLabels}
               formatWorkoutDescription={formatWorkoutDescription}
               getMovementSummary={getMovementSummary}
+              onView={handleOpenSheet}
+              onEdit={handleEdit}
+              onDelete={setDeleteWorkout}
             />
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Workout Detail Sheet */}
+      <WorkoutDetailSheet
+        workout={sheetWorkout as HybridWorkoutWithSections | null}
+        open={isSheetOpen}
+        onOpenChange={(open) => {
+          setIsSheetOpen(open);
+          if (!open) setSheetWorkout(null);
+        }}
+        onEdit={handleSheetEdit}
+        onDelete={handleSheetDelete}
+        onAssign={handleSheetAssign}
+      />
+
+      {/* Assignment Dialog */}
+      {sheetWorkout && (
+        <WorkoutAssignmentDialog
+          workout={sheetWorkout}
+          open={isAssignOpen}
+          onOpenChange={setIsAssignOpen}
+          onAssigned={() => {
+            setIsAssignOpen(false);
+            fetchWorkouts();
+          }}
+        />
+      )}
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Redigera Pass</DialogTitle>
+            <DialogDescription>
+              Ändra passets inställningar och rörelser.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedWorkout && (
+            <HybridWorkoutBuilder
+              initialData={{
+                id: selectedWorkout.id,
+                name: selectedWorkout.name,
+                description: selectedWorkout.description,
+                format: selectedWorkout.format,
+                timeCap: selectedWorkout.timeCap,
+                workTime: selectedWorkout.workTime,
+                restTime: selectedWorkout.restTime,
+                totalRounds: selectedWorkout.totalRounds,
+                totalMinutes: selectedWorkout.totalMinutes,
+                repScheme: selectedWorkout.repScheme,
+                scalingLevel: selectedWorkout.scalingLevel,
+                tags: selectedWorkout.tags,
+                movements: selectedWorkout.movements?.map((m) => ({
+                  id: m.id,
+                  exerciseId: m.exercise.id,
+                  exercise: m.exercise,
+                  order: m.order,
+                  reps: m.reps,
+                  calories: m.calories,
+                  distance: m.distance,
+                  duration: m.duration,
+                  weightMale: m.weightMale,
+                  weightFemale: m.weightFemale,
+                })),
+              }}
+              onSave={() => {
+                setIsEditOpen(false);
+                setSelectedWorkout(null);
+                fetchWorkouts();
+              }}
+              onCancel={() => {
+                setIsEditOpen(false);
+                setSelectedWorkout(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteWorkout} onOpenChange={(open) => !open && setDeleteWorkout(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort pass?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Är du säker på att du vill ta bort &quot;{deleteWorkout?.name}&quot;?
+              Detta går inte att ångra.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Tar bort...' : 'Ta bort'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -323,6 +521,9 @@ interface WorkoutGridProps {
   scalingLabels: Record<string, { label: string; color: string }>;
   formatWorkoutDescription: (workout: HybridWorkout) => string;
   getMovementSummary: (movements: HybridMovement[]) => string;
+  onView?: (workout: HybridWorkout) => void;
+  onEdit?: (workout: HybridWorkout) => void;
+  onDelete?: (workout: HybridWorkout) => void;
 }
 
 function WorkoutGrid({
@@ -332,6 +533,9 @@ function WorkoutGrid({
   scalingLabels,
   formatWorkoutDescription,
   getMovementSummary,
+  onView,
+  onEdit,
+  onDelete,
 }: WorkoutGridProps) {
   if (loading) {
     return (
@@ -367,27 +571,68 @@ function WorkoutGrid({
       {workouts.map((workout) => (
         <Card
           key={workout.id}
-          className="hover:border-primary/50 transition-colors cursor-pointer"
+          className="hover:border-primary/50 transition-colors cursor-pointer group"
+          onClick={() => onView?.(workout)}
         >
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between gap-2">
-              <div>
+              <div className="flex-1 min-w-0">
                 <CardTitle className="text-lg flex items-center gap-2">
                   {workout.isBenchmark && (
                     <Trophy className="h-4 w-4 text-yellow-500 flex-shrink-0" />
                   )}
-                  {workout.name}
+                  <span className="truncate">{workout.name}</span>
                 </CardTitle>
                 <CardDescription className="flex items-center gap-2 mt-1">
                   {formatLabels[workout.format]?.icon}
                   {formatLabels[workout.format]?.labelSv || workout.format}
                 </CardDescription>
               </div>
-              <Badge
-                className={`${scalingLabels[workout.scalingLevel]?.color || 'bg-gray-500'} text-white flex-shrink-0`}
-              >
-                {scalingLabels[workout.scalingLevel]?.label || workout.scalingLevel}
-              </Badge>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Badge
+                  className={`${scalingLabels[workout.scalingLevel]?.color || 'bg-gray-500'} text-white`}
+                >
+                  {scalingLabels[workout.scalingLevel]?.label || workout.scalingLevel}
+                </Badge>
+                {!workout.isBenchmark && (onEdit || onDelete) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {onEdit && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(workout);
+                          }}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Redigera
+                        </DropdownMenuItem>
+                      )}
+                      {onDelete && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(workout);
+                          }}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Ta bort
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>

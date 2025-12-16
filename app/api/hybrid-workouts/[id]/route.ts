@@ -136,6 +136,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       movements,
       tags,
       isPublic,
+      // Section data
+      warmupData,
+      strengthData,
+      cooldownData,
     } = body;
 
     // Update workout - delete and recreate movements
@@ -161,6 +165,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
           scalingLevel: scalingLevel as ScalingLevel,
           isPublic,
           tags: tags || [],
+          // Section data
+          warmupData: warmupData ?? undefined,
+          strengthData: strengthData ?? undefined,
+          cooldownData: cooldownData ?? undefined,
           movements: {
             create: movements?.map(
               (

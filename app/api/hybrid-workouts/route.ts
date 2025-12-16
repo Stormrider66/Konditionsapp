@@ -121,6 +121,10 @@ export async function POST(request: NextRequest) {
       movements,
       tags,
       isPublic,
+      // Section data
+      warmupData,
+      strengthData,
+      cooldownData,
     } = body;
 
     // Validate required fields
@@ -147,6 +151,10 @@ export async function POST(request: NextRequest) {
         coachId: user.id,
         isPublic: isPublic || false,
         tags: tags || [],
+        // Section data
+        warmupData: warmupData ?? undefined,
+        strengthData: strengthData ?? undefined,
+        cooldownData: cooldownData ?? undefined,
         movements: {
           create: movements?.map(
             (

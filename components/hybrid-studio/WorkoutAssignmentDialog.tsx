@@ -46,19 +46,31 @@ interface Athlete {
 }
 
 interface WorkoutAssignmentDialogProps {
-  workoutId: string;
-  workoutName: string;
+  workoutId?: string;
+  workoutName?: string;
+  workout?: { id: string; name: string };
   trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   onAssigned?: () => void;
 }
 
 export function WorkoutAssignmentDialog({
-  workoutId,
-  workoutName,
+  workoutId: propWorkoutId,
+  workoutName: propWorkoutName,
+  workout,
   trigger,
+  open: controlledOpen,
+  onOpenChange,
   onAssigned,
 }: WorkoutAssignmentDialogProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
+
+  // Support both direct props and workout object
+  const workoutId = propWorkoutId || workout?.id || '';
+  const workoutName = propWorkoutName || workout?.name || '';
   const [loading, setLoading] = useState(false);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);

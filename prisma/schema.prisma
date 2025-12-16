@@ -1895,6 +1895,7 @@ model VideoAnalysis {
   // Video source
   videoUrl        String       // Supabase Storage URL
   videoType       String       // "STRENGTH", "RUNNING_GAIT", "SPORT_SPECIFIC"
+  cameraAngle     String?      // "FRONT", "SIDE", "BACK" - camera angle for view-specific analysis
   duration        Int?         // seconds
 
   // MediaPipe landmarks data (if processed locally)
@@ -2330,6 +2331,12 @@ model HybridWorkout {
 
   // Tags for filtering
   tags            String[]     @default([])
+
+  // Section data (JSON for flexibility)
+  warmupData      Json?        // {notes?: string, movements?: [...]}
+  strengthData    Json?        // {notes?: string, movements?: [{sets, reps, rest, ...}]}
+  cooldownData    Json?        // {notes?: string, movements?: [...]}
+  // Note: existing 'movements' relation is the METCON section
 
   // Versioning
   version         Int          @default(1)
