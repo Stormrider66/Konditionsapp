@@ -38,6 +38,7 @@ export async function GET(
             dailyCheckIns: true,
             injuryAssessments: true,
             bodyCompositions: true,
+            videoAnalyses: true,
           }
         }
       }
@@ -61,6 +62,22 @@ export async function GET(
       select: { raceName: true, distance: true, vdot: true }
     })
 
+    // Get latest video analysis
+    const latestVideoAnalysis = await prisma.videoAnalysis.findFirst({
+      where: { athleteId: clientId, status: 'COMPLETED' },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        createdAt: true,
+        formScore: true,
+        runningGaitAnalysis: {
+          select: {
+            injuryRiskLevel: true,
+            asymmetryPercent: true,
+          }
+        }
+      }
+    })
+
     // Build summary
     const summary = {
       athleteName: client.name,
@@ -73,6 +90,7 @@ export async function GET(
       hasCheckIns: client._count.dailyCheckIns > 0,
       hasInjuries: client._count.injuryAssessments > 0,
       hasBodyComp: client._count.bodyCompositions > 0,
+      hasVideoAnalyses: client._count.videoAnalyses > 0,
       counts: {
         tests: client._count.tests,
         races: client._count.raceResults,
@@ -81,6 +99,7 @@ export async function GET(
         checkIns: client._count.dailyCheckIns,
         injuries: client._count.injuryAssessments,
         bodyComps: client._count.bodyCompositions,
+        videoAnalyses: client._count.videoAnalyses,
       },
       latestTest: latestTest ? {
         date: latestTest.testDate,
@@ -90,6 +109,12 @@ export async function GET(
         name: latestRace.raceName,
         distance: latestRace.distance,
         vdot: latestRace.vdot
+      } : null,
+      latestVideoAnalysis: latestVideoAnalysis ? {
+        date: latestVideoAnalysis.createdAt,
+        formScore: latestVideoAnalysis.formScore,
+        injuryRiskLevel: latestVideoAnalysis.runningGaitAnalysis?.injuryRiskLevel || null,
+        asymmetryPercent: latestVideoAnalysis.runningGaitAnalysis?.asymmetryPercent || null,
       } : null,
     }
 

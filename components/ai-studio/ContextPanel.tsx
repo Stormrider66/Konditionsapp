@@ -44,6 +44,7 @@ import {
   Heart,
   Scale,
   Loader2,
+  Video,
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -98,6 +99,7 @@ interface ContextSummary {
   hasCheckIns: boolean
   hasInjuries: boolean
   hasBodyComp: boolean
+  hasVideoAnalyses: boolean
   counts: {
     tests: number
     races: number
@@ -106,6 +108,7 @@ interface ContextSummary {
     checkIns: number
     injuries: number
     bodyComps: number
+    videoAnalyses: number
   }
   latestTest: {
     date: string
@@ -115,6 +118,12 @@ interface ContextSummary {
     name: string | null
     distance: string
     vdot: number | null
+  } | null
+  latestVideoAnalysis: {
+    date: string
+    formScore: number | null
+    injuryRiskLevel: string | null
+    asymmetryPercent: number | null
   } | null
 }
 
@@ -430,6 +439,26 @@ export function ContextPanel({
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p>{contextSummary.counts.bodyComps} kroppssammansättningar</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+
+                            {contextSummary.hasVideoAnalyses && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 gap-1 bg-orange-50 text-orange-700 border-orange-200">
+                                    <Video className="h-3 w-3" />
+                                    Video
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{contextSummary.counts.videoAnalyses} videoanalyser</p>
+                                  {contextSummary.latestVideoAnalysis?.formScore && (
+                                    <p className="text-xs">Formpoäng: {contextSummary.latestVideoAnalysis.formScore}/100</p>
+                                  )}
+                                  {contextSummary.latestVideoAnalysis?.injuryRiskLevel && (
+                                    <p className="text-xs">Skaderisk: {contextSummary.latestVideoAnalysis.injuryRiskLevel}</p>
+                                  )}
                                 </TooltipContent>
                               </Tooltip>
                             )}

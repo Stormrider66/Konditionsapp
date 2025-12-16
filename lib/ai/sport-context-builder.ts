@@ -36,6 +36,38 @@ interface AthleteData {
   fieldTests?: FieldTest[];
   dailyCheckIns?: DailyCheckIn[];
   bodyCompositions?: BodyComposition[];
+  videoAnalyses?: VideoAnalysis[];
+}
+
+interface VideoAnalysis {
+  id: string;
+  createdAt: Date;
+  videoType: string | null;
+  formScore: number | null;
+  issuesDetected: string[] | null;
+  recommendations: string[] | null;
+  runningGaitAnalysis: RunningGaitAnalysis | null;
+}
+
+interface RunningGaitAnalysis {
+  id: string;
+  cadence: number | null;
+  groundContactTime: number | null;
+  verticalOscillation: number | null;
+  strideLength: number | null;
+  footStrikePattern: string | null;
+  asymmetryPercent: number | null;
+  leftContactTime: number | null;
+  rightContactTime: number | null;
+  injuryRiskLevel: string | null;
+  injuryRiskScore: number | null;
+  injuryRiskFactors: string[] | null;
+  runningEfficiency: number | null;
+  energyLeakages: string[] | null;
+  coachingCues: string[] | null;
+  drillRecommendations: string[] | null;
+  overallScore: number | null;
+  summary: string | null;
 }
 
 interface BodyComposition {
@@ -835,6 +867,159 @@ function buildReadinessContext(checkIns: DailyCheckIn[]): string {
   return context;
 }
 
+/**
+ * Build video analysis context from running gait analysis
+ */
+function buildVideoAnalysisContext(videoAnalyses: VideoAnalysis[]): string {
+  if (!videoAnalyses || videoAnalyses.length === 0) return '';
+
+  let context = `\n## VIDEOANALYSER - LÖPTEKNIK\n`;
+  context += `*Följande data kommer från AI-driven videoanalys av atletens löpteknik:*\n`;
+
+  for (const video of videoAnalyses) {
+    const date = new Date(video.createdAt).toLocaleDateString('sv-SE');
+    context += `\n### Analys från ${date}\n`;
+
+    if (video.formScore) {
+      context += `- **Teknisk formpoäng**: ${video.formScore}/100\n`;
+    }
+
+    // Issues and recommendations from general video analysis
+    if (video.issuesDetected && video.issuesDetected.length > 0) {
+      context += `- **Identifierade problem**: ${video.issuesDetected.join(', ')}\n`;
+    }
+    if (video.recommendations && video.recommendations.length > 0) {
+      context += `- **Generella rekommendationer**: ${video.recommendations.join(', ')}\n`;
+    }
+
+    // Detailed running gait analysis
+    const gait = video.runningGaitAnalysis;
+    if (gait) {
+      context += `\n#### Biomekanisk löpanalys\n`;
+
+      // Cadence and timing metrics
+      if (gait.cadence) {
+        const cadenceStatus = gait.cadence < 170 ? '(låg - kan förbättras)' :
+                              gait.cadence > 190 ? '(hög - bra effektivitet)' :
+                              '(normal)';
+        context += `- **Kadans**: ${gait.cadence} steg/min ${cadenceStatus}\n`;
+      }
+      if (gait.groundContactTime) {
+        const gctStatus = gait.groundContactTime > 280 ? '(lång - indikerar ineffektivitet)' :
+                          gait.groundContactTime < 200 ? '(kort - elitliknande)' :
+                          '(normal)';
+        context += `- **Markkontakttid**: ${gait.groundContactTime} ms ${gctStatus}\n`;
+      }
+      if (gait.verticalOscillation) {
+        const voStatus = gait.verticalOscillation > 10 ? '(hög - energiläckage)' :
+                         gait.verticalOscillation < 6 ? '(låg - effektivt)' :
+                         '(normal)';
+        context += `- **Vertikal oscillation**: ${gait.verticalOscillation} cm ${voStatus}\n`;
+      }
+      if (gait.strideLength) {
+        context += `- **Steglängd**: ${gait.strideLength} m\n`;
+      }
+      if (gait.footStrikePattern) {
+        context += `- **Fotisättning**: ${translateFootStrike(gait.footStrikePattern)}\n`;
+      }
+
+      // Asymmetry analysis - critical for injury prevention
+      if (gait.asymmetryPercent !== null) {
+        const asymmetryStatus = gait.asymmetryPercent > 8 ? '⚠️ HÖG ASYMMETRI - skaderisk' :
+                                gait.asymmetryPercent > 4 ? '⚡ Måttlig asymmetri' :
+                                '✅ Balanserad';
+        context += `\n#### Asymmetrianalys\n`;
+        context += `- **Asymmetrigrad**: ${gait.asymmetryPercent}% ${asymmetryStatus}\n`;
+        if (gait.leftContactTime && gait.rightContactTime) {
+          const longerSide = gait.leftContactTime > gait.rightContactTime ? 'vänster' : 'höger';
+          context += `- **Markkontakt vänster/höger**: ${gait.leftContactTime}/${gait.rightContactTime} ms (längre på ${longerSide} sida)\n`;
+        }
+      }
+
+      // Injury risk assessment
+      if (gait.injuryRiskLevel) {
+        context += `\n#### Skaderiskbedömning\n`;
+        const riskEmoji = gait.injuryRiskLevel === 'HIGH' ? '🔴' :
+                          gait.injuryRiskLevel === 'MODERATE' ? '🟡' : '🟢';
+        context += `- **Skaderisk**: ${riskEmoji} ${translateRiskLevel(gait.injuryRiskLevel)}`;
+        if (gait.injuryRiskScore) {
+          context += ` (${gait.injuryRiskScore}/100)`;
+        }
+        context += '\n';
+        if (gait.injuryRiskFactors && gait.injuryRiskFactors.length > 0) {
+          context += `- **Riskfaktorer**: ${gait.injuryRiskFactors.join(', ')}\n`;
+        }
+      }
+
+      // Efficiency metrics
+      if (gait.runningEfficiency) {
+        context += `\n#### Löpeffektivitet\n`;
+        context += `- **Effektivitetspoäng**: ${gait.runningEfficiency}%\n`;
+      }
+      if (gait.energyLeakages && gait.energyLeakages.length > 0) {
+        context += `- **Identifierade energiläckage**: ${gait.energyLeakages.join(', ')}\n`;
+      }
+
+      // Coaching recommendations - critical for program design
+      if (gait.coachingCues && gait.coachingCues.length > 0) {
+        context += `\n#### Coachingråd för träningen\n`;
+        for (const cue of gait.coachingCues) {
+          context += `- ${cue}\n`;
+        }
+      }
+
+      if (gait.drillRecommendations && gait.drillRecommendations.length > 0) {
+        context += `\n#### Rekommenderade tekniska övningar\n`;
+        for (const drill of gait.drillRecommendations) {
+          context += `- ${drill}\n`;
+        }
+      }
+
+      if (gait.summary) {
+        context += `\n#### Sammanfattning\n${gait.summary}\n`;
+      }
+    }
+  }
+
+  // Add guidance for using video analysis in program design
+  context += `\n### Hur använda videoanalysdata i programdesign\n`;
+  context += `- Hög asymmetri (>8%) → Inkludera unilaterala styrkeövningar och balansarbete\n`;
+  context += `- Lång markkontakttid → Lägg till plyometriska övningar och kadensdrills\n`;
+  context += `- Hög vertikal oscillation → Fokusera på core-styrka och höftflexibilitet\n`;
+  context += `- Identifierade skaderisker → Anpassa volym och intensitet, lägg till preventionsövningar\n`;
+  context += `- Använd rekommenderade övningar som uppvärmning eller teknikpass\n`;
+
+  return context;
+}
+
+/**
+ * Translate foot strike pattern to Swedish
+ */
+function translateFootStrike(pattern: string): string {
+  const translations: Record<string, string> = {
+    'HEEL_STRIKE': 'Hälisättning',
+    'MIDFOOT': 'Mellanfotisättning',
+    'FOREFOOT': 'Framfotisättning',
+    'heel': 'Hälisättning',
+    'midfoot': 'Mellanfotisättning',
+    'forefoot': 'Framfotisättning',
+  };
+  return translations[pattern] || pattern;
+}
+
+/**
+ * Translate injury risk level to Swedish
+ */
+function translateRiskLevel(level: string): string {
+  const translations: Record<string, string> = {
+    'HIGH': 'Hög',
+    'MODERATE': 'Måttlig',
+    'LOW': 'Låg',
+    'MINIMAL': 'Minimal',
+  };
+  return translations[level] || level;
+}
+
 // Helper functions
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -882,9 +1067,17 @@ export function buildSportSpecificContext(athlete: AthleteData): string {
   switch (primarySport) {
     case 'RUNNING':
       context += buildRunningContext(athlete);
+      // Include video analysis for running gait
+      if (athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
+        context += buildVideoAnalysisContext(athlete.videoAnalyses);
+      }
       break;
     case 'HYROX':
       context += buildHyroxContext(athlete);
+      // Include running video analysis for HYROX (has running component)
+      if (athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
+        context += buildVideoAnalysisContext(athlete.videoAnalyses);
+      }
       break;
     case 'CYCLING':
       context += buildCyclingContext(athlete);
@@ -897,6 +1090,10 @@ export function buildSportSpecificContext(athlete: AthleteData): string {
       context += buildSwimmingContext(athlete); // Include swim data
       context += buildCyclingContext(athlete); // Include cycling data
       context += buildRunningContext(athlete); // Include running data
+      // Include video analysis for the running component
+      if (athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
+        context += buildVideoAnalysisContext(athlete.videoAnalyses);
+      }
       break;
     case 'SKIING':
       context += buildSkiingContext(athlete);

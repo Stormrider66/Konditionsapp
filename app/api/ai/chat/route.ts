@@ -177,6 +177,14 @@ export async function POST(request: NextRequest) {
               metabolicAge: true,
             },
           },
+          videoAnalyses: {
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+            where: { status: 'COMPLETED' },
+            include: {
+              runningGaitAnalysis: true,
+            },
+          },
         },
       });
 
@@ -321,7 +329,76 @@ ${prog.goalRace ? `- **Mållopp**: ${prog.goalRace}` : ''}
 - **Metabolisk ålder**: ${bc.metabolicAge} år`;
         }
 
-        athleteContext = `${basicInfo}${sportInfo}${testInfo}${raceInfo}${programInfo}${injuryInfo}${bodyCompInfo}
+        // Video analysis (running gait analysis)
+        let videoAnalysisInfo = '';
+        if (athlete.videoAnalyses?.length) {
+          videoAnalysisInfo = `
+### Videoanalyser`;
+          for (const video of athlete.videoAnalyses) {
+            const date = new Date(video.createdAt).toLocaleDateString('sv-SE');
+            videoAnalysisInfo += `
+
+#### Videoanalys (${date})`;
+            if (video.formScore) {
+              videoAnalysisInfo += `
+- **Formpoäng**: ${video.formScore}/100`;
+            }
+            if (video.issuesDetected && Array.isArray(video.issuesDetected) && video.issuesDetected.length > 0) {
+              videoAnalysisInfo += `
+- **Identifierade problem**: ${(video.issuesDetected as string[]).join(', ')}`;
+            }
+            if (video.recommendations && Array.isArray(video.recommendations) && video.recommendations.length > 0) {
+              videoAnalysisInfo += `
+- **Rekommendationer**: ${(video.recommendations as string[]).join(', ')}`;
+            }
+
+            // Running gait analysis details
+            const gait = video.runningGaitAnalysis;
+            if (gait) {
+              videoAnalysisInfo += `
+
+##### Löpstilsanalys`;
+              if (gait.cadence) videoAnalysisInfo += `
+- **Kadans**: ${gait.cadence} steg/min`;
+              if (gait.groundContactTime) videoAnalysisInfo += `
+- **Markkontakttid**: ${gait.groundContactTime} ms`;
+              if (gait.verticalOscillation) videoAnalysisInfo += `
+- **Vertikal oscillation**: ${gait.verticalOscillation} cm`;
+              if (gait.strideLength) videoAnalysisInfo += `
+- **Steglängd**: ${gait.strideLength} m`;
+              if (gait.footStrikePattern) videoAnalysisInfo += `
+- **Fotisättning**: ${gait.footStrikePattern}`;
+              if (gait.asymmetryPercent) videoAnalysisInfo += `
+- **Asymmetri**: ${gait.asymmetryPercent}%`;
+              if (gait.leftContactTime && gait.rightContactTime) videoAnalysisInfo += `
+- **Markkontakt vänster/höger**: ${gait.leftContactTime}/${gait.rightContactTime} ms`;
+              if (gait.injuryRiskLevel) videoAnalysisInfo += `
+- **Skaderisk**: ${gait.injuryRiskLevel}${gait.injuryRiskScore ? ` (${gait.injuryRiskScore}/100)` : ''}`;
+              if (gait.injuryRiskFactors && Array.isArray(gait.injuryRiskFactors) && gait.injuryRiskFactors.length > 0) {
+                videoAnalysisInfo += `
+- **Riskfaktorer**: ${(gait.injuryRiskFactors as string[]).join(', ')}`;
+              }
+              if (gait.runningEfficiency) videoAnalysisInfo += `
+- **Löpeffektivitet**: ${gait.runningEfficiency}%`;
+              if (gait.energyLeakages && Array.isArray(gait.energyLeakages) && gait.energyLeakages.length > 0) {
+                videoAnalysisInfo += `
+- **Energiläckage**: ${(gait.energyLeakages as string[]).join(', ')}`;
+              }
+              if (gait.coachingCues && Array.isArray(gait.coachingCues) && gait.coachingCues.length > 0) {
+                videoAnalysisInfo += `
+- **Coachingråd**: ${(gait.coachingCues as string[]).join('; ')}`;
+              }
+              if (gait.drillRecommendations && Array.isArray(gait.drillRecommendations) && gait.drillRecommendations.length > 0) {
+                videoAnalysisInfo += `
+- **Rekommenderade övningar**: ${(gait.drillRecommendations as string[]).join(', ')}`;
+              }
+              if (gait.summary) videoAnalysisInfo += `
+- **Sammanfattning**: ${gait.summary}`;
+            }
+          }
+        }
+
+        athleteContext = `${basicInfo}${sportInfo}${testInfo}${raceInfo}${programInfo}${injuryInfo}${bodyCompInfo}${videoAnalysisInfo}
 `;
 
         // Build sport-specific context with detailed training data
@@ -412,6 +489,7 @@ ${c.content}
 - Simning (CSS-baserad träning, stroke efficiency)
 - Triathlon (multi-sport balance, brick sessions)
 - Längdskidåkning (klassisk/fristil, dubbelstakning)
+- Biomekanisk videoanalys av löpteknik (kadans, markkontakttid, asymmetri, skaderisk)
 
 ## INSTRUKTIONER
 - Svara ALLTID på svenska
@@ -420,6 +498,8 @@ ${c.content}
 - Använd etablerade träningszoner och metodiker
 - Anpassa råden efter atletens nivå och mål
 - När du genererar ett program, inkludera JSON-format som kan sparas
+- Om videoanalysdata finns tillgänglig, integrera löpteknikrekommendationer i programmet
+- Vid hög asymmetri eller skaderisk, inkludera preventiva övningar och styrketräning
 ${webSearchEnabled ? '- Du kan referera till aktuell forskning och trender inom träningsvetenskap' : ''}
 
 ${athleteContext}
