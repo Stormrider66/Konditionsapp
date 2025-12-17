@@ -6,8 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Activity, Calendar, Library, Plus, Timer, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CardioSessionBuilder } from './CardioSessionBuilder'
+import { CardioSessionLibrary } from './CardioSessionLibrary'
+import type { CardioSessionData } from '@/types'
 
 export function CardioDashboard() {
+  const [activeTab, setActiveTab] = React.useState('builder')
+  const [editSession, setEditSession] = React.useState<CardioSessionData | null>(null)
+
   return (
     <div className="container mx-auto py-6 space-y-8">
       <div className="flex justify-between items-center">
@@ -68,29 +73,43 @@ export function CardioDashboard() {
         </Card>
       </div>
 
-      <Tabs defaultValue="builder" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="builder" className="flex items-center gap-2">
             <Timer className="h-4 w-4" />
-            Session Builder
+            Skapa Pass
           </TabsTrigger>
           <TabsTrigger value="library" className="flex items-center gap-2">
             <Library className="h-4 w-4" />
-            Workout Library
+            Passbibliotek
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="builder">
-          <CardioSessionBuilder />
+          <CardioSessionBuilder
+            initialData={editSession}
+            onSaved={() => {
+              setEditSession(null)
+              setActiveTab('library')
+            }}
+            onCancel={editSession ? () => {
+              setEditSession(null)
+              setActiveTab('library')
+            } : undefined}
+          />
         </TabsContent>
-        
-        <TabsContent value="library">
-          <Card>
-             <CardContent className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
-                <Library className="h-12 w-12 mb-4 opacity-50" />
-                <p>Workout Library Coming Soon</p>
-             </CardContent>
-          </Card>
+
+        <TabsContent value="library" className="space-y-4">
+          <CardioSessionLibrary
+            onNewSession={() => {
+              setEditSession(null)
+              setActiveTab('builder')
+            }}
+            onEditSession={(session) => {
+              setEditSession(session)
+              setActiveTab('builder')
+            }}
+          />
         </TabsContent>
       </Tabs>
     </div>

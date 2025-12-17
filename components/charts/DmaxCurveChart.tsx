@@ -148,18 +148,19 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
         )}
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={450}>
         <ComposedChart
           data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="intensity"
-            label={{ value: intensityLabel, position: 'insideBottom', offset: -10 }}
+            label={{ value: intensityLabel, position: 'bottom', offset: 0 }}
             type="number"
             domain={['dataMin', 'dataMax']}
             allowDataOverflow={false}
+            tick={{ dy: 5 }}
           />
           <YAxis
             label={{ value: 'Laktat (mmol/L)', angle: -90, position: 'insideLeft' }}
@@ -172,7 +173,10 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
             }}
             labelFormatter={(label) => `${intensityLabel.split('(')[0]}: ${label}`}
           />
-          <Legend />
+          <Legend
+            verticalAlign="bottom"
+            wrapperStyle={{ paddingTop: '20px' }}
+          />
 
           {/* Baseline */}
           <Line

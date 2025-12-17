@@ -55,21 +55,48 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
         },
         {
           duration: 4,
+          heartRate: 130,
+          lactate: 1.3,
+          vo2: undefined,
+          speed: testType === 'RUNNING' ? 9 : undefined,
+          power: testType === 'CYCLING' ? 125 : undefined,
+          pace: testType === 'SKIING' ? 6.5 : undefined,
+        },
+        {
+          duration: 4,
           heartRate: 140,
-          lactate: 2.0,
+          lactate: 1.8,
           vo2: undefined,
           speed: testType === 'RUNNING' ? 10 : undefined,
           power: testType === 'CYCLING' ? 150 : undefined,
-          pace: testType === 'SKIING' ? 6.0 : undefined,
+          pace: testType === 'SKIING' ? 5.5 : undefined,
+        },
+        {
+          duration: 4,
+          heartRate: 150,
+          lactate: 2.5,
+          vo2: undefined,
+          speed: testType === 'RUNNING' ? 11 : undefined,
+          power: testType === 'CYCLING' ? 175 : undefined,
+          pace: testType === 'SKIING' ? 5.0 : undefined,
         },
         {
           duration: 4,
           heartRate: 160,
-          lactate: 4.0,
+          lactate: 3.5,
           vo2: undefined,
           speed: testType === 'RUNNING' ? 12 : undefined,
           power: testType === 'CYCLING' ? 200 : undefined,
           pace: testType === 'SKIING' ? 4.5 : undefined,
+        },
+        {
+          duration: 4,
+          heartRate: 170,
+          lactate: 5.0,
+          vo2: undefined,
+          speed: testType === 'RUNNING' ? 13 : undefined,
+          power: testType === 'CYCLING' ? 225 : undefined,
+          pace: testType === 'SKIING' ? 4.0 : undefined,
         },
       ],
     },
@@ -106,14 +133,25 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   }, [fetchTemplates])
 
   const addStage = () => {
+    const stages = getValues('stages')
+    const lastStage = stages[stages.length - 1]
+
+    // Increment from last stage values
+    const newSpeed = testType === 'RUNNING' && lastStage?.speed ? lastStage.speed + 1 : (testType === 'RUNNING' ? 8 : undefined)
+    const newPower = testType === 'CYCLING' && lastStage?.power ? lastStage.power + 25 : (testType === 'CYCLING' ? 100 : undefined)
+    const newPace = testType === 'SKIING' && lastStage?.pace ? Math.max(lastStage.pace - 0.5, 2.5) : (testType === 'SKIING' ? 7.5 : undefined)
+    const newHeartRate = lastStage?.heartRate ? lastStage.heartRate + 10 : 120
+    // Estimate lactate based on exponential growth pattern (roughly doubles every 2-3 stages at higher intensities)
+    const newLactate = lastStage?.lactate ? Math.round((lastStage.lactate * 1.4) * 10) / 10 : 1.0
+
     append({
       duration: 4,
-      heartRate: 120,
-      lactate: 1.0,
+      heartRate: newHeartRate,
+      lactate: newLactate,
       vo2: undefined,
-      speed: testType === 'RUNNING' ? 8 : undefined,
-      power: testType === 'CYCLING' ? 100 : undefined,
-      pace: testType === 'SKIING' ? 7.5 : undefined,
+      speed: newSpeed,
+      power: newPower,
+      pace: newPace,
     })
   }
 
@@ -183,6 +221,13 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     }
   }
 
+  // Debug: Log form errors when they change
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      console.log('Form validation errors:', errors)
+    }
+  }, [errors])
+
   return (
     <form onSubmit={handleSubmit(onSubmitHandler)} className="space-y-6">
       <div className="space-y-2">
@@ -234,15 +279,6 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
             >
               <Save className="w-4 h-4 mr-2" />
               Spara som mall
-            </Button>
-            <Button
-              type="button"
-              onClick={addStage}
-              variant="outline"
-              size="sm"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Lägg till steg
             </Button>
           </div>
         </div>
@@ -418,6 +454,19 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
             </CardContent>
           </Card>
         ))}
+
+        {/* Add stage button at bottom right */}
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            onClick={addStage}
+            variant="outline"
+            size="sm"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Lägg till steg
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -429,6 +478,29 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>
+
+      {/* Show validation errors summary */}
+      {Object.keys(errors).length > 0 && (
+        <Alert variant="destructive">
+          <AlertTitle>Formuläret innehåller fel</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+              {errors.testDate && <li>Testdatum: {errors.testDate.message}</li>}
+              {errors.stages?.message && <li>Teststeg: {errors.stages.message}</li>}
+              {errors.stages?.root?.message && <li>Teststeg: {errors.stages.root.message}</li>}
+              {Array.isArray(errors.stages) && errors.stages.map((stageError, idx) =>
+                stageError && (
+                  <li key={idx}>
+                    Steg {idx + 1}: {Object.entries(stageError).map(([field, err]) =>
+                      `${field === 'heartRate' ? 'Puls' : field === 'lactate' ? 'Laktat' : field === 'speed' ? 'Hastighet' : field === 'power' ? 'Effekt' : field === 'duration' ? 'Tid' : field}: ${(err as { message?: string })?.message || 'ogiltigt värde'}`
+                    ).join(', ')}
+                  </li>
+                )
+              )}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Button
         type="submit"

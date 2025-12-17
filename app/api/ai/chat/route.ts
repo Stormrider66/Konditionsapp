@@ -336,9 +336,22 @@ ${prog.goalRace ? `- **Mållopp**: ${prog.goalRace}` : ''}
 ### Videoanalyser`;
           for (const video of athlete.videoAnalyses) {
             const date = new Date(video.createdAt).toLocaleDateString('sv-SE');
+            const angleLabel = video.cameraAngle === 'FRONT' ? 'Framifrån' :
+                               video.cameraAngle === 'SIDE' ? 'Från sidan' :
+                               video.cameraAngle === 'BACK' ? 'Bakifrån' : null;
+            const angleInfo = angleLabel ? ` - ${angleLabel}` : '';
             videoAnalysisInfo += `
 
-#### Videoanalys (${date})`;
+#### Videoanalys (${date}${angleInfo})`;
+            if (video.cameraAngle) {
+              const viewFocus = video.cameraAngle === 'FRONT' ? 'armsving, symmetri, knäspårning' :
+                                video.cameraAngle === 'SIDE' ? 'fotisättning, lutning, oscillation' :
+                                video.cameraAngle === 'BACK' ? 'höftfall, hälpiska, gluteal' : '';
+              if (viewFocus) {
+                videoAnalysisInfo += `
+- **Kameravy fokus**: ${viewFocus}`;
+              }
+            }
             if (video.formScore) {
               videoAnalysisInfo += `
 - **Formpoäng**: ${video.formScore}/100`;

@@ -43,6 +43,7 @@ interface VideoAnalysis {
   id: string;
   createdAt: Date;
   videoType: string | null;
+  cameraAngle: string | null;
   formScore: number | null;
   issuesDetected: string[] | null;
   recommendations: string[] | null;
@@ -876,9 +877,22 @@ function buildVideoAnalysisContext(videoAnalyses: VideoAnalysis[]): string {
   let context = `\n## VIDEOANALYSER - LÖPTEKNIK\n`;
   context += `*Följande data kommer från AI-driven videoanalys av atletens löpteknik:*\n`;
 
+  // Check which camera angles are available for cross-referencing
+  const availableAngles = videoAnalyses
+    .filter(v => v.cameraAngle)
+    .map(v => v.cameraAngle);
+  const hasMultipleViews = new Set(availableAngles).size > 1;
+
   for (const video of videoAnalyses) {
     const date = new Date(video.createdAt).toLocaleDateString('sv-SE');
-    context += `\n### Analys från ${date}\n`;
+    const angleLabel = translateCameraAngle(video.cameraAngle);
+    const angleInfo = angleLabel ? ` (${angleLabel})` : '';
+    context += `\n### Analys från ${date}${angleInfo}\n`;
+
+    // Add view-specific context
+    if (video.cameraAngle) {
+      context += getViewSpecificMetricsLabel(video.cameraAngle);
+    }
 
     if (video.formScore) {
       context += `- **Teknisk formpoäng**: ${video.formScore}/100\n`;
@@ -981,6 +995,16 @@ function buildVideoAnalysisContext(videoAnalyses: VideoAnalysis[]): string {
     }
   }
 
+  // Add cross-referencing guidance when multiple views are available
+  if (hasMultipleViews) {
+    context += `\n### Korsreferens - Flera kameraperspektiv tillgängliga\n`;
+    context += `*Atleten har analyserats från flera vinklar. Korrelera fynd mellan perspektiven:*\n`;
+    context += `- **Front + Sida**: Kontrollera att knäspårning (front) matchar fotisättning (sida)\n`;
+    context += `- **Front + Bak**: Jämför höftfall från båda perspektiv för fullständig symmetrianalys\n`;
+    context += `- **Sida + Bak**: Korrelera gluteal aktivering (bak) med höftextension (sida)\n`;
+    context += `- Vid motsägande data, prioritera sidovyn för sagittalplansmekanik och frontvyn för frontalplansmekanik\n`;
+  }
+
   // Add guidance for using video analysis in program design
   context += `\n### Hur använda videoanalysdata i programdesign\n`;
   context += `- Hög asymmetri (>8%) → Inkludera unilaterala styrkeövningar och balansarbete\n`;
@@ -1018,6 +1042,35 @@ function translateRiskLevel(level: string): string {
     'MINIMAL': 'Minimal',
   };
   return translations[level] || level;
+}
+
+/**
+ * Translate camera angle to Swedish
+ */
+function translateCameraAngle(angle: string | null): string {
+  if (!angle) return '';
+  const translations: Record<string, string> = {
+    'FRONT': 'Framifrån',
+    'SIDE': 'Från sidan',
+    'BACK': 'Bakifrån',
+  };
+  return translations[angle] || angle;
+}
+
+/**
+ * Get view-specific metrics label for context
+ */
+function getViewSpecificMetricsLabel(angle: string): string {
+  switch (angle) {
+    case 'FRONT':
+      return `*Frontalplansanalys - fokus på: armsving, symmetri, knäspårning, höftfall*\n`;
+    case 'SIDE':
+      return `*Sagittalplansanalys - fokus på: fotisättning, lutning, oscillation, höftextension*\n`;
+    case 'BACK':
+      return `*Posterior analys - fokus på: höftfall, hälpiska, gluteal aktivering, spinal position*\n`;
+    default:
+      return '';
+  }
 }
 
 // Helper functions

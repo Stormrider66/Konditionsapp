@@ -9,7 +9,8 @@
       "Bash(taskkill:*)",
       "Bash(npx prisma generate:*)",
       "Bash(cat:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

@@ -27,7 +27,7 @@ export function ReportTemplate({
   const age = Math.floor((Date.now() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
 
   return (
-    <div className="max-w-4xl mx-auto bg-white p-8 print:p-4" data-pdf-content>
+    <div className="max-w-4xl mx-auto bg-white p-8 print:p-6 print:max-w-none" data-pdf-content>
       {/* Header */}
       <header className="gradient-primary text-white p-6 rounded-t-lg print:rounded-none">
         <h1 className="text-3xl font-bold">{organization}</h1>
@@ -262,8 +262,10 @@ export function ReportTemplate({
           )}
         </div>
 
-        {/* D-max Explanation - shown when D-max visualization is available */}
-        {calculations.dmaxVisualization && (
+        {/* D-max Explanation - only shown when D-max method was actually used */}
+        {calculations.dmaxVisualization &&
+         ((calculations.aerobicThreshold as any)?.method?.includes('DMAX') ||
+          (calculations.anaerobicThreshold as any)?.method?.includes('DMAX')) && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h4 className="font-semibold text-sm mb-2 flex items-center">
               <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -442,6 +444,53 @@ export function ReportTemplate({
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Running Economy Explanation */}
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h4 className="font-semibold text-sm mb-3 flex items-center">
+              <svg className="w-4 h-4 mr-2 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              Om löpekonomi
+            </h4>
+            <div className="text-sm text-gray-700 space-y-2">
+              <p>
+                <strong>Löpekonomi</strong> mäter hur effektivt din kropp använder syre vid löpning.
+                Värdet anges i ml O₂ per kg kroppsvikt per kilometer (ml/kg/km) och visar hur mycket
+                syre som krävs för att springa en kilometer i given hastighet.
+              </p>
+              <p>
+                <strong>Lägre värde = bättre ekonomi.</strong> En löpare med god ekonomi förbrukar
+                mindre energi vid samma hastighet jämfört med en löpare med sämre ekonomi.
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-4">
+                <div>
+                  <p className="font-medium text-gray-800 mb-1">Referensvärden:</p>
+                  <ul className="text-xs space-y-1 text-gray-600">
+                    <li>• <span className="text-green-600 font-medium">Utmärkt:</span> &lt;180 ml/kg/km</li>
+                    <li>• <span className="text-green-600 font-medium">Mycket god:</span> 180-195 ml/kg/km</li>
+                    <li>• <span className="text-blue-600 font-medium">God:</span> 195-210 ml/kg/km</li>
+                    <li>• <span className="text-yellow-600 font-medium">Acceptabel:</span> 210-230 ml/kg/km</li>
+                    <li>• <span className="text-red-600 font-medium">Förbättringspotential:</span> &gt;230 ml/kg/km</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-800 mb-1">Påverkande faktorer:</p>
+                  <ul className="text-xs space-y-1 text-gray-600">
+                    <li>• Löpteknik och steglängd</li>
+                    <li>• Muskelstyvhet och elasticitet</li>
+                    <li>• Kroppsvikt och sammansättning</li>
+                    <li>• Skoval och underlag</li>
+                    <li>• Träningshistorik och anpassning</li>
+                  </ul>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-3 italic">
+                Löpekonomi kan förbättras genom plyometrisk träning, styrketräning för ben och core,
+                samt teknisk löpträning med fokus på kadensoptimering.
+              </p>
+            </div>
           </div>
         </section>
       )}

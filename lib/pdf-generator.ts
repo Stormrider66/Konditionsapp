@@ -29,26 +29,40 @@ export async function generatePDFFromElement(
 
   // Använd html2canvas för att fånga HTML som bild
   // Detta stödjer svenska tecken och Recharts-diagram perfekt
+  // A4 @ 96dpi = 794px bredd, vi använder 800px för bra passning
+  const a4Width = 800
   const canvas = await html2canvas(element, {
     scale, // Högre skala = bättre kvalitet
     useCORS: true, // För att hantera externa bilder
     logging: false,
     backgroundColor: '#ffffff',
-    windowWidth: 1200, // Fast bredd för konsekvent layout
+    windowWidth: a4Width, // Optimerat för A4-format
     onclone: (clonedDoc) => {
       // Justera styling för PDF-rendering
       const clonedElement = clonedDoc.querySelector('[data-pdf-content]')
       if (clonedElement instanceof HTMLElement) {
-        // Ta bort max-width för att få full bredd i PDF
+        // Sätt bredd optimerad för A4
         clonedElement.style.maxWidth = 'none'
-        clonedElement.style.width = '1200px'
+        clonedElement.style.width = `${a4Width}px`
+        clonedElement.style.padding = '20px'
+        clonedElement.style.boxSizing = 'border-box'
 
-        // Säkerställ att alla diagram syns
+        // Säkerställ att alla diagram syns och har rätt storlek
         const charts = clonedElement.querySelectorAll('.recharts-wrapper')
         charts.forEach((chart) => {
           if (chart instanceof HTMLElement) {
             chart.style.width = '100%'
             chart.style.height = 'auto'
+            chart.style.minHeight = '300px'
+          }
+        })
+
+        // Förbättra tabeller för A4
+        const tables = clonedElement.querySelectorAll('table')
+        tables.forEach((table) => {
+          if (table instanceof HTMLElement) {
+            table.style.fontSize = '11px'
+            table.style.width = '100%'
           }
         })
       }

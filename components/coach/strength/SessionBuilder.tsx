@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
-  DndContext, 
+  DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
@@ -26,9 +26,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { GripVertical, Plus, Trash2, Dumbbell, Timer, RotateCcw, Search } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Dumbbell, Timer, RotateCcw, Search, Download, Loader2, X } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { SessionExportButton } from '@/components/exports/SessionExportButton'
+import { toast } from 'sonner'
+import type { StrengthSessionData } from '@/types'
 
 // Types
 type Exercise = {
@@ -41,29 +45,71 @@ type Exercise = {
   notes?: string
 }
 
-// Mock exercises available to add
-const AVAILABLE_EXERCISES = [
-  { id: 'ex1', name: 'Barbell Squat', defaultSets: 3, defaultReps: '8-10' },
-  { id: 'ex2', name: 'Bench Press', defaultSets: 3, defaultReps: '8-10' },
-  { id: 'ex3', name: 'Deadlift', defaultSets: 3, defaultReps: '5' },
-  { id: 'ex4', name: 'Pull-ups', defaultSets: 3, defaultReps: 'AMRAP' },
-  { id: 'ex5', name: 'Plank', defaultSets: 3, defaultReps: '60s' },
-]
+// Phase mapping for the strength session schema
+const PHASE_MAP: Record<string, string> = {
+  'Base': 'ANATOMICAL_ADAPTATION',
+  'Strength': 'MAXIMUM_STRENGTH',
+  'Power': 'POWER',
+  'Maintenance': 'MAINTENANCE',
+  'Taper': 'TAPER',
+}
 
-export function SessionBuilder() {
+const PHASE_REVERSE_MAP: Record<string, string> = {
+  'ANATOMICAL_ADAPTATION': 'Base',
+  'MAXIMUM_STRENGTH': 'Strength',
+  'POWER': 'Power',
+  'MAINTENANCE': 'Maintenance',
+  'TAPER': 'Taper',
+}
+
+interface SessionBuilderProps {
+  initialData?: StrengthSessionData | null
+  onSaved?: () => void
+  onCancel?: () => void
+}
+
+export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilderProps) {
   const searchParams = useSearchParams()
   const workoutId = searchParams.get('workoutId')
 
-  const [sessionName, setSessionName] = useState('New Strength Session')
+  const [sessionName, setSessionName] = useState('Nytt Styrkepass')
+  const [description, setDescription] = useState('')
   const [phase, setPhase] = useState('Base')
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [availableExercises, setAvailableExercises] = useState<any[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
-  
+  const [saving, setSaving] = useState(false)
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [pillarFilter, setPillarFilter] = useState('ALL')
+
+  // Load initial data when editing
+  useEffect(() => {
+    if (initialData) {
+      setSessionName(initialData.name)
+      setDescription(initialData.description || '')
+      setPhase(PHASE_REVERSE_MAP[initialData.phase] || 'Base')
+      setExercises(
+        initialData.exercises.map((e) => ({
+          id: e.exerciseId || Math.random().toString(36).substr(2, 9),
+          name: e.exerciseName,
+          sets: e.sets,
+          reps: String(e.reps),
+          weight: e.weight ? String(e.weight) : '',
+          rest: e.restSeconds || 90,
+          notes: e.notes,
+        }))
+      )
+    } else {
+      // Reset form for new session
+      setSessionName('Nytt Styrkepass')
+      setDescription('')
+      setPhase('Base')
+      setExercises([])
+    }
+  }, [initialData])
 
   useEffect(() => {
     async function fetchExercises() {
@@ -188,9 +234,78 @@ export function SessionBuilder() {
   }
 
   const updateExercise = (id: string, field: keyof Exercise, value: any) => {
-    setExercises(exercises.map(e => 
+    setExercises(exercises.map(e =>
       e.id === id ? { ...e, [field]: value } : e
     ))
+  }
+
+  const getSessionData = () => {
+    if (exercises.length === 0) return null
+    return {
+      sessionName,
+      phase,
+      exercises,
+    }
+  }
+
+  async function handleSave() {
+    if (exercises.length === 0) {
+      toast.error('Lägg till övningar', {
+        description: 'Du måste lägga till minst en övning för att spara passet.',
+      })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const exerciseData = exercises.map((e) => ({
+        exerciseId: e.id,
+        exerciseName: e.name,
+        sets: e.sets,
+        reps: parseInt(e.reps) || 0,
+        weight: e.weight ? parseFloat(e.weight) : undefined,
+        restSeconds: e.rest,
+        notes: e.notes,
+      }))
+
+      const payload = {
+        name: sessionName,
+        description: description || undefined,
+        phase: PHASE_MAP[phase] || 'ANATOMICAL_ADAPTATION',
+        exercises: exerciseData,
+      }
+
+      const isEditing = initialData?.id
+      const url = isEditing
+        ? `/api/strength-sessions/${initialData.id}`
+        : '/api/strength-sessions'
+      const method = isEditing ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (response.ok) {
+        toast.success(isEditing ? 'Pass uppdaterat!' : 'Pass sparat!', {
+          description: `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
+        })
+        onSaved?.()
+      } else {
+        const data = await response.json()
+        toast.error('Kunde inte spara', {
+          description: data.error || 'Ett fel uppstod.',
+        })
+      }
+    } catch (error) {
+      console.error('Failed to save session:', error)
+      toast.error('Kunde inte spara', {
+        description: 'Ett oväntat fel uppstod.',
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -199,30 +314,52 @@ export function SessionBuilder() {
       <div className="lg:col-span-2 space-y-6">
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-start">
-              <div className="space-y-2">
-                <Label>Session Name</Label>
-                <Input 
-                  value={sessionName} 
-                  onChange={(e) => setSessionName(e.target.value)}
-                  className="text-lg font-semibold"
-                />
+            <div className="flex justify-between items-start gap-4">
+              <div className="flex-1 space-y-4">
+                <div className="space-y-2">
+                  <Label>Passnamn</Label>
+                  <Input
+                    value={sessionName}
+                    onChange={(e) => setSessionName(e.target.value)}
+                    className="text-lg font-semibold"
+                    placeholder="Ge passet ett namn..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Beskrivning (valfritt)</Label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Beskriv passets syfte eller anteckningar..."
+                    rows={2}
+                  />
+                </div>
               </div>
               <div className="space-y-2 w-[150px]">
-                <Label>Phase</Label>
+                <Label>Fas</Label>
                 <Select value={phase} onValueChange={setPhase}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Base">Base Building</SelectItem>
-                    <SelectItem value="Strength">Max Strength</SelectItem>
+                    <SelectItem value="Base">Anatom. Anpassning</SelectItem>
+                    <SelectItem value="Strength">Maxstyrka</SelectItem>
                     <SelectItem value="Power">Power</SelectItem>
+                    <SelectItem value="Maintenance">Underhåll</SelectItem>
                     <SelectItem value="Taper">Taper</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+            {onCancel && (
+              <div className="mt-4 pt-4 border-t flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Redigerar: {initialData?.name}</span>
+                <Button variant="ghost" size="sm" onClick={onCancel} className="ml-auto">
+                  <X className="h-4 w-4 mr-1" />
+                  Avbryt
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <div className="bg-muted/30 min-h-[400px] rounded-lg p-4 border-2 border-dashed border-muted-foreground/25">
@@ -366,7 +503,23 @@ export function SessionBuilder() {
                 {exercises.reduce((acc, ex) => acc + (ex.sets * (2 + ex.rest/60)), 10).toFixed(0)} min
               </span>
             </div>
-            <Button className="w-full mt-4">Save Session</Button>
+            <div className="flex gap-2 mt-4">
+              <Button className="flex-1" onClick={handleSave} disabled={saving || exercises.length === 0}>
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sparar...
+                  </>
+                ) : (
+                  initialData ? 'Uppdatera pass' : 'Spara pass'
+                )}
+              </Button>
+              <SessionExportButton
+                sessionType="strength"
+                getSessionData={getSessionData}
+                disabled={exercises.length === 0}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

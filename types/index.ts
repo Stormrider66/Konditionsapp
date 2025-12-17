@@ -632,3 +632,112 @@ export interface HybridMovementData {
     equipmentTypes: string[]
   }
 }
+
+// ============================================
+// STRENGTH SESSION TYPES
+// ============================================
+
+export interface StrengthSessionExercise {
+  exerciseId: string
+  exerciseName: string
+  sets: number
+  reps: number
+  weight?: number
+  restSeconds?: number
+  notes?: string
+}
+
+export interface StrengthSessionData {
+  id: string
+  name: string
+  description?: string
+  phase: string
+  timingRelativeToRun?: string
+  exercises: StrengthSessionExercise[]
+  totalSets?: number
+  totalExercises?: number
+  estimatedDuration?: number
+  volumeLoad?: number
+  tags: string[]
+  coachId: string
+  isPublic: boolean
+  createdAt: Date
+  updatedAt: Date
+  _count?: {
+    assignments: number
+  }
+}
+
+export interface StrengthSessionAssignmentData {
+  id: string
+  sessionId: string
+  athleteId: string
+  assignedDate: Date
+  assignedBy: string
+  notes?: string
+  status: string
+  completedAt?: Date
+  actualExercises?: StrengthSessionExercise[]
+  rpe?: number
+  duration?: number
+  session?: StrengthSessionData
+  athlete?: {
+    id: string
+    name: string
+  }
+}
+
+// ============================================
+// CARDIO SESSION TYPES
+// ============================================
+
+export type CardioSegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
+
+export interface CardioSegment {
+  id: string
+  type: CardioSegmentType
+  duration?: number // seconds
+  distance?: number // meters
+  pace?: string
+  zone?: number
+  notes?: string
+}
+
+export interface CardioSessionData {
+  id: string
+  name: string
+  description?: string
+  sport: string
+  segments: CardioSegment[]
+  totalDuration?: number // seconds
+  totalDistance?: number // meters
+  avgZone?: number
+  tags: string[]
+  coachId: string
+  isPublic: boolean
+  createdAt: Date
+  updatedAt: Date
+  _count?: {
+    assignments: number
+  }
+}
+
+export interface CardioSessionAssignmentData {
+  id: string
+  sessionId: string
+  athleteId: string
+  assignedDate: Date
+  assignedBy: string
+  notes?: string
+  status: string
+  completedAt?: Date
+  actualDuration?: number
+  actualDistance?: number
+  avgHeartRate?: number
+  actualSegments?: CardioSegment[]
+  session?: CardioSessionData
+  athlete?: {
+    id: string
+    name: string
+  }
+}

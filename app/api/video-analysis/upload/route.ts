@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     console.log('[Video Upload] FormData received');
     const file = formData.get('file') as File | null;
     const videoType = formData.get('videoType') as string;
+    const cameraAngle = formData.get('cameraAngle') as string | null;
     const athleteId = formData.get('athleteId') as string | null;
     const exerciseId = formData.get('exerciseId') as string | null;
 
@@ -63,6 +64,14 @@ export async function POST(request: NextRequest) {
     if (!['STRENGTH', 'RUNNING_GAIT', 'SPORT_SPECIFIC'].includes(videoType)) {
       return NextResponse.json(
         { error: 'Invalid video type' },
+        { status: 400 }
+      );
+    }
+
+    // Validate camera angle (optional, but must be valid if provided)
+    if (cameraAngle && !['FRONT', 'SIDE', 'BACK'].includes(cameraAngle)) {
+      return NextResponse.json(
+        { error: 'Invalid camera angle. Allowed: FRONT, SIDE, BACK' },
         { status: 400 }
       );
     }
@@ -145,6 +154,7 @@ export async function POST(request: NextRequest) {
         // Store storage path (works for private buckets)
         videoUrl: uploadData.path,
         videoType,
+        cameraAngle: cameraAngle || null,
         status: 'PENDING',
       },
       include: {

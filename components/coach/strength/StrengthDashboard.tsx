@@ -3,14 +3,18 @@
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dumbbell, Activity, Calendar, Library, Plus } from 'lucide-react'
+import { Dumbbell, Activity, Calendar, Library, Plus, FolderOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ExerciseLibrary } from './ExerciseLibrary'
 import { ExerciseCreator } from './ExerciseCreator'
 import { SessionBuilder } from './SessionBuilder'
+import { StrengthSessionLibrary } from './StrengthSessionLibrary'
+import type { StrengthSessionData } from '@/types'
 
 export function StrengthDashboard() {
   const [showCreator, setShowCreator] = React.useState(false)
+  const [activeTab, setActiveTab] = React.useState('library')
+  const [editSession, setEditSession] = React.useState<StrengthSessionData | null>(null)
 
   if (showCreator) {
     return (
@@ -87,30 +91,57 @@ export function StrengthDashboard() {
         </Card>
       </div>
 
-      <Tabs defaultValue="library" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="library" className="flex items-center gap-2">
             <Library className="h-4 w-4" />
-            Exercise Library
+            Övningar
+          </TabsTrigger>
+          <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <FolderOpen className="h-4 w-4" />
+            Passbibliotek
           </TabsTrigger>
           <TabsTrigger value="builder" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Session Builder
+            Skapa Pass
           </TabsTrigger>
           <TabsTrigger value="progression" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
-            Progression Tracking
+            Progression
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="library" className="space-y-4">
           <ExerciseLibrary />
         </TabsContent>
-        
-        <TabsContent value="builder">
-          <SessionBuilder />
+
+        <TabsContent value="sessions" className="space-y-4">
+          <StrengthSessionLibrary
+            onNewSession={() => {
+              setEditSession(null)
+              setActiveTab('builder')
+            }}
+            onEditSession={(session) => {
+              setEditSession(session)
+              setActiveTab('builder')
+            }}
+          />
         </TabsContent>
-        
+
+        <TabsContent value="builder">
+          <SessionBuilder
+            initialData={editSession}
+            onSaved={() => {
+              setEditSession(null)
+              setActiveTab('sessions')
+            }}
+            onCancel={editSession ? () => {
+              setEditSession(null)
+              setActiveTab('sessions')
+            } : undefined}
+          />
+        </TabsContent>
+
         <TabsContent value="progression">
            <Card>
             <CardHeader>

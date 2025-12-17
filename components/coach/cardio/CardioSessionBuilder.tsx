@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
-  DndContext, 
+  DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
@@ -25,14 +25,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { GripVertical, Plus, Trash2, Timer, Activity, Footprints, Calendar, Heart, Gauge, Repeat } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Timer, Activity, Footprints, Calendar, Heart, Gauge, Repeat, Download, Loader2, X } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar as CalendarComponent } from '@/components/ui/calendar'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
+import { SessionExportButton } from '@/components/exports/SessionExportButton'
+import type { CardioSessionData, CardioSegment as CardioSegmentType } from '@/types'
 
 // Types
 type CardioSegment = {
@@ -79,20 +82,53 @@ const decimalToPace = (decimal: number): string => {
   return `${min}:${sec.toString().padStart(2, '0')}`
 }
 
-export function CardioSessionBuilder() {
+interface CardioSessionBuilderProps {
+  initialData?: CardioSessionData | null
+  onSaved?: () => void
+  onCancel?: () => void
+}
+
+export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioSessionBuilderProps) {
   const searchParams = useSearchParams()
   const workoutId = searchParams.get('workoutId')
   const programId = searchParams.get('programId')
-  const { toast } = useToast()
 
-  const [sessionName, setSessionName] = useState('New Cardio Session')
-  const [intensity, setIntensity] = useState('EASY')
+  const [sessionName, setSessionName] = useState('Nytt Konditionspass')
+  const [description, setDescription] = useState('')
+  const [sport, setSport] = useState('RUNNING')
   const [segments, setSegments] = useState<CardioSegment[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [sessionDate, setSessionDate] = useState<Date | null>(null)
   const [repeatCount, setRepeatCount] = useState(1)
   const [isSaving, setIsSaving] = useState(false)
   const [userZones, setUserZones] = useState<any>(null)
+
+  // Load initial data when editing
+  useEffect(() => {
+    if (initialData) {
+      setSessionName(initialData.name)
+      setDescription(initialData.description || '')
+      setSport(initialData.sport || 'RUNNING')
+      setSegments(
+        initialData.segments.map((s) => ({
+          id: s.id || Math.random().toString(36).substr(2, 9),
+          type: s.type as CardioSegment['type'],
+          duration: s.duration,
+          distance: s.distance,
+          zone: s.zone ? String(s.zone) : '1',
+          pace: s.pace || '',
+          notes: s.notes || '',
+          distanceUnit: (s.distance && s.distance < 1) ? 'm' : 'km',
+        }))
+      )
+    } else {
+      // Reset form for new session
+      setSessionName('Nytt Konditionspass')
+      setDescription('')
+      setSport('RUNNING')
+      setSegments([])
+    }
+  }, [initialData])
 
   useEffect(() => {
     async function loadWorkout() {
@@ -121,7 +157,6 @@ export function CardioSessionBuilder() {
         
         const data = await res.json()
         setSessionName(data.name)
-        if (data.intensity) setIntensity(data.intensity)
         if (data.zones) setUserZones(data.zones)
         
         if (data.day && data.day.date) {
@@ -145,63 +180,69 @@ export function CardioSessionBuilder() {
       } catch (error) {
         console.error('Error loading workout:', error)
         setSessionName('Error loading workout')
-        toast({
-          variant: "destructive",
-          title: "Fel",
-          description: "Kunde inte ladda träningspasset.",
+        toast.error('Fel', {
+          description: 'Kunde inte ladda träningspasset.',
         })
       }
     }
 
     loadWorkout()
-  }, [workoutId, programId, sessionDate, toast])
+  }, [workoutId, programId, sessionDate])
 
-  const handleSave = async () => {
+  const handleSaveToLibrary = async () => {
+    if (segments.length === 0) {
+      toast.error('Lägg till segment', {
+        description: 'Du måste lägga till minst ett segment för att spara passet.',
+      })
+      return
+    }
+
     setIsSaving(true)
     try {
-      if (workoutId) {
-        // Update existing
-        const res = await fetch(`/api/workouts/${workoutId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: sessionName,
-            intensity,
-            segments: segments.map((s, index) => ({ ...s, order: index + 1 }))
-          }),
+      const segmentData = segments.map((s) => ({
+        id: s.id,
+        type: s.type,
+        duration: s.duration ? Math.round(s.duration * 60) : undefined, // Convert minutes to seconds
+        distance: s.distance ? Math.round(s.distance * 1000) : undefined, // Convert km to meters
+        zone: s.zone ? parseInt(s.zone) : undefined,
+        pace: s.pace || undefined,
+        notes: s.notes || undefined,
+      }))
+
+      const payload = {
+        name: sessionName,
+        description: description || undefined,
+        sport,
+        segments: segmentData,
+      }
+
+      const isEditing = initialData?.id
+      const url = isEditing
+        ? `/api/cardio-sessions/${initialData.id}`
+        : '/api/cardio-sessions'
+      const method = isEditing ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (response.ok) {
+        toast.success(isEditing ? 'Pass uppdaterat!' : 'Pass sparat!', {
+          description: `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
         })
-        if (!res.ok) throw new Error('Failed to save workout')
-        toast({ title: "Sparat", description: "Träningspasset har uppdaterats." })
+        onSaved?.()
       } else {
-        // Create new
-        if (!programId) {
-           toast({ variant: "destructive", title: "Fel", description: "Inget program valt." })
-           return
-        }
-        const res = await fetch(`/api/workouts/create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            programId,
-            date: sessionDate,
-            name: sessionName,
-            intensity,
-            type: 'RUNNING',
-            repeatCount,
-            repeatInterval: 7, // Default weekly
-            segments: segments.map((s, index) => ({ ...s, order: index + 1 }))
-          }),
+        const data = await response.json()
+        toast.error('Kunde inte spara', {
+          description: data.error || 'Ett fel uppstod.',
         })
-        if (!res.ok) throw new Error('Failed to create workout')
-        const data = await res.json()
-        toast({ title: "Skapat", description: `${data.count} träningspass har skapats.` })
       }
     } catch (error) {
-      console.error('Error saving workout:', error)
-      toast({
-        variant: "destructive",
-        title: "Fel",
-        description: "Kunde inte spara träningspasset.",
+      console.error('Failed to save session:', error)
+      toast.error('Kunde inte spara', {
+        description: 'Ett oväntat fel uppstod.',
       })
     } finally {
       setIsSaving(false)
@@ -365,84 +406,70 @@ export function CardioSessionBuilder() {
     }))
   }
 
+  const getSessionData = () => {
+    if (segments.length === 0) return null
+    return {
+      sessionName,
+      sport,
+      segments,
+      date: sessionDate || new Date(),
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Builder Area */}
       <div className="lg:col-span-2 space-y-6">
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-start">
-              <div className="space-y-2">
-                <Label>Passnamn</Label>
-                <Input 
-                  value={sessionName} 
-                  onChange={(e) => setSessionName(e.target.value)}
-                  className="text-lg font-semibold"
-                />
-                
-                {!workoutId ? (
-                  <div className="flex items-center gap-4 mt-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={`w-[240px] justify-start text-left font-normal ${!sessionDate && "text-muted-foreground"}`}
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {sessionDate ? format(sessionDate, 'PPP', { locale: sv }) : <span>Välj datum</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={sessionDate || undefined}
-                          onSelect={setSessionDate as any}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs whitespace-nowrap">Upprepa (veckor):</Label>
-                      <div className="flex items-center relative">
-                        <Repeat className="absolute left-2 h-3 w-3 text-muted-foreground" />
-                        <Input
-                          type="number"
-                          min={1}
-                          max={52}
-                          value={repeatCount}
-                          onChange={(e) => setRepeatCount(parseInt(e.target.value) || 1)}
-                          className="w-16 h-9 pl-7"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  sessionDate && (
-                    <div className="flex items-center text-muted-foreground text-sm mt-1">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {format(sessionDate, 'EEEE d MMMM yyyy', { locale: sv })}
-                    </div>
-                  )
-                )}
+            <div className="flex justify-between items-start gap-4">
+              <div className="flex-1 space-y-4">
+                <div className="space-y-2">
+                  <Label>Passnamn</Label>
+                  <Input
+                    value={sessionName}
+                    onChange={(e) => setSessionName(e.target.value)}
+                    className="text-lg font-semibold"
+                    placeholder="Ge passet ett namn..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Beskrivning (valfritt)</Label>
+                  <Textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Beskriv passets syfte eller anteckningar..."
+                    rows={2}
+                  />
+                </div>
               </div>
               <div className="space-y-2 w-[150px]">
-                <Label>Intensitet</Label>
-                <Select value={intensity} onValueChange={setIntensity}>
+                <Label>Sport</Label>
+                <Select value={sport} onValueChange={setSport}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="RECOVERY">Recovery</SelectItem>
-                    <SelectItem value="EASY">Easy</SelectItem>
-                    <SelectItem value="MODERATE">Moderate</SelectItem>
-                    <SelectItem value="THRESHOLD">Threshold</SelectItem>
-                    <SelectItem value="INTERVAL">Interval</SelectItem>
-                    <SelectItem value="MAX">Max Effort</SelectItem>
+                    <SelectItem value="RUNNING">Löpning</SelectItem>
+                    <SelectItem value="CYCLING">Cykling</SelectItem>
+                    <SelectItem value="SWIMMING">Simning</SelectItem>
+                    <SelectItem value="SKIING">Skidor</SelectItem>
+                    <SelectItem value="TRIATHLON">Triathlon</SelectItem>
+                    <SelectItem value="HYROX">HYROX</SelectItem>
+                    <SelectItem value="GENERAL_FITNESS">Allmän Kondition</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+            {onCancel && (
+              <div className="mt-4 pt-4 border-t flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Redigerar: {initialData?.name}</span>
+                <Button variant="ghost" size="sm" onClick={onCancel} className="ml-auto">
+                  <X className="h-4 w-4 mr-1" />
+                  Avbryt
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent>
             <div className="bg-muted/30 min-h-[400px] rounded-lg p-4 border-2 border-dashed border-muted-foreground/25">
@@ -538,13 +565,27 @@ export function CardioSessionBuilder() {
                 Z{Math.round(segments.reduce((acc, s) => acc + parseInt(s.zone || '0'), 0) / (segments.length || 1))}
               </span>
             </div>
-            <Button 
-              className="w-full mt-4" 
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? 'Sparar...' : 'Spara Pass'}
-            </Button>
+            <div className="flex gap-2 mt-4">
+              <Button
+                className="flex-1"
+                onClick={handleSaveToLibrary}
+                disabled={isSaving || segments.length === 0}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sparar...
+                  </>
+                ) : (
+                  initialData ? 'Uppdatera pass' : 'Spara pass'
+                )}
+              </Button>
+              <SessionExportButton
+                sessionType="cardio"
+                getSessionData={getSessionData}
+                disabled={segments.length === 0}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

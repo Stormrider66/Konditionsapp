@@ -27,6 +27,9 @@ import {
   Dumbbell,
   PersonStanding,
   Activity,
+  User,
+  ArrowRight,
+  UserRound,
 } from 'lucide-react'
 
 interface VideoUploaderProps {
@@ -58,6 +61,27 @@ const VIDEO_TYPES = [
   },
 ] as const
 
+const CAMERA_ANGLES = [
+  {
+    value: 'FRONT',
+    label: 'Framifrån',
+    description: 'Armsving, symmetri, knäspårning',
+    icon: User,
+  },
+  {
+    value: 'SIDE',
+    label: 'Från sidan',
+    description: 'Fotisättning, lutning, oscillation',
+    icon: ArrowRight,
+  },
+  {
+    value: 'BACK',
+    label: 'Bakifrån',
+    description: 'Höftfall, hälpiska, gluteal',
+    icon: UserRound,
+  },
+] as const
+
 const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo']
 const MAX_SIZE = 100 * 1024 * 1024 // 100MB
 
@@ -71,6 +95,7 @@ export function VideoUploader({
   const { toast } = useToast()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [videoType, setVideoType] = useState<string>('')
+  const [cameraAngle, setCameraAngle] = useState<string>('')
   const [athleteId, setAthleteId] = useState<string>('')
   const [exerciseId, setExerciseId] = useState<string>('')
   const [isUploading, setIsUploading] = useState(false)
@@ -132,6 +157,7 @@ export function VideoUploader({
       const formData = new FormData()
       formData.append('file', selectedFile)
       formData.append('videoType', videoType)
+      if (cameraAngle) formData.append('cameraAngle', cameraAngle)
       if (athleteId) formData.append('athleteId', athleteId)
       if (exerciseId) formData.append('exerciseId', exerciseId)
 
@@ -171,6 +197,7 @@ export function VideoUploader({
     setSelectedFile(null)
     setPreviewUrl(null)
     setVideoType('')
+    setCameraAngle('')
     setAthleteId('')
     setExerciseId('')
     onClose()
@@ -222,6 +249,37 @@ export function VideoUploader({
               })}
             </div>
           </div>
+
+          {/* Camera Angle Selection - Only for RUNNING_GAIT */}
+          {videoType === 'RUNNING_GAIT' && (
+            <div className="space-y-2">
+              <Label>Kameravinkel *</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Välj vilken vinkel videon är filmad från för mer precis analys
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {CAMERA_ANGLES.map((angle) => {
+                  const Icon = angle.icon
+                  return (
+                    <button
+                      key={angle.value}
+                      type="button"
+                      onClick={() => setCameraAngle(angle.value)}
+                      className={`p-3 rounded-lg border text-left transition-colors ${
+                        cameraAngle === angle.value
+                          ? 'border-orange-500 bg-orange-50 text-orange-900'
+                          : 'border-muted hover:border-muted-foreground/50'
+                      }`}
+                    >
+                      <Icon className={`h-5 w-5 mb-1 ${cameraAngle === angle.value ? 'text-orange-600' : 'text-muted-foreground'}`} />
+                      <div className="font-medium text-sm">{angle.label}</div>
+                      <div className="text-xs text-muted-foreground line-clamp-2">{angle.description}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Dropzone */}
           {!selectedFile ? (
@@ -340,7 +398,7 @@ export function VideoUploader({
           <Button variant="outline" onClick={handleClose} disabled={isUploading}>
             Avbryt
           </Button>
-          <Button onClick={handleUpload} disabled={!selectedFile || !videoType || isUploading}>
+          <Button onClick={handleUpload} disabled={!selectedFile || !videoType || (videoType === 'RUNNING_GAIT' && !cameraAngle) || isUploading}>
             {isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

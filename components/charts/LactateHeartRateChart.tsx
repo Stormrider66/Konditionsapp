@@ -65,17 +65,18 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
         <h4 className="font-semibold">Laktat vs Puls</h4>
       </div>
 
-      <ResponsiveContainer width="100%" height={350}>
+      <ResponsiveContainer width="100%" height={400}>
         <ComposedChart
           data={lineData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+          margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="heartRate"
-            label={{ value: 'Puls (slag/min)', position: 'insideBottom', offset: -10 }}
+            label={{ value: 'Puls (slag/min)', position: 'bottom', offset: 0 }}
             type="number"
             domain={[Math.floor(minHR * 0.95), Math.ceil(maxHR * 1.02)]}
+            tick={{ dy: 5 }}
           />
           <YAxis
             label={{ value: 'Laktat (mmol/L)', angle: -90, position: 'insideLeft' }}
@@ -87,7 +88,10 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
             }}
             labelFormatter={(label) => `Puls: ${label} slag/min`}
           />
-          <Legend />
+          <Legend
+            verticalAlign="bottom"
+            wrapperStyle={{ paddingTop: '15px' }}
+          />
 
           {/* Lactate curve */}
           <Line

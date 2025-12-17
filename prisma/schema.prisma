@@ -174,6 +174,10 @@ model User {
   // Hybrid Studio relations
   hybridWorkouts    HybridWorkout[]   @relation("CoachHybridWorkouts")
 
+  // Strength & Cardio Studio relations
+  strengthSessions  StrengthSession[] @relation("CoachStrengthSessions")
+  cardioSessions    CardioSession[]   @relation("CoachCardioSessions")
+
   @@index([email])
   @@index([role])
 }
@@ -246,6 +250,10 @@ model Client {
   // Hybrid Studio relations
   hybridWorkoutResults HybridWorkoutResult[]
   hybridWorkoutAssignments HybridWorkoutAssignment[]
+
+  // Strength & Cardio Studio relations
+  strengthSessionAssignments StrengthSessionAssignment[]
+  cardioSessionAssignments   CardioSessionAssignment[]
 
   @@index([userId])
   @@index([teamId])
@@ -1947,7 +1955,9 @@ model BodyComposition {
   // Additional bioimpedance data
   visceralFat     Int?         // Scale typically 1-59
   boneMassKg      Float?
-  waterPercent    Float?
+  waterPercent    Float?       // Total body water
+  intracellularWaterPercent Float?  // ICW - water inside cells
+  extracellularWaterPercent Float?  // ECW - water outside cells
 
   // Metabolic data
   bmrKcal         Int?         // Basal Metabolic Rate
@@ -2507,4 +2517,155 @@ enum AssignmentStatus {
   COMPLETED   // Done
   SKIPPED     // Athlete skipped
   MODIFIED    // Coach modified assignment
+}
+
+// ============================================
+// STRENGTH SESSION LIBRARY
+// ============================================
+
+/// Coach-owned strength session template
+model StrengthSession {
+  id                String       @id @default(uuid())
+  name              String
+  description       String?      @db.Text
+
+  // Session configuration
+  phase             StrengthPhase @default(ANATOMICAL_ADAPTATION)
+  timingRelativeToRun String?    // "BEFORE_RUN", "AFTER_RUN_6H", "SEPARATE_DAY"
+  estimatedDuration Int?         // minutes
+
+  // Exercise data (JSON for flexibility)
+  exercises         Json         // [{exerciseId, exerciseName, sets, reps, weight, restSeconds, notes}]
+
+  // Computed metadata
+  totalSets         Int?
+  totalExercises    Int?
+  volumeLoad        Float?
+
+  // Ownership
+  coachId           String
+  coach             User         @relation("CoachStrengthSessions", fields: [coachId], references: [id], onDelete: Cascade)
+  isPublic          Boolean      @default(false)
+
+  // Tags for filtering
+  tags              String[]     @default([])
+
+  // Assignments
+  assignments       StrengthSessionAssignment[]
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([coachId])
+  @@index([phase])
+  @@index([isPublic])
+}
+
+/// Assignment of strength session to athlete
+model StrengthSessionAssignment {
+  id                String       @id @default(uuid())
+
+  session           StrengthSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId         String
+
+  athlete           Client       @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId         String
+
+  // Assignment details
+  assignedDate      DateTime     @db.Date
+  assignedBy        String       // Coach user ID
+  notes             String?      @db.Text
+
+  // Status tracking
+  status            AssignmentStatus @default(PENDING)
+  completedAt       DateTime?
+
+  // Logged workout data
+  actualExercises   Json?        // Logged exercise data with actual weight/reps
+  rpe               Int?         // Overall session RPE
+  duration          Int?         // Actual duration in minutes
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([sessionId])
+  @@index([athleteId])
+  @@index([assignedDate])
+  @@index([status])
+  @@unique([sessionId, athleteId, assignedDate])
+}
+
+// ============================================
+// CARDIO SESSION LIBRARY
+// ============================================
+
+/// Coach-owned cardio session template
+model CardioSession {
+  id                String       @id @default(uuid())
+  name              String
+  description       String?      @db.Text
+
+  // Session configuration
+  sport             SportType    @default(RUNNING)
+
+  // Segment data (JSON for flexibility)
+  segments          Json         // [{type, duration, distance, pace, zone, notes}]
+
+  // Computed totals
+  totalDuration     Int?         // seconds
+  totalDistance     Float?       // meters
+  avgZone           Float?
+
+  // Ownership
+  coachId           String
+  coach             User         @relation("CoachCardioSessions", fields: [coachId], references: [id], onDelete: Cascade)
+  isPublic          Boolean      @default(false)
+
+  // Tags for filtering
+  tags              String[]     @default([])
+
+  // Assignments
+  assignments       CardioSessionAssignment[]
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([coachId])
+  @@index([sport])
+  @@index([isPublic])
+}
+
+/// Assignment of cardio session to athlete
+model CardioSessionAssignment {
+  id                String       @id @default(uuid())
+
+  session           CardioSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId         String
+
+  athlete           Client       @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId         String
+
+  // Assignment details
+  assignedDate      DateTime     @db.Date
+  assignedBy        String       // Coach user ID
+  notes             String?      @db.Text
+
+  // Status tracking
+  status            AssignmentStatus @default(PENDING)
+  completedAt       DateTime?
+
+  // Logged workout data
+  actualDuration    Int?         // seconds
+  actualDistance    Float?       // meters
+  avgHeartRate      Int?
+  actualSegments    Json?        // Logged segment data
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([sessionId])
+  @@index([athleteId])
+  @@index([assignedDate])
+  @@index([status])
+  @@unique([sessionId, athleteId, assignedDate])
 }

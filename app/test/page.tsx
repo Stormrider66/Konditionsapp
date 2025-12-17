@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { TestDataForm } from '@/components/forms/TestDataForm'
+import { BioimpedanceForm } from '@/components/forms/BioimpedanceForm'
 import { ReportTemplate } from '@/components/reports/ReportTemplate'
 import { PDFExportButton } from '@/components/reports/PDFExportButton'
 import { EmailReportButton } from '@/components/reports/EmailReportButton'
@@ -12,7 +13,7 @@ import { CreateTestFormData } from '@/lib/validations/schemas'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Printer, User, Home } from 'lucide-react'
+import { ArrowLeft, Printer, User, Home, Droplet, Scale, Zap, Timer, Dumbbell } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -20,13 +21,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
 import { MobileNav } from '@/components/navigation/MobileNav'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 
+type TestCategory = 'lactate' | 'body-composition' | 'power' | 'speed' | 'strength'
+
+const TEST_CATEGORIES = [
+  { value: 'lactate', label: 'Laktattest', icon: Droplet, available: true },
+  { value: 'body-composition', label: 'Kroppssammansättning', icon: Scale, available: true },
+  { value: 'power', label: 'Powertest', icon: Zap, available: false },
+  { value: 'speed', label: 'Hastighetstest', icon: Timer, available: false },
+  { value: 'strength', label: 'Styrketest', icon: Dumbbell, available: false },
+] as const
+
 export default function TestPage() {
+  const [testCategory, setTestCategory] = useState<TestCategory>('lactate')
   const [showReport, setShowReport] = useState(false)
   const [reportData, setReportData] = useState<{
     client: Client
@@ -40,6 +52,7 @@ export default function TestPage() {
   const [testLeader, setTestLeader] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [userRole, setUserRole] = useState<'COACH' | 'ATHLETE' | 'ADMIN' | null>(null)
   const { toast } = useToast()
 
   const fetchClients = useCallback(async () => {
@@ -66,8 +79,19 @@ export default function TestPage() {
   useEffect(() => {
     fetchClients()
     const supabase = createSupabaseClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user)
+      if (user) {
+        try {
+          const response = await fetch('/api/users/me')
+          const result = await response.json()
+          if (result.success) {
+            setUserRole(result.data.role)
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error)
+        }
+      }
     })
   }, [fetchClients])
 
@@ -188,104 +212,230 @@ export default function TestPage() {
     }
   }
 
+  // Client selector component (shared between test types)
+  const ClientSelector = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Välj klient</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <Label htmlFor="client-select">Klient</Label>
+          {loading ? (
+            <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
+          ) : clients.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Inga klienter tillgängliga. Gå till{' '}
+              <Link href="/clients" className="text-blue-600 hover:underline">
+                Klientregister
+              </Link>{' '}
+              för att lägga till en klient.
+            </p>
+          ) : (
+            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+              <SelectTrigger id="client-select">
+                <SelectValue placeholder="Välj en klient" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <MobileNav user={user} />
+      <MobileNav user={user} userRole={userRole} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8">
         {!showReport ? (
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Välj klient och testtyp</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="client-select">Klient</Label>
-                  {loading ? (
-                    <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
-                  ) : clients.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      Inga klienter tillgängliga. Gå till{' '}
-                      <Link href="/clients" className="text-blue-600 hover:underline">
-                        Klientregister
-                      </Link>{' '}
-                      för att lägga till en klient.
-                    </p>
-                  ) : (
-                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                      <SelectTrigger id="client-select">
-                        <SelectValue placeholder="Välj en klient" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clients.map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+            {/* Test Category Tabs */}
+            <div>
+              <h1 className="text-2xl font-bold mb-4">Nytt Test</h1>
+              <Tabs value={testCategory} onValueChange={(v) => setTestCategory(v as TestCategory)}>
+                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
+                  {TEST_CATEGORIES.map((category) => {
+                    const Icon = category.icon
+                    return (
+                      <TabsTrigger
+                        key={category.value}
+                        value={category.value}
+                        disabled={!category.available}
+                        className="flex items-center gap-2 py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="hidden sm:inline">{category.label}</span>
+                        <span className="sm:hidden">{category.label.split(' ')[0]}</span>
+                        {!category.available && (
+                          <span className="text-xs opacity-60">(Kommer)</span>
+                        )}
+                      </TabsTrigger>
+                    )
+                  })}
+                </TabsList>
+
+                {/* Lactate Test Content */}
+                <TabsContent value="lactate" className="space-y-6 mt-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Laktattestinställningar</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="client-select">Klient</Label>
+                        {loading ? (
+                          <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
+                        ) : clients.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            Inga klienter tillgängliga. Gå till{' '}
+                            <Link href="/clients" className="text-blue-600 hover:underline">
+                              Klientregister
+                            </Link>{' '}
+                            för att lägga till en klient.
+                          </p>
+                        ) : (
+                          <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                            <SelectTrigger id="client-select">
+                              <SelectValue placeholder="Välj en klient" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {clients.map((client) => (
+                                <SelectItem key={client.id} value={client.id}>
+                                  {client.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Testtyp</Label>
+                        <Tabs value={testType} onValueChange={(value) => setTestType(value as TestType)}>
+                          <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="RUNNING">Löpning</TabsTrigger>
+                            <TabsTrigger value="CYCLING">Cykling</TabsTrigger>
+                            <TabsTrigger value="SKIING">Skidåkning</TabsTrigger>
+                          </TabsList>
+                        </Tabs>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="location-select">Plats</Label>
+                          <Select value={location} onValueChange={setLocation}>
+                            <SelectTrigger id="location-select" className="min-h-[44px]">
+                              <SelectValue placeholder="Välj plats" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Piteå">Piteå</SelectItem>
+                              <SelectItem value="Skellefteå">Skellefteå</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="test-leader">Testledare</Label>
+                          <Select value={testLeader} onValueChange={setTestLeader}>
+                            <SelectTrigger id="test-leader" className="min-h-[44px]">
+                              <SelectValue placeholder="Välj testledare" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Henrik Lundholm">Henrik Lundholm</SelectItem>
+                              <SelectItem value="Tommy Henriksson">Tommy Henriksson</SelectItem>
+                              <SelectItem value="Elias Ståhl">Elias Ståhl</SelectItem>
+                              <SelectItem value="Stefan Thomson">Stefan Thomson</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {selectedClient && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Mata in testdata</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <TestDataForm
+                          key={`${selectedClientId}-${testType}`}
+                          testType={testType}
+                          onSubmit={handleSubmit}
+                          clientId={selectedClient.id}
+                        />
+                      </CardContent>
+                    </Card>
                   )}
-                </div>
+                </TabsContent>
 
-                <div className="space-y-2">
-                  <Label>Testtyp</Label>
-                  <Tabs value={testType} onValueChange={(value) => setTestType(value as TestType)}>
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="RUNNING">Löpning</TabsTrigger>
-                      <TabsTrigger value="CYCLING">Cykling</TabsTrigger>
-                      <TabsTrigger value="SKIING">Skidåkning</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
+                {/* Body Composition Content */}
+                <TabsContent value="body-composition" className="space-y-6 mt-6">
+                  <ClientSelector />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="location-select">Plats</Label>
-                    <Select value={location} onValueChange={setLocation}>
-                      <SelectTrigger id="location-select" className="min-h-[44px]">
-                        <SelectValue placeholder="Välj plats" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Piteå">Piteå</SelectItem>
-                        <SelectItem value="Skellefteå">Skellefteå</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {selectedClient && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Bioimpedansmätning</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <BioimpedanceForm
+                          clientId={selectedClient.id}
+                          clientName={selectedClient.name}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="test-leader">Testledare</Label>
-                    <Select value={testLeader} onValueChange={setTestLeader}>
-                      <SelectTrigger id="test-leader" className="min-h-[44px]">
-                        <SelectValue placeholder="Välj testledare" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Henrik Lundholm">Henrik Lundholm</SelectItem>
-                        <SelectItem value="Tommy Henriksson">Tommy Henriksson</SelectItem>
-                        <SelectItem value="Elias Ståhl">Elias Ståhl</SelectItem>
-                        <SelectItem value="Stefan Thomson">Stefan Thomson</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                {/* Power Test Content (Coming Soon) */}
+                <TabsContent value="power" className="mt-6">
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Zap className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Powertest kommer snart</h3>
+                      <p className="text-muted-foreground">
+                        FTP-test, kritisk power och andra kraftbaserade tester.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
-            {selectedClient && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mata in testdata</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <TestDataForm
-                    key={`${selectedClientId}-${testType}`}
-                    testType={testType}
-                    onSubmit={handleSubmit}
-                    clientId={selectedClient.id}
-                  />
-                </CardContent>
-              </Card>
-            )}
+                {/* Speed Test Content (Coming Soon) */}
+                <TabsContent value="speed" className="mt-6">
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Timer className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Hastighetstest kommer snart</h3>
+                      <p className="text-muted-foreground">
+                        Sprint, acceleration och hastighetstester.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Strength Test Content (Coming Soon) */}
+                <TabsContent value="strength" className="mt-6">
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Dumbbell className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Styrketest kommer snart</h3>
+                      <p className="text-muted-foreground">
+                        1RM-tester, isometrisk styrka och funktionella tester.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
         ) : (
           <div>
