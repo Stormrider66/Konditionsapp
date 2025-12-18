@@ -314,7 +314,7 @@ export function SectionEditor({
   function addMovement(exercise: Exercise) {
     const newMovement: HybridSectionMovement = {
       exerciseId: exercise.id,
-      exerciseName: exercise.standardAbbreviation || exercise.name,
+      exerciseName: exercise.nameSv || exercise.name,
       order: (data?.movements?.length || 0) + 1,
       reps: exercise.defaultReps,
       weightMale: exercise.defaultWeightMale,
@@ -487,10 +487,11 @@ export function SectionEditor({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="justify-start h-auto py-1.5 px-2 text-xs"
+                              className="justify-start h-auto py-1.5 px-2 text-xs text-left"
                               onClick={() => addMovement(exercise)}
+                              title={exercise.name}
                             >
-                              {exercise.standardAbbreviation || exercise.name}
+                              {exercise.nameSv || exercise.name}
                             </Button>
                           ))}
                         </div>

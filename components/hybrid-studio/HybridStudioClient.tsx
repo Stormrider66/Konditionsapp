@@ -253,7 +253,7 @@ export function HybridStudioClient() {
 
     return movements
       .slice(0, 3)
-      .map((m) => m.exercise.standardAbbreviation || m.exercise.name)
+      .map((m) => m.exercise.nameSv || m.exercise.name)
       .join(', ') + (movements.length > 3 ? ` +${movements.length - 3}` : '');
   }
 

@@ -285,6 +285,12 @@ export function WorkoutDetailSheet({
               </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
+              {/* Show rep scheme info if applicable */}
+              {workout.repScheme && workout.repScheme.includes('-') && (
+                <p className="text-sm text-muted-foreground mb-3 p-2 bg-muted/50 rounded">
+                  {workout.repScheme.split('-').length} rundor: {workout.repScheme.split('-').join(' → ')} reps per övning
+                </p>
+              )}
               {workout.movements && workout.movements.length > 0 ? (
                 <ul className="space-y-2">
                   {workout.movements.map((m, i) => (
@@ -292,10 +298,13 @@ export function WorkoutDetailSheet({
                       <span className="text-muted-foreground w-5 flex-shrink-0">{i + 1}.</span>
                       <div>
                         <span className="font-medium">
-                          {m.exercise.standardAbbreviation || m.exercise.name}
+                          {m.exercise.nameSv || m.exercise.name}
                         </span>
                         <span className="text-muted-foreground ml-2">
-                          {m.reps && `${m.reps} reps`}
+                          {/* Show scheme reps if workout has a descending/ascending scheme */}
+                          {workout.repScheme && workout.repScheme.includes('-') && !workout.repScheme.includes('rounds')
+                            ? workout.repScheme
+                            : m.reps && `${m.reps} reps`}
                           {m.calories && `${m.calories} cal`}
                           {m.distance && `${m.distance}m`}
                           {m.duration && `${m.duration}s`}

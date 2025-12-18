@@ -26,7 +26,8 @@ export function ExerciseLibrary() {
   useEffect(() => {
     async function fetchExercises() {
         try {
-            const res = await fetch('/api/exercises')
+            // Fetch all exercises (limit=500 to get all)
+            const res = await fetch('/api/exercises?limit=500')
             if (res.ok) {
                 const data = await res.json()
                 // Handle both array and object response structure

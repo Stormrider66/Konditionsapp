@@ -53,7 +53,7 @@ export function HybridWorkoutExportButton({
         repScheme: workout.repScheme,
         scalingLevel: workout.scalingLevel,
         movements: workout.movements.map((m) => ({
-          exerciseName: m.exercise.standardAbbreviation || m.exercise.name,
+          exerciseName: m.exercise.nameSv || m.exercise.name,
           reps: m.reps,
           calories: m.calories,
           distance: m.distance,
@@ -104,7 +104,7 @@ export function HybridWorkoutExportButton({
         repScheme: workout.repScheme,
         scalingLevel: workout.scalingLevel,
         movements: workout.movements.map((m) => ({
-          exerciseName: m.exercise.standardAbbreviation || m.exercise.name,
+          exerciseName: m.exercise.nameSv || m.exercise.name,
           reps: m.reps,
           calories: m.calories,
           distance: m.distance,

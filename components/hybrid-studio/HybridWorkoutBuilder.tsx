@@ -139,15 +139,61 @@ const categoryLabels: Record<string, string> = {
   HYROX_STATION: 'HYROX',
 };
 
+// Parse rep schemes to extract round info and per-round reps
+interface RepSchemeInfo {
+  rounds: number;
+  repsPerRound: number[];
+  type: 'descending' | 'ascending' | 'fixed' | 'variable';
+  totalReps: number;
+}
+
+function parseRepScheme(scheme: string): RepSchemeInfo | null {
+  if (!scheme) return null;
+
+  // Handle "X rounds" or "X rundor" patterns (English and Swedish)
+  const roundsMatch = scheme.match(/^(\d+)\s*(rounds?|rundor)$/i);
+  if (roundsMatch) {
+    return {
+      rounds: parseInt(roundsMatch[1]),
+      repsPerRound: [],
+      type: 'fixed',
+      totalReps: 0
+    };
+  }
+
+  // Handle descending/ascending patterns like "21-15-9" or "10-9-8-7-6-5-4-3-2-1"
+  const parts = scheme.split('-').map(p => parseInt(p.trim()));
+  if (parts.length > 1 && parts.every(p => !isNaN(p))) {
+    const totalReps = parts.reduce((sum, n) => sum + n, 0);
+
+    // Determine if ascending or descending
+    let type: 'descending' | 'ascending' | 'variable' = 'variable';
+    if (parts.length >= 2) {
+      const isDescending = parts.every((val, i) => i === 0 || val <= parts[i - 1]);
+      const isAscending = parts.every((val, i) => i === 0 || val >= parts[i - 1]);
+      if (isDescending && parts[0] > parts[parts.length - 1]) {
+        type = 'descending';
+      } else if (isAscending && parts[0] < parts[parts.length - 1]) {
+        type = 'ascending';
+      }
+    }
+
+    return { rounds: parts.length, repsPerRound: parts, type, totalReps };
+  }
+
+  return null;
+}
+
 // Sortable movement card component
 interface SortableMovementCardProps {
   movement: WorkoutMovement;
   index: number;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<WorkoutMovement>) => void;
+  repSchemeInfo?: RepSchemeInfo | null;
 }
 
-function SortableMovementCard({ movement, index, onRemove, onUpdate }: SortableMovementCardProps) {
+function SortableMovementCard({ movement, index, onRemove, onUpdate, repSchemeInfo }: SortableMovementCardProps) {
   const {
     attributes,
     listeners,
@@ -182,11 +228,11 @@ function SortableMovementCard({ movement, index, onRemove, onUpdate }: SortableM
           <div className="flex items-center justify-between">
             <div>
               <span className="font-medium">
-                {movement.exercise.standardAbbreviation || movement.exercise.name}
+                {movement.exercise.nameSv || movement.exercise.name}
               </span>
-              {movement.exercise.nameSv && (
-                <span className="text-muted-foreground ml-2">
-                  ({movement.exercise.nameSv})
+              {movement.exercise.standardAbbreviation && (
+                <span className="text-muted-foreground ml-2 text-sm">
+                  ({movement.exercise.standardAbbreviation})
                 </span>
               )}
             </div>
@@ -202,16 +248,22 @@ function SortableMovementCard({ movement, index, onRemove, onUpdate }: SortableM
           <div className="grid gap-3 md:grid-cols-4">
             <div className="space-y-1">
               <Label className="text-xs">Reps</Label>
-              <Input
-                type="number"
-                value={movement.reps || ''}
-                onChange={(e) =>
-                  onUpdate(movement.id, {
-                    reps: e.target.value ? parseInt(e.target.value) : undefined,
-                  })
-                }
-                placeholder="Antal"
-              />
+              {repSchemeInfo && repSchemeInfo.repsPerRound.length > 0 ? (
+                <div className="h-10 px-3 py-2 border rounded-md bg-muted/50 text-sm">
+                  {repSchemeInfo.repsPerRound.join('-')}
+                </div>
+              ) : (
+                <Input
+                  type="number"
+                  value={movement.reps || ''}
+                  onChange={(e) =>
+                    onUpdate(movement.id, {
+                      reps: e.target.value ? parseInt(e.target.value) : undefined,
+                    })
+                  }
+                  placeholder="Antal"
+                />
+              )}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Distans (m)</Label>
@@ -630,7 +682,14 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                     type="button"
                     variant={repScheme === preset.value ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setRepScheme(preset.value)}
+                    onClick={() => {
+                      setRepScheme(preset.value);
+                      // Auto-set totalRounds based on scheme
+                      const parsed = parseRepScheme(preset.value);
+                      if (parsed) {
+                        setTotalRounds(parsed.rounds);
+                      }
+                    }}
                   >
                     {preset.label}
                   </Button>
@@ -639,9 +698,53 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
               <Input
                 id="repScheme"
                 value={repScheme}
-                onChange={(e) => setRepScheme(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setRepScheme(value);
+                  // Auto-set totalRounds based on custom scheme
+                  const parsed = parseRepScheme(value);
+                  if (parsed) {
+                    setTotalRounds(parsed.rounds);
+                  }
+                }}
                 placeholder="Eller skriv eget schema..."
               />
+              {/* Show rep scheme explanation */}
+              {(() => {
+                const parsed = parseRepScheme(repScheme);
+                if (!parsed) return null;
+
+                const typeLabels = {
+                  descending: 'fallande',
+                  ascending: 'stigande',
+                  variable: 'varierande',
+                  fixed: 'fasta'
+                };
+
+                return (
+                  <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                    {parsed.repsPerRound.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="font-medium">
+                          {parsed.rounds} rundor ({typeLabels[parsed.type]} reps) • Totalt: {parsed.totalReps} reps/övning
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {parsed.repsPerRound.map((reps, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-xs font-medium"
+                            >
+                              {reps}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p>{parsed.rounds} rundor med samma reps - ange antal reps per övning i steg 3</p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>
@@ -756,12 +859,33 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                 <Zap className="h-4 w-4 text-primary" />
                 <span className="font-medium">Metcon</span>
                 <Badge variant="secondary" className="text-xs">Obligatorisk</Badge>
+                {repScheme && (
+                  <Badge variant="outline" className="text-xs">
+                    {repScheme}
+                  </Badge>
+                )}
                 {movements.length > 0 && (
                   <Badge variant="outline" className="text-xs ml-auto">
                     {movements.length} rörelser
                   </Badge>
                 )}
               </div>
+              {(() => {
+                const parsed = parseRepScheme(repScheme);
+                if (!parsed) return null;
+                if (parsed.repsPerRound.length > 0) {
+                  return (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {parsed.rounds} rundor: {parsed.repsPerRound.join(' → ')} reps • Totalt {parsed.totalReps} reps/övning
+                    </p>
+                  );
+                }
+                return (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {parsed.rounds} rundor med samma reps per runda
+                  </p>
+                );
+              })()}
             </div>
             <CardContent className="pt-4">
               <div className="space-y-4">
@@ -799,10 +923,11 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    className="justify-start h-auto py-1.5 px-2 text-xs"
+                                    className="justify-start h-auto py-1.5 px-2 text-xs text-left"
                                     onClick={() => addMovement(exercise)}
+                                    title={exercise.name}
                                   >
-                                    {exercise.standardAbbreviation || exercise.name}
+                                    {exercise.nameSv || exercise.name}
                                   </Button>
                                 ))}
                               </div>
@@ -839,6 +964,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                             index={index}
                             onRemove={removeMovement}
                             onUpdate={updateMovement}
+                            repSchemeInfo={parseRepScheme(repScheme)}
                           />
                         ))}
                       </div>

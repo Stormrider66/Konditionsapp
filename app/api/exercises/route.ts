@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
     await requireAuth()
     const { searchParams } = new URL(request.url)
 
-    // Pagination with limits
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')))
+    // Pagination with limits (increased max to 500 for full library view)
+    const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') || '50')))
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
 
     // Validate sortBy to prevent injection

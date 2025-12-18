@@ -252,12 +252,12 @@ export function WorkoutAssignmentDialog({
           {/* Scaling Suggestion */}
           <div className="space-y-2">
             <Label>Föreslå Scaling (valfritt)</Label>
-            <Select value={customScaling} onValueChange={setCustomScaling}>
+            <Select value={customScaling || 'RX'} onValueChange={(val) => setCustomScaling(val === 'RX' ? '' : val)}>
               <SelectTrigger>
                 <SelectValue placeholder="Standard (Rx)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Standard (Rx)</SelectItem>
+                <SelectItem value="RX">Standard (Rx)</SelectItem>
                 <SelectItem value="SCALED">Scaled</SelectItem>
                 <SelectItem value="FOUNDATIONS">Foundations</SelectItem>
                 <SelectItem value="CUSTOM">Anpassad</SelectItem>
