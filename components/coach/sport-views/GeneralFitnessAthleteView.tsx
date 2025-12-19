@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Target, Heart, Scale, Dumbbell, Calendar, CheckCircle2, Utensils, Activity } from 'lucide-react'
 import { BodyCompositionTracker } from '@/components/coach/body-composition/BodyCompositionTracker'
 import { NutritionRecommendations } from '@/components/coach/body-composition/NutritionRecommendations'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface GeneralFitnessSettings {
   primaryGoal?: string

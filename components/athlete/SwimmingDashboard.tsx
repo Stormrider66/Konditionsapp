@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Waves, Timer, Target, TrendingUp, Droplets, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface SwimmingSettings {
   strokeTypes?: string[]
@@ -181,6 +182,9 @@ export function SwimmingDashboard({
   experience,
   clientName,
 }: SwimmingDashboardProps) {
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+
   const settings = swimmingSettings || {}
   const css = settings.currentCss
   const paceZones = css ? calculateSwimmingPaceZones(css) : []
@@ -198,9 +202,9 @@ export function SwimmingDashboard({
       {/* Header with CSS and Key Stats */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {/* CSS Card */}
-        <Card className="col-span-2 lg:col-span-1">
+        <Card className="col-span-2 lg:col-span-1" style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Timer className="h-4 w-4 text-cyan-500" />
               CSS (Tröskel)
             </CardTitle>
@@ -209,18 +213,18 @@ export function SwimmingDashboard({
             {css ? (
               <div>
                 <p className="text-2xl font-bold text-cyan-600">
-                  {formatPace(css)}<span className="text-sm font-normal text-muted-foreground ml-1">/100m</span>
+                  {formatPace(css)}<span className="text-sm font-normal ml-1" style={{ color: theme.colors.textMuted }}>/100m</span>
                 </p>
                 {settings.cssTestDate && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
                     Testad: {new Date(settings.cssTestDate).toLocaleDateString('sv-SE')}
                   </p>
                 )}
               </div>
             ) : (
               <div>
-                <p className="text-lg text-muted-foreground">Ej angiven</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-lg" style={{ color: theme.colors.textMuted }}>Ej angiven</p>
+                <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
                   Gör ett CSS-test för att få träningszoner
                 </p>
               </div>
@@ -229,17 +233,17 @@ export function SwimmingDashboard({
         </Card>
 
         {/* Primary Stroke */}
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Waves className="h-4 w-4 text-blue-500" />
               Huvudsimsätt
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-semibold">{getStrokeName(primaryStroke)}</p>
+            <p className="text-lg font-semibold" style={{ color: theme.colors.textPrimary }}>{getStrokeName(primaryStroke)}</p>
             {settings.strokeTypes && settings.strokeTypes.length > 1 && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>
                 +{settings.strokeTypes.length - 1} andra
               </p>
             )}
@@ -247,23 +251,23 @@ export function SwimmingDashboard({
         </Card>
 
         {/* Discipline */}
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Target className="h-4 w-4 text-green-500" />
               Fokus
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-lg font-semibold">{getDisciplineName(primaryDiscipline)}</p>
-            <p className="text-xs text-muted-foreground">{poolLength}m bassäng</p>
+            <p className="text-lg font-semibold" style={{ color: theme.colors.textPrimary }}>{getDisciplineName(primaryDiscipline)}</p>
+            <p className="text-xs" style={{ color: theme.colors.textMuted }}>{poolLength}m bassäng</p>
           </CardContent>
         </Card>
 
         {/* Experience */}
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-4 w-4 text-purple-500" />
               Nivå
             </CardTitle>
@@ -271,7 +275,7 @@ export function SwimmingDashboard({
           <CardContent>
             <Badge className={cn('text-sm', expLevel.color)}>{expLevel.label}</Badge>
             {settings.weeklySwimSessions && (
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
                 {settings.weeklySwimSessions} pass/vecka
               </p>
             )}
@@ -281,13 +285,13 @@ export function SwimmingDashboard({
 
       {/* Pace Zones */}
       {css && paceZones.length > 0 && (
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Droplets className="h-5 w-5 text-cyan-500" />
               Simzoner
             </CardTitle>
-            <CardDescription>
+            <CardDescription style={{ color: theme.colors.textMuted }}>
               Baserade på din CSS ({formatPace(css)}/100m)
             </CardDescription>
           </CardHeader>
@@ -300,13 +304,13 @@ export function SwimmingDashboard({
                       <Badge className={cn('w-8 h-6 flex items-center justify-center', zone.color)}>
                         Z{zone.zone}
                       </Badge>
-                      <span className="font-medium text-sm">{zone.name}</span>
+                      <span className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>{zone.name}</span>
                     </div>
                     <div className="text-right">
-                      <span className="font-mono text-sm">
+                      <span className="font-mono text-sm" style={{ color: theme.colors.textPrimary }}>
                         {formatPace(zone.paceMax)} - {formatPace(zone.paceMin)}
                       </span>
-                      <span className="text-xs text-muted-foreground ml-2">
+                      <span className="text-xs ml-2" style={{ color: theme.colors.textMuted }}>
                         ({zone.percentMin}-{zone.percentMax}%)
                       </span>
                     </div>
@@ -315,30 +319,30 @@ export function SwimmingDashboard({
                     value={(zone.percentMax - 70) * 2}
                     className="h-2"
                   />
-                  <p className="text-xs text-muted-foreground">{zone.description}</p>
+                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>{zone.description}</p>
                 </div>
               ))}
             </div>
 
             {/* Estimated Race Paces */}
-            <div className="mt-6 pt-4 border-t">
-              <h4 className="font-medium text-sm mb-3">Beräknade tävlingstempo</h4>
+            <div className="mt-6 pt-4 border-t" style={{ borderColor: theme.colors.border }}>
+              <h4 className="font-medium text-sm mb-3" style={{ color: theme.colors.textPrimary }}>Beräknade tävlingstempo</h4>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                <div className="p-2 bg-muted rounded">
-                  <span className="text-muted-foreground">400m:</span>
-                  <span className="ml-2 font-mono">{formatPace(Math.round(css * 1.02))}</span>
+                <div className="p-2 rounded" style={{ backgroundColor: theme.colors.background }}>
+                  <span style={{ color: theme.colors.textMuted }}>400m:</span>
+                  <span className="ml-2 font-mono" style={{ color: theme.colors.textPrimary }}>{formatPace(Math.round(css * 1.02))}</span>
                 </div>
-                <div className="p-2 bg-muted rounded">
-                  <span className="text-muted-foreground">800m:</span>
-                  <span className="ml-2 font-mono">{formatPace(Math.round(css * 1.05))}</span>
+                <div className="p-2 rounded" style={{ backgroundColor: theme.colors.background }}>
+                  <span style={{ color: theme.colors.textMuted }}>800m:</span>
+                  <span className="ml-2 font-mono" style={{ color: theme.colors.textPrimary }}>{formatPace(Math.round(css * 1.05))}</span>
                 </div>
-                <div className="p-2 bg-muted rounded">
-                  <span className="text-muted-foreground">1500m:</span>
-                  <span className="ml-2 font-mono">{formatPace(Math.round(css * 1.08))}</span>
+                <div className="p-2 rounded" style={{ backgroundColor: theme.colors.background }}>
+                  <span style={{ color: theme.colors.textMuted }}>1500m:</span>
+                  <span className="ml-2 font-mono" style={{ color: theme.colors.textPrimary }}>{formatPace(Math.round(css * 1.08))}</span>
                 </div>
-                <div className="p-2 bg-muted rounded">
-                  <span className="text-muted-foreground">3000m+:</span>
-                  <span className="ml-2 font-mono">{formatPace(Math.round(css * 1.12))}</span>
+                <div className="p-2 rounded" style={{ backgroundColor: theme.colors.background }}>
+                  <span style={{ color: theme.colors.textMuted }}>3000m+:</span>
+                  <span className="ml-2 font-mono" style={{ color: theme.colors.textPrimary }}>{formatPace(Math.round(css * 1.12))}</span>
                 </div>
               </div>
             </div>
@@ -347,9 +351,9 @@ export function SwimmingDashboard({
       )}
 
       {/* Training Tips */}
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Info className="h-5 w-5 text-blue-500" />
             Träningstips för {getDisciplineName(primaryDiscipline)}
           </CardTitle>
@@ -357,7 +361,7 @@ export function SwimmingDashboard({
         <CardContent>
           <ul className="space-y-2">
             {trainingTips.map((tip, index) => (
-              <li key={index} className="flex items-start gap-2 text-sm">
+              <li key={index} className="flex items-start gap-2 text-sm" style={{ color: theme.colors.textPrimary }}>
                 <span className="text-cyan-500 mt-0.5">
                   <Waves className="h-4 w-4" />
                 </span>
@@ -368,8 +372,17 @@ export function SwimmingDashboard({
 
           {/* CSS Test Reminder */}
           {(!css || (settings.cssTestDate && daysSince(settings.cssTestDate) > 60)) && (
-            <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-              <p className="text-sm text-amber-800">
+            <div
+              className="mt-4 p-3 rounded-lg border"
+              style={{
+                backgroundColor: theme.id === 'FITAPP_DARK' ? '#422006' : '#fffbeb',
+                borderColor: theme.id === 'FITAPP_DARK' ? '#92400e' : '#fde68a',
+              }}
+            >
+              <p
+                className="text-sm"
+                style={{ color: theme.id === 'FITAPP_DARK' ? '#fcd34d' : '#92400e' }}
+              >
                 {!css
                   ? 'Gör ett CSS-test för att få personliga träningszoner. Ett enkelt test: simma 400m + vila 10 min + simma 200m på tid.'
                   : 'Din CSS är över 2 månader gammal. Överväg att göra ett nytt test för att uppdatera dina zoner.'}
@@ -379,8 +392,8 @@ export function SwimmingDashboard({
 
           {/* Equipment Tips */}
           {settings.equipment && settings.equipment.length > 0 && (
-            <div className="mt-4 pt-4 border-t">
-              <h4 className="font-medium text-sm mb-2">Din utrustning</h4>
+            <div className="mt-4 pt-4 border-t" style={{ borderColor: theme.colors.border }}>
+              <h4 className="font-medium text-sm mb-2" style={{ color: theme.colors.textPrimary }}>Din utrustning</h4>
               <div className="flex flex-wrap gap-2">
                 {settings.equipment.map((equip) => (
                   <Badge key={equip} variant="outline" className="text-xs">

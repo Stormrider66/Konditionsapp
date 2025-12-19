@@ -15,8 +15,22 @@ import { SwimmingDashboard } from '@/components/athlete/SwimmingDashboard'
 import { TriathlonDashboard } from '@/components/athlete/TriathlonDashboard'
 import { HYROXDashboard } from '@/components/athlete/HYROXDashboard'
 import { GeneralFitnessDashboard } from '@/components/athlete/GeneralFitnessDashboard'
-import { Card, CardContent } from '@/components/ui/card'
-import { TrendingUp, Trophy, Calendar, Activity, Zap, Snowflake, Waves, Medal, Target, Heart } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  TrendingUp,
+  Trophy,
+  Calendar,
+  Activity,
+  Zap,
+  Snowflake,
+  Waves,
+  Medal,
+  Target,
+  Heart,
+  ClipboardList,
+  User,
+  MessageSquare
+} from 'lucide-react'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 
 export default async function AthleteDashboardPage() {
@@ -47,6 +61,7 @@ export default async function AthleteDashboardPage() {
   const isTriathlete = primarySport === 'TRIATHLON'
   const isHyroxAthlete = primarySport === 'HYROX'
   const isGeneralFitnessAthlete = primarySport === 'GENERAL_FITNESS'
+  const isRunner = !isCyclist && !isSkier && !isSwimmer && !isTriathlete && !isHyroxAthlete && !isGeneralFitnessAthlete
 
   const now = new Date()
   const todayStart = startOfDay(now)
@@ -57,12 +72,10 @@ export default async function AthleteDashboardPage() {
   // Parallel data fetching for better performance
   const [
     activePrograms,
-    todaysWorkoutsRaw,
-    upcomingWorkoutsRaw,
     recentLogs,
     plannedStats
   ] = await Promise.all([
-    // 1. Active Programs (Optimized: select only needed fields)
+    // 1. Active Programs
     prisma.trainingProgram.findMany({
       where: {
         clientId: athleteAccount.clientId,
@@ -86,69 +99,7 @@ export default async function AthleteDashboardPage() {
       },
     }),
 
-    // 2. Today's Workouts (Direct fetch by date)
-    prisma.workout.findMany({
-      where: {
-        day: {
-          date: {
-            gte: todayStart,
-            lte: todayEnd,
-          },
-          week: {
-            program: {
-              clientId: athleteAccount.clientId,
-              isActive: true,
-            }
-          }
-        }
-      },
-      include: {
-        day: true,
-        segments: {
-          orderBy: { order: 'asc' },
-          include: { exercise: true }
-        },
-        logs: {
-          where: { athleteId: user.id },
-          orderBy: { completedAt: 'desc' },
-          take: 1
-        }
-      }
-    }),
-
-    // 3. Upcoming Workouts (Direct fetch by date range)
-    prisma.workout.findMany({
-      where: {
-        day: {
-          date: {
-            gte: upcomingStart,
-            lte: upcomingEnd,
-          },
-          week: {
-            program: {
-              clientId: athleteAccount.clientId,
-              isActive: true,
-            }
-          }
-        }
-      },
-      include: {
-        day: true,
-        segments: {
-          orderBy: { order: 'asc' },
-          include: { exercise: true }
-        },
-        logs: {
-          where: { athleteId: user.id },
-          take: 1
-        }
-      },
-      orderBy: {
-        day: { date: 'asc' }
-      }
-    }),
-
-    // 4. Recent Activity
+    // 2. Recent Activity
     prisma.workoutLog.findMany({
       where: {
         athleteId: user.id,
@@ -172,9 +123,7 @@ export default async function AthleteDashboardPage() {
       take: 10,
     }),
 
-    // 5. Planned Stats (this week)
-    // We need to fetch this separately or aggregate it.
-    // Fetching all workouts for the week is efficient enough.
+    // 3. Planned Stats (this week)
     prisma.workout.findMany({
       where: {
         day: {
@@ -196,26 +145,7 @@ export default async function AthleteDashboardPage() {
     })
   ])
 
-  // Augment workouts with Program Name (requires an extra step or a different query structure if not including program)
-  // Since we didn't include Program in the workout fetch to save bandwidth, we can map it from the activePrograms if needed,
-  // or just fetch it.
-  // To keep it simple and performant, let's fetch program names for the workouts we found.
-  // A smarter way: Include `day: { include: { week: { include: { program: { select: { id: true, name: true } } } } } }` in the workout queries.
-  // Let's do that in a follow-up refinement if needed, but for now let's assume we can look it up or just re-fetch efficiently.
-  // Actually, let's update the TodaysWorkouts/UpcomingWorkouts to not *strictly* require programName if it's missing, or fetch it.
-  // Re-fetching just the program info for these workouts is fast.
-
-  // Better approach: Get the Program IDs from the workouts and map them.
-  const programIds = Array.from(new Set([
-    ...todaysWorkoutsRaw.map(w => w.day.weekId), // Indirect, this is weekId. We need programId.
-    // We need to include program in the workout fetch to get the name efficiently.
-  ]))
-
-  // Let's assume for a second we modify the query above to include program name.
-  // I'll rewrite the query above to include it.
-
-  // ... Actually, let's just re-run the workout queries with the include.
-  // See refactor below.
+  // Fetch workouts with program info
   const todaysWorkoutsWithProgram = await prisma.workout.findMany({
     where: {
       day: {
@@ -238,7 +168,7 @@ export default async function AthleteDashboardPage() {
       segments: { include: { exercise: true } },
       logs: { where: { athleteId: user.id }, take: 1 }
     }
-  }) as any[] // Temporary cast until we map it
+  }) as any[]
 
   const upcomingWorkoutsWithProgram = await prisma.workout.findMany({
     where: {
@@ -310,14 +240,41 @@ export default async function AthleteDashboardPage() {
   const plannedDistanceThisWeek = plannedStats.reduce((sum, w) => sum + (w.distance || 0), 0)
   const plannedDurationThisWeek = plannedStats.reduce((sum, w) => sum + (w.duration || 0), 0)
 
+  // Quick links based on sport
+  const getQuickLinks = () => {
+    const baseLinks = [
+      { href: '/athlete/tests', icon: ClipboardList, label: 'Tester & Rapporter', color: 'text-red-500' },
+      { href: '/athlete/history', icon: TrendingUp, label: 'Träningshistorik', color: 'text-blue-500' },
+      { href: '/athlete/programs', icon: Calendar, label: 'Alla program', color: 'text-green-500' },
+      { href: '/athlete/profile', icon: User, label: 'Min profil', color: 'text-purple-500' },
+    ]
+    return baseLinks
+  }
+
   return (
-    <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6">
-      <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">Hej, {athleteAccount.client.name}!</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">
+    <div className="container mx-auto py-4 sm:py-6 px-4 sm:px-6 max-w-7xl">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Hej, {athleteAccount.client.name}!</h1>
+        <p className="text-muted-foreground text-sm">
           Välkommen tillbaka. Här är din träningsöversikt.
         </p>
       </div>
+
+      {/* Stats Cards - Always show for runners, sport-specific for others */}
+      {isRunner && (
+        <div className="mb-6">
+          <AthleteStats
+            totalWorkouts={totalWorkoutsThisWeek}
+            totalDistance={totalDistanceThisWeek}
+            totalDuration={totalDurationThisWeek}
+            avgEffort={avgEffortThisWeek}
+            plannedWorkouts={plannedWorkoutsThisWeek}
+            plannedDistance={plannedDistanceThisWeek}
+            plannedDuration={plannedDurationThisWeek}
+          />
+        </div>
+      )}
 
       {/* Sport-Specific Dashboard */}
       {isCyclist && (
@@ -376,204 +333,91 @@ export default async function AthleteDashboardPage() {
         </div>
       )}
 
-      {/* Stats Cards - Show for runners (non-cyclists, non-skiers, non-swimmers, non-triathletes, non-hyrox, non-general-fitness) */}
-      {!isCyclist && !isSkier && !isSwimmer && !isTriathlete && !isHyroxAthlete && !isGeneralFitnessAthlete && (
-        <AthleteStats
-          totalWorkouts={totalWorkoutsThisWeek}
-          totalDistance={totalDistanceThisWeek}
-          totalDuration={totalDurationThisWeek}
-          avgEffort={avgEffortThisWeek}
-          plannedWorkouts={plannedWorkoutsThisWeek}
-          plannedDistance={plannedDistanceThisWeek}
-          plannedDuration={plannedDurationThisWeek}
-        />
-      )}
-
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2 mt-4 sm:mt-6">
-        {/* Left Column */}
-        <div className="space-y-4 sm:space-y-6">
+      {/* Main Content Grid - 3 columns like coach */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Main Content (2/3 width) */}
+        <div className="lg:col-span-2 space-y-6">
           {/* Today's Workouts */}
           <TodaysWorkouts workouts={todaysWorkouts} />
 
           {/* Upcoming Workouts */}
           <UpcomingWorkouts workouts={upcomingWorkouts} />
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-4 sm:space-y-6">
-          {/* Active Programs */}
-          <ActivePrograms programs={activePrograms} />
 
           {/* Recent Activity */}
           <RecentActivity logs={recentLogs} />
         </div>
-      </div>
 
-      {/* Quick Actions */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link href="/athlete/tests" className="block">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="pt-6">
+        {/* Right Column - Sidebar (1/3 width) */}
+        <div className="space-y-6">
+          {/* Active Programs */}
+          <ActivePrograms programs={activePrograms} />
+
+          {/* Quick Links */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Snabblänkar</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {getQuickLinks().map((link) => (
+                <Link key={link.href} href={link.href} className="block">
+                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition">
+                    <link.icon className={`h-4 w-4 ${link.color}`} />
+                    <span className="text-sm">{link.label}</span>
+                  </div>
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Sport-Specific Quick Link */}
+          <Card className="border-0 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
+            <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <Activity className="h-8 w-8 text-red-500" />
-                <div>
-                  <p className="font-semibold">
-                    {isCyclist ? 'FTP & Tester' : isSkier ? 'Tröskeltester' : isSwimmer ? 'CSS & Simtester' : isTriathlete ? 'Tröskeltester' : isHyroxAthlete ? 'Benchmark-tester' : isGeneralFitnessAthlete ? 'Fitnesstester' : 'Konditionstester'}
+                {isCyclist ? (
+                  <Zap className="h-6 w-6" />
+                ) : isSkier ? (
+                  <Snowflake className="h-6 w-6" />
+                ) : isSwimmer ? (
+                  <Waves className="h-6 w-6" />
+                ) : isTriathlete ? (
+                  <Medal className="h-6 w-6" />
+                ) : isHyroxAthlete ? (
+                  <Target className="h-6 w-6" />
+                ) : isGeneralFitnessAthlete ? (
+                  <Heart className="h-6 w-6" />
+                ) : (
+                  <Trophy className="h-6 w-6" />
+                )}
+                <div className="flex-1">
+                  <p className="font-medium text-sm">
+                    {isCyclist ? 'Cykelinställningar' :
+                     isSkier ? 'Skidinställningar' :
+                     isSwimmer ? 'Siminställningar' :
+                     isTriathlete ? 'Triatloninställningar' :
+                     isHyroxAthlete ? 'HYROX-inställningar' :
+                     isGeneralFitnessAthlete ? 'Fitnessinställningar' :
+                     'Personliga rekord'}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {isCyclist ? 'Effektdata och resultat' : isSkier ? 'Tempo och resultat' : isSwimmer ? 'Tempo och resultat' : isTriathlete ? 'CSS, FTP och löptempo' : isHyroxAthlete ? 'Stationstider och löpform' : isGeneralFitnessAthlete ? 'Styrka och kondition' : 'Resultat och rapporter'}
+                  <p className="text-xs text-indigo-100">
+                    {isCyclist ? 'FTP, vikt och zoner' :
+                     isSkier ? 'Tempo, teknik och zoner' :
+                     isSwimmer ? 'CSS, simtag och zoner' :
+                     isTriathlete ? 'Sim/Cykel/Löp-profil' :
+                     isHyroxAthlete ? 'Stationer och benchmark' :
+                     isGeneralFitnessAthlete ? 'Mål och aktiviteter' :
+                     'Dina bästa tider'}
                   </p>
                 </div>
               </div>
+              <Link
+                href={isRunner ? '/athlete/history' : '/athlete/profile'}
+                className="block mt-3 text-xs text-indigo-100 hover:text-white"
+              >
+                Visa mer →
+              </Link>
             </CardContent>
           </Card>
-        </Link>
-
-        <Link href="/athlete/history" className="block">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="h-8 w-8 text-blue-500" />
-                <div>
-                  <p className="font-semibold">Träningshistorik</p>
-                  <p className="text-sm text-muted-foreground">
-                    {isCyclist ? 'TSS, tid och watt' : isSkier ? 'Tid, tempo och distans' : isSwimmer ? 'Yardage, tempo och tid' : isTriathlete ? 'Sim, cykel och löp' : isHyroxAthlete ? 'Stationer och löpning' : isGeneralFitnessAthlete ? 'Vikt, styrka och aktivitet' : 'Analys och framsteg'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        {isCyclist ? (
-          <Link href="/athlete/profile" className="block">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <Zap className="h-8 w-8 text-yellow-500" />
-                  <div>
-                    <p className="font-semibold">Cykelinställningar</p>
-                    <p className="text-sm text-muted-foreground">
-                      FTP, vikt och zoner
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : isSkier ? (
-          <Link href="/athlete/profile" className="block">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <Snowflake className="h-8 w-8 text-cyan-500" />
-                  <div>
-                    <p className="font-semibold">Skidinställningar</p>
-                    <p className="text-sm text-muted-foreground">
-                      Tempo, teknik och zoner
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : isSwimmer ? (
-          <Link href="/athlete/profile" className="block">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <Waves className="h-8 w-8 text-blue-500" />
-                  <div>
-                    <p className="font-semibold">Siminställningar</p>
-                    <p className="text-sm text-muted-foreground">
-                      CSS, simtag och zoner
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : isTriathlete ? (
-          <Link href="/athlete/profile" className="block">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <Medal className="h-8 w-8 text-yellow-500" />
-                  <div>
-                    <p className="font-semibold">Triathloninställningar</p>
-                    <p className="text-sm text-muted-foreground">
-                      Sim/Cykel/Löp-profil
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : isHyroxAthlete ? (
-          <Link href="/athlete/profile" className="block">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <Target className="h-8 w-8 text-orange-500" />
-                  <div>
-                    <p className="font-semibold">HYROX-inställningar</p>
-                    <p className="text-sm text-muted-foreground">
-                      Stationer och benchmark
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : isGeneralFitnessAthlete ? (
-          <Link href="/athlete/profile" className="block">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <Heart className="h-8 w-8 text-red-500" />
-                  <div>
-                    <p className="font-semibold">Fitnessinställningar</p>
-                    <p className="text-sm text-muted-foreground">
-                      Mål, aktiviteter och hälsa
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : (
-          <Link href="/athlete/history" className="block">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <Trophy className="h-8 w-8 text-yellow-500" />
-                  <div>
-                    <p className="font-semibold">Personliga rekord</p>
-                    <p className="text-sm text-muted-foreground">
-                      Dina bästa prestationer
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        )}
-
-        <Link href="/athlete/programs" className="block">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-8 w-8 text-green-500" />
-                <div>
-                  <p className="font-semibold">Alla program</p>
-                  <p className="text-sm text-muted-foreground">
-                    Träningsprogram
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+        </div>
       </div>
     </div>
   )

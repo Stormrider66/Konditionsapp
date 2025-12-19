@@ -17,6 +17,8 @@ import {
 import { Download, FileSpreadsheet, FileText, Printer, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { HybridWorkoutWithSections } from '@/types';
+import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider';
+import type { ThemeId } from '@/lib/themes/types';
 
 interface HybridWorkoutExportButtonProps {
   workout: HybridWorkoutWithSections;
@@ -24,6 +26,7 @@ interface HybridWorkoutExportButtonProps {
   coachName?: string;
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
+  themeId?: ThemeId; // Optionally override the theme from context
 }
 
 export function HybridWorkoutExportButton({
@@ -32,8 +35,13 @@ export function HybridWorkoutExportButton({
   coachName,
   variant = 'outline',
   size = 'sm',
+  themeId: propThemeId,
 }: HybridWorkoutExportButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
+
+  // Get theme from context if available, otherwise use prop or default
+  const themeContext = useWorkoutThemeOptional();
+  const pdfThemeId = propThemeId || themeContext?.pdfTheme?.id;
 
   async function handleExportExcel() {
     setIsExporting(true);
@@ -67,9 +75,10 @@ export function HybridWorkoutExportButton({
         athleteName,
         coachName,
         date: new Date(),
+        themeId: pdfThemeId,
       };
 
-      const blob = generateHybridWorkoutExcel(exportData);
+      const blob = await generateHybridWorkoutExcel(exportData);
       const filename = generateFilename(workout.name, 'xlsx');
       downloadBlob(blob, filename);
 
@@ -118,6 +127,7 @@ export function HybridWorkoutExportButton({
         athleteName,
         coachName,
         date: new Date(),
+        themeId: pdfThemeId,
       };
 
       const blob = generateHybridWorkoutPDF(exportData);

@@ -13,16 +13,16 @@
  */
 export const GEMINI_MODELS = {
   /** Best for video/audio analysis - fast, stable (December 2025) */
-  VIDEO_ANALYSIS: 'gemini-2.5-flash',
+  VIDEO_ANALYSIS: 'gemini-3-flash-preview',
 
   /** Best for audio transcription and extraction */
-  AUDIO_TRANSCRIPTION: 'gemini-2.5-flash',
+  AUDIO_TRANSCRIPTION: 'gemini-3-flash-preview',
 
   /** Best for chat conversations with long context */
-  CHAT: 'gemini-2.5-flash',
+  CHAT: 'gemini-3-flash-preview',
 
   /** Best for quick responses where latency matters */
-  FLASH: 'gemini-2.5-flash',
+  FLASH: 'gemini-3-flash-preview',
 
   /** Advanced reasoning */
   PRO: 'gemini-2.5-pro',
@@ -85,9 +85,9 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
     input: 0.00125, // $1.25 per 1M input tokens
     output: 0.005, // $5.00 per 1M output tokens
   },
-  'gemini-2.5-flash': {
-    input: 0.00015, // $0.15 per 1M input tokens
-    output: 0.0006, // $0.60 per 1M output tokens
+  'gemini-3-flash-preview': {
+    input: 0.0005, // $0.50 per 1M input tokens
+    output: 0.003, // $3.00 per 1M output tokens
   },
   // Anthropic Claude models
   'claude-sonnet-4-5-20250929': {

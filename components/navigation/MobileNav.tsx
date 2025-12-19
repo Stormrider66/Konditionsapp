@@ -141,7 +141,39 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
   const baseNavLinks = mainNavLinks
   const coachNavLinks = [] as typeof mainNavLinks
 
-  // Athlete-specific links
+  // Athlete main navigation (desktop header - always visible)
+  const athleteMainNavLinks = [
+    { href: '/athlete/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/athlete/check-in', label: 'Check-in', icon: CheckCircle },
+  ]
+
+  // Athlete grouped navigation for dropdowns
+  const athleteNavGroups = {
+    training: {
+      label: 'Träning',
+      icon: Activity,
+      items: [
+        { href: '/athlete/history', label: 'Historik', icon: TrendingUp },
+        { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame },
+        { href: '/athlete/programs', label: 'Program', icon: Calendar },
+      ],
+    },
+    more: {
+      label: 'Mer',
+      icon: Menu,
+      items: [
+        { href: '/athlete/tests', label: 'Tester & Rapporter', icon: FlaskConical },
+        { href: '/athlete/lactate/new', label: 'Laktattest', icon: Droplet },
+        { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
+        { href: '/athlete/settings', label: 'Inställningar', icon: Settings },
+        ...(needsOnboarding
+          ? [{ href: '/athlete/onboarding', label: 'Sportprofil', icon: UserIcon }]
+          : []),
+      ],
+    },
+  }
+
+  // Athlete mobile navigation - flat list with all items
   const athleteNavLinks = [
     // Dashboard & Overview
     { href: '/athlete/dashboard', label: 'Dashboard', icon: LayoutDashboard, description: 'Översikt & idag' },
@@ -150,19 +182,22 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     // Training & History
     { href: '/athlete/history', label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
     { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame, description: 'CrossFit & HYROX' },
+    { href: '/athlete/programs', label: 'Program', icon: Calendar, description: 'Dina träningsprogram' },
 
     // Tests & Data
-    { href: '/athlete/tests', label: 'Tester', icon: FlaskConical, description: 'Testresultat' },
+    { href: '/athlete/tests', label: 'Tester & Rapporter', icon: FlaskConical, description: 'Testresultat och rapporter' },
     { href: '/athlete/lactate/new', label: 'Laktattest', icon: Droplet, description: 'Rapportera laktat' },
 
-    // Communication & Reports
+    // Communication
     { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount, description: 'Chatta med coach' },
-    { href: '/athlete/program/report', label: 'Rapport', icon: FileText, description: 'Program PDF' },
 
-    // Sport Profile (only show if needs onboarding or for settings)
+    // Settings
+    { href: '/athlete/settings', label: 'Inställningar', icon: Settings, description: 'Tema & inställningar' },
+
+    // Sport Profile (only show if needs onboarding)
     ...(needsOnboarding
-      ? [{ href: `/athlete/onboarding`, label: 'Sportprofil', icon: Settings, description: 'Slutför din profil', highlight: true }]
-      : [{ href: '/athlete/profile', label: 'Profil', icon: Settings, description: 'Inställningar' }]),
+      ? [{ href: `/athlete/onboarding`, label: 'Sportprofil', icon: UserIcon, description: 'Slutför din profil', highlight: true }]
+      : []),
   ]
 
   // Determine which links to show for mobile
@@ -351,8 +386,92 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </>
+              ) : userRole === 'ATHLETE' ? (
+                /* Athlete navigation with dropdowns */
+                <>
+                  {athleteMainNavLinks.map((link) => {
+                    const Icon = link.icon
+                    const active = isActive(link.href)
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm ${
+                          active ? 'bg-white/20' : 'hover:bg-white/10'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="font-medium">{link.label}</span>
+                      </Link>
+                    )
+                  })}
+
+                  {/* Training Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm hover:bg-white/10">
+                        <athleteNavGroups.training.icon className="w-4 h-4" />
+                        <span className="font-medium">{athleteNavGroups.training.label}</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {athleteNavGroups.training.items.map((item) => {
+                        const Icon = item.icon
+                        return (
+                          <DropdownMenuItem key={item.href} asChild>
+                            <Link href={item.href} className="flex items-center gap-2">
+                              <Icon className="w-4 h-4" />
+                              {item.label}
+                            </Link>
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* More Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm hover:bg-white/10 relative">
+                        <Menu className="w-4 h-4" />
+                        <span className="font-medium">Mer</span>
+                        <ChevronDown className="w-3 h-3" />
+                        {unreadCount > 0 && (
+                          <Badge
+                            variant="destructive"
+                            className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px]"
+                          >
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                          </Badge>
+                        )}
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {athleteNavGroups.more.items.map((item) => {
+                        const Icon = item.icon
+                        const badge = (item as any).badge
+                        return (
+                          <DropdownMenuItem key={item.href} asChild>
+                            <Link href={item.href} className="flex items-center gap-2 justify-between">
+                              <span className="flex items-center gap-2">
+                                <Icon className="w-4 h-4" />
+                                {item.label}
+                              </span>
+                              {badge > 0 && (
+                                <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">
+                                  {badge > 9 ? '9+' : badge}
+                                </Badge>
+                              )}
+                            </Link>
+                          </DropdownMenuItem>
+                        )
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
               ) : (
-                /* Athlete or other users - simple nav */
+                /* Other users - simple nav */
                 navLinks.map((link) => {
                   const Icon = link.icon
                   const active = isActive(link.href)

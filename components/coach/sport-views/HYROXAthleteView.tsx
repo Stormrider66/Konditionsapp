@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Clock, Target, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface HYROXSettings {
   raceCategory?: string
@@ -68,19 +69,22 @@ function formatRunTime(seconds: number): string {
 }
 
 export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthleteViewProps) {
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   const hyroxSettings = settings as HYROXSettings | undefined
 
   if (!hyroxSettings) {
     return (
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <span>💪</span> HYROX Profil
           </CardTitle>
-          <CardDescription>Ingen HYROX-data tillgänglig</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>Ingen HYROX-data tillgänglig</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm" style={{ color: theme.colors.textMuted }}>
             Atleten har inte angett HYROX-inställningar ännu.
           </p>
         </CardContent>
@@ -135,14 +139,14 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
   return (
     <div className="space-y-4">
       {/* Overview Card */}
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <CardTitle className="flex items-center gap-2 text-lg">
+              <CardTitle className="flex items-center gap-2 text-lg" style={{ color: theme.colors.textPrimary }}>
                 <span>💪</span> HYROX Dashboard
               </CardTitle>
-              <CardDescription>Stationsprestanda och analys</CardDescription>
+              <CardDescription style={{ color: theme.colors.textMuted }}>Stationsprestanda och analys</CardDescription>
             </div>
             <div className="flex gap-2 flex-wrap">
               <Badge variant="outline">
@@ -156,31 +160,43 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Clock className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">Uppskattad tid</p>
-              <p className="font-bold text-lg">
+            <div
+              className="text-center p-3 rounded-lg"
+              style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+            >
+              <Clock className="h-5 w-5 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>Uppskattad tid</p>
+              <p className="font-bold text-lg" style={{ color: theme.colors.textPrimary }}>
                 {totalStationTime > 0 ? formatTime(Math.round(estimatedTotalTime)) : '-'}
               </p>
             </div>
-            <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Target className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">5K tid</p>
-              <p className="font-bold text-lg">
+            <div
+              className="text-center p-3 rounded-lg"
+              style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+            >
+              <Target className="h-5 w-5 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>5K tid</p>
+              <p className="font-bold text-lg" style={{ color: theme.colors.textPrimary }}>
                 {hyroxSettings.fiveKmTime ? formatRunTime(hyroxSettings.fiveKmTime) : '-'}
               </p>
             </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
+            <div
+              className="text-center p-3 rounded-lg"
+              style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.15)' : '#f0fdf4' }}
+            >
               <TrendingUp className="h-5 w-5 mx-auto mb-1 text-green-600" />
-              <p className="text-xs text-muted-foreground">Starkast</p>
-              <p className="font-medium text-sm truncate">
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>Starkast</p>
+              <p className="font-medium text-sm truncate" style={{ color: theme.colors.textPrimary }}>
                 {bestStation?.name.split(' ')[0] || hyroxSettings.strongestStation || '-'}
               </p>
             </div>
-            <div className="text-center p-3 bg-orange-50 rounded-lg">
+            <div
+              className="text-center p-3 rounded-lg"
+              style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(249, 115, 22, 0.15)' : '#fff7ed' }}
+            >
               <TrendingDown className="h-5 w-5 mx-auto mb-1 text-orange-600" />
-              <p className="text-xs text-muted-foreground">Fokusera på</p>
-              <p className="font-medium text-sm truncate">
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>Fokusera på</p>
+              <p className="font-medium text-sm truncate" style={{ color: theme.colors.textPrimary }}>
                 {worstStation?.name.split(' ')[0] || hyroxSettings.weakestStation || '-'}
               </p>
             </div>
@@ -189,32 +205,40 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
       </Card>
 
       {/* Station Times Grid */}
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Stationstider</CardTitle>
-          <CardDescription>Jämfört med {category === 'pro' ? 'Pro' : 'Open'} benchmarks</CardDescription>
+          <CardTitle className="text-base" style={{ color: theme.colors.textPrimary }}>Stationstider</CardTitle>
+          <CardDescription style={{ color: theme.colors.textMuted }}>Jämfört med {category === 'pro' ? 'Pro' : 'Open'} benchmarks</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {stationPerformance.map((station) => (
               <div
                 key={station.key}
-                className={`p-3 rounded-lg border ${
-                  station.status === 'good'
-                    ? 'border-green-200 bg-green-50/50'
+                className="p-3 rounded-lg border"
+                style={{
+                  borderColor: station.status === 'good'
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.3)' : '#bbf7d0')
                     : station.status === 'average'
-                    ? 'border-yellow-200 bg-yellow-50/50'
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(234, 179, 8, 0.3)' : '#fef08a')
                     : station.status === 'needs_work'
-                    ? 'border-orange-200 bg-orange-50/50'
-                    : 'border-gray-200 bg-gray-50/50'
-                }`}
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(249, 115, 22, 0.3)' : '#fed7aa')
+                    : theme.colors.border,
+                  backgroundColor: station.status === 'good'
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(240, 253, 244, 0.5)')
+                    : station.status === 'average'
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(254, 252, 232, 0.5)')
+                    : station.status === 'needs_work'
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255, 247, 237, 0.5)')
+                    : (theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
+                }}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{station.icon}</span>
-                    <span className="font-medium text-sm">{station.name}</span>
+                    <span className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>{station.name}</span>
                   </div>
-                  <span className="font-bold">
+                  <span className="font-bold" style={{ color: theme.colors.textPrimary }}>
                     {station.time ? formatTime(station.time) : '-'}
                   </span>
                 </div>
@@ -224,7 +248,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
                       value={station.percentage || 0}
                       className="h-2"
                     />
-                    <div className="flex justify-between text-xs text-muted-foreground">
+                    <div className="flex justify-between text-xs" style={{ color: theme.colors.textMuted }}>
                       <span>Benchmark: {formatTime(station.benchmark)}</span>
                       <span className={
                         station.status === 'good' ? 'text-green-600' :
@@ -239,7 +263,7 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
                   </div>
                 )}
                 {!station.time && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <p className="text-xs flex items-center gap-1" style={{ color: theme.colors.textMuted }}>
                     <AlertCircle className="h-3 w-3" />
                     Ingen tid registrerad
                   </p>
@@ -251,27 +275,27 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
       </Card>
 
       {/* Running Fitness */}
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Löpkondition</CardTitle>
+          <CardTitle className="text-base" style={{ color: theme.colors.textPrimary }}>Löpkondition</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-xs text-muted-foreground">5K</p>
-              <p className="font-bold">
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>5K</p>
+              <p className="font-bold" style={{ color: theme.colors.textPrimary }}>
                 {hyroxSettings.fiveKmTime ? formatRunTime(hyroxSettings.fiveKmTime) : '-'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">10K</p>
-              <p className="font-bold">
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>10K</p>
+              <p className="font-bold" style={{ color: theme.colors.textPrimary }}>
                 {hyroxSettings.tenKmTime ? formatRunTime(hyroxSettings.tenKmTime) : '-'}
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">km/vecka</p>
-              <p className="font-bold">
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>km/vecka</p>
+              <p className="font-bold" style={{ color: theme.colors.textPrimary }}>
                 {hyroxSettings.currentWeeklyRunKm || '-'}
               </p>
             </div>

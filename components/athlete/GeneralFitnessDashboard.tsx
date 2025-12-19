@@ -14,6 +14,7 @@ import {
   Scale,
   Clock
 } from 'lucide-react'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface GeneralFitnessSettings {
   primaryGoal: 'weight_loss' | 'general_health' | 'strength' | 'endurance' | 'flexibility' | 'stress_relief'
@@ -108,6 +109,9 @@ function calculateWeightProgress(current: number | null, target: number | null):
 }
 
 export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardProps) {
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+
   const goalConfig = GOAL_CONFIG[settings.primaryGoal]
   const GoalIcon = goalConfig?.icon || Target
   const fitnessLevel = FITNESS_LEVEL_LABELS[settings.fitnessLevel]
@@ -138,13 +142,20 @@ export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardPro
       </div>
 
       {/* Goal Card */}
-      <Card className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
+      <Card
+        className="border-0"
+        style={{
+          background: theme.id === 'FITAPP_DARK'
+            ? 'linear-gradient(to right, rgba(34, 197, 94, 0.15), rgba(59, 130, 246, 0.15))'
+            : 'linear-gradient(to right, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1))',
+        }}
+      >
         <CardContent className="pt-6">
           <div className="flex items-start gap-4">
             <GoalIcon className={`h-10 w-10 ${goalConfig?.color} flex-shrink-0`} />
             <div>
-              <h3 className="font-semibold text-lg">{goalConfig?.label}</h3>
-              <p className="text-muted-foreground">{goalConfig?.description}</p>
+              <h3 className="font-semibold text-lg" style={{ color: theme.colors.textPrimary }}>{goalConfig?.label}</h3>
+              <p style={{ color: theme.colors.textMuted }}>{goalConfig?.description}</p>
               {settings.secondaryGoals.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {settings.secondaryGoals.map((goal) => (
@@ -161,42 +172,42 @@ export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardPro
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-6">
             <div className="text-center">
               <Calendar className="h-8 w-8 mx-auto text-blue-500 mb-2" />
-              <div className="text-2xl font-bold">{settings.weeklyWorkouts}</div>
-              <div className="text-sm text-muted-foreground">pass/vecka</div>
+              <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{settings.weeklyWorkouts}</div>
+              <div className="text-sm" style={{ color: theme.colors.textMuted }}>pass/vecka</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-6">
             <div className="text-center">
               <Clock className="h-8 w-8 mx-auto text-green-500 mb-2" />
-              <div className="text-2xl font-bold">{settings.preferredWorkoutDuration}</div>
-              <div className="text-sm text-muted-foreground">min/pass</div>
+              <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{settings.preferredWorkoutDuration}</div>
+              <div className="text-sm" style={{ color: theme.colors.textMuted }}>min/pass</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-6">
             <div className="text-center">
               <Flame className="h-8 w-8 mx-auto text-orange-500 mb-2" />
-              <div className="text-2xl font-bold">{weeklyMinutes}</div>
-              <div className="text-sm text-muted-foreground">min/vecka</div>
+              <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{weeklyMinutes}</div>
+              <div className="text-sm" style={{ color: theme.colors.textMuted }}>min/vecka</div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-6">
             <div className="text-center">
               <Activity className="h-8 w-8 mx-auto text-purple-500 mb-2" />
-              <div className="text-2xl font-bold">{TIME_LABELS[settings.preferredTimeOfDay]}</div>
-              <div className="text-sm text-muted-foreground">träningstid</div>
+              <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{TIME_LABELS[settings.preferredTimeOfDay]}</div>
+              <div className="text-sm" style={{ color: theme.colors.textMuted }}>träningstid</div>
             </div>
           </CardContent>
         </Card>
@@ -204,9 +215,9 @@ export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardPro
 
       {/* Health Metrics */}
       {(settings.currentWeight || settings.targetWeight || bmi) && (
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Scale className="h-5 w-5 text-blue-500" />
               Hälsomått
             </CardTitle>
@@ -214,42 +225,54 @@ export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardPro
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {settings.currentWeight && (
-                <div className="text-center p-4 bg-muted rounded-lg">
-                  <div className="text-2xl font-bold">{settings.currentWeight}</div>
-                  <div className="text-sm text-muted-foreground">kg nu</div>
+                <div
+                  className="text-center p-4 rounded-lg"
+                  style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+                >
+                  <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{settings.currentWeight}</div>
+                  <div className="text-sm" style={{ color: theme.colors.textMuted }}>kg nu</div>
                 </div>
               )}
 
               {settings.targetWeight && (
-                <div className="text-center p-4 bg-muted rounded-lg">
-                  <div className="text-2xl font-bold">{settings.targetWeight}</div>
-                  <div className="text-sm text-muted-foreground">kg mål</div>
+                <div
+                  className="text-center p-4 rounded-lg"
+                  style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+                >
+                  <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{settings.targetWeight}</div>
+                  <div className="text-sm" style={{ color: theme.colors.textMuted }}>kg mål</div>
                 </div>
               )}
 
               {bmi && (
-                <div className="text-center p-4 bg-muted rounded-lg">
+                <div
+                  className="text-center p-4 rounded-lg"
+                  style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+                >
                   <div className={`text-2xl font-bold ${bmiCategory?.color}`}>{bmi}</div>
-                  <div className="text-sm text-muted-foreground">BMI ({bmiCategory?.label})</div>
+                  <div className="text-sm" style={{ color: theme.colors.textMuted }}>BMI ({bmiCategory?.label})</div>
                 </div>
               )}
 
               {settings.restingHeartRate && (
-                <div className="text-center p-4 bg-muted rounded-lg">
-                  <div className="text-2xl font-bold">{settings.restingHeartRate}</div>
-                  <div className="text-sm text-muted-foreground">vilopuls</div>
+                <div
+                  className="text-center p-4 rounded-lg"
+                  style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+                >
+                  <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{settings.restingHeartRate}</div>
+                  <div className="text-sm" style={{ color: theme.colors.textMuted }}>vilopuls</div>
                 </div>
               )}
             </div>
 
             {settings.currentWeight && settings.targetWeight && settings.currentWeight !== settings.targetWeight && (
               <div className="mt-4 space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm" style={{ color: theme.colors.textSecondary }}>
                   <span>Viktmål framsteg</span>
                   <span>{Math.round(weightProgress)}%</span>
                 </div>
                 <Progress value={weightProgress} className="h-2" />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs" style={{ color: theme.colors.textMuted }}>
                   {settings.currentWeight > settings.targetWeight
                     ? `${settings.currentWeight - settings.targetWeight} kg kvar till målet`
                     : `${settings.targetWeight - settings.currentWeight} kg kvar till målet`}
@@ -262,9 +285,9 @@ export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardPro
 
       {/* Preferred Activities & Tips */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle className="text-lg">Dina aktiviteter</CardTitle>
+            <CardTitle className="text-lg" style={{ color: theme.colors.textPrimary }}>Dina aktiviteter</CardTitle>
           </CardHeader>
           <CardContent>
             {settings.preferredActivities.length > 0 ? (
@@ -276,17 +299,17 @@ export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardPro
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">Inga aktiviteter valda ännu</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga aktiviteter valda ännu</p>
             )}
 
-            <div className="mt-4 pt-4 border-t space-y-2">
+            <div className="mt-4 pt-4 border-t space-y-2" style={{ borderColor: theme.colors.border }}>
               <div className="flex items-center gap-2 text-sm">
-                <span className={settings.hasGymAccess ? 'text-green-500' : 'text-muted-foreground'}>
+                <span style={{ color: settings.hasGymAccess ? '#22c55e' : theme.colors.textMuted }}>
                   {settings.hasGymAccess ? '✓' : '○'} Gymtillgång
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <span className={settings.hasHomeEquipment ? 'text-green-500' : 'text-muted-foreground'}>
+                <span style={{ color: settings.hasHomeEquipment ? '#22c55e' : theme.colors.textMuted }}>
                   {settings.hasHomeEquipment ? '✓' : '○'} Hemmaträningsutrustning
                 </span>
               </div>
@@ -294,15 +317,15 @@ export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardPro
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-5 w-5 text-green-500" />
               Träningstips
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-sm" style={{ color: theme.colors.textSecondary }}>
               {settings.primaryGoal === 'weight_loss' && (
                 <>
                   <li className="flex items-start gap-2">
@@ -353,16 +376,21 @@ export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardPro
       </div>
 
       {/* Weekly Target */}
-      <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+      <Card
+        style={{
+          backgroundColor: theme.id === 'FITAPP_DARK' ? '#172554' : '#eff6ff',
+          borderColor: theme.id === 'FITAPP_DARK' ? '#1e40af' : '#bfdbfe',
+        }}
+      >
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <Target className="h-10 w-10 text-blue-500 flex-shrink-0" />
             <div>
-              <h3 className="font-semibold">Veckans mål</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold" style={{ color: theme.colors.textPrimary }}>Veckans mål</h3>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>
                 {settings.weeklyWorkouts} träningspass à {settings.preferredWorkoutDuration} minuter = {weeklyMinutes} minuter total träning
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
                 {weeklyMinutes >= 150
                   ? '✓ Du uppfyller WHOs rekommendation på 150 min/vecka!'
                   : `${150 - weeklyMinutes} minuter kvar till WHOs rekommendation på 150 min/vecka`}

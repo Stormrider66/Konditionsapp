@@ -53,6 +53,7 @@ import {
   Target,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface WorkoutLog {
   id: string
@@ -83,6 +84,8 @@ interface WorkoutHistoryProps {
 
 export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
   const { toast } = useToast()
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
   // State
   const [workouts, setWorkouts] = useState<WorkoutLog[]>([])
@@ -210,31 +213,31 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
   const renderStats = () => {
     return (
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 mb-1">
               <Activity className="h-4 w-4 text-blue-500" />
-              <span className="text-xs text-gray-600">Workouts</span>
+              <span className="text-xs" style={{ color: theme.colors.textMuted }}>Workouts</span>
             </div>
-            <p className="text-2xl font-bold">{stats.totalWorkouts}</p>
+            <p className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{stats.totalWorkouts}</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 mb-1">
               <Clock className="h-4 w-4 text-green-500" />
-              <span className="text-xs text-gray-600">Total Time</span>
+              <span className="text-xs" style={{ color: theme.colors.textMuted }}>Total Time</span>
             </div>
-            <p className="text-2xl font-bold">{Math.round(stats.totalDuration / 60)}h</p>
+            <p className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{Math.round(stats.totalDuration / 60)}h</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 mb-1">
               <Target className="h-4 w-4 text-orange-500" />
-              <span className="text-xs text-gray-600">Avg RPE</span>
+              <span className="text-xs" style={{ color: theme.colors.textMuted }}>Avg RPE</span>
             </div>
             <p className={`text-2xl font-bold ${getRPEColor(stats.avgRPE)}`}>
               {stats.avgRPE.toFixed(1)}
@@ -242,23 +245,23 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 mb-1">
               <Trophy className="h-4 w-4 text-yellow-500" />
-              <span className="text-xs text-gray-600">PRs</span>
+              <span className="text-xs" style={{ color: theme.colors.textMuted }}>PRs</span>
             </div>
-            <p className="text-2xl font-bold">{stats.personalRecords}</p>
+            <p className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{stats.personalRecords}</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-4 pb-3">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle2 className="h-4 w-4 text-purple-500" />
-              <span className="text-xs text-gray-600">Completion</span>
+              <span className="text-xs" style={{ color: theme.colors.textMuted }}>Completion</span>
             </div>
-            <p className="text-2xl font-bold">{stats.completionRate.toFixed(0)}%</p>
+            <p className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{stats.completionRate.toFixed(0)}%</p>
           </CardContent>
         </Card>
       </div>
@@ -268,7 +271,7 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
   // Render workout card
   const renderWorkoutCard = (workout: WorkoutLog) => {
     return (
-      <Card key={workout.id}>
+      <Card key={workout.id} style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -289,8 +292,8 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
                   </Badge>
                 )}
               </div>
-              <h3 className="font-semibold">{workout.workoutDescription}</h3>
-              <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+              <h3 className="font-semibold" style={{ color: theme.colors.textPrimary }}>{workout.workoutDescription}</h3>
+              <div className="flex items-center gap-4 mt-2 text-sm" style={{ color: theme.colors.textMuted }}>
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
                   <span>{new Date(workout.date).toLocaleDateString('sv-SE')}</span>
@@ -306,7 +309,7 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs text-gray-600">RPE</p>
+              <p className="text-xs" style={{ color: theme.colors.textMuted }}>RPE</p>
               <p className={`text-2xl font-bold ${getRPEColor(workout.overallRPE)}`}>
                 {workout.overallRPE}
               </p>
@@ -317,7 +320,7 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
         <CardContent>
           <Accordion type="single" collapsible>
             <AccordionItem value="details" className="border-none">
-              <AccordionTrigger className="text-sm hover:no-underline">
+              <AccordionTrigger className="text-sm hover:no-underline" style={{ color: theme.colors.textPrimary }}>
                 View Exercise Details
               </AccordionTrigger>
               <AccordionContent>
@@ -325,11 +328,12 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
                   {workout.exercises.map((exercise, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded"
+                      className="flex items-center justify-between p-3 rounded"
+                      style={{ backgroundColor: theme.colors.background }}
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm">{exercise.name}</p>
+                          <p className="font-medium text-sm" style={{ color: theme.colors.textPrimary }}>{exercise.name}</p>
                           {exercise.personalRecord && (
                             <Badge className="text-xs bg-yellow-100 text-yellow-800">
                               <Trophy className="h-3 w-3 mr-1" />
@@ -337,12 +341,12 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
                           {exercise.setsCompleted}×{exercise.repsCompleted} @ {exercise.loadUsed}kg
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-gray-600">RPE</p>
+                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>RPE</p>
                         <p className={`font-semibold ${getRPEColor(exercise.rpe)}`}>
                           {exercise.rpe}
                         </p>
@@ -352,10 +356,25 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
 
                   {workout.notes && (
                     <>
-                      <Separator />
-                      <div className="bg-blue-50 p-3 rounded">
-                        <p className="text-xs font-medium text-blue-900 mb-1">Your Notes:</p>
-                        <p className="text-sm text-gray-700">{workout.notes}</p>
+                      <Separator style={{ backgroundColor: theme.colors.border }} />
+                      <div
+                        className="p-3 rounded"
+                        style={{
+                          backgroundColor: theme.id === 'FITAPP_DARK' ? '#1e3a5f' : '#eff6ff',
+                        }}
+                      >
+                        <p
+                          className="text-xs font-medium mb-1"
+                          style={{ color: theme.id === 'FITAPP_DARK' ? '#93c5fd' : '#1e3a8a' }}
+                        >
+                          Your Notes:
+                        </p>
+                        <p
+                          className="text-sm"
+                          style={{ color: theme.id === 'FITAPP_DARK' ? '#bfdbfe' : '#374151' }}
+                        >
+                          {workout.notes}
+                        </p>
                       </div>
                     </>
                   )}
@@ -373,8 +392,8 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Workout History</h2>
-          <p className="text-sm text-gray-600">Track your progress and achievements</p>
+          <h2 className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>Workout History</h2>
+          <p className="text-sm" style={{ color: theme.colors.textMuted }}>Track your progress and achievements</p>
         </div>
       </div>
 
@@ -382,11 +401,11 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
       {renderStats()}
 
       {/* Filters */}
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardContent className="pt-4">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
-              <Label className="text-xs mb-2 block">Workout Type</Label>
+              <Label className="text-xs mb-2 block" style={{ color: theme.colors.textSecondary }}>Workout Type</Label>
               <Select value={filterType} onValueChange={setFilterType}>
                 <SelectTrigger>
                   <SelectValue />
@@ -401,7 +420,7 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
             </div>
 
             <div className="flex-1">
-              <Label className="text-xs mb-2 block">Time Range</Label>
+              <Label className="text-xs mb-2 block" style={{ color: theme.colors.textSecondary }}>Time Range</Label>
               <Select
                 value={timeRange}
                 onValueChange={(value: any) => setTimeRange(value)}
@@ -429,13 +448,13 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
       {/* Workout List */}
       <div className="space-y-3">
         {isLoading ? (
-          <div className="text-center py-12 text-gray-500">Loading workout history...</div>
+          <div className="text-center py-12" style={{ color: theme.colors.textMuted }}>Loading workout history...</div>
         ) : workouts.length === 0 ? (
-          <Card>
+          <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
             <CardContent className="py-12 text-center">
-              <Activity className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 mb-2">No workouts found</p>
-              <p className="text-sm text-gray-400">
+              <Activity className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
+              <p className="mb-2" style={{ color: theme.colors.textSecondary }}>No workouts found</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>
                 Complete your first workout to see your history here
               </p>
             </CardContent>

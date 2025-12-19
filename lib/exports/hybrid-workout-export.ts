@@ -3,11 +3,15 @@
  *
  * Generates PDF and Excel exports for hybrid workouts (CrossFit, HYROX, etc.)
  * Supports warmup, strength, metcon, and cooldown sections.
+ * Supports theming for both FITAPP Dark and Minimalist White themes.
  */
 
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import { jsPDF } from 'jspdf'
 import type { HybridSectionData, HybridSectionMovement } from '@/types'
+import type { ThemeId } from '@/lib/themes/types'
+import { getTheme } from '@/lib/themes/definitions'
+import { getPdfColors } from '@/lib/themes/theme-utils'
 
 export interface HybridMovementExport {
   exerciseName: string
@@ -35,6 +39,7 @@ export interface HybridWorkoutExportData {
   athleteName?: string
   coachName?: string
   date?: Date
+  themeId?: ThemeId // Theme for PDF styling
 }
 
 const formatLabels: Record<string, string> = {
@@ -70,98 +75,217 @@ function formatMovementPrescription(m: HybridMovementExport | HybridSectionMovem
   return parts.join(' ')
 }
 
-/**
- * Generate Excel workbook for a hybrid workout
- */
-export function generateHybridWorkoutExcel(data: HybridWorkoutExportData): Blob {
-  const workbook = XLSX.utils.book_new()
+// Default color definitions for styling (fallback for Excel)
+const defaultColors = {
+  headerDark: '2D3436',      // Dark gray/black for headers
+  warmupGreen: '27AE60',     // Green for warmup/cooldown
+  metconRed: 'E74C3C',       // Red for metcon
+  accentOrange: 'E67E22',    // Orange for name and rep scheme
+  accentGreen: '2ECC71',     // Green for Rx/scaling
+  white: 'FFFFFF',
+  black: '000000',
+}
 
-  // Info Sheet
-  const infoData: (string | number)[][] = [
-    ['HYBRID PASS'],
-    [''],
-    ['Namn', data.name],
-    ['Format', formatLabels[data.format] || data.format],
-    ['Skalning', scalingLabels[data.scalingLevel] || data.scalingLevel],
-    ['Datum', data.date ? data.date.toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE')],
-    [''],
+// Get theme-aware colors for exports
+function getExportColors(themeId?: ThemeId) {
+  const theme = getTheme(themeId)
+  const pdfColors = getPdfColors(theme)
+  return {
+    headerDark: pdfColors.accent,
+    warmupGreen: pdfColors.warmup,
+    strengthDark: pdfColors.strength,
+    metconRed: pdfColors.metcon,
+    cooldownBlue: pdfColors.cooldown,
+    accentOrange: pdfColors.warning,
+    accentGreen: pdfColors.success,
+    textPrimary: pdfColors.textPrimary,
+    textSecondary: pdfColors.textSecondary,
+    background: pdfColors.background,
+    white: 'FFFFFF',
+    black: '000000',
+  }
+}
+
+/**
+ * Generate styled Excel workbook for a hybrid workout
+ */
+export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData): Promise<Blob> {
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'Star by Thomson'
+  workbook.created = new Date()
+
+  // Get theme colors
+  const colors = getExportColors(data.themeId)
+
+  // ============ INFO SHEET ============
+  const infoSheet = workbook.addWorksheet('Info')
+  infoSheet.columns = [
+    { width: 18 },
+    { width: 35 },
+    { width: 15 },
   ]
 
+  // Row 1: HYBRID PASS header
+  infoSheet.mergeCells('A1:C1')
+  const headerCell = infoSheet.getCell('A1')
+  headerCell.value = 'HYBRID PASS'
+  headerCell.font = { bold: true, size: 16, color: { argb: colors.white } }
+  headerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.headerDark } }
+  headerCell.alignment = { vertical: 'middle', horizontal: 'left' }
+  infoSheet.getRow(1).height = 28
+
+  // Row 2: Empty
+  infoSheet.getRow(2).height = 10
+
+  // Row 3: Namn
+  infoSheet.getCell('A3').value = 'Namn'
+  infoSheet.getCell('A3').font = { bold: true }
+  infoSheet.getCell('B3').value = data.name
+  infoSheet.getCell('B3').font = { bold: true, color: { argb: colors.accentOrange } }
+
+  // Row 4: Format
+  infoSheet.getCell('A4').value = 'Format'
+  infoSheet.getCell('B4').value = formatLabels[data.format] || data.format
+
+  // Row 5: Skalning
+  infoSheet.getCell('A5').value = 'Skalning'
+  infoSheet.getCell('B5').value = scalingLabels[data.scalingLevel] || data.scalingLevel
+  infoSheet.getCell('B5').font = { bold: true, color: { argb: colors.accentGreen } }
+
+  // Row 6: Datum
+  infoSheet.getCell('A6').value = 'Datum'
+  infoSheet.getCell('B6').value = data.date ? data.date.toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE')
+
+  // Row 7: Empty
+  let currentRow = 7
+
+  // Row 8: Beskrivning (if exists)
   if (data.description) {
-    infoData.push(['Beskrivning', data.description])
-    infoData.push([''])
+    currentRow++
+    infoSheet.getCell(`A${currentRow}`).value = 'Beskrivning'
+    infoSheet.getCell(`B${currentRow}`).value = data.description
+    currentRow++
   }
 
-  if (data.totalMinutes) infoData.push(['Tid', `${data.totalMinutes} min`])
-  if (data.totalRounds) infoData.push(['Rundor', data.totalRounds])
-  if (data.timeCap) infoData.push(['Time Cap', `${Math.floor(data.timeCap / 60)} min`])
-  if (data.repScheme) infoData.push(['Rep Scheme', data.repScheme])
+  currentRow++
 
-  infoData.push([''])
-  if (data.athleteName) infoData.push(['Atlet', data.athleteName])
-  if (data.coachName) infoData.push(['Coach', data.coachName])
+  // Rundor
+  if (data.totalRounds) {
+    infoSheet.getCell(`A${currentRow}`).value = 'Rundor'
+    infoSheet.getCell(`B${currentRow}`).value = data.totalRounds
+    infoSheet.getCell(`B${currentRow}`).font = { bold: true, color: { argb: colors.accentOrange } }
+    currentRow++
+  }
 
-  const infoSheet = XLSX.utils.aoa_to_sheet(infoData)
-  infoSheet['!cols'] = [{ wch: 15 }, { wch: 40 }]
-  XLSX.utils.book_append_sheet(workbook, infoSheet, 'Info')
+  // Rep Scheme
+  if (data.repScheme) {
+    infoSheet.getCell(`A${currentRow}`).value = 'Rep Scheme'
+    infoSheet.getCell(`B${currentRow}`).value = data.repScheme
+    infoSheet.getCell(`B${currentRow}`).font = { bold: true, color: { argb: colors.accentOrange } }
+    currentRow++
+  }
 
-  // Sections Sheet
-  const sectionsData: (string | number)[][] = []
+  // Time Cap
+  if (data.timeCap) {
+    infoSheet.getCell(`A${currentRow}`).value = 'Time Cap'
+    infoSheet.getCell(`B${currentRow}`).value = `${Math.floor(data.timeCap / 60)} min`
+    currentRow++
+  }
+
+  // Total Minutes
+  if (data.totalMinutes) {
+    infoSheet.getCell(`A${currentRow}`).value = 'Tid'
+    infoSheet.getCell(`B${currentRow}`).value = `${data.totalMinutes} min`
+    currentRow++
+  }
+
+  currentRow++
+
+  // Separator bar
+  infoSheet.mergeCells(`A${currentRow}:C${currentRow}`)
+  const separatorCell = infoSheet.getCell(`A${currentRow}`)
+  separatorCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.headerDark } }
+  infoSheet.getRow(currentRow).height = 6
+
+  // ============ PASS SHEET ============
+  const passSheet = workbook.addWorksheet('Pass')
+  passSheet.columns = [
+    { width: 30 },
+    { width: 25 },
+    { width: 15 },
+  ]
+
+  let passRow = 1
+
+  // Helper function to add a section header
+  const addSectionHeader = (title: string, bgColor: string) => {
+    passSheet.mergeCells(`A${passRow}:C${passRow}`)
+    const cell = passSheet.getCell(`A${passRow}`)
+    cell.value = title
+    cell.font = { bold: true, size: 12, color: { argb: colors.white } }
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } }
+    cell.alignment = { vertical: 'middle', horizontal: 'left' }
+    passSheet.getRow(passRow).height = 22
+    passRow++
+  }
+
+  // Helper function to add movement row
+  const addMovementRow = (index: number, name: string, prescription: string) => {
+    passSheet.getCell(`A${passRow}`).value = `${index}. ${name}`
+    passSheet.getCell(`B${passRow}`).value = prescription
+    passRow++
+  }
 
   // Warmup Section
   if (data.warmupData && (data.warmupData.notes || data.warmupData.movements?.length)) {
-    sectionsData.push(['UPPVÄRMNING'])
-    if (data.warmupData.notes) {
-      sectionsData.push([data.warmupData.notes])
-    }
+    addSectionHeader('UPPVÄRMNING', colors.warmupGreen)
     data.warmupData.movements?.forEach((m, i) => {
-      sectionsData.push([`${i + 1}. ${m.exerciseName}`, formatMovementPrescription(m)])
+      addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m))
     })
-    sectionsData.push([''])
+    passRow++ // Empty row
   }
 
   // Strength Section
   if (data.strengthData && (data.strengthData.notes || data.strengthData.movements?.length)) {
-    sectionsData.push(['STYRKA'])
-    if (data.strengthData.notes) {
-      sectionsData.push([data.strengthData.notes])
-    }
+    addSectionHeader('STYRKA', colors.headerDark)
     data.strengthData.movements?.forEach((m, i) => {
-      sectionsData.push([`${i + 1}. ${m.exerciseName}`, formatMovementPrescription(m)])
+      addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m))
     })
-    sectionsData.push([''])
+    passRow++ // Empty row
   }
 
   // Metcon Section
-  sectionsData.push([`METCON - ${formatLabels[data.format] || data.format}`])
-  if (data.totalMinutes) sectionsData.push([`Tid: ${data.totalMinutes} min`])
-  if (data.totalRounds) sectionsData.push([`Rundor: ${data.totalRounds}`])
-  if (data.timeCap) sectionsData.push([`Time Cap: ${Math.floor(data.timeCap / 60)} min`])
-  if (data.repScheme) sectionsData.push([`Rep Scheme: ${data.repScheme}`])
-  sectionsData.push([''])
+  addSectionHeader(`METCON - ${formatLabels[data.format] || data.format}`, colors.metconRed)
 
+  // Metcon info rows
+  if (data.totalRounds) {
+    passSheet.getCell(`A${passRow}`).value = `Rundor: ${data.totalRounds}`
+    passSheet.getCell(`A${passRow}`).font = { color: { argb: colors.accentGreen } }
+    passRow++
+  }
+  if (data.repScheme) {
+    passSheet.getCell(`A${passRow}`).value = `Rep Scheme: ${data.repScheme}`
+    passSheet.getCell(`A${passRow}`).font = { color: { argb: colors.accentOrange } }
+    passRow++
+  }
+  passRow++ // Empty row
+
+  // Metcon movements
   data.movements.forEach((m, i) => {
-    sectionsData.push([`${i + 1}. ${m.exerciseName}`, formatMovementPrescription(m)])
+    addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m))
   })
-  sectionsData.push([''])
+  passRow++ // Empty row
 
   // Cooldown Section
   if (data.cooldownData && (data.cooldownData.notes || data.cooldownData.movements?.length)) {
-    sectionsData.push(['NEDVARVNING'])
-    if (data.cooldownData.notes) {
-      sectionsData.push([data.cooldownData.notes])
-    }
+    addSectionHeader('NEDVARVNING', colors.warmupGreen)
     data.cooldownData.movements?.forEach((m, i) => {
-      sectionsData.push([`${i + 1}. ${m.exerciseName}`, formatMovementPrescription(m)])
+      addMovementRow(i + 1, m.exerciseName, formatMovementPrescription(m))
     })
   }
 
-  const sectionsSheet = XLSX.utils.aoa_to_sheet(sectionsData)
-  sectionsSheet['!cols'] = [{ wch: 35 }, { wch: 35 }]
-  XLSX.utils.book_append_sheet(workbook, sectionsSheet, 'Pass')
-
   // Generate buffer
-  const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+  const buffer = await workbook.xlsx.writeBuffer()
   return new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   })
@@ -177,20 +301,37 @@ export function generateHybridWorkoutPDF(data: HybridWorkoutExportData): Blob {
     format: 'a4',
   })
 
+  // Get theme colors
+  const colors = getExportColors(data.themeId)
+
+  // Helper to parse hex to RGB
+  const hexToRgb = (hex: string) => ({
+    r: parseInt(hex.substring(0, 2), 16),
+    g: parseInt(hex.substring(2, 4), 16),
+    b: parseInt(hex.substring(4, 6), 16),
+  })
+
   const pageWidth = 210
   const margin = 15
   const contentWidth = pageWidth - margin * 2
   let y = 20
 
+  // Set text color based on theme
+  const primaryColor = hexToRgb(colors.textPrimary)
+  const secondaryColor = hexToRgb(colors.textSecondary)
+  const accentColor = hexToRgb(colors.headerDark)
+
   // Header
   pdf.setFontSize(22)
   pdf.setFont('helvetica', 'bold')
+  pdf.setTextColor(accentColor.r, accentColor.g, accentColor.b)
   pdf.text(data.name.toUpperCase(), margin, y)
   y += 10
 
   // Format and scaling badges
   pdf.setFontSize(12)
   pdf.setFont('helvetica', 'normal')
+  pdf.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b)
   const formatText = formatLabels[data.format] || data.format
   const scalingText = scalingLabels[data.scalingLevel] || data.scalingLevel
   pdf.text(`${formatText} | ${scalingText}`, margin, y)
@@ -198,9 +339,9 @@ export function generateHybridWorkoutPDF(data: HybridWorkoutExportData): Blob {
 
   // Date
   pdf.setFontSize(10)
-  pdf.setTextColor(100, 100, 100)
+  pdf.setTextColor(secondaryColor.r, secondaryColor.g, secondaryColor.b)
   pdf.text(data.date ? data.date.toLocaleDateString('sv-SE') : new Date().toLocaleDateString('sv-SE'), margin, y)
-  pdf.setTextColor(0, 0, 0)
+  pdf.setTextColor(primaryColor.r, primaryColor.g, primaryColor.b)
   y += 8
 
   // Description

@@ -627,6 +627,10 @@ model Exercise {
   foundationMovement  String?              // Alternative for Foundations level
   standardAbbreviation String?             // e.g., "C&J" for Clean & Jerk, "MU" for Muscle-Up
 
+  // Icon fields for themed workout display
+  iconUrl             String?              // URL to exercise-specific icon
+  iconCategory        String?              // Category for fallback icon: "strength", "cardio", "core", "plyometric", "olympic", "gymnastics"
+
   coach                User?                 @relation(fields: [coachId], references: [id], onDelete: SetNull)
   segments             WorkoutSegment[]
   progressionTracking  ProgressionTracking[]
@@ -1700,6 +1704,9 @@ model SportProfile {
   currentGoal         String? // "Marathon PR", "Finish HYROX", "Lose weight", etc.
   targetDate          DateTime?
   targetMetric        Json?   // { type: 'TIME' | 'DISTANCE' | 'WEIGHT', value, unit }
+
+  // Theme preferences for workout display
+  themePreferences    Json?   // { appTheme: 'FITAPP_DARK' | 'MINIMALIST_WHITE', pdfTheme: 'FITAPP_DARK' | 'MINIMALIST_WHITE' }
 
   // Experience levels per sport
   runningExperience   String? // "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "ELITE"

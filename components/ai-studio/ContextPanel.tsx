@@ -137,9 +137,15 @@ export function ContextPanel({
   onDocumentsChange,
   onWebSearchChange,
 }: ContextPanelProps) {
+  const [mounted, setMounted] = useState(false)
   const [athleteOpen, setAthleteOpen] = useState(true)
   const [documentsOpen, setDocumentsOpen] = useState(true)
   const [searchOpen, setSearchOpen] = useState(true)
+
+  // Prevent hydration mismatch with Radix UI IDs
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Context summary state
   const [contextSummary, setContextSummary] = useState<ContextSummary | null>(null)
@@ -295,6 +301,24 @@ export function ContextPanel({
       GENERAL_FITNESS: 'Allmän träning',
     }
     return sportLabels[sport] || sport
+  }
+
+  // Show skeleton while mounting to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <ScrollArea className="h-full">
+        <div className="p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-lg">Kontext</h2>
+          </div>
+          <div className="animate-pulse space-y-4">
+            <div className="h-24 bg-muted rounded-lg" />
+            <div className="h-32 bg-muted rounded-lg" />
+            <div className="h-16 bg-muted rounded-lg" />
+          </div>
+        </div>
+      </ScrollArea>
+    )
   }
 
   return (

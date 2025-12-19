@@ -9,23 +9,35 @@ import { Target } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { ActiveProgramSummary } from '@/types/prisma-types'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME, type WorkoutTheme } from '@/lib/themes'
 
 interface ActiveProgramsProps {
   programs: ActiveProgramSummary[]
 }
 
 export function ActivePrograms({ programs }: ActiveProgramsProps) {
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+
   if (programs.length === 0) {
     return (
-      <Card>
+      <Card
+        style={{
+          backgroundColor: theme.colors.backgroundCard,
+          borderColor: theme.colors.border,
+        }}
+      >
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle
+            className="flex items-center gap-2"
+            style={{ color: theme.colors.textPrimary }}
+          >
             <Target className="h-5 w-5" />
             Aktiva program
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-8">
+          <p className="text-center py-8" style={{ color: theme.colors.textMuted }}>
             Inga aktiva träningsprogram
           </p>
         </CardContent>
@@ -34,33 +46,52 @@ export function ActivePrograms({ programs }: ActiveProgramsProps) {
   }
 
   return (
-    <Card>
+    <Card
+      style={{
+        backgroundColor: theme.colors.backgroundCard,
+        borderColor: theme.colors.border,
+      }}
+    >
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle
+          className="flex items-center gap-2"
+          style={{ color: theme.colors.textPrimary }}
+        >
           <Target className="h-5 w-5" />
           Aktiva program
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {programs.map((program) => (
-          <ProgramCard key={program.id} program={program} />
+          <ProgramCard key={program.id} program={program} theme={theme} />
         ))}
       </CardContent>
     </Card>
   )
 }
 
-function ProgramCard({ program }: { program: ActiveProgramSummary }) {
+function ProgramCard({ program, theme }: { program: ActiveProgramSummary; theme: WorkoutTheme }) {
   const currentWeek = getCurrentWeek(program)
   const totalWeeks = program.weeks?.length || 0
   const progressPercent = totalWeeks > 0 ? Math.round((currentWeek / totalWeeks) * 100) : 0
   const currentPhase = getCurrentPhase(program)
 
   return (
-    <div className="border rounded-lg p-4 space-y-3">
+    <div
+      className="border rounded-lg p-4 space-y-3"
+      style={{
+        backgroundColor: theme.colors.background,
+        borderColor: theme.colors.border,
+      }}
+    >
       <div>
-        <h4 className="font-semibold mb-1">{program.name}</h4>
-        <p className="text-sm text-muted-foreground">
+        <h4
+          className="font-semibold mb-1"
+          style={{ color: theme.colors.textPrimary }}
+        >
+          {program.name}
+        </h4>
+        <p className="text-sm" style={{ color: theme.colors.textMuted }}>
           {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
           {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
         </p>
@@ -70,16 +101,22 @@ function ProgramCard({ program }: { program: ActiveProgramSummary }) {
         <Badge variant="outline" className={getPhaseBadgeClass(currentPhase)}>
           {formatPhase(currentPhase)}
         </Badge>
-        <span className="text-sm text-muted-foreground">
+        <span className="text-sm" style={{ color: theme.colors.textMuted }}>
           Vecka {currentWeek} av {totalWeeks}
         </span>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+      <div
+        className="w-full rounded-full h-2 overflow-hidden"
+        style={{ backgroundColor: theme.colors.border }}
+      >
         <div
-          className="bg-primary h-full transition-all"
-          style={{ width: `${progressPercent}%` }}
+          className="h-full transition-all"
+          style={{
+            width: `${progressPercent}%`,
+            backgroundColor: theme.colors.accent,
+          }}
         />
       </div>
 

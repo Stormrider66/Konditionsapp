@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { HYROXAthleteView } from './HYROXAthleteView'
 import { CyclingAthleteView } from './CyclingAthleteView'
 import { GeneralFitnessAthleteView } from './GeneralFitnessAthleteView'
@@ -42,15 +43,18 @@ export function SportSpecificAthleteView({
   clientName,
   sportProfile,
 }: SportSpecificAthleteViewProps) {
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   if (!sportProfile) {
     return (
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader>
-          <CardTitle>Sportprofil</CardTitle>
-          <CardDescription>Atletens träningsinriktning</CardDescription>
+          <CardTitle style={{ color: theme.colors.textPrimary }}>Sportprofil</CardTitle>
+          <CardDescription style={{ color: theme.colors.textMuted }}>Atletens träningsinriktning</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
+          <p style={{ color: theme.colors.textMuted }}>
             Denna atlet har inte slutfört sin sportprofil ännu.
           </p>
         </CardContent>
@@ -114,18 +118,18 @@ export function SportSpecificAthleteView({
       case 'RUNNING':
         // Running athletes use the default test/zone view
         return (
-          <Card>
+          <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{sportDisplay?.icon}</span>
                 <div>
-                  <CardTitle>{sportDisplay?.label}</CardTitle>
-                  <CardDescription>Löparens testdata visas nedan</CardDescription>
+                  <CardTitle style={{ color: theme.colors.textPrimary }}>{sportDisplay?.label}</CardTitle>
+                  <CardDescription style={{ color: theme.colors.textMuted }}>Löparens testdata visas nedan</CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>
                 Se testhistorik och träningszoner nedan för fullständig löparanalys.
               </p>
             </CardContent>
@@ -133,16 +137,16 @@ export function SportSpecificAthleteView({
         )
       default:
         return (
-          <Card>
+          <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
             <CardHeader>
-              <CardTitle>Sportprofil</CardTitle>
+              <CardTitle style={{ color: theme.colors.textPrimary }}>Sportprofil</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-2xl">{sportDisplay?.icon}</span>
-                <span className="font-medium">{sportDisplay?.label}</span>
+                <span className="font-medium" style={{ color: theme.colors.textPrimary }}>{sportDisplay?.label}</span>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>
                 Detaljerad vy för denna sport kommer snart.
               </p>
             </CardContent>

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Timer, Gauge, TrendingUp, Clock, Target, Activity, Snowflake, Mountain } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface SkiingSettings {
   technique: string
@@ -148,15 +149,21 @@ export function SkiingDashboard({
   experience,
   clientName,
 }: SkiingDashboardProps) {
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+
   if (!skiingSettings) {
     return (
-      <Card className="border-dashed border-2 border-muted">
+      <Card
+        className="border-dashed border-2"
+        style={{ borderColor: theme.colors.border, backgroundColor: theme.colors.backgroundCard }}
+      >
         <CardContent className="py-8 text-center">
-          <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">
+          <Activity className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
+          <p style={{ color: theme.colors.textMuted }}>
             Slutför din skidprofil för att se dina mätvärden.
           </p>
-          <a href="/athlete/onboarding" className="text-primary underline mt-2 inline-block">
+          <a href="/athlete/onboarding" className="underline mt-2 inline-block" style={{ color: theme.colors.accent }}>
             Gå till onboarding
           </a>
         </CardContent>
@@ -203,18 +210,18 @@ export function SkiingDashboard({
       {/* Primary Metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Threshold Pace Card */}
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden" style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-blue-500/20 to-transparent rounded-bl-full" />
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground font-medium">Tröskeltempo</p>
-                <p className="text-3xl font-bold mt-1">
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Tröskeltempo</p>
+                <p className="text-3xl font-bold mt-1" style={{ color: theme.colors.textPrimary }}>
                   {currentThresholdPace ? formatPace(currentThresholdPace) : '—'}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">min/km</p>
+                <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>min/km</p>
                 {testDate && (
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
                     Testad {format(testDate, 'd MMM yyyy', { locale: sv })}
                   </p>
                 )}
@@ -225,16 +232,16 @@ export function SkiingDashboard({
         </Card>
 
         {/* Technique Card */}
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden" style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-cyan-500/20 to-transparent rounded-bl-full" />
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground font-medium">Teknik</p>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Teknik</p>
                 <p className="text-2xl font-bold mt-1">
                   {TECHNIQUE_LABELS[technique]?.icon || '⛷️'}
                 </p>
-                <p className="text-sm font-medium mt-1">
+                <p className="text-sm font-medium mt-1" style={{ color: theme.colors.textPrimary }}>
                   {TECHNIQUE_LABELS[technique]?.label || technique || '—'}
                 </p>
               </div>
@@ -244,16 +251,16 @@ export function SkiingDashboard({
         </Card>
 
         {/* Weekly Training */}
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden" style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-green-500/20 to-transparent rounded-bl-full" />
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground font-medium">Veckoträning</p>
-                <p className="text-3xl font-bold mt-1">
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Veckoträning</p>
+                <p className="text-3xl font-bold mt-1" style={{ color: theme.colors.textPrimary }}>
                   {weeklyHours}h
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
                   {hasRollerSki && hasOnSnow ? 'Snö + Rullskidor' : hasOnSnow ? 'Snöträning' : hasRollerSki ? 'Rullskidor' : 'Blandad träning'}
                 </p>
               </div>
@@ -263,16 +270,16 @@ export function SkiingDashboard({
         </Card>
 
         {/* Snow Access */}
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden" style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-purple-500/20 to-transparent rounded-bl-full" />
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground font-medium">Snötillgång</p>
-                <p className="text-3xl font-bold mt-1">
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Snötillgång</p>
+                <p className="text-3xl font-bold mt-1" style={{ color: theme.colors.textPrimary }}>
                   {onSnowAccessMonths} mån
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs mt-1" style={{ color: theme.colors.textMuted }}>
                   {isSnowSeason ? '❄️ Säsong nu' : '☀️ Utanför säsong'}
                 </p>
               </div>
@@ -284,12 +291,12 @@ export function SkiingDashboard({
 
       {/* Discipline & Terrain */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground font-medium">Primär disciplin</p>
-                <p className="text-lg font-semibold mt-1">
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Primär disciplin</p>
+                <p className="text-lg font-semibold mt-1" style={{ color: theme.colors.textPrimary }}>
                   {DISCIPLINE_LABELS[primaryDiscipline] || primaryDiscipline || '—'}
                 </p>
               </div>
@@ -297,12 +304,12 @@ export function SkiingDashboard({
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground font-medium">Terrängpreferens</p>
-                <p className="text-lg font-semibold mt-1">
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Terrängpreferens</p>
+                <p className="text-lg font-semibold mt-1" style={{ color: theme.colors.textPrimary }}>
                   {TERRAIN_LABELS[terrainPreference] || terrainPreference || '—'}
                 </p>
               </div>
@@ -314,13 +321,13 @@ export function SkiingDashboard({
 
       {/* Pace Zones */}
       {paceZones && (
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-5 w-5" />
               Dina tempoznoner
             </CardTitle>
-            <CardDescription>
+            <CardDescription style={{ color: theme.colors.textMuted }}>
               Baserat på ditt tröskeltempo på {formatPace(currentThresholdPace!)} min/km
             </CardDescription>
           </CardHeader>
@@ -340,23 +347,23 @@ export function SkiingDashboard({
                 return (
                   <div key={zone.zone} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">
+                      <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
                         Z{zone.zone} - {zone.name}
                       </span>
-                      <span className="text-muted-foreground font-mono">
+                      <span className="font-mono" style={{ color: theme.colors.textMuted }}>
                         {formatPace(zone.paceMax)}–{formatPace(zone.paceMin)} min/km
                       </span>
                     </div>
-                    <div className="h-6 w-full bg-muted rounded-full overflow-hidden relative">
+                    <div className="h-6 w-full rounded-full overflow-hidden relative" style={{ backgroundColor: theme.colors.border }}>
                       <div
                         className={`h-full ${zoneColors[zone.zone]} transition-all`}
                         style={{ width: `${widthPercent}%` }}
                       />
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-medium">
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-medium" style={{ color: theme.colors.textPrimary }}>
                         {zone.percentMin}–{zone.percentMax}% av tröskel
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">{zone.description}</p>
+                    <p className="text-xs" style={{ color: theme.colors.textMuted }}>{zone.description}</p>
                   </div>
                 )
               })}
@@ -367,9 +374,9 @@ export function SkiingDashboard({
 
       {/* Evaluation & Status */}
       {evaluation && (
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle>Din nivå</CardTitle>
+            <CardTitle style={{ color: theme.colors.textPrimary }}>Din nivå</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4 flex-wrap">
@@ -393,15 +400,26 @@ export function SkiingDashboard({
 
       {/* Threshold Test Reminder */}
       {!currentThresholdPace && (
-        <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+        <Card
+          style={{
+            backgroundColor: theme.id === 'FITAPP_DARK' ? '#422006' : '#fffbeb',
+            borderColor: theme.id === 'FITAPP_DARK' ? '#92400e' : '#fde68a',
+          }}
+        >
           <CardContent className="py-6">
             <div className="flex items-start gap-4">
               <Timer className="h-6 w-6 text-amber-500 mt-0.5" />
               <div>
-                <p className="font-medium text-amber-900 dark:text-amber-100">
+                <p
+                  className="font-medium"
+                  style={{ color: theme.id === 'FITAPP_DARK' ? '#fde68a' : '#78350f' }}
+                >
                   Inget tröskeltempo registrerat
                 </p>
-                <p className="text-sm text-amber-700 dark:text-amber-200 mt-1">
+                <p
+                  className="text-sm mt-1"
+                  style={{ color: theme.id === 'FITAPP_DARK' ? '#fcd34d' : '#92400e' }}
+                >
                   Genomför ett tröskeltest för att få personliga tempoznoner och bättre
                   anpassade träningsprogram. Du kan använda ett 30-minuters maxtest på
                   rullskidor eller skidor.
@@ -413,7 +431,16 @@ export function SkiingDashboard({
       )}
 
       {/* Season Training Tips */}
-      <Card className={isSnowSeason ? 'border-blue-200 bg-blue-50 dark:bg-blue-950/20' : 'border-orange-200 bg-orange-50 dark:bg-orange-950/20'}>
+      <Card
+        style={{
+          backgroundColor: isSnowSeason
+            ? (theme.id === 'FITAPP_DARK' ? '#172554' : '#eff6ff')
+            : (theme.id === 'FITAPP_DARK' ? '#431407' : '#fff7ed'),
+          borderColor: isSnowSeason
+            ? (theme.id === 'FITAPP_DARK' ? '#1e40af' : '#bfdbfe')
+            : (theme.id === 'FITAPP_DARK' ? '#9a3412' : '#fdba74'),
+        }}
+      >
         <CardContent className="py-6">
           <div className="flex items-start gap-4">
             {isSnowSeason ? (
@@ -422,10 +449,24 @@ export function SkiingDashboard({
               <Activity className="h-6 w-6 text-orange-500 mt-0.5" />
             )}
             <div>
-              <p className={`font-medium ${isSnowSeason ? 'text-blue-900 dark:text-blue-100' : 'text-orange-900 dark:text-orange-100'}`}>
+              <p
+                className="font-medium"
+                style={{
+                  color: isSnowSeason
+                    ? (theme.id === 'FITAPP_DARK' ? '#93c5fd' : '#1e3a8a')
+                    : (theme.id === 'FITAPP_DARK' ? '#fed7aa' : '#9a3412')
+                }}
+              >
                 {isSnowSeason ? 'Skidsäsong' : 'Förberedelsesäsong'}
               </p>
-              <p className={`text-sm mt-1 ${isSnowSeason ? 'text-blue-700 dark:text-blue-200' : 'text-orange-700 dark:text-orange-200'}`}>
+              <p
+                className="text-sm mt-1"
+                style={{
+                  color: isSnowSeason
+                    ? (theme.id === 'FITAPP_DARK' ? '#bfdbfe' : '#1e40af')
+                    : (theme.id === 'FITAPP_DARK' ? '#fdba74' : '#c2410c')
+                }}
+              >
                 {isSnowSeason
                   ? 'Fokusera på teknik och tävlingsförberedelser. Prioritera snöträning när möjligt.'
                   : 'Bygg aerob bas med rullskidor, löpning och styrketräning. Perfekt tid för grundutbyggnad.'}

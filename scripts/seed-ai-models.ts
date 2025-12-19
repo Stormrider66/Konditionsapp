@@ -52,17 +52,17 @@ const AI_MODELS = [
   },
   // Google Models (December 2025)
   // Source: https://ai.google.dev/gemini-api/docs/models
-  // Model IDs: gemini-2.5-flash, gemini-2.5-pro, gemini-3-pro-preview
+  // Model IDs: gemini-3-flash-preview, gemini-2.5-pro, gemini-3-pro-preview
   {
     provider: 'GOOGLE' as const,
-    modelId: 'gemini-2.5-flash',
-    displayName: 'Gemini 2.5 Flash',
-    description: 'Snabb och kostnadseffektiv, stabil modell (rekommenderad)',
+    modelId: 'gemini-3-flash-preview',
+    displayName: 'Gemini 3 Flash',
+    description: 'Snabb och kostnadseffektiv, senaste flash-modellen (rekommenderad)',
     capabilities: ['text', 'code', 'vision', 'audio', 'video'],
     maxTokens: 1000000,
-    maxOutputTokens: 8192,
-    inputCostPer1k: 0.00015,
-    outputCostPer1k: 0.0006,
+    maxOutputTokens: 64000,
+    inputCostPer1k: 0.0005,
+    outputCostPer1k: 0.003,
     isActive: true,
     isDefault: true, // Default for Google
   },

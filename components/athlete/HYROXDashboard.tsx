@@ -13,6 +13,7 @@ import {
   Activity
 } from 'lucide-react'
 import { HyroxRaceAnalysisCard } from './HyroxRaceAnalysisCard'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface HYROXSettings {
   raceCategory: 'open' | 'pro' | 'doubles' | 'relay'
@@ -184,6 +185,9 @@ function getStationProgress(time: number | null, targetTime: number): number {
 }
 
 export function HYROXDashboard({ settings }: HYROXDashboardProps) {
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+
   const estimatedTotal = estimateTotalTime(settings)
   const targets = TARGET_TIMES[settings.experienceLevel]
 
@@ -207,11 +211,11 @@ export function HYROXDashboard({ settings }: HYROXDashboardProps) {
       {/* Header with Race Info */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
+          <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Target className="h-6 w-6 text-orange-500" />
             HYROX Dashboard
           </h2>
-          <p className="text-muted-foreground">
+          <p style={{ color: theme.colors.textMuted }}>
             {CATEGORY_LABELS[settings.raceCategory]} • {EXPERIENCE_LABELS[settings.experienceLevel]}
           </p>
         </div>
@@ -250,42 +254,42 @@ export function HYROXDashboard({ settings }: HYROXDashboardProps) {
       />
 
       {/* Running Stats */}
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Footprints className="h-5 w-5 text-green-500" />
             Löpkapacitet
           </CardTitle>
-          <CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>
             8km total löpning (8 x 1km mellan stationer)
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold">{formatTime(settings.fiveKmTime)}</div>
-              <div className="text-sm text-muted-foreground">5 km PB</div>
+            <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
+              <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{formatTime(settings.fiveKmTime)}</div>
+              <div className="text-sm" style={{ color: theme.colors.textMuted }}>5 km PB</div>
             </div>
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold">{formatTime(settings.tenKmTime)}</div>
-              <div className="text-sm text-muted-foreground">10 km PB</div>
+            <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
+              <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{formatTime(settings.tenKmTime)}</div>
+              <div className="text-sm" style={{ color: theme.colors.textMuted }}>10 km PB</div>
             </div>
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold">{settings.currentWeeklyRunKm}</div>
-              <div className="text-sm text-muted-foreground">km/vecka</div>
+            <div className="text-center p-4 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
+              <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{settings.currentWeeklyRunKm}</div>
+              <div className="text-sm" style={{ color: theme.colors.textMuted }}>km/vecka</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Station Overview */}
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Timer className="h-5 w-5 text-blue-500" />
             Stationsöversikt
           </CardTitle>
-          <CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>
             Dina tider vs måltider för {EXPERIENCE_LABELS[settings.experienceLevel].toLowerCase()}-nivå
           </CardDescription>
         </CardHeader>
@@ -301,7 +305,7 @@ export function HYROXDashboard({ settings }: HYROXDashboardProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Icon className={`h-4 w-4 ${color}`} />
-                      <span className="font-medium">{STATION_LABELS[key]}</span>
+                      <span className="font-medium" style={{ color: theme.colors.textPrimary }}>{STATION_LABELS[key]}</span>
                       {isStrong && (
                         <Badge variant="default" className="bg-green-500 text-xs">Starkast</Badge>
                       )}
@@ -310,10 +314,10 @@ export function HYROXDashboard({ settings }: HYROXDashboardProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-4 text-sm">
-                      <span className="text-muted-foreground">
+                      <span style={{ color: theme.colors.textMuted }}>
                         Mål: {formatTime(targets[key])}
                       </span>
-                      <span className="font-medium w-16 text-right">
+                      <span className="font-medium w-16 text-right" style={{ color: theme.colors.textPrimary }}>
                         {formatTime(time)}
                       </span>
                     </div>
@@ -331,26 +335,26 @@ export function HYROXDashboard({ settings }: HYROXDashboardProps) {
 
       {/* Training Distribution */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle className="text-lg">Träningsfördelning</CardTitle>
+            <CardTitle className="text-lg" style={{ color: theme.colors.textPrimary }}>Träningsfördelning</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm">Löppass</span>
+                <span className="text-sm" style={{ color: theme.colors.textPrimary }}>Löppass</span>
                 <Badge variant="outline">{settings.runningSessionsPerWeek}/vecka</Badge>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Styrkepass</span>
+                <span className="text-sm" style={{ color: theme.colors.textPrimary }}>Styrkepass</span>
                 <Badge variant="outline">{settings.strengthSessionsPerWeek}/vecka</Badge>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">HYROX-specifikt</span>
+                <span className="text-sm" style={{ color: theme.colors.textPrimary }}>HYROX-specifikt</span>
                 <Badge variant="outline">{settings.hyroxSpecificSessionsPerWeek}/vecka</Badge>
               </div>
-              <div className="border-t pt-3 mt-3">
-                <div className="flex justify-between items-center font-medium">
+              <div className="border-t pt-3 mt-3" style={{ borderColor: theme.colors.border }}>
+                <div className="flex justify-between items-center font-medium" style={{ color: theme.colors.textPrimary }}>
                   <span>Total tid</span>
                   <span>{settings.weeklyTrainingHours} tim/vecka</span>
                 </div>
@@ -359,15 +363,15 @@ export function HYROXDashboard({ settings }: HYROXDashboardProps) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-5 w-5 text-green-500" />
               Träningstips
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2 text-sm" style={{ color: theme.colors.textPrimary }}>
               {settings.weakestStation && (
                 <li className="flex items-start gap-2">
                   <span className="text-orange-500">•</span>
@@ -396,24 +400,34 @@ export function HYROXDashboard({ settings }: HYROXDashboardProps) {
       </div>
 
       {/* Race Format Reminder */}
-      <Card className="bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
+      <Card
+        style={{
+          backgroundColor: theme.id === 'FITAPP_DARK' ? '#431407' : '#fff7ed',
+          borderColor: theme.id === 'FITAPP_DARK' ? '#9a3412' : '#fdba74',
+        }}
+      >
         <CardContent className="pt-6">
           <div className="flex items-start gap-4">
             <Target className="h-8 w-8 text-orange-500 flex-shrink-0" />
             <div>
-              <h3 className="font-semibold mb-2">HYROX-format</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3
+                className="font-semibold mb-2"
+                style={{ color: theme.id === 'FITAPP_DARK' ? '#fed7aa' : '#9a3412' }}
+              >
+                HYROX-format
+              </h3>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>
                 8 x 1km löpning med 8 funktionella stationer emellan:
               </p>
               <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">1. SkiErg 1km</span>
-                <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">2. Sled Push 50m</span>
-                <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">3. Sled Pull 50m</span>
-                <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">4. Burpee BJ 80m</span>
-                <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">5. Rodd 1km</span>
-                <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">6. Farmers 200m</span>
-                <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">7. Lunges 100m</span>
-                <span className="bg-white dark:bg-gray-800 px-2 py-1 rounded">8. Wall Balls</span>
+                <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>1. SkiErg 1km</span>
+                <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>2. Sled Push 50m</span>
+                <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>3. Sled Pull 50m</span>
+                <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>4. Burpee BJ 80m</span>
+                <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>5. Rodd 1km</span>
+                <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>6. Farmers 200m</span>
+                <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>7. Lunges 100m</span>
+                <span className="px-2 py-1 rounded" style={{ backgroundColor: theme.colors.backgroundCard, color: theme.colors.textPrimary }}>8. Wall Balls</span>
               </div>
             </div>
           </div>

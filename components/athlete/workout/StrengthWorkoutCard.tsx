@@ -46,6 +46,10 @@ import {
   MessageSquare,
   TrendingUp,
 } from 'lucide-react'
+import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider'
+import { getThemeStyles } from '@/lib/themes/theme-utils'
+import { MINIMALIST_WHITE_THEME } from '@/lib/themes/definitions'
+import { ExerciseIcon } from '@/components/themed'
 
 interface WorkoutWithDetails extends Workout {
   segments: (WorkoutSegment & {
@@ -69,6 +73,11 @@ export function StrengthWorkoutCard({
   completionPercentage = 0,
 }: StrengthWorkoutCardProps) {
   const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set())
+
+  // Get theme from context (optional - falls back to default)
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const themeStyles = getThemeStyles(theme)
 
   // Toggle exercise expansion
   const toggleExercise = (exerciseId: string) => {
@@ -99,7 +108,15 @@ export function StrengthWorkoutCard({
   const completedExercises = Math.floor((completionPercentage / 100) * totalExercises)
 
   return (
-    <Card className="overflow-hidden">
+    <Card
+      className="overflow-hidden"
+      style={{
+        ...themeStyles,
+        backgroundColor: theme.colors.backgroundCard,
+        borderColor: theme.colors.border,
+        borderRadius: theme.borderRadius.card,
+      }}
+    >
       {/* Header */}
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
@@ -118,7 +135,7 @@ export function StrengthWorkoutCard({
                 </Badge>
               )}
             </div>
-            <CardTitle className="text-lg">
+            <CardTitle className="text-lg" style={{ color: theme.colors.textPrimary }}>
               {workout.description || `${workout.type} Workout`}
             </CardTitle>
           </div>
@@ -175,14 +192,30 @@ export function StrengthWorkoutCard({
                   <AccordionTrigger className="hover:no-underline py-3">
                     <div className="flex items-center gap-3 flex-1">
                       {/* Exercise number */}
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-semibold text-sm">
+                      <div
+                        className="flex items-center justify-center w-8 h-8 rounded-full font-semibold text-sm"
+                        style={{
+                          backgroundColor: theme.colors.exerciseNumber,
+                          color: theme.colors.exerciseNumberText,
+                        }}
+                      >
                         {index + 1}
                       </div>
+
+                      {/* Exercise icon */}
+                      {exercise && (
+                        <ExerciseIcon
+                          iconUrl={exercise.iconUrl}
+                          iconCategory={exercise.iconCategory}
+                          workoutType={exercise.category}
+                          size="sm"
+                        />
+                      )}
 
                       {/* Exercise info */}
                       <div className="text-left flex-1">
                         <p className="font-medium text-sm">
-                          {exercise?.name || 'Exercise'}
+                          {exercise?.nameSv || exercise?.name || 'Exercise'}
                         </p>
                         <p className="text-xs text-gray-600">
                           {segment.sets}×{segment.reps} @ {segment.weight || '—'}

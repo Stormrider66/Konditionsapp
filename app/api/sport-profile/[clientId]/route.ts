@@ -32,6 +32,7 @@ const updateSportProfileSchema = z.object({
   currentGoal: z.string().optional(),
   targetDate: z.string().datetime().optional().nullable(),
   targetMetric: z.any().optional(),
+  themePreferences: z.any().optional(), // { appTheme: 'FITAPP_DARK' | 'MINIMALIST_WHITE', pdfTheme: '...' }
   runningExperience: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE']).optional(),
   cyclingExperience: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE']).optional(),
   swimmingExperience: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE']).optional(),
@@ -194,6 +195,7 @@ export async function PUT(
           currentGoal: data.currentGoal,
           targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
           targetMetric: data.targetMetric,
+          themePreferences: data.themePreferences,
           runningExperience: data.runningExperience,
           cyclingExperience: data.cyclingExperience,
           swimmingExperience: data.swimmingExperience,
@@ -231,6 +233,7 @@ export async function PUT(
         ...(data.currentGoal !== undefined && { currentGoal: data.currentGoal }),
         ...(data.targetDate !== undefined && { targetDate: data.targetDate ? new Date(data.targetDate) : null }),
         ...(data.targetMetric !== undefined && { targetMetric: data.targetMetric }),
+        ...(data.themePreferences !== undefined && { themePreferences: data.themePreferences }),
         ...(data.runningExperience !== undefined && { runningExperience: data.runningExperience }),
         ...(data.cyclingExperience !== undefined && { cyclingExperience: data.cyclingExperience }),
         ...(data.swimmingExperience !== undefined && { swimmingExperience: data.swimmingExperience }),

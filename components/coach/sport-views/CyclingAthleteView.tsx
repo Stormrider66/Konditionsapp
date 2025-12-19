@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Zap, Scale, Calendar, Bike, TrendingUp, Activity } from 'lucide-react'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface CyclingSettings {
   bikeTypes?: string[]
@@ -74,19 +75,22 @@ function formatDate(dateString: string | null | undefined): string {
 }
 
 export function CyclingAthleteView({ clientId, clientName, settings }: CyclingAthleteViewProps) {
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   const cyclingSettings = settings as CyclingSettings | undefined
 
   if (!cyclingSettings) {
     return (
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <span>🚴</span> Cykling Profil
           </CardTitle>
-          <CardDescription>Ingen cykeldata tillgänglig</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>Ingen cykeldata tillgänglig</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm" style={{ color: theme.colors.textMuted }}>
             Atleten har inte angett cykelinställningar ännu.
           </p>
         </CardContent>

@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Waves, Timer, Calendar, Target } from 'lucide-react'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface SwimmingSettings {
   strokeTypes?: string[]
@@ -84,19 +85,22 @@ function getCssZones(css: number) {
 }
 
 export function SwimmingAthleteView({ clientId, clientName, settings }: SwimmingAthleteViewProps) {
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   const swimmingSettings = settings as SwimmingSettings | undefined
 
   if (!swimmingSettings) {
     return (
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <span>🏊‍♂️</span> Simprofil
           </CardTitle>
-          <CardDescription>Ingen simdata tillgänglig</CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>Ingen simdata tillgänglig</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm" style={{ color: theme.colors.textMuted }}>
             Atleten har inte angett siminställningar ännu.
           </p>
         </CardContent>

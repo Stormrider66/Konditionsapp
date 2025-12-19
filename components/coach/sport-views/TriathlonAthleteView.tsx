@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Target, TrendingUp, TrendingDown, AlertTriangle, Zap, Timer, Waves } from 'lucide-react'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface TriathlonSettings {
   targetRaceDistance?: string

@@ -48,6 +48,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
                 movementCategory: true,
                 description: true,
                 videoUrl: true,
+                iconUrl: true,
+                iconCategory: true,
               },
             },
           },

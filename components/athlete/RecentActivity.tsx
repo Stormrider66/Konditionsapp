@@ -8,26 +8,41 @@ import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 
 import { DashboardActivityLog } from '@/types/prisma-types'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME, type WorkoutTheme } from '@/lib/themes'
 
 interface RecentActivityProps {
   logs: DashboardActivityLog[]
 }
 
 export function RecentActivity({ logs }: RecentActivityProps) {
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+
   if (logs.length === 0) {
     return (
-      <Card>
+      <Card
+        style={{
+          backgroundColor: theme.colors.backgroundCard,
+          borderColor: theme.colors.border,
+        }}
+      >
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle
+            className="flex items-center gap-2"
+            style={{ color: theme.colors.textPrimary }}
+          >
             <Activity className="h-5 w-5" />
             Senaste aktivitet
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Ingen aktivitet ännu</p>
-            <p className="text-sm text-muted-foreground mt-2">
+            <Activity
+              className="mx-auto h-12 w-12 mb-4"
+              style={{ color: theme.colors.textMuted }}
+            />
+            <p style={{ color: theme.colors.textMuted }}>Ingen aktivitet ännu</p>
+            <p className="text-sm mt-2" style={{ color: theme.colors.textMuted }}>
               Logga ditt första träningspass för att komma igång
             </p>
           </div>
@@ -37,34 +52,53 @@ export function RecentActivity({ logs }: RecentActivityProps) {
   }
 
   return (
-    <Card>
+    <Card
+      style={{
+        backgroundColor: theme.colors.backgroundCard,
+        borderColor: theme.colors.border,
+      }}
+    >
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle
+          className="flex items-center gap-2"
+          style={{ color: theme.colors.textPrimary }}
+        >
           <Activity className="h-5 w-5" />
           Senaste aktivitet
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {logs.map((log) => (
-          <LogCard key={log.id} log={log} />
+          <LogCard key={log.id} log={log} theme={theme} />
         ))}
       </CardContent>
     </Card>
   )
 }
 
-function LogCard({ log }: { log: DashboardActivityLog }) {
+function LogCard({ log, theme }: { log: DashboardActivityLog; theme: WorkoutTheme }) {
   return (
-    <div className="border rounded-lg p-3 space-y-2">
+    <div
+      className="border rounded-lg p-3 space-y-2"
+      style={{
+        backgroundColor: theme.colors.background,
+        borderColor: theme.colors.border,
+      }}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             {log.completed && (
               <CheckCircle2 className="h-4 w-4 text-green-500" />
             )}
-            <h4 className="font-medium text-sm">{log.workout?.name}</h4>
+            <h4
+              className="font-medium text-sm"
+              style={{ color: theme.colors.textPrimary }}
+            >
+              {log.workout?.name}
+            </h4>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs" style={{ color: theme.colors.textMuted }}>
             {log.completedAt &&
               formatDistanceToNow(new Date(log.completedAt), {
                 addSuffix: true,
@@ -79,7 +113,7 @@ function LogCard({ log }: { log: DashboardActivityLog }) {
         )}
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+      <div className="flex items-center gap-4 text-xs" style={{ color: theme.colors.textMuted }}>
         {log.duration && (
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
@@ -100,15 +134,33 @@ function LogCard({ log }: { log: DashboardActivityLog }) {
       </div>
 
       {log.notes && (
-        <p className="text-xs text-muted-foreground line-clamp-2">{log.notes}</p>
+        <p className="text-xs line-clamp-2" style={{ color: theme.colors.textMuted }}>
+          {log.notes}
+        </p>
       )}
 
       {log.coachFeedback && (
-        <div className="bg-blue-50 border border-blue-200 rounded p-2">
-          <p className="text-xs font-medium text-blue-900 mb-1">
+        <div
+          className="rounded p-2"
+          style={{
+            backgroundColor: theme.id === 'FITAPP_DARK' ? '#1e3a5f' : '#eff6ff',
+            borderWidth: 1,
+            borderStyle: 'solid',
+            borderColor: theme.id === 'FITAPP_DARK' ? '#3b82f6' : '#bfdbfe',
+          }}
+        >
+          <p
+            className="text-xs font-medium mb-1"
+            style={{ color: theme.id === 'FITAPP_DARK' ? '#93c5fd' : '#1e3a8a' }}
+          >
             Feedback från tränare:
           </p>
-          <p className="text-xs text-blue-800">{log.coachFeedback}</p>
+          <p
+            className="text-xs"
+            style={{ color: theme.id === 'FITAPP_DARK' ? '#bfdbfe' : '#1e40af' }}
+          >
+            {log.coachFeedback}
+          </p>
         </div>
       )}
     </div>

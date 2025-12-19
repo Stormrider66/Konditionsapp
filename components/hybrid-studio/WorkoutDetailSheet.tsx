@@ -44,6 +44,8 @@ import {
 } from 'lucide-react';
 import type { HybridWorkoutWithSections, HybridSectionData } from '@/types';
 import { HybridWorkoutExportButton } from './HybridWorkoutExportButton';
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
+import { ExerciseIcon } from '@/components/themed';
 
 interface HybridWorkoutResult {
   id: string;
@@ -170,6 +172,10 @@ export function WorkoutDetailSheet({
   const [loadingResults, setLoadingResults] = useState(false);
   const [resultsOpen, setResultsOpen] = useState(false);
 
+  // Theme support
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   useEffect(() => {
     if (open && workout?.id) {
       fetchResults();
@@ -207,11 +213,21 @@ export function WorkoutDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto" data-pdf-content>
+      <SheetContent
+        className="w-full sm:max-w-lg overflow-y-auto"
+        data-pdf-content
+        style={{
+          backgroundColor: theme.colors.background,
+          color: theme.colors.textPrimary,
+        }}
+      >
         <SheetHeader className="pb-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
-              <SheetTitle className="text-xl flex items-center gap-2">
+              <SheetTitle
+                className="text-xl flex items-center gap-2"
+                style={{ color: theme.colors.textPrimary }}
+              >
                 {workout.isBenchmark && <Trophy className="h-5 w-5 text-yellow-500" />}
                 {workout.name}
               </SheetTitle>
@@ -219,7 +235,7 @@ export function WorkoutDetailSheet({
                 {formatInfo.icon}
                 {formatInfo.label}
                 {workoutMeta.length > 0 && (
-                  <span className="text-muted-foreground">• {workoutMeta.join(' • ')}</span>
+                  <span style={{ color: theme.colors.textMuted }}>• {workoutMeta.join(' • ')}</span>
                 )}
               </SheetDescription>
             </div>
@@ -250,12 +266,14 @@ export function WorkoutDetailSheet({
           <HybridWorkoutExportButton workout={workout} />
         </div>
 
-        <Separator className="my-2" />
+        <Separator className="my-2" style={{ backgroundColor: theme.colors.border }} />
 
         {/* Description */}
         {workout.description && (
           <div className="py-3">
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{workout.description}</p>
+            <p className="text-sm whitespace-pre-wrap" style={{ color: theme.colors.textSecondary }}>
+              {workout.description}
+            </p>
           </div>
         )}
 
@@ -276,9 +294,18 @@ export function WorkoutDetailSheet({
           />
 
           {/* Metcon Section (Main Workout) */}
-          <Card className="border-primary/50">
+          <Card
+            className="border-primary/50"
+            style={{
+              backgroundColor: theme.colors.backgroundCard,
+              borderColor: theme.colors.accent + '80',
+            }}
+          >
             <CardHeader className="py-3 px-4">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle
+                className="text-base flex items-center gap-2"
+                style={{ color: theme.colors.textPrimary }}
+              >
                 {formatInfo.icon}
                 <span>Metcon</span>
                 <Badge variant="secondary">{formatInfo.label}</Badge>
@@ -287,7 +314,13 @@ export function WorkoutDetailSheet({
             <CardContent className="px-4 pb-4">
               {/* Show rep scheme info if applicable */}
               {workout.repScheme && workout.repScheme.includes('-') && (
-                <p className="text-sm text-muted-foreground mb-3 p-2 bg-muted/50 rounded">
+                <p
+                  className="text-sm mb-3 p-2 rounded"
+                  style={{
+                    color: theme.colors.textSecondary,
+                    backgroundColor: theme.colors.background,
+                  }}
+                >
                   {workout.repScheme.split('-').length} rundor: {workout.repScheme.split('-').join(' → ')} reps per övning
                 </p>
               )}
@@ -295,12 +328,26 @@ export function WorkoutDetailSheet({
                 <ul className="space-y-2">
                   {workout.movements.map((m, i) => (
                     <li key={m.id} className="text-sm flex items-start gap-2">
-                      <span className="text-muted-foreground w-5 flex-shrink-0">{i + 1}.</span>
+                      <span
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                        style={{
+                          backgroundColor: theme.colors.exerciseNumber,
+                          color: theme.colors.exerciseNumberText,
+                        }}
+                      >
+                        {i + 1}
+                      </span>
+                      <ExerciseIcon
+                        iconUrl={m.exercise.iconUrl}
+                        iconCategory={m.exercise.iconCategory}
+                        movementCategory={m.exercise.movementCategory}
+                        size="sm"
+                      />
                       <div>
-                        <span className="font-medium">
+                        <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
                           {m.exercise.nameSv || m.exercise.name}
                         </span>
-                        <span className="text-muted-foreground ml-2">
+                        <span className="ml-2" style={{ color: theme.colors.textMuted }}>
                           {/* Show scheme reps if workout has a descending/ascending scheme */}
                           {workout.repScheme && workout.repScheme.includes('-') && !workout.repScheme.includes('rounds')
                             ? workout.repScheme
@@ -317,7 +364,7 @@ export function WorkoutDetailSheet({
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">Inga rörelser tillagda</p>
+                <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga rörelser tillagda</p>
               )}
             </CardContent>
           </Card>
@@ -343,7 +390,7 @@ export function WorkoutDetailSheet({
           </div>
         )}
 
-        <Separator className="my-2" />
+        <Separator className="my-2" style={{ backgroundColor: theme.colors.border }} />
 
         {/* Results History */}
         <Collapsible open={resultsOpen} onOpenChange={setResultsOpen}>
@@ -351,7 +398,7 @@ export function WorkoutDetailSheet({
             <Button variant="ghost" className="w-full justify-between p-3 h-auto">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                <span className="font-semibold">Resultat</span>
+                <span className="font-semibold" style={{ color: theme.colors.textPrimary }}>Resultat</span>
                 <Badge variant="secondary">{workout._count?.results || results.length}</Badge>
               </div>
               {resultsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -359,23 +406,23 @@ export function WorkoutDetailSheet({
           </CollapsibleTrigger>
           <CollapsibleContent className="px-3 pb-3">
             {loadingResults ? (
-              <p className="text-sm text-muted-foreground">Laddar resultat...</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Laddar resultat...</p>
             ) : results.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Inga resultat loggade än</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga resultat loggade än</p>
             ) : (
               <ul className="space-y-2">
                 {results.map((result) => (
                   <li key={result.id} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       {result.isPR && <Trophy className="h-3 w-3 text-yellow-500" />}
-                      <span>{result.athlete?.name || 'Okänd'}</span>
+                      <span style={{ color: theme.colors.textPrimary }}>{result.athlete?.name || 'Okänd'}</span>
                       <Badge variant="outline" className="text-xs">
                         {scalingLabels[result.scalingLevel]?.label || result.scalingLevel}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{formatScore(result)}</span>
-                      <span className="text-muted-foreground text-xs">
+                      <span className="font-medium" style={{ color: theme.colors.textPrimary }}>{formatScore(result)}</span>
+                      <span className="text-xs" style={{ color: theme.colors.textMuted }}>
                         {new Date(result.completedAt).toLocaleDateString('sv-SE')}
                       </span>
                     </div>
@@ -388,8 +435,8 @@ export function WorkoutDetailSheet({
 
         {/* Benchmark Info */}
         {workout.isBenchmark && workout.benchmarkSource && (
-          <div className="pt-4 mt-2 border-t">
-            <p className="text-xs text-muted-foreground">
+          <div className="pt-4 mt-2 border-t" style={{ borderColor: theme.colors.border }}>
+            <p className="text-xs" style={{ color: theme.colors.textMuted }}>
               Benchmark: {workout.benchmarkSource}
             </p>
           </div>

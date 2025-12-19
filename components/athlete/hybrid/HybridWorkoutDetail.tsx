@@ -50,6 +50,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { WorkoutTimer } from './WorkoutTimer';
+import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider';
+import { MINIMALIST_WHITE_THEME } from '@/lib/themes/definitions';
 
 interface HybridMovement {
   id: string;
@@ -451,6 +453,10 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest }: HybridW
 }
 
 function MovementRow({ movement, index }: { movement: HybridMovement; index: number }) {
+  // Get theme from context (optional - falls back to default)
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   const prescription: string[] = [];
 
   if (movement.reps) prescription.push(`${movement.reps} reps`);
@@ -471,7 +477,13 @@ function MovementRow({ movement, index }: { movement: HybridMovement; index: num
 
   return (
     <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50">
-      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
+        style={{
+          backgroundColor: theme.colors.exerciseNumber,
+          color: theme.colors.exerciseNumberText,
+        }}
+      >
         {index + 1}
       </div>
       <div className="flex-1">

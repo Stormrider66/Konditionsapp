@@ -538,7 +538,10 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
                     ? 'border-primary ring-2 ring-primary'
                     : 'hover:border-primary/50'
                 }`}
-                onClick={() => setFormat(option.value)}
+                onClick={() => {
+                  setFormat(option.value);
+                  setStep(2); // Auto-advance to step 2
+                }}
               >
                 <CardContent className="p-4 flex items-start gap-3">
                   <div className="p-2 bg-primary/10 rounded-lg">

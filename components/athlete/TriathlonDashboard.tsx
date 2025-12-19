@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Waves, Bike, PersonStanding, Timer, Target, TrendingUp, Trophy, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface TriathlonSettings {
   targetRaceDistance?: string
@@ -150,11 +151,14 @@ export function TriathlonDashboard({
   experience,
   clientName,
 }: TriathlonDashboardProps) {
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+
   if (!triathlonSettings) {
     return (
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardContent className="py-6">
-          <p className="text-muted-foreground text-center">
+          <p className="text-center" style={{ color: theme.colors.textMuted }}>
             Ingen triathloninställning hittades. Vänligen slutför din profil.
           </p>
         </CardContent>
@@ -187,12 +191,19 @@ export function TriathlonDashboard({
   return (
     <div className="space-y-6">
       {/* Header with Race Target */}
-      <Card className="bg-gradient-to-r from-blue-500/10 via-yellow-500/10 to-green-500/10 border-0">
+      <Card
+        className="border-0"
+        style={{
+          background: theme.id === 'FITAPP_DARK'
+            ? 'linear-gradient(to right, rgba(59, 130, 246, 0.15), rgba(234, 179, 8, 0.15), rgba(34, 197, 94, 0.15))'
+            : 'linear-gradient(to right, rgba(59, 130, 246, 0.1), rgba(234, 179, 8, 0.1), rgba(34, 197, 94, 0.1))',
+        }}
+      >
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Trophy className="h-6 w-6 text-yellow-500" />
-              <CardTitle className="text-xl">Triathlon</CardTitle>
+              <CardTitle className="text-xl" style={{ color: theme.colors.textPrimary }}>Triathlon</CardTitle>
             </div>
             {race && (
               <Badge variant="secondary" className="text-sm">
@@ -200,7 +211,7 @@ export function TriathlonDashboard({
               </Badge>
             )}
           </div>
-          <CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>
             {race ? (
               <span className="flex items-center gap-2 mt-1">
                 <Waves className="h-4 w-4 text-blue-500" /> {race.swim}{race.swimUnit}
@@ -216,28 +227,28 @@ export function TriathlonDashboard({
         </CardHeader>
         {estimatedTimes && estimatedTimes.total !== '--:--' && (
           <CardContent>
-            <div className="bg-background/80 rounded-lg p-4">
-              <p className="text-sm text-muted-foreground mb-2">Uppskattad tävlingstid</p>
+            <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.backgroundCard + 'cc' }}>
+              <p className="text-sm mb-2" style={{ color: theme.colors.textMuted }}>Uppskattad tävlingstid</p>
               <div className="grid grid-cols-4 gap-4 text-center">
                 <div>
                   <Waves className="h-4 w-4 mx-auto mb-1 text-blue-500" />
-                  <p className="font-bold">{estimatedTimes.swim}</p>
-                  <p className="text-xs text-muted-foreground">Sim</p>
+                  <p className="font-bold" style={{ color: theme.colors.textPrimary }}>{estimatedTimes.swim}</p>
+                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>Sim</p>
                 </div>
                 <div>
                   <Bike className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
-                  <p className="font-bold">{estimatedTimes.bike}</p>
-                  <p className="text-xs text-muted-foreground">Cykel</p>
+                  <p className="font-bold" style={{ color: theme.colors.textPrimary }}>{estimatedTimes.bike}</p>
+                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>Cykel</p>
                 </div>
                 <div>
                   <PersonStanding className="h-4 w-4 mx-auto mb-1 text-green-500" />
-                  <p className="font-bold">{estimatedTimes.run}</p>
-                  <p className="text-xs text-muted-foreground">Löp</p>
+                  <p className="font-bold" style={{ color: theme.colors.textPrimary }}>{estimatedTimes.run}</p>
+                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>Löp</p>
                 </div>
-                <div className="border-l">
-                  <Timer className="h-4 w-4 mx-auto mb-1 text-primary" />
-                  <p className="font-bold text-primary">{estimatedTimes.total}</p>
-                  <p className="text-xs text-muted-foreground">Totalt</p>
+                <div className="border-l" style={{ borderColor: theme.colors.border }}>
+                  <Timer className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.accent }} />
+                  <p className="font-bold" style={{ color: theme.colors.accent }}>{estimatedTimes.total}</p>
+                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>Totalt</p>
                 </div>
               </div>
             </div>
@@ -248,12 +259,15 @@ export function TriathlonDashboard({
       {/* Discipline Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Swimming */}
-        <Card className={cn(
-          triathlonSettings.strongestDiscipline === 'swim' && 'ring-2 ring-green-500',
-          triathlonSettings.weakestDiscipline === 'swim' && 'ring-2 ring-orange-500'
-        )}>
+        <Card
+          className={cn(
+            triathlonSettings.strongestDiscipline === 'swim' && 'ring-2 ring-green-500',
+            triathlonSettings.weakestDiscipline === 'swim' && 'ring-2 ring-orange-500'
+          )}
+          style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}
+        >
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Waves className="h-5 w-5 text-blue-500" />
               Simning
               {triathlonSettings.strongestDiscipline === 'swim' && (
@@ -267,17 +281,17 @@ export function TriathlonDashboard({
           <CardContent className="space-y-3">
             {triathlonSettings.currentCss ? (
               <div>
-                <p className="text-2xl font-bold">{formatPace(triathlonSettings.currentCss)}</p>
-                <p className="text-xs text-muted-foreground">CSS per 100m</p>
+                <p className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{formatPace(triathlonSettings.currentCss)}</p>
+                <p className="text-xs" style={{ color: theme.colors.textMuted }}>CSS per 100m</p>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2" style={{ color: theme.colors.textMuted }}>
                 <AlertCircle className="h-4 w-4" />
                 <span className="text-sm">CSS ej testat</span>
               </div>
             )}
             <div className="text-sm">
-              <p className="text-muted-foreground">Öppet vatten: {
+              <p style={{ color: theme.colors.textMuted }}>Öppet vatten: {
                 triathlonSettings.openWaterExperience === 'none' ? 'Ingen erfarenhet' :
                 triathlonSettings.openWaterExperience === 'beginner' ? 'Nybörjare' :
                 triathlonSettings.openWaterExperience === 'intermediate' ? 'Mellan' : 'Avancerad'
@@ -287,12 +301,15 @@ export function TriathlonDashboard({
         </Card>
 
         {/* Cycling */}
-        <Card className={cn(
-          triathlonSettings.strongestDiscipline === 'bike' && 'ring-2 ring-green-500',
-          triathlonSettings.weakestDiscipline === 'bike' && 'ring-2 ring-orange-500'
-        )}>
+        <Card
+          className={cn(
+            triathlonSettings.strongestDiscipline === 'bike' && 'ring-2 ring-green-500',
+            triathlonSettings.weakestDiscipline === 'bike' && 'ring-2 ring-orange-500'
+          )}
+          style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}
+        >
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Bike className="h-5 w-5 text-yellow-500" />
               Cykling
               {triathlonSettings.strongestDiscipline === 'bike' && (
@@ -306,22 +323,22 @@ export function TriathlonDashboard({
           <CardContent className="space-y-3">
             {triathlonSettings.currentFtp ? (
               <div>
-                <p className="text-2xl font-bold">{triathlonSettings.currentFtp}W</p>
-                <p className="text-xs text-muted-foreground">FTP</p>
+                <p className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{triathlonSettings.currentFtp}W</p>
+                <p className="text-xs" style={{ color: theme.colors.textMuted }}>FTP</p>
                 {triathlonSettings.weight && (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm" style={{ color: theme.colors.textMuted }}>
                     {(triathlonSettings.currentFtp / triathlonSettings.weight).toFixed(2)} W/kg
                   </p>
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2" style={{ color: theme.colors.textMuted }}>
                 <AlertCircle className="h-4 w-4" />
                 <span className="text-sm">FTP ej testat</span>
               </div>
             )}
             <div className="text-sm">
-              <p className="text-muted-foreground">
+              <p style={{ color: theme.colors.textMuted }}>
                 {triathlonSettings.hasPowerMeter ? 'Wattmätare' : 'Ingen wattmätare'}
               </p>
             </div>
@@ -329,12 +346,15 @@ export function TriathlonDashboard({
         </Card>
 
         {/* Running */}
-        <Card className={cn(
-          triathlonSettings.strongestDiscipline === 'run' && 'ring-2 ring-green-500',
-          triathlonSettings.weakestDiscipline === 'run' && 'ring-2 ring-orange-500'
-        )}>
+        <Card
+          className={cn(
+            triathlonSettings.strongestDiscipline === 'run' && 'ring-2 ring-green-500',
+            triathlonSettings.weakestDiscipline === 'run' && 'ring-2 ring-orange-500'
+          )}
+          style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}
+        >
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <PersonStanding className="h-5 w-5 text-green-500" />
               Löpning
               {triathlonSettings.strongestDiscipline === 'run' && (
@@ -348,11 +368,11 @@ export function TriathlonDashboard({
           <CardContent className="space-y-3">
             {triathlonSettings.currentThresholdPace ? (
               <div>
-                <p className="text-2xl font-bold">{formatPace(triathlonSettings.currentThresholdPace)}</p>
-                <p className="text-xs text-muted-foreground">Tröskeltempo per km</p>
+                <p className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{formatPace(triathlonSettings.currentThresholdPace)}</p>
+                <p className="text-xs" style={{ color: theme.colors.textMuted }}>Tröskeltempo per km</p>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-2" style={{ color: theme.colors.textMuted }}>
                 <AlertCircle className="h-4 w-4" />
                 <span className="text-sm">Tröskeltempo ej testat</span>
               </div>
@@ -362,13 +382,13 @@ export function TriathlonDashboard({
       </div>
 
       {/* Training Distribution */}
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Target className="h-5 w-5" />
             Träningsfördelning
           </CardTitle>
-          <CardDescription>
+          <CardDescription style={{ color: theme.colors.textMuted }}>
             {triathlonSettings.weeklyHoursAvailable}h/vecka - {totalSessions} pass + {triathlonSettings.brickWorkoutsPerWeek || 0} kombipass
           </CardDescription>
         </CardHeader>
@@ -377,7 +397,7 @@ export function TriathlonDashboard({
             <div className="flex items-center gap-3">
               <Waves className="h-4 w-4 text-blue-500 shrink-0" />
               <div className="flex-1">
-                <div className="flex justify-between text-sm mb-1">
+                <div className="flex justify-between text-sm mb-1" style={{ color: theme.colors.textPrimary }}>
                   <span>Simning</span>
                   <span>{triathlonSettings.swimSessions || 0} pass ({swimPercent}%)</span>
                 </div>
@@ -387,7 +407,7 @@ export function TriathlonDashboard({
             <div className="flex items-center gap-3">
               <Bike className="h-4 w-4 text-yellow-500 shrink-0" />
               <div className="flex-1">
-                <div className="flex justify-between text-sm mb-1">
+                <div className="flex justify-between text-sm mb-1" style={{ color: theme.colors.textPrimary }}>
                   <span>Cykling</span>
                   <span>{triathlonSettings.bikeSessions || 0} pass ({bikePercent}%)</span>
                 </div>
@@ -397,7 +417,7 @@ export function TriathlonDashboard({
             <div className="flex items-center gap-3">
               <PersonStanding className="h-4 w-4 text-green-500 shrink-0" />
               <div className="flex-1">
-                <div className="flex justify-between text-sm mb-1">
+                <div className="flex justify-between text-sm mb-1" style={{ color: theme.colors.textPrimary }}>
                   <span>Löpning</span>
                   <span>{triathlonSettings.runSessions || 0} pass ({runPercent}%)</span>
                 </div>
@@ -407,11 +427,11 @@ export function TriathlonDashboard({
           </div>
 
           {(triathlonSettings.brickWorkoutsPerWeek || 0) > 0 && (
-            <div className="pt-2 border-t">
+            <div className="pt-2 border-t" style={{ borderColor: theme.colors.border }}>
               <div className="flex items-center gap-2 text-sm">
                 <TrendingUp className="h-4 w-4 text-purple-500" />
-                <span className="font-medium">{triathlonSettings.brickWorkoutsPerWeek} kombipass/vecka</span>
-                <span className="text-muted-foreground">(cykel+löp)</span>
+                <span className="font-medium" style={{ color: theme.colors.textPrimary }}>{triathlonSettings.brickWorkoutsPerWeek} kombipass/vecka</span>
+                <span style={{ color: theme.colors.textMuted }}>(cykel+löp)</span>
               </div>
             </div>
           )}
@@ -419,12 +439,12 @@ export function TriathlonDashboard({
       </Card>
 
       {/* Training Tips */}
-      <Card>
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Träningstips</CardTitle>
+          <CardTitle className="text-lg" style={{ color: theme.colors.textPrimary }}>Träningstips</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-2 text-sm" style={{ color: theme.colors.textPrimary }}>
             {triathlonSettings.weakestDiscipline === 'swim' && (
               <li className="flex items-start gap-2">
                 <Waves className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />

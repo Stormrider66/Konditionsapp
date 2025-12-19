@@ -630,6 +630,10 @@ export interface HybridMovementData {
     nameSv?: string
     standardAbbreviation?: string
     equipmentTypes: string[]
+    // Icon fields
+    iconUrl?: string | null
+    iconCategory?: string | null
+    movementCategory?: string | null
   }
 }
 

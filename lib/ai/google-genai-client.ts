@@ -218,7 +218,7 @@ export async function fetchAsBase64(url: string): Promise<{ base64: string; mime
  * Maps our config to actual model IDs.
  *
  * Available models (December 2025):
- * - gemini-2.5-flash: Fast, stable, video support
+ * - gemini-3-flash-preview: Fast, stable, video support (newest flash model)
  * - gemini-2.5-pro: Advanced reasoning
  * - gemini-3-pro-preview: Newest capability
  *
@@ -228,15 +228,15 @@ export async function fetchAsBase64(url: string): Promise<{ base64: string; mime
 export function getGeminiModelId(task: 'video' | 'audio' | 'chat'): string {
   switch (task) {
     case 'video':
-      // Gemini 2.5 Flash - fast, excellent for video/gait analysis
-      return 'gemini-2.5-flash';
+      // Gemini 3 Flash - fast, excellent for video/gait analysis
+      return 'gemini-3-flash-preview';
     case 'audio':
-      // Gemini 2.5 Flash - fast for audio analysis
-      return 'gemini-2.5-flash';
+      // Gemini 3 Flash - fast for audio analysis
+      return 'gemini-3-flash-preview';
     case 'chat':
-      return 'gemini-2.5-flash';
+      return 'gemini-3-flash-preview';
     default:
-      return 'gemini-2.5-flash';
+      return 'gemini-3-flash-preview';
   }
 }
 

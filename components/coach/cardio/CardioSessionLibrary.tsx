@@ -44,6 +44,7 @@ import { toast } from 'sonner';
 import type { CardioSessionData } from '@/types';
 import { CardioSessionDetailSheet } from './CardioSessionDetailSheet';
 import { CardioSessionAssignmentDialog } from './CardioSessionAssignmentDialog';
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 
 interface CardioSessionLibraryProps {
   onNewSession?: () => void;
@@ -91,6 +92,9 @@ export function CardioSessionLibrary({
   onNewSession,
   onEditSession,
 }: CardioSessionLibraryProps) {
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   const [sessions, setSessions] = useState<CardioSessionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -228,10 +232,10 @@ export function CardioSessionLibrary({
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : sessions.length === 0 ? (
-        <Card className="p-12 text-center">
-          <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">Inga pass ännu</h3>
-          <p className="text-sm text-muted-foreground mb-4">
+        <Card className="p-12 text-center" style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
+          <Activity className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
+          <h3 className="text-lg font-medium mb-2" style={{ color: theme.colors.textPrimary }}>Inga pass ännu</h3>
+          <p className="text-sm mb-4" style={{ color: theme.colors.textMuted }}>
             {search || sportFilter !== 'all'
               ? 'Inga pass matchar din sökning.'
               : 'Skapa ditt första konditionspass för att komma igång.'}
@@ -253,13 +257,14 @@ export function CardioSessionLibrary({
               <Card
                 key={session.id}
                 className="cursor-pointer hover:border-primary/50 transition-colors"
+                style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}
                 onClick={() => handleOpenSheet(session)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{sportInfo.icon}</span>
-                      <h3 className="font-medium truncate">{session.name}</h3>
+                      <h3 className="font-medium truncate" style={{ color: theme.colors.textPrimary }}>{session.name}</h3>
                     </div>
                     {session.avgZone && (
                       <Badge className={`${zoneColors[Math.round(session.avgZone)] || 'bg-gray-500'} text-white text-xs`}>
@@ -269,12 +274,12 @@ export function CardioSessionLibrary({
                   </div>
 
                   {session.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                    <p className="text-sm line-clamp-2 mb-3" style={{ color: theme.colors.textMuted }}>
                       {session.description}
                     </p>
                   )}
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-4 text-sm" style={{ color: theme.colors.textMuted }}>
                     <span className="flex items-center gap-1">
                       <Activity className="h-3.5 w-3.5" />
                       {segments.length} segment

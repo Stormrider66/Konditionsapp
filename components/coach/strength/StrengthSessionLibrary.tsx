@@ -43,6 +43,7 @@ import { toast } from 'sonner';
 import type { StrengthSessionData } from '@/types';
 import { StrengthSessionDetailSheet } from './StrengthSessionDetailSheet';
 import { StrengthSessionAssignmentDialog } from './StrengthSessionAssignmentDialog';
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 
 interface StrengthSessionLibraryProps {
   onNewSession?: () => void;
@@ -61,6 +62,9 @@ export function StrengthSessionLibrary({
   onNewSession,
   onEditSession,
 }: StrengthSessionLibraryProps) {
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   const [sessions, setSessions] = useState<StrengthSessionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -196,10 +200,10 @@ export function StrengthSessionLibrary({
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : sessions.length === 0 ? (
-        <Card className="p-12 text-center">
-          <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">Inga pass ännu</h3>
-          <p className="text-sm text-muted-foreground mb-4">
+        <Card className="p-12 text-center" style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
+          <Dumbbell className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
+          <h3 className="text-lg font-medium mb-2" style={{ color: theme.colors.textPrimary }}>Inga pass ännu</h3>
+          <p className="text-sm mb-4" style={{ color: theme.colors.textMuted }}>
             {search || phaseFilter !== 'all'
               ? 'Inga pass matchar din sökning.'
               : 'Skapa ditt första styrkepass för att komma igång.'}
@@ -221,13 +225,14 @@ export function StrengthSessionLibrary({
               <Card
                 key={session.id}
                 className="cursor-pointer hover:border-primary/50 transition-colors"
+                style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}
                 onClick={() => handleOpenSheet(session)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Dumbbell className="h-4 w-4 text-red-500" />
-                      <h3 className="font-medium truncate">{session.name}</h3>
+                      <h3 className="font-medium truncate" style={{ color: theme.colors.textPrimary }}>{session.name}</h3>
                     </div>
                     <Badge className={`${phaseInfo.color} text-white text-xs`}>
                       {phaseInfo.label}
@@ -235,12 +240,12 @@ export function StrengthSessionLibrary({
                   </div>
 
                   {session.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                    <p className="text-sm line-clamp-2 mb-3" style={{ color: theme.colors.textMuted }}>
                       {session.description}
                     </p>
                   )}
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-4 text-sm" style={{ color: theme.colors.textMuted }}>
                     <span className="flex items-center gap-1">
                       <Dumbbell className="h-3.5 w-3.5" />
                       {exercises.length} övningar

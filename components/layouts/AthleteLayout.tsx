@@ -6,6 +6,9 @@ import { MobileNav } from '@/components/navigation/MobileNav'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { SportType } from '@prisma/client'
+import { WorkoutThemeProvider } from '@/lib/themes/ThemeProvider'
+import type { ThemePreferences } from '@/lib/themes/types'
+import { DEFAULT_THEME_PREFERENCES } from '@/lib/themes/types'
 
 interface SportProfile {
   id: string
@@ -13,6 +16,7 @@ interface SportProfile {
   primarySport: SportType
   secondarySports: SportType[]
   onboardingCompleted: boolean
+  themePreferences?: ThemePreferences | null
 }
 
 interface AthleteInfo {
@@ -48,19 +52,32 @@ export function AthleteLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user])
 
+  // Extract theme preferences from sport profile
+  const themePreferences: ThemePreferences =
+    (athleteInfo?.sportProfile?.themePreferences as ThemePreferences) || DEFAULT_THEME_PREFERENCES
+
   if (!user) {
-    return <div className="min-h-screen bg-gray-50">{children}</div>
+    return (
+      <WorkoutThemeProvider initialPreferences={DEFAULT_THEME_PREFERENCES}>
+        <div className="min-h-screen bg-gray-50">{children}</div>
+      </WorkoutThemeProvider>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <MobileNav
-        user={user}
-        userRole="ATHLETE"
-        sportProfile={athleteInfo?.sportProfile}
-        clientId={athleteInfo?.clientId}
-      />
-      <div>{children}</div>
-    </div>
+    <WorkoutThemeProvider
+      clientId={athleteInfo?.clientId}
+      initialPreferences={themePreferences}
+    >
+      <div className="min-h-screen bg-gray-50">
+        <MobileNav
+          user={user}
+          userRole="ATHLETE"
+          sportProfile={athleteInfo?.sportProfile}
+          clientId={athleteInfo?.clientId}
+        />
+        <div>{children}</div>
+      </div>
+    </WorkoutThemeProvider>
   )
 }

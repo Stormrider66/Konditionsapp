@@ -90,7 +90,8 @@ export function WorkoutAssignmentDialog({
       const response = await fetch('/api/clients?limit=100');
       if (response.ok) {
         const data = await response.json();
-        setAthletes(data.clients || []);
+        // API returns { success: true, data: clients }
+        setAthletes(data.data || []);
       }
     } catch (error) {
       console.error('Failed to fetch athletes:', error);

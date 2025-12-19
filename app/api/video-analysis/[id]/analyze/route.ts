@@ -24,8 +24,6 @@ import {
   getGeminiModelId,
 } from '@/lib/ai/google-genai-client';
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
-import { decryptSecret } from '@/lib/crypto/secretbox';
-import { downloadAsBase64, isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
 
 interface AnalysisResult {
   formScore: number;
@@ -87,16 +85,7 @@ export async function POST(
       },
     });
 
-    let googleKey: string | undefined
-    if (apiKeys?.googleKeyEncrypted) {
-      try {
-        googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
-      } catch {
-        googleKey = undefined
-      }
-    }
-
-    if (!googleKey) {
+    if (!apiKeys?.googleKeyEncrypted) {
       return NextResponse.json(
         { error: 'Google API key not configured. Please add your API key in settings.' },
         { status: 400 }
@@ -111,12 +100,12 @@ export async function POST(
 
     try {
       // Create Google GenAI client (official SDK)
-      const client = createGoogleGenAIClient(googleKey);
+      const client = createGoogleGenAIClient(apiKeys.googleKeyEncrypted);
 
       // Use model from user settings if it's a Google model, otherwise fall back to default
       // Video analysis requires Google/Gemini models (not Claude)
       let modelId: string;
-      if (apiKeys?.defaultModel?.provider === 'GOOGLE' && apiKeys?.defaultModel?.modelId) {
+      if (apiKeys.defaultModel?.provider === 'GOOGLE' && apiKeys.defaultModel?.modelId) {
         modelId = apiKeys.defaultModel.modelId;
         console.log('[Video Analysis] Using user-selected Gemini model:', modelId);
       } else {
@@ -133,12 +122,7 @@ export async function POST(
       const prompt = buildAnalysisPrompt(analysis);
 
       // Fetch video and convert to base64
-      const fetched = isHttpUrl(analysis.videoUrl)
-        ? await fetchAsBase64(analysis.videoUrl)
-        : await downloadAsBase64('video-analysis', normalizeStoragePath('video-analysis', analysis.videoUrl) || analysis.videoUrl)
-
-      const base64 = fetched.base64
-      const mimeType = fetched.mimeType || 'video/mp4'
+      const { base64, mimeType } = await fetchAsBase64(analysis.videoUrl);
 
       // Call Gemini with video
       const result = await generateContent(client, modelId, [
@@ -387,80 +371,6 @@ function parseAnalysisResponse(response: string): AnalysisResult {
 }
 
 /**
- * Get view-specific analysis guidance based on camera angle
- */
-function getViewSpecificGuidance(cameraAngle: string | null): string {
-  switch (cameraAngle) {
-    case 'FRONT':
-      return `
-## KAMERAVINKEL: FRAMIFRÅN (Frontalplan)
-Denna video är filmad framifrån. Fokusera särskilt på:
-
-### PRIORITERADE ANALYSASPEKTER FÖR FRONTALVY:
-1. **Armsving symmetri** - Korsar armarna mittlinjen? Är svingen lika på båda sidor?
-2. **Bålrotation** - Överdriven rotation eller sidorörelse?
-3. **Knäspårning** - Valgus (inåt) eller varus (utåt) vid landning?
-4. **Höftfall (Trendelenburg)** - Sjunker höften på ena sidan vid enbensstöd?
-5. **Axelposition** - Upphöjda, framåtlutade eller asymmetriska axlar?
-6. **Huvudposition** - Lutar huvudet åt sidan?
-7. **Bäckenrotation** - Rör sig bäckenet lateralt vid varje steg?
-
-### SKADERISKFOKUS FRONTALVY:
-- IT-band syndrom (överdriven lateral rörelse)
-- Patellofemoralt smärtsyndrom (knävalgus)
-- Höftproblem (Trendelenburg)
-- Löparknä (knäspårning)`;
-
-    case 'SIDE':
-      return `
-## KAMERAVINKEL: FRÅN SIDAN (Sagittalplan)
-Denna video är filmad från sidan. Fokusera särskilt på:
-
-### PRIORITERADE ANALYSASPEKTER FÖR SIDOVY:
-1. **Fotisättning** - Häl-, mitt- eller framfotlandning? Var landar foten i förhållande till kroppens tyngdpunkt?
-2. **Framåtlutning** - Lutar bålen framåt från fotleden (bra) eller från höften (dåligt)?
-3. **Vertikal oscillation** - Hur mycket "studsar" löparen upp och ner?
-4. **Höftextension** - Full utsträckning i frånskjutsfasen?
-5. **Knälyft** - Tillräcklig höjd för löptempo?
-6. **Armsvingens amplitud** - Rör armarna fram och tillbaka (bra) eller korsvis?
-7. **Backswing** - Hur högt lyfts hälen bakom kroppen?
-8. **Groundkontakt** - Var i steget sker mest kraft?
-
-### SKADERISKFOKUS SIDOVY:
-- Hälsporre/plantarfasciit (överdriven hällandning)
-- Akillestendinit (bristande dorsalflexion)
-- Hamstringsskador (överstridig)
-- Ländryggsbesvär (överdriven ländlordos)`;
-
-    case 'BACK':
-      return `
-## KAMERAVINKEL: BAKIFRÅN (Posterior vy)
-Denna video är filmad bakifrån. Fokusera särskilt på:
-
-### PRIORITERADE ANALYSASPEKTER FÖR BAKVY:
-1. **Höftfall** - Sjunker ena höften mer än den andra vid enbensstöd?
-2. **Hälpiska (heel whip)** - Vrider foten inåt eller utåt vid frånskjut?
-3. **Gluteal aktivering** - Syns muskelaktivering i gluteus medius/maximus?
-4. **Ryggradsposition** - Rak eller sidolutande ryggråd?
-5. **Skulderbladsrörelse** - Symmetrisk rörelse eller "wingning"?
-6. **Bäckenstabilitet** - Överdrivet gung från sida till sida?
-7. **Knäspårning bakifrån** - Kollapsar knäna inåt vid frånskjut?
-8. **Fotposition** - Pronation/supination synlig från hälen?
-
-### SKADERISKFOKUS BAKVY:
-- Gluteal amnesi (svag höftabduktion)
-- Piriformissyndrom (överdriven inåtrotation)
-- Medialt tibialt stressyndrom (överdriven pronation)
-- Iliotibial band syndrom (höftfall + knävalgus)`;
-
-    default:
-      return `
-## KAMERAVINKEL: EJ SPECIFICERAD
-Analysera generella löpmönster baserat på vad som syns i videon. Om möjligt, identifiera vilken vinkel videon är filmad från och fokusera på relevanta aspekter.`;
-  }
-}
-
-/**
  * Analyze running gait video with detailed biomechanical analysis.
  * Uses structured prompting for consistent output.
  */
@@ -468,7 +378,6 @@ async function analyzeRunningGait(
   id: string,
   analysis: {
     videoUrl: string;
-    cameraAngle: string | null;
     athlete: { id: string; name: string; gender: string | null } | null;
   },
   client: ReturnType<typeof createGoogleGenAIClient>,
@@ -476,14 +385,12 @@ async function analyzeRunningGait(
 ): Promise<NextResponse> {
   const athleteName = analysis.athlete?.name || 'atleten';
   const gender = analysis.athlete?.gender === 'MALE' ? 'han' : analysis.athlete?.gender === 'FEMALE' ? 'hon' : 'de';
-  const viewGuidance = getViewSpecificGuidance(analysis.cameraAngle);
 
   const prompt = `Du är en erfaren löpbiomekaniker och idrottsfysiolog. Analysera denna löpvideo noggrant.
 
 ## ATLET INFORMATION
 - **Namn**: ${athleteName}
 - **Pronomen**: ${gender}
-${viewGuidance}
 
 ## ANALYSERA FÖLJANDE ASPEKTER
 
@@ -568,13 +475,8 @@ SVARA I FÖLJANDE JSON-FORMAT:
 \`\`\``;
 
   try {
-    // Fetch video and convert to base64 (supports both legacy public URLs and storage paths)
-    const fetched = isHttpUrl(analysis.videoUrl)
-      ? await fetchAsBase64(analysis.videoUrl)
-      : await downloadAsBase64('video-analysis', normalizeStoragePath('video-analysis', analysis.videoUrl) || analysis.videoUrl)
-
-    const base64 = fetched.base64
-    const mimeType = fetched.mimeType || 'video/mp4'
+    // Fetch video and convert to base64
+    const { base64, mimeType } = await fetchAsBase64(analysis.videoUrl);
 
     // Generate analysis
     const result = await generateContent(client, modelId, [

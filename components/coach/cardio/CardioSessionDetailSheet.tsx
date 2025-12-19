@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import type { CardioSessionData, CardioSegment } from '@/types';
 import { SessionExportButton } from '@/components/exports/SessionExportButton';
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 
 interface CardioSessionAssignment {
   id: string;
@@ -126,6 +127,9 @@ export function CardioSessionDetailSheet({
   onDelete,
   onAssign,
 }: CardioSessionDetailSheetProps) {
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   const [assignments, setAssignments] = useState<CardioSessionAssignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
@@ -179,15 +183,18 @@ export function CardioSessionDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent
+        className="w-full sm:max-w-lg overflow-y-auto"
+        style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
+      >
         <SheetHeader className="pb-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
-              <SheetTitle className="text-xl flex items-center gap-2">
+              <SheetTitle className="text-xl flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
                 <span>{sportInfo.icon}</span>
                 {session.name}
               </SheetTitle>
-              <SheetDescription className="flex items-center gap-2 mt-1">
+              <SheetDescription className="flex items-center gap-2 mt-1" style={{ color: theme.colors.textMuted }}>
                 <Activity className="h-4 w-4" />
                 {sportInfo.label}
               </SheetDescription>
@@ -227,29 +234,38 @@ export function CardioSessionDetailSheet({
         {/* Description */}
         {session.description && (
           <div className="py-3">
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{session.description}</p>
+            <p className="text-sm whitespace-pre-wrap" style={{ color: theme.colors.textMuted }}>{session.description}</p>
           </div>
         )}
 
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-3 py-3">
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold flex items-center justify-center gap-1">
+          <div
+            className="text-center p-3 rounded-lg"
+            style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          >
+            <div className="text-2xl font-bold flex items-center justify-center gap-1" style={{ color: theme.colors.textPrimary }}>
               <Clock className="h-4 w-4" />
               {formatDuration(session.totalDuration)}
             </div>
-            <div className="text-xs text-muted-foreground">Total tid</div>
+            <div className="text-xs" style={{ color: theme.colors.textMuted }}>Total tid</div>
           </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold flex items-center justify-center gap-1">
+          <div
+            className="text-center p-3 rounded-lg"
+            style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          >
+            <div className="text-2xl font-bold flex items-center justify-center gap-1" style={{ color: theme.colors.textPrimary }}>
               <MapPin className="h-4 w-4" />
               {formatDistance(session.totalDistance)}
             </div>
-            <div className="text-xs text-muted-foreground">Distans</div>
+            <div className="text-xs" style={{ color: theme.colors.textMuted }}>Distans</div>
           </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold">{segments.length}</div>
-            <div className="text-xs text-muted-foreground">Segment</div>
+          <div
+            className="text-center p-3 rounded-lg"
+            style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          >
+            <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{segments.length}</div>
+            <div className="text-xs" style={{ color: theme.colors.textMuted }}>Segment</div>
           </div>
         </div>
 
@@ -258,7 +274,7 @@ export function CardioSessionDetailSheet({
         {/* Zone Distribution Bar */}
         {segments.some((s: CardioSegment) => s.zone && s.duration) && (
           <div className="py-3">
-            <div className="text-sm font-medium mb-2 flex items-center gap-2">
+            <div className="text-sm font-medium mb-2 flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Zap className="h-4 w-4" />
               Zonfördelning
             </div>
@@ -281,7 +297,7 @@ export function CardioSessionDetailSheet({
                   );
                 })}
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <div className="flex justify-between text-xs mt-1" style={{ color: theme.colors.textMuted }}>
               <span>Z1-2 Lätt</span>
               <span>Z3 Medel</span>
               <span>Z4-5 Hårt</span>
@@ -292,9 +308,9 @@ export function CardioSessionDetailSheet({
         <Separator className="my-2" />
 
         {/* Segments */}
-        <Card className="border-primary/50">
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.accent }}>
           <CardHeader className="py-3 px-4">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Activity className="h-4 w-4 text-blue-500" />
               <span>Segment</span>
               <Badge variant="secondary">{segments.length}</Badge>
@@ -307,7 +323,7 @@ export function CardioSessionDetailSheet({
                   const typeInfo = segmentTypeLabels[segment.type] || { label: segment.type, color: 'bg-gray-500' };
                   return (
                     <li key={segment.id || i} className="flex items-start gap-3 text-sm">
-                      <span className="text-muted-foreground w-5 flex-shrink-0 font-medium">
+                      <span className="w-5 flex-shrink-0 font-medium" style={{ color: theme.colors.textMuted }}>
                         {i + 1}.
                       </span>
                       <div className="flex-1">
@@ -321,13 +337,13 @@ export function CardioSessionDetailSheet({
                             </Badge>
                           )}
                         </div>
-                        <div className="text-muted-foreground mt-1">
+                        <div className="mt-1" style={{ color: theme.colors.textMuted }}>
                           {segment.duration && formatDuration(segment.duration)}
                           {segment.distance && ` • ${formatDistance(segment.distance)}`}
                           {segment.pace && ` @ ${segment.pace}`}
                         </div>
                         {segment.notes && (
-                          <div className="text-xs text-muted-foreground italic mt-1">
+                          <div className="text-xs italic mt-1" style={{ color: theme.colors.textMuted }}>
                             {segment.notes}
                           </div>
                         )}
@@ -337,7 +353,7 @@ export function CardioSessionDetailSheet({
                 })}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">Inga segment tillagda</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga segment tillagda</p>
             )}
           </CardContent>
         </Card>
@@ -360,7 +376,7 @@ export function CardioSessionDetailSheet({
         {/* Assignments History */}
         <Collapsible open={assignmentsOpen} onOpenChange={setAssignmentsOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-3 h-auto">
+            <Button variant="ghost" className="w-full justify-between p-3 h-auto" style={{ color: theme.colors.textPrimary }}>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 <span className="font-semibold">Tilldelningar</span>
@@ -371,9 +387,9 @@ export function CardioSessionDetailSheet({
           </CollapsibleTrigger>
           <CollapsibleContent className="px-3 pb-3">
             {loadingAssignments ? (
-              <p className="text-sm text-muted-foreground">Laddar tilldelningar...</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Laddar tilldelningar...</p>
             ) : assignments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Inga tilldelningar än</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga tilldelningar än</p>
             ) : (
               <ul className="space-y-2">
                 {assignments.map((assignment) => {
@@ -381,12 +397,12 @@ export function CardioSessionDetailSheet({
                   return (
                     <li key={assignment.id} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
-                        <span>{assignment.athlete?.name || 'Okänd'}</span>
+                        <span style={{ color: theme.colors.textPrimary }}>{assignment.athlete?.name || 'Okänd'}</span>
                         <Badge className={`${statusInfo.color} text-white text-xs`}>
                           {statusInfo.label}
                         </Badge>
                       </div>
-                      <span className="text-muted-foreground text-xs">
+                      <span className="text-xs" style={{ color: theme.colors.textMuted }}>
                         {new Date(assignment.assignedDate).toLocaleDateString('sv-SE')}
                       </span>
                     </li>

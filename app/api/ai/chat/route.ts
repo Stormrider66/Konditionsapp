@@ -535,7 +535,7 @@ ${pageContext}
       const google = createGoogleGenerativeAI({
         apiKey: decryptedKeys.googleKey,
       });
-      aiModel = google(model || 'gemini-2.5-flash');
+      aiModel = google(model || 'gemini-3-flash-preview');
     } else if (provider === 'OPENAI' && decryptedKeys.openaiKey) {
       const openai = createOpenAI({
         apiKey: decryptedKeys.openaiKey,

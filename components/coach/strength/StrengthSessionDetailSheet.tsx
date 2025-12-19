@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import type { StrengthSessionData, StrengthSessionExercise } from '@/types';
 import { SessionExportButton } from '@/components/exports/SessionExportButton';
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 
 interface StrengthSessionAssignment {
   id: string;
@@ -91,6 +92,9 @@ export function StrengthSessionDetailSheet({
   onDelete,
   onAssign,
 }: StrengthSessionDetailSheetProps) {
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   const [assignments, setAssignments] = useState<StrengthSessionAssignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
@@ -144,19 +148,22 @@ export function StrengthSessionDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent
+        className="w-full sm:max-w-lg overflow-y-auto"
+        style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
+      >
         <SheetHeader className="pb-4">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
-              <SheetTitle className="text-xl flex items-center gap-2">
+              <SheetTitle className="text-xl flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
                 <Dumbbell className="h-5 w-5 text-red-500" />
                 {session.name}
               </SheetTitle>
-              <SheetDescription className="flex items-center gap-2 mt-1">
+              <SheetDescription className="flex items-center gap-2 mt-1" style={{ color: theme.colors.textMuted }}>
                 <Activity className="h-4 w-4" />
                 Styrkepass
                 {session.timingRelativeToRun && (
-                  <span className="text-muted-foreground">
+                  <span style={{ color: theme.colors.textMuted }}>
                     • {timingLabels[session.timingRelativeToRun] || session.timingRelativeToRun}
                   </span>
                 )}
@@ -195,35 +202,44 @@ export function StrengthSessionDetailSheet({
         {/* Description */}
         {session.description && (
           <div className="py-3">
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{session.description}</p>
+            <p className="text-sm whitespace-pre-wrap" style={{ color: theme.colors.textMuted }}>{session.description}</p>
           </div>
         )}
 
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-3 py-3">
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold">{session.totalExercises || exercises.length}</div>
-            <div className="text-xs text-muted-foreground">Övningar</div>
+          <div
+            className="text-center p-3 rounded-lg"
+            style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          >
+            <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{session.totalExercises || exercises.length}</div>
+            <div className="text-xs" style={{ color: theme.colors.textMuted }}>Övningar</div>
           </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold">{session.totalSets || 0}</div>
-            <div className="text-xs text-muted-foreground">Set</div>
+          <div
+            className="text-center p-3 rounded-lg"
+            style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          >
+            <div className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{session.totalSets || 0}</div>
+            <div className="text-xs" style={{ color: theme.colors.textMuted }}>Set</div>
           </div>
-          <div className="text-center p-3 bg-muted/50 rounded-lg">
-            <div className="text-2xl font-bold flex items-center justify-center gap-1">
+          <div
+            className="text-center p-3 rounded-lg"
+            style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+          >
+            <div className="text-2xl font-bold flex items-center justify-center gap-1" style={{ color: theme.colors.textPrimary }}>
               <Clock className="h-4 w-4" />
               {session.estimatedDuration || '~45'}
             </div>
-            <div className="text-xs text-muted-foreground">min</div>
+            <div className="text-xs" style={{ color: theme.colors.textMuted }}>min</div>
           </div>
         </div>
 
         <Separator className="my-2" />
 
         {/* Exercises */}
-        <Card className="border-primary/50">
+        <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.accent }}>
           <CardHeader className="py-3 px-4">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Dumbbell className="h-4 w-4 text-red-500" />
               <span>Övningar</span>
               <Badge variant="secondary">{exercises.length}</Badge>
@@ -234,18 +250,18 @@ export function StrengthSessionDetailSheet({
               <ul className="space-y-3">
                 {exercises.map((exercise: StrengthSessionExercise, i: number) => (
                   <li key={i} className="flex items-start gap-3 text-sm">
-                    <span className="text-muted-foreground w-5 flex-shrink-0 font-medium">
+                    <span className="w-5 flex-shrink-0 font-medium" style={{ color: theme.colors.textMuted }}>
                       {i + 1}.
                     </span>
                     <div className="flex-1">
-                      <div className="font-medium">{exercise.exerciseName}</div>
-                      <div className="text-muted-foreground">
+                      <div className="font-medium" style={{ color: theme.colors.textPrimary }}>{exercise.exerciseName}</div>
+                      <div style={{ color: theme.colors.textMuted }}>
                         {exercise.sets}×{exercise.reps}
                         {exercise.weight && ` @ ${exercise.weight}kg`}
                         {exercise.restSeconds && ` (${exercise.restSeconds}s vila)`}
                       </div>
                       {exercise.notes && (
-                        <div className="text-xs text-muted-foreground italic mt-1">
+                        <div className="text-xs italic mt-1" style={{ color: theme.colors.textMuted }}>
                           {exercise.notes}
                         </div>
                       )}
@@ -254,7 +270,7 @@ export function StrengthSessionDetailSheet({
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">Inga övningar tillagda</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga övningar tillagda</p>
             )}
           </CardContent>
         </Card>
@@ -277,7 +293,7 @@ export function StrengthSessionDetailSheet({
         {/* Assignments History */}
         <Collapsible open={assignmentsOpen} onOpenChange={setAssignmentsOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between p-3 h-auto">
+            <Button variant="ghost" className="w-full justify-between p-3 h-auto" style={{ color: theme.colors.textPrimary }}>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 <span className="font-semibold">Tilldelningar</span>
@@ -288,9 +304,9 @@ export function StrengthSessionDetailSheet({
           </CollapsibleTrigger>
           <CollapsibleContent className="px-3 pb-3">
             {loadingAssignments ? (
-              <p className="text-sm text-muted-foreground">Laddar tilldelningar...</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Laddar tilldelningar...</p>
             ) : assignments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Inga tilldelningar än</p>
+              <p className="text-sm" style={{ color: theme.colors.textMuted }}>Inga tilldelningar än</p>
             ) : (
               <ul className="space-y-2">
                 {assignments.map((assignment) => {
@@ -298,12 +314,12 @@ export function StrengthSessionDetailSheet({
                   return (
                     <li key={assignment.id} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
-                        <span>{assignment.athlete?.name || 'Okänd'}</span>
+                        <span style={{ color: theme.colors.textPrimary }}>{assignment.athlete?.name || 'Okänd'}</span>
                         <Badge className={`${statusInfo.color} text-white text-xs`}>
                           {statusInfo.label}
                         </Badge>
                       </div>
-                      <span className="text-muted-foreground text-xs">
+                      <span className="text-xs" style={{ color: theme.colors.textMuted }}>
                         {new Date(assignment.assignedDate).toLocaleDateString('sv-SE')}
                       </span>
                     </li>

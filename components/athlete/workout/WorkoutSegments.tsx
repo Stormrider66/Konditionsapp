@@ -11,6 +11,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { IntervalLactateButton } from './IntervalLactateButton';
+import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 
 interface WorkoutSegment {
   id: string;
@@ -40,6 +41,9 @@ export function WorkoutSegments({
   clientId,
   workoutName,
 }: WorkoutSegmentsProps) {
+  const themeContext = useWorkoutThemeOptional();
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+
   // Count interval segments for numbering
   let intervalCounter = 0;
 
@@ -66,9 +70,14 @@ export function WorkoutSegments({
   }
 
   return (
-    <Card>
+    <Card
+      style={{
+        backgroundColor: theme.colors.backgroundCard,
+        borderColor: theme.colors.border,
+      }}
+    >
       <CardHeader>
-        <CardTitle>Pass-struktur</CardTitle>
+        <CardTitle style={{ color: theme.colors.textPrimary }}>Pass-struktur</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -82,9 +91,16 @@ export function WorkoutSegments({
             return (
               <div
                 key={segment.id}
-                className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg"
+                className="flex items-start gap-3 p-3 rounded-lg"
+                style={{ backgroundColor: theme.colors.background }}
               >
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-sm">
+                <div
+                  className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
+                  style={{
+                    backgroundColor: theme.colors.exerciseNumber,
+                    color: theme.colors.exerciseNumberText,
+                  }}
+                >
                   {index + 1}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -93,7 +109,12 @@ export function WorkoutSegments({
                       {formatSegmentType(segment.type)}
                     </Badge>
                     {segment.exercise?.nameSv && (
-                      <span className="font-medium">{segment.exercise.nameSv}</span>
+                      <span
+                        className="font-medium"
+                        style={{ color: theme.colors.textPrimary }}
+                      >
+                        {segment.exercise.nameSv}
+                      </span>
                     )}
                     {isInterval && (
                       <Badge variant="outline" className="text-xs">
@@ -101,7 +122,7 @@ export function WorkoutSegments({
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm" style={{ color: theme.colors.textMuted }}>
                     {segment.description}
                     {segment.duration && ` • ${segment.duration} min`}
                     {segment.pace && ` • ${segment.pace}`}
@@ -131,8 +152,11 @@ export function WorkoutSegments({
 
         {/* Summary for interval workouts */}
         {intervalCounter > 0 && (
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-xs text-muted-foreground">
+          <div
+            className="mt-4 pt-4 border-t"
+            style={{ borderColor: theme.colors.border }}
+          >
+            <p className="text-xs" style={{ color: theme.colors.textMuted }}>
               <span className="font-medium">{intervalCounter} intervall</span> i detta pass.
               Tryck på kameraikonen vid varje intervall för att scanna ditt laktatvärde.
             </p>
