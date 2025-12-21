@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { SportType } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching cardio sessions:', error);
+    logger.error('Error fetching cardio sessions', {}, error);
     return NextResponse.json(
       { error: 'Failed to fetch cardio sessions' },
       { status: 500 }
@@ -149,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(session, { status: 201 });
   } catch (error) {
-    console.error('Error creating cardio session:', error);
+    logger.error('Error creating cardio session', {}, error);
     return NextResponse.json(
       { error: 'Failed to create cardio session' },
       { status: 500 }

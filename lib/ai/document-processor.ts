@@ -94,12 +94,8 @@ export async function processDocument(
         return await parseExcel(fileUrl);
 
       case 'VIDEO':
-        // Video requires transcription service
-        return {
-          error: 'Video transcription not implemented',
-          code: 'NOT_IMPLEMENTED',
-          details: 'Video files need transcription (Whisper API) before processing',
-        };
+        // Use Gemini for video transcription/description
+        return await parseVideo(fileUrl);
 
       default:
         return {
@@ -273,6 +269,132 @@ export async function parseExcel(
 }
 
 /**
+ * Parse video content using Gemini for transcription/description
+ * Extracts speech and describes visual content for RAG context
+ */
+export async function parseVideo(
+  fileUrl: string
+): Promise<ProcessedDocument | ProcessingError> {
+  try {
+    // Check if this is a storage path and get signed URL
+    let fetchUrl = fileUrl;
+    if (!fileUrl.startsWith('http') && !fileUrl.startsWith('data:')) {
+      console.log('[Document Processor] Getting signed URL for Video:', fileUrl);
+      const signedUrl = await getSignedUrl(fileUrl);
+      if (!signedUrl) {
+        return {
+          error: 'Failed to get signed URL for video',
+          code: 'STORAGE_ERROR',
+          details: 'Could not get a signed URL from Supabase Storage',
+        };
+      }
+      fetchUrl = signedUrl;
+    }
+
+    // Check for Gemini API key
+    const geminiApiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+      return {
+        error: 'Gemini API key not configured',
+        code: 'CONFIG_ERROR',
+        details: 'Set GOOGLE_GENERATIVE_AI_API_KEY or GEMINI_API_KEY environment variable',
+      };
+    }
+
+    console.log('[Document Processor] Fetching video from:', fetchUrl.substring(0, 100) + '...');
+    const response = await fetch(fetchUrl);
+    if (!response.ok) {
+      return {
+        error: 'Failed to fetch video',
+        code: 'FETCH_ERROR',
+        details: `HTTP ${response.status}: ${response.statusText}`,
+      };
+    }
+
+    // Get video as base64
+    const videoBuffer = Buffer.from(await response.arrayBuffer());
+    const videoBase64 = videoBuffer.toString('base64');
+    const mimeType = response.headers.get('content-type') || 'video/mp4';
+
+    console.log('[Document Processor] Video buffer size:', videoBuffer.length, 'bytes');
+
+    // Use Gemini to analyze and transcribe the video
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `Analyze this video and provide:
+1. A complete transcription of any speech or narration
+2. A detailed description of the visual content
+3. Key topics or themes discussed
+4. Any exercise demonstrations or techniques shown
+
+Format the output as a structured document suitable for search and reference.`,
+                },
+                {
+                  inline_data: {
+                    mime_type: mimeType,
+                    data: videoBase64,
+                  },
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 8192,
+          },
+        }),
+      }
+    );
+
+    if (!geminiResponse.ok) {
+      const errorData = await geminiResponse.text();
+      console.error('[Document Processor] Gemini API error:', errorData);
+      return {
+        error: 'Video analysis failed',
+        code: 'GEMINI_ERROR',
+        details: `HTTP ${geminiResponse.status}: ${errorData.substring(0, 200)}`,
+      };
+    }
+
+    const geminiData = await geminiResponse.json();
+    const content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    if (!content) {
+      return {
+        error: 'No content extracted from video',
+        code: 'EMPTY_CONTENT',
+        details: 'Gemini returned empty response',
+      };
+    }
+
+    console.log('[Document Processor] Video transcription complete, length:', content.length);
+
+    return {
+      content,
+      metadata: {
+        wordCount: content.split(/\s+/).filter(Boolean).length,
+        extractedAt: new Date().toISOString(),
+      },
+    };
+  } catch (error) {
+    console.error('[Document Processor] Video parsing error:', error);
+    return {
+      error: 'Video processing failed',
+      code: 'PROCESSING_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
  * Check if a processing result is an error
  */
 export function isProcessingError(
@@ -323,7 +445,7 @@ export function getSupportedFileTypes(): {
       type: 'VIDEO',
       extensions: ['.mp4', '.mov', '.avi', '.webm'],
       mimeTypes: ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm'],
-      implemented: false, // Requires transcription
+      implemented: true, // Uses Gemini for transcription
     },
   ];
 }

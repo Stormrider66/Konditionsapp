@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { HybridFormat, ScalingLevel } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching hybrid workouts:', error);
+    logger.error('Error fetching hybrid workouts', {}, error);
     return NextResponse.json(
       { error: 'Failed to fetch hybrid workouts' },
       { status: 500 }
@@ -209,7 +210,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(workout, { status: 201 });
   } catch (error) {
-    console.error('Error creating hybrid workout:', error);
+    logger.error('Error creating hybrid workout', {}, error);
     return NextResponse.json(
       { error: 'Failed to create hybrid workout' },
       { status: 500 }

@@ -1,7 +1,7 @@
 // components/athlete/AthleteProgramCalendar.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { format, addDays } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -130,22 +130,29 @@ function WeekCard({
   const weekStartDate = addDays(new Date(programStartDate), (week.weekNumber - 1) * 7)
   const weekEndDate = addDays(weekStartDate, 6)
 
-  const totalWorkouts = week.days?.reduce(
-    (sum: number, day: any) => sum + day.workouts.length,
-    0
-  ) || 0
+  // Memoize expensive calculations
+  const totalWorkouts = useMemo(() =>
+    week.days?.reduce(
+      (sum: number, day: any) => sum + day.workouts.length,
+      0
+    ) || 0,
+    [week.days]
+  )
 
-  const completedWorkouts = week.days?.reduce(
-    (sum: number, day: any) =>
-      sum +
-      day.workouts.filter(
-        (w: any) => w.logs && w.logs.length > 0 && w.logs[0].completed
-      ).length,
-    0
-  ) || 0
+  const completedWorkouts = useMemo(() =>
+    week.days?.reduce(
+      (sum: number, day: any) =>
+        sum +
+        day.workouts.filter(
+          (w: any) => w.logs && w.logs.length > 0 && w.logs[0].completed
+        ).length,
+      0
+    ) || 0,
+    [week.days]
+  )
 
-  // Calculate weekly totals
-  const weeklyStats = calculateWeeklyStats(week)
+  // Calculate weekly totals (memoized)
+  const weeklyStats = useMemo(() => calculateWeeklyStats(week), [week])
 
   return (
     <Card

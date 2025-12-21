@@ -9,7 +9,8 @@
  * - Recent assignments history
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import {
   Sheet,
   SheetContent,
@@ -99,13 +100,7 @@ export function StrengthSessionDetailSheet({
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
 
-  useEffect(() => {
-    if (open && session?.id) {
-      fetchAssignments();
-    }
-  }, [open, session?.id]);
-
-  async function fetchAssignments() {
+  const fetchAssignments = useCallback(async () => {
     if (!session?.id) return;
 
     setLoadingAssignments(true);
@@ -116,11 +111,17 @@ export function StrengthSessionDetailSheet({
         setAssignments(data.assignments || []);
       }
     } catch (error) {
-      console.error('Failed to fetch assignments:', error);
+      logger.error('Failed to fetch assignments', { sessionId: session?.id }, error);
     } finally {
       setLoadingAssignments(false);
     }
-  }
+  }, [session?.id]);
+
+  useEffect(() => {
+    if (open && session?.id) {
+      fetchAssignments();
+    }
+  }, [open, session?.id, fetchAssignments]);
 
   if (!session) return null;
 

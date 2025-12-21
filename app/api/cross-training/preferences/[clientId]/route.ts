@@ -22,21 +22,12 @@ const prisma = new PrismaClient()
 
 type Modality = 'DWR' | 'XC_SKIING' | 'ALTERG' | 'AIR_BIKE' | 'CYCLING' | 'ROWING' | 'ELLIPTICAL' | 'SWIMMING'
 
-interface ModalityPreferences {
-  preferredOrder: Modality[] // [1st choice, 2nd choice, 3rd choice, ...]
-  equipment: {
-    hasBike: boolean
-    hasPoolAccess: boolean
-    hasAlterG: boolean
-    hasAirBike: boolean
-    hasElliptical: boolean
-    hasRowingMachine: boolean
-    hasXCSkiAccess: boolean
-  }
-  limitations: string // Free text: "Doesn't like swimming", "Left shoulder injury prevents rowing"
-  injuryOverrides: {
-    [injuryType: string]: Modality // e.g., "PLANTAR_FASCIITIS": "CYCLING" (override default DWR)
-  }
+// Use Record type for Prisma JSON compatibility
+type ModalityPreferences = {
+  preferredOrder: Modality[]
+  equipment: Record<string, boolean>
+  limitations: string
+  injuryOverrides: Record<string, Modality>
 }
 
 // Default preferences if none set
@@ -62,22 +53,33 @@ export async function GET(
   try {
     const { clientId } = await params
 
-    // Check if athlete profile exists
+    // Get athlete profile with cross-training preferences
     const profile = await prisma.athleteProfile.findUnique({
       where: { clientId },
-      select: { id: true },
+      select: {
+        id: true,
+        crossTrainingPreferences: true,
+      },
     })
 
-    // crossTrainingPreferences field not yet added to schema
-    // Return default preferences for now
+    if (!profile) {
+      // Return default preferences if no profile exists
+      return NextResponse.json({
+        clientId,
+        preferences: DEFAULT_PREFERENCES,
+        isDefault: true,
+      })
+    }
+
+    // Return stored preferences or defaults
+    const preferences = profile.crossTrainingPreferences as ModalityPreferences | null
     return NextResponse.json({
       clientId,
-      preferences: DEFAULT_PREFERENCES,
-      isDefault: true,
+      preferences: preferences || DEFAULT_PREFERENCES,
+      isDefault: !preferences,
     })
   } catch (error: unknown) {
     logger.error('Error fetching cross-training preferences', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -91,16 +93,76 @@ export async function POST(
 ) {
   try {
     const { clientId } = await params
+    const body = await request.json()
 
-    // crossTrainingPreferences field not yet added to schema
-    // Return not implemented for now
-    return NextResponse.json(
-      { error: 'Cross-training preferences storage not yet implemented' },
-      { status: 501 }
-    )
+    // Validate the preferences structure
+    const { preferences } = body as { preferences: Partial<ModalityPreferences> }
+
+    if (!preferences) {
+      return NextResponse.json(
+        { error: 'Missing preferences in request body' },
+        { status: 400 }
+      )
+    }
+
+    // Merge with defaults for any missing fields
+    const mergedPreferences: ModalityPreferences = {
+      preferredOrder: preferences.preferredOrder || DEFAULT_PREFERENCES.preferredOrder,
+      equipment: {
+        ...DEFAULT_PREFERENCES.equipment,
+        ...preferences.equipment,
+      },
+      limitations: preferences.limitations ?? DEFAULT_PREFERENCES.limitations,
+      injuryOverrides: {
+        ...DEFAULT_PREFERENCES.injuryOverrides,
+        ...preferences.injuryOverrides,
+      },
+    }
+
+    // Validate preferredOrder contains valid modalities
+    const validModalities: Modality[] = ['DWR', 'XC_SKIING', 'ALTERG', 'AIR_BIKE', 'CYCLING', 'ROWING', 'ELLIPTICAL', 'SWIMMING']
+    const invalidModalities = mergedPreferences.preferredOrder.filter(m => !validModalities.includes(m))
+    if (invalidModalities.length > 0) {
+      return NextResponse.json(
+        { error: `Invalid modalities: ${invalidModalities.join(', ')}` },
+        { status: 400 }
+      )
+    }
+
+    // Check if athlete profile exists
+    const existingProfile = await prisma.athleteProfile.findUnique({
+      where: { clientId },
+      select: { id: true },
+    })
+
+    if (!existingProfile) {
+      // Create profile with preferences if it doesn't exist
+      await prisma.athleteProfile.create({
+        data: {
+          clientId,
+          category: 'RECREATIONAL', // Default category
+          crossTrainingPreferences: mergedPreferences,
+        },
+      })
+    } else {
+      // Update existing profile
+      await prisma.athleteProfile.update({
+        where: { clientId },
+        data: {
+          crossTrainingPreferences: mergedPreferences,
+        },
+      })
+    }
+
+    logger.info('Cross-training preferences updated', { clientId })
+
+    return NextResponse.json({
+      clientId,
+      preferences: mergedPreferences,
+      isDefault: false,
+    })
   } catch (error: unknown) {
     logger.error('Error updating cross-training preferences', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

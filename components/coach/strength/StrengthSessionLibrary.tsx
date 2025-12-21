@@ -9,7 +9,8 @@
  * - Quick actions
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,11 +84,7 @@ export function StrengthSessionLibrary({
   const [deleteSession, setDeleteSession] = useState<StrengthSessionData | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchSessions();
-  }, [search, phaseFilter]);
-
-  async function fetchSessions() {
+  const fetchSessions = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -101,11 +98,15 @@ export function StrengthSessionLibrary({
         setSessions(data.sessions || []);
       }
     } catch (error) {
-      console.error('Failed to fetch sessions:', error);
+      logger.error('Failed to fetch strength sessions', {}, error);
     } finally {
       setLoading(false);
     }
-  }
+  }, [search, phaseFilter]);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
   function handleOpenSheet(session: StrengthSessionData) {
     setSheetSession(session);

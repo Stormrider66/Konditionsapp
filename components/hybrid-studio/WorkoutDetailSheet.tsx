@@ -9,7 +9,8 @@
  * - Past results history
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import {
   Sheet,
   SheetContent,
@@ -177,13 +178,7 @@ export function WorkoutDetailSheet({
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
 
-  useEffect(() => {
-    if (open && workout?.id) {
-      fetchResults();
-    }
-  }, [open, workout?.id]);
-
-  async function fetchResults() {
+  const fetchResults = useCallback(async () => {
     if (!workout?.id) return;
 
     setLoadingResults(true);
@@ -194,11 +189,17 @@ export function WorkoutDetailSheet({
         setResults(data.results || []);
       }
     } catch (error) {
-      console.error('Failed to fetch results:', error);
+      logger.error('Failed to fetch workout results', { workoutId: workout?.id }, error);
     } finally {
       setLoadingResults(false);
     }
-  }
+  }, [workout?.id]);
+
+  useEffect(() => {
+    if (open && workout?.id) {
+      fetchResults();
+    }
+  }, [open, workout?.id, fetchResults]);
 
   if (!workout) return null;
 

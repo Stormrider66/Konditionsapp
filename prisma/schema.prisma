@@ -849,6 +849,9 @@ model AthleteProfile {
   hasHRVMonitor       Boolean   @default(false)
   hasPowerMeter       Boolean   @default(false)
 
+  // Cross-training preferences (JSON: preferredOrder, equipment, limitations, injuryOverrides)
+  crossTrainingPreferences Json?
+
   // Training history context
   yearsRunning        Int?
   typicalWeeklyKm     Float?

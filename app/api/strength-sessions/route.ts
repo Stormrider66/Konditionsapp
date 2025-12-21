@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { StrengthPhase } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching strength sessions:', error);
+    logger.error('Error fetching strength sessions', {}, error);
     return NextResponse.json(
       { error: 'Failed to fetch strength sessions' },
       { status: 500 }
@@ -134,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(session, { status: 201 });
   } catch (error) {
-    console.error('Error creating strength session:', error);
+    logger.error('Error creating strength session', {}, error);
     return NextResponse.json(
       { error: 'Failed to create strength session' },
       { status: 500 }
