@@ -21,27 +21,48 @@ import { Info, CheckCircle2 } from 'lucide-react'
 
 const bioimpedanceSchema = z.object({
   measurementDate: z.string().min(1, 'Datum krävs'),
-  weightKg: z.number().min(20).max(300).optional(),
-  bodyFatPercent: z.number().min(1).max(60).optional(),
-  muscleMassKg: z.number().min(10).max(150).optional(),
-  visceralFat: z.number().int().min(1).max(59).optional(),
-  boneMassKg: z.number().min(0.5).max(10).optional(),
-  waterPercent: z.number().min(20).max(80).optional(),
-  intracellularWaterPercent: z.number().min(10).max(70).optional(),
-  extracellularWaterPercent: z.number().min(10).max(50).optional(),
-  bmrKcal: z.number().int().min(500).max(5000).optional(),
-  metabolicAge: z.number().int().min(10).max(100).optional(),
-  deviceBrand: z.string().optional(),
-  measurementTime: z.string().optional(),
-  notes: z.string().optional(),
+  weightKg: z.number().min(20).max(300).optional().nullable(),
+  bodyFatPercent: z.number().min(1).max(60).optional().nullable(),
+  muscleMassKg: z.number().min(10).max(150).optional().nullable(),
+  visceralFat: z.number().int().min(1).max(59).optional().nullable(),
+  boneMassKg: z.number().min(0.5).max(10).optional().nullable(),
+  waterPercent: z.number().min(20).max(80).optional().nullable(),
+  intracellularWaterPercent: z.number().min(10).max(70).optional().nullable(),
+  extracellularWaterPercent: z.number().min(10).max(50).optional().nullable(),
+  bmrKcal: z.number().int().min(500).max(5000).optional().nullable(),
+  metabolicAge: z.number().int().min(10).max(100).optional().nullable(),
+  deviceBrand: z.string().optional().nullable(),
+  measurementTime: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
 })
 
 type BioimpedanceFormData = z.infer<typeof bioimpedanceSchema>
+
+// Allow null values from database in initialData
+interface InitialDataType {
+  id?: string
+  measurementDate?: string
+  weightKg?: number | null
+  bodyFatPercent?: number | null
+  muscleMassKg?: number | null
+  visceralFat?: number | null
+  boneMassKg?: number | null
+  waterPercent?: number | null
+  intracellularWaterPercent?: number | null
+  extracellularWaterPercent?: number | null
+  bmrKcal?: number | null
+  metabolicAge?: number | null
+  deviceBrand?: string | null
+  measurementTime?: string | null
+  notes?: string | null
+}
 
 interface BioimpedanceFormProps {
   clientId: string
   clientName?: string
   onSuccess?: () => void
+  onCancel?: () => void
+  initialData?: InitialDataType
 }
 
 const DEVICE_BRANDS = [
@@ -64,13 +85,14 @@ const MEASUREMENT_TIMES = [
   { value: 'POST_WORKOUT', label: 'Efter träning' },
 ]
 
-export function BioimpedanceForm({ clientId, clientName, onSuccess }: BioimpedanceFormProps) {
+export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, initialData }: BioimpedanceFormProps) {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState<{
     measurement: any
     analysis: any
   } | null>(null)
+  const isEditing = !!initialData?.id
 
   const {
     register,
@@ -81,16 +103,33 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess }: Bioimpedan
   } = useForm<BioimpedanceFormData>({
     resolver: zodResolver(bioimpedanceSchema),
     defaultValues: {
-      measurementDate: new Date().toISOString().split('T')[0],
-      measurementTime: 'MORNING_FASTED',
+      measurementDate: initialData?.measurementDate || new Date().toISOString().split('T')[0],
+      measurementTime: initialData?.measurementTime || 'MORNING_FASTED',
+      weightKg: initialData?.weightKg,
+      bodyFatPercent: initialData?.bodyFatPercent,
+      muscleMassKg: initialData?.muscleMassKg,
+      visceralFat: initialData?.visceralFat,
+      boneMassKg: initialData?.boneMassKg,
+      waterPercent: initialData?.waterPercent,
+      intracellularWaterPercent: initialData?.intracellularWaterPercent,
+      extracellularWaterPercent: initialData?.extracellularWaterPercent,
+      bmrKcal: initialData?.bmrKcal,
+      metabolicAge: initialData?.metabolicAge,
+      deviceBrand: initialData?.deviceBrand,
+      notes: initialData?.notes,
     },
   })
 
   const onSubmit = async (data: BioimpedanceFormData) => {
     setIsSubmitting(true)
     try {
-      const response = await fetch('/api/body-composition', {
-        method: 'POST',
+      const url = isEditing
+        ? `/api/body-composition/${initialData!.id}`
+        : '/api/body-composition'
+      const method = isEditing ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -108,7 +147,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess }: Bioimpedan
 
       setResult(result)
       toast({
-        title: 'Mätning sparad!',
+        title: isEditing ? 'Mätning uppdaterad!' : 'Mätning sparad!',
         description: 'Kroppssammansättningen har registrerats.',
       })
       onSuccess?.()
@@ -270,7 +309,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess }: Bioimpedan
         <div className="space-y-2">
           <Label htmlFor="measurementTime">Tidpunkt</Label>
           <Select
-            value={watch('measurementTime')}
+            value={watch('measurementTime') ?? undefined}
             onValueChange={(value) => setValue('measurementTime', value)}
           >
             <SelectTrigger>
@@ -401,7 +440,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess }: Bioimpedan
             <div className="space-y-2">
               <Label htmlFor="deviceBrand">Utrustning</Label>
               <Select
-                value={watch('deviceBrand')}
+                value={watch('deviceBrand') ?? undefined}
                 onValueChange={(value) => setValue('deviceBrand', value)}
               >
                 <SelectTrigger>
@@ -484,14 +523,27 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess }: Bioimpedan
         />
       </div>
 
-      <Button
-        type="submit"
-        size="lg"
-        className="w-full"
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? 'Sparar...' : 'Spara mätning'}
-      </Button>
+      <div className="flex gap-3">
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="flex-1"
+            onClick={onCancel}
+          >
+            Avbryt
+          </Button>
+        )}
+        <Button
+          type="submit"
+          size="lg"
+          className={onCancel ? 'flex-1' : 'w-full'}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Sparar...' : isEditing ? 'Uppdatera mätning' : 'Spara mätning'}
+        </Button>
+      </div>
     </form>
   )
 }

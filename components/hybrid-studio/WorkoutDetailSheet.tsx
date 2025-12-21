@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import type { HybridWorkoutWithSections, HybridSectionData } from '@/types';
 import { HybridWorkoutExportButton } from './HybridWorkoutExportButton';
+import { WorkoutVersionHistory } from './WorkoutVersionHistory';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { ExerciseIcon } from '@/components/themed';
 
@@ -432,6 +433,18 @@ export function WorkoutDetailSheet({
             )}
           </CollapsibleContent>
         </Collapsible>
+
+        {/* Version History */}
+        {!workout.isBenchmark && (
+          <div className="pt-4">
+            <WorkoutVersionHistory
+              workoutId={workout.id}
+              workoutName={workout.name}
+              currentVersion={workout.version || 1}
+              onVersionChange={fetchResults}
+            />
+          </div>
+        )}
 
         {/* Benchmark Info */}
         {workout.isBenchmark && workout.benchmarkSource && (

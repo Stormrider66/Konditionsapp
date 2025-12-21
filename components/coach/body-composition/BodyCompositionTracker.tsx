@@ -47,7 +47,7 @@ import {
   Target,
   Calendar,
 } from 'lucide-react'
-import { BioimpedanceForm } from './BioimpedanceForm'
+import { BioimpedanceForm } from '@/components/forms/BioimpedanceForm'
 
 interface BodyComposition {
   id: string

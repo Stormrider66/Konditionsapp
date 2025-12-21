@@ -22,6 +22,9 @@ import {
   type InjuryResponse,
 } from '@/lib/training-engine/integration/injury-management'
 import { logger } from '@/lib/logger'
+import { Resend } from 'resend'
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 interface CheckInData {
   clientId: string
@@ -391,10 +394,44 @@ async function sendCoachNotification(
 
     logger.info('Coach notification sent', { title: notification.title, coachUserId })
 
-    // TODO: Add email notification via Resend
-    // if (notification.urgency === 'CRITICAL' || notification.urgency === 'HIGH') {
-    //   await sendEmailNotification(coachUserId, notification)
-    // }
+    // Send email notification for critical/high urgency
+    if (resend && (notification.urgency === 'CRITICAL' || notification.urgency === 'HIGH')) {
+      try {
+        const coachUser = await prisma.user.findUnique({
+          where: { id: coachUserId },
+          select: { email: true, name: true },
+        })
+
+        if (coachUser?.email) {
+          const urgencyColor = notification.urgency === 'CRITICAL' ? '#dc2626' : '#f59e0b'
+          const urgencyText = notification.urgency === 'CRITICAL' ? 'KRITISKT' : 'HÖG PRIORITET'
+
+          await resend.emails.send({
+            from: 'Konditionstest <noreply@konditionstest.se>',
+            to: coachUser.email,
+            subject: `[${urgencyText}] ${notification.title}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background-color: ${urgencyColor}; color: white; padding: 15px; border-radius: 8px 8px 0 0;">
+                  <strong>${urgencyText}</strong>
+                </div>
+                <div style="border: 1px solid #e5e5e5; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
+                  <h2 style="margin-top: 0; color: #1a1a1a;">${notification.title}</h2>
+                  <p style="color: #444;">${notification.message}</p>
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://konditionstest.se'}/coach/injuries"
+                     style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 15px;">
+                    Se skadehantering
+                  </a>
+                </div>
+              </div>
+            `,
+          })
+          logger.info('Injury email notification sent', { coachEmail: coachUser.email, urgency: notification.urgency })
+        }
+      } catch (emailError) {
+        logger.error('Failed to send injury email notification', { coachUserId }, emailError)
+      }
+    }
   } catch (error) {
     logger.error('Error sending coach notification', { coachUserId }, error)
     // Don't throw - notification failure shouldn't block injury processing

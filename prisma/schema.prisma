@@ -177,6 +177,7 @@ model User {
   // Strength & Cardio Studio relations
   strengthSessions  StrengthSession[] @relation("CoachStrengthSessions")
   cardioSessions    CardioSession[]   @relation("CoachCardioSessions")
+  strengthTemplates StrengthTemplate[] @relation("StrengthTemplateOwner")
 
   @@index([email])
   @@index([role])
@@ -2600,6 +2601,45 @@ model StrengthSessionAssignment {
   @@index([assignedDate])
   @@index([status])
   @@unique([sessionId, athleteId, assignedDate])
+}
+
+/// Pre-built strength program templates for quick program generation
+model StrengthTemplate {
+  id                String        @id @default(uuid())
+  name              String
+  description       String?       @db.Text
+
+  // Template metadata
+  phase             StrengthPhase @default(ANATOMICAL_ADAPTATION)
+  durationWeeks     Int           @default(4)
+  sessionsPerWeek   Int           @default(2)
+  level             ProgressionLevel @default(LEVEL_1)
+
+  // Target demographics
+  targetSport       SportType?
+  targetGoal        String?       // "strength", "power", "endurance", "hypertrophy"
+
+  // Template content (JSON for flexibility)
+  sessions          Json          // Array of session templates with exercises
+  progressionRules  Json?         // Automatic progression configuration
+
+  // Ownership
+  coachId           String?       // null = system template
+  coach             User?         @relation("StrengthTemplateOwner", fields: [coachId], references: [id], onDelete: SetNull)
+  isPublic          Boolean       @default(false)
+  isSystemTemplate  Boolean       @default(false)
+
+  // Usage tracking
+  usageCount        Int           @default(0)
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([coachId])
+  @@index([phase])
+  @@index([targetSport])
+  @@index([isPublic])
+  @@index([isSystemTemplate])
 }
 
 // ============================================

@@ -10,6 +10,14 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
 import {
   Bot,
@@ -28,6 +36,7 @@ import {
   StopCircle,
   ArrowLeft,
   Wand2,
+  BrainCircuit,
 } from 'lucide-react'
 import {
   getProgramContext,
@@ -122,6 +131,7 @@ export function AIStudioClient({
   const [selectedAthlete, setSelectedAthlete] = useState<string | null>(initialClientId || null)
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
   const [webSearchEnabled, setWebSearchEnabled] = useState(false)
+  const [deepThinkEnabled, setDeepThinkEnabled] = useState(false)
   const [conversations, setConversations] = useState(initialConversations)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
 
@@ -162,6 +172,7 @@ export function AIStudioClient({
     athleteId: selectedAthlete,
     documentIds: selectedDocuments,
     webSearchEnabled,
+    deepThinkEnabled: deepThinkEnabled && defaultModel?.provider === 'GOOGLE',
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'
@@ -484,8 +495,41 @@ export function AIStudioClient({
                 Webbsökning
               </Badge>
             )}
+            {deepThinkEnabled && defaultModel?.provider === 'GOOGLE' && (
+              <Badge variant="outline" className="flex items-center gap-1 bg-purple-50 border-purple-200 text-purple-700">
+                <BrainCircuit className="h-3 w-3" />
+                Deep Think
+              </Badge>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Deep Think Toggle - Only for Gemini */}
+            {defaultModel?.provider === 'GOOGLE' && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50 border">
+                      <BrainCircuit className={`h-4 w-4 ${deepThinkEnabled ? 'text-purple-600' : 'text-muted-foreground'}`} />
+                      <Label htmlFor="deep-think" className="text-xs font-medium cursor-pointer">
+                        Deep Think
+                      </Label>
+                      <Switch
+                        id="deep-think"
+                        checked={deepThinkEnabled}
+                        onCheckedChange={setDeepThinkEnabled}
+                        className="scale-75"
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-medium">Gemini Deep Think Mode</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Aktiverar utökad resoneringsförmåga. AI:n tänker djupare innan den svarar, vilket ger mer genomtänkta och välstrukturerade svar.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
             <GlobalModelDisplay model={defaultModel} />
             <Button variant="outline" size="sm" onClick={startNewChat}>
               <Plus className="h-4 w-4 mr-1" />

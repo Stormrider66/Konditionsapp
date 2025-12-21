@@ -37,6 +37,8 @@ interface ChatRequest {
   athleteId?: string;
   documentIds?: string[];
   webSearchEnabled?: boolean;
+  /** Enable Gemini Deep Think mode for extended reasoning */
+  deepThinkEnabled?: boolean;
   /** Page-specific context data (video analysis, test results, etc.) */
   pageContext?: string;
 }
@@ -80,6 +82,7 @@ export async function POST(request: NextRequest) {
       athleteId,
       documentIds = [],
       webSearchEnabled = false,
+      deepThinkEnabled = false,
       pageContext = '',
     } = body;
 
@@ -535,7 +538,12 @@ ${pageContext}
       const google = createGoogleGenerativeAI({
         apiKey: decryptedKeys.googleKey,
       });
-      aiModel = google(model || 'gemini-3-flash-preview');
+      const geminiModel = model || 'gemini-3-flash-preview';
+      aiModel = google(geminiModel);
+      // Note: Deep Think (thinkingLevel) is passed via providerOptions in streamText
+      if (deepThinkEnabled) {
+        console.log(`Using Gemini Deep Think mode (${geminiModel} with thinkingLevel: high)`);
+      }
     } else if (provider === 'OPENAI' && decryptedKeys.openaiKey) {
       const openai = createOpenAI({
         apiKey: decryptedKeys.openaiKey,
@@ -557,6 +565,7 @@ ${pageContext}
     console.log('AI Chat Request:', {
       provider,
       model,
+      deepThinkEnabled: provider === 'GOOGLE' && deepThinkEnabled,
       hasApiKey: !!decryptedKeys.anthropicKey || !!decryptedKeys.googleKey || !!decryptedKeys.openaiKey,
       messageCount: messages.length,
       firstMessagePreview: typeof firstContent === 'string' ? firstContent.substring(0, 100) : '[non-text content]',
@@ -569,6 +578,16 @@ ${pageContext}
       messages: coreMessages,
       maxOutputTokens: 4096,
       experimental_telemetry: { isEnabled: false },
+      // Provider-specific options for Gemini Deep Think
+      ...(provider === 'GOOGLE' && deepThinkEnabled && {
+        providerOptions: {
+          google: {
+            thinkingConfig: {
+              thinkingLevel: 'high' as const,
+            },
+          },
+        },
+      }),
       onError: (error) => {
         console.error('Stream error during generation:', error);
       },

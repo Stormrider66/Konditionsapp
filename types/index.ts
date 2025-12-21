@@ -611,6 +611,9 @@ export interface HybridWorkoutWithSections {
   _count?: {
     results: number
   }
+  // Versioning
+  version?: number
+  versionNotes?: string
   createdAt: Date
   updatedAt: Date
 }

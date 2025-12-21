@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2, Save, Download, Info } from 'lucide-react'
+import { Plus, Trash2, Save, Download, Info, Camera, Loader2 } from 'lucide-react'
 import { createTestSchema, CreateTestFormData } from '@/lib/validations/schemas'
 import { TestType, TestTemplate } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -115,6 +115,60 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   const [showLoadDialog, setShowLoadDialog] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [templateDescription, setTemplateDescription] = useState('')
+  const [ocrLoading, setOcrLoading] = useState<number | null>(null)
+  const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
+
+  // OCR handler for lactate meter photo
+  const handleLactateOCR = async (stageIndex: number, file: File) => {
+    setOcrLoading(stageIndex)
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      if (clientId) formData.append('clientId', clientId)
+      formData.append('testStageContext', `Steg ${stageIndex + 1}`)
+
+      const response = await fetch('/api/ai/lactate-ocr', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (data.success && data.result?.reading?.lactateValue) {
+        const lactateValue = data.result.reading.lactateValue
+        const stages = getValues('stages')
+        stages[stageIndex].lactate = lactateValue
+        replace(stages)
+
+        toast({
+          title: 'Laktat avläst!',
+          description: `Värde: ${lactateValue} mmol/L (${data.result.reading.confidence}% säkerhet)`,
+        })
+
+        if (data.result.reading.warnings?.length > 0) {
+          toast({
+            title: 'Varning',
+            description: data.result.reading.warnings.join(', '),
+            variant: 'destructive',
+          })
+        }
+      } else {
+        toast({
+          title: 'Kunde inte läsa av',
+          description: data.error || 'Försök ta en tydligare bild',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      toast({
+        title: 'Fel',
+        description: 'Kunde inte ansluta till OCR-tjänsten',
+        variant: 'destructive',
+      })
+    } finally {
+      setOcrLoading(null)
+    }
+  }
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -418,12 +472,42 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                   <Label htmlFor={`stages.${index}.lactate`} className="text-xs">
                     Laktat (mmol/L)
                   </Label>
-                  <Input
-                    id={`stages.${index}.lactate`}
-                    type="number"
-                    step="0.1"
-                    {...register(`stages.${index}.lactate`, { valueAsNumber: true })}
-                  />
+                  <div className="flex gap-1">
+                    <Input
+                      id={`stages.${index}.lactate`}
+                      type="number"
+                      step="0.1"
+                      className="flex-1"
+                      {...register(`stages.${index}.lactate`, { valueAsNumber: true })}
+                    />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      ref={(el) => { fileInputRefs.current[index] = el }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleLactateOCR(index, file)
+                        e.target.value = ''
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0 h-10 w-10"
+                      onClick={() => fileInputRefs.current[index]?.click()}
+                      disabled={ocrLoading !== null}
+                      title="Fotografera laktatmätare"
+                    >
+                      {ocrLoading === index ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-1">

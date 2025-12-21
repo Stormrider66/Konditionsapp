@@ -28,6 +28,11 @@ import {
   processInjuryDetection,
   type InjuryDetection,
 } from '@/lib/training-engine/integration/injury-management'
+import {
+  calculateTrainingLoad,
+  type WorkoutData,
+  type TrainingLoadResult,
+} from '@/lib/training-engine/calculations/tss-trimp'
 import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
@@ -64,6 +69,12 @@ export async function POST(
       skippedReason,
       painLevel, // 0-10 scale: pain during/after workout
       painLocation, // Specific injury type if known
+      // HR and power data for training load calculation
+      avgHeartRate,
+      maxHeartRate,
+      avgPower,
+      normalizedPower,
+      distance,
     } = body
 
     // Validation
@@ -137,27 +148,133 @@ export async function POST(
       },
     })
 
-    // Calculate training load (TSS or TRIMP)
-    // TODO: Implement training load calculation based on workout type
-    let trainingLoad = null
+    // Calculate training load (TSS or TRIMP) using comprehensive library
+    let trainingLoadResult: TrainingLoadResult | null = null
+    let savedTrainingLoad = null
 
-    if (workout.type === 'RUNNING' || workout.type === 'CYCLING') {
-      // Calculate TSS based on duration and intensity
-      const intensityMultiplier = {
-        RECOVERY: 0.5,
-        EASY: 0.6,
-        MODERATE: 0.75,
-        THRESHOLD: 1.0,
-        INTERVAL: 1.2,
-        MAX: 1.5,
-      }
+    if (!skipped && (workout.type === 'RUNNING' || workout.type === 'CYCLING' || workout.type === 'SWIMMING')) {
+      try {
+        // Get athlete data for calculations
+        const client = await prisma.client.findUnique({
+          where: { id: clientId },
+          select: {
+            gender: true,
+            sportProfile: {
+              select: {
+                cyclingSettings: true,
+                runningSettings: true,
+              },
+            },
+            athleteProfile: {
+              select: {
+                lt2HeartRate: true,
+              },
+            },
+          },
+        })
 
-      const multiplier = intensityMultiplier[workout.intensity as keyof typeof intensityMultiplier] || 0.7
-      const tss = (duration || workout.duration || 60) * multiplier
+        // Get max HR from latest test
+        const testWithMaxHR = await prisma.test.findFirst({
+          where: { clientId },
+          orderBy: { testDate: 'desc' },
+          select: { maxHR: true },
+        })
 
-      trainingLoad = {
-        tss,
-        trimp: null,
+        // Get resting HR from latest daily check-in
+        const latestCheckIn = await prisma.dailyCheckIn.findFirst({
+          where: { clientId, restingHR: { not: null } },
+          orderBy: { date: 'desc' },
+          select: { restingHR: true },
+        })
+
+        // Get most recent lactate test for LT HR
+        const latestTest = await prisma.test.findFirst({
+          where: { clientId, testType: workout.type === 'CYCLING' ? 'CYCLING' : 'RUNNING' },
+          orderBy: { testDate: 'desc' },
+          select: { anaerobicThreshold: true },
+        })
+
+        // Extract FTP from cycling settings if available
+        const cyclingSettings = client?.sportProfile?.cyclingSettings as { currentFtp?: number } | null
+        const ftp = cyclingSettings?.currentFtp
+
+        // Extract LT HR from test data or athlete profile
+        const anaerobicThreshold = latestTest?.anaerobicThreshold as { hr?: number } | null
+        const ltHR = anaerobicThreshold?.hr || client?.athleteProfile?.lt2HeartRate || undefined
+
+        // Get resting HR from latest check-in
+        const restingHR = latestCheckIn?.restingHR || undefined
+
+        // Get max HR from test or logged value
+        const athleteMaxHR = testWithMaxHR?.maxHR || maxHeartRate || undefined
+
+        // Build workout data for calculation
+        const workoutData: WorkoutData = {
+          duration: duration || workout.duration || 60,
+          avgHeartRate: avgHeartRate || undefined,
+          maxHeartRate: athleteMaxHR,
+          avgPower: avgPower || undefined,
+          normalizedPower: normalizedPower || avgPower || undefined,
+          ftp: ftp || undefined,
+          ltHR: ltHR,
+          restingHR: restingHR,
+          gender: (client?.gender as 'MALE' | 'FEMALE') || undefined,
+        }
+
+        // Calculate training load
+        trainingLoadResult = calculateTrainingLoad(workoutData)
+
+        // If calculation was successful, save to TrainingLoad table
+        if (trainingLoadResult.confidence !== 'LOW' || trainingLoadResult.tss || trainingLoadResult.hrTSS || trainingLoadResult.trimp) {
+          const loadValue = trainingLoadResult.tss || trainingLoadResult.hrTSS || trainingLoadResult.trimp || 0
+
+          // Determine load type based on calculation method
+          let loadType = 'TRIMP_EDWARDS'
+          if (trainingLoadResult.method.includes('TSS')) {
+            loadType = 'TSS'
+          } else if (trainingLoadResult.method.includes('Banister')) {
+            loadType = 'TRIMP_BANISTER'
+          }
+
+          // Map workout intensity
+          const intensityMap: Record<string, string> = {
+            RECOVERY: 'RECOVERY',
+            EASY: 'EASY',
+            MODERATE: 'MODERATE',
+            THRESHOLD: 'HARD',
+            INTERVAL: 'VERY_HARD',
+            MAX: 'VERY_HARD',
+          }
+          const intensity = intensityMap[workout.intensity as string] || 'MODERATE'
+
+          savedTrainingLoad = await prisma.trainingLoad.create({
+            data: {
+              clientId,
+              date: completedAt ? new Date(completedAt) : new Date(),
+              dailyLoad: loadValue,
+              loadType,
+              workoutType: workout.type,
+              duration: duration || workout.duration || 60,
+              distance: distance || null,
+              avgHR: avgHeartRate || null,
+              maxHR: maxHeartRate || null,
+              intensity,
+            },
+          })
+
+          logger.info('Training load saved', {
+            clientId,
+            workoutId,
+            tss: trainingLoadResult.tss,
+            hrTSS: trainingLoadResult.hrTSS,
+            trimp: trainingLoadResult.trimp,
+            method: trainingLoadResult.method,
+            confidence: trainingLoadResult.confidence,
+          })
+        }
+      } catch (error) {
+        logger.error('Error calculating training load', { clientId, workoutId }, error)
+        // Don't fail the workout log if training load calculation fails
       }
     }
 
@@ -233,7 +350,15 @@ export async function POST(
       {
         workoutLog,
         progression: progressionResults,
-        trainingLoad,
+        trainingLoad: trainingLoadResult ? {
+          tss: trainingLoadResult.tss,
+          hrTSS: trainingLoadResult.hrTSS,
+          trimp: trainingLoadResult.trimp,
+          intensity: trainingLoadResult.intensity,
+          method: trainingLoadResult.method,
+          confidence: trainingLoadResult.confidence,
+          saved: !!savedTrainingLoad,
+        } : null,
         injuryResponse: injuryTriggered
           ? {
               triggered: true,

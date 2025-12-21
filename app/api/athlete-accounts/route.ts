@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase/server'
 import { requireCoach, hasReachedAthleteLimit, canAccessClient } from '@/lib/auth-utils'
 import { CreateAthleteAccountDTO } from '@/types'
 import { logger } from '@/lib/logger'
+import { Resend } from 'resend'
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 /**
  * POST /api/athlete-accounts
@@ -152,8 +155,39 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // TODO: Send welcome email with temporary password
-    // You can implement this with Resend API
+    // Send welcome email with temporary password
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: 'Konditionstest <noreply@konditionstest.se>',
+          to: email,
+          subject: 'Välkommen till Konditionstest - Ditt atletkonto är skapat',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h1 style="color: #1a1a1a;">Välkommen till Konditionstest!</h1>
+              <p>Hej ${client.name},</p>
+              <p>Din tränare har skapat ett atletkonto åt dig. Nu kan du logga in och se dina träningsprogram, logga pass och följa din utveckling.</p>
+              <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0 0 10px 0;"><strong>E-post:</strong> ${email}</p>
+                <p style="margin: 0;"><strong>Temporärt lösenord:</strong> ${password}</p>
+              </div>
+              <p style="color: #666;">Vi rekommenderar att du ändrar ditt lösenord efter första inloggningen.</p>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://konditionstest.se'}/login"
+                 style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
+                Logga in
+              </a>
+              <p style="color: #999; font-size: 12px; margin-top: 30px;">
+                Om du har frågor, kontakta din tränare direkt.
+              </p>
+            </div>
+          `,
+        })
+        logger.info('Welcome email sent', { email, clientId })
+      } catch (emailError) {
+        logger.error('Failed to send welcome email', { email, clientId }, emailError)
+        // Don't fail the request if email fails - account is still created
+      }
+    }
 
     return NextResponse.json(
       {

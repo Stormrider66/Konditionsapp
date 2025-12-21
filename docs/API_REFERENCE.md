@@ -1,1330 +1,835 @@
 # API Reference
 
-Complete documentation for all 52 API endpoints in the Konditionstest Training Platform.
+Complete documentation for all 126 API endpoints in the Konditionstest Training Platform.
 
 **Base URL**: `http://localhost:3000` (development) or your production domain
 
-**Authentication**: All endpoints (except `/api/send-report-email` for email delivery) require Supabase authentication via session cookies.
+**Authentication**: All endpoints require Supabase Auth. Include JWT in Authorization header.
 
-**Response Format**: All endpoints return JSON unless otherwise specified.
-
----
-
-## 📋 Table of Contents
-
-1. [Testing APIs](#testing-apis) (10 endpoints)
-2. [Training Engine APIs](#training-engine-apis) (17 endpoints)
-3. [Program APIs](#program-apis) (8 endpoints)
-4. [Exercise APIs](#exercise-apis) (7 endpoints)
-5. [Strength Training APIs](#strength-training-apis) (6 endpoints)
-6. [Client & Team APIs](#client--team-apis) (4 endpoints)
-7. [Race Results APIs](#race-results-apis) (2 endpoints)
-8. [Messaging APIs](#messaging-apis) (2 endpoints)
-9. [User APIs](#user-apis) (1 endpoint)
-10. [Error Responses](#error-responses)
+**Response Format**: All endpoints return JSON with `{ success: boolean, data?: any, error?: string }`
 
 ---
 
-## Testing APIs
+## Table of Contents
 
-### 1. Create Test
+1. [AI & Chat](#ai--chat-endpoints) (14 endpoints)
+2. [Client Management](#client-management-endpoints) (8 endpoints)
+3. [Testing & Calculations](#testing--calculations-endpoints) (10 endpoints)
+4. [Field Tests](#field-tests-endpoints) (3 endpoints)
+5. [Training Programs](#training-programs-endpoints) (7 endpoints)
+6. [Workouts](#workouts-endpoints) (10 endpoints)
+7. [Exercise Library](#exercise-library-endpoints) (6 endpoints)
+8. [Strength Training](#strength-training-endpoints) (9 endpoints)
+9. [Hybrid/HYROX](#hybridhyrox-endpoints) (10 endpoints)
+10. [Race Results](#race-results-endpoints) (5 endpoints)
+11. [Monitoring & Readiness](#monitoring--readiness-endpoints) (4 endpoints)
+12. [Injury Management](#injury-management-endpoints) (4 endpoints)
+13. [Cross-Training](#cross-training-endpoints) (4 endpoints)
+14. [Messaging](#messaging-endpoints) (5 endpoints)
+15. [Documents & Knowledge](#documents--knowledge-endpoints) (6 endpoints)
+16. [Body Composition](#body-composition-endpoints) (4 endpoints)
+17. [Sport Profile](#sport-profile-endpoints) (3 endpoints)
+18. [Norwegian Method](#norwegian-method-endpoints) (2 endpoints)
+19. [Video Analysis](#video-analysis-endpoints) (10 endpoints)
+20. [Settings & API Keys](#settings-endpoints) (5 endpoints)
+21. [System & Admin](#system--admin-endpoints) (10 endpoints)
 
-**Endpoint**: `POST /api/tests`
+---
 
-**Description**: Create a new physiological test (running, cycling, or skiing)
+## AI & Chat Endpoints
 
-**Request Body**:
+### `POST /api/ai/chat`
+Stream AI responses with multi-model support (Claude Opus 4.5, Gemini 2.5 Pro).
+
+**Body:**
 ```json
 {
-  "clientId": "string (UUID)",
-  "testType": "RUNNING" | "CYCLING" | "SKIING",
-  "date": "2025-01-15T10:00:00Z",
-  "location": "Star Lab Stockholm",
-  "testLeader": "Henrik Thomson",
-  "status": "DRAFT" | "COMPLETED" | "ARCHIVED",
-  "testStages": [
-    {
-      "sequence": 1,
-      "speed": 8.0,        // km/h (for RUNNING)
-      "power": null,       // watt (for CYCLING)
-      "pace": null,        // min/km (for SKIING)
-      "incline": 1.0,      // % or degrees
-      "inclineUnit": "PERCENT",
-      "heartRate": 140,
-      "lactate": 1.2,
-      "vo2": 35.5,
-      "cadence": null,     // rpm (for CYCLING)
-      "duration": 300      // seconds
-    }
-    // ... more stages
-  ]
+  "conversationId": "string (optional)",
+  "messages": [{ "role": "user|assistant", "content": "string" }],
+  "model": "claude-opus-4-5-20251101 | gemini-2.5-pro",
+  "provider": "ANTHROPIC | GOOGLE",
+  "athleteId": "string (optional)",
+  "documentIds": ["string"],
+  "webSearchEnabled": true,
+  "pageContext": {}
 }
 ```
 
-**Response**: `201 Created`
-```json
-{
-  "id": "test-uuid",
-  "clientId": "client-uuid",
-  "testType": "RUNNING",
-  "date": "2025-01-15T10:00:00Z",
-  "status": "COMPLETED",
-  "testStages": [...],
-  "createdAt": "2025-01-15T10:30:00Z"
-}
-```
+### `GET /api/ai/conversations`
+List AI conversations for authenticated user.
+
+### `POST /api/ai/conversations`
+Create new AI conversation.
+
+### `GET /api/ai/conversations/[id]`
+Get conversation with messages.
+
+### `PUT /api/ai/conversations/[id]`
+Update conversation metadata.
+
+### `DELETE /api/ai/conversations/[id]`
+Delete conversation.
+
+### `POST /api/ai/conversations/[id]/message`
+Send message to existing conversation.
+
+### `POST /api/ai/save-program`
+Parse and save AI-generated training program to database.
+
+### `POST /api/ai/nutrition-plan`
+Generate nutrition recommendations based on athlete data.
+
+### `POST /api/ai/generate-chart`
+Generate dynamic training/performance charts.
+
+### `POST /api/ai/lactate-ocr`
+Extract lactate values from test report images via OCR.
+
+### `GET /api/ai/models`
+List available AI models.
+
+### `POST /api/ai/advanced-intelligence/patterns`
+Analyze training patterns from historical data.
+
+### `POST /api/ai/advanced-intelligence/predictions`
+Predict performance goals and race times.
+
+### `POST /api/ai/advanced-intelligence/injury-risk`
+Calculate injury risk from training load.
+
+### `POST /api/ai/advanced-intelligence/periodization`
+Auto-adjust periodization based on response.
+
+### `POST /api/ai/advanced-intelligence/coach-style`
+Extract coaching style preferences.
 
 ---
 
-### 2. Get Test by ID
+## Client Management Endpoints
 
-**Endpoint**: `GET /api/tests/[id]`
+### `GET /api/clients`
+List all clients for authenticated coach.
 
-**Description**: Retrieve a specific test with all stages and calculations
+### `POST /api/clients`
+Create new client.
 
-**Response**: `200 OK`
+**Body:**
 ```json
 {
-  "id": "test-uuid",
-  "client": {
-    "id": "client-uuid",
-    "name": "Joakim Hällgren",
-    "age": 35,
-    "gender": "MALE"
+  "name": "string",
+  "email": "string",
+  "phone": "string",
+  "gender": "MALE | FEMALE",
+  "birthDate": "ISO date",
+  "height": 180,
+  "weight": 75,
+  "notes": "string",
+  "teamId": "string"
+}
+```
+
+### `GET /api/clients/[id]`
+Get client details with tests and programs.
+
+### `PUT /api/clients/[id]`
+Update client information.
+
+### `DELETE /api/clients/[id]`
+Delete client (cascades to all data).
+
+### `GET /api/clients/[id]/context-summary`
+Get comprehensive client context for AI features.
+
+### `GET /api/clients/[id]/paces`
+Calculate elite training paces using hierarchical source system.
+
+**Response:**
+```json
+{
+  "marathonPace": { "pace": "4:30", "kmh": 13.3 },
+  "thresholdPace": { "pace": "4:10", "kmh": 14.4 },
+  "zones": {
+    "daniels": { "easy": {}, "marathon": {}, "threshold": {}, "interval": {}, "repetition": {} },
+    "canova": { "fundamental": {}, "progressive": {}, "marathon": {}, "specific": {}, "threshold": {}, "fiveK": {}, "oneK": {} },
+    "norwegian": { "green": {}, "threshold": {}, "red": {} }
   },
-  "testType": "RUNNING",
-  "testStages": [...],
-  "thresholdCalculations": [...],
-  "report": {...}
+  "primarySource": "VDOT | LACTATE | HR | PROFILE",
+  "confidence": "VERY_HIGH | HIGH | MEDIUM | LOW"
 }
 ```
 
----
-
-### 3. Update Test
-
-**Endpoint**: `PUT /api/tests/[id]`
-
-**Description**: Update test metadata or stages
-
-**Request Body**: Same as Create Test
-
-**Response**: `200 OK`
+### `GET /api/clients/[id]/progression/[exerciseId]`
+Get exercise progression tracking.
 
 ---
 
-### 4. Delete Test
+## Testing & Calculations Endpoints
 
-**Endpoint**: `DELETE /api/tests/[id]`
+### `GET /api/tests`
+List tests. Query: `?clientId=string`
 
-**Description**: Delete a test (cascades to test stages and report)
+### `POST /api/tests`
+Create physiological test.
 
-**Response**: `204 No Content`
-
----
-
-### 5. List Templates
-
-**Endpoint**: `GET /api/templates`
-
-**Description**: Get all test templates
-
-**Response**: `200 OK`
-```json
-[
-  {
-    "id": "template-uuid",
-    "name": "Standard Running Test",
-    "testType": "RUNNING",
-    "stages": [...]
-  }
-]
-```
-
----
-
-### 6. Submit Field Test
-
-**Endpoint**: `POST /api/field-tests`
-
-**Description**: Submit non-lab threshold test (30-min TT, HR drift, Critical Velocity)
-
-**Request Body**:
+**Body:**
 ```json
 {
-  "clientId": "string (UUID)",
-  "testType": "TIME_TRIAL_30" | "HR_DRIFT" | "CRITICAL_VELOCITY",
-  "date": "2025-01-15T10:00:00Z",
-  "avgPace": "4:30",           // min/km
+  "clientId": "string",
+  "testDate": "ISO date",
+  "testType": "RUNNING | CYCLING | SKIING",
+  "stages": [{
+    "sequence": 1,
+    "speed": 10.0,
+    "heartRate": 140,
+    "lactate": 1.2,
+    "vo2": 35.5
+  }]
+}
+```
+
+### `GET /api/tests/[id]`
+Get test with stages and calculations.
+
+### `PUT /api/tests/[id]`
+Update test.
+
+### `DELETE /api/tests/[id]`
+Delete test (cascades to stages, report).
+
+### `POST /api/calculations/thresholds`
+Calculate lactate thresholds using D-max method.
+
+**Response:**
+```json
+{
+  "aerobicThreshold": { "speed": 12.5, "heartRate": 145, "lactate": 2.0 },
+  "anaerobicThreshold": { "speed": 15.0, "heartRate": 172, "lactate": 4.0 },
+  "dmaxResult": { "intensity": 14.2, "lactate": 3.2, "rSquared": 0.98 }
+}
+```
+
+### `POST /api/calculations/zones`
+Calculate training zones from thresholds.
+
+### `POST /api/calculations/vdot`
+Calculate VDOT from race performance.
+
+**Body:**
+```json
+{
+  "distance": 10000,
+  "timeMinutes": 45.0,
+  "age": 35,
+  "gender": "MALE"
+}
+```
+
+### `POST /api/calculations/environmental`
+Apply WBGT, altitude, wind corrections.
+
+### `GET /api/templates`
+List test templates.
+
+---
+
+## Field Tests Endpoints
+
+### `POST /api/field-tests`
+Submit field test (30-min TT, HR drift, Critical Velocity).
+
+**Body:**
+```json
+{
+  "clientId": "string",
+  "testType": "THIRTY_MIN_TT | HR_DRIFT | CRITICAL_VELOCITY | RACE_BASED",
+  "testDate": "ISO date",
+  "distance": 10000,
+  "duration": 1800,
   "avgHeartRate": 175,
-  "maxHeartRate": 185,
-  "distance": 10000,            // meters
-  "duration": 2700,             // seconds
-  "conditions": {
-    "temperature": 15,
-    "wind": "calm",
-    "terrain": "flat"
-  }
+  "maxHeartRate": 185
 }
 ```
 
-**Response**: `201 Created`
-```json
-{
-  "id": "field-test-uuid",
-  "derivedThresholds": {
-    "lt1": { "pace": "5:15", "hr": 160 },
-    "lt2": { "pace": "4:40", "hr": 172 }
-  },
-  "confidence": "HIGH" | "MEDIUM" | "LOW",
-  "valid": true,
-  "validationWarnings": []
-}
-```
+### `GET /api/field-tests/[id]/analysis`
+Get detailed field test analysis.
+
+### `GET /api/field-tests/progression/[clientId]`
+Get field test progression history.
 
 ---
 
-### 7. Calculate Thresholds
+## Training Programs Endpoints
 
-**Endpoint**: `POST /api/calculations/thresholds`
+### `GET /api/programs`
+List programs. Query: `?clientId=string`
 
-**Description**: Calculate thresholds from raw test data
+### `POST /api/programs`
+Create training program.
 
-**Request Body**:
+### `GET /api/programs/[id]`
+Get program with weeks, days, workouts.
+
+### `PUT /api/programs/[id]/edit`
+Update program structure.
+
+### `POST /api/programs/[id]/days/[dayId]/add-workout`
+Add workout to training day.
+
+### `GET /api/programs/[id]/zones`
+Get training zones for program.
+
+### `POST /api/programs/generate`
+Auto-generate training program.
+
+**Body:**
 ```json
 {
-  "testStages": [
-    { "speed": 8.0, "heartRate": 140, "lactate": 1.2 },
-    { "speed": 10.0, "heartRate": 155, "lactate": 2.1 },
-    { "speed": 12.0, "heartRate": 170, "lactate": 4.3 }
-  ],
-  "method": "LINEAR_INTERPOLATION" | "DMAX"
-}
-```
-
-**Response**: `200 OK`
-```json
-{
-  "aerobicThreshold": {
-    "speed": 9.5,
-    "heartRate": 150,
-    "lactate": 2.0
-  },
-  "anaerobicThreshold": {
-    "speed": 11.2,
-    "heartRate": 165,
-    "lactate": 4.0
-  }
-}
-```
-
----
-
-### 8. Calculate Training Zones
-
-**Endpoint**: `POST /api/calculations/zones`
-
-**Description**: Calculate 5-zone training zones from thresholds
-
-**Request Body**:
-```json
-{
-  "maxHeartRate": 194,
-  "anaerobicThreshold": {
-    "heartRate": 175,
-    "speed": 14.0
-  }
-}
-```
-
-**Response**: `200 OK`
-```json
-{
-  "zones": [
-    {
-      "zone": 1,
-      "name": "Recovery",
-      "hrMin": 97,
-      "hrMax": 116,
-      "speedMin": 8.0,
-      "speedMax": 10.5
-    }
-    // ... zones 2-5
-  ]
-}
-```
-
----
-
-### 9. Calculate VDOT
-
-**Endpoint**: `POST /api/calculations/vdot`
-
-**Description**: Calculate VDOT from race performance (Jack Daniels tables)
-
-**Request Body**:
-```json
-{
-  "distance": 10000,      // meters
-  "time": 2700,           // seconds (45:00)
-  "unit": "METRIC"
-}
-```
-
-**Response**: `200 OK`
-```json
-{
-  "vdot": 52.3,
-  "paces": {
-    "easy": "5:30-6:00",
-    "marathon": "4:45",
-    "threshold": "4:20",
-    "interval": "4:00",
-    "repetition": "3:40"
-  },
-  "equivalentTimes": {
-    "5k": "20:30",
-    "10k": "42:45",
-    "halfMarathon": "1:35:20",
-    "marathon": "3:20:45"
-  }
-}
-```
-
----
-
-### 10. Environmental Calculations
-
-**Endpoint**: `POST /api/calculations/environmental`
-
-**Description**: Calculate WBGT heat stress, altitude, and wind adjustments
-
-**Request Body**:
-```json
-{
-  "temperature": 28,       // Celsius
-  "humidity": 75,          // %
-  "windSpeed": 10,         // km/h
-  "altitude": 1500,        // meters
-  "calculationType": "WBGT" | "ALTITUDE" | "WIND"
-}
-```
-
-**Response**: `200 OK`
-```json
-{
-  "wbgt": 26.5,
-  "category": "HIGH_RISK",
-  "paceAdjustment": "+15-20 sec/km",
-  "altitudeEffect": "-3.5% VO2max",
-  "recommendations": [
-    "Reduce intensity by 20%",
-    "Increase hydration"
-  ]
-}
-```
-
----
-
-## Training Engine APIs
-
-### 11. Submit Daily Check-In
-
-**Endpoint**: `POST /api/daily-checkin`
-
-**Description**: Quick daily readiness check-in (<2 minutes)
-
-**Request Body**:
-```json
-{
-  "clientId": "string (UUID)",
-  "date": "2025-01-15",
-  "hrv": 65,                    // optional
-  "rhr": 52,                    // optional
-  "sleepQuality": 8,            // 1-10
-  "muscleSoreness": 3,          // 1-10
-  "energyLevel": 7,             // 1-10
-  "mood": 8,                    // 1-10
-  "stress": 4,                  // 1-10
-  "painLevel": 0,               // 0-10
-  "painLocation": null,
-  "notes": "Feeling good"
-}
-```
-
-**Response**: `201 Created`
-```json
-{
-  "id": "checkin-uuid",
-  "readinessScore": 78,          // 0-100
-  "readinessLevel": "GOOD",
-  "readinessDecision": "PROCEED",
-  "workoutModification": null,
-  "redFlags": [],
-  "yellowFlags": []
-}
-```
-
----
-
-### 12. Get Athlete Readiness
-
-**Endpoint**: `GET /api/monitoring/readiness?clientId=xxx&days=30`
-
-**Description**: Get readiness history and current status
-
-**Response**: `200 OK`
-```json
-{
-  "current": {
-    "score": 78,
-    "level": "GOOD",
-    "decision": "PROCEED"
-  },
-  "history": [
-    {
-      "date": "2025-01-15",
-      "score": 78,
-      "level": "GOOD"
-    }
-    // ... last 30 days
-  ],
-  "trends": {
-    "avgScore": 75,
-    "improving": true
-  }
-}
-```
-
----
-
-### 13. Submit Self-Reported Lactate
-
-**Endpoint**: `POST /api/lactate/self-reported`
-
-**Description**: Athlete submits home lactate test for coach validation
-
-**Request Body**:
-```json
-{
-  "clientId": "string (UUID)",
-  "testDate": "2025-01-15",
-  "stages": [
-    {
-      "sequence": 1,
-      "pace": "5:00",
-      "heartRate": 145,
-      "lactate": 1.8,
-      "photoUrl": "https://..."
-    }
-    // ... 4+ stages required
-  ],
-  "notes": "Home test on track"
-}
-```
-
-**Response**: `201 Created`
-```json
-{
-  "id": "lactate-uuid",
-  "validated": false,
-  "estimatedThresholds": {
-    "lt1": { "pace": "5:15", "lactate": 2.0 },
-    "lt2": { "pace": "4:30", "lactate": 4.0 }
-  },
-  "validationWarnings": [
-    "Stage 3 lactate seems high - please verify photo"
-  ]
-}
-```
-
----
-
-### 14. Validate Self-Reported Lactate
-
-**Endpoint**: `PUT /api/lactate/[id]/validate`
-
-**Description**: Coach validates or rejects athlete lactate submission
-
-**Request Body**:
-```json
-{
-  "validated": true,
-  "validatedBy": "coach-user-id",
-  "notes": "Looks good, updating zones"
-}
-```
-
-**Response**: `200 OK`
-
----
-
-### 15. Assess Injury
-
-**Endpoint**: `POST /api/injury/assess`
-
-**Description**: Submit injury assessment using University of Delaware pain rules
-
-**Request Body**:
-```json
-{
-  "clientId": "string (UUID)",
-  "injuryType": "PLANTAR_FASCIITIS" | "ACHILLES" | "IT_BAND" | "PATELLOFEMORAL" | "SHIN_SPLINTS" | "STRESS_FRACTURE" | "HAMSTRING" | "CALF" | "HIP_FLEXOR",
-  "painLevel": 6,               // 0-10
-  "gaitAffected": false,
-  "functionalTests": {
-    "singleLegHop": "PAIN",
-    "toeTaps": "NO_PAIN"
-  },
-  "onsetDate": "2025-01-10"
-}
-```
-
-**Response**: `201 Created`
-```json
-{
-  "id": "injury-uuid",
-  "assessment": "MODERATE",
-  "recommendation": "CROSS_TRAINING_ONLY",
-  "returnToRunProtocol": {
-    "phase": 1,
-    "duration": "1 week",
-    "activities": ["Walking only"]
-  },
-  "crossTrainingRecommendations": [
-    {
-      "modality": "DWR",
-      "retention": 98,
-      "reason": "Ideal for plantar fasciitis"
-    }
-  ]
-}
-```
-
----
-
-### 16. Process Injury from Check-In
-
-**Endpoint**: `POST /api/injury/process-checkin`
-
-**Description**: Automatically process injury detection from daily check-in
-
-**Request Body**:
-```json
-{
-  "checkInId": "checkin-uuid",
-  "clientId": "client-uuid"
-}
-```
-
-**Response**: `200 OK`
-```json
-{
-  "injuryDetected": true,
-  "workoutsModified": 5,
-  "crossTrainingGenerated": 3,
-  "coachNotified": true
-}
-```
-
----
-
-### 17. Convert to Cross-Training
-
-**Endpoint**: `GET /api/cross-training/convert?workoutId=xxx&modality=DWR`
-
-**Description**: Convert running workout to cross-training with TSS equivalency
-
-**Query Parameters**:
-- `workoutId`: Workout to convert
-- `modality`: `DWR` | `CYCLING` | `ELLIPTICAL` | `SWIMMING` | `ALTERG` | `ROWING`
-
-**Response**: `200 OK`
-```json
-{
-  "original": {
-    "type": "RUNNING",
-    "duration": 60,
-    "tss": 100
-  },
-  "converted": {
-    "modality": "DWR",
-    "duration": 60,
-    "tss": 98,
-    "retention": 98,
-    "instructions": "Deep water running for 60 minutes at moderate effort"
-  }
-}
-```
-
----
-
-### 18. Norwegian Method Eligibility
-
-**Endpoint**: `POST /api/norwegian-singles/eligibility`
-
-**Description**: Check if athlete meets Norwegian Method prerequisites
-
-**Request Body**:
-```json
-{
-  "clientId": "string (UUID)"
-}
-```
-
-**Response**: `200 OK`
-```json
-{
-  "eligible": false,
-  "requirements": [
-    { "criterion": "Training age ≥2 years", "met": true },
-    { "criterion": "Aerobic base ≥60 km/week", "met": false },
-    { "criterion": "Recent lactate test", "met": true },
-    { "criterion": "Lactate meter access", "met": true },
-    { "criterion": "Coach supervision", "met": true }
-  ],
-  "transitionPlan": null,
-  "estimatedWeeks": null
-}
-```
-
----
-
-### 19. Generate Norwegian Singles Workout
-
-**Endpoint**: `POST /api/norwegian-singles/generate`
-
-**Description**: Generate Norwegian Method threshold workout
-
-**Request Body**:
-```json
-{
-  "clientId": "string (UUID)",
-  "thresholdPace": "4:20",
-  "volume": 8000               // meters
-}
-```
-
-**Response**: `201 Created`
-```json
-{
-  "workout": {
-    "warmup": "15 min easy",
-    "main": "8 km @ 4:20/km (LT2, 2-3 mmol/L)",
-    "cooldown": "10 min easy",
-    "targetLactate": "2.0-3.0 mmol/L",
-    "notes": "Check lactate 2x during session"
-  }
-}
-```
-
----
-
-### 20. System Validation
-
-**Endpoint**: `GET /api/system-validation?clientId=xxx`
-
-**Description**: Multi-system validation cascade (INJURY → READINESS → FIELD_TESTS → NORWEGIAN → PROGRAM → WORKOUT)
-
-**Response**: `200 OK`
-```json
-{
-  "valid": false,
-  "blockers": [
-    {
-      "system": "INJURY",
-      "message": "Active injury detected",
-      "action": "Pause Norwegian Method"
-    }
-  ],
-  "warnings": [
-    {
-      "system": "READINESS",
-      "message": "Low readiness score (45)",
-      "action": "Recommend easy day"
-    }
-  ],
-  "recommendations": [
-    "Switch to cross-training-only protocol"
-  ]
-}
-```
-
----
-
-### 21-27. Additional Training Engine Endpoints
-
-- `POST /api/daily-metrics` - Submit full daily metrics (legacy comprehensive version)
-- `GET /api/monitoring/hrv-rhr` - Get HRV/RHR baseline and trends
-- `POST /api/training-load` - Log training load (TSS/TRIMP)
-- `GET /api/training-load/acwr` - Get ACWR (Acute:Chronic Workload Ratio)
-- `POST /api/workouts/modify` - Modify workout based on readiness
-- `GET /api/field-tests/[id]` - Get field test results
-- `PUT /api/field-tests/[id]` - Update field test
-
----
-
-## Program APIs
-
-### 28. Generate Training Program
-
-**Endpoint**: `POST /api/programs/generate`
-
-**Description**: Generate complete training program with periodization
-
-**Request Body**:
-```json
-{
-  "clientId": "string (UUID)",
-  "goalType": "MARATHON" | "HALF_MARATHON" | "10K" | "5K" | "FITNESS" | "CYCLING" | "SKIING" | "CUSTOM",
-  "methodology": "POLARIZED" | "NORWEGIAN" | "CANOVA" | "PYRAMIDAL" | "LYDIARD",
-  "raceDate": "2025-06-01",
-  "startDate": "2025-01-15",
-  "weeksToRace": 20,
-  "currentWeeklyVolume": 50,     // km/week
-  "targetRaceTime": "3:30:00",    // marathon time
+  "clientId": "string",
+  "goalType": "marathon | half_marathon | 10k | 5k",
+  "methodology": "POLARIZED | NORWEGIAN | CANOVA | PYRAMIDAL",
+  "raceDate": "ISO date",
+  "startDate": "ISO date",
   "sessionsPerWeek": 5,
-  "includeStrength": true,
-  "includeCrossTraining": false
+  "includeStrength": true
 }
 ```
 
-**Response**: `201 Created`
+---
+
+## Workouts Endpoints
+
+### `GET /api/workouts/[id]`
+Get workout with segments.
+
+### `PUT /api/workouts/[id]`
+Update workout.
+
+### `POST /api/workouts/[id]/log`
+Log completed workout.
+
+**Body:**
 ```json
 {
-  "id": "program-uuid",
-  "clientId": "client-uuid",
-  "phases": [
-    {
-      "name": "BASE",
-      "weeks": 8,
-      "weeklyVolume": "50-65 km"
-    },
-    {
-      "name": "BUILD",
-      "weeks": 8,
-      "weeklyVolume": "65-80 km"
-    },
-    {
-      "name": "PEAK",
-      "weeks": 3,
-      "weeklyVolume": "80 km"
-    },
-    {
-      "name": "TAPER",
-      "weeks": 1,
-      "weeklyVolume": "40 km"
-    }
-  ],
-  "totalWeeks": 20,
-  "totalWorkouts": 100,
-  "generatedAt": "2025-01-15T10:00:00Z"
+  "completedAt": "ISO date",
+  "duration": 60,
+  "exerciseLogs": [{
+    "exerciseId": "string",
+    "sets": [{ "reps": 10, "weight": 50, "rpe": 7 }]
+  }],
+  "painLevel": 0,
+  "notes": "string"
 }
 ```
 
----
+### `GET /api/workouts/[id]/logs`
+Get workout log history.
 
-### 29. Edit Training Program
+### `PUT /api/workouts/[id]/logs/[logId]`
+Update workout log.
 
-**Endpoint**: `PUT /api/programs/[id]/edit`
+### `POST /api/workouts/[id]/change-type`
+Change workout type.
 
-**Description**: Edit program components (day/workout/reorder/segments)
+### `POST /api/workouts/create`
+Create standalone workout.
 
-**Query Parameters**:
-- `type`: `day` | `workout` | `reorder` | `segments`
+### `POST /api/workouts/modify`
+Modify workout based on readiness.
 
-**Request Body** (for `type=workout`):
-```json
-{
-  "workoutId": "workout-uuid",
-  "updates": {
-    "type": "RUNNING",
-    "intensity": "THRESHOLD",
-    "duration": 60,
-    "segments": [...]
-  }
-}
-```
+### `GET /api/workouts/modifications`
+List pending modifications.
 
-**Response**: `200 OK`
+### `PUT /api/workouts/modifications/[id]/review`
+Coach review of modification.
 
 ---
 
-### 30. Add Workout to Program Day
+## Exercise Library Endpoints
 
-**Endpoint**: `POST /api/programs/[id]/edit`
+### `GET /api/exercises`
+List 84-exercise library with filtering.
 
-**Description**: Add a workout to a specific day
-
-**Request Body**:
-```json
-{
-  "dayId": "day-uuid",
-  "workout": {
-    "type": "RUNNING",
-    "intensity": "EASY",
-    "duration": 45,
-    "description": "Easy recovery run"
-  }
-}
-```
-
-**Response**: `201 Created`
-
----
-
-### 31. Delete Workout
-
-**Endpoint**: `DELETE /api/programs/[id]/edit?workoutId=xxx`
-
-**Description**: Remove workout from program
-
-**Response**: `204 No Content`
-
----
-
-### 32-35. Additional Program Endpoints
-
-- `GET /api/programs/[id]` - Get program details
-- `GET /api/programs?clientId=xxx` - List all programs for client
-- `POST /api/programs/[id]/generate-report` - Generate program report PDF
-- `DELETE /api/programs/[id]` - Delete program
-
----
-
-## Exercise APIs
-
-### 36. List Exercises
-
-**Endpoint**: `GET /api/exercises`
-
-**Description**: Get exercise library with filtering
-
-**Query Parameters**:
-- `search`: Text search
-- `pillar`: Biomechanical pillar filter
-- `level`: Progression level (1/2/3)
-- `category`: Exercise category
-- `equipment`: Equipment filter
+**Query:**
+- `search`: text search
+- `pillar`: POSTERIOR_CHAIN | KNEE_DOMINANCE | UNILATERAL | FOOT_ANKLE | CORE | UPPER_BODY
+- `level`: LEVEL_1 | LEVEL_2 | LEVEL_3
 - `difficulty`: BEGINNER | INTERMEDIATE | ADVANCED
-- `sortBy`: Field to sort by
-- `sortOrder`: asc | desc
-- `page`: Page number (default 1)
-- `limit`: Items per page (default 20)
+- `limit`, `offset`: pagination
 
-**Response**: `200 OK`
+### `POST /api/exercises`
+Create custom exercise.
+
+### `GET /api/exercises/[id]`
+Get exercise details.
+
+### `PUT /api/exercises/[id]`
+Update exercise.
+
+### `GET /api/exercises/[id]/alternatives`
+Get exercises from same pillar.
+
+### `GET /api/exercises/[id]/progression-path`
+Get easier/harder variations.
+
+---
+
+## Strength Training Endpoints
+
+### `GET /api/strength-sessions`
+List strength sessions.
+
+### `POST /api/strength-sessions`
+Create strength session.
+
+### `GET /api/strength-sessions/[id]`
+Get session details.
+
+### `PUT /api/strength-sessions/[id]`
+Update session.
+
+### `POST /api/strength-sessions/[id]/assign`
+Assign to client.
+
+### `GET /api/strength-templates`
+List pre-built templates.
+
+### `POST /api/strength-pr`
+Log personal record.
+
+### `GET /api/progression/history`
+Get progression history.
+
+### `POST /api/progression/calculate`
+Calculate 1RM and progression (Epley/Brzycki, 2-for-2 rule).
+
+---
+
+## Hybrid/HYROX Endpoints
+
+### `GET /api/hybrid-workouts`
+List hybrid workouts.
+
+**Query:**
+- `format`: AMRAP | FOR_TIME | EMOM | TABATA | CHIPPER | HYROX_SIM
+- `scalingLevel`: RX | SCALED | FOUNDATIONS
+- `benchmarkOnly`: boolean
+- `search`: text
+
+### `POST /api/hybrid-workouts`
+Create hybrid workout.
+
+### `GET /api/hybrid-workouts/[id]`
+Get workout details.
+
+### `PUT /api/hybrid-workouts/[id]`
+Update workout.
+
+### `POST /api/hybrid-workouts/[id]/results`
+Submit workout results.
+
+### `GET /api/hybrid-workouts/[id]/versions`
+Get version history.
+
+### `GET /api/hybrid-movements`
+List HYROX stations/movements.
+
+### `POST /api/hybrid-assignments`
+Assign workout to athlete.
+
+### `GET /api/hybrid-assignments/[id]`
+Get assignment.
+
+### `POST /api/hybrid-analytics`
+Analyze performance by station.
+
+---
+
+## Race Results Endpoints
+
+### `GET /api/race-results`
+List race results. Query: `?clientId=string`
+
+### `POST /api/race-results`
+Create race with auto-VDOT.
+
+**Body:**
 ```json
 {
-  "exercises": [
-    {
-      "id": "exercise-uuid",
-      "nameSv": "Knäböj",
-      "nameEn": "Back Squat",
-      "category": "STRENGTH",
-      "pillar": "KNEE_DOMINANCE",
-      "level": "LEVEL_2",
-      "equipment": "BARBELL",
-      "difficulty": "INTERMEDIATE",
-      "targetMuscles": ["Quadriceps", "Glutes"],
-      "instructions": "...",
-      "videoUrl": "https://..."
-    }
-  ],
-  "total": 84,
-  "page": 1,
-  "totalPages": 5
-}
-```
-
----
-
-### 37. Get Single Exercise
-
-**Endpoint**: `GET /api/exercises/[id]`
-
-**Description**: Get complete exercise details
-
-**Response**: `200 OK`
-
----
-
-### 38. Create Custom Exercise
-
-**Endpoint**: `POST /api/exercises`
-
-**Description**: Create custom exercise
-
-**Request Body**:
-```json
-{
-  "nameSv": "Min Anpassade Övning",
-  "nameEn": "My Custom Exercise",
-  "category": "STRENGTH",
-  "pillar": "POSTERIOR_CHAIN",
-  "level": "LEVEL_2",
-  "equipment": "DUMBBELL",
-  "difficulty": "INTERMEDIATE",
-  "instructions": "...",
-  "coachingCues": ["Keep back straight", "Push through heels"],
-  "videoUrl": "https://youtube.com/..."
-}
-```
-
-**Response**: `201 Created`
-
----
-
-### 39. Update Exercise
-
-**Endpoint**: `PUT /api/exercises/[id]`
-
-**Description**: Update exercise details
-
-**Response**: `200 OK`
-
----
-
-### 40. Delete Exercise
-
-**Endpoint**: `DELETE /api/exercises/[id]`
-
-**Description**: Delete custom exercise (cannot delete library exercises)
-
-**Response**: `204 No Content`
-
----
-
-### 41. Get Alternative Exercises
-
-**Endpoint**: `GET /api/exercises/[id]/alternatives`
-
-**Description**: Get exercises with same biomechanical pillar
-
-**Response**: `200 OK`
-```json
-{
-  "alternatives": [
-    {
-      "id": "alt-uuid",
-      "nameSv": "Front Squat",
-      "nameEn": "Front Squat",
-      "pillar": "KNEE_DOMINANCE",
-      "level": "LEVEL_2"
-    }
-  ]
-}
-```
-
----
-
-### 42. Get Progression Path
-
-**Endpoint**: `GET /api/exercises/[id]/progression-path`
-
-**Description**: Get easier/harder progression for exercise
-
-**Response**: `200 OK`
-```json
-{
-  "easier": {
-    "id": "easier-uuid",
-    "nameSv": "Goblet Squat",
-    "level": "LEVEL_1"
-  },
-  "current": {
-    "id": "current-uuid",
-    "nameSv": "Back Squat",
-    "level": "LEVEL_2"
-  },
-  "harder": {
-    "id": "harder-uuid",
-    "nameSv": "Front Squat",
-    "level": "LEVEL_3"
-  }
-}
-```
-
----
-
-## Strength Training APIs
-
-### 43. Get Progression History
-
-**Endpoint**: `GET /api/clients/[id]/progression/[exerciseId]?limit=20`
-
-**Description**: Get progression tracking for specific exercise
-
-**Response**: `200 OK`
-```json
-{
-  "exerciseId": "exercise-uuid",
-  "exerciseName": "Back Squat",
-  "progression": [
-    {
-      "date": "2025-01-15",
-      "sets": 3,
-      "reps": 8,
-      "load": 100,
-      "rpe": 7,
-      "estimated1RM": 125,
-      "confidence": "HIGH"
-    }
-  ],
-  "current1RM": 125,
-  "status": "ON_TRACK" | "PLATEAU" | "REGRESSING",
-  "readyForIncrease": true,
-  "plateauWeeks": 0,
-  "improvement": "+15% since start"
-}
-```
-
----
-
-### 44. Calculate Progression
-
-**Endpoint**: `POST /api/clients/[id]/progression/[exerciseId]`
-
-**Description**: Log workout and calculate progression (1RM, 2-for-2 rule, plateau detection)
-
-**Request Body**:
-```json
-{
-  "date": "2025-01-15",
-  "sets": 3,
-  "reps": 10,        // 2 extra reps beyond target (8)
-  "load": 100,
-  "rpe": 7,
-  "notes": "Felt strong today"
-}
-```
-
-**Response**: `201 Created`
-```json
-{
-  "id": "tracking-uuid",
-  "estimated1RM": 133,     // Epley/Brzycki average
-  "confidence": "HIGH",
-  "twoForTwoStatus": {
-    "session1": true,      // 2+ extra reps
-    "session2": null,      // Need 1 more session
-    "readyForIncrease": false
-  },
-  "plateauCheck": {
-    "weeksWithoutProgress": 0,
-    "status": "ON_TRACK"
-  },
-  "recommendation": "Continue with current load for 1 more session"
-}
-```
-
----
-
-### 45. Log Workout
-
-**Endpoint**: `POST /api/workouts/[id]/log`
-
-**Description**: Log completed workout with exercise-by-exercise data
-
-**Request Body**:
-```json
-{
-  "completedAt": "2025-01-15T18:00:00Z",
-  "duration": 65,          // minutes
-  "rpe": 7,
-  "exercises": [
-    {
-      "exerciseId": "exercise-uuid",
-      "sets": 3,
-      "reps": 8,
-      "load": 100,
-      "rpe": 7,
-      "skipped": false
-    }
-  ],
-  "notes": "Great session",
-  "fileUrls": []
-}
-```
-
-**Response**: `201 Created`
-```json
-{
-  "id": "log-uuid",
-  "progressionResults": [
-    {
-      "exerciseId": "exercise-uuid",
-      "new1RM": 125,
-      "readyForIncrease": false
-    }
-  ]
-}
-```
-
----
-
-### 46-48. Additional Strength Endpoints
-
-- `GET /api/strength-templates` - Get pre-built strength program templates
-- `GET /api/clients/[id]/progression` - Get all progression tracking for client
-- `POST /api/progression/calculate` - Standalone progression calculator
-
----
-
-## Client & Team APIs
-
-### 49. Get Clients
-
-**Endpoint**: `GET /api/clients?search=xxx&teamId=xxx`
-
-**Description**: List all clients for authenticated coach
-
-**Response**: `200 OK`
-```json
-{
-  "clients": [
-    {
-      "id": "client-uuid",
-      "name": "Joakim Hällgren",
-      "email": "joakim@example.com",
-      "age": 35,
-      "gender": "MALE",
-      "height": 186,
-      "weight": 88,
-      "athleteAccount": {...}
-    }
-  ]
-}
-```
-
----
-
-### 50-52. Additional Client/Team Endpoints
-
-- `POST /api/clients` - Create client
-- `PUT /api/clients/[id]` - Update client
-- `DELETE /api/clients/[id]` - Delete client (cascades to all data)
-- `GET /api/teams` - List teams
-- `POST /api/teams` - Create team
-- `PUT /api/teams/[id]` - Update team
-- `DELETE /api/teams/[id]` - Delete team
-
----
-
-## Race Results APIs
-
-### 53. Create/List Race Results
-
-**Endpoint**: `POST /api/race-results`
-
-**Description**: Create race result with auto-VDOT calculation
-
-**Request Body**:
-```json
-{
-  "clientId": "string (UUID)",
-  "date": "2025-06-01",
-  "distance": 10000,       // meters
-  "time": 2700,            // seconds (45:00)
-  "raceName": "Stockholm 10K",
-  "classification": "A" | "B" | "C",
-  "goalTime": 2640,        // seconds (44:00)
+  "clientId": "string",
+  "raceName": "Stockholm Marathon",
+  "raceDate": "ISO date",
+  "distance": 42195,
+  "timeMinutes": 210,
+  "temperature": 18,
   "conditions": "Good"
 }
 ```
 
-**Response**: `201 Created`
+### `GET /api/race-results/[id]`
+Get race details.
+
+### `PUT /api/race-results/[id]`
+Update race.
+
+### `DELETE /api/race-results/[id]`
+Delete race.
+
+---
+
+## Monitoring & Readiness Endpoints
+
+### `POST /api/daily-metrics`
+Save daily check-in.
+
+**Body:**
 ```json
 {
-  "id": "race-uuid",
-  "vdot": 52.3,
-  "assessment": "CLOSE",   // EXCEEDED | MET | CLOSE | MISSED
-  "equivalentTimes": {...},
-  "paceRecommendations": {...}
+  "clientId": "string",
+  "date": "ISO date",
+  "hrvRMSSD": 65,
+  "restingHR": 52,
+  "sleepQuality": 8,
+  "sleepHours": 7.5,
+  "muscleSoreness": 3,
+  "energyLevel": 7,
+  "mood": 8,
+  "stress": 4,
+  "injuryPain": 0
+}
+```
+
+### `GET /api/daily-metrics`
+Get historical metrics. Query: `?clientId=string&days=30`
+
+### `GET /api/readiness`
+Calculate readiness score.
+
+**Response:**
+```json
+{
+  "readinessScore": 78,
+  "trend": "IMPROVING | STABLE | DECLINING",
+  "recommendation": "PROCEED | REDUCE | EASY | REST"
+}
+```
+
+### `POST /api/training-load/warnings`
+Get ACWR-based warnings.
+
+---
+
+## Injury Management Endpoints
+
+### `POST /api/injury/assess`
+University of Delaware pain assessment.
+
+**Body:**
+```json
+{
+  "athleteId": "string",
+  "injuryType": "ACHILLES | PLANTAR_FASCIA | ITB | PATELLA | HAMSTRING | CALF | SHIN | HIP | ANKLE",
+  "painLevel": 6,
+  "painTiming": "DURING | AFTER | NEXT_DAY",
+  "symptomDuration": 7,
+  "currentACWR": 1.2
+}
+```
+
+### `POST /api/injury/process-checkin`
+Process injury from daily check-in.
+
+### `GET /api/injury/alerts`
+Get injury alerts.
+
+### `PUT /api/injury/alerts/[id]/resolve`
+Resolve alert.
+
+---
+
+## Cross-Training Endpoints
+
+### `POST /api/cross-training/convert`
+Convert workout with TSS equivalency.
+
+**Modalities:** DWR (98%), Cycling (75%), Swimming (45%), Elliptical (65%), AlterG (variable), Rowing (70%)
+
+### `GET /api/cross-training/substitutions/[clientId]`
+Get cross-training alternatives.
+
+### `GET /api/cross-training/preferences/[clientId]`
+Get modality preferences.
+
+### `GET /api/cross-training/fitness-projection/[clientId]`
+Project fitness from cross-training.
+
+---
+
+## Messaging Endpoints
+
+### `GET /api/messages`
+List messages. Query: `?filter=inbox|sent&conversationWith=clientId`
+
+### `POST /api/messages`
+Send message.
+
+**Body:**
+```json
+{
+  "receiverId": "string",
+  "content": "string",
+  "workoutId": "string (optional)"
+}
+```
+
+### `GET /api/messages/[id]`
+Get message.
+
+### `PUT /api/messages/[id]`
+Mark as read.
+
+### `DELETE /api/messages/[id]`
+Delete message.
+
+---
+
+## Documents & Knowledge Endpoints
+
+### `GET /api/documents`
+List documents. Query: `?fileType=PDF|EXCEL|VIDEO`
+
+### `POST /api/documents/upload`
+Upload file (max 50MB).
+
+### `GET /api/documents/[id]`
+Get document.
+
+### `DELETE /api/documents/[id]`
+Delete document.
+
+### `POST /api/documents/[id]/embed`
+Generate embeddings for RAG.
+
+### `POST /api/knowledge/search`
+Semantic search in documents.
+
+**Body:**
+```json
+{
+  "query": "string",
+  "documentIds": ["string"],
+  "matchThreshold": 0.7
 }
 ```
 
 ---
 
-### 54. Get/Update/Delete Race
+## Body Composition Endpoints
 
-**Endpoint**: `GET/PUT/DELETE /api/race-results/[id]`
+### `GET /api/body-composition`
+List records. Query: `?clientId=string`
 
-**Description**: CRUD operations for race results
+### `POST /api/body-composition`
+Record bioimpedance.
 
----
-
-## Messaging APIs
-
-### 55. Send/List Messages
-
-**Endpoint**: `POST /api/messages`
-
-**Description**: Send message from coach to athlete or vice versa
-
-**Request Body**:
+**Body:**
 ```json
 {
-  "recipientId": "user-uuid",
-  "clientId": "client-uuid",
-  "subject": "Training Question",
-  "content": "How should I adjust for the heat?",
-  "replyToId": null         // for threading
+  "clientId": "string",
+  "measurementDate": "ISO date",
+  "weightKg": 75,
+  "bodyFatPercent": 12,
+  "muscleMassKg": 35,
+  "visceralFat": 8,
+  "waterPercent": 55,
+  "bmrKcal": 1800
 }
 ```
 
-**Response**: `201 Created`
+### `GET /api/body-composition/[id]`
+Get measurement.
+
+### `PUT /api/body-composition/[id]`
+Update measurement.
 
 ---
 
-### 56. Get/Update/Delete Message
+## Sport Profile Endpoints
 
-**Endpoint**: `GET/PUT/DELETE /api/messages/[id]`
+### `GET /api/sport-profile/[clientId]`
+Get sport profile.
 
-**Description**: CRUD operations for messages
+### `PUT /api/sport-profile/[clientId]`
+Update sport settings.
 
----
-
-## User APIs
-
-### 57. Get Current User
-
-**Endpoint**: `GET /api/users/me`
-
-**Description**: Get authenticated user profile
-
-**Response**: `200 OK`
+**Body:**
 ```json
 {
-  "id": "user-uuid",
-  "email": "coach@example.com",
-  "role": "COACH",
-  "name": "Henrik Thomson",
-  "subscription": {...},
-  "createdAt": "2025-01-01T00:00:00Z"
+  "primarySport": "RUNNING | CYCLING | SWIMMING | TRIATHLON | HYROX | SKIING | GENERAL_FITNESS",
+  "secondarySports": ["CYCLING"],
+  "runningSettings": { "vdot": 50, "weeklyKm": 60 },
+  "cyclingSettings": { "ftp": 280 },
+  "swimmingSettings": { "css": "1:45" },
+  "onboardingCompleted": true
 }
 ```
+
+### `POST /api/sport-profile`
+Create new sport profile.
+
+---
+
+## Norwegian Method Endpoints
+
+### `GET /api/norwegian-singles/eligibility/[clientId]`
+Check 5 prerequisites for Norwegian Method.
+
+**Response:**
+```json
+{
+  "eligible": true,
+  "prerequisites": {
+    "trainingAge": { "met": true, "value": 3, "required": 2 },
+    "baseVolume": { "met": true, "value": 70, "required": 60 },
+    "recentLactateTest": { "met": true },
+    "lactateMeter": { "met": true },
+    "coachSupervision": { "met": true }
+  }
+}
+```
+
+### `POST /api/norwegian-singles/generate`
+Generate Norwegian double-threshold workouts.
+
+---
+
+## Video Analysis Endpoints
+
+### `POST /api/video-analysis/upload`
+Upload video (max 100MB).
+
+### `GET /api/video-analysis`
+List analyses.
+
+### `GET /api/video-analysis/[id]`
+Get analysis.
+
+### `POST /api/video-analysis/[id]/analyze`
+Analyze with Gemini + MediaPipe.
+
+### `GET /api/video-analysis/[id]/landmarks`
+Get skeletal landmarks.
+
+### `POST /api/video-analysis/analyze-pose-data`
+Analyze raw pose data.
+
+### `POST /api/video-imports`
+Import video.
+
+### `GET /api/video-imports/[id]`
+Get import.
+
+### `POST /api/video-imports/[id]/matches`
+Find exercise matches.
+
+### `POST /api/video-imports/[id]/apply`
+Apply matches.
+
+---
+
+## Settings Endpoints
+
+### `GET /api/settings/api-keys`
+Get API key status (not keys).
+
+### `POST /api/settings/api-keys`
+Save encrypted BYOK keys.
+
+### `POST /api/settings/api-keys/validate`
+Validate API key.
+
+### `GET /api/settings/default-model`
+Get default AI model.
+
+### `PUT /api/settings/default-model`
+Set default model.
+
+---
+
+## System & Admin Endpoints
+
+### `GET /api/users/me`
+Get current user.
+
+### `GET /api/users`
+List users (admin).
+
+### `POST /api/users`
+Create user.
+
+### `GET /api/teams`
+List teams.
+
+### `POST /api/teams`
+Create team.
+
+### `GET /api/teams/[id]`
+Get team.
+
+### `PUT /api/teams/[id]`
+Update team.
+
+### `DELETE /api/teams/[id]`
+Delete team.
+
+### `POST /api/send-report-email`
+Email test report.
+
+### `POST /api/system-validation`
+Multi-system validation cascade (Injury -> Readiness -> Field Tests -> Norwegian -> Program -> Workouts).
+
+### `POST /api/cron/calculate-acwr`
+Calculate ACWR for all athletes (cron).
+
+### `POST /api/cron/injury-digest`
+Send injury digest emails (cron).
 
 ---
 
 ## Error Responses
 
-All endpoints return consistent error responses:
+All endpoints return consistent errors:
 
-### 400 Bad Request
 ```json
 {
-  "error": "Validation error",
-  "details": {
-    "field": "testType",
-    "message": "Must be RUNNING, CYCLING, or SKIING"
-  }
+  "success": false,
+  "error": "Error message",
+  "code": "ERROR_CODE"
 }
 ```
 
-### 401 Unauthorized
-```json
-{
-  "error": "Authentication required",
-  "message": "Please log in to access this resource"
-}
-```
-
-### 403 Forbidden
-```json
-{
-  "error": "Access denied",
-  "message": "You don't have permission to access this client's data"
-}
-```
-
-### 404 Not Found
-```json
-{
-  "error": "Resource not found",
-  "message": "Test with ID 'xxx' not found"
-}
-```
-
-### 500 Internal Server Error
-```json
-{
-  "error": "Internal server error",
-  "message": "An unexpected error occurred"
-}
-```
-
----
-
-## Common Patterns
-
-### Pagination
-
-Endpoints that return lists support pagination:
-```
-GET /api/exercises?page=2&limit=20
-```
-
-Response includes:
-```json
-{
-  "items": [...],
-  "total": 84,
-  "page": 2,
-  "totalPages": 5,
-  "hasMore": true
-}
-```
-
-### Filtering
-
-Use query parameters for filtering:
-```
-GET /api/clients?search=joakim&teamId=xxx
-GET /api/exercises?pillar=POSTERIOR_CHAIN&level=2
-```
-
-### Sorting
-
-Use `sortBy` and `sortOrder`:
-```
-GET /api/tests?clientId=xxx&sortBy=date&sortOrder=desc
-```
+| Status | Description |
+|--------|-------------|
+| 400 | Bad Request (validation) |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 500 | Internal Error |
 
 ---
 
 ## Rate Limiting
 
-Currently not implemented. Consider adding rate limiting for production deployment.
-
----
-
-## Webhooks
-
-Currently not implemented. Future consideration for external integrations.
-
----
-
-## SDK / Client Libraries
-
-Currently no official SDK. All endpoints are standard REST APIs that can be consumed with `fetch` or any HTTP client.
-
-**TypeScript Example**:
-```typescript
-const response = await fetch('/api/tests', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ clientId: '...', testType: 'RUNNING', ... })
-})
-const test = await response.json()
-```
+- Calculation endpoints: 60/min
+- AI endpoints: 20/min
+- Standard: 100/min
 
 ---
 
 ## Changelog
 
-- **2025-11-22**: Initial API documentation (52 endpoints)
-- Future updates will be tracked here
+- **2024-12-21**: Updated to 126 endpoints (AI Studio, Hybrid, Video Analysis, Multi-Sport)
+- **2024-11-22**: Initial 52 endpoints
 
 ---
 
-**For questions or issues**, see `/CLAUDE.md` or contact the development team.
+*Total Endpoints: 126 | Last Updated: December 2024*

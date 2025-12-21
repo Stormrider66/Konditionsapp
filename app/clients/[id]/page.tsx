@@ -9,6 +9,7 @@ import { sv } from 'date-fns/locale'
 import type { Client, Test, TestType, TrainingZone } from '@/types'
 import { ProgressionChart } from '@/components/charts/ProgressionChart'
 import { SportSpecificAthleteView } from '@/components/coach/sport-views'
+import { PaceValidationDashboard } from '@/components/coach/pace-zones/PaceValidationDashboard'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 import { ClientVideoAnalyses } from '@/components/coach/video-analysis/ClientVideoAnalyses'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
@@ -465,6 +466,16 @@ export default function ClientDetailPage() {
               clientId={id}
               clientName={client.name}
               sportProfile={sportProfile}
+            />
+          </div>
+        )}
+
+        {/* Elite Pace Zones Dashboard */}
+        {!sportProfileLoading && sportProfile?.primarySport === 'RUNNING' && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <PaceValidationDashboard
+              clientId={id}
+              clientName={client.name}
             />
           </div>
         )}

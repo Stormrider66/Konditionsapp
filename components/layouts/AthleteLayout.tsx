@@ -6,9 +6,10 @@ import { MobileNav } from '@/components/navigation/MobileNav'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { SportType } from '@prisma/client'
-import { WorkoutThemeProvider } from '@/lib/themes/ThemeProvider'
+import { WorkoutThemeProvider, useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider'
 import type { ThemePreferences } from '@/lib/themes/types'
 import { DEFAULT_THEME_PREFERENCES } from '@/lib/themes/types'
+import { cn } from '@/lib/utils'
 
 interface SportProfile {
   id: string
@@ -59,7 +60,9 @@ export function AthleteLayout({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <WorkoutThemeProvider initialPreferences={DEFAULT_THEME_PREFERENCES}>
-        <div className="min-h-screen bg-gray-50">{children}</div>
+        <ThemedContent user={null} athleteInfo={null}>
+          {children}
+        </ThemedContent>
       </WorkoutThemeProvider>
     )
   }
@@ -69,15 +72,40 @@ export function AthleteLayout({ children }: { children: React.ReactNode }) {
       clientId={athleteInfo?.clientId}
       initialPreferences={themePreferences}
     >
-      <div className="min-h-screen bg-gray-50">
+      <ThemedContent user={user} athleteInfo={athleteInfo}>
+        {children}
+      </ThemedContent>
+    </WorkoutThemeProvider>
+  )
+}
+
+// Inner component that can use the theme hook
+function ThemedContent({
+  children,
+  user,
+  athleteInfo
+}: {
+  children: React.ReactNode
+  user: User | null
+  athleteInfo: AthleteInfo | null
+}) {
+  const themeContext = useWorkoutThemeOptional()
+  const isDark = themeContext?.appTheme?.id === 'FITAPP_DARK'
+
+  return (
+    <div className={cn(
+      "min-h-screen transition-colors duration-300",
+      isDark ? "bg-slate-900" : "bg-gray-50"
+    )}>
+      {user && (
         <MobileNav
           user={user}
           userRole="ATHLETE"
           sportProfile={athleteInfo?.sportProfile}
           clientId={athleteInfo?.clientId}
         />
-        <div>{children}</div>
-      </div>
-    </WorkoutThemeProvider>
+      )}
+      <div>{children}</div>
+    </div>
   )
 }

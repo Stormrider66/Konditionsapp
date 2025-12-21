@@ -15,6 +15,9 @@ import {
 } from '@/components/ui/collapsible'
 import { ChevronDown, ChevronUp, CheckCircle2, Clock, MapPin, Heart } from 'lucide-react'
 import { cn, formatPace } from '@/lib/utils'
+import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider'
+import { getThemeStyles } from '@/lib/themes/theme-utils'
+import { MINIMALIST_WHITE_THEME } from '@/lib/themes/definitions'
 
 interface AthleteProgramCalendarProps {
   program: any
@@ -23,6 +26,12 @@ interface AthleteProgramCalendarProps {
 
 export function AthleteProgramCalendar({ program, athleteId }: AthleteProgramCalendarProps) {
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
+
+  // Get theme from context (optional - falls back to default)
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const themeStyles = getThemeStyles(theme)
+  const isDark = theme.id === 'FITAPP_DARK'
 
   const toggleWeek = (weekId: string) => {
     setExpandedWeeks((prev) => {
@@ -58,21 +67,23 @@ export function AthleteProgramCalendar({ program, athleteId }: AthleteProgramCal
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" style={themeStyles}>
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Träningskalender</h2>
+        <h2 className={cn("text-2xl font-bold", isDark && "text-white")}>Träningskalender</h2>
         <div className="flex gap-2">
           <Button
-            variant="outline"
+            variant={isDark ? "secondary" : "outline"}
             size="sm"
             onClick={() => setExpandedWeeks(new Set(program.weeks.map((w: any) => w.id)))}
+            className={isDark ? "bg-slate-700 text-white hover:bg-slate-600" : ""}
           >
             Expandera alla
           </Button>
           <Button
-            variant="outline"
+            variant={isDark ? "secondary" : "outline"}
             size="sm"
             onClick={() => setExpandedWeeks(new Set())}
+            className={isDark ? "bg-slate-700 text-white hover:bg-slate-600" : ""}
           >
             Minimera alla
           </Button>
@@ -89,6 +100,7 @@ export function AthleteProgramCalendar({ program, athleteId }: AthleteProgramCal
             onToggle={() => toggleWeek(week.id)}
             isCurrent={week.weekNumber === getCurrentWeek(program)}
             athleteId={athleteId}
+            isDark={isDark}
           />
         ))}
       </div>
@@ -103,6 +115,7 @@ interface WeekCardProps {
   onToggle: () => void
   isCurrent: boolean
   athleteId: string
+  isDark: boolean
 }
 
 function WeekCard({
@@ -112,6 +125,7 @@ function WeekCard({
   onToggle,
   isCurrent,
   athleteId,
+  isDark,
 }: WeekCardProps) {
   const weekStartDate = addDays(new Date(programStartDate), (week.weekNumber - 1) * 7)
   const weekEndDate = addDays(weekStartDate, 6)
@@ -138,26 +152,30 @@ function WeekCard({
       className={cn(
         'transition-all',
         isCurrent && 'border-primary border-2',
-        isExpanded && 'shadow-md'
+        isExpanded && 'shadow-md',
+        isDark && 'bg-slate-800 border-slate-700'
       )}
     >
       <Collapsible open={isExpanded} onOpenChange={onToggle}>
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+          <CardHeader className={cn(
+            "cursor-pointer transition-colors",
+            isDark ? "hover:bg-slate-700/50" : "hover:bg-accent/50"
+          )}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <CardTitle className="text-lg">Vecka {week.weekNumber}</CardTitle>
-                    {isCurrent && <Badge variant="default">Aktuell vecka</Badge>}
+                    <CardTitle className={cn("text-lg", isDark && "text-white")}>Vecka {week.weekNumber}</CardTitle>
+                    {isCurrent && <Badge variant="default" className={isDark ? "bg-red-500" : ""}>Aktuell vecka</Badge>}
                     <Badge
                       variant="outline"
-                      className={getPhaseBadgeClass(week.phase)}
+                      className={cn(getPhaseBadgeClass(week.phase), isDark && "border-slate-600")}
                     >
                       {formatPhase(week.phase)}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className={cn("text-sm", isDark ? "text-slate-400" : "text-muted-foreground")}>
                     {format(weekStartDate, 'd MMM', { locale: sv })} -{' '}
                     {format(weekEndDate, 'd MMM yyyy', { locale: sv })}
                   </p>
@@ -166,12 +184,12 @@ function WeekCard({
 
               <div className="flex items-center gap-4">
                 {week.focus && (
-                  <p className="text-sm text-muted-foreground max-w-md hidden md:block">
+                  <p className={cn("text-sm max-w-md hidden md:block", isDark ? "text-slate-400" : "text-muted-foreground")}>
                     {week.focus}
                   </p>
                 )}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <Badge variant="secondary">
+                <div className={cn("flex items-center gap-3 text-xs", isDark ? "text-slate-400" : "text-muted-foreground")}>
+                  <Badge variant="secondary" className={isDark ? "bg-slate-700 text-slate-300" : ""}>
                     {completedWorkouts}/{totalWorkouts} klara
                   </Badge>
                   {weeklyStats.totalDistance > 0 && (
@@ -182,9 +200,9 @@ function WeekCard({
                   )}
                 </div>
                 {isExpanded ? (
-                  <ChevronUp className="h-5 w-5" />
+                  <ChevronUp className={cn("h-5 w-5", isDark && "text-slate-400")} />
                 ) : (
-                  <ChevronDown className="h-5 w-5" />
+                  <ChevronDown className={cn("h-5 w-5", isDark && "text-slate-400")} />
                 )}
               </div>
             </div>
@@ -201,10 +219,11 @@ function WeekCard({
                     day={day}
                     date={addDays(weekStartDate, day.dayNumber - 1)}
                     athleteId={athleteId}
+                    isDark={isDark}
                   />
                 ))
               ) : (
-                <p className="text-center text-muted-foreground py-8">
+                <p className={cn("text-center py-8", isDark ? "text-slate-400" : "text-muted-foreground")}>
                   Inga träningspass denna vecka
                 </p>
               )}
@@ -220,22 +239,26 @@ interface DayCardProps {
   day: any
   date: Date
   athleteId: string
+  isDark: boolean
 }
 
-function DayCard({ day, date, athleteId }: DayCardProps) {
+function DayCard({ day, date, athleteId, isDark }: DayCardProps) {
   const dayNames = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
 
   if (!day.workouts || day.workouts.length === 0) {
     return (
-      <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
+      <div className={cn(
+        "flex items-center gap-4 p-3 rounded-lg",
+        isDark ? "bg-slate-700/30" : "bg-muted/30"
+      )}>
         <div className="w-24 flex-shrink-0">
-          <p className="font-medium text-sm">{dayNames[day.dayNumber - 1]}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className={cn("font-medium text-sm", isDark && "text-slate-300")}>{dayNames[day.dayNumber - 1]}</p>
+          <p className={cn("text-xs", isDark ? "text-slate-500" : "text-muted-foreground")}>
             {format(date, 'd MMM', { locale: sv })}
           </p>
         </div>
         <div className="flex-1">
-          <p className="text-sm text-muted-foreground">Vilodag</p>
+          <p className={cn("text-sm", isDark ? "text-slate-500" : "text-muted-foreground")}>Vilodag</p>
         </div>
       </div>
     )
@@ -249,11 +272,14 @@ function DayCard({ day, date, athleteId }: DayCardProps) {
         return (
           <div
             key={workout.id}
-            className="flex items-start gap-4 p-3 bg-card border rounded-lg hover:shadow-sm transition-shadow"
+            className={cn(
+              "flex items-start gap-4 p-3 rounded-lg hover:shadow-sm transition-shadow",
+              isDark ? "bg-slate-700/50 border border-slate-600" : "bg-card border"
+            )}
           >
             <div className="w-24 flex-shrink-0">
-              <p className="font-medium text-sm">{dayNames[day.dayNumber - 1]}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className={cn("font-medium text-sm", isDark && "text-slate-300")}>{dayNames[day.dayNumber - 1]}</p>
+              <p className={cn("text-xs", isDark ? "text-slate-500" : "text-muted-foreground")}>
                 {format(date, 'd MMM', { locale: sv })}
               </p>
             </div>
@@ -261,7 +287,7 @@ function DayCard({ day, date, athleteId }: DayCardProps) {
             <div className="flex-1 space-y-2">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-semibold">{workout.name}</h4>
+                  <h4 className={cn("font-semibold", isDark && "text-white")}>{workout.name}</h4>
                   {isCompleted && (
                     <Badge variant="default" className="bg-green-500">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -270,35 +296,24 @@ function DayCard({ day, date, athleteId }: DayCardProps) {
                   )}
                   <Badge
                     variant="outline"
-                    className={getIntensityBadgeClass(workout.intensity)}
+                    className={cn(getIntensityBadgeClass(workout.intensity), isDark && "border-slate-600")}
                   >
                     {formatIntensity(workout.intensity)}
                   </Badge>
                 </div>
                 {workout.instructions && (
-                  <p className="text-sm text-muted-foreground">{workout.instructions}</p>
+                  <p className={cn("text-sm", isDark ? "text-slate-400" : "text-muted-foreground")}>{workout.instructions}</p>
                 )}
               </div>
 
               {workout.segments && workout.segments.length > 0 && (
                 <div className="text-xs space-y-1">
-                  {workout.segments.slice(0, 3).map((segment: any) => {
-                    // DEBUG: Log segment data
-                    console.log('Segment data:', {
-                      id: segment.id,
-                      type: segment.type,
-                      exerciseId: segment.exerciseId,
-                      exercise: segment.exercise,
-                      heartRate: segment.heartRate,
-                      pace: segment.pace
-                    })
-
-                    return (
+                  {workout.segments.slice(0, 3).map((segment: any) => (
                     <div key={segment.id} className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className={cn("text-xs", isDark && "bg-slate-600 text-slate-300")}>
                         {formatSegmentType(segment.type)}
                       </Badge>
-                      <span className="text-muted-foreground">
+                      <span className={isDark ? "text-slate-400" : "text-muted-foreground"}>
                         {/* Show exercise name for strength/plyo/core */}
                         {segment.exercise && segment.exercise.nameSv ? (
                           <>
@@ -322,17 +337,16 @@ function DayCard({ day, date, athleteId }: DayCardProps) {
                         )}
                       </span>
                     </div>
-                    )
-                  })}
+                  ))}
                   {workout.segments.length > 3 && (
-                    <p className="text-muted-foreground">
+                    <p className={isDark ? "text-slate-500" : "text-muted-foreground"}>
                       +{workout.segments.length - 3} fler segment
                     </p>
                   )}
                 </div>
               )}
 
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className={cn("flex items-center gap-4 text-xs", isDark ? "text-slate-400" : "text-muted-foreground")}>
                 {workout.duration && (
                   <span className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
@@ -352,19 +366,19 @@ function DayCard({ day, date, athleteId }: DayCardProps) {
               {isCompleted ? (
                 <>
                   <Link href={`/athlete/workouts/${workout.id}`}>
-                    <Button variant="outline" size="sm">
+                    <Button variant={isDark ? "secondary" : "outline"} size="sm" className={isDark ? "bg-slate-600 text-white hover:bg-slate-500" : ""}>
                       Visa logg
                     </Button>
                   </Link>
                   <Link href={`/athlete/workouts/${workout.id}/log`}>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className={isDark ? "text-slate-400 hover:text-white hover:bg-slate-600" : ""}>
                       Redigera
                     </Button>
                   </Link>
                 </>
               ) : (
                 <Link href={`/athlete/workouts/${workout.id}/log`}>
-                  <Button size="sm">Logga pass</Button>
+                  <Button size="sm" className={isDark ? "bg-red-500 hover:bg-red-600" : ""}>Logga pass</Button>
                 </Link>
               )}
             </div>
