@@ -256,6 +256,10 @@ model Client {
   strengthSessionAssignments StrengthSessionAssignment[]
   cardioSessionAssignments   CardioSessionAssignment[]
 
+  // Nutrition Timing System relations
+  dietaryPreferences  DietaryPreferences?
+  nutritionGoal       NutritionGoal?
+
   @@index([userId])
   @@index([teamId])
   @@index([name])
@@ -2718,4 +2722,67 @@ model CardioSessionAssignment {
   @@index([assignedDate])
   @@index([status])
   @@unique([sessionId, athleteId, assignedDate])
+}
+
+// ==================== NUTRITION TIMING SYSTEM ====================
+
+/// Athlete dietary preferences for nutrition guidance personalization
+model DietaryPreferences {
+  id              String   @id @default(uuid())
+  clientId        String   @unique
+
+  // Dietary style
+  dietaryStyle    String?  // OMNIVORE | VEGETARIAN | VEGAN | PESCATARIAN | FLEXITARIAN
+
+  // Allergies & intolerances (JSON arrays for flexibility)
+  allergies       Json?    // ["NUTS", "SHELLFISH", "DAIRY", "GLUTEN", "SOY", "EGGS", "FISH"]
+  intolerances    Json?    // ["LACTOSE", "FRUCTOSE", "HISTAMINE"]
+
+  // Food dislikes (for suggestion filtering)
+  dislikedFoods   Json?    // ["oatmeal", "fish", "beans"]
+
+  // Preferences
+  preferLowFODMAP    Boolean  @default(false)
+  preferWholeGrain   Boolean  @default(true)
+  preferSwedishFoods Boolean  @default(true)  // Prioritize Swedish food suggestions
+
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+/// Athlete nutrition goals (weight, body composition, macro preferences)
+model NutritionGoal {
+  id              String   @id @default(uuid())
+  clientId        String   @unique
+
+  // Weight goals
+  goalType        String   // WEIGHT_LOSS | WEIGHT_GAIN | MAINTAIN | BODY_RECOMP
+  targetWeightKg  Float?
+  weeklyChangeKg  Float?   // Target weekly change: 0.25, 0.5, 0.75 kg/week
+  targetDate      DateTime?
+
+  // Body composition goals
+  targetBodyFatPercent Float?
+
+  // Macro preference (overrides sport-based defaults)
+  macroProfile    String?  // BALANCED | HIGH_PROTEIN | LOW_CARB | ENDURANCE | STRENGTH
+
+  // Activity level (for TDEE calculation)
+  activityLevel   String   @default("ACTIVE") // SEDENTARY | LIGHTLY_ACTIVE | ACTIVE | VERY_ACTIVE | ATHLETE
+
+  // Custom protein target (g per kg body weight, overrides calculated value)
+  customProteinPerKg Float?
+
+  // Display preferences
+  showMacroTargets Boolean @default(true)
+  showHydration    Boolean @default(true)
+
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([clientId])
 }

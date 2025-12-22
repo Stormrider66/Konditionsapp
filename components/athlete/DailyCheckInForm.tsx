@@ -42,6 +42,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { Mic, ClipboardList } from 'lucide-react'
 import { AudioRecorder } from '@/components/athlete/audio-journal/AudioRecorder'
+import { NutritionTipCard, NutritionTipCardSkeleton } from '@/components/nutrition/NutritionTipCard'
+import type { NutritionTip } from '@/lib/nutrition-timing'
 
 // Form schema
 const checkInSchema = z.object({
@@ -101,6 +103,8 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
   const [injuryResponse, setInjuryResponse] = useState<any>(null)
   const [voiceMode, setVoiceMode] = useState(false)
   const [voiceResult, setVoiceResult] = useState<AudioJournalResult | null>(null)
+  const [nutritionTip, setNutritionTip] = useState<NutritionTip | null>(null)
+  const [isLoadingTip, setIsLoadingTip] = useState(false)
 
   const form = useForm<CheckInFormData>({
     resolver: zodResolver(checkInSchema),
@@ -170,6 +174,28 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
       setReadinessResult(result.assessments?.readiness)
       setInjuryResponse(result.injuryResponse)
 
+      // Fetch nutrition tip in the background
+      setIsLoadingTip(true)
+      fetch('/api/nutrition/tip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          readinessScore: result.assessments?.readiness?.score,
+        }),
+      })
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          if (data?.tip) {
+            setNutritionTip(data.tip)
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to fetch nutrition tip:', err)
+        })
+        .finally(() => {
+          setIsLoadingTip(false)
+        })
+
       // Show appropriate toast based on injury trigger
       if (result.injuryResponse?.triggered) {
         toast({
@@ -222,6 +248,28 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
       warnings: result.aiInterpretation.flaggedConcerns,
       criticalFlags: [],
     })
+
+    // Fetch nutrition tip for voice check-in
+    setIsLoadingTip(true)
+    fetch('/api/nutrition/tip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        readinessScore: result.aiInterpretation.readinessEstimate,
+      }),
+    })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.tip) {
+          setNutritionTip(data.tip)
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch nutrition tip:', err)
+      })
+      .finally(() => {
+        setIsLoadingTip(false)
+      })
 
     toast({
       title: 'Röstincheckning klar',
@@ -669,6 +717,15 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
             </div>
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Nutrition Tip */}
+      {isLoadingTip && <NutritionTipCardSkeleton />}
+      {nutritionTip && !isLoadingTip && (
+        <NutritionTipCard
+          tip={nutritionTip}
+          onDismiss={() => setNutritionTip(null)}
+        />
       )}
     </div>
   )

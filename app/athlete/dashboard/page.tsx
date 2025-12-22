@@ -29,8 +29,10 @@ import {
   Heart,
   ClipboardList,
   User,
-  MessageSquare
+  MessageSquare,
+  Utensils,
 } from 'lucide-react'
+import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 
 export default async function AthleteDashboardPage() {
@@ -246,6 +248,7 @@ export default async function AthleteDashboardPage() {
       { href: '/athlete/tests', icon: ClipboardList, label: 'Tester & Rapporter', color: 'text-red-500' },
       { href: '/athlete/history', icon: TrendingUp, label: 'Träningshistorik', color: 'text-blue-500' },
       { href: '/athlete/programs', icon: Calendar, label: 'Alla program', color: 'text-green-500' },
+      { href: '/athlete/settings/nutrition', icon: Utensils, label: 'Kostinställningar', color: 'text-emerald-500' },
       { href: '/athlete/profile', icon: User, label: 'Min profil', color: 'text-purple-500' },
     ]
     return baseLinks
@@ -342,6 +345,9 @@ export default async function AthleteDashboardPage() {
 
           {/* Upcoming Workouts */}
           <UpcomingWorkouts workouts={upcomingWorkouts} />
+
+          {/* Nutrition Dashboard */}
+          <NutritionDashboard clientId={athleteAccount.clientId} />
 
           {/* Recent Activity */}
           <RecentActivity logs={recentLogs} />
