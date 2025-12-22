@@ -43,27 +43,11 @@ import {
   Calendar,
   Activity,
 } from 'lucide-react';
-import type { HybridWorkoutWithSections, HybridSectionData } from '@/types';
+import type { HybridWorkoutWithSections, HybridSectionData, HybridWorkoutResult } from '@/types';
 import { HybridWorkoutExportButton } from './HybridWorkoutExportButton';
 import { WorkoutVersionHistory } from './WorkoutVersionHistory';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { ExerciseIcon } from '@/components/themed';
-
-interface HybridWorkoutResult {
-  id: string;
-  athleteId: string;
-  scoreType: string;
-  timeScore?: number;
-  roundsCompleted?: number;
-  repsCompleted?: number;
-  scalingLevel: string;
-  completedAt: string;
-  isPR: boolean;
-  athlete?: {
-    id: string;
-    name: string;
-  };
-}
 
 interface WorkoutDetailSheetProps {
   workout: HybridWorkoutWithSections | null;

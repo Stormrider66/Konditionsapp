@@ -39,21 +39,9 @@ import {
   Activity,
   Zap,
 } from 'lucide-react';
-import type { CardioSessionData, CardioSegment } from '@/types';
+import type { CardioSessionData, CardioSegment, SessionAssignment } from '@/types';
 import { SessionExportButton } from '@/components/exports/SessionExportButton';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
-
-interface CardioSessionAssignment {
-  id: string;
-  athleteId: string;
-  assignedDate: string;
-  status: string;
-  completedAt?: string;
-  athlete?: {
-    id: string;
-    name: string;
-  };
-}
 
 interface CardioSessionDetailSheetProps {
   session: CardioSessionData | null;
@@ -131,7 +119,7 @@ export function CardioSessionDetailSheet({
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
 
-  const [assignments, setAssignments] = useState<CardioSessionAssignment[]>([]);
+  const [assignments, setAssignments] = useState<SessionAssignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
 

@@ -38,21 +38,9 @@ import {
   Dumbbell,
   Activity,
 } from 'lucide-react';
-import type { StrengthSessionData, StrengthSessionExercise } from '@/types';
+import type { StrengthSessionData, StrengthSessionExercise, SessionAssignment } from '@/types';
 import { SessionExportButton } from '@/components/exports/SessionExportButton';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
-
-interface StrengthSessionAssignment {
-  id: string;
-  athleteId: string;
-  assignedDate: string;
-  status: string;
-  completedAt?: string;
-  athlete?: {
-    id: string;
-    name: string;
-  };
-}
 
 interface StrengthSessionDetailSheetProps {
   session: StrengthSessionData | null;
@@ -96,7 +84,7 @@ export function StrengthSessionDetailSheet({
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
 
-  const [assignments, setAssignments] = useState<StrengthSessionAssignment[]>([]);
+  const [assignments, setAssignments] = useState<SessionAssignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
 

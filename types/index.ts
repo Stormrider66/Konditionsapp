@@ -748,3 +748,46 @@ export interface CardioSessionAssignmentData {
     name: string
   }
 }
+
+// ============================================
+// Session Assignment Types (Shared)
+// ============================================
+
+/**
+ * Generic session assignment for UI display
+ * Used across Cardio, Strength, and Hybrid sessions
+ */
+export interface SessionAssignment {
+  id: string
+  athleteId: string
+  assignedDate: string
+  status: string
+  completedAt?: string
+  athlete?: {
+    id: string
+    name: string
+  }
+}
+
+// ============================================
+// Hybrid Workout Result Types
+// ============================================
+
+/**
+ * Hybrid workout result for leaderboard and history display
+ */
+export interface HybridWorkoutResult {
+  id: string
+  athleteId: string
+  scoreType: string
+  timeScore?: number
+  roundsCompleted?: number
+  repsCompleted?: number
+  scalingLevel: string
+  completedAt: string
+  isPR: boolean
+  athlete?: {
+    id: string
+    name: string
+  }
+}

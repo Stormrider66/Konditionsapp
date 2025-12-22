@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { HybridFormat, ScalingLevel } from '@prisma/client';
-import { logger } from '@/lib/logger';
+import { handleApiError, ApiError, validateRequired, parseJsonBody } from '@/lib/api-error';
 
 export async function GET(request: NextRequest) {
   try {
@@ -98,18 +98,49 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error fetching hybrid workouts', {}, error);
-    return NextResponse.json(
-      { error: 'Failed to fetch hybrid workouts' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'GET /api/hybrid-workouts');
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
-    const body = await request.json();
+    const body = await parseJsonBody<{
+      name: string;
+      description?: string;
+      format: HybridFormat;
+      timeCap?: number;
+      workTime?: number;
+      restTime?: number;
+      totalRounds?: number;
+      totalMinutes?: number;
+      repScheme?: string;
+      scalingLevel?: ScalingLevel;
+      movements?: Array<{
+        exerciseId: string;
+        order: number;
+        roundNumber?: number;
+        setNumber?: number;
+        reps?: number;
+        calories?: number;
+        distance?: number;
+        duration?: number;
+        weightMale?: number;
+        weightFemale?: number;
+        percentOfMax?: number;
+        isUnbroken?: boolean;
+        alternateSides?: boolean;
+        notes?: string;
+      }>;
+      tags?: string[];
+      isPublic?: boolean;
+      warmupData?: unknown;
+      strengthData?: unknown;
+      cooldownData?: unknown;
+    }>(request);
+
+    // Validate required fields
+    validateRequired(body, ['name', 'format']);
 
     const {
       name,
@@ -125,19 +156,10 @@ export async function POST(request: NextRequest) {
       movements,
       tags,
       isPublic,
-      // Section data
       warmupData,
       strengthData,
       cooldownData,
     } = body;
-
-    // Validate required fields
-    if (!name || !format) {
-      return NextResponse.json(
-        { error: 'Name and format are required' },
-        { status: 400 }
-      );
-    }
 
     // Create workout with movements
     const workout = await prisma.hybridWorkout.create({
@@ -160,42 +182,22 @@ export async function POST(request: NextRequest) {
         strengthData: strengthData ?? undefined,
         cooldownData: cooldownData ?? undefined,
         movements: {
-          create: movements?.map(
-            (
-              m: {
-                exerciseId: string;
-                order: number;
-                roundNumber?: number;
-                setNumber?: number;
-                reps?: number;
-                calories?: number;
-                distance?: number;
-                duration?: number;
-                weightMale?: number;
-                weightFemale?: number;
-                percentOfMax?: number;
-                isUnbroken?: boolean;
-                alternateSides?: boolean;
-                notes?: string;
-              },
-              index: number
-            ) => ({
-              exerciseId: m.exerciseId,
-              order: m.order ?? index + 1,
-              roundNumber: m.roundNumber,
-              setNumber: m.setNumber,
-              reps: m.reps,
-              calories: m.calories,
-              distance: m.distance,
-              duration: m.duration,
-              weightMale: m.weightMale,
-              weightFemale: m.weightFemale,
-              percentOfMax: m.percentOfMax,
-              isUnbroken: m.isUnbroken || false,
-              alternateSides: m.alternateSides || false,
-              notes: m.notes,
-            })
-          ),
+          create: movements?.map((m, index) => ({
+            exerciseId: m.exerciseId,
+            order: m.order ?? index + 1,
+            roundNumber: m.roundNumber,
+            setNumber: m.setNumber,
+            reps: m.reps,
+            calories: m.calories,
+            distance: m.distance,
+            duration: m.duration,
+            weightMale: m.weightMale,
+            weightFemale: m.weightFemale,
+            percentOfMax: m.percentOfMax,
+            isUnbroken: m.isUnbroken || false,
+            alternateSides: m.alternateSides || false,
+            notes: m.notes,
+          })),
         },
       },
       include: {
@@ -210,10 +212,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(workout, { status: 201 });
   } catch (error) {
-    logger.error('Error creating hybrid workout', {}, error);
-    return NextResponse.json(
-      { error: 'Failed to create hybrid workout' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'POST /api/hybrid-workouts');
   }
 }
