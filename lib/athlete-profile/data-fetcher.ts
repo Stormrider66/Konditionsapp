@@ -386,6 +386,7 @@ interface VideoAnalysisData {
   id: string
   createdAt: Date
   videoType: string
+  videoUrl: string
   duration: number | null
   status: string
   formScore: number | null

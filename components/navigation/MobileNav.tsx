@@ -154,7 +154,6 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       icon: Activity,
       items: [
         { href: '/athlete/history', label: 'Historik', icon: TrendingUp },
-        { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame },
         { href: '/athlete/programs', label: 'Program', icon: Calendar },
       ],
     },
@@ -181,7 +180,6 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
     // Training & History
     { href: '/athlete/history', label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
-    { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame, description: 'CrossFit & HYROX' },
     { href: '/athlete/programs', label: 'Program', icon: Calendar, description: 'Dina träningsprogram' },
 
     // Tests & Data

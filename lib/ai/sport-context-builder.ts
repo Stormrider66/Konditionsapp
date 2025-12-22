@@ -37,6 +37,38 @@ interface AthleteData {
   dailyCheckIns?: DailyCheckIn[];
   bodyCompositions?: BodyComposition[];
   videoAnalyses?: VideoAnalysis[];
+  // Integration data (PRO tier)
+  stravaActivities?: StravaActivityData[];
+  garminMetrics?: GarminMetricsData;
+}
+
+// Strava activity data
+interface StravaActivityData {
+  name: string;
+  type: string;
+  startDate: Date;
+  distance: number | null;
+  movingTime: number | null;
+  averageHeartrate: number | null;
+  averageSpeed: number | null;
+  tss: number | null;
+  mappedType: string | null;
+}
+
+// Garmin metrics summary
+interface GarminMetricsData {
+  recentDays: {
+    date: Date;
+    sleepHours: number | null;
+    sleepQuality: number | null;
+    hrv: number | null;
+    restingHR: number | null;
+    steps: number | null;
+    activeMinutes: number | null;
+    stressLevel: number | null;
+  }[];
+  weeklyTSS: number;
+  readinessScore: number | null;
 }
 
 interface VideoAnalysis {
@@ -1177,6 +1209,498 @@ export function buildSportSpecificContext(athlete: AthleteData): string {
   context += `\n${sportPrompt.periodizationNotes}\n`;
 
   return context;
+}
+
+// ==================== TIER-AWARE CONTEXT BUILDING ====================
+
+import { AthleteSubscriptionTier } from '@prisma/client';
+
+/**
+ * Tier configuration for AI context access
+ */
+const TIER_CONTEXT_CONFIG = {
+  FREE: {
+    includeBasicProfile: true,
+    includeTests: false, // View only, no AI analysis
+    includeVideoAnalysis: false,
+    includeIntegrations: false,
+    includeAdvancedMetrics: false,
+    includeNutrition: false,
+    maxContextLength: 0, // No AI access
+  },
+  STANDARD: {
+    includeBasicProfile: true,
+    includeTests: true,
+    includeVideoAnalysis: false,
+    includeIntegrations: true, // basic integration data
+    includeAdvancedMetrics: false,
+    includeNutrition: true,
+    maxContextLength: 4000, // Limited context
+  },
+  PRO: {
+    includeBasicProfile: true,
+    includeTests: true,
+    includeVideoAnalysis: true,
+    includeIntegrations: true,
+    includeAdvancedMetrics: true,
+    includeNutrition: true,
+    maxContextLength: -1, // Unlimited
+  },
+} as const;
+
+export type TierContextConfig = typeof TIER_CONTEXT_CONFIG[AthleteSubscriptionTier];
+
+/**
+ * Get context configuration for a subscription tier
+ */
+export function getTierContextConfig(tier: AthleteSubscriptionTier): TierContextConfig {
+  return TIER_CONTEXT_CONFIG[tier];
+}
+
+/**
+ * Check if tier has AI access enabled
+ */
+export function tierHasAIAccess(tier: AthleteSubscriptionTier): boolean {
+  return TIER_CONTEXT_CONFIG[tier].maxContextLength !== 0;
+}
+
+/**
+ * Build tier-aware context for AI chat
+ *
+ * Filters athlete data based on subscription tier to respect feature gates.
+ */
+export function buildTierAwareContext(
+  athlete: AthleteData,
+  tier: AthleteSubscriptionTier
+): string {
+  const config = getTierContextConfig(tier);
+
+  // FREE tier has no AI access
+  if (!tierHasAIAccess(tier)) {
+    return '';
+  }
+
+  let context = '';
+
+  // Basic profile is always included for paid tiers
+  if (config.includeBasicProfile) {
+    context += buildBasicProfileContext(athlete);
+  }
+
+  // Sport-specific context
+  const primarySport = athlete.sportProfile?.primarySport;
+  if (primarySport) {
+    const sportPrompt = SPORT_PROMPTS[primarySport];
+    context += `\n${sportPrompt.systemContext}\n`;
+
+    // Add sport-specific data based on tier
+    switch (primarySport) {
+      case 'RUNNING':
+        context += buildRunningContext(athlete);
+        break;
+      case 'CYCLING':
+        context += buildCyclingContext(athlete);
+        break;
+      case 'SWIMMING':
+        context += buildSwimmingContext(athlete);
+        break;
+      case 'TRIATHLON':
+        context += buildTriathlonContext(athlete);
+        break;
+      case 'HYROX':
+        context += buildHyroxContext(athlete);
+        break;
+      case 'SKIING':
+        context += buildSkiingContext(athlete);
+        break;
+      case 'GENERAL_FITNESS':
+        context += buildGeneralFitnessContext(athlete);
+        break;
+    }
+  }
+
+  // Test data (for STANDARD and PRO)
+  if (config.includeTests && athlete.tests.length > 0) {
+    context += buildTestContext(athlete.tests);
+  }
+
+  // Video analysis (PRO only)
+  if (config.includeVideoAnalysis && athlete.videoAnalyses && athlete.videoAnalyses.length > 0) {
+    context += buildVideoAnalysisContext(athlete.videoAnalyses);
+  }
+
+  // Readiness data (for STANDARD and PRO)
+  if (config.includeAdvancedMetrics && athlete.dailyCheckIns && athlete.dailyCheckIns.length > 0) {
+    context += buildReadinessContext(athlete.dailyCheckIns);
+  }
+
+  // Integration data (PRO tier only - with full depth, STANDARD gets summary)
+  if (config.includeIntegrations) {
+    // Strava data
+    if (athlete.stravaActivities && athlete.stravaActivities.length > 0) {
+      if (tier === 'PRO') {
+        // Full context for PRO
+        context += buildStravaContext(athlete.stravaActivities);
+      } else {
+        // Summary for STANDARD
+        const totalDistance = athlete.stravaActivities.reduce((sum, a) => sum + (a.distance || 0), 0) / 1000;
+        const activityCount = athlete.stravaActivities.length;
+        context += `\n## Strava-sammanfattning\n`;
+        context += `- **Aktiviteter (14 dagar)**: ${activityCount}\n`;
+        context += `- **Total distans**: ${totalDistance.toFixed(1)} km\n`;
+        context += `*Uppgradera till Pro för detaljerad träningsanalys*\n`;
+      }
+    }
+
+    // Garmin data
+    if (athlete.garminMetrics) {
+      if (tier === 'PRO') {
+        // Full context for PRO
+        context += buildGarminContext(athlete.garminMetrics);
+      } else {
+        // Summary for STANDARD
+        context += `\n## Garmin-sammanfattning\n`;
+        if (athlete.garminMetrics.readinessScore !== null) {
+          context += `- **Beredskapspoäng**: ${athlete.garminMetrics.readinessScore}/100\n`;
+        }
+        context += `*Uppgradera till Pro för fullständig hälsoanalys*\n`;
+      }
+    }
+  }
+
+  // Truncate if needed for STANDARD tier
+  if (config.maxContextLength > 0 && context.length > config.maxContextLength) {
+    context = context.substring(0, config.maxContextLength) + '\n\n[Kontext trunkerad - uppgradera till Pro för fullständig AI-analys]';
+  }
+
+  return context;
+}
+
+/**
+ * Build basic profile context
+ */
+function buildBasicProfileContext(athlete: AthleteData): string {
+  let context = `## Atletprofil\n`;
+  context += `- **Namn**: ${athlete.name}\n`;
+
+  if (athlete.gender) {
+    context += `- **Kön**: ${athlete.gender === 'MALE' ? 'Man' : 'Kvinna'}\n`;
+  }
+
+  if (athlete.birthDate) {
+    const age = Math.floor((Date.now() - new Date(athlete.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    context += `- **Ålder**: ${age} år\n`;
+  }
+
+  if (athlete.height) {
+    context += `- **Längd**: ${athlete.height} cm\n`;
+  }
+
+  if (athlete.weight) {
+    context += `- **Vikt**: ${athlete.weight} kg\n`;
+  }
+
+  if (athlete.sportProfile?.primarySport) {
+    const sportNames: Record<string, string> = {
+      RUNNING: 'Löpning',
+      CYCLING: 'Cykling',
+      SWIMMING: 'Simning',
+      TRIATHLON: 'Triathlon',
+      HYROX: 'HYROX',
+      SKIING: 'Längdskidåkning',
+      GENERAL_FITNESS: 'Allmän fitness',
+      STRENGTH: 'Styrketräning',
+    };
+    context += `- **Primär sport**: ${sportNames[athlete.sportProfile.primarySport] || athlete.sportProfile.primarySport}\n`;
+  }
+
+  return context;
+}
+
+/**
+ * Build test data context
+ */
+function buildTestContext(tests: TestData[]): string {
+  if (tests.length === 0) return '';
+
+  const latestTest = tests[0]; // Assuming sorted by date desc
+
+  let context = `\n## Senaste testresultat\n`;
+  context += `- **Testdatum**: ${new Date(latestTest.testDate).toLocaleDateString('sv-SE')}\n`;
+  context += `- **Testtyp**: ${latestTest.testType}\n`;
+
+  if (latestTest.maxHR) {
+    context += `- **Max puls**: ${latestTest.maxHR} bpm\n`;
+  }
+
+  if (latestTest.vo2max) {
+    context += `- **VO2max**: ${latestTest.vo2max} ml/kg/min\n`;
+  }
+
+  if (latestTest.aerobicThreshold) {
+    context += `- **Aerob tröskel**: ${JSON.stringify(latestTest.aerobicThreshold)}\n`;
+  }
+
+  if (latestTest.anaerobicThreshold) {
+    context += `- **Anaerob tröskel**: ${JSON.stringify(latestTest.anaerobicThreshold)}\n`;
+  }
+
+  return context;
+}
+
+/**
+ * Build Strava integration context (PRO tier only)
+ *
+ * Provides AI with recent training data from Strava for better analysis.
+ */
+function buildStravaContext(activities: StravaActivityData[]): string {
+  if (!activities || activities.length === 0) return '';
+
+  let context = `\n## STRAVA-DATA (Senaste 14 dagarna)\n`;
+  context += `*Automatiskt synkad träningsdata för bättre AI-analys*\n\n`;
+
+  // Calculate summary stats
+  const recentActivities = activities.slice(0, 20);
+  const totalDistance = recentActivities.reduce((sum, a) => sum + (a.distance || 0), 0) / 1000; // km
+  const totalTime = recentActivities.reduce((sum, a) => sum + (a.movingTime || 0), 0) / 3600; // hours
+  const totalTSS = recentActivities.reduce((sum, a) => sum + (a.tss || 0), 0);
+
+  // Group by type
+  const byType: Record<string, { count: number; distance: number; time: number }> = {};
+  for (const activity of recentActivities) {
+    const type = activity.mappedType || 'OTHER';
+    if (!byType[type]) {
+      byType[type] = { count: 0, distance: 0, time: 0 };
+    }
+    byType[type].count++;
+    byType[type].distance += (activity.distance || 0) / 1000;
+    byType[type].time += (activity.movingTime || 0) / 3600;
+  }
+
+  context += `### Träningsöversikt (${recentActivities.length} aktiviteter)\n`;
+  context += `- **Total distans**: ${totalDistance.toFixed(1)} km\n`;
+  context += `- **Total tid**: ${totalTime.toFixed(1)} timmar\n`;
+  context += `- **Ackumulerad TSS**: ${Math.round(totalTSS)}\n`;
+  context += `- **Genomsnittlig TSS/dag**: ${Math.round(totalTSS / 14)}\n\n`;
+
+  // Per-type breakdown
+  context += `### Fördelning per typ\n`;
+  context += `| Typ | Antal | Distans | Tid |\n`;
+  context += `|-----|-------|---------|-----|\n`;
+  for (const [type, data] of Object.entries(byType)) {
+    const typeName = translateActivityType(type);
+    context += `| ${typeName} | ${data.count} | ${data.distance.toFixed(1)} km | ${data.time.toFixed(1)}h |\n`;
+  }
+
+  // Recent activities list
+  context += `\n### Senaste aktiviteter\n`;
+  for (const activity of recentActivities.slice(0, 5)) {
+    const date = new Date(activity.startDate).toLocaleDateString('sv-SE');
+    const distance = activity.distance ? `${(activity.distance / 1000).toFixed(1)} km` : '';
+    const time = activity.movingTime ? formatDuration(activity.movingTime) : '';
+    const hr = activity.averageHeartrate ? `${Math.round(activity.averageHeartrate)} bpm` : '';
+
+    context += `- **${date}** ${activity.name} (${activity.type}): ${distance} ${time}`;
+    if (hr) context += ` | Puls: ${hr}`;
+    if (activity.tss) context += ` | TSS: ${activity.tss}`;
+    context += '\n';
+  }
+
+  // Training load analysis
+  const avgDailyTSS = totalTSS / 14;
+  let loadStatus = '';
+  if (avgDailyTSS < 30) {
+    loadStatus = 'Låg belastning - utrymme för ökning';
+  } else if (avgDailyTSS < 50) {
+    loadStatus = 'Måttlig belastning - bra bas';
+  } else if (avgDailyTSS < 70) {
+    loadStatus = 'Hög belastning - övervaka återhämtning';
+  } else {
+    loadStatus = 'Mycket hög belastning - risk för överträning';
+  }
+  context += `\n### Belastningsanalys\n`;
+  context += `- **Status**: ${loadStatus}\n`;
+
+  return context;
+}
+
+/**
+ * Build Garmin integration context (PRO tier only)
+ *
+ * Provides AI with health metrics from Garmin for holistic analysis.
+ */
+function buildGarminContext(metrics: GarminMetricsData): string {
+  if (!metrics) return '';
+
+  let context = `\n## GARMIN HÄLSODATA (Senaste 7 dagarna)\n`;
+  context += `*Automatiskt synkad hälsodata för bättre beredskapsanalys*\n\n`;
+
+  // Calculate averages
+  const recentDays = metrics.recentDays || [];
+  if (recentDays.length === 0) return '';
+
+  const avgSleep = recentDays.reduce((sum, d) => sum + (d.sleepHours || 0), 0) / recentDays.length;
+  const avgSleepQuality = recentDays.reduce((sum, d) => sum + (d.sleepQuality || 0), 0) / recentDays.length;
+  const avgHRV = recentDays.filter(d => d.hrv).reduce((sum, d) => sum + (d.hrv || 0), 0) /
+                 (recentDays.filter(d => d.hrv).length || 1);
+  const avgRHR = recentDays.filter(d => d.restingHR).reduce((sum, d) => sum + (d.restingHR || 0), 0) /
+                 (recentDays.filter(d => d.restingHR).length || 1);
+  const avgSteps = recentDays.reduce((sum, d) => sum + (d.steps || 0), 0) / recentDays.length;
+  const avgStress = recentDays.filter(d => d.stressLevel !== null).reduce((sum, d) => sum + (d.stressLevel || 0), 0) /
+                    (recentDays.filter(d => d.stressLevel !== null).length || 1);
+
+  context += `### Genomsnittliga hälsometriker\n`;
+  context += `| Metrik | Värde | Status |\n`;
+  context += `|--------|-------|--------|\n`;
+  context += `| Sömn | ${avgSleep.toFixed(1)} tim | ${getSleepStatus(avgSleep)} |\n`;
+  context += `| Sömnkvalitet | ${avgSleepQuality.toFixed(1)}/10 | ${getQualityStatus(avgSleepQuality)} |\n`;
+  if (avgHRV > 0) {
+    context += `| HRV | ${avgHRV.toFixed(0)} ms | ${getHRVStatus(avgHRV)} |\n`;
+  }
+  if (avgRHR > 0) {
+    context += `| Vilopuls | ${avgRHR.toFixed(0)} bpm | ${getRHRStatus(avgRHR)} |\n`;
+  }
+  context += `| Dagliga steg | ${Math.round(avgSteps).toLocaleString()} | ${getStepsStatus(avgSteps)} |\n`;
+  if (avgStress > 0) {
+    context += `| Stressnivå | ${avgStress.toFixed(1)}/10 | ${getStressStatus(avgStress)} |\n`;
+  }
+
+  // Readiness score
+  if (metrics.readinessScore !== null) {
+    context += `\n### Beredskapspoäng\n`;
+    context += `- **Dagens beredskap**: ${metrics.readinessScore}/100`;
+    if (metrics.readinessScore < 40) {
+      context += ' ⚠️ Vila rekommenderas\n';
+    } else if (metrics.readinessScore < 60) {
+      context += ' ⚡ Lätt träning\n';
+    } else if (metrics.readinessScore < 80) {
+      context += ' ✅ Normal träning\n';
+    } else {
+      context += ' 🔥 Optimal för hård träning\n';
+    }
+  }
+
+  // Weekly TSS from Garmin activities
+  if (metrics.weeklyTSS > 0) {
+    context += `\n### Veckobelastning (Garmin)\n`;
+    context += `- **Total TSS**: ${Math.round(metrics.weeklyTSS)}\n`;
+  }
+
+  // Daily breakdown table
+  context += `\n### Daglig översikt\n`;
+  context += `| Datum | Sömn | HRV | RHR | Steg |\n`;
+  context += `|-------|------|-----|-----|------|\n`;
+  for (const day of recentDays.slice(0, 7)) {
+    const date = new Date(day.date).toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric' });
+    const sleep = day.sleepHours ? `${day.sleepHours.toFixed(1)}h` : '-';
+    const hrv = day.hrv ? `${Math.round(day.hrv)}` : '-';
+    const rhr = day.restingHR ? `${Math.round(day.restingHR)}` : '-';
+    const steps = day.steps ? Math.round(day.steps).toLocaleString() : '-';
+    context += `| ${date} | ${sleep} | ${hrv} | ${rhr} | ${steps} |\n`;
+  }
+
+  // Recommendations based on data
+  context += `\n### AI-rekommendationer baserat på Garmin-data\n`;
+  if (avgSleep < 6.5) {
+    context += `- ⚠️ Sömnbrist detekterad - prioritera återhämtning\n`;
+  }
+  if (avgHRV > 0 && avgHRV < 40) {
+    context += `- ⚠️ Låg HRV - överväg att minska intensitet\n`;
+  }
+  if (avgStress > 6) {
+    context += `- ⚠️ Hög stressnivå - inkludera avslappning\n`;
+  }
+  if (avgSleep >= 7 && avgSleepQuality >= 7) {
+    context += `- ✅ God sömn - redo för kvalitetspass\n`;
+  }
+
+  return context;
+}
+
+// Helper functions for Garmin status
+function getSleepStatus(hours: number): string {
+  if (hours >= 7.5) return '✅ Utmärkt';
+  if (hours >= 7) return '✅ Bra';
+  if (hours >= 6) return '⚡ Acceptabel';
+  return '⚠️ Otillräcklig';
+}
+
+function getQualityStatus(quality: number): string {
+  if (quality >= 8) return '✅ Utmärkt';
+  if (quality >= 6) return '✅ Bra';
+  if (quality >= 4) return '⚡ Medel';
+  return '⚠️ Låg';
+}
+
+function getHRVStatus(hrv: number): string {
+  if (hrv >= 60) return '✅ Hög';
+  if (hrv >= 45) return '✅ Normal';
+  if (hrv >= 30) return '⚡ Låg-normal';
+  return '⚠️ Låg';
+}
+
+function getRHRStatus(rhr: number): string {
+  if (rhr <= 55) return '✅ Utmärkt';
+  if (rhr <= 65) return '✅ Bra';
+  if (rhr <= 75) return '⚡ Normal';
+  return '⚠️ Förhöjd';
+}
+
+function getStepsStatus(steps: number): string {
+  if (steps >= 10000) return '✅ Aktiv';
+  if (steps >= 7000) return '✅ Bra';
+  if (steps >= 5000) return '⚡ Medel';
+  return '⚠️ Stillasittande';
+}
+
+function getStressStatus(stress: number): string {
+  if (stress <= 3) return '✅ Låg';
+  if (stress <= 5) return '⚡ Medel';
+  if (stress <= 7) return '⚠️ Hög';
+  return '🔴 Mycket hög';
+}
+
+function translateActivityType(type: string): string {
+  const translations: Record<string, string> = {
+    RUNNING: 'Löpning',
+    CYCLING: 'Cykling',
+    SWIMMING: 'Simning',
+    CROSS_TRAINING: 'Korsträning',
+    STRENGTH: 'Styrka',
+    SKIING: 'Skidåkning',
+    RECOVERY: 'Återhämtning',
+    OTHER: 'Övrigt',
+  };
+  return translations[type] || type;
+}
+
+function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m`;
+}
+
+/**
+ * Generate upgrade prompt for FREE tier users trying to access AI
+ */
+export function getUpgradePrompt(): string {
+  return `
+## AI-coaching inte tillgänglig
+
+Din nuvarande prenumeration (Gratis) inkluderar inte AI-coaching.
+
+Uppgradera till **Standard** för att få:
+- AI-coaching med 50 meddelanden per månad
+- Daglig träningsloggning
+- Garmin & Strava-synkning
+
+Eller välj **Pro** för obegränsad AI-coaching, videoanalys och mer!
+
+[Uppgradera nu](/athlete/subscription)
+`;
 }
 
 export type { AthleteData, SportProfile };

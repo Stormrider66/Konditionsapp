@@ -104,6 +104,30 @@ enum SubscriptionStatus {
   TRIAL
 }
 
+// ==================== ATHLETE SUBSCRIPTION TIERS ====================
+
+enum AthleteSubscriptionTier {
+  FREE      // View reports only - no AI access
+  STANDARD  // Basic AI chat (50 msg/month), workout logging, daily check-in
+  PRO       // Full AI agent, unlimited AI, video analysis, Strava/Garmin sync
+}
+
+enum PaymentSource {
+  DIRECT    // Athlete pays directly - 100% to platform
+  BUSINESS  // Athlete onboarded via business - revenue shared
+}
+
+enum IntegrationType {
+  STRAVA    // Strava OAuth integration
+  GARMIN    // Garmin Health API integration
+}
+
+enum InvitationType {
+  ATHLETE_SIGNUP   // Invite athlete to create account
+  REPORT_VIEW      // Public report link
+  REFERRAL         // Referral bonus link
+}
+
 enum BiomechanicalPillar {
   POSTERIOR_CHAIN    // Hip dominance - glutes, hamstrings
   KNEE_DOMINANCE     // Quad strength & stiffness
@@ -179,6 +203,10 @@ model User {
   cardioSessions    CardioSession[]   @relation("CoachCardioSessions")
   strengthTemplates StrengthTemplate[] @relation("StrengthTemplateOwner")
 
+  // Business & Organization relations
+  businessMemberships BusinessMember[]
+  tester              Tester?
+
   @@index([email])
   @@index([role])
 }
@@ -210,6 +238,9 @@ model Client {
   height    Float    // cm
   weight    Float    // kg
   notes     String?
+
+  // Direct athlete flag (not onboarded via coach)
+  isDirect  Boolean  @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -260,10 +291,16 @@ model Client {
   dietaryPreferences  DietaryPreferences?
   nutritionGoal       NutritionGoal?
 
+  // Athlete Subscription & Integrations
+  athleteSubscription  AthleteSubscription?
+  integrationTokens    IntegrationToken[]
+  stravaActivities     StravaActivity[]
+
   @@index([userId])
   @@index([teamId])
   @@index([name])
   @@index([email])
+  @@index([isDirect])
 }
 
 model Test {
@@ -274,10 +311,18 @@ model Test {
   testType   TestType
   status     TestStatus @default(DRAFT)
 
-  // Test metadata
-  location    String?     // Piteå, Skellefteå, etc.
-  testLeader  String?     // Name of test leader
+  // Test metadata (legacy string fields - prefer relations below)
+  location    String?     // Piteå, Skellefteå, etc. (LEGACY - use locationId)
+  testLeader  String?     // Name of test leader (LEGACY - use testerId)
   inclineUnit InclineUnit @default(PERCENT) // For running tests: % or degrees
+
+  // Structured references (preferred over string fields)
+  testerId    String?     // FK to Tester
+  locationId  String?     // FK to Location
+
+  // Public report sharing
+  publicToken     String?   @unique  // Random token for public access
+  publicExpiresAt DateTime?          // When public link expires
 
   // Beräknade värden
   maxHR      Int?
@@ -306,10 +351,17 @@ model Test {
   // Training Engine relationships
   thresholdCalculation ThresholdCalculation?
 
+  // Tester & Location relations
+  tester               Tester?   @relation(fields: [testerId], references: [id], onDelete: SetNull)
+  testLocation         Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
   @@index([clientId])
   @@index([userId])
   @@index([testDate])
   @@index([location])
+  @@index([testerId])
+  @@index([locationId])
+  @@index([publicToken])
 }
 
 model TestStage {
@@ -410,6 +462,339 @@ model Subscription {
   @@index([userId])
   @@index([status])
   @@index([tier])
+}
+
+// ==================== ATHLETE SUBSCRIPTION (Direct Athletes) ====================
+
+/// Subscription for individual athletes (separate from coach Subscription)
+model AthleteSubscription {
+  id                     String                   @id @default(uuid())
+  clientId               String                   @unique
+  tier                   AthleteSubscriptionTier  @default(FREE)
+  status                 SubscriptionStatus       @default(TRIAL)
+  paymentSource          PaymentSource            @default(DIRECT)
+
+  // Stripe integration
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  billingCycle           String?                  // "MONTHLY" | "YEARLY"
+
+  // Revenue sharing (if paymentSource = BUSINESS)
+  businessId             String?
+  revenueSharePercent    Float?                   // Platform's share (e.g., 20 = 20%)
+
+  // Feature flags (cached for performance)
+  aiChatEnabled          Boolean                  @default(false)
+  aiChatMessagesUsed     Int                      @default(0)
+  aiChatMessagesLimit    Int                      @default(0)      // 0 = disabled, -1 = unlimited
+  videoAnalysisEnabled   Boolean                  @default(false)
+  garminEnabled          Boolean                  @default(false)
+  stravaEnabled          Boolean                  @default(false)
+  workoutLoggingEnabled  Boolean                  @default(false)
+  dailyCheckInEnabled    Boolean                  @default(false)
+
+  // Trial
+  trialEndsAt            DateTime?
+
+  // Timestamps
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  client                 Client                   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  business               Business?                @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([tier])
+  @@index([status])
+  @@index([businessId])
+  @@index([paymentSource])
+}
+
+// ==================== BUSINESS & ORGANIZATION ====================
+
+/// Business entity (gym, testing center, coaching company)
+model Business {
+  id                     String        @id @default(uuid())
+  name                   String
+  slug                   String        @unique    // URL-friendly identifier
+  description            String?       @db.Text
+
+  // Contact info
+  email                  String?
+  phone                  String?
+  website                String?
+
+  // Address
+  address                String?
+  city                   String?
+  postalCode             String?
+  country                String?       @default("SE")
+
+  // Stripe Connect for revenue sharing
+  stripeConnectAccountId String?
+  stripeConnectStatus    String?                  // "PENDING", "ACTIVE", "RESTRICTED"
+  defaultRevenueShare    Float         @default(20) // Default platform share %
+
+  // Branding
+  logoUrl                String?
+  primaryColor           String?       @default("#3b82f6")
+
+  // Settings
+  isActive               Boolean       @default(true)
+  settings               Json?                    // Business-specific settings
+
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  members                BusinessMember[]
+  testers                Tester[]
+  locations              Location[]
+  athleteSubscriptions   AthleteSubscription[]
+  invitations            Invitation[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+/// Links users to businesses with roles
+model BusinessMember {
+  id                     String        @id @default(uuid())
+  businessId             String
+  userId                 String
+
+  // Role within business
+  role                   String        @default("MEMBER") // "OWNER", "ADMIN", "MEMBER", "TESTER"
+
+  // Permissions (JSON for flexibility)
+  permissions            Json?         // { canManageTesters, canViewAllTests, canManageClients, etc. }
+
+  // Status
+  isActive               Boolean       @default(true)
+  invitedAt              DateTime      @default(now())
+  acceptedAt             DateTime?
+
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  business               Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user                   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+  @@index([businessId])
+  @@index([userId])
+  @@index([role])
+}
+
+// ==================== TESTERS & LOCATIONS ====================
+
+/// Personnel who conduct tests (can have privacy restrictions)
+model Tester {
+  id                     String        @id @default(uuid())
+  businessId             String?                  // Optional - can be independent
+  userId                 String?       @unique    // Link to User if they have account
+  name                   String
+  email                  String?
+
+  // Privacy settings
+  isPrivate              Boolean       @default(false) // Only sees own tests
+
+  // Stats (cached for performance)
+  totalTests             Int           @default(0)
+  lastTestAt             DateTime?
+
+  // Contact info
+  phone                  String?
+  title                  String?                  // "Fysiolog", "Coach", etc.
+
+  isActive               Boolean       @default(true)
+
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  business               Business?     @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  user                   User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tests                  Test[]
+
+  @@index([businessId])
+  @@index([userId])
+  @@index([isActive])
+}
+
+/// Physical location where tests are conducted
+model Location {
+  id                     String        @id @default(uuid())
+  businessId             String
+  name                   String
+  city                   String?
+
+  // Address
+  address                String?
+  postalCode             String?
+
+  // Coordinates (for map display)
+  latitude               Float?
+  longitude              Float?
+
+  // Stats (cached for performance)
+  totalTests             Int           @default(0)
+  lastTestAt             DateTime?
+
+  // Settings
+  isActive               Boolean       @default(true)
+  settings               Json?         // Location-specific settings
+
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  business               Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  tests                  Test[]
+
+  @@index([businessId])
+  @@index([city])
+  @@index([isActive])
+}
+
+// ==================== INTEGRATIONS (Strava, Garmin) ====================
+
+/// OAuth tokens for external integrations
+model IntegrationToken {
+  id                     String          @id @default(uuid())
+  clientId               String
+  type                   IntegrationType
+
+  // OAuth tokens (encrypted at application level)
+  accessToken            String          @db.Text
+  refreshToken           String?         @db.Text
+  expiresAt              DateTime?
+
+  // Integration-specific data
+  externalUserId         String?         // Strava athlete ID, Garmin user ID
+  scope                  String?         // OAuth scopes granted
+
+  // Sync status
+  lastSyncAt             DateTime?
+  lastSyncError          String?
+  syncEnabled            Boolean         @default(true)
+
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  client                 Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, type])
+  @@index([clientId])
+  @@index([type])
+  @@index([lastSyncAt])
+}
+
+/// Synced Strava activities for training load analysis
+model StravaActivity {
+  id                     String          @id @default(uuid())
+  clientId               String
+  stravaId               String          @unique  // Strava activity ID
+
+  // Basic activity info
+  name                   String
+  type                   String          // Strava activity type (Run, Ride, etc.)
+  sportType              String?         // Strava sport_type
+  startDate              DateTime
+  description            String?         @db.Text
+
+  // Metrics
+  distance               Float?          // meters
+  movingTime             Int?            // seconds
+  elapsedTime            Int?            // seconds
+  elevationGain          Float?          // meters
+  averageSpeed           Float?          // m/s
+  maxSpeed               Float?          // m/s
+
+  // Heart rate
+  averageHeartrate       Float?
+  maxHeartrate           Float?
+
+  // Cadence
+  averageCadence         Float?
+
+  // Power (cycling)
+  averageWatts           Float?
+  weightedAverageWatts   Float?
+  kilojoules             Float?
+
+  // Strava scores
+  sufferScore            Int?
+  calories               Float?
+
+  // Activity flags
+  trainer                Boolean         @default(false)
+  manual                 Boolean         @default(false)
+
+  // Map data
+  mapPolyline            String?         @db.Text
+
+  // Calculated metrics
+  tss                    Float?          // Training Stress Score
+  trimp                  Float?          // Training Impulse
+
+  // Mapped to our internal types
+  mappedType             String?         // RUNNING, CYCLING, etc.
+  mappedIntensity        String?         // EASY, MODERATE, HARD
+
+  // Detailed data (JSON)
+  splitsMetric           Json?           // Kilometer splits
+  laps                   Json?           // Lap data
+
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  client                 Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([startDate])
+  @@index([type])
+  @@index([mappedType])
+}
+
+// ==================== INVITATIONS & REFERRALS ====================
+
+/// Invitations and referral codes
+model Invitation {
+  id                     String          @id @default(uuid())
+  code                   String          @unique
+  type                   InvitationType
+
+  // Sender (optional)
+  senderId               String?         // User who sent invitation
+  businessId             String?         // Business context
+
+  // Recipient
+  recipientEmail         String?
+  recipientName          String?
+
+  // Usage
+  usedAt                 DateTime?
+  usedByClientId         String?         // Client who used the invitation
+
+  // Expiry
+  expiresAt              DateTime?
+  maxUses                Int             @default(1)
+  currentUses            Int             @default(0)
+
+  // Referral bonus tracking
+  bonusAwarded           Boolean         @default(false)
+  bonusAmount            Float?
+
+  // Metadata
+  metadata               Json?           // Additional context data
+
+  createdAt              DateTime        @default(now())
+
+  business               Business?       @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([code])
+  @@index([type])
+  @@index([senderId])
+  @@index([businessId])
+  @@index([expiresAt])
 }
 
 // ==================== ATHLETE ACCOUNTS ====================

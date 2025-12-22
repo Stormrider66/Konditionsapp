@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { TechniqueProgressionChart } from '@/components/coach/video-analysis/TechniqueProgressionChart'
+import { VideoComparisonView } from '@/components/coach/video-analysis/VideoComparisonView'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 
 interface TechniqueTabProps {
@@ -38,6 +40,14 @@ export function TechniqueTab({ data, viewMode }: TechniqueTabProps) {
           {viewMode === 'coach' && (
             <Link href={`/coach/video-analysis`}>
               <Button>Analysera video</Button>
+            </Link>
+          )}
+          {viewMode === 'athlete' && (
+            <Link href="/athlete/video-analysis">
+              <Button>
+                <Video className="h-4 w-4 mr-2" />
+                Ladda upp video
+              </Button>
             </Link>
           )}
         </CardContent>
@@ -89,6 +99,39 @@ export function TechniqueTab({ data, viewMode }: TechniqueTabProps) {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Technique Progression Chart */}
+      {videoAnalyses.length >= 2 && (
+        <TechniqueProgressionChart
+          analyses={videoAnalyses.map((v) => ({
+            id: v.id,
+            createdAt: v.createdAt,
+            formScore: v.formScore,
+            videoType: v.videoType,
+            exercise: v.exercise,
+          }))}
+          title="Teknikutveckling"
+          showGoal={true}
+          goalScore={80}
+        />
+      )}
+
+      {/* Side-by-Side Video Comparison */}
+      {videoAnalyses.length >= 2 && (
+        <VideoComparisonView
+          analyses={videoAnalyses.map((v) => ({
+            id: v.id,
+            createdAt: v.createdAt,
+            formScore: v.formScore,
+            videoType: v.videoType,
+            videoUrl: v.videoUrl,
+            exercise: v.exercise,
+            issuesDetected: v.issuesDetected as Array<{ issue: string; severity: string }> | null,
+            recommendations: v.recommendations as Array<{ recommendation: string }> | null,
+          }))}
+          title="Jamfor videor"
+        />
       )}
 
       {/* Running Gait Analysis */}
@@ -201,6 +244,14 @@ export function TechniqueTab({ data, viewMode }: TechniqueTabProps) {
             {viewMode === 'coach' && (
               <Link href={`/coach/video-analysis`}>
                 <Button size="sm">+ Ny analys</Button>
+              </Link>
+            )}
+            {viewMode === 'athlete' && (
+              <Link href="/athlete/video-analysis">
+                <Button size="sm">
+                  <Video className="h-4 w-4 mr-2" />
+                  Ladda upp video
+                </Button>
               </Link>
             )}
           </div>

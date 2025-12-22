@@ -8,6 +8,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import {
+  compressSkeletalData,
+  decompressSkeletalData,
+  toBase64,
+  fromBase64,
+  getCompressionStats,
+  type PoseFrame,
+  type TOONData,
+} from '@/lib/video-analysis/skeletal-compression';
 
 const landmarkSchema = z.object({
   x: z.number(),
@@ -49,20 +58,32 @@ export async function PATCH(
       );
     }
 
-    // Compress landmarks data for storage
-    // Store as TOON format: timestamp + flattened landmark coordinates
-    const compressedData = {
-      version: '1.0',
-      frameCount: frames.length,
-      frames: frames.map((frame) => ({
-        t: Math.round(frame.timestamp * 1000), // ms
-        l: frame.landmarks.map((lm) => [
-          Math.round(lm.x * 10000) / 10000,
-          Math.round(lm.y * 10000) / 10000,
-          Math.round(lm.z * 10000) / 10000,
-          lm.visibility ? Math.round(lm.visibility * 100) / 100 : 1,
-        ]),
+    // Compress landmarks data using TOON format
+    // Achieves 70-90% compression through delta encoding, quantization, and RLE
+    const poseFrames: PoseFrame[] = frames.map((frame) => ({
+      timestamp: frame.timestamp,
+      landmarks: frame.landmarks.map((lm) => ({
+        x: lm.x,
+        y: lm.y,
+        z: lm.z,
+        visibility: lm.visibility,
       })),
+    }));
+
+    const toonData = compressSkeletalData(poseFrames, {
+      useImportantLandmarksOnly: true, // Store only 16 key landmarks
+      keyframeInterval: 30, // Keyframe every 30 frames
+      enableRLE: true, // Enable run-length encoding
+    });
+
+    const compressionStats = getCompressionStats(toonData);
+
+    const compressedData = {
+      version: '2.0',
+      format: 'TOON',
+      frameCount: frames.length,
+      toonBase64: toBase64(toonData),
+      compressionStats,
       metadata: {
         analyzedAt: new Date().toISOString(),
         model: 'mediapipe-blazepose-1.0',
@@ -142,11 +163,14 @@ export async function GET(
       );
     }
 
-    // Decompress landmarks data
+    // Decompress landmarks data - support both TOON v2 and legacy v1 formats
     const data = analysis.landmarksData as {
       version: string;
+      format?: string;
       frameCount: number;
-      frames: Array<{
+      toonBase64?: string;
+      compressionStats?: object;
+      frames?: Array<{
         t: number;
         l: Array<[number, number, number, number]>;
       }>;
@@ -156,23 +180,48 @@ export async function GET(
       };
     };
 
-    const frames = data.frames.map((frame) => ({
-      timestamp: frame.t / 1000,
-      landmarks: frame.l.map(([x, y, z, visibility]) => ({
-        x,
-        y,
-        z,
-        visibility,
-      })),
-    }));
+    let frames: PoseFrame[];
 
-    return NextResponse.json({
-      success: true,
-      version: data.version,
-      frameCount: data.frameCount,
-      frames,
-      metadata: data.metadata,
-    });
+    if (data.format === 'TOON' && data.toonBase64) {
+      // Decompress TOON format
+      const toonData = fromBase64(data.toonBase64);
+      frames = decompressSkeletalData(toonData);
+
+      return NextResponse.json({
+        success: true,
+        version: data.version,
+        format: 'TOON',
+        frameCount: toonData.header.frameCount,
+        frames,
+        compressionStats: data.compressionStats,
+        metadata: data.metadata,
+      });
+    } else if (data.frames) {
+      // Legacy v1 format
+      frames = data.frames.map((frame) => ({
+        timestamp: frame.t / 1000,
+        landmarks: frame.l.map(([x, y, z, visibility]) => ({
+          x,
+          y,
+          z,
+          visibility,
+        })),
+      }));
+
+      return NextResponse.json({
+        success: true,
+        version: data.version,
+        format: 'legacy',
+        frameCount: data.frameCount,
+        frames,
+        metadata: data.metadata,
+      });
+    }
+
+    return NextResponse.json(
+      { error: 'Invalid landmarks data format' },
+      { status: 500 }
+    );
   } catch (error) {
     console.error('Get landmarks error:', error);
 

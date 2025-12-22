@@ -2,8 +2,10 @@
 
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Scale, TrendingUp, TrendingDown, Droplets, Flame, Activity } from 'lucide-react'
+import Link from 'next/link'
+import { Scale, TrendingUp, TrendingDown, Droplets, Flame, Activity, Plus } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   LineChart,
@@ -34,9 +36,17 @@ export function BodyCompositionTab({ data, viewMode }: BodyCompositionTabProps) 
         <CardContent className="py-12 text-center">
           <Scale className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Ingen kroppssammansättningsdata</h3>
-          <p className="text-gray-500">
+          <p className="text-gray-500 mb-4">
             Registrera bioimpedansmätningar för att se data här.
           </p>
+          {viewMode === 'athlete' && (
+            <Link href="/athlete/body-composition">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Lägg till mätning
+              </Button>
+            </Link>
+          )}
         </CardContent>
       </Card>
     )
@@ -55,9 +65,25 @@ export function BodyCompositionTab({ data, viewMode }: BodyCompositionTabProps) 
   // Calculate trends
   const weightTrend = calculateTrend(measurements.map((m) => m.weightKg).filter(Boolean) as number[])
   const fatTrend = calculateTrend(measurements.map((m) => m.bodyFatPercent).filter(Boolean) as number[])
+  const muscleTrend = calculateTrend(measurements.map((m) => m.muscleMassKg).filter(Boolean) as number[])
+
+  // Calculate progress over time periods
+  const progressSummary = calculateProgressSummary(measurements)
 
   return (
     <div className="space-y-6">
+      {/* Header with Add Button for Athletes */}
+      {viewMode === 'athlete' && (
+        <div className="flex justify-end">
+          <Link href="/athlete/body-composition">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Ny mätning
+            </Button>
+          </Link>
+        </div>
+      )}
+
       {/* Current Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard
@@ -84,6 +110,8 @@ export function BodyCompositionTab({ data, viewMode }: BodyCompositionTabProps) 
           label="Muskelmassa"
           value={latestMeasurement.muscleMassKg ? `${latestMeasurement.muscleMassKg.toFixed(1)}` : '-'}
           unit="kg"
+          trend={muscleTrend}
+          trendInverted
         />
 
         <MetricCard
@@ -134,6 +162,60 @@ export function BodyCompositionTab({ data, viewMode }: BodyCompositionTabProps) 
                   />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Progress Summary */}
+      {progressSummary.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Förändring över tid</CardTitle>
+            <CardDescription>
+              Jämförelse mot tidigare mätningar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 font-medium">Period</th>
+                    <th className="text-right py-2 font-medium">Vikt</th>
+                    <th className="text-right py-2 font-medium">Kroppsfett</th>
+                    <th className="text-right py-2 font-medium">Muskelmassa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {progressSummary.map((period) => (
+                    <tr key={period.label} className="border-b last:border-0">
+                      <td className="py-3 font-medium">{period.label}</td>
+                      <td className="py-3 text-right">
+                        {period.weight !== null ? (
+                          <span className={period.weight < 0 ? 'text-green-600' : period.weight > 0 ? 'text-red-600' : ''}>
+                            {period.weight > 0 ? '+' : ''}{period.weight.toFixed(1)} kg
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="py-3 text-right">
+                        {period.bodyFat !== null ? (
+                          <span className={period.bodyFat < 0 ? 'text-green-600' : period.bodyFat > 0 ? 'text-red-600' : ''}>
+                            {period.bodyFat > 0 ? '+' : ''}{period.bodyFat.toFixed(1)}%
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="py-3 text-right">
+                        {period.muscle !== null ? (
+                          <span className={period.muscle > 0 ? 'text-green-600' : period.muscle < 0 ? 'text-red-600' : ''}>
+                            {period.muscle > 0 ? '+' : ''}{period.muscle.toFixed(1)} kg
+                          </span>
+                        ) : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>
@@ -225,6 +307,7 @@ function MetricCard({
   value,
   unit,
   trend,
+  trendInverted = false,
 }: {
   icon: React.ElementType
   iconColor: string
@@ -232,7 +315,12 @@ function MetricCard({
   value: string
   unit?: string
   trend?: { direction: 'up' | 'down' | 'stable'; value: number } | null
+  trendInverted?: boolean // If true, up is good (e.g., muscle mass)
 }) {
+  const isPositive = trendInverted
+    ? trend?.direction === 'up'
+    : trend?.direction === 'down'
+
   return (
     <Card>
       <CardContent className="p-4">
@@ -246,7 +334,7 @@ function MetricCard({
             {trend && trend.direction !== 'stable' && (
               <div
                 className={`flex items-center gap-1 text-xs mt-1 ${
-                  trend.direction === 'down' ? 'text-green-600' : 'text-red-600'
+                  isPositive ? 'text-green-600' : 'text-red-600'
                 }`}
               >
                 {trend.direction === 'down' ? (
@@ -318,4 +406,51 @@ function getMeasurementTimeLabel(time: string): string {
     POST_WORKOUT: 'Efter träning',
   }
   return labels[time] || time
+}
+
+interface ProgressPeriod {
+  label: string
+  weight: number | null
+  bodyFat: number | null
+  muscle: number | null
+}
+
+function calculateProgressSummary(measurements: Array<{
+  measurementDate: string | Date
+  weightKg: number | null
+  bodyFatPercent: number | null
+  muscleMassKg: number | null
+}>): ProgressPeriod[] {
+  if (measurements.length < 2) return []
+
+  const now = new Date()
+  const latest = measurements[0]
+
+  const periods = [
+    { label: '1 vecka', days: 7 },
+    { label: '1 månad', days: 30 },
+    { label: '3 månader', days: 90 },
+  ]
+
+  return periods.map((period) => {
+    const targetDate = new Date(now)
+    targetDate.setDate(targetDate.getDate() - period.days)
+
+    // Find measurement closest to target date
+    const older = measurements.find((m) => {
+      const date = new Date(m.measurementDate)
+      return date <= targetDate
+    })
+
+    if (!older) {
+      return { label: period.label, weight: null, bodyFat: null, muscle: null }
+    }
+
+    return {
+      label: period.label,
+      weight: latest.weightKg && older.weightKg ? latest.weightKg - older.weightKg : null,
+      bodyFat: latest.bodyFatPercent && older.bodyFatPercent ? latest.bodyFatPercent - older.bodyFatPercent : null,
+      muscle: latest.muscleMassKg && older.muscleMassKg ? latest.muscleMassKg - older.muscleMassKg : null,
+    }
+  }).filter((p) => p.weight !== null || p.bodyFat !== null || p.muscle !== null)
 }

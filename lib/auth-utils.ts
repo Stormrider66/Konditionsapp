@@ -409,3 +409,104 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
 
   return subscription.status === 'ACTIVE' || subscription.status === 'TRIAL'
 }
+
+// ============================================
+// Tester Privacy Controls
+// ============================================
+
+/**
+ * Get the Tester record linked to a user (if any)
+ */
+export async function getTesterForUser(userId: string) {
+  return prisma.tester.findUnique({
+    where: { userId },
+  })
+}
+
+/**
+ * Check if a user is a private tester
+ * Private testers can only see tests they conducted
+ */
+export async function isPrivateTester(userId: string): Promise<boolean> {
+  const tester = await prisma.tester.findUnique({
+    where: { userId },
+  })
+
+  return tester?.isPrivate === true
+}
+
+/**
+ * Get test filter clause for tester privacy
+ * Returns a where clause that filters tests based on tester privacy settings
+ *
+ * If user is a private tester: only return their tests
+ * If user is not a private tester: no additional filter
+ */
+export async function getTestPrivacyFilter(userId: string): Promise<{ testerId?: string } | null> {
+  const tester = await prisma.tester.findUnique({
+    where: { userId },
+  })
+
+  if (!tester) {
+    // Not a tester, no privacy filter needed
+    return null
+  }
+
+  if (tester.isPrivate) {
+    // Private tester - can only see their own tests
+    return { testerId: tester.id }
+  }
+
+  // Not private, no additional filter
+  return null
+}
+
+/**
+ * Apply tester privacy to a Prisma query where clause
+ * Use this when fetching tests to automatically apply privacy filters
+ */
+export async function applyTesterPrivacy<T extends { testerId?: string | null }>(
+  userId: string,
+  whereClause: T
+): Promise<T> {
+  const privacyFilter = await getTestPrivacyFilter(userId)
+
+  if (privacyFilter) {
+    return {
+      ...whereClause,
+      ...privacyFilter,
+    }
+  }
+
+  return whereClause
+}
+
+/**
+ * Check if user can access a specific test based on tester privacy
+ */
+export async function canAccessTestAsTester(
+  userId: string,
+  testId: string
+): Promise<boolean> {
+  const tester = await prisma.tester.findUnique({
+    where: { userId },
+  })
+
+  // If not a tester, allow (other access controls will apply)
+  if (!tester) {
+    return true
+  }
+
+  // If not private, allow
+  if (!tester.isPrivate) {
+    return true
+  }
+
+  // Private tester - check if they conducted this test
+  const test = await prisma.test.findUnique({
+    where: { id: testId },
+    select: { testerId: true },
+  })
+
+  return test?.testerId === tester.id
+}

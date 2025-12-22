@@ -7,6 +7,20 @@ import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+
+// Power zone calculation based on FTP (Coggan zones)
+function calculatePowerZones(ftp: number) {
+  return [
+    { zone: 1, name: 'Active Recovery', nameSv: 'Aktiv återhämtning', min: 0, max: Math.round(ftp * 0.55), color: 'bg-gray-200' },
+    { zone: 2, name: 'Endurance', nameSv: 'Uthållighet', min: Math.round(ftp * 0.56), max: Math.round(ftp * 0.75), color: 'bg-blue-200' },
+    { zone: 3, name: 'Tempo', nameSv: 'Tempo', min: Math.round(ftp * 0.76), max: Math.round(ftp * 0.90), color: 'bg-green-200' },
+    { zone: 4, name: 'Threshold', nameSv: 'Tröskel', min: Math.round(ftp * 0.91), max: Math.round(ftp * 1.05), color: 'bg-yellow-200' },
+    { zone: 5, name: 'VO2max', nameSv: 'VO2max', min: Math.round(ftp * 1.06), max: Math.round(ftp * 1.20), color: 'bg-orange-200' },
+    { zone: 6, name: 'Anaerobic', nameSv: 'Anaerob', min: Math.round(ftp * 1.21), max: Math.round(ftp * 1.50), color: 'bg-red-200' },
+    { zone: 7, name: 'Neuromuscular', nameSv: 'Neuromuskulär', min: Math.round(ftp * 1.51), max: null, color: 'bg-purple-200' },
+  ]
+}
 
 // Cycling-specific options
 const BIKE_TYPES = [
@@ -232,6 +246,35 @@ export function CyclingOnboarding({
               </p>
             )}
           </div>
+
+          {/* Power Zones Display */}
+          {value.currentFtp && value.currentFtp > 0 && (
+            <div className="space-y-3 pt-4 border-t">
+              <Label className="text-sm font-semibold">
+                {t('Your Power Zones (Coggan)', 'Dina effektzoner (Coggan)')}
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {calculatePowerZones(value.currentFtp).map((zone) => (
+                  <div
+                    key={zone.zone}
+                    className={cn('flex items-center justify-between p-2 rounded-lg', zone.color)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="w-6 h-6 p-0 flex items-center justify-center">
+                        {zone.zone}
+                      </Badge>
+                      <span className="text-sm font-medium">
+                        {locale === 'sv' ? zone.nameSv : zone.name}
+                      </span>
+                    </div>
+                    <span className="text-sm font-mono">
+                      {zone.max ? `${zone.min}-${zone.max}W` : `>${zone.min}W`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* HR Monitor */}
           <Label className="flex items-center gap-3 cursor-pointer">

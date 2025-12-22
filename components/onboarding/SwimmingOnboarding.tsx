@@ -7,6 +7,19 @@ import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+
+// CSS-based swim zones (pace per 100m)
+function calculateSwimZones(css: number) {
+  return [
+    { zone: 1, name: 'Recovery', nameSv: 'Återhämtning', pct: 125, color: 'bg-gray-200' },
+    { zone: 2, name: 'Aerobic', nameSv: 'Aerob', pct: 115, color: 'bg-blue-200' },
+    { zone: 3, name: 'Endurance', nameSv: 'Uthållighet', pct: 107, color: 'bg-green-200' },
+    { zone: 4, name: 'Threshold (CSS)', nameSv: 'Tröskel (CSS)', pct: 100, color: 'bg-yellow-200' },
+    { zone: 5, name: 'VO2max', nameSv: 'VO2max', pct: 92, color: 'bg-orange-200' },
+    { zone: 6, name: 'Sprint', nameSv: 'Sprint', pct: 85, color: 'bg-red-200' },
+  ].map(z => ({ ...z, pace: Math.round(css * (z.pct / 100)) }))
+}
 
 // Swimming-specific options
 const STROKE_TYPES = [
@@ -289,26 +302,30 @@ export function SwimmingOnboarding({
             </div>
           </div>
 
-          {value.currentCss && (
-            <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium mb-2">{t('Your estimated paces:', 'Dina beräknade tempon:')}</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">{t('Recovery:', 'Återhämtning:')}</span>
-                  <span className="ml-2 font-mono">{formatCssTime(Math.round(value.currentCss * 1.25))}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">{t('Endurance:', 'Uthållighet:')}</span>
-                  <span className="ml-2 font-mono">{formatCssTime(Math.round(value.currentCss * 1.10))}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">CSS:</span>
-                  <span className="ml-2 font-mono">{formatCssTime(value.currentCss)}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">VO2max:</span>
-                  <span className="ml-2 font-mono">{formatCssTime(Math.round(value.currentCss * 0.92))}</span>
-                </div>
+          {value.currentCss && value.currentCss > 0 && (
+            <div className="space-y-3 pt-4 border-t">
+              <Label className="text-sm font-semibold">
+                {t('Your Swim Zones (per 100m)', 'Dina simzoner (per 100m)')}
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {calculateSwimZones(value.currentCss).map((zone) => (
+                  <div
+                    key={zone.zone}
+                    className={cn('flex items-center justify-between p-2 rounded-lg', zone.color)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="w-6 h-6 p-0 flex items-center justify-center">
+                        {zone.zone}
+                      </Badge>
+                      <span className="text-sm font-medium">
+                        {locale === 'sv' ? zone.nameSv : zone.name}
+                      </span>
+                    </div>
+                    <span className="text-sm font-mono">
+                      {formatCssTime(zone.pace)}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
