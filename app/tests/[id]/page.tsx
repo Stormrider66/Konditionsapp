@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ReportTemplate } from '@/components/reports/ReportTemplate'
 import { PDFExportButton } from '@/components/reports/PDFExportButton'
+import { ShareReportButton } from '@/components/reports/ShareReportButton'
 import { Button } from '@/components/ui/button'
 import { Home, User, Printer, ArrowLeft, Edit2 } from 'lucide-react'
 import type { Test, Client, TestCalculations, Threshold, TrainingZone } from '@/types'
@@ -157,6 +158,11 @@ export default function TestDetailPage() {
             }}
             variant="default"
             size="md"
+          />
+          <ShareReportButton
+            testId={test.id}
+            hasExistingLink={!!test.publicToken}
+            existingToken={test.publicToken || undefined}
           />
         </div>
 

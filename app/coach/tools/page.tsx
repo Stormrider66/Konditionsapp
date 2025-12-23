@@ -14,8 +14,9 @@ import { VDOTCalculator } from '@/components/coach/calculators/VDOTCalculator';
 import { EnvironmentalCalculator } from '@/components/coach/calculators/EnvironmentalCalculator';
 import { WorkoutConverter } from '@/components/coach/cross-training/WorkoutConverter';
 import { InjuryAssessmentForm } from '@/components/coach/injury/InjuryAssessmentForm';
+import { GoalZoneWizard } from '@/components/coach/goal-based/GoalZoneWizard';
 import { prisma } from '@/lib/prisma';
-import { Calculator, Thermometer, Activity, AlertTriangle } from 'lucide-react';
+import { Calculator, Thermometer, Activity, AlertTriangle, Target } from 'lucide-react';
 
 export default async function CoachToolsPage() {
   const user = await requireCoach();
@@ -45,27 +46,35 @@ export default async function CoachToolsPage() {
       </div>
 
       <Tabs defaultValue="vdot" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="vdot">
             <Calculator className="h-4 w-4 mr-2" />
             VDOT
           </TabsTrigger>
+          <TabsTrigger value="goal-zones">
+            <Target className="h-4 w-4 mr-2" />
+            Målzoner
+          </TabsTrigger>
           <TabsTrigger value="environmental">
             <Thermometer className="h-4 w-4 mr-2" />
-            Environmental
+            Miljö
           </TabsTrigger>
           <TabsTrigger value="cross-training">
             <Activity className="h-4 w-4 mr-2" />
-            Cross-Training
+            Korsträning
           </TabsTrigger>
           <TabsTrigger value="injury">
             <AlertTriangle className="h-4 w-4 mr-2" />
-            Injury
+            Skada
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="vdot">
           <VDOTCalculator />
+        </TabsContent>
+
+        <TabsContent value="goal-zones">
+          <GoalZoneWizard />
         </TabsContent>
 
         <TabsContent value="environmental">

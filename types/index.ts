@@ -67,6 +67,8 @@ export interface Test {
   anaerobicThreshold?: Threshold
   trainingZones?: TrainingZone[]
   notes?: string
+  publicToken?: string | null
+  publicExpiresAt?: Date | null
   client?: Client
   user?: User
   testStages: TestStage[]

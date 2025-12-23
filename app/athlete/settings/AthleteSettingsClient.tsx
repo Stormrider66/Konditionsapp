@@ -11,6 +11,7 @@ import { Settings, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
+import { IntegrationsSettings } from '@/components/athlete/settings/IntegrationsSettings'
 import type { SportProfile } from '@prisma/client'
 
 interface AthleteSettingsClientProps {
@@ -52,9 +53,8 @@ export function AthleteSettingsClient({
         {/* Theme Settings */}
         <ThemeSelector />
 
-        {/* Future: Additional settings sections can be added here */}
-        {/* <NotificationSettings /> */}
-        {/* <PrivacySettings /> */}
+        {/* Integrations */}
+        <IntegrationsSettings clientId={clientId} />
       </div>
     </div>
   )
