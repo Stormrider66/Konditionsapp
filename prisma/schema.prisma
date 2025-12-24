@@ -120,6 +120,7 @@ enum PaymentSource {
 enum IntegrationType {
   STRAVA    // Strava OAuth integration
   GARMIN    // Garmin Health API integration
+  CONCEPT2  // Concept2 Logbook integration
 }
 
 enum InvitationType {
@@ -296,6 +297,7 @@ model Client {
   athleteSubscription  AthleteSubscription?
   integrationTokens    IntegrationToken[]
   stravaActivities     StravaActivity[]
+  concept2Results      Concept2Result[]
 
   @@index([userId])
   @@index([teamId])
@@ -766,6 +768,63 @@ model StravaActivity {
 
   @@index([clientId])
   @@index([startDate])
+  @@index([type])
+  @@index([mappedType])
+}
+
+/// Concept2 Logbook workout results (rowing, SkiErg, BikeErg)
+model Concept2Result {
+  id                     String          @id @default(uuid())
+  clientId               String
+  concept2Id             Int             @unique  // Concept2 result ID
+
+  // Equipment & workout info
+  type                   String                   // rower, skierg, bike, dynamic, etc.
+  workoutType            String?                  // JustRow, FixedDistanceSplits, etc.
+  date                   DateTime
+  timezone               String?
+  comments               String?         @db.Text
+
+  // Core metrics
+  distance               Int                      // meters
+  time                   Int                      // tenths of seconds
+  calories               Int?
+  strokeRate             Float?                   // avg strokes/min (or rpm for bike)
+  dragFactor             Int?
+
+  // Heart rate
+  avgHeartRate           Float?
+  maxHeartRate           Float?
+  minHeartRate           Float?
+
+  // Pace (derived - seconds per 500m for rowing/ski, or calculated for bike)
+  pace                   Float?
+
+  // Splits/intervals (JSON)
+  splits                 Json?
+  intervals              Json?
+
+  // Stroke data availability
+  hasStrokeData          Boolean         @default(false)
+
+  // Calculated metrics
+  tss                    Float?          // Training Stress Score
+  trimp                  Float?          // Training Impulse
+
+  // Mapped to our internal types
+  mappedType             String?         // ROWING, SKIING, CYCLING
+  mappedIntensity        String?         // EASY, MODERATE, HARD
+
+  // Verification status from Concept2
+  isVerified             Boolean         @default(false)
+
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  client                 Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([date])
   @@index([type])
   @@index([mappedType])
 }
