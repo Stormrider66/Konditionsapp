@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   if (!oauthToken || !oauthVerifier) {
     console.error('Missing oauth_token or oauth_verifier in Garmin callback');
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings/integrations?error=garmin_invalid_callback`
+      `${APP_URL}/athlete/settings?error=garmin_invalid_callback`
     );
   }
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (!clientId) {
       console.error('No client ID found for Garmin callback');
       return NextResponse.redirect(
-        `${APP_URL}/athlete/settings/integrations?error=garmin_no_client`
+        `${APP_URL}/athlete/settings?error=garmin_no_client`
       );
     }
 
@@ -86,14 +86,14 @@ export async function GET(request: NextRequest) {
 
     // Redirect to success page
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings/integrations?success=garmin_connected`
+      `${APP_URL}/athlete/settings?success=garmin_connected`
     );
   } catch (error) {
     console.error('Garmin callback error:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings/integrations?error=garmin_callback_failed&message=${encodeURIComponent(errorMessage)}`
+      `${APP_URL}/athlete/settings?error=garmin_callback_failed&message=${encodeURIComponent(errorMessage)}`
     );
   }
 }

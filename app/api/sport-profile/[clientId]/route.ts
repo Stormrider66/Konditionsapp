@@ -30,7 +30,7 @@ const updateSportProfileSchema = z.object({
   weeklyAvailability: z.any().optional(),
   preferredSessionLength: z.number().min(15).max(300).optional(),
   currentGoal: z.string().optional(),
-  targetDate: z.string().datetime().optional().nullable(),
+  targetDate: z.string().optional().nullable(),
   targetMetric: z.any().optional(),
   themePreferences: z.any().optional(), // { appTheme: 'FITAPP_DARK' | 'MINIMALIST_WHITE', pdfTheme: '...' }
   runningExperience: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE']).optional(),

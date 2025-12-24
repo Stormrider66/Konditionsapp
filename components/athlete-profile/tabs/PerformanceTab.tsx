@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Trophy, Medal, Dumbbell, TrendingUp, Clock, Zap, Plus } from 'lucide-react'
+import { Trophy, Medal, Dumbbell, TrendingUp, Clock, Zap, Plus, Bike, Waves, Mountain, Flame } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,11 @@ import {
 } from '@/components/ui/table'
 import { RaceResultForm } from '@/components/coach/race-results/RaceResultForm'
 import { StrengthPRForm } from '@/components/coach/strength/StrengthPRForm'
+import { CyclingPerformanceForm } from '@/components/athlete/performance/CyclingPerformanceForm'
+import { SwimmingPerformanceForm } from '@/components/athlete/performance/SwimmingPerformanceForm'
+import { TriathlonPerformanceForm } from '@/components/athlete/performance/TriathlonPerformanceForm'
+import { HYROXPerformanceForm } from '@/components/athlete/performance/HYROXPerformanceForm'
+import { SkiingPerformanceForm } from '@/components/athlete/performance/SkiingPerformanceForm'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 
 interface PerformanceTabProps {
@@ -35,10 +40,21 @@ export function PerformanceTab({ data, viewMode }: PerformanceTabProps) {
   const router = useRouter()
   const [isRaceDialogOpen, setIsRaceDialogOpen] = useState(false)
   const [isStrengthDialogOpen, setIsStrengthDialogOpen] = useState(false)
+  const [isCyclingDialogOpen, setIsCyclingDialogOpen] = useState(false)
+  const [isSwimmingDialogOpen, setIsSwimmingDialogOpen] = useState(false)
+  const [isTriathlonDialogOpen, setIsTriathlonDialogOpen] = useState(false)
+  const [isHyroxDialogOpen, setIsHyroxDialogOpen] = useState(false)
+  const [isSkiingDialogOpen, setIsSkiingDialogOpen] = useState(false)
 
   const { raceResults, progressionTracking, oneRepMaxHistory } = data.performance
   const clientId = data.identity.client?.id
   const clientName = data.identity.client?.name || 'Atlet'
+  const primarySport = data.identity.sportProfile?.primarySport || 'RUNNING'
+  const secondarySports = data.identity.sportProfile?.secondarySports || []
+  const athleteWeight = data.identity.client?.weight
+
+  // Combine primary and secondary sports, ensuring no duplicates
+  const allAthleteSports = [primarySport, ...secondarySports.filter(s => s !== primarySport)]
 
   // Group race results by distance for PRs
   const prsByDistance = getPRsByDistance(raceResults)
@@ -61,6 +77,55 @@ export function PerformanceTab({ data, viewMode }: PerformanceTabProps) {
     router.refresh()
   }
 
+  const handleCyclingSuccess = () => {
+    setIsCyclingDialogOpen(false)
+    router.refresh()
+  }
+
+  const handleSwimmingSuccess = () => {
+    setIsSwimmingDialogOpen(false)
+    router.refresh()
+  }
+
+  const handleTriathlonSuccess = () => {
+    setIsTriathlonDialogOpen(false)
+    router.refresh()
+  }
+
+  const handleHyroxSuccess = () => {
+    setIsHyroxDialogOpen(false)
+    router.refresh()
+  }
+
+  const handleSkiingSuccess = () => {
+    setIsSkiingDialogOpen(false)
+    router.refresh()
+  }
+
+  // Get button config for a specific sport
+  const getSportButtonConfig = (sport: string) => {
+    switch (sport) {
+      case 'CYCLING':
+        return { sport, label: 'Cykel', icon: Bike, onClick: () => setIsCyclingDialogOpen(true), color: 'text-blue-600', bgColor: 'bg-blue-50 hover:bg-blue-100' }
+      case 'SWIMMING':
+        return { sport, label: 'Simning', icon: Waves, onClick: () => setIsSwimmingDialogOpen(true), color: 'text-cyan-600', bgColor: 'bg-cyan-50 hover:bg-cyan-100' }
+      case 'TRIATHLON':
+        return { sport, label: 'Triathlon', icon: Trophy, onClick: () => setIsTriathlonDialogOpen(true), color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100' }
+      case 'HYROX':
+        return { sport, label: 'HYROX', icon: Flame, onClick: () => setIsHyroxDialogOpen(true), color: 'text-orange-600', bgColor: 'bg-orange-50 hover:bg-orange-100' }
+      case 'SKIING':
+        return { sport, label: 'Skidor', icon: Mountain, onClick: () => setIsSkiingDialogOpen(true), color: 'text-sky-600', bgColor: 'bg-sky-50 hover:bg-sky-100' }
+      case 'RUNNING':
+      default:
+        return { sport, label: 'Löpning', icon: Trophy, onClick: () => setIsRaceDialogOpen(true), color: 'text-yellow-600', bgColor: 'bg-yellow-50 hover:bg-yellow-100' }
+    }
+  }
+
+  // Get button configs for all athlete's sports (excluding GENERAL_FITNESS)
+  const sportButtons = allAthleteSports
+    .filter(sport => sport !== 'GENERAL_FITNESS')
+    .map(sport => getSportButtonConfig(sport))
+
   if (!hasData) {
     return (
       <>
@@ -71,12 +136,26 @@ export function PerformanceTab({ data, viewMode }: PerformanceTabProps) {
             <p className="text-gray-500 mb-4">
               Registrera tävlingsresultat eller logga styrketräning för att se PRs.
             </p>
-            {viewMode === 'coach' && clientId && (
-              <div className="flex gap-3 justify-center">
-                <Button onClick={() => setIsRaceDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Lägg till tävlingsresultat
-                </Button>
+            {clientId && (
+              <div className="flex flex-col gap-4 items-center">
+                {/* Sport-specific PR buttons */}
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {sportButtons.map((btn) => {
+                    const Icon = btn.icon
+                    return (
+                      <Button
+                        key={btn.sport}
+                        variant="outline"
+                        onClick={btn.onClick}
+                        className={`${btn.bgColor} border-0`}
+                      >
+                        <Icon className={`h-4 w-4 mr-2 ${btn.color}`} />
+                        {btn.label}
+                      </Button>
+                    )
+                  })}
+                </div>
+                {/* Strength PR button */}
                 <Button variant="outline" onClick={() => setIsStrengthDialogOpen(true)}>
                   <Dumbbell className="h-4 w-4 mr-2" />
                   Lägg till styrke-PR
@@ -119,6 +198,87 @@ export function PerformanceTab({ data, viewMode }: PerformanceTabProps) {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Cycling Dialog */}
+        <Dialog open={isCyclingDialogOpen} onOpenChange={setIsCyclingDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Logga cykelprestation</DialogTitle>
+            </DialogHeader>
+            {clientId && (
+              <CyclingPerformanceForm
+                clientId={clientId}
+                athleteWeight={athleteWeight}
+                onSuccess={handleCyclingSuccess}
+                onCancel={() => setIsCyclingDialogOpen(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Swimming Dialog */}
+        <Dialog open={isSwimmingDialogOpen} onOpenChange={setIsSwimmingDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Logga simprestation</DialogTitle>
+            </DialogHeader>
+            {clientId && (
+              <SwimmingPerformanceForm
+                clientId={clientId}
+                onSuccess={handleSwimmingSuccess}
+                onCancel={() => setIsSwimmingDialogOpen(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Triathlon Dialog */}
+        <Dialog open={isTriathlonDialogOpen} onOpenChange={setIsTriathlonDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Logga triathlonresultat</DialogTitle>
+            </DialogHeader>
+            {clientId && (
+              <TriathlonPerformanceForm
+                clientId={clientId}
+                onSuccess={handleTriathlonSuccess}
+                onCancel={() => setIsTriathlonDialogOpen(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* HYROX Dialog */}
+        <Dialog open={isHyroxDialogOpen} onOpenChange={setIsHyroxDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Logga HYROX-resultat</DialogTitle>
+            </DialogHeader>
+            {clientId && (
+              <HYROXPerformanceForm
+                clientId={clientId}
+                onSuccess={handleHyroxSuccess}
+                onCancel={() => setIsHyroxDialogOpen(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Skiing Dialog */}
+        <Dialog open={isSkiingDialogOpen} onOpenChange={setIsSkiingDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Logga skidresultat</DialogTitle>
+            </DialogHeader>
+            {clientId && (
+              <SkiingPerformanceForm
+                clientId={clientId}
+                onSuccess={handleSkiingSuccess}
+                onCancel={() => setIsSkiingDialogOpen(false)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </>
     )
   }
@@ -126,6 +286,44 @@ export function PerformanceTab({ data, viewMode }: PerformanceTabProps) {
   return (
     <>
       <div className="space-y-6">
+        {/* Sport-Specific Quick Add - Row of buttons for all athlete's sports */}
+        {clientId && sportButtons.length > 0 && (
+          <Card className="border-dashed">
+            <CardContent className="py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <span className="text-sm text-gray-600 font-medium">
+                  Logga prestationer
+                </span>
+                <div className="flex gap-2 flex-wrap">
+                  {sportButtons.map((btn) => {
+                    const Icon = btn.icon
+                    return (
+                      <Button
+                        key={btn.sport}
+                        size="sm"
+                        variant="outline"
+                        onClick={btn.onClick}
+                        className={`${btn.bgColor} border-0`}
+                      >
+                        <Icon className={`h-4 w-4 mr-1 ${btn.color}`} />
+                        {btn.label}
+                      </Button>
+                    )
+                  })}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsStrengthDialogOpen(true)}
+                  >
+                    <Dumbbell className="h-4 w-4 mr-1" />
+                    Styrka
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Race PRs Summary */}
         {Object.keys(prsByDistance).length > 0 && (
           <Card>
@@ -140,7 +338,7 @@ export function PerformanceTab({ data, viewMode }: PerformanceTabProps) {
                     <CardDescription>Bästa VDOT: {bestVdot.toFixed(1)}</CardDescription>
                   )}
                 </div>
-                {viewMode === 'coach' && clientId && (
+                {clientId && (
                   <Button size="sm" variant="outline" onClick={() => setIsRaceDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-1" />
                     Lägg till
@@ -167,7 +365,7 @@ export function PerformanceTab({ data, viewMode }: PerformanceTabProps) {
                 <CardTitle>Tävlingshistorik</CardTitle>
                 <CardDescription>{raceResults.length} tävlingar registrerade</CardDescription>
               </div>
-              {viewMode === 'coach' && clientId && Object.keys(prsByDistance).length === 0 && (
+              {clientId && Object.keys(prsByDistance).length === 0 && (
                 <Button size="sm" variant="outline" onClick={() => setIsRaceDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-1" />
                   Lägg till
@@ -241,7 +439,7 @@ export function PerformanceTab({ data, viewMode }: PerformanceTabProps) {
                 Baserat på loggade set och estimerad 1RM
               </CardDescription>
             </div>
-            {viewMode === 'coach' && clientId && (
+            {clientId && (
               <Button size="sm" variant="outline" onClick={() => setIsStrengthDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-1" />
                 Lägg till
@@ -350,6 +548,87 @@ export function PerformanceTab({ data, viewMode }: PerformanceTabProps) {
               clientName={clientName}
               onSuccess={handleStrengthPRSuccess}
               onCancel={() => setIsStrengthDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cycling Dialog */}
+      <Dialog open={isCyclingDialogOpen} onOpenChange={setIsCyclingDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Logga cykelprestation</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <CyclingPerformanceForm
+              clientId={clientId}
+              athleteWeight={athleteWeight}
+              onSuccess={handleCyclingSuccess}
+              onCancel={() => setIsCyclingDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Swimming Dialog */}
+      <Dialog open={isSwimmingDialogOpen} onOpenChange={setIsSwimmingDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Logga simprestation</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <SwimmingPerformanceForm
+              clientId={clientId}
+              onSuccess={handleSwimmingSuccess}
+              onCancel={() => setIsSwimmingDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Triathlon Dialog */}
+      <Dialog open={isTriathlonDialogOpen} onOpenChange={setIsTriathlonDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Logga triathlonresultat</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <TriathlonPerformanceForm
+              clientId={clientId}
+              onSuccess={handleTriathlonSuccess}
+              onCancel={() => setIsTriathlonDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* HYROX Dialog */}
+      <Dialog open={isHyroxDialogOpen} onOpenChange={setIsHyroxDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Logga HYROX-resultat</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <HYROXPerformanceForm
+              clientId={clientId}
+              onSuccess={handleHyroxSuccess}
+              onCancel={() => setIsHyroxDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Skiing Dialog */}
+      <Dialog open={isSkiingDialogOpen} onOpenChange={setIsSkiingDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Logga skidresultat</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <SkiingPerformanceForm
+              clientId={clientId}
+              onSuccess={handleSkiingSuccess}
+              onCancel={() => setIsSkiingDialogOpen(false)}
             />
           )}
         </DialogContent>
@@ -562,6 +841,19 @@ function getPillarLabel(pillar: string): string {
     UPPER_BODY: 'Överkropp',
   }
   return labels[pillar] || pillar
+}
+
+function getSportName(sport: string): string {
+  const labels: Record<string, string> = {
+    RUNNING: 'Löpning',
+    CYCLING: 'Cykel',
+    SWIMMING: 'Sim',
+    TRIATHLON: 'Triathlon',
+    HYROX: 'HYROX',
+    SKIING: 'Skid',
+    GENERAL_FITNESS: 'Fitness',
+  }
+  return labels[sport] || sport
 }
 
 /**

@@ -100,8 +100,81 @@ export interface GarminHRVData {
   status?: 'LOW' | 'UNBALANCED' | 'BALANCED' | 'HIGH';
 }
 
-// Store for OAuth 1.0a request tokens (temporary)
-const requestTokenStore = new Map<string, { token: string; secret: string }>();
+// OAuth 1.0a request tokens are now stored in database (OAuthRequestToken model)
+// This enables production-ready multi-instance deployments
+
+/**
+ * Store OAuth request token in database
+ */
+async function storeRequestToken(clientId: string, token: string, secret: string): Promise<void> {
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  await prisma.oAuthRequestToken.upsert({
+    where: {
+      clientId_provider: {
+        clientId,
+        provider: 'GARMIN',
+      },
+    },
+    update: {
+      requestToken: token,
+      tokenSecret: secret,
+      expiresAt,
+    },
+    create: {
+      clientId,
+      provider: 'GARMIN',
+      requestToken: token,
+      tokenSecret: secret,
+      expiresAt,
+    },
+  });
+}
+
+/**
+ * Retrieve and delete OAuth request token from database
+ */
+async function retrieveAndDeleteRequestToken(clientId: string, expectedToken: string): Promise<{ token: string; secret: string } | null> {
+  const stored = await prisma.oAuthRequestToken.findUnique({
+    where: {
+      clientId_provider: {
+        clientId,
+        provider: 'GARMIN',
+      },
+    },
+  });
+
+  if (!stored || stored.requestToken !== expectedToken) {
+    return null;
+  }
+
+  // Check if expired
+  if (stored.expiresAt < new Date()) {
+    await prisma.oAuthRequestToken.delete({
+      where: { id: stored.id },
+    });
+    return null;
+  }
+
+  // Delete the token (one-time use)
+  await prisma.oAuthRequestToken.delete({
+    where: { id: stored.id },
+  });
+
+  return { token: stored.requestToken, secret: stored.tokenSecret };
+}
+
+/**
+ * Clean up expired OAuth request tokens (call periodically or on startup)
+ */
+export async function cleanupExpiredRequestTokens(): Promise<number> {
+  const result = await prisma.oAuthRequestToken.deleteMany({
+    where: {
+      expiresAt: { lt: new Date() },
+    },
+  });
+  return result.count;
+}
 
 /**
  * Generate OAuth 1.0a signature
@@ -215,8 +288,8 @@ export async function getGarminRequestToken(clientId: string): Promise<{ authUrl
     throw new Error('Invalid request token response');
   }
 
-  // Store the request token secret (needed for access token exchange)
-  requestTokenStore.set(clientId, { token: requestToken, secret: requestTokenSecret });
+  // Store the request token secret in database (needed for access token exchange)
+  await storeRequestToken(clientId, requestToken, requestTokenSecret);
 
   // Return the authorization URL
   const authUrl = `${GARMIN_OAUTH_BASE}?oauth_token=${requestToken}`;
@@ -236,9 +309,9 @@ export async function exchangeGarminVerifier(
     throw new Error('Garmin API is not configured');
   }
 
-  // Retrieve the stored request token secret
-  const storedToken = requestTokenStore.get(clientId);
-  if (!storedToken || storedToken.token !== oauthToken) {
+  // Retrieve the stored request token secret from database
+  const storedToken = await retrieveAndDeleteRequestToken(clientId, oauthToken);
+  if (!storedToken) {
     throw new Error('Invalid or expired request token');
   }
 
@@ -292,9 +365,7 @@ export async function exchangeGarminVerifier(
     throw new Error('Invalid access token response');
   }
 
-  // Clean up stored request token
-  requestTokenStore.delete(clientId);
-
+  // Token already cleaned up in retrieveAndDeleteRequestToken
   return { accessToken, tokenSecret };
 }
 

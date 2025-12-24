@@ -6,6 +6,7 @@
  * Displays:
  * - Current readiness score and level
  * - Readiness factors breakdown (HRV, RHR, Wellness)
+ * - Garmin synced data (HRV, sleep, stress)
  * - 7-day trend chart
  * - 30-day averages
  * - Recommended training action
@@ -16,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Watch, Moon, Activity } from 'lucide-react'
 import {
   LineChart,
   Line,
@@ -26,9 +28,33 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
+import { formatDistanceToNow } from 'date-fns'
+import { sv } from 'date-fns/locale'
 
 interface ReadinessDashboardProps {
   clientId: string
+}
+
+interface GarminData {
+  available: boolean
+  source: 'garmin' | 'none'
+  lastSyncAt?: string
+  data: {
+    hrvRMSSD?: number
+    hrvStatus?: string
+    restingHR?: number
+    sleepHours?: number
+    sleepQuality?: number
+    sleepDetails?: {
+      deepSleepMinutes?: number
+      lightSleepMinutes?: number
+      remSleepMinutes?: number
+      awakeMinutes?: number
+    }
+    stress?: number
+    steps?: number
+    activeMinutes?: number
+  }
 }
 
 interface ReadinessData {
@@ -96,29 +122,39 @@ interface ReadinessData {
 
 export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
   const [data, setData] = useState<ReadinessData | null>(null)
+  const [garminData, setGarminData] = useState<GarminData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchReadiness() {
+    async function fetchData() {
       try {
-        const response = await fetch(`/api/readiness?clientId=${clientId}`)
+        // Fetch readiness and Garmin data in parallel
+        const [readinessRes, garminRes] = await Promise.all([
+          fetch(`/api/readiness?clientId=${clientId}`),
+          fetch(`/api/athlete/garmin-prefill?clientId=${clientId}`),
+        ])
 
-        if (!response.ok) {
+        if (readinessRes.ok) {
+          const result = await readinessRes.json()
+          setData(result)
+        } else {
           throw new Error('Failed to fetch readiness data')
         }
 
-        const result = await response.json()
-        setData(result)
+        if (garminRes.ok) {
+          const garminResult = await garminRes.json()
+          setGarminData(garminResult)
+        }
       } catch (err) {
-        console.error('Error fetching readiness:', err)
+        console.error('Error fetching data:', err)
         setError('Failed to load readiness data')
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchReadiness()
+    fetchData()
   }, [clientId])
 
   if (isLoading) {
@@ -317,6 +353,107 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
             </Card>
           )}
         </div>
+      )}
+
+      {/* Garmin Synced Data */}
+      {garminData?.available && (
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Watch className="h-4 w-4 text-blue-500" />
+                Garmin Data
+              </CardTitle>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                {garminData.lastSyncAt
+                  ? `Synkad ${formatDistanceToNow(new Date(garminData.lastSyncAt), { addSuffix: true, locale: sv })}`
+                  : 'Ansluten'}
+              </Badge>
+            </div>
+            <CardDescription>Automatiskt synkade hälsodata från Garmin</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* HRV */}
+              {garminData.data.hrvRMSSD && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Activity className="h-3 w-3" />
+                    HRV
+                  </div>
+                  <div className="text-xl font-bold">{Math.round(garminData.data.hrvRMSSD)} ms</div>
+                  {garminData.data.hrvStatus && (
+                    <div className="text-xs text-muted-foreground capitalize">{garminData.data.hrvStatus}</div>
+                  )}
+                </div>
+              )}
+
+              {/* RHR */}
+              {garminData.data.restingHR && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Vilo-HR</div>
+                  <div className="text-xl font-bold">{garminData.data.restingHR} bpm</div>
+                </div>
+              )}
+
+              {/* Sleep */}
+              {garminData.data.sleepHours && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Moon className="h-3 w-3" />
+                    Sömn
+                  </div>
+                  <div className="text-xl font-bold">{garminData.data.sleepHours} h</div>
+                  {garminData.data.sleepQuality && (
+                    <div className="text-xs text-muted-foreground">Kvalitet: {garminData.data.sleepQuality}/10</div>
+                  )}
+                </div>
+              )}
+
+              {/* Sleep Details */}
+              {garminData.data.sleepDetails && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Sömndetaljer</div>
+                  <div className="text-xs space-y-0.5">
+                    {garminData.data.sleepDetails.deepSleepMinutes !== undefined && (
+                      <div>Djupsömn: {Math.round(garminData.data.sleepDetails.deepSleepMinutes)} min</div>
+                    )}
+                    {garminData.data.sleepDetails.remSleepMinutes !== undefined && (
+                      <div>REM: {Math.round(garminData.data.sleepDetails.remSleepMinutes)} min</div>
+                    )}
+                    {garminData.data.sleepDetails.lightSleepMinutes !== undefined && (
+                      <div>Lätt: {Math.round(garminData.data.sleepDetails.lightSleepMinutes)} min</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Stress */}
+              {garminData.data.stress && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Stress</div>
+                  <div className="text-xl font-bold">{garminData.data.stress}/10</div>
+                </div>
+              )}
+
+              {/* Steps */}
+              {garminData.data.steps && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Steg idag</div>
+                  <div className="text-xl font-bold">{garminData.data.steps.toLocaleString()}</div>
+                </div>
+              )}
+
+              {/* Active Minutes */}
+              {garminData.data.activeMinutes && (
+                <div className="space-y-1">
+                  <div className="text-xs text-muted-foreground">Aktiva minuter</div>
+                  <div className="text-xl font-bold">{garminData.data.activeMinutes} min</div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Trend Analysis */}

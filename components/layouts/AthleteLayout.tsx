@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import { MobileNav } from '@/components/navigation/MobileNav'
+import { AthleteFloatingChat } from '@/components/athlete/ai/AthleteFloatingChat'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { SportType } from '@prisma/client'
@@ -106,6 +107,14 @@ function ThemedContent({
         />
       )}
       <div>{children}</div>
+
+      {/* Floating AI Chat for athletes */}
+      {user && athleteInfo?.clientId && (
+        <AthleteFloatingChat
+          clientId={athleteInfo.clientId}
+          athleteName={athleteInfo.clientName}
+        />
+      )}
     </div>
   )
 }

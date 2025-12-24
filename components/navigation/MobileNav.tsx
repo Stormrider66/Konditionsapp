@@ -161,6 +161,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       label: 'Mer',
       icon: Menu,
       items: [
+        { href: '/athlete/profile', label: 'Min Profil', icon: UserIcon },
         { href: '/athlete/tests', label: 'Tester & Rapporter', icon: FlaskConical },
         { href: '/athlete/lactate/new', label: 'Laktattest', icon: Droplet },
         { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
@@ -189,8 +190,9 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     // Communication
     { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount, description: 'Chatta med coach' },
 
-    // Settings
+    // Settings & Profile
     { href: '/athlete/settings', label: 'Inställningar', icon: Settings, description: 'Tema & inställningar' },
+    { href: '/athlete/profile', label: 'Min Profil', icon: UserIcon, description: 'Fysiologi, prestanda & mål' },
 
     // Sport Profile (only show if needs onboarding)
     ...(needsOnboarding

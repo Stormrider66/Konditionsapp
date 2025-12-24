@@ -268,6 +268,7 @@ model Client {
   raceResults          RaceResult[]
   dailyCheckIns        DailyCheckIn[]
   sportProfile         SportProfile?
+  sportPerformances    SportPerformance[]
 
   // AI Studio relations
   aiConversations      AIConversation[]  @relation("AthleteConversations")
@@ -685,6 +686,21 @@ model IntegrationToken {
   @@index([clientId])
   @@index([type])
   @@index([lastSyncAt])
+}
+
+/// Temporary OAuth 1.0a request tokens (for Garmin OAuth flow)
+/// These are short-lived and cleaned up after use or expiration
+model OAuthRequestToken {
+  id           String   @id @default(uuid())
+  clientId     String   // Client initiating the OAuth flow
+  provider     String   // e.g., "GARMIN"
+  requestToken String   // OAuth 1.0a request token
+  tokenSecret  String   // OAuth 1.0a token secret
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime // Auto-expire after 10 minutes
+
+  @@unique([clientId, provider])
+  @@index([expiresAt])
 }
 
 /// Synced Strava activities for training load analysis
@@ -1999,6 +2015,82 @@ model RaceResult {
   @@index([distance, raceDate]) // Compare performances by distance
   @@index([vdot]) // Rank athletes by VDOT
   @@index([confidence]) // Filter high-confidence results
+}
+
+/// Sport-specific performance results (Cycling, Swimming, Triathlon, HYROX, Skiing)
+/// Unified model for tracking PRs and performance metrics across all sports
+model SportPerformance {
+  id               String   @id @default(uuid())
+  clientId         String
+
+  // Core fields
+  sport            SportType // CYCLING, SWIMMING, TRIATHLON, HYROX, SKIING
+  eventType        String    // Sport-specific: "FTP_TEST", "CSS_TEST", "HYROX_RACE", etc.
+  eventName        String?   // "Vätternrundan", "SM 50m", etc.
+  eventDate        DateTime
+
+  // Primary result (time-based events)
+  timeSeconds      Float?    // Total time in seconds
+  timeFormatted    String?   // "1:28:00", "25:30", etc.
+  distanceMeters   Float?    // Distance in meters
+
+  // Power metrics (Cycling)
+  powerWatts       Float?    // Average power
+  powerMax         Float?    // Max power
+  ftp              Float?    // Functional Threshold Power
+  wattsPerKg       Float?    // W/kg
+  normalizedPower  Float?    // NP for cycling
+
+  // Pace metrics (Swimming, Running)
+  pacePerHundred   Float?    // Swimming: seconds per 100m
+  css              Float?    // Critical Swim Speed (m/s)
+  strokeRate       Float?    // Strokes per minute
+  strokeType       String?   // "FREESTYLE", "BACKSTROKE", etc.
+  poolLength       Int?      // 25 or 50 meters
+
+  // HYROX specific
+  hyroxDivision    String?   // "OPEN", "PRO", "DOUBLES"
+  hyroxStations    Json?     // { skiErg: 120, sled: 90, ... } times in seconds
+  hyroxRunSplits   Json?     // Array of 8 run split times
+  hyroxTotalTime   Float?    // Total race time in seconds
+
+  // Triathlon specific
+  swimTime         Float?    // Swim leg in seconds
+  bikeTime         Float?    // Bike leg in seconds
+  runTime          Float?    // Run leg in seconds
+  t1Time           Float?    // Transition 1 in seconds
+  t2Time           Float?    // Transition 2 in seconds
+  triathlonDistance String?  // "SPRINT", "OLYMPIC", "HALF", "FULL"
+
+  // Skiing specific
+  skiingTechnique  String?   // "CLASSIC", "SKATE", "BOTH"
+  skiingTerrain    String?   // "FLAT", "ROLLING", "HILLY"
+  snowConditions   String?   // "HARD", "SOFT", "WET", "ICY"
+
+  // Heart rate data
+  avgHeartRate     Int?
+  maxHeartRate     Int?
+
+  // Environmental
+  temperature      Float?
+  humidity         Float?
+  altitude         Float?
+  conditions       String?   @db.Text
+
+  // Notes
+  athleteNotes     String?   @db.Text
+  coachNotes       String?   @db.Text
+  isPR             Boolean   @default(false) // Mark as personal record
+  usedForZones     Boolean   @default(false) // Used for training zone calculation
+
+  client           Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([clientId, sport])
+  @@index([clientId, eventType])
+  @@index([sport, eventDate])
+  @@index([clientId, isPR])
 }
 
 // ============================================

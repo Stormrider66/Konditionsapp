@@ -12,7 +12,7 @@
  * Automatically calculates readiness score on submission.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -39,11 +39,27 @@ import {
 import { Slider } from '@/components/ui/slider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Mic, ClipboardList } from 'lucide-react'
+import { Mic, ClipboardList, Watch, CheckCircle2 } from 'lucide-react'
 import { AudioRecorder } from '@/components/athlete/audio-journal/AudioRecorder'
 import { NutritionTipCard, NutritionTipCardSkeleton } from '@/components/nutrition/NutritionTipCard'
 import type { NutritionTip } from '@/lib/nutrition-timing'
+
+// Garmin prefill data interface
+interface GarminPrefillData {
+  available: boolean
+  source: 'garmin' | 'none'
+  lastSyncAt?: string
+  data: {
+    hrvRMSSD?: number
+    hrvStatus?: string
+    restingHR?: number
+    sleepHours?: number
+    sleepQuality?: number
+    stress?: number
+  }
+}
 
 // Form schema
 const checkInSchema = z.object({
@@ -105,6 +121,8 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
   const [voiceResult, setVoiceResult] = useState<AudioJournalResult | null>(null)
   const [nutritionTip, setNutritionTip] = useState<NutritionTip | null>(null)
   const [isLoadingTip, setIsLoadingTip] = useState(false)
+  const [garminPrefill, setGarminPrefill] = useState<GarminPrefillData | null>(null)
+  const [garminApplied, setGarminApplied] = useState(false)
 
   const form = useForm<CheckInFormData>({
     resolver: zodResolver(checkInSchema),
@@ -122,6 +140,53 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
       notes: '',
     },
   })
+
+  // Fetch Garmin prefill data on mount
+  useEffect(() => {
+    async function fetchGarminPrefill() {
+      try {
+        const response = await fetch(`/api/athlete/garmin-prefill?clientId=${clientId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setGarminPrefill(data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch Garmin prefill data:', error)
+      }
+    }
+    fetchGarminPrefill()
+  }, [clientId])
+
+  // Apply Garmin prefill data
+  const applyGarminData = () => {
+    if (!garminPrefill?.available || !garminPrefill.data) return
+
+    const data = garminPrefill.data
+
+    if (data.hrvRMSSD) {
+      form.setValue('hrvRMSSD', data.hrvRMSSD)
+    }
+    if (data.restingHR) {
+      form.setValue('restingHR', data.restingHR)
+    }
+    if (data.sleepHours) {
+      form.setValue('sleepHours', data.sleepHours)
+    }
+    if (data.sleepQuality) {
+      form.setValue('sleepQuality', data.sleepQuality)
+    }
+    if (data.stress) {
+      // Convert Garmin stress to inverted scale (1 = low stress is good)
+      // Garmin: higher = more stress, Form: higher = more stress too
+      form.setValue('stress', data.stress)
+    }
+
+    setGarminApplied(true)
+    toast({
+      title: 'Garmin-data tillämpat',
+      description: 'HRV, puls och sömndata har fyllts i från din Garmin.',
+    })
+  }
 
   async function onSubmit(data: CheckInFormData) {
     setIsSubmitting(true)
@@ -315,6 +380,41 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
           )}
         </CardContent>
       </Card>
+
+      {/* Garmin Prefill Banner */}
+      {garminPrefill?.available && !voiceMode && (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Watch className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium text-sm text-blue-900">Garmin-data tillgängligt</p>
+                  <p className="text-xs text-blue-700">
+                    HRV, puls och sömndata kan fyllas i automatiskt
+                  </p>
+                </div>
+              </div>
+              {garminApplied ? (
+                <Badge className="bg-green-100 text-green-700 border-green-200 gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Tillämpat
+                </Badge>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                  onClick={applyGarminData}
+                >
+                  Använd Garmin-data
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Voice Mode: AudioRecorder */}
       {voiceMode ? (

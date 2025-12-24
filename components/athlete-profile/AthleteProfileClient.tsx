@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { ArrowLeft, Activity, Trophy, Scale, Calendar, Heart, Gauge, Video, Target } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { MobileNav } from '@/components/navigation/MobileNav'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 import { ProfileHeroSection } from './ProfileHeroSection'
 import { AIContextSidebar } from './AIContextSidebar'
@@ -57,8 +56,6 @@ export function AthleteProfileClient({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <MobileNav user={null} />
-
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Back Navigation */}
         <div className="mb-4">

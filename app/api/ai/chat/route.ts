@@ -9,10 +9,12 @@ import { streamText, type CoreMessage, type LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { requireCoach } from '@/lib/auth-utils';
+import { requireCoach, requireAthlete, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { searchSimilarChunks } from '@/lib/ai/embeddings';
 import { buildSportSpecificContext, type AthleteData } from '@/lib/ai/sport-context-builder';
+import { buildAthleteOwnContext } from '@/lib/ai/athlete-context-builder';
+import { buildAthleteSystemPrompt } from '@/lib/ai/athlete-prompts';
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
 
@@ -41,6 +43,10 @@ interface ChatRequest {
   deepThinkEnabled?: boolean;
   /** Page-specific context data (video analysis, test results, etc.) */
   pageContext?: string;
+  /** Athlete chat mode - uses athlete's own context and coach's API keys */
+  isAthleteChat?: boolean;
+  /** Client ID for athlete chat (athlete's own client record) */
+  clientId?: string;
 }
 
 /**
@@ -71,8 +77,6 @@ function convertToCoreMessages(messages: ChatRequestMessage[]): CoreMessage[] {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireCoach();
-
     const body: ChatRequest = await request.json();
     const {
       conversationId,
@@ -84,17 +88,64 @@ export async function POST(request: NextRequest) {
       webSearchEnabled = false,
       deepThinkEnabled = false,
       pageContext = '',
+      isAthleteChat = false,
+      clientId,
     } = body;
 
-    // Get API keys
+    // Different authentication flow for athlete vs coach
+    let userId: string;
+    let apiKeyUserId: string; // Whose API keys to use
+    let athleteClientId: string | undefined; // For athlete context
+    let athleteName: string | undefined;
+
+    if (isAthleteChat) {
+      // Athlete chat mode
+      const user = await requireAthlete();
+      userId = user.id;
+
+      // Get athlete's client and coach
+      const athleteAccount = await prisma.athleteAccount.findUnique({
+        where: { userId: user.id },
+        include: {
+          client: {
+            select: {
+              id: true,
+              name: true,
+              userId: true, // Coach's user ID
+            },
+          },
+        },
+      });
+
+      if (!athleteAccount?.client?.userId) {
+        return new Response(
+          JSON.stringify({ error: 'Athlete account not properly linked to coach' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      apiKeyUserId = athleteAccount.client.userId; // Use coach's API keys
+      athleteClientId = athleteAccount.client.id;
+      athleteName = athleteAccount.client.name;
+    } else {
+      // Coach chat mode (existing flow)
+      const user = await requireCoach();
+      userId = user.id;
+      apiKeyUserId = user.id; // Use own API keys
+    }
+
+    // Get API keys (either coach's own or athlete's coach's)
     const apiKeysRow = await prisma.userApiKey.findUnique({
-      where: { userId: user.id },
+      where: { userId: apiKeyUserId },
     })
-    const decryptedKeys = await getDecryptedUserApiKeys(user.id)
+    const decryptedKeys = await getDecryptedUserApiKeys(apiKeyUserId)
 
     if (!apiKeysRow) {
+      const errorMsg = isAthleteChat
+        ? 'Din coach har inte konfigurerat AI-nycklar ännu'
+        : 'API keys not configured';
       return new Response(
-        JSON.stringify({ error: 'API keys not configured' }),
+        JSON.stringify({ error: errorMsg }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -102,9 +153,21 @@ export async function POST(request: NextRequest) {
     // Build context from athlete data
     let athleteContext = '';
     let sportSpecificContext = '';
-    if (athleteId) {
+    let athleteSystemPrompt = ''; // For athlete chat mode
+
+    // Athlete chat mode: Use simplified context from athlete's own data
+    if (isAthleteChat && athleteClientId) {
+      try {
+        athleteContext = await buildAthleteOwnContext(athleteClientId);
+        athleteSystemPrompt = buildAthleteSystemPrompt(athleteContext, athleteName);
+      } catch (error) {
+        console.error('Error building athlete context:', error);
+      }
+    }
+    // Coach chat mode: Use full context with athlete data
+    else if (athleteId) {
       const athlete = await prisma.client.findFirst({
-        where: { id: athleteId, userId: user.id },
+        where: { id: athleteId, userId: userId },
         include: {
           sportProfile: true,
           tests: {
@@ -431,7 +494,7 @@ ${prog.goalRace ? `- **Mållopp**: ${prog.goalRace}` : ''}
           const lastUserContent = getMessageContent(lastUserMessage);
           const chunks = await searchSimilarChunks(
             lastUserContent,
-            user.id,
+            apiKeyUserId, // Use the API key owner's ID for document search
             decryptedKeys.openaiKey,
             {
               matchThreshold: 0.75,
@@ -491,8 +554,12 @@ ${c.content}
       }
     }
 
-    // Build system prompt
-    const systemPrompt = `Du är en erfaren tränare och idrottsfysiolog som hjälper coacher att skapa träningsprogram.
+    // Build system prompt - use athlete prompt for athlete chat, coach prompt for coach chat
+    const systemPrompt = isAthleteChat && athleteSystemPrompt
+      ? `${athleteSystemPrompt}
+${pageContext}
+`
+      : `Du är en erfaren tränare och idrottsfysiolog som hjälper coacher att skapa träningsprogram.
 
 ## DINA KUNSKAPSOMRÅDEN
 - Periodisering och träningsplanering för uthållighetsidrotter
@@ -565,6 +632,8 @@ ${pageContext}
     console.log('AI Chat Request:', {
       provider,
       model,
+      isAthleteChat,
+      athleteClientId: isAthleteChat ? athleteClientId : undefined,
       deepThinkEnabled: provider === 'GOOGLE' && deepThinkEnabled,
       hasApiKey: !!decryptedKeys.anthropicKey || !!decryptedKeys.googleKey || !!decryptedKeys.openaiKey,
       messageCount: messages.length,

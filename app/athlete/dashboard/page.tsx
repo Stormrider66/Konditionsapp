@@ -6,8 +6,11 @@ import { addDays, startOfDay, endOfDay, subDays } from 'date-fns'
 import Link from 'next/link'
 import { TodaysWorkouts } from '@/components/athlete/TodaysWorkouts'
 import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
-import { RecentActivity } from '@/components/athlete/RecentActivity'
+import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
+import { TrainingLoadWidget } from '@/components/athlete/TrainingLoadWidget'
+import { IntegrationStatusWidget } from '@/components/athlete/IntegrationStatusWidget'
 import { ActivePrograms } from '@/components/athlete/ActivePrograms'
+import { AISuggestionsBanner } from '@/components/athlete/ai/AISuggestionsBanner'
 import { AthleteStats } from '@/components/athlete/AthleteStats'
 import { CyclingDashboard } from '@/components/athlete/CyclingDashboard'
 import { SkiingDashboard } from '@/components/athlete/SkiingDashboard'
@@ -258,11 +261,20 @@ export default async function AthleteDashboardPage() {
     <div className="container mx-auto py-4 sm:py-6 px-4 sm:px-6 max-w-7xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Hej, {athleteAccount.client.name}!</h1>
-        <p className="text-muted-foreground text-sm">
-          Välkommen tillbaka. Här är din träningsöversikt.
-        </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Hej, {athleteAccount.client.name}!</h1>
+            <p className="text-muted-foreground text-sm">
+              Välkommen tillbaka. Här är din träningsöversikt.
+            </p>
+          </div>
+          {/* Integration Status Badges */}
+          <IntegrationStatusWidget clientId={athleteAccount.clientId} compact />
+        </div>
       </div>
+
+      {/* AI Suggestions Banner */}
+      <AISuggestionsBanner />
 
       {/* Stats Cards - Always show for runners, sport-specific for others */}
       {isRunner && (
@@ -346,17 +358,23 @@ export default async function AthleteDashboardPage() {
           {/* Upcoming Workouts */}
           <UpcomingWorkouts workouts={upcomingWorkouts} />
 
+          {/* Training Load Widget (TSS from integrations) */}
+          <TrainingLoadWidget clientId={athleteAccount.clientId} />
+
           {/* Nutrition Dashboard */}
           <NutritionDashboard clientId={athleteAccount.clientId} />
 
-          {/* Recent Activity */}
-          <RecentActivity logs={recentLogs} />
+          {/* Integrated Recent Activity (Manual + Strava + Garmin) */}
+          <IntegratedRecentActivity clientId={athleteAccount.clientId} />
         </div>
 
         {/* Right Column - Sidebar (1/3 width) */}
         <div className="space-y-6">
           {/* Active Programs */}
           <ActivePrograms programs={activePrograms} />
+
+          {/* Integration Status (Full Card) */}
+          <IntegrationStatusWidget clientId={athleteAccount.clientId} />
 
           {/* Quick Links */}
           <Card>

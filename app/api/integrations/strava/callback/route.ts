@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   if (error) {
     console.error('Strava auth denied:', error);
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings/integrations?error=strava_denied&message=${encodeURIComponent(error)}`
+      `${APP_URL}/athlete/settings?error=strava_denied&message=${encodeURIComponent(error)}`
     );
   }
 
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   if (!code || !state) {
     console.error('Missing code or state in Strava callback');
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings/integrations?error=strava_invalid_callback`
+      `${APP_URL}/athlete/settings?error=strava_invalid_callback`
     );
   }
 
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     if (!client) {
       console.error('Client not found:', clientId);
       return NextResponse.redirect(
-        `${APP_URL}/athlete/settings/integrations?error=strava_client_not_found`
+        `${APP_URL}/athlete/settings?error=strava_client_not_found`
       );
     }
 
@@ -95,14 +95,14 @@ export async function GET(request: NextRequest) {
 
     // Redirect to success page
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings/integrations?success=strava_connected&athleteId=${tokenResponse.athlete.id}`
+      `${APP_URL}/athlete/settings?success=strava_connected&athleteId=${tokenResponse.athlete.id}`
     );
   } catch (error) {
     console.error('Strava callback error:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings/integrations?error=strava_callback_failed&message=${encodeURIComponent(errorMessage)}`
+      `${APP_URL}/athlete/settings?error=strava_callback_failed&message=${encodeURIComponent(errorMessage)}`
     );
   }
 }
