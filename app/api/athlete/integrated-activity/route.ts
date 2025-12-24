@@ -5,6 +5,7 @@
  * - Manual workout logs (WorkoutLog)
  * - Strava synced activities (StravaActivity)
  * - Garmin synced activities (DailyMetrics.factorScores)
+ * - Concept2 synced results (Concept2Result)
  *
  * Returns unified format for dashboard display.
  */
@@ -15,7 +16,7 @@ import { createClient } from '@/lib/supabase/server'
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2'
   name: string
   type: string
   date: Date
@@ -26,13 +27,17 @@ interface UnifiedActivity {
   calories?: number
   tss?: number
   trimp?: number
-  pace?: string // min/km for running
+  pace?: string // min/km for running, or MM:SS.t/500m for rowing
   speed?: number // km/h for cycling
   elevationGain?: number
   completed?: boolean
   notes?: string
   stravaId?: string
   garminId?: number
+  concept2Id?: number
+  // Concept2 specific
+  strokeRate?: number
+  equipmentType?: string
 }
 
 export async function GET(request: NextRequest) {
@@ -75,7 +80,7 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - days)
 
     // Fetch all data sources in parallel
-    const [manualLogs, stravaActivities, dailyMetrics] = await Promise.all([
+    const [manualLogs, stravaActivities, dailyMetrics, concept2Results] = await Promise.all([
       // Manual workout logs - filter by athleteId (the user ID of the athlete)
       athleteId
         ? prisma.workoutLog.findMany({
@@ -112,6 +117,16 @@ export async function GET(request: NextRequest) {
           factorScores: true,
         },
         orderBy: { date: 'desc' },
+      }),
+
+      // Concept2 results
+      prisma.concept2Result.findMany({
+        where: {
+          clientId,
+          date: { gte: startDate },
+        },
+        orderBy: { date: 'desc' },
+        take: limit,
       }),
     ])
 
@@ -212,6 +227,56 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Process Concept2 results
+    for (const result of concept2Results) {
+      // Time is in tenths of seconds, convert to minutes
+      const durationMin = result.time ? Math.round(result.time / 600) : undefined
+      // Distance is in meters, convert to km
+      const distanceKm = result.distance ? result.distance / 1000 : undefined
+
+      // Format pace as MM:SS.t/500m (standard rowing format)
+      let pace: string | undefined
+      if (result.pace && result.pace > 0) {
+        const paceMin = Math.floor(result.pace / 60)
+        const paceSec = (result.pace % 60).toFixed(1)
+        pace = `${paceMin}:${paceSec.padStart(4, '0')}/500m`
+      }
+
+      // Map equipment type to display name
+      const equipmentNames: Record<string, string> = {
+        rower: 'RowErg',
+        skierg: 'SkiErg',
+        bike: 'BikeErg',
+        dynamic: 'Dynamic',
+        slides: 'Slides',
+        multierg: 'MultiErg',
+      }
+
+      const equipmentName = equipmentNames[result.type] || result.type
+
+      activities.push({
+        id: result.id,
+        source: 'concept2',
+        name: result.workoutType
+          ? `${equipmentName} - ${result.workoutType}`
+          : equipmentName,
+        type: result.mappedType || 'ROWING',
+        date: result.date,
+        duration: durationMin,
+        distance: distanceKm,
+        avgHR: result.avgHeartRate || undefined,
+        maxHR: result.maxHeartRate || undefined,
+        calories: result.calories || undefined,
+        tss: result.tss || undefined,
+        trimp: result.trimp || undefined,
+        pace,
+        notes: result.comments || undefined,
+        concept2Id: result.concept2Id,
+        strokeRate: result.strokeRate || undefined,
+        equipmentType: result.type,
+      })
+    }
+
     // Sort by date (newest first) and deduplicate
     activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
@@ -237,6 +302,7 @@ export async function GET(request: NextRequest) {
           const fs = m.factorScores as { garminActivities?: unknown[] } | null
           return sum + (fs?.garminActivities?.length || 0)
         }, 0),
+        concept2: concept2Results.length,
       },
     })
   } catch (error) {

@@ -6,6 +6,7 @@
  * Shows connection status and sync health for:
  * - Strava
  * - Garmin
+ * - Concept2
  *
  * Displays:
  * - Connection status
@@ -29,15 +30,19 @@ import {
   Watch,
   Clock,
   AlertTriangle,
+  Waves,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import Link from 'next/link'
+import { IntegrationsHelpModal } from './settings/IntegrationsHelpModal'
 
 interface IntegrationStatus {
   connected: boolean
   lastSyncAt?: string
   activityCount?: number
+  resultCount?: number
+  resultsByType?: Record<string, number>
   syncEnabled?: boolean
   error?: string
 }
@@ -51,14 +56,17 @@ export function IntegrationStatusWidget({ clientId, compact = false }: Integrati
   const { toast } = useToast()
   const [stravaStatus, setStravaStatus] = useState<IntegrationStatus | null>(null)
   const [garminStatus, setGarminStatus] = useState<IntegrationStatus | null>(null)
+  const [concept2Status, setConcept2Status] = useState<IntegrationStatus | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [syncing, setSyncing] = useState({ strava: false, garmin: false })
+  const [syncing, setSyncing] = useState({ strava: false, garmin: false, concept2: false })
+  const [connecting, setConnecting] = useState({ strava: false, garmin: false, concept2: false })
 
   const fetchStatus = useCallback(async () => {
     try {
-      const [stravaRes, garminRes] = await Promise.all([
+      const [stravaRes, garminRes, concept2Res] = await Promise.all([
         fetch(`/api/integrations/strava?clientId=${clientId}`),
         fetch(`/api/integrations/garmin?clientId=${clientId}`),
+        fetch(`/api/integrations/concept2?clientId=${clientId}`),
       ])
 
       if (stravaRes.ok) {
@@ -69,6 +77,11 @@ export function IntegrationStatusWidget({ clientId, compact = false }: Integrati
       if (garminRes.ok) {
         const data = await garminRes.json()
         setGarminStatus(data.configured === false ? { connected: false } : data)
+      }
+
+      if (concept2Res.ok) {
+        const data = await concept2Res.json()
+        setConcept2Status(data)
       }
     } catch (error) {
       console.error('Failed to fetch integration status:', error)
@@ -140,9 +153,96 @@ export function IntegrationStatusWidget({ clientId, compact = false }: Integrati
     }
   }
 
+  const syncConcept2 = async () => {
+    setSyncing(prev => ({ ...prev, concept2: true }))
+    try {
+      const response = await fetch('/api/integrations/concept2/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, daysBack: 30 }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        toast({
+          title: 'Concept2 synkad',
+          description: `${data.synced || 0} träningspass synkroniserade`,
+        })
+        fetchStatus()
+      } else {
+        throw new Error('Sync failed')
+      }
+    } catch {
+      toast({
+        title: 'Synkfel',
+        description: 'Kunde inte synkronisera med Concept2',
+        variant: 'destructive',
+      })
+    } finally {
+      setSyncing(prev => ({ ...prev, concept2: false }))
+    }
+  }
+
+  const connectConcept2 = async () => {
+    setConnecting(prev => ({ ...prev, concept2: true }))
+    try {
+      const response = await fetch('/api/integrations/concept2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.authUrl) {
+          window.location.href = data.authUrl
+        }
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to connect')
+      }
+    } catch (error) {
+      toast({
+        title: 'Anslutningsfel',
+        description: error instanceof Error ? error.message : 'Kunde inte ansluta till Concept2',
+        variant: 'destructive',
+      })
+      setConnecting(prev => ({ ...prev, concept2: false }))
+    }
+  }
+
+  const connectStrava = async () => {
+    setConnecting(prev => ({ ...prev, strava: true }))
+    try {
+      const response = await fetch('/api/integrations/strava', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.authUrl) {
+          window.location.href = data.authUrl
+        }
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to connect')
+      }
+    } catch (error) {
+      toast({
+        title: 'Anslutningsfel',
+        description: error instanceof Error ? error.message : 'Kunde inte ansluta till Strava',
+        variant: 'destructive',
+      })
+      setConnecting(prev => ({ ...prev, strava: false }))
+    }
+  }
+
   if (isLoading) {
     return compact ? (
       <div className="flex gap-2">
+        <Skeleton className="h-6 w-20" />
         <Skeleton className="h-6 w-20" />
         <Skeleton className="h-6 w-20" />
       </div>
@@ -161,7 +261,7 @@ export function IntegrationStatusWidget({ clientId, compact = false }: Integrati
     )
   }
 
-  const hasAnyConnection = stravaStatus?.connected || garminStatus?.connected
+  const hasAnyConnection = stravaStatus?.connected || garminStatus?.connected || concept2Status?.connected
 
   // Compact mode - just badges for the header
   if (compact) {
@@ -196,6 +296,21 @@ export function IntegrationStatusWidget({ clientId, compact = false }: Integrati
             Garmin
           </Badge>
         )}
+        {concept2Status?.connected && (
+          <Badge
+            variant="outline"
+            className="bg-cyan-50 text-cyan-700 border-cyan-200 cursor-pointer hover:bg-cyan-100"
+            onClick={syncConcept2}
+          >
+            {syncing.concept2 ? (
+              <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <Waves className="h-3 w-3 mr-1" />
+            )}
+            Concept2
+            {concept2Status.resultCount ? ` (${concept2Status.resultCount})` : ''}
+          </Badge>
+        )}
         {!hasAnyConnection && (
           <Link href="/athlete/settings">
             <Badge variant="outline" className="text-muted-foreground cursor-pointer hover:bg-gray-100">
@@ -212,10 +327,13 @@ export function IntegrationStatusWidget({ clientId, compact = false }: Integrati
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Link2 className="h-5 w-5" />
-          Anslutningar
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Link2 className="h-5 w-5" />
+            Anslutningar
+          </CardTitle>
+          <IntegrationsHelpModal />
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Strava */}
@@ -256,7 +374,20 @@ export function IntegrationStatusWidget({ clientId, compact = false }: Integrati
                 </Button>
               </>
             ) : (
-              <XCircle className="h-4 w-4 text-gray-400" />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={connectStrava}
+                disabled={connecting.strava}
+                className="h-7 text-xs"
+              >
+                {connecting.strava ? (
+                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Link2 className="h-3 w-3 mr-1" />
+                )}
+                Anslut
+              </Button>
             )}
           </div>
         </div>
@@ -304,8 +435,65 @@ export function IntegrationStatusWidget({ clientId, compact = false }: Integrati
           </div>
         </div>
 
+        {/* Concept2 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+              concept2Status?.connected ? 'bg-cyan-100' : 'bg-gray-100'
+            }`}>
+              <Waves className={`h-4 w-4 ${
+                concept2Status?.connected ? 'text-cyan-600' : 'text-gray-400'
+              }`} />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Concept2</p>
+              {concept2Status?.connected ? (
+                <p className="text-xs text-muted-foreground">
+                  {concept2Status.lastSyncAt
+                    ? `Synkad ${formatDistanceToNow(new Date(concept2Status.lastSyncAt), { addSuffix: true, locale: sv })}`
+                    : 'Ansluten'}
+                  {concept2Status.resultCount ? ` • ${concept2Status.resultCount} pass` : ''}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">Ej ansluten</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {concept2Status?.connected ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={syncConcept2}
+                  disabled={syncing.concept2}
+                  className="h-7 px-2"
+                >
+                  <RefreshCw className={`h-3 w-3 ${syncing.concept2 ? 'animate-spin' : ''}`} />
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={connectConcept2}
+                disabled={connecting.concept2}
+                className="h-7 text-xs"
+              >
+                {connecting.concept2 ? (
+                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Link2 className="h-3 w-3 mr-1" />
+                )}
+                Anslut
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Sync errors */}
-        {(stravaStatus?.error || garminStatus?.error) && (
+        {(stravaStatus?.error || garminStatus?.error || concept2Status?.error) && (
           <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
             <AlertTriangle className="h-4 w-4" />
             <span>Synkproblem upptäckt</span>

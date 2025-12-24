@@ -7,6 +7,7 @@
  * - Manual workout logs
  * - Strava synced activities
  * - Garmin synced activities
+ * - Concept2 synced results
  *
  * Shows source badges and unified metrics.
  */
@@ -15,13 +16,13 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves } from 'lucide-react'
+import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2'
   name: string
   type: string
   date: string
@@ -37,6 +38,9 @@ interface UnifiedActivity {
   elevationGain?: number
   completed?: boolean
   notes?: string
+  // Concept2 specific
+  strokeRate?: number
+  equipmentType?: string
 }
 
 interface IntegratedRecentActivityProps {
@@ -48,6 +52,7 @@ const SOURCE_CONFIG = {
   manual: { label: 'Manuell', color: 'bg-gray-100 text-gray-700', icon: '📝' },
   strava: { label: 'Strava', color: 'bg-orange-100 text-orange-700', icon: '🏃' },
   garmin: { label: 'Garmin', color: 'bg-blue-100 text-blue-700', icon: '⌚' },
+  concept2: { label: 'Concept2', color: 'bg-cyan-100 text-cyan-700', icon: '🚣' },
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -55,11 +60,13 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   CYCLING: <Bike className="h-4 w-4" />,
   SWIMMING: <Waves className="h-4 w-4" />,
   STRENGTH: <TrendingUp className="h-4 w-4" />,
+  ROWING: <Ship className="h-4 w-4" />,
+  SKIING: <PersonStanding className="h-4 w-4" />,
 }
 
 export function IntegratedRecentActivity({ clientId, limit = 10 }: IntegratedRecentActivityProps) {
   const [activities, setActivities] = useState<UnifiedActivity[]>([])
-  const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0 })
+  const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0, concept2: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -76,7 +83,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10 }: IntegratedRec
 
         const data = await response.json()
         setActivities(data.activities || [])
-        setCounts(data.counts || { manual: 0, strava: 0, garmin: 0 })
+        setCounts(data.counts || { manual: 0, strava: 0, garmin: 0, concept2: 0 })
       } catch (err) {
         console.error('Error fetching activities:', err)
         setError('Kunde inte ladda aktiviteter')
