@@ -12,6 +12,8 @@ import { SportSpecificAthleteView } from '@/components/coach/sport-views'
 import { PaceValidationDashboard } from '@/components/coach/pace-zones/PaceValidationDashboard'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 import { ClientVideoAnalyses } from '@/components/coach/video-analysis/ClientVideoAnalyses'
+import { VBTProgressionWidget, VBTExerciseProgression } from '@/components/athlete/VBTProgressionWidget'
+import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidget'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
 import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle } from 'lucide-react'
@@ -577,6 +579,12 @@ export default function ClientDetailPage() {
           clientName={client.name}
           onLoadToAI={handleLoadVideoAnalysisToAI}
         />
+
+        {/* VBT & Concept2 Integration Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <VBTProgressionWidget clientId={id} />
+          <Concept2SummaryWidget clientId={id} />
+        </div>
 
         {/* Progression Chart */}
         {client.tests && client.tests.length >= 2 && (
