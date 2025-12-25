@@ -299,6 +299,10 @@ model Client {
   stravaActivities     StravaActivity[]
   concept2Results      Concept2Result[]
 
+  // VBT (Velocity-Based Training) relations
+  vbtSessions          VBTSession[]
+  loadVelocityProfiles LoadVelocityProfile[]
+
   @@index([userId])
   @@index([teamId])
   @@index([name])
@@ -1106,6 +1110,10 @@ model Exercise {
 
   // Hybrid Studio relations
   hybridMovements      HybridMovement[]
+
+  // VBT (Velocity-Based Training) relations
+  vbtMeasurements      VBTMeasurement[]
+  loadVelocityProfiles LoadVelocityProfile[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3321,4 +3329,162 @@ model NutritionGoal {
   updatedAt       DateTime @updatedAt
 
   @@index([clientId])
+}
+
+// ==================== VELOCITY-BASED TRAINING (VBT) SYSTEM ====================
+// Purpose: Import and analyze data from VBT devices (Vmaxpro, Vitruve, GymAware)
+// Added: 2025-12
+
+/// VBT device types for data import
+enum VBTDeviceType {
+  VMAXPRO         // Vmaxpro/Enode sensor
+  VITRUVE         // Vitruve encoder
+  GYMAWARE        // GymAware PowerTool
+  PUSH            // PUSH Band
+  PERCH           // Perch system
+  TENDO           // Tendo unit
+  GENERIC         // Unknown/generic CSV format
+}
+
+/// VBT session - container for uploaded training session data
+model VBTSession {
+  id              String        @id @default(uuid())
+  clientId        String
+  coachId         String?       // Coach who uploaded (null if athlete self-upload)
+
+  // Session info
+  sessionDate     DateTime      // Date/time of training session
+  deviceType      VBTDeviceType @default(GENERIC)
+  deviceName      String?       // Device model/name from CSV
+  fileName        String?       // Original uploaded filename
+
+  // Session summary (calculated from measurements)
+  totalSets       Int           @default(0)
+  totalReps       Int           @default(0)
+  exerciseCount   Int           @default(0)
+
+  // Notes and context
+  notes           String?       @db.Text
+  sessionRPE      Int?          // Overall session RPE 1-10
+  bodyWeight      Float?        // kg at time of session
+
+  // Import metadata
+  rawData         Json?         // Original CSV data preserved
+  parseErrors     Json?         // Any parsing errors encountered
+
+  client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  measurements    VBTMeasurement[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([clientId])
+  @@index([sessionDate])
+  @@index([deviceType])
+  @@index([clientId, sessionDate])
+}
+
+/// Individual VBT rep measurement from device
+model VBTMeasurement {
+  id              String     @id @default(uuid())
+  sessionId       String
+  exerciseId      String?    // Linked to our Exercise library (optional)
+
+  // Exercise identification
+  exerciseName    String     // Exercise name from CSV
+  exerciseMatched Boolean    @default(false) // Whether auto-matched to Exercise
+
+  // Set/rep info
+  setNumber       Int
+  repNumber       Int
+
+  // Core velocity metrics (all in m/s)
+  meanVelocity    Float?     // Average velocity during concentric phase
+  peakVelocity    Float?     // Maximum velocity achieved
+  meanVelocityDown Float?    // Eccentric mean velocity (if tracked)
+  peakVelocityDown Float?    // Eccentric peak velocity (if tracked)
+
+  // Power metrics (all in Watts)
+  meanPower       Float?     // Average power output
+  peakPower       Float?     // Maximum power output
+  meanPowerDown   Float?     // Eccentric mean power
+  peakPowerDown   Float?     // Eccentric peak power
+
+  // Load and ROM
+  load            Float?     // Weight/load in kg
+  rom             Float?     // Range of motion in cm
+  romPercentage   Float?     // ROM as % of max ROM for exercise
+
+  // Time metrics (all in seconds)
+  concentricTime  Float?     // Duration of concentric phase
+  eccentricTime   Float?     // Duration of eccentric phase
+  totalRepTime    Float?     // Total rep duration
+  timeToPeakVel   Float?     // Time to reach peak velocity
+
+  // Velocity loss tracking (for fatigue monitoring)
+  velocityLoss    Float?     // % velocity loss from first rep in set
+  velocityLossSet Float?     // % velocity loss across entire set (last vs first)
+
+  // Calculated metrics
+  estimatedE1RM   Float?     // Estimated 1RM from load-velocity profile
+  velocityZone    String?    // "STRENGTH", "POWER", "SPEED", "SPEED_STRENGTH"
+  repQuality      String?    // "GOOD", "FATIGUE", "COMPENSATING", "FAILED"
+
+  // Device-specific raw data
+  rawMetrics      Json?      // Preserve all original metrics from device
+
+  session         VBTSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise        Exercise?  @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime   @default(now())
+
+  @@index([sessionId])
+  @@index([exerciseId])
+  @@index([exerciseName])
+  @@index([sessionId, setNumber, repNumber])
+  @@index([exerciseId, load])
+}
+
+/// Load-Velocity Profile for exercise-specific 1RM estimation
+model LoadVelocityProfile {
+  id              String   @id @default(uuid())
+  clientId        String
+  exerciseId      String
+
+  // Profile data points (array of {load, velocity} pairs)
+  dataPoints      Json     // [{load: 80, velocity: 0.55}, {load: 100, velocity: 0.35}, ...]
+
+  // Linear regression coefficients (velocity = slope * load + intercept)
+  slope           Float?   // Negative value (velocity decreases with load)
+  intercept       Float?   // y-intercept (theoretical 0-load velocity)
+  rSquared        Float?   // R² goodness of fit
+
+  // Calculated 1RM at different velocity thresholds
+  e1RM_0_3        Float?   // e1RM at 0.3 m/s (strength-speed)
+  e1RM_0_2        Float?   // e1RM at 0.2 m/s (typical 1RM velocity for most lifts)
+  e1RM_0_15       Float?   // e1RM at 0.15 m/s (true max, may fail)
+
+  // Exercise-specific MVT (Minimum Velocity Threshold)
+  mvt             Float?   // m/s - velocity at which exercise fails
+
+  // Profile validity
+  minLoad         Float?   // Minimum load in profile
+  maxLoad         Float?   // Maximum load in profile
+  loadRange       Float?   // % of 1RM range covered
+  dataPointCount  Int      @default(0)
+  isValid         Boolean  @default(false) // Enough data points and good R²
+
+  // When this profile was last updated
+  lastMeasurementAt DateTime?
+
+  client          Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  exercise        Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([clientId, exerciseId])
+  @@index([clientId])
+  @@index([exerciseId])
+  @@index([isValid])
 }
