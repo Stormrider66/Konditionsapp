@@ -36,6 +36,8 @@ import {
   Utensils,
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
+import { VBTSummaryWidget } from '@/components/athlete/VBTSummaryWidget'
+import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidget'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 
 export default async function AthleteDashboardPage() {
@@ -372,6 +374,12 @@ export default async function AthleteDashboardPage() {
         <div className="space-y-6">
           {/* Active Programs */}
           <ActivePrograms programs={activePrograms} />
+
+          {/* VBT Summary Widget */}
+          <VBTSummaryWidget clientId={athleteAccount.clientId} />
+
+          {/* Concept2 Summary Widget */}
+          <Concept2SummaryWidget clientId={athleteAccount.clientId} />
 
           {/* Integration Status (Full Card) */}
           <IntegrationStatusWidget clientId={athleteAccount.clientId} />

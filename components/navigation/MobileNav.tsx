@@ -8,7 +8,7 @@ import { SportType } from '@prisma/client'
 import {
   Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
   ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings,
-  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart
+  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -155,6 +155,8 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       items: [
         { href: '/athlete/history', label: 'Historik', icon: TrendingUp },
         { href: '/athlete/programs', label: 'Program', icon: Calendar },
+        { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge },
+        { href: '/athlete/concept2', label: 'Concept2', icon: Ship },
       ],
     },
     more: {
@@ -182,6 +184,8 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     // Training & History
     { href: '/athlete/history', label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
     { href: '/athlete/programs', label: 'Program', icon: Calendar, description: 'Dina träningsprogram' },
+    { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge, description: 'Hastighetsbaserad styrketräning' },
+    { href: '/athlete/concept2', label: 'Concept2', icon: Ship, description: 'RowErg, SkiErg & BikeErg' },
 
     // Tests & Data
     { href: '/athlete/tests', label: 'Tester & Rapporter', icon: FlaskConical, description: 'Testresultat och rapporter' },
