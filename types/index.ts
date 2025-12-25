@@ -656,22 +656,41 @@ export interface StrengthSessionExercise {
   notes?: string
 }
 
+export interface StrengthSessionSectionExercise {
+  exerciseId: string
+  exerciseName: string
+  sets: number
+  reps: number | string
+  restSeconds?: number
+  duration?: number
+  notes?: string
+}
+
+export interface StrengthSessionSectionData {
+  notes?: string
+  duration?: number
+  exercises?: StrengthSessionSectionExercise[]
+}
+
 export interface StrengthSessionData {
-  id: string
+  id?: string
   name: string
   description?: string
   phase: string
   timingRelativeToRun?: string
   exercises: StrengthSessionExercise[]
+  warmupData?: StrengthSessionSectionData
+  coreData?: StrengthSessionSectionData
+  cooldownData?: StrengthSessionSectionData
   totalSets?: number
   totalExercises?: number
   estimatedDuration?: number
   volumeLoad?: number
-  tags: string[]
-  coachId: string
-  isPublic: boolean
-  createdAt: Date
-  updatedAt: Date
+  tags?: string[]
+  coachId?: string
+  isPublic?: boolean
+  createdAt?: Date
+  updatedAt?: Date
   _count?: {
     assignments: number
   }

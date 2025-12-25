@@ -155,6 +155,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       items: [
         { href: '/athlete/history', label: 'Historik', icon: TrendingUp },
         { href: '/athlete/programs', label: 'Program', icon: Calendar },
+        { href: '/athlete/strength', label: 'Styrketräning', icon: Dumbbell },
         { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge },
         { href: '/athlete/concept2', label: 'Concept2', icon: Ship },
       ],
@@ -184,6 +185,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     // Training & History
     { href: '/athlete/history', label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
     { href: '/athlete/programs', label: 'Program', icon: Calendar, description: 'Dina träningsprogram' },
+    { href: '/athlete/strength', label: 'Styrketräning', icon: Dumbbell, description: 'Styrkepass & mallar' },
     { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge, description: 'Hastighetsbaserad styrketräning' },
     { href: '/athlete/concept2', label: 'Concept2', icon: Ship, description: 'RowErg, SkiErg & BikeErg' },
 

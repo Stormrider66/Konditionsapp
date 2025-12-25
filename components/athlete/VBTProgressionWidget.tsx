@@ -330,8 +330,9 @@ export function VBTExerciseProgression({
     );
   }
 
-  const trendConfig = data.velocityTrend && (data.velocityTrend === 'IMPROVING' || data.velocityTrend === 'STABLE' || data.velocityTrend === 'DECLINING')
-    ? TREND_CONFIG[data.velocityTrend as keyof typeof TREND_CONFIG]
+  const velocityTrend = data.velocityTrend as string | null;
+  const trendConfig = velocityTrend === 'IMPROVING' || velocityTrend === 'STABLE' || velocityTrend === 'DECLINING'
+    ? TREND_CONFIG[velocityTrend]
     : null;
 
   return (

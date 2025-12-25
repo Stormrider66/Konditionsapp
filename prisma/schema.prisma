@@ -90,6 +90,13 @@ enum PeriodPhase {
   TRANSITION    // Off-season
 }
 
+enum WorkoutSectionType {
+  WARMUP        // Warm-up exercises, dynamic stretches, activation
+  MAIN          // Primary strength exercises
+  CORE          // Core-specific exercises
+  COOLDOWN      // Cooldown, stretching, mobility
+}
+
 enum SubscriptionTier {
   FREE          // Basic features
   BASIC         // Up to 5 athletes
@@ -1039,12 +1046,16 @@ model WorkoutSegment {
   tempo      String? // "3-1-1" (eccentric-pause-concentric)
   rest       Int?    // seconds between sets
 
+  // Section grouping (for structured strength workouts)
+  section    WorkoutSectionType @default(MAIN)
+
   // General
   description String? @db.Text
   notes       String? @db.Text
 
   workout  Workout   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   exercise Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+  setLogs  SetLog[]  // Per-set logging data
 
   createdAt DateTime @default(now())
 
@@ -1115,6 +1126,9 @@ model Exercise {
   vbtMeasurements      VBTMeasurement[]
   loadVelocityProfiles LoadVelocityProfile[]
 
+  // Per-set logging
+  setLogs              SetLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1171,6 +1185,7 @@ model WorkoutLog {
 
   workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   athlete User    @relation(fields: [athleteId], references: [id])
+  setLogs SetLog[]  // Per-set logging data for strength exercises
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1179,6 +1194,58 @@ model WorkoutLog {
   @@index([athleteId])
   @@index([completedAt])
   @@index([completed])
+}
+
+// ==================== PER-SET LOGGING ====================
+
+model SetLog {
+  id            String   @id @default(uuid())
+
+  // Parent relationships (at least one should be set)
+  workoutLogId  String?                        // For WorkoutLog-based logging
+  segmentId     String?                        // Link to specific segment
+  assignmentId  String?                        // For StrengthSessionAssignment-based logging
+
+  // Exercise identification
+  exerciseId    String
+  setNumber     Int      // 1, 2, 3...
+
+  // Core metrics
+  weight        Float    // kg
+  repsCompleted Int
+  repsTarget    Int?
+  rpe           Int?     // 1-10
+
+  // VBT metrics (optional manual entry)
+  meanVelocity  Float?   // m/s
+  peakVelocity  Float?   // m/s
+  meanPower     Float?   // watts
+  peakPower     Float?   // watts
+
+  // Timing
+  restTaken     Int?     // seconds of rest taken after this set
+
+  // Calculated fields
+  estimated1RM  Float?   // calculated from weight/reps
+  velocityZone  String?  // STRENGTH, POWER, SPEED based on velocity
+
+  // Notes
+  notes         String?  @db.Text
+
+  completedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  // Relations
+  exercise      Exercise                   @relation(fields: [exerciseId], references: [id])
+  workoutLog    WorkoutLog?                @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  segment       WorkoutSegment?            @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  assignment    StrengthSessionAssignment? @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([workoutLogId])
+  @@index([segmentId])
+  @@index([assignmentId])
+  @@index([exerciseId])
+  @@index([completedAt])
 }
 
 // ==================== MESSAGING ====================
@@ -3093,8 +3160,13 @@ model StrengthSession {
   timingRelativeToRun String?    // "BEFORE_RUN", "AFTER_RUN_6H", "SEPARATE_DAY"
   estimatedDuration Int?         // minutes
 
-  // Exercise data (JSON for flexibility)
-  exercises         Json         // [{exerciseId, exerciseName, sets, reps, weight, restSeconds, notes}]
+  // Exercise data (JSON for flexibility) - MAIN section (required)
+  exercises         Json         // [{exerciseId, exerciseName, sets, reps, weight, restSeconds, notes, section?}]
+
+  // Optional section data (JSON)
+  warmupData        Json?        // {notes?, duration?, exercises?: [{exerciseId, exerciseName, sets, reps, notes}]}
+  coreData          Json?        // {notes?, duration?, exercises?: [{exerciseId, exerciseName, sets, reps, restSeconds, notes}]}
+  cooldownData      Json?        // {notes?, duration?, exercises?: [{exerciseId, exerciseName, duration, notes}]}
 
   // Computed metadata
   totalSets         Int?
@@ -3143,6 +3215,9 @@ model StrengthSessionAssignment {
   actualExercises   Json?        // Logged exercise data with actual weight/reps
   rpe               Int?         // Overall session RPE
   duration          Int?         // Actual duration in minutes
+
+  // Per-set logging (detailed)
+  setLogs           SetLog[]
 
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
