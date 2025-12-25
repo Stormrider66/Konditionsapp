@@ -40,7 +40,7 @@ import {
 
 interface VBTUploadWidgetProps {
   clientId: string;
-  onUploadComplete?: () => void;
+  onUploadComplete?: (sessionId?: string) => void;
 }
 
 interface UploadResult {
@@ -139,7 +139,7 @@ export function VBTUploadWidget({
       setResult(data);
 
       if (data.success && onUploadComplete) {
-        onUploadComplete();
+        onUploadComplete(data.sessionId);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ett fel uppstod');
