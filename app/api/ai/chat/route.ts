@@ -98,6 +98,9 @@ export async function POST(request: NextRequest) {
     let apiKeyUserId: string; // Whose API keys to use
     let athleteClientId: string | undefined; // For athlete context
     let athleteName: string | undefined;
+    // Date range for calendar constraints (prefer active/current program window)
+    let calendarProgramStartDate: Date | undefined;
+    let calendarProgramEndDate: Date | undefined;
 
     if (isAthleteChat) {
       // Athlete chat mode
@@ -128,6 +131,22 @@ export async function POST(request: NextRequest) {
       apiKeyUserId = athleteAccount.client.userId; // Use coach's API keys
       athleteClientId = athleteAccount.client.id;
       athleteName = athleteAccount.client.name;
+
+      // Get current program window for calendar constraints (if available)
+      try {
+        const program = await prisma.trainingProgram.findFirst({
+          where: {
+            clientId: athleteClientId,
+            isActive: true,
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { startDate: true, endDate: true },
+        });
+        calendarProgramStartDate = program?.startDate;
+        calendarProgramEndDate = program?.endDate;
+      } catch (error) {
+        console.error('Error fetching training program dates for calendar context:', error);
+      }
     } else {
       // Coach chat mode (existing flow)
       const user = await requireCoach();
@@ -355,6 +374,8 @@ ${sp.secondarySports?.length ? `- **Sekundärsporter**: ${(sp.secondarySports as
         let programInfo = '';
         if (athlete.trainingPrograms?.[0]) {
           const prog = athlete.trainingPrograms[0];
+          calendarProgramStartDate = prog.startDate;
+          calendarProgramEndDate = prog.endDate;
           programInfo = `
 ### Pågående träningsprogram
 - **Program**: ${prog.name}
@@ -491,7 +512,11 @@ ${prog.goalRace ? `- **Mållopp**: ${prog.goalRace}` : ''}
     const calendarAthleteId = isAthleteChat ? athleteClientId : athleteId;
     if (calendarAthleteId) {
       try {
-        const calendarData = await buildCalendarContext(calendarAthleteId);
+        const calendarData = await buildCalendarContext(
+          calendarAthleteId,
+          calendarProgramStartDate,
+          calendarProgramEndDate
+        );
         if (calendarData.hasCalendarData) {
           calendarContext = calendarData.contextText;
         }

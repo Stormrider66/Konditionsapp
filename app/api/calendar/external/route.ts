@@ -140,39 +140,66 @@ export async function POST(request: NextRequest) {
       })
 
       // Create calendar events (upsert to avoid duplicates)
+      // Note: Prisma `upsert` requires a real unique selector. Using `where: { id: '' }`
+      // will always miss and create duplicates. We instead emulate an upsert by mapping
+      // existing imported events by their external UID.
+      const existingEvents = await prisma.calendarEvent.findMany({
+        where: {
+          clientId: data.clientId,
+          externalCalendarType: provider,
+          externalCalendarName: connection.calendarName,
+          isReadOnly: true,
+        },
+        select: { id: true, externalCalendarId: true },
+      })
+
+      const existingEventMap = new Map(
+        existingEvents.map((e) => [e.externalCalendarId, e.id])
+      )
+      const processedUids = new Set<string>()
+
       let importedCount = 0
       for (const event of eventsToImport) {
-        await prisma.calendarEvent.upsert({
-          where: {
-            // Use a composite unique - find by external ID and type
-            id: '', // This won't match, so we use the create path
-          },
-          update: {
-            title: event.title,
-            description: event.description,
-            startDate: event.startDate,
-            endDate: event.endDate,
-            allDay: event.allDay,
-            lastSyncedAt: new Date(),
-          },
-          create: {
-            clientId: data.clientId,
-            type: data.importAsType as CalendarEventType,
-            title: event.title,
-            description: event.description,
-            startDate: event.startDate,
-            endDate: event.endDate,
-            allDay: event.allDay,
-            trainingImpact: event.trainingImpact as EventImpact,
-            isReadOnly: true,
-            externalCalendarId: event.externalCalendarId,
-            externalCalendarType: event.externalCalendarType,
-            externalCalendarName: event.externalCalendarName,
-            lastSyncedAt: new Date(),
-            color: event.color,
-            createdById: dbUser.id,
-          },
-        })
+        // Prevent double-processing if the source contains duplicate UIDs
+        if (processedUids.has(event.externalCalendarId)) continue
+        processedUids.add(event.externalCalendarId)
+
+        const existingId = existingEventMap.get(event.externalCalendarId)
+
+        if (existingId) {
+          await prisma.calendarEvent.update({
+            where: { id: existingId },
+            data: {
+              title: event.title,
+              description: event.description,
+              startDate: event.startDate,
+              endDate: event.endDate,
+              allDay: event.allDay,
+              lastSyncedAt: new Date(),
+            },
+          })
+        } else {
+          await prisma.calendarEvent.create({
+            data: {
+              clientId: data.clientId,
+              type: data.importAsType as CalendarEventType,
+              title: event.title,
+              description: event.description,
+              startDate: event.startDate,
+              endDate: event.endDate,
+              allDay: event.allDay,
+              trainingImpact: event.trainingImpact as EventImpact,
+              isReadOnly: true,
+              externalCalendarId: event.externalCalendarId,
+              externalCalendarType: event.externalCalendarType,
+              externalCalendarName: event.externalCalendarName,
+              lastSyncedAt: new Date(),
+              color: event.color,
+              createdById: dbUser.id,
+            },
+          })
+        }
+
         importedCount++
       }
 
