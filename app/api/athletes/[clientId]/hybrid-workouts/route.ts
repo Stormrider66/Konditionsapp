@@ -81,7 +81,7 @@ export async function GET(
           calories: m.calories,
           distance: m.distance,
           duration: m.duration,
-          weight: isFemale ? (m.weightFemale || m.weightMale) : (m.weightMale || m.weightFemale),
+          weight: isFemale ? (m.weightFemale ?? m.weightMale) : m.weightMale,
           completed: false,
         })),
       },
