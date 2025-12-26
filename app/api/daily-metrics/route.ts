@@ -68,6 +68,8 @@ export async function POST(request: NextRequest) {
       stress,
       injuryPain,
       notes,
+      injuryDetails,
+      keywordAnalysis,
     } = body
 
     // Validate required fields
@@ -224,14 +226,19 @@ export async function POST(request: NextRequest) {
       // Convert 1-10 scale to 1-5 scale for wellness function
       const scaleTo5 = (value: number) => Math.round(((value - 1) / 9) * 4 + 1)
 
+      // Invert negative metrics before scaling
+      // Form: 1 = no pain/stress (good), 10 = extreme pain/stress (bad)
+      // Wellness expects: 1 = bad, 5 = good (higher = better for all metrics)
+      const invertScale = (value: number) => 11 - value
+
       const wellnessResponses: WellnessResponses = {
         sleepQuality: scaleTo5(sleepQuality) as 1 | 2 | 3 | 4 | 5,
         sleepDuration: sleepHours,
         fatigueLevel: scaleTo5(energyLevel) as 1 | 2 | 3 | 4 | 5,
-        muscleSoreness: scaleTo5(muscleSoreness) as 1 | 2 | 3 | 4 | 5,
-        stressLevel: scaleTo5(stress) as 1 | 2 | 3 | 4 | 5,
+        muscleSoreness: scaleTo5(invertScale(muscleSoreness)) as 1 | 2 | 3 | 4 | 5, // Invert: 1 (no soreness) → 10 → 5 (good)
+        stressLevel: scaleTo5(invertScale(stress)) as 1 | 2 | 3 | 4 | 5, // Invert: 1 (no stress) → 10 → 5 (good)
         mood: scaleTo5(mood) as 1 | 2 | 3 | 4 | 5,
-        motivationToTrain: scaleTo5(injuryPain) as 1 | 2 | 3 | 4 | 5, // 1 = significant pain (low motivation), 10 = no pain (high motivation)
+        motivationToTrain: scaleTo5(invertScale(injuryPain)) as 1 | 2 | 3 | 4 | 5, // Invert: 1 (no pain) → 10 → 5 (high motivation)
       }
 
       logger.debug('Wellness calculation', {
@@ -349,6 +356,20 @@ export async function POST(request: NextRequest) {
 
         // Notes
         athleteNotes: notes || null,
+
+        // Injury details (when pain >= 3)
+        injuryBodyPart: injuryDetails?.bodyPart || null,
+        injurySpecificType: injuryDetails?.injuryType || null,
+        injurySide: injuryDetails?.side || null,
+        isIllness: injuryDetails?.isIllness || false,
+        illnessType: injuryDetails?.illnessType || null,
+
+        // Keyword analysis from notes
+        detectedKeywords: keywordAnalysis?.matches || null,
+        keywordBodyPart: keywordAnalysis?.suggestedBodyPart || null,
+        keywordSeverity: keywordAnalysis?.severityLevel || null,
+        keywordSummary: keywordAnalysis?.summary || null,
+
         updatedAt: new Date(),
       },
       create: {
@@ -387,6 +408,19 @@ export async function POST(request: NextRequest) {
 
         // Notes
         athleteNotes: notes || null,
+
+        // Injury details (when pain >= 3)
+        injuryBodyPart: injuryDetails?.bodyPart || null,
+        injurySpecificType: injuryDetails?.injuryType || null,
+        injurySide: injuryDetails?.side || null,
+        isIllness: injuryDetails?.isIllness || false,
+        illnessType: injuryDetails?.illnessType || null,
+
+        // Keyword analysis from notes
+        detectedKeywords: keywordAnalysis?.matches || null,
+        keywordBodyPart: keywordAnalysis?.suggestedBodyPart || null,
+        keywordSeverity: keywordAnalysis?.severityLevel || null,
+        keywordSummary: keywordAnalysis?.summary || null,
       },
     })
 
@@ -397,7 +431,7 @@ export async function POST(request: NextRequest) {
     let injurySummary = null
 
     // Trigger injury cascade if pain/readiness thresholds exceeded
-    // Note: injuryPain is inverted (10 = high pain, 1 = no pain)
+    // Note: injuryPain uses natural scale (1 = no pain, 10 = high pain)
     const shouldTriggerInjury =
       injuryPain >= 5 || // Pain ≥5/10
       (calculatedReadinessScore && calculatedReadinessScore < 5.5) || // Low readiness
@@ -427,6 +461,21 @@ export async function POST(request: NextRequest) {
               readinessScore: calculatedReadinessScore,
               readinessLevel,
               muscleSoreness,
+              // Pass injury details for accurate injury type detection
+              injuryDetails: injuryDetails ? {
+                bodyPart: injuryDetails.bodyPart,
+                injuryType: injuryDetails.injuryType,
+                side: injuryDetails.side,
+                isIllness: injuryDetails.isIllness,
+                illnessType: injuryDetails.illnessType,
+              } : undefined,
+              // Pass keyword analysis summary for context
+              keywordAnalysis: keywordAnalysis ? {
+                matches: keywordAnalysis.matches,
+                suggestedBodyPart: keywordAnalysis.suggestedBodyPart,
+                severityLevel: keywordAnalysis.severityLevel,
+                summary: keywordAnalysis.summary,
+              } : undefined,
             }),
           }
         )

@@ -45,6 +45,14 @@ import { Mic, ClipboardList, Watch, CheckCircle2 } from 'lucide-react'
 import { AudioRecorder } from '@/components/athlete/audio-journal/AudioRecorder'
 import { NutritionTipCard, NutritionTipCardSkeleton } from '@/components/nutrition/NutritionTipCard'
 import type { NutritionTip } from '@/lib/nutrition-timing'
+import type { SportType } from '@prisma/client'
+import {
+  InjurySelector,
+  createDefaultInjurySelectorValue,
+  validateInjurySelection,
+  type InjurySelectorValue,
+} from '@/components/athlete/injury/InjurySelector'
+import { analyzeNotesForInjury } from '@/lib/injury-detection'
 
 // Garmin prefill data interface
 interface GarminPrefillData {
@@ -87,6 +95,7 @@ type CheckInFormData = z.infer<typeof checkInSchema>
 
 interface DailyCheckInFormProps {
   clientId: string
+  sport?: SportType // Primary sport for injury type filtering
   onSuccess?: () => void
 }
 
@@ -111,7 +120,7 @@ interface AudioJournalResult {
   };
 }
 
-export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps) {
+export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess }: DailyCheckInFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -123,6 +132,9 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
   const [isLoadingTip, setIsLoadingTip] = useState(false)
   const [garminPrefill, setGarminPrefill] = useState<GarminPrefillData | null>(null)
   const [garminApplied, setGarminApplied] = useState(false)
+  const [injurySelection, setInjurySelection] = useState<InjurySelectorValue>(
+    createDefaultInjurySelectorValue()
+  )
 
   const form = useForm<CheckInFormData>({
     resolver: zodResolver(checkInSchema),
@@ -193,13 +205,25 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
     setReadinessResult(null)
 
     try {
-      // Invert negative scales so backend receives 10 = Good, 1 = Bad
-      // UI: 1 = No pain/stress (Good), 10 = High pain/stress (Bad)
-      // Backend: 10 = No pain/stress (Good), 1 = High pain/stress (Bad)
-      const muscleSorenessScore = 11 - data.muscleSoreness
-      const stressScore = 11 - data.stress
-      const injuryPainScore = 11 - data.injuryPain
+      // Validate injury selection if pain >= 5
+      if (data.injuryPain >= 5) {
+        const validation = validateInjurySelection(injurySelection, data.injuryPain)
+        if (!validation.valid) {
+          toast({
+            title: 'Vänligen specificera skadan',
+            description: validation.errors.join('. '),
+            variant: 'destructive',
+          })
+          setIsSubmitting(false)
+          return
+        }
+      }
 
+      // Analyze notes for injury keywords
+      const keywordAnalysis = data.notes ? analyzeNotesForInjury(data.notes) : null
+
+      // Send values as-is to backend (1 = no pain/stress, 10 = extreme pain/stress)
+      // Backend expects natural scale: higher values = worse condition
       const response = await fetch('/api/daily-metrics', {
         method: 'POST',
         headers: {
@@ -213,12 +237,31 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
           restingHR: data.restingHR || null,
           sleepQuality: data.sleepQuality,
           sleepHours: data.sleepHours,
-          muscleSoreness: muscleSorenessScore,
+          muscleSoreness: data.muscleSoreness,
           energyLevel: data.energyLevel,
           mood: data.mood,
-          stress: stressScore,
-          injuryPain: injuryPainScore,
+          stress: data.stress,
+          injuryPain: data.injuryPain,
           notes: data.notes || null,
+          // Injury details (when pain >= 3)
+          injuryDetails: data.injuryPain >= 3 ? {
+            bodyPart: injurySelection.bodyPart,
+            injuryType: injurySelection.injuryType,
+            side: injurySelection.side,
+            isIllness: injurySelection.isIllness,
+            illnessType: injurySelection.illnessType,
+          } : null,
+          // Keyword analysis from notes
+          keywordAnalysis: keywordAnalysis ? {
+            suggestedBodyPart: keywordAnalysis.suggestedBodyPart,
+            suggestedSide: keywordAnalysis.suggestedSide,
+            severityLevel: keywordAnalysis.severityLevel,
+            detectedIllness: keywordAnalysis.detectedIllness,
+            hasInjuryKeywords: keywordAnalysis.hasInjuryKeywords,
+            hasIllnessKeywords: keywordAnalysis.hasIllnessKeywords,
+            summary: keywordAnalysis.summary,
+            matches: keywordAnalysis.matches,
+          } : null,
         }),
       })
 
@@ -240,12 +283,16 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
       setInjuryResponse(result.injuryResponse)
 
       // Fetch nutrition tip in the background
+      // Note: Nutrition tip API expects 0-100 scale, readiness score is 0-10
       setIsLoadingTip(true)
+      const readinessFor100Scale = result.assessments?.readiness?.score
+        ? result.assessments.readiness.score * 10
+        : undefined
       fetch('/api/nutrition/tip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          readinessScore: result.assessments?.readiness?.score,
+          readinessScore: readinessFor100Scale,
         }),
       })
         .then((res) => res.ok ? res.json() : null)
@@ -315,12 +362,16 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
     })
 
     // Fetch nutrition tip for voice check-in
+    // Note: Nutrition tip API expects 0-100 scale, readiness estimate is 0-10
     setIsLoadingTip(true)
+    const readinessFor100Scale = result.aiInterpretation.readinessEstimate
+      ? result.aiInterpretation.readinessEstimate * 10
+      : undefined
     fetch('/api/nutrition/tip', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        readinessScore: result.aiInterpretation.readinessEstimate,
+        readinessScore: readinessFor100Scale,
       }),
     })
       .then((res) => res.ok ? res.json() : null)
@@ -697,6 +748,17 @@ export function DailyCheckInForm({ clientId, onSuccess }: DailyCheckInFormProps)
               />
             </CardContent>
           </Card>
+
+          {/* Conditional Injury Selector (shown when pain >= 3) */}
+          {form.watch('injuryPain') >= 3 && (
+            <InjurySelector
+              sport={sport}
+              painLevel={form.watch('injuryPain')}
+              value={injurySelection}
+              onChange={setInjurySelection}
+              disabled={isSubmitting}
+            />
+          )}
 
           {/* Notes Section */}
           <Card>

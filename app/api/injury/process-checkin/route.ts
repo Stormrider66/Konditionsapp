@@ -23,19 +23,41 @@ import {
 } from '@/lib/training-engine/integration/injury-management'
 import { logger } from '@/lib/logger'
 import { Resend } from 'resend'
+import {
+  detectPainPatterns,
+  formatPatternNotification,
+  type PatternDetectionResult,
+} from '@/lib/injury-detection/pattern-detector'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+
+interface InjuryDetails {
+  bodyPart?: string
+  injuryType?: string
+  side?: string
+  isIllness?: boolean
+  illnessType?: string
+}
+
+interface KeywordAnalysis {
+  matches?: string[]
+  suggestedBodyPart?: string
+  severityLevel?: string
+  summary?: string
+}
 
 interface CheckInData {
   clientId: string
   date: string
-  injuryPain: number // 1-10 scale (inverted from form: 10 = extreme pain)
-  stress: number // 1-10 scale (inverted)
+  injuryPain: number // 1-10 scale (1 = no pain, 10 = extreme pain)
+  stress: number // 1-10 scale (1 = no stress, 10 = extreme stress)
   sleepHours: number
-  energyLevel: number // 1-10 scale
+  energyLevel: number // 1-10 scale (1 = exhausted, 10 = full of energy)
   readinessScore?: number // Calculated by daily-metrics API
   readinessLevel?: string
-  muscleSoreness: number
+  muscleSoreness: number // 1-10 scale (1 = no soreness, 10 = extreme soreness)
+  injuryDetails?: InjuryDetails // Specific injury information from athlete
+  keywordAnalysis?: KeywordAnalysis // NLP analysis from notes
 }
 
 interface TriggerDetection {
@@ -84,6 +106,8 @@ export async function POST(request: NextRequest) {
       readinessScore,
       readinessLevel,
       muscleSoreness,
+      injuryDetails,
+      keywordAnalysis,
     } = body
 
     // Validate required fields
@@ -119,12 +143,72 @@ export async function POST(request: NextRequest) {
     // ==========================================
     const triggerDetection = detectTriggers(body)
 
+    // ==========================================
+    // Step 1.5: Detect recurring pain patterns
+    // ==========================================
+    const patternResult = await detectPainPatterns(clientId, {
+      painLevel: injuryPain,
+      bodyPart: injuryDetails?.bodyPart || null,
+      injuryType: injuryDetails?.injuryType || null,
+      isIllness: injuryDetails?.isIllness || false,
+      illnessType: injuryDetails?.illnessType || null,
+      keywordBodyPart: keywordAnalysis?.suggestedBodyPart || null,
+    })
+
+    // If pattern detected but no immediate trigger, escalate to coach
+    if (!triggerDetection.triggered && patternResult.shouldEscalate) {
+      const patternNotification = formatPatternNotification(patternResult)
+
+      // Send pattern-based coach notification
+      await sendCoachNotification(client.userId, {
+        title: patternNotification.title,
+        message: patternNotification.message,
+        urgency: patternNotification.urgency,
+        actionRequired: true,
+        suggestedActions: [
+          'Granska idrottarens senaste rapporter',
+          'Kontakta idrottaren för uppföljning',
+          'Överväg förebyggande träningsanpassningar',
+        ],
+        athleteName: client.name,
+        injuryType: 'PATTERN_DETECTED',
+        painLevel: injuryPain,
+      })
+
+      logger.info('Pattern-based escalation triggered', {
+        athlete: client.name,
+        patterns: patternResult.patterns.map((p) => p.type),
+        reasons: patternResult.escalationReasons,
+      })
+
+      return NextResponse.json({
+        success: true,
+        triggered: false,
+        patternEscalation: true,
+        message: 'Recurring pain pattern detected. Coach notified for review.',
+        detection: triggerDetection,
+        patternAnalysis: {
+          patternDetected: patternResult.patternDetected,
+          patterns: patternResult.patterns,
+          recommendation: patternResult.recommendation,
+          escalationReasons: patternResult.escalationReasons,
+        },
+      })
+    }
+
     if (!triggerDetection.triggered) {
       return NextResponse.json({
         success: true,
         triggered: false,
         message: 'No injury triggers detected. Check-in processed normally.',
         detection: triggerDetection,
+        patternAnalysis: patternResult.patternDetected
+          ? {
+              patternDetected: true,
+              patterns: patternResult.patterns,
+              recommendation: patternResult.recommendation,
+            }
+          : undefined,
       })
     }
 
@@ -134,19 +218,60 @@ export async function POST(request: NextRequest) {
     const acwrData = await getACWRRisk(clientId)
 
     // ==========================================
-    // Step 3: Determine injury type from pain location/pattern
+    // Step 3: Handle illness vs injury
     // ==========================================
-    // For now, we use a generic injury type since athlete hasn't specified location
-    // In future, could add a "Where does it hurt?" dropdown in daily check-in
-    const injuryType = determineInjuryType(triggerDetection, muscleSoreness)
+    if (injuryDetails?.isIllness) {
+      // Illness requires complete rest - no training, no cross-training
+      logger.info('Illness detected, recommending complete rest', {
+        athlete: client.name,
+        illnessType: injuryDetails.illnessType,
+      })
+
+      return NextResponse.json({
+        success: true,
+        triggered: true,
+        detection: {
+          ...triggerDetection,
+          severity: 'CRITICAL',
+          recommendedAction: 'REST',
+          reasons: [...triggerDetection.reasons, `Illness reported: ${injuryDetails.illnessType || 'unspecified'}`],
+        },
+        injuryResponse: {
+          immediateAction: 'COMPLETE_REST',
+          workoutsModified: 0,
+          crossTrainingRecommended: false, // No cross-training during illness
+          estimatedReturnWeeks: 1, // Re-evaluate after rest
+          coachNotified: true,
+          notificationUrgency: 'HIGH',
+        },
+        summary: {
+          title: `Sjukdom rapporterad: ${injuryDetails.illnessType || 'ospecificerad'}`,
+          message: `Idrottaren har rapporterat sjukdom. Komplett vila rekommenderas tills symtomen försvinner. Ingen träning eller korskräning tillåten under sjukdomsperioden.`,
+          nextSteps: [
+            'Ingen träning tills symtomfri i minst 24 timmar',
+            'Återgå gradvis med lätt aktivitet först',
+            'Vid feber: minst 1 vecka vila efter feberfri',
+            'Konsultera läkare vid allvarliga symtom',
+          ],
+          programAdjustment: 'All training suspended due to illness. Cross-training not recommended during illness recovery.',
+        },
+        isIllness: true,
+      })
+    }
 
     // ==========================================
-    // Step 4: Create InjuryDetection object
+    // Step 4: Determine injury type from pain location/pattern
+    // ==========================================
+    // Use provided injury type if available, otherwise infer from context
+    const injuryType = determineInjuryType(triggerDetection, muscleSoreness, injuryDetails, keywordAnalysis)
+
+    // ==========================================
+    // Step 5: Create InjuryDetection object
     // ==========================================
     const injuryDetection: InjuryDetection = {
       athleteId: clientId,
       injuryType,
-      painLevel: injuryPain, // Already on 1-10 scale (inverted by form)
+      painLevel: injuryPain, // 1-10 scale (1 = no pain, 10 = extreme pain)
       painTiming: determinePainTiming(injuryPain, muscleSoreness),
       acwrRisk: acwrData.risk,
       detectionSource: 'DAILY_CHECKIN',
@@ -154,7 +279,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ==========================================
-    // Step 5: Process injury cascade
+    // Step 6: Process injury cascade
     // ==========================================
     logger.info('Injury trigger detected', {
       athlete: client.name,
@@ -177,12 +302,12 @@ export async function POST(request: NextRequest) {
     })
 
     // ==========================================
-    // Step 6: Send coach notification
+    // Step 7: Send coach notification
     // ==========================================
     await sendCoachNotification(client.userId, injuryResponse.coachNotification)
 
     // ==========================================
-    // Step 7: Return comprehensive response
+    // Step 8: Return comprehensive response
     // ==========================================
     return NextResponse.json({
       success: true,
@@ -202,6 +327,14 @@ export async function POST(request: NextRequest) {
         nextSteps: injuryResponse.coachNotification.suggestedActions,
         programAdjustment: injuryResponse.programAdjustment.reasoning,
       },
+      patternAnalysis: patternResult.patternDetected
+        ? {
+            patternDetected: true,
+            patterns: patternResult.patterns,
+            recommendation: patternResult.recommendation,
+            escalationReasons: patternResult.escalationReasons,
+          }
+        : undefined,
     })
   } catch (error) {
     logger.error('Error processing injury check-in', {}, error)
@@ -223,7 +356,7 @@ function detectTriggers(data: CheckInData): TriggerDetection {
   let severity: TriggerDetection['severity'] = 'LOW'
   let recommendedAction: TriggerDetection['recommendedAction'] = 'MONITOR'
 
-  // Note: injuryPain comes inverted from form (10 = extreme pain, 1 = no pain)
+  // Pain scale: 1 = no pain, 10 = extreme pain
   const painLevel = data.injuryPain
 
   // CRITICAL TRIGGERS (immediate rest)
@@ -290,15 +423,96 @@ function detectTriggers(data: CheckInData): TriggerDetection {
 }
 
 /**
+ * Mapping from body part names to injury types
+ * Valid types: PLANTAR_FASCIITIS | ACHILLES_TENDINOPATHY | IT_BAND_SYNDROME |
+ *              STRESS_FRACTURE | HAMSTRING_STRAIN | SHIN_SPLINTS |
+ *              PATELLOFEMORAL_SYNDROME | CALF_STRAIN | HIP_FLEXOR
+ */
+const BODY_PART_TO_INJURY_TYPE: Record<string, InjuryDetection['injuryType']> = {
+  // Lower leg
+  'shin': 'SHIN_SPLINTS',
+  'calf': 'CALF_STRAIN',
+  'achilles': 'ACHILLES_TENDINOPATHY',
+  'ankle': 'SHIN_SPLINTS', // Closest match for ankle issues
+  'foot': 'PLANTAR_FASCIITIS',
+
+  // Knee area
+  'knee': 'PATELLOFEMORAL_SYNDROME',
+  'it_band': 'IT_BAND_SYNDROME',
+  'itb': 'IT_BAND_SYNDROME',
+
+  // Upper leg
+  'hamstring': 'HAMSTRING_STRAIN',
+  'quad': 'HAMSTRING_STRAIN', // Use hamstring as proxy for upper leg muscle strain
+  'hip': 'HIP_FLEXOR',
+  'groin': 'HIP_FLEXOR',
+
+  // Default fallback
+  'general': 'SHIN_SPLINTS',
+  'other': 'SHIN_SPLINTS',
+}
+
+/**
+ * Mapping from specific injury type strings to enum values
+ */
+const INJURY_TYPE_MAP: Record<string, InjuryDetection['injuryType']> = {
+  'PLANTAR_FASCIITIS': 'PLANTAR_FASCIITIS',
+  'ACHILLES_TENDINITIS': 'ACHILLES_TENDINOPATHY',
+  'ACHILLES_TENDINOPATHY': 'ACHILLES_TENDINOPATHY',
+  'SHIN_SPLINTS': 'SHIN_SPLINTS',
+  'PATELLOFEMORAL': 'PATELLOFEMORAL_SYNDROME',
+  'PATELLOFEMORAL_SYNDROME': 'PATELLOFEMORAL_SYNDROME',
+  'IT_BAND_SYNDROME': 'IT_BAND_SYNDROME',
+  'HAMSTRING_STRAIN': 'HAMSTRING_STRAIN',
+  'CALF_STRAIN': 'CALF_STRAIN',
+  'ANKLE_SPRAIN': 'SHIN_SPLINTS', // Map to closest available type
+  'HIP_FLEXOR_STRAIN': 'HIP_FLEXOR',
+  'HIP_FLEXOR': 'HIP_FLEXOR',
+  'STRESS_FRACTURE': 'STRESS_FRACTURE',
+}
+
+/**
  * Determine injury type from available data
  *
- * Since daily check-in doesn't specify injury location,
- * we use a conservative approach with common injury types
+ * Priority order:
+ * 1. Explicit injury type from injuryDetails (highest priority)
+ * 2. Body part from injuryDetails (mapped to injury type)
+ * 3. Body part from keyword analysis (NLP detection)
+ * 4. Inference from muscle soreness level (fallback)
  */
 function determineInjuryType(
   trigger: TriggerDetection,
-  muscleSoreness: number
+  muscleSoreness: number,
+  injuryDetails?: InjuryDetails,
+  keywordAnalysis?: KeywordAnalysis
 ): InjuryDetection['injuryType'] {
+  // Priority 1: Use explicit injury type if provided
+  if (injuryDetails?.injuryType) {
+    const mappedType = INJURY_TYPE_MAP[injuryDetails.injuryType]
+    if (mappedType) {
+      return mappedType
+    }
+  }
+
+  // Priority 2: Map body part from injury details
+  if (injuryDetails?.bodyPart) {
+    const normalizedBodyPart = injuryDetails.bodyPart.toLowerCase().replace(/[^a-z_]/g, '_')
+    const mappedType = BODY_PART_TO_INJURY_TYPE[normalizedBodyPart]
+    if (mappedType) {
+      return mappedType
+    }
+  }
+
+  // Priority 3: Use keyword analysis suggested body part
+  if (keywordAnalysis?.suggestedBodyPart) {
+    const normalizedBodyPart = keywordAnalysis.suggestedBodyPart.toLowerCase().replace(/[^a-z_]/g, '_')
+    const mappedType = BODY_PART_TO_INJURY_TYPE[normalizedBodyPart]
+    if (mappedType) {
+      return mappedType
+    }
+  }
+
+  // Priority 4: Inference from muscle soreness (original fallback logic)
   // If high muscle soreness + pain, likely overuse injury
   if (muscleSoreness >= 7) {
     // Most common running injuries (in order of prevalence)
@@ -308,10 +522,6 @@ function determineInjuryType(
 
   // For other cases, use IT band syndrome (second most common)
   return 'IT_BAND_SYNDROME'
-
-  // NOTE: In future enhancement, add injury location dropdown to daily check-in:
-  // "Where does it hurt?" → Foot, Ankle, Shin, Knee, IT Band, Hip, Hamstring, Calf
-  // Then map directly to specific injury types
 }
 
 /**

@@ -1532,6 +1532,19 @@ model DailyMetrics {
   athleteNotes        String?
   coachNotes          String?
 
+  // Injury details (when injuryPain >= 3)
+  injuryBodyPart      String?   // Body part selected: KNEE, LOWER_LEG, etc.
+  injurySpecificType  String?   // Specific injury type: PATELLOFEMORAL, SHIN_SPLINTS, etc.
+  injurySide          String?   // LEFT, RIGHT, BOTH, NA
+  isIllness           Boolean   @default(false)  // True if reporting illness vs injury
+  illnessType         String?   // FEVER, GASTROINTESTINAL, COLD, HEADACHE, GENERAL_ILLNESS
+
+  // Keyword analysis from notes
+  detectedKeywords    Json?     // Array of detected keywords with categories
+  keywordBodyPart     String?   // Body part detected from notes
+  keywordSeverity     String?   // Severity level from keywords: LOW, MEDIUM, HIGH
+  keywordSummary      String?   // Human-readable summary for coach
+
   client              Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
