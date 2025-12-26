@@ -29,12 +29,25 @@ export default async function AthleteHybridPage() {
     redirect('/login');
   }
 
+  // Get subscription from User model
+  const subscription = await prisma.subscription.findUnique({
+    where: { userId: user.id },
+    select: { tier: true },
+  });
+
   const clientId = athleteAccount.clientId;
+  const subscriptionTier = subscription?.tier || 'FREE';
+
+  // Check if athlete can access templates (PRO or higher)
+  const canAccessTemplates = ['PRO', 'ENTERPRISE'].includes(subscriptionTier);
 
   return (
     <div className="container mx-auto py-6 px-4">
       <Suspense fallback={<HybridSkeleton />}>
-        <AthleteHybridClient clientId={clientId} />
+        <AthleteHybridClient
+          clientId={clientId}
+          canAccessTemplates={canAccessTemplates}
+        />
       </Suspense>
     </div>
   );

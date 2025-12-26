@@ -93,6 +93,7 @@ interface AthleteResult {
 
 interface AthleteHybridClientProps {
   clientId: string;
+  canAccessTemplates?: boolean;
 }
 
 const formatLabels: Record<string, { label: string; labelSv: string; icon: React.ReactNode }> = {
@@ -114,7 +115,7 @@ const scalingLabels: Record<string, { label: string; color: string }> = {
   CUSTOM: { label: 'Custom', color: 'bg-purple-500' },
 };
 
-export function AthleteHybridClient({ clientId }: AthleteHybridClientProps) {
+export function AthleteHybridClient({ clientId, canAccessTemplates = false }: AthleteHybridClientProps) {
   const [workouts, setWorkouts] = useState<HybridWorkout[]>([]);
   const [results, setResults] = useState<AthleteResult[]>([]);
   const [prs, setPrs] = useState<AthleteResult[]>([]);

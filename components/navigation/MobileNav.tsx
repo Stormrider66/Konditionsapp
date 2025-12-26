@@ -156,6 +156,8 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
         { href: '/athlete/history', label: 'Historik', icon: TrendingUp },
         { href: '/athlete/programs', label: 'Program', icon: Calendar },
         { href: '/athlete/strength', label: 'Styrketräning', icon: Dumbbell },
+        { href: '/athlete/cardio', label: 'Cardio Pass', icon: Heart },
+        { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame },
         { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge },
         { href: '/athlete/concept2', label: 'Concept2', icon: Ship },
       ],
@@ -186,6 +188,8 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: '/athlete/history', label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
     { href: '/athlete/programs', label: 'Program', icon: Calendar, description: 'Dina träningsprogram' },
     { href: '/athlete/strength', label: 'Styrketräning', icon: Dumbbell, description: 'Styrkepass & mallar' },
+    { href: '/athlete/cardio', label: 'Cardio Pass', icon: Heart, description: 'Löpning, cykling & kondition' },
+    { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame, description: 'AMRAP, EMOM & CrossFit' },
     { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge, description: 'Hastighetsbaserad styrketräning' },
     { href: '/athlete/concept2', label: 'Concept2', icon: Ship, description: 'RowErg, SkiErg & BikeErg' },
 

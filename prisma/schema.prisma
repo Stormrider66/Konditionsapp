@@ -291,10 +291,12 @@ model Client {
   // Hybrid Studio relations
   hybridWorkoutResults HybridWorkoutResult[]
   hybridWorkoutAssignments HybridWorkoutAssignment[]
+  hybridWorkoutLogs    HybridWorkoutLog[]       @relation("AthleteHybridLogs")
 
   // Strength & Cardio Studio relations
   strengthSessionAssignments StrengthSessionAssignment[]
   cardioSessionAssignments   CardioSessionAssignment[]
+  cardioSessionLogs          CardioSessionLog[]         @relation("AthleteCardioLogs")
 
   // Nutrition Timing System relations
   dietaryPreferences  DietaryPreferences?
@@ -2964,6 +2966,7 @@ model HybridWorkout {
   // Stats
   results         HybridWorkoutResult[]
   assignments     HybridWorkoutAssignment[]
+  workoutLogs     HybridWorkoutLog[]
 
   // Tags for filtering
   tags            String[]     @default([])
@@ -3145,6 +3148,76 @@ enum AssignmentStatus {
   MODIFIED    // Coach modified assignment
 }
 
+/// Hybrid workout log - tracks Focus Mode execution
+model HybridWorkoutLog {
+  id                String       @id @default(uuid())
+
+  workout           HybridWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workoutId         String
+
+  athlete           Client       @relation("AthleteHybridLogs", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId         String
+
+  // Optional link to assignment if this was assigned
+  assignmentId      String?
+
+  // Execution timing
+  startedAt         DateTime     @default(now())
+  completedAt       DateTime?
+  status            AssignmentStatus @default(PENDING)
+
+  // Results (depending on format)
+  totalTime         Int?         // seconds (for FOR_TIME)
+  totalRounds       Int?         // completed rounds (for AMRAP)
+  extraReps         Int?         // partial reps in last round
+
+  // Scaling used
+  scalingLevel      ScalingLevel @default(RX)
+  scalingNotes      String?
+
+  // Round logs
+  roundLogs         HybridRoundLog[]
+
+  // Session feedback
+  sessionRPE        Int?         // 1-10
+  notes             String?      @db.Text
+  focusModeUsed     Boolean      @default(true)
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([workoutId])
+  @@index([athleteId])
+  @@index([startedAt])
+  @@index([status])
+}
+
+/// Per-round log within a Hybrid workout
+model HybridRoundLog {
+  id                  String           @id @default(uuid())
+
+  hybridWorkoutLog    HybridWorkoutLog @relation(fields: [hybridWorkoutLogId], references: [id], onDelete: Cascade)
+  hybridWorkoutLogId  String
+
+  roundNumber         Int
+
+  // Timing
+  startedAt           DateTime?
+  completedAt         DateTime?
+  duration            Int?         // seconds
+
+  // Movement tracking
+  movements           Json         // Array of { movementId, movementName, reps, completed, notes }
+
+  // Status
+  completed           Boolean      @default(false)
+
+  createdAt           DateTime     @default(now())
+
+  @@index([hybridWorkoutLogId])
+  @@index([roundNumber])
+}
+
 // ============================================
 // STRENGTH SESSION LIBRARY
 // ============================================
@@ -3300,6 +3373,9 @@ model CardioSession {
   // Assignments
   assignments       CardioSessionAssignment[]
 
+  // Focus Mode logs
+  sessionLogs       CardioSessionLog[]
+
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -3341,6 +3417,95 @@ model CardioSessionAssignment {
   @@index([assignedDate])
   @@index([status])
   @@unique([sessionId, athleteId, assignedDate])
+}
+
+/// Cardio session log - tracks Focus Mode execution
+model CardioSessionLog {
+  id                String       @id @default(uuid())
+
+  session           CardioSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId         String
+
+  athlete           Client       @relation("AthleteCardioLogs", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId         String
+
+  // Optional link to assignment if this was assigned
+  assignmentId      String?
+
+  // Execution timing
+  startedAt         DateTime     @default(now())
+  completedAt       DateTime?
+
+  // Overall session metrics
+  status            AssignmentStatus @default(PENDING)
+  actualDuration    Int?         // total seconds
+  actualDistance    Float?       // total km
+  avgHeartRate      Int?
+  maxHeartRate      Int?
+
+  // Segment logs
+  segmentLogs       CardioSegmentLog[]
+
+  // Session feedback
+  sessionRPE        Int?         // 1-10
+  notes             String?      @db.Text
+  focusModeUsed     Boolean      @default(true)
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([sessionId])
+  @@index([athleteId])
+  @@index([startedAt])
+  @@index([status])
+}
+
+/// Per-segment log within a Cardio session
+model CardioSegmentLog {
+  id                  String           @id @default(uuid())
+
+  cardioSessionLog    CardioSessionLog @relation(fields: [cardioSessionLogId], references: [id], onDelete: Cascade)
+  cardioSessionLogId  String
+
+  segmentIndex        Int
+  segmentType         CardioSegmentType
+
+  // Planned values (copied from session definition)
+  plannedDuration     Int?         // seconds
+  plannedDistance     Float?       // km
+  plannedPace         Int?         // sec/km
+  plannedZone         Int?         // 1-5
+
+  // Actual values logged
+  actualDuration      Int?         // seconds
+  actualDistance      Float?       // km
+  actualPace          Int?         // sec/km
+  actualAvgHR         Int?
+  actualMaxHR         Int?
+
+  // Status
+  completed           Boolean      @default(false)
+  skipped             Boolean      @default(false)
+  notes               String?
+
+  startedAt           DateTime?
+  completedAt         DateTime?
+
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([cardioSessionLogId])
+  @@index([segmentIndex])
+}
+
+enum CardioSegmentType {
+  WARMUP
+  COOLDOWN
+  INTERVAL
+  STEADY
+  RECOVERY
+  HILL
+  DRILLS
 }
 
 // ==================== NUTRITION TIMING SYSTEM ====================
