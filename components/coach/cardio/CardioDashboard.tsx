@@ -80,7 +80,7 @@ export function CardioDashboard() {
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs id="cardio-studio-tabs" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="builder" className="flex items-center gap-2">
             <Timer className="h-4 w-4" />
