@@ -8,10 +8,11 @@ import { SportType } from '@prisma/client'
 import {
   Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
   ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings,
-  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship
+  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { NotificationBell } from '@/components/calendar/NotificationsPanel'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -145,6 +146,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
   const athleteMainNavLinks = [
     { href: '/athlete/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/athlete/check-in', label: 'Check-in', icon: CheckCircle },
+    { href: '/athlete/calendar', label: 'Kalender', icon: Calendar },
   ]
 
   // Athlete grouped navigation for dropdowns
@@ -183,10 +185,11 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     // Dashboard & Overview
     { href: '/athlete/dashboard', label: 'Dashboard', icon: LayoutDashboard, description: 'Översikt & idag' },
     { href: '/athlete/check-in', label: 'Check-in', icon: CheckCircle, description: 'Daglig readiness', highlight: true },
+    { href: '/athlete/calendar', label: 'Kalender', icon: Calendar, description: 'Träning, tävlingar & händelser' },
 
     // Training & History
     { href: '/athlete/history', label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
-    { href: '/athlete/programs', label: 'Program', icon: Calendar, description: 'Dina träningsprogram' },
+    { href: '/athlete/programs', label: 'Program', icon: ClipboardList, description: 'Dina träningsprogram' },
     { href: '/athlete/strength', label: 'Styrketräning', icon: Dumbbell, description: 'Styrkepass & mallar' },
     { href: '/athlete/cardio', label: 'Cardio Pass', icon: Heart, description: 'Löpning, cykling & kondition' },
     { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame, description: 'AMRAP, EMOM & CrossFit' },
@@ -251,7 +254,12 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
                 )}
               </div>
             </div>
-            <UserNav user={user} />
+            <div className="flex items-center gap-1">
+              {(userRole === 'COACH' || userRole === 'ATHLETE') && (
+                <NotificationBell clientId={clientId} />
+              )}
+              <UserNav user={user} />
+            </div>
           </div>
         </div>
 
@@ -510,7 +518,10 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
                   )
                 })
               )}
-              <div className="border-l border-white/20 pl-3 ml-2">
+              <div className="border-l border-white/20 pl-3 ml-2 flex items-center gap-2">
+                {(userRole === 'COACH' || userRole === 'ATHLETE') && (
+                  <NotificationBell clientId={clientId} />
+                )}
                 <UserNav user={user} />
               </div>
             </div>

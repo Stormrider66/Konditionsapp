@@ -17,6 +17,7 @@ import { buildAthleteOwnContext } from '@/lib/ai/athlete-context-builder';
 import { buildAthleteSystemPrompt } from '@/lib/ai/athlete-prompts';
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
+import { buildCalendarContext } from '@/lib/ai/calendar-context-builder';
 
 // Support both old (content) and new (parts) message formats
 interface UIMessagePart {
@@ -485,6 +486,20 @@ ${prog.goalRace ? `- **Mållopp**: ${prog.goalRace}` : ''}
       }
     }
 
+    // Build calendar context for the athlete
+    let calendarContext = '';
+    const calendarAthleteId = isAthleteChat ? athleteClientId : athleteId;
+    if (calendarAthleteId) {
+      try {
+        const calendarData = await buildCalendarContext(calendarAthleteId);
+        if (calendarData.hasCalendarData) {
+          calendarContext = calendarData.contextText;
+        }
+      } catch (error) {
+        console.error('Error building calendar context:', error);
+      }
+    }
+
     // Build context from documents using RAG
     let documentContext = '';
     if (documentIds.length > 0 && decryptedKeys.openaiKey) {
@@ -584,9 +599,18 @@ ${pageContext}
 - Om videoanalysdata finns tillgänglig, integrera löpteknikrekommendationer i programmet
 - Vid hög asymmetri eller skaderisk, inkludera preventiva övningar och styrketräning
 ${webSearchEnabled ? '- Du kan referera till aktuell forskning och trender inom träningsvetenskap' : ''}
+${calendarContext ? `
+## KALENDERMEDVETEN PLANERING
+- RESPEKTERA alltid atletens kalenderblockeringar (semester, resor, arbete)
+- PLACERA ALDRIG träningspass på blockerade dagar
+- ANPASSA intensitet under höghöjdsläger enligt fas (akut, anpassning, optimal)
+- PLANERA gradvis återgång efter sjukdom - prioritera hälsa över "hinna ikapp"
+- FLYTTA nyckelpass (intervaller, långpass) till fullt tillgängliga dagar
+- INFORMERA om hur kalenderbegränsningar påverkar programmet` : ''}
 
 ${athleteContext}
 ${sportSpecificContext}
+${calendarContext}
 ${documentContext}
 ${webSearchContext}
 ${pageContext}

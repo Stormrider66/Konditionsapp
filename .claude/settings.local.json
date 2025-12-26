@@ -10,7 +10,8 @@
       "Bash(npx prisma generate:*)",
       "Bash(cat:*)",
       "Bash(grep:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

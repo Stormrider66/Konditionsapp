@@ -136,6 +136,40 @@ enum InvitationType {
   REFERRAL         // Referral bonus link
 }
 
+// ==================== CALENDAR SYSTEM ====================
+
+enum CalendarEventType {
+  ALTITUDE_CAMP         // Multi-day training camp at altitude
+  TRAINING_CAMP         // Multi-day training camp (non-altitude)
+  TRAVEL                // Travel days with reduced/no training
+  ILLNESS               // Illness tracking with return-to-training protocol
+  VACATION              // Personal time off
+  WORK_BLOCKER          // Work commitments blocking training
+  PERSONAL_BLOCKER      // Personal events (weddings, family, etc.)
+  EXTERNAL_EVENT        // Imported from external calendar
+}
+
+enum CalendarEventStatus {
+  SCHEDULED             // Future event
+  ACTIVE                // Currently ongoing
+  COMPLETED             // Past event
+  CANCELLED             // Cancelled but kept for history
+}
+
+enum EventImpact {
+  NO_TRAINING           // No training possible
+  REDUCED               // Reduced training (50% or less)
+  MODIFIED              // Training with modifications
+  NORMAL                // Normal training continues
+}
+
+enum AltitudeAdaptationPhase {
+  ACUTE                 // First 3-5 days (reduced intensity)
+  ADAPTATION            // Days 6-14 (gradual increase)
+  OPTIMAL               // Day 15+ (full adaptation)
+  POST_CAMP             // Return to sea level (monitor for 14 days)
+}
+
 enum BiomechanicalPillar {
   POSTERIOR_CHAIN    // Hip dominance - glutes, hamstrings
   KNEE_DOMINANCE     // Quad strength & stiffness
@@ -214,6 +248,11 @@ model User {
   // Business & Organization relations
   businessMemberships BusinessMember[]
   tester              Tester?
+
+  // Calendar System relations
+  createdCalendarEvents   CalendarEvent[]         @relation("CreatedCalendarEvents")
+  modifiedCalendarEvents  CalendarEvent[]         @relation("ModifiedCalendarEvents")
+  calendarChanges         CalendarEventChange[]   @relation("CalendarChanges")
 
   @@index([email])
   @@index([role])
@@ -311,6 +350,11 @@ model Client {
   // VBT (Velocity-Based Training) relations
   vbtSessions          VBTSession[]
   loadVelocityProfiles LoadVelocityProfile[]
+
+  // Calendar System relations
+  calendarEvents           CalendarEvent[]
+  calendarEventChanges     CalendarEventChange[]
+  externalCalendarConnections ExternalCalendarConnection[]
 
   @@index([userId])
   @@index([teamId])
@@ -3740,4 +3784,143 @@ model LoadVelocityProfile {
   @@index([clientId])
   @@index([exerciseId])
   @@index([isValid])
+}
+
+// ==================== CALENDAR SYSTEM ====================
+
+/// Calendar events for tracking non-training activities (travel, camps, illness, vacation)
+model CalendarEvent {
+  id                    String                  @id @default(uuid())
+  clientId              String
+
+  // Event basics
+  type                  CalendarEventType
+  title                 String
+  description           String?                 @db.Text
+  status                CalendarEventStatus     @default(SCHEDULED)
+
+  // Date/time
+  startDate             DateTime                @db.Date
+  endDate               DateTime                @db.Date
+  allDay                Boolean                 @default(true)
+  startTime             String?                 // "HH:mm" if not all-day
+  endTime               String?                 // "HH:mm" if not all-day
+
+  // Training impact
+  trainingImpact        EventImpact             @default(NO_TRAINING)
+  impactNotes           String?                 // "Morning sessions only", etc.
+
+  // Altitude-specific (when type = ALTITUDE_CAMP)
+  altitude              Int?                    // meters above sea level
+  adaptationPhase       AltitudeAdaptationPhase?
+  seaLevelReturnDate    DateTime?               // When athlete returns to sea level
+
+  // Illness-specific (when type = ILLNESS)
+  illnessType           String?                 // "RESPIRATORY", "GI", "FEVER", etc.
+  returnToTrainingDate  DateTime?
+  medicalClearance      Boolean                 @default(false)
+
+  // External calendar integration
+  externalCalendarId    String?                 // ID in external system
+  externalCalendarType  String?                 // "GOOGLE", "OUTLOOK", "APPLE"
+  externalCalendarName  String?                 // "Work Calendar", etc.
+  lastSyncedAt          DateTime?
+  isReadOnly            Boolean                 @default(false) // Imported events cannot be edited
+
+  // Recurrence (future phase)
+  isRecurring           Boolean                 @default(false)
+  recurrenceRule        String?                 // iCal RRULE format
+  recurrenceParentId    String?                 // Link to parent event
+
+  // Metadata
+  createdById           String
+  lastModifiedById      String?
+  color                 String?                 // Custom color override
+
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  // Relations
+  client                Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy             User                    @relation("CreatedCalendarEvents", fields: [createdById], references: [id])
+  lastModifiedBy        User?                   @relation("ModifiedCalendarEvents", fields: [lastModifiedById], references: [id])
+  changeHistory         CalendarEventChange[]
+
+  @@index([clientId, startDate, endDate])
+  @@index([clientId, type])
+  @@index([externalCalendarId, externalCalendarType])
+  @@index([createdById])
+  @@index([status])
+}
+
+/// Change history for calendar events (for notifications and audit trail)
+model CalendarEventChange {
+  id                    String                  @id @default(uuid())
+  eventId               String?
+  clientId              String
+
+  // Change details
+  changeType            String                  // EVENT_CREATED, EVENT_UPDATED, EVENT_DELETED, WORKOUT_RESCHEDULED, CONFLICT_DETECTED
+  changedById           String
+  description           String                  @db.Text
+
+  // Snapshot data
+  previousData          Json?                   // Snapshot of old state
+  newData               Json?                   // Snapshot of new state
+
+  // Notification tracking
+  notificationRead      Boolean                 @default(false)
+  notificationReadAt    DateTime?
+
+  createdAt             DateTime                @default(now())
+
+  // Relations
+  event                 CalendarEvent?          @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  client                Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  changedBy             User                    @relation("CalendarChanges", fields: [changedById], references: [id])
+
+  @@index([clientId, notificationRead, createdAt])
+  @@index([eventId])
+  @@index([changedById])
+}
+
+/// External calendar connections (Google, Outlook, Apple iCal)
+model ExternalCalendarConnection {
+  id                    String                  @id @default(uuid())
+  clientId              String
+
+  // Provider info
+  provider              String                  // GOOGLE, OUTLOOK, APPLE, ICAL_URL
+  calendarName          String                  // Display name
+  calendarId            String                  // External calendar ID
+
+  // OAuth tokens (Google/Outlook)
+  accessToken           String?                 @db.Text
+  refreshToken          String?                 @db.Text
+  expiresAt             DateTime?
+
+  // iCal URL (Apple/generic)
+  icalUrl               String?                 @db.Text
+
+  // Sync settings
+  syncEnabled           Boolean                 @default(true)
+  lastSyncAt            DateTime?
+  lastSyncError         String?
+
+  // Import settings
+  importAsType          CalendarEventType       @default(EXTERNAL_EVENT)
+  defaultImpact         EventImpact             @default(NORMAL)
+
+  // Color coding
+  color                 String?
+
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  // Relations
+  client                Client                  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, provider, calendarId])
+  @@index([clientId])
+  @@index([provider])
 }

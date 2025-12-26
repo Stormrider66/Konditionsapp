@@ -1,0 +1,183 @@
+/**
+ * Single Calendar Notification API
+ *
+ * GET /api/calendar/notifications/[id] - Get single notification
+ * PUT /api/calendar/notifications/[id] - Mark notification as read/unread
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
+
+interface RouteParams {
+  params: Promise<{ id: string }>
+}
+
+/**
+ * GET /api/calendar/notifications/[id]
+ * Get a single notification
+ */
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { email: user.email },
+    })
+
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const { id } = await params
+
+    const notification = await prisma.calendarEventChange.findUnique({
+      where: { id },
+      include: {
+        changedBy: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        client: {
+          select: {
+            id: true,
+            name: true,
+            userId: true,
+            athleteAccount: {
+              select: { userId: true },
+            },
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+      },
+    })
+
+    if (!notification) {
+      return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
+    }
+
+    // Verify access
+    const isCoach = notification.client.userId === dbUser.id
+    const isAthlete = notification.client.athleteAccount?.userId === dbUser.id
+
+    if (!isCoach && !isAthlete) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    return NextResponse.json({
+      notification: {
+        id: notification.id,
+        type: notification.changeType,
+        description: notification.description,
+        clientId: notification.clientId,
+        clientName: notification.client.name,
+        eventId: notification.eventId,
+        event: notification.event,
+        changedBy: notification.changedBy,
+        isRead: notification.notificationRead,
+        readAt: notification.notificationReadAt,
+        createdAt: notification.createdAt,
+        previousData: notification.previousData,
+        newData: notification.newData,
+      },
+    })
+  } catch (error) {
+    console.error('Error fetching notification:', error)
+    return NextResponse.json({ error: 'Failed to fetch notification' }, { status: 500 })
+  }
+}
+
+/**
+ * PUT /api/calendar/notifications/[id]
+ * Mark notification as read or unread
+ */
+export async function PUT(request: NextRequest, { params }: RouteParams) {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { email: user.email },
+    })
+
+    if (!dbUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const { id } = await params
+    const body = await request.json()
+    const { read } = body
+
+    // Find notification and verify access
+    const notification = await prisma.calendarEventChange.findUnique({
+      where: { id },
+      include: {
+        client: {
+          select: {
+            userId: true,
+            athleteAccount: {
+              select: { userId: true },
+            },
+          },
+        },
+      },
+    })
+
+    if (!notification) {
+      return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
+    }
+
+    // Verify access
+    const isCoach = notification.client.userId === dbUser.id
+    const isAthlete = notification.client.athleteAccount?.userId === dbUser.id
+
+    if (!isCoach && !isAthlete) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    // Update notification
+    const updated = await prisma.calendarEventChange.update({
+      where: { id },
+      data: {
+        notificationRead: read !== false,
+        notificationReadAt: read !== false ? new Date() : null,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      notification: {
+        id: updated.id,
+        isRead: updated.notificationRead,
+        readAt: updated.notificationReadAt,
+      },
+    })
+  } catch (error) {
+    console.error('Error updating notification:', error)
+    return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 })
+  }
+}

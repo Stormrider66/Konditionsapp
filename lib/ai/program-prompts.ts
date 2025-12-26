@@ -338,12 +338,32 @@ BIOMECHANISK BALANS:
   }
 };
 
+/**
+ * Calendar constraints for program generation
+ */
+export interface CalendarConstraints {
+  blockedDates: string[]
+  reducedDates: string[]
+  altitudePeriods: {
+    start: string
+    end: string
+    altitude: number
+    phase?: string
+  }[]
+  illnessRecoveryPeriods?: {
+    start: string
+    end: string
+    returnDate: string
+  }[]
+}
+
 // Prompt for generating a full training program
 export function generateProgramPrompt(
   sport: SportType,
   methodology?: keyof typeof METHODOLOGIES,
   programWeeks?: number,
-  goalDescription?: string
+  goalDescription?: string,
+  calendarConstraints?: CalendarConstraints
 ): string {
   const sportInfo = SPORT_PROMPTS[sport];
   const methodInfo = methodology ? METHODOLOGIES[methodology] : null;
@@ -361,6 +381,11 @@ ${sportInfo.sessionTypes.map(s => `- ${s}`).join('\n')}
 
 ${sportInfo.periodizationNotes}
 `;
+
+  // Add calendar constraints if provided
+  if (calendarConstraints) {
+    prompt += buildCalendarConstraintsPrompt(calendarConstraints);
+  }
 
   if (methodInfo) {
     prompt += `
@@ -519,4 +544,208 @@ export type ProgramPromptOptions = {
   methodology?: keyof typeof METHODOLOGIES;
   programWeeks?: number;
   goalDescription?: string;
+  calendarConstraints?: CalendarConstraints;
 };
+
+/**
+ * Build calendar constraints section for program generation prompt
+ */
+function buildCalendarConstraintsPrompt(constraints: CalendarConstraints): string {
+  let prompt = `
+### KALENDERBEGRÄNSNINGAR - VIKTIGT!
+
+Du MÅSTE respektera följande kalenderbegränsningar när du planerar träningen:
+`;
+
+  // Blocked dates
+  if (constraints.blockedDates.length > 0) {
+    prompt += `
+#### Blockerade dagar (INGEN träning tillåten)
+${formatDateList(constraints.blockedDates)}
+
+**KRITISKT**: Lägg ALDRIG träningspass på dessa datum. De är helt blockerade för träning.
+`;
+  }
+
+  // Reduced dates
+  if (constraints.reducedDates.length > 0) {
+    prompt += `
+#### Dagar med reducerad kapacitet
+${formatDateList(constraints.reducedDates)}
+
+På dessa dagar bör träningen vara:
+- Reducerad volym (max 70% av normal)
+- Låg till måttlig intensitet (Zon 1-2)
+- Endast återhämtning eller lätt rörlighet
+`;
+  }
+
+  // Altitude periods
+  if (constraints.altitudePeriods.length > 0) {
+    prompt += `
+#### Höghöjdsläger
+`;
+    for (const period of constraints.altitudePeriods) {
+      prompt += `
+**${period.start} - ${period.end}** (${period.altitude}m)
+- Dag 1-3: Reducera intensitet till 60%, volym till 50%
+- Dag 4-5: Öka till 70% intensitet, 60% volym
+- Dag 6-10: 80% intensitet, 75% volym
+- Dag 11+: 90-95% av normal träning
+- Undvik VO2max-intervaller de första 5 dagarna
+- Fokusera på aerob basträning initialt
+`;
+    }
+  }
+
+  // Illness recovery
+  if (constraints.illnessRecoveryPeriods && constraints.illnessRecoveryPeriods.length > 0) {
+    prompt += `
+#### Återhämtning efter sjukdom
+`;
+    for (const period of constraints.illnessRecoveryPeriods) {
+      prompt += `
+**${period.start} - ${period.returnDate}**: Gradvis återgång till träning
+- Första 2-3 dagar efter sjukdom: Endast promenad/lätt rörelse
+- Dag 4-7: Lätt träning (50% volym, endast Zon 1-2)
+- Vecka 2: Gradvis ökning till 75%
+- Vecka 3+: Normal träning om symptomfri
+`;
+    }
+  }
+
+  prompt += `
+### INSTRUKTIONER FÖR KALENDERMEDVETEN PLANERING
+
+1. **Placera inga pass på blockerade datum** - flytta till närmast tillgängliga dag
+2. **Flytta inte nyckelpass** till reducerade dagar - välj fullt tillgängliga dagar
+3. **Planera återhämtningspass** före och efter längre blockeringar
+4. **Under höghöjdsläger**: Följ anpassningsprotokollet exakt
+5. **Efter sjukdom**: Prioritera gradvis upptrappning framför att "hinna ikapp"
+6. **Var flexibel**: Om många blockeringar finns, fokusera på kvalitet över kvantitet
+`;
+
+  return prompt;
+}
+
+/**
+ * Format a list of dates for display in prompt
+ */
+function formatDateList(dates: string[]): string {
+  if (dates.length === 0) return '';
+
+  // Group consecutive dates
+  const groups: string[][] = [];
+  let currentGroup: string[] = [];
+
+  const sortedDates = [...dates].sort();
+
+  for (const date of sortedDates) {
+    if (currentGroup.length === 0) {
+      currentGroup.push(date);
+    } else {
+      const lastDate = new Date(currentGroup[currentGroup.length - 1]);
+      const currentDate = new Date(date);
+      const diffDays = Math.round((currentDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        currentGroup.push(date);
+      } else {
+        groups.push(currentGroup);
+        currentGroup = [date];
+      }
+    }
+  }
+  if (currentGroup.length > 0) {
+    groups.push(currentGroup);
+  }
+
+  // Format groups
+  return groups.map(group => {
+    if (group.length === 1) {
+      return `- ${group[0]}`;
+    } else {
+      return `- ${group[0]} till ${group[group.length - 1]} (${group.length} dagar)`;
+    }
+  }).join('\n');
+}
+
+/**
+ * Generate calendar-aware workout suggestion
+ */
+export function calendarAwareWorkoutPrompt(
+  sport: SportType,
+  targetDate: string,
+  calendarContext: {
+    isBlocked: boolean;
+    isReduced: boolean;
+    inAltitude: boolean;
+    altitudeDay?: number;
+    recentIllness: boolean;
+    daysSinceIllness?: number;
+  }
+): string {
+  const sportInfo = SPORT_PROMPTS[sport];
+
+  if (calendarContext.isBlocked) {
+    return `## VILOD: ${targetDate}
+
+Denna dag är blockerad i atletens kalender. Ingen träning ska planeras.
+
+Föreslå istället:
+- Kort rörlighetspass (10-15 min)
+- Mental visualisering
+- Utrustningsunderhåll
+`;
+  }
+
+  let intensityGuide = '';
+  let sessionRecommendation = '';
+
+  if (calendarContext.inAltitude && calendarContext.altitudeDay) {
+    const day = calendarContext.altitudeDay;
+    if (day <= 3) {
+      intensityGuide = 'Endast lätt aerob träning (Zon 1). Max 60% av normal volym.';
+      sessionRecommendation = 'Lätt jogg, promenad, eller stretching';
+    } else if (day <= 5) {
+      intensityGuide = 'Lätt till måttlig intensitet (Zon 1-2). Max 70% volym.';
+      sessionRecommendation = 'Grundträning, teknikfokus';
+    } else if (day <= 10) {
+      intensityGuide = 'Kan introducera tempo (Zon 3). Max 80% volym.';
+      sessionRecommendation = 'Grundträning med inslag av tempo';
+    } else {
+      intensityGuide = 'Nära normal träning (90% intensitet och volym)';
+      sessionRecommendation = 'Normal träning enligt plan';
+    }
+  } else if (calendarContext.recentIllness && calendarContext.daysSinceIllness) {
+    const days = calendarContext.daysSinceIllness;
+    if (days <= 3) {
+      intensityGuide = 'Endast promenad eller lätt rörlighet';
+      sessionRecommendation = 'Kort promenad (20-30 min)';
+    } else if (days <= 7) {
+      intensityGuide = 'Lätt träning (50% volym, Zon 1)';
+      sessionRecommendation = 'Lätt jogg eller cykling';
+    } else if (days <= 14) {
+      intensityGuide = 'Gradvis ökning (75% volym, Zon 1-2)';
+      sessionRecommendation = 'Grundträning, undvik intervaller';
+    } else {
+      intensityGuide = 'Normal träning om symptomfri';
+      sessionRecommendation = 'Normal träning';
+    }
+  } else if (calendarContext.isReduced) {
+    intensityGuide = 'Reducerad träning (max Zon 2, 70% volym)';
+    sessionRecommendation = 'Lätt återhämtningspass eller rörlighet';
+  }
+
+  return `## PASS FÖR ${targetDate}
+
+${intensityGuide ? `**Begränsning**: ${intensityGuide}` : ''}
+
+**Rekommenderat**: ${sessionRecommendation || 'Normal träning enligt plan'}
+
+Tillgängliga passtyper för ${sport}:
+${sportInfo.sessionTypes.slice(0, 4).map(s => `- ${s}`).join('\n')}
+
+Returnera passet i JSON-format.
+`;
+}

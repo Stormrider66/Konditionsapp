@@ -16,7 +16,7 @@ import { VBTProgressionWidget, VBTExerciseProgression } from '@/components/athle
 import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidget'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar } from 'lucide-react'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
   Select,
@@ -492,18 +492,34 @@ export default function ClientDetailPage() {
                   Följ upp atlets träning och ge feedback
                 </p>
               </div>
-              <Link href={`/coach/athletes/${id}/logs`}>
-                <Button size="sm">Visa alla loggar →</Button>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link href={`/coach/athletes/${id}/calendar`}>
+                  <Button variant="outline" size="sm">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Kalender
+                  </Button>
+                </Link>
+                <Link href={`/coach/athletes/${id}/logs`}>
+                  <Button size="sm">Visa alla loggar →</Button>
+                </Link>
+              </div>
             </div>
             <div className="text-center py-6 text-gray-500">
               <p className="mb-2">Se alla träningsloggar för denna atlet</p>
-              <Link
-                href={`/coach/athletes/${id}/logs`}
-                className="text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Öppna loggöversikt
-              </Link>
+              <div className="flex justify-center gap-4">
+                <Link
+                  href={`/coach/athletes/${id}/logs`}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Öppna loggöversikt
+                </Link>
+                <Link
+                  href={`/coach/athletes/${id}/calendar`}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Öppna kalender
+                </Link>
+              </div>
             </div>
           </div>
         )}
