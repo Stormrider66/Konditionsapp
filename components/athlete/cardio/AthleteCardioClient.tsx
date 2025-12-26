@@ -249,7 +249,10 @@ export function AthleteCardioClient({
       actualDistance?: number
       actualPace?: number
       actualAvgHR?: number
+      actualMaxHR?: number
       completed: boolean
+      skipped: boolean
+      notes?: string
     }
   ) => {
     if (!selectedAssignment) return

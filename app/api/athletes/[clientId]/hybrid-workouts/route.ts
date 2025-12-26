@@ -26,6 +26,13 @@ export async function GET(
       )
     }
 
+    // Determine athlete gender for weight selection (mirror /api/hybrid-workouts/[id]/focus-mode)
+    const athleteProfile = await prisma.client.findUnique({
+      where: { id: athleteAccount.clientId },
+      select: { gender: true },
+    })
+    const isFemale = athleteProfile?.gender === 'FEMALE'
+
     // Fetch assignments with workout details
     const assignments = await prisma.hybridWorkoutAssignment.findMany({
       where: { athleteId: clientId },
@@ -74,7 +81,7 @@ export async function GET(
           calories: m.calories,
           distance: m.distance,
           duration: m.duration,
-          weight: m.weightMale || m.weightFemale,
+          weight: isFemale ? (m.weightFemale || m.weightMale) : (m.weightMale || m.weightFemale),
           completed: false,
         })),
       },
