@@ -1284,10 +1284,12 @@ function createNorwegianDoublesDays(
       // ~10-15 reps x 30-45s @ ~15-17 km/h + jog back (~2 min)
       const hillReps = 12
       const hillSprintKmh = 16 // High intensity
+      const postIntervalRestMin = 3 // Time-only rest after last rep before cooldown (no distance)
       const sprintDistanceKm = (hillReps * 0.6 / 60) * hillSprintKmh // ~0.6 min per rep
-      const recoveryDistanceKm = (hillReps * 2 / 60) * easyPaceKmh // ~2 min jog back
+      const recoveryDistanceKm = ((hillReps - 1) * 2 / 60) * easyPaceKmh // ~2 min jog back between reps
       const warmupCooldownKm = (15 / 60) * easyPaceKmh // 15 min warmup+cooldown
       const hitTotalDistanceKm = Math.round((sprintDistanceKm + recoveryDistanceKm + warmupCooldownKm) * 10) / 10
+      const hitTotalDurationMin = Math.round(15 + (hillReps * 0.6) + ((hillReps - 1) * 2) + postIntervalRestMin)
 
       days.push({
         dayNumber: dayNum,
@@ -1296,9 +1298,9 @@ function createNorwegianDoublesDays(
           type: 'RUNNING' as const,
           name: 'Backintervaller',
           intensity: 'INTERVAL' as const,
-          duration: 45,
+          duration: hitTotalDurationMin,
           distance: hitTotalDistanceKm,
-          instructions: `10-15 × 30-45s backe med full vila. Maximal intensitet (>6.0 mmol/L).`,
+          instructions: `10-15 × 30-45s backe med full vila. Avsluta med ${postIntervalRestMin} min vila innan nedjogg. Maximal intensitet (>6.0 mmol/L).`,
           segments: [],
         }],
       })
