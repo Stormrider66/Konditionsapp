@@ -35,6 +35,59 @@ npx prisma studio        # Open Prisma Studio to view/edit data
 npx prisma migrate dev   # Create and apply migrations (development)
 ```
 
+## Chrome Browser Debugging (Claude Code Tool)
+
+A lightweight Chrome DevTools Protocol helper for browser debugging without MCP overhead.
+
+### Prerequisites
+
+Start Chrome with remote debugging enabled (must close all existing Chrome windows first):
+
+```powershell
+# PowerShell (Windows)
+& "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir=C:/temp/chrome-debug http://localhost:3000
+```
+
+### Commands
+
+```bash
+# List all open tabs
+node scripts/chrome-debug.js tabs
+
+# Take screenshot (saves to current directory)
+node scripts/chrome-debug.js screenshot [filename.png]
+
+# Get page HTML
+node scripts/chrome-debug.js html
+
+# Capture console logs (listens for 5 seconds)
+node scripts/chrome-debug.js console
+
+# Execute JavaScript in page context
+node scripts/chrome-debug.js eval "document.title"
+node scripts/chrome-debug.js eval "document.querySelectorAll('button').length"
+
+# Navigate to URL
+node scripts/chrome-debug.js navigate http://localhost:3000/coach
+
+# Get page info and performance metrics
+node scripts/chrome-debug.js info
+```
+
+### Usage Tips for Claude Code
+
+- **Screenshots**: Take screenshots to visually inspect UI issues
+- **Console logs**: Capture runtime errors and debug output
+- **Eval**: Query DOM state, check component counts, inspect data
+- **Navigate**: Move between pages to test different views
+
+### Troubleshooting
+
+If "Cannot connect to Chrome on port 9222":
+1. Close ALL Chrome windows (including system tray)
+2. Restart Chrome with the `--remote-debugging-port=9222` flag
+3. Must use `--user-data-dir` for fresh profile to enable debugging
+
 ## Tech Stack
 
 - **Framework**: Next.js 15 with App Router and React Server Components
