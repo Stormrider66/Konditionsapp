@@ -18,51 +18,88 @@ export interface WeeklyVolumeProgression {
 }
 
 /**
- * Calculate phase distribution based on total program weeks
- * Default uses standard periodization ratios (for general fitness/polarized)
+ * Calculate phase distribution based on total program weeks and methodology
  *
- * For Canova methodology, use calculateCanovaPhases() instead
+ * Each methodology has its own periodization philosophy:
+ *
+ * POLARIZED (Seiler 80/20):
+ *   - Traditional periodization, long base phase
+ *   - 40% BASE, 35% BUILD, 15% PEAK, 10% TAPER
+ *
+ * NORWEGIAN_SINGLE (Sub-threshold):
+ *   - Threshold work starts earlier
+ *   - Shorter base, longer build to accumulate threshold volume
+ *   - 30% BASE, 45% BUILD, 15% PEAK, 10% TAPER
+ *
+ * NORWEGIAN / NORWEGIAN_DOUBLES (Elite double-threshold):
+ *   - Requires solid aerobic foundation first
+ *   - High threshold volume in build phase
+ *   - 35% BASE, 40% BUILD, 15% PEAK, 10% TAPER
+ *
+ * CANOVA (Marathon specialist):
+ *   - INVERTED periodization - PEAK is the LONGEST phase
+ *   - Race-specific work is the main training stimulus
+ *   - 25% BASE, 27% BUILD, 40% PEAK, 8% TAPER
+ *
+ * PYRAMIDAL (70/20/10):
+ *   - Traditional with more Zone 2 (tempo) work
+ *   - Longer base for aerobic capacity before tempo work
+ *   - 45% BASE, 30% BUILD, 15% PEAK, 10% TAPER
  */
 export function calculatePhases(totalWeeks: number, methodology?: string): PhaseDistribution {
-  // Use Canova-specific distribution for Canova methodology
-  if (methodology === 'CANOVA') {
-    return calculateCanovaPhases(totalWeeks)
+  // Methodology-specific phase ratios
+  const methodologyRatios: Record<string, { base: number; build: number; peak: number; taper: number }> = {
+    'POLARIZED': { base: 0.40, build: 0.35, peak: 0.15, taper: 0.10 },
+    'NORWEGIAN_SINGLE': { base: 0.30, build: 0.45, peak: 0.15, taper: 0.10 },
+    'NORWEGIAN_SINGLES': { base: 0.30, build: 0.45, peak: 0.15, taper: 0.10 },
+    'NORWEGIAN': { base: 0.35, build: 0.40, peak: 0.15, taper: 0.10 },
+    'NORWEGIAN_DOUBLES': { base: 0.35, build: 0.40, peak: 0.15, taper: 0.10 },
+    'CANOVA': { base: 0.25, build: 0.27, peak: 0.40, taper: 0.08 }, // Inverted!
+    'PYRAMIDAL': { base: 0.45, build: 0.30, peak: 0.15, taper: 0.10 },
   }
+
+  // Get ratios for methodology (default to POLARIZED)
+  const ratios = methodologyRatios[methodology?.toUpperCase() || 'POLARIZED'] || methodologyRatios['POLARIZED']
 
   let base: number, build: number, peak: number, taper: number
 
   if (totalWeeks < 4) {
-    // Very short program - minimal phases
+    // Very short program - minimal phases, ignore methodology specifics
     base = Math.max(1, Math.floor(totalWeeks * 0.5))
     build = Math.max(1, Math.floor(totalWeeks * 0.3))
     peak = Math.max(1, Math.floor(totalWeeks * 0.2))
     taper = 0
-  } else if (totalWeeks <= 8) {
-    // Short program (8 weeks or less)
-    base = Math.floor(totalWeeks * 0.35) // 35% base
-    build = Math.floor(totalWeeks * 0.30) // 30% build
-    peak = Math.floor(totalWeeks * 0.25) // 25% peak
-    taper = Math.max(1, Math.floor(totalWeeks * 0.10)) // 10% taper (min 1 week)
-  } else if (totalWeeks <= 16) {
-    // Medium program (marathon standard)
-    base = Math.floor(totalWeeks * 0.35) // 35% base
-    build = Math.floor(totalWeeks * 0.30) // 30% build
-    peak = Math.floor(totalWeeks * 0.25) // 25% peak
-    taper = Math.max(2, Math.floor(totalWeeks * 0.10)) // 10% taper (min 2 weeks)
   } else {
-    // Long program (>16 weeks)
-    base = Math.floor(totalWeeks * 0.30) // 30% base
-    build = Math.floor(totalWeeks * 0.30) // 30% build
-    peak = Math.floor(totalWeeks * 0.30) // 30% peak
-    taper = Math.max(2, Math.floor(totalWeeks * 0.10)) // 10% taper (min 2 weeks)
+    // Apply methodology-specific ratios
+    base = Math.max(2, Math.floor(totalWeeks * ratios.base))
+    build = Math.max(2, Math.floor(totalWeeks * ratios.build))
+    peak = Math.max(1, Math.floor(totalWeeks * ratios.peak))
+    taper = Math.max(1, Math.floor(totalWeeks * ratios.taper))
+
+    // Ensure minimum taper for longer programs
+    if (totalWeeks >= 12 && taper < 2) {
+      taper = 2
+    }
   }
 
   // Ensure phases sum to exactly totalWeeks
-  // Add any remainder weeks to the peak phase (where most specific work happens)
   const sum = base + build + peak + taper
   if (sum < totalWeeks) {
-    peak += (totalWeeks - sum)
+    // Add remainder to the key phase for each methodology
+    if (methodology?.toUpperCase() === 'CANOVA') {
+      peak += (totalWeeks - sum) // Canova: add to PEAK (main phase)
+    } else if (methodology?.toUpperCase()?.includes('NORWEGIAN')) {
+      build += (totalWeeks - sum) // Norwegian: add to BUILD (threshold accumulation)
+    } else {
+      peak += (totalWeeks - sum) // Others: add to PEAK
+    }
+  } else if (sum > totalWeeks) {
+    // Reduce from base if over
+    const diff = sum - totalWeeks
+    base = Math.max(2, base - diff)
   }
+
+  console.log(`[Periodization] ${methodology || 'POLARIZED'} ${totalWeeks}w → BASE: ${base}, BUILD: ${build}, PEAK: ${peak}, TAPER: ${taper}`)
 
   return { base, build, peak, taper }
 }

@@ -216,6 +216,7 @@ export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionPa
 
   console.log(`[Workout Distribution] Using NORWEGIAN_SINGLE methodology for ${phase} phase, week ${weekInPhase}`)
   console.log(`[Norwegian Singles] SUB-threshold training at LT2 - 0.7 to 1.7 mmol/L`)
+  console.log(`[Norwegian Singles] Training days per week: ${trainingDays}`)
 
   // Calculate marathon pace for distance calculations
   const marathonPaceKmh = calculateMarathonPaceForNorwegian(params)
@@ -223,7 +224,8 @@ export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionPa
   // Calculate individualized Norwegian Singles intensity from lactate test
   let singlesIntensity: ReturnType<typeof calculateNorwegianSinglesIntensity> | null = null
 
-  if (test.anaerobicThreshold && test.testStages && test.testStages.length > 0) {
+  // Only try to calculate intensity if we have valid test data
+  if (test && test.anaerobicThreshold && test.testStages && test.testStages.length > 0) {
     try {
       singlesIntensity = calculateNorwegianSinglesIntensity(
         test.testStages,
@@ -286,20 +288,22 @@ export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionPa
     sessionNumber++
   }
 
-  // Easy runs on remaining days
+  // Easy runs on remaining days (Mon, Wed, Fri)
+  // Number of easy days depends on total training days minus quality sessions minus long run
   const easyDays = [1, 3, 5]
-  for (const dayNum of easyDays) {
-    if (trainingDays >= dayNum) {
-      workouts.push({
-        dayNumber: dayNum,
-        type: 'easy',
-        params: {
-          duration: 45,
-          pacePercent: 75,
-          marathonPace: marathonPaceKmh
-        }
-      })
-    }
+  const numEasyDays = Math.max(0, trainingDays - qualitySessions - 1) // -1 for long run
+
+  for (let i = 0; i < Math.min(numEasyDays, easyDays.length); i++) {
+    const dayNum = easyDays[i]
+    workouts.push({
+      dayNumber: dayNum,
+      type: 'easy',
+      params: {
+        duration: 45,
+        pacePercent: 75,
+        marathonPace: marathonPaceKmh
+      }
+    })
   }
 
   // Long run on Sunday
