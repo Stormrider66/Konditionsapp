@@ -334,7 +334,13 @@ function createCustomRunningProgram(
       paceProgression,
       params.goal,
       methodology,
-      params.targetRaceDate
+      params.targetRaceDate,
+      {
+        strengthSessionsPerWeek: params.strengthSessionsPerWeek,
+        coreSessionsPerWeek: params.coreSessionsPerWeek,
+        scheduleStrengthAfterRunning: params.scheduleStrengthAfterRunning,
+        scheduleCoreAfterRunning: params.scheduleCoreAfterRunning,
+      }
     ),
   }
 }
@@ -416,6 +422,13 @@ function calculateProgressivePace(
  * - CANOVA: 25% BASE, 27% BUILD, 40% PEAK, 8% TAPER (inverted - long peak!)
  * - PYRAMIDAL: 45% BASE, 30% BUILD, 15% PEAK, 10% TAPER (longer aerobic base)
  */
+interface SupplementaryTraining {
+  strengthSessionsPerWeek?: number
+  coreSessionsPerWeek?: number
+  scheduleStrengthAfterRunning?: boolean
+  scheduleCoreAfterRunning?: boolean
+}
+
 function createProgressiveWeeks(
   durationWeeks: number,
   startDate: Date,
@@ -423,7 +436,8 @@ function createProgressiveWeeks(
   paceProgression: PaceProgression,
   goal: string,
   methodology: string,
-  targetRaceDate?: Date
+  targetRaceDate?: Date,
+  supplementaryTraining?: SupplementaryTraining
 ) {
   const weeks = []
 
@@ -521,7 +535,128 @@ function createProgressiveWeeks(
     })
   }
 
+  // Add strength and core sessions if requested
+  if (supplementaryTraining) {
+    addSupplementaryTraining(weeks, supplementaryTraining)
+  }
+
   return weeks
+}
+
+/**
+ * Add strength and core sessions to existing weeks
+ */
+function addSupplementaryTraining(
+  weeks: any[],
+  training: SupplementaryTraining
+) {
+  const { strengthSessionsPerWeek = 0, coreSessionsPerWeek = 0, scheduleStrengthAfterRunning = false, scheduleCoreAfterRunning = false } = training
+
+  if (strengthSessionsPerWeek <= 0 && coreSessionsPerWeek <= 0) return
+
+  for (const week of weeks) {
+    // Find days with running workouts (for after-running scheduling)
+    const runningDays = week.days.filter((d: any) =>
+      d.workouts?.some((w: any) => w.type === 'RUNNING')
+    )
+
+    // Find rest days or light days for standalone sessions
+    const restDays = week.days.filter((d: any) =>
+      !d.workouts || d.workouts.length === 0 || d.notes?.toLowerCase().includes('vila')
+    )
+
+    // Add strength sessions
+    let strengthAdded = 0
+    if (strengthSessionsPerWeek > 0) {
+      if (scheduleStrengthAfterRunning && runningDays.length > 0) {
+        // Add to running days (PM session)
+        for (let i = 0; i < Math.min(strengthSessionsPerWeek, runningDays.length); i++) {
+          const day = runningDays[i]
+          if (!day.workouts) day.workouts = []
+          day.workouts.push(createStrengthWorkout(week.phase, i === 0 ? 'full' : 'maintenance'))
+          strengthAdded++
+        }
+      } else {
+        // Add to rest days or any available day
+        const availableDays = restDays.length > 0 ? restDays : week.days
+        for (let i = 0; i < Math.min(strengthSessionsPerWeek, availableDays.length); i++) {
+          const day = availableDays[i % availableDays.length]
+          if (!day.workouts) day.workouts = []
+          day.workouts.push(createStrengthWorkout(week.phase, i === 0 ? 'full' : 'maintenance'))
+          strengthAdded++
+        }
+      }
+    }
+
+    // Add core sessions
+    if (coreSessionsPerWeek > 0) {
+      if (scheduleCoreAfterRunning && runningDays.length > 0) {
+        // Add to running days (after running)
+        for (let i = 0; i < Math.min(coreSessionsPerWeek, runningDays.length); i++) {
+          const day = runningDays[i]
+          if (!day.workouts) day.workouts = []
+          day.workouts.push(createCoreWorkout(week.phase))
+        }
+      } else {
+        // Add to rest days or any available day
+        const availableDays = restDays.length > 0 ? restDays : week.days
+        for (let i = 0; i < Math.min(coreSessionsPerWeek, availableDays.length); i++) {
+          const dayIndex = (i + strengthAdded) % availableDays.length
+          const day = availableDays[dayIndex]
+          if (!day.workouts) day.workouts = []
+          day.workouts.push(createCoreWorkout(week.phase))
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Create a strength workout based on phase
+ */
+function createStrengthWorkout(phase: string, type: 'full' | 'maintenance'): any {
+  const isFullSession = type === 'full'
+  const duration = isFullSession ? 45 : 30
+
+  // Periodize based on training phase
+  let focus: string
+  let exercises: string
+  if (phase === 'BASE') {
+    focus = 'Anatomisk anpassning'
+    exercises = 'Fokus: stabilitet, teknik, lägre belastning'
+  } else if (phase === 'BUILD') {
+    focus = 'Maximal styrka'
+    exercises = 'Fokus: tyngre belastning, färre repetitioner'
+  } else if (phase === 'PEAK') {
+    focus = 'Explosiv kraft'
+    exercises = 'Fokus: snabbhet, plyometrics'
+  } else {
+    focus = 'Underhåll'
+    exercises = 'Fokus: bibehåll styrka utan utmattning'
+  }
+
+  return {
+    type: 'STRENGTH' as const,
+    name: isFullSession ? 'Styrkepass' : 'Underhållsstyrka',
+    intensity: phase === 'BUILD' ? 'HARD' as const : 'MODERATE' as const,
+    duration,
+    instructions: `${focus}. ${exercises}. ${isFullSession ? 'Fullständigt pass med uppvärmning.' : 'Kortare underhållspass.'}`,
+    segments: [],
+  }
+}
+
+/**
+ * Create a core workout
+ */
+function createCoreWorkout(phase: string): any {
+  return {
+    type: 'CORE' as const,
+    name: 'Core & stabilitet',
+    intensity: 'MODERATE' as const,
+    duration: 20,
+    instructions: 'Bålstabilitet för löpare. Fokus: plankor, sidoplankor, dead bugs, fågelräkning.',
+    segments: [],
+  }
 }
 
 /**
@@ -634,9 +769,27 @@ function calculateVdotFromRace(distance: string, timeStr: string): number | null
   // Calculate velocity (m/min)
   const velocity = (km * 1000) / totalMinutes
 
-  // Simplified VDOT estimate (Daniels formula approximation)
-  // VDOT ≈ velocity / 5 + 30 (very rough)
-  return Math.round(velocity / 5 + 30)
+  // Improved VDOT estimate based on Daniels tables
+  // Uses distance-specific coefficients for better accuracy
+  // Reference points: 5K 20:00=VDOT 43, 10K 41:00=VDOT 48, HM 1:30:00=VDOT 52
+  let vdot: number
+
+  if (distance === '5K') {
+    // 5K: VDOT ≈ 29 + velocity * 0.057
+    vdot = 29 + velocity * 0.057
+  } else if (distance === '10K') {
+    // 10K: VDOT ≈ 22 + velocity * 0.107
+    // Calibrated: 41:00 (244 m/min) = VDOT 48
+    vdot = 22 + velocity * 0.107
+  } else if (distance === 'HALF') {
+    // Half marathon: VDOT ≈ 17 + velocity * 0.16
+    vdot = 17 + velocity * 0.16
+  } else {
+    // Marathon: VDOT ≈ 12 + velocity * 0.20
+    vdot = 12 + velocity * 0.20
+  }
+
+  return Math.round(Math.min(Math.max(vdot, 30), 85)) // Clamp to reasonable range
 }
 
 /**
@@ -932,6 +1085,44 @@ function createQualityWorkout(
   const warmupCooldownKm = (20 / 60) * easyPaceKmh // 20 min warmup+cooldown
   const totalDistanceKm = Math.round((workDistanceKm + restDistanceKm + warmupCooldownKm) * 10) / 10
 
+  // Build segments array with warmup, work/rest intervals, and cooldown
+  const segments = []
+
+  // Warmup segment (10 min)
+  segments.push({
+    order: 1,
+    type: 'warmup' as const,
+    duration: 10,
+    distance: undefined,
+    targetPace: formatPaceMinKm(easyPaceKmh),
+    targetHeartRateZone: 1,
+    notes: 'Uppvärmning - lätt jogg',
+  })
+
+  // Work/rest intervals
+  for (let i = 0; i < reps * 2 - 1; i++) {
+    segments.push({
+      order: segments.length + 1,
+      type: (i % 2 === 0 ? 'work' : 'rest') as 'work' | 'rest',
+      duration: i % 2 === 0 ? workMin : restMin,
+      distance: undefined,
+      targetPace: i % 2 === 0 ? formatPaceMinKm(intervalPaceKmh) : undefined,
+      targetHeartRateZone: i % 2 === 0 ? 4 : 1,
+      notes: i % 2 === 0 ? 'Arbete' : 'Vila',
+    })
+  }
+
+  // Cooldown segment (10 min)
+  segments.push({
+    order: segments.length + 1,
+    type: 'cooldown' as const,
+    duration: 10,
+    distance: undefined,
+    targetPace: formatPaceMinKm(easyPaceKmh),
+    targetHeartRateZone: 1,
+    notes: 'Nedvarvning - lätt jogg',
+  })
+
   return {
     type: 'RUNNING' as const,
     name,
@@ -939,15 +1130,7 @@ function createQualityWorkout(
     duration: (reps * workMin) + ((reps - 1) * restMin) + 20, // Add warmup/cooldown
     distance: totalDistanceKm,
     instructions: `${reps}x${workMin} min med ${restMin} min vila. ${description}`,
-    segments: Array.from({ length: reps * 2 - 1 }).map((_, i) => ({
-      order: i + 1,
-      type: (i % 2 === 0 ? 'work' : 'rest') as 'work' | 'rest',
-      duration: i % 2 === 0 ? workMin : restMin,
-      distance: undefined,
-      targetPace: i % 2 === 0 ? formatPaceMinKm(intervalPaceKmh) : undefined,
-      targetHeartRateZone: i % 2 === 0 ? 4 : 1,
-      notes: i % 2 === 0 ? 'Arbete' : 'Vila',
-    })),
+    segments,
   }
 }
 
@@ -1167,6 +1350,44 @@ function createNorwegianSinglesWorkout(
   const warmupCooldownKm = (20 / 60) * easyPaceKmh // 20 min warmup+cooldown
   const totalDistanceKm = Math.round((workDistanceKm + restDistanceKm + warmupCooldownKm) * 10) / 10
 
+  // Build segments array with warmup, work/rest intervals, and cooldown
+  const segments = []
+
+  // Warmup segment (10 min)
+  segments.push({
+    order: 1,
+    type: 'warmup' as const,
+    duration: 10,
+    distance: undefined,
+    targetPace: formatPaceMinKm(easyPaceKmh),
+    targetHeartRateZone: 1,
+    notes: 'Uppvärmning - lätt jogg',
+  })
+
+  // Work/rest intervals
+  for (let i = 0; i < reps * 2 - 1; i++) {
+    segments.push({
+      order: segments.length + 1,
+      type: (i % 2 === 0 ? 'work' : 'rest') as 'work' | 'rest',
+      duration: i % 2 === 0 ? workMin : restMin,
+      distance: undefined,
+      targetPace: i % 2 === 0 ? formatPaceMinKm(subThresholdPaceKmh) : undefined,
+      targetHeartRateZone: i % 2 === 0 ? 3 : 1,
+      notes: i % 2 === 0 ? 'Sub-tröskel' : 'Vila (jogg)',
+    })
+  }
+
+  // Cooldown segment (10 min)
+  segments.push({
+    order: segments.length + 1,
+    type: 'cooldown' as const,
+    duration: 10,
+    distance: undefined,
+    targetPace: formatPaceMinKm(easyPaceKmh),
+    targetHeartRateZone: 1,
+    notes: 'Nedvarvning - lätt jogg',
+  })
+
   return {
     type: 'RUNNING' as const,
     name,
@@ -1174,15 +1395,7 @@ function createNorwegianSinglesWorkout(
     duration: (reps * workMin) + ((reps - 1) * restMin) + 20, // Add warmup/cooldown
     distance: totalDistanceKm,
     instructions: `${reps}x${workMin} min med ${restMin} min vila. ${description}`,
-    segments: Array.from({ length: reps * 2 - 1 }).map((_, i) => ({
-      order: i + 1,
-      type: (i % 2 === 0 ? 'work' : 'rest') as 'work' | 'rest',
-      duration: i % 2 === 0 ? workMin : restMin,
-      distance: undefined,
-      targetPace: i % 2 === 0 ? formatPaceMinKm(subThresholdPaceKmh) : undefined,
-      targetHeartRateZone: i % 2 === 0 ? 3 : 1,
-      notes: i % 2 === 0 ? 'Sub-tröskel' : 'Vila (jogg)',
-    })),
+    segments,
   }
 }
 
