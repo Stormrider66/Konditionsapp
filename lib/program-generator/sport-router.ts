@@ -125,10 +125,21 @@ export interface SportProgramParams {
 }
 
 /**
+ * Format date to YYYY-MM-DD string in local timezone
+ * (avoids UTC conversion issues with toISOString)
+ */
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
  * Helper to check if a date is blocked by calendar constraints
  */
 function isDateBlocked(date: Date, blockedDates: string[]): boolean {
-  const dateStr = date.toISOString().split('T')[0]
+  const dateStr = formatLocalDate(date)
   return blockedDates.includes(dateStr)
 }
 
@@ -136,7 +147,7 @@ function isDateBlocked(date: Date, blockedDates: string[]): boolean {
  * Helper to check if a date has reduced capacity
  */
 function isDateReduced(date: Date, reducedDates: string[]): boolean {
-  const dateStr = date.toISOString().split('T')[0]
+  const dateStr = formatLocalDate(date)
   return reducedDates.includes(dateStr)
 }
 
@@ -1246,26 +1257,34 @@ function createQualityWorkout(
   }
 
   // Calculate duration-appropriate interval pace (Daniels-based)
-  const intervalPaceKmh = getIntervalPaceForDuration(marathonPaceKmh, workMin)
   const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace
 
-  // Generate description with correct pace for this interval duration
-  if (phase === 'BASE') {
-    description = `Seiler-intervaller @ ${formatPaceMinKm(intervalPaceKmh)}/km. VO2max-träning - hög intensitet men hållbar.`
-  } else if (phase === 'BUILD') {
-    description = `Klassiska Seiler 4x${workMin} @ ${formatPaceMinKm(intervalPaceKmh)}/km. "Isoeffort" - håll samma känsla hela vägen.`
-  } else if (phase === 'PEAK') {
+  // Determine the actual workout pace based on phase
+  // PEAK phase uses race-specific pacing, other phases use duration-based pacing
+  let workoutPaceKmh: number
+  if (phase === 'PEAK') {
     // Race-specific: use faster pace for 5K/10K goals
-    const raceSpecificPace = goal === '5k' || goal === '10k'
+    workoutPaceKmh = goal === '5k' || goal === '10k'
       ? marathonPaceKmh * 1.19  // Interval pace (100% VDOT)
-      : marathonPaceKmh * 1.08  // Slightly faster than marathon
-    description = `Race-pace intervaller @ ${formatPaceMinKm(raceSpecificPace)}/km. Förbered dig för tävling.`
+      : marathonPaceKmh * 1.08  // Slightly faster than marathon for longer races
   } else {
-    description = `Underhållsintervaller @ ${formatPaceMinKm(intervalPaceKmh)}/km. Håll farten utan att trötta ut dig.`
+    // BASE, BUILD, TAPER: use duration-appropriate pace
+    workoutPaceKmh = getIntervalPaceForDuration(marathonPaceKmh, workMin)
   }
 
-  // Calculate total distance for the workout
-  const workDistanceKm = (reps * workMin / 60) * intervalPaceKmh
+  // Generate description with the actual workout pace
+  if (phase === 'BASE') {
+    description = `Seiler-intervaller @ ${formatPaceMinKm(workoutPaceKmh)}/km. VO2max-träning - hög intensitet men hållbar.`
+  } else if (phase === 'BUILD') {
+    description = `Klassiska Seiler 4x${workMin} @ ${formatPaceMinKm(workoutPaceKmh)}/km. "Isoeffort" - håll samma känsla hela vägen.`
+  } else if (phase === 'PEAK') {
+    description = `Race-pace intervaller @ ${formatPaceMinKm(workoutPaceKmh)}/km. Förbered dig för tävling.`
+  } else {
+    description = `Underhållsintervaller @ ${formatPaceMinKm(workoutPaceKmh)}/km. Håll farten utan att trötta ut dig.`
+  }
+
+  // Calculate total distance for the workout using the actual workout pace
+  const workDistanceKm = (reps * workMin / 60) * workoutPaceKmh
   const restDistanceKm = ((reps - 1) * restMin / 60) * easyPaceKmh // Jogging during rest
   const warmupCooldownKm = (20 / 60) * easyPaceKmh // 20 min warmup+cooldown
   const totalDistanceKm = Math.round((workDistanceKm + restDistanceKm + warmupCooldownKm) * 10) / 10
@@ -1291,7 +1310,7 @@ function createQualityWorkout(
       type: (i % 2 === 0 ? 'work' : 'rest') as 'work' | 'rest',
       duration: i % 2 === 0 ? workMin : restMin,
       distance: undefined,
-      targetPace: i % 2 === 0 ? formatPaceMinKm(intervalPaceKmh) : undefined,
+      targetPace: i % 2 === 0 ? formatPaceMinKm(workoutPaceKmh) : undefined,
       targetHeartRateZone: i % 2 === 0 ? 4 : 1,
       notes: i % 2 === 0 ? 'Arbete' : 'Vila',
     })
