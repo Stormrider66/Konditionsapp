@@ -49,6 +49,15 @@ async function cdpCommand(wsUrl, method, params = {}) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl);
     const id = 1;
+    let settled = false;
+
+    const timeoutId = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        ws.close();
+        reject(new Error('Timeout'));
+      }
+    }, 10000);
 
     ws.on('open', () => {
       ws.send(JSON.stringify({ id, method, params }));
@@ -56,7 +65,9 @@ async function cdpCommand(wsUrl, method, params = {}) {
 
     ws.on('message', (data) => {
       const response = JSON.parse(data.toString());
-      if (response.id === id) {
+      if (response.id === id && !settled) {
+        settled = true;
+        clearTimeout(timeoutId);
         ws.close();
         if (response.error) {
           reject(new Error(response.error.message));
@@ -66,12 +77,13 @@ async function cdpCommand(wsUrl, method, params = {}) {
       }
     });
 
-    ws.on('error', reject);
-
-    setTimeout(() => {
-      ws.close();
-      reject(new Error('Timeout'));
-    }, 10000);
+    ws.on('error', (err) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timeoutId);
+        reject(err);
+      }
+    });
   });
 }
 
@@ -196,8 +208,8 @@ const commands = {
 
     const tab = await getTargetTab();
     if (!tab) {
-      // Open new tab
-      await cdpRequest(`/json/new?${url}`);
+      // Open new tab - URL encode to handle special characters
+      await cdpRequest(`/json/new?${encodeURIComponent(url)}`);
       console.log(`Opened new tab: ${url}`);
     } else {
       await cdpCommand(tab.webSocketDebuggerUrl, 'Page.navigate', { url });
