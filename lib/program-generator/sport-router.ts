@@ -925,12 +925,19 @@ function createQualityWorkout(
     description = 'Kortare intervaller för att hålla farten utan att trötta ut dig.'
   }
 
+  // Calculate total distance for the workout
+  const easyPaceKmh = marathonPaceKmh * 0.72 // Easy/jog pace for warmup/cooldown/rest
+  const workDistanceKm = (reps * workMin / 60) * intervalPaceKmh
+  const restDistanceKm = ((reps - 1) * restMin / 60) * easyPaceKmh // Jogging during rest
+  const warmupCooldownKm = (20 / 60) * easyPaceKmh // 20 min warmup+cooldown
+  const totalDistanceKm = Math.round((workDistanceKm + restDistanceKm + warmupCooldownKm) * 10) / 10
+
   return {
     type: 'RUNNING' as const,
     name,
     intensity: 'INTERVAL' as const,
     duration: (reps * workMin) + ((reps - 1) * restMin) + 20, // Add warmup/cooldown
-    distance: undefined,
+    distance: totalDistanceKm,
     instructions: `${reps}x${workMin} min med ${restMin} min vila. ${description}`,
     segments: Array.from({ length: reps * 2 - 1 }).map((_, i) => ({
       order: i + 1,
@@ -1153,12 +1160,19 @@ function createNorwegianSinglesWorkout(
     description = 'Bibehåll känslan för tröskel utan att trötta ut dig.'
   }
 
+  // Calculate total distance for the workout
+  const easyPaceKmh = marathonPaceKmh * 0.72 // Easy/jog pace for warmup/cooldown/rest
+  const workDistanceKm = (reps * workMin / 60) * subThresholdPaceKmh
+  const restDistanceKm = ((reps - 1) * restMin / 60) * easyPaceKmh // Jogging during rest
+  const warmupCooldownKm = (20 / 60) * easyPaceKmh // 20 min warmup+cooldown
+  const totalDistanceKm = Math.round((workDistanceKm + restDistanceKm + warmupCooldownKm) * 10) / 10
+
   return {
     type: 'RUNNING' as const,
     name,
     intensity: 'THRESHOLD' as const,
     duration: (reps * workMin) + ((reps - 1) * restMin) + 20, // Add warmup/cooldown
-    distance: undefined,
+    distance: totalDistanceKm,
     instructions: `${reps}x${workMin} min med ${restMin} min vila. ${description}`,
     segments: Array.from({ length: reps * 2 - 1 }).map((_, i) => ({
       order: i + 1,
@@ -1266,7 +1280,15 @@ function createNorwegianDoublesDays(
         }],
       })
     } else if (dayNum === 6) {
-      // Saturday: Zone 4 HIT session
+      // Saturday: Zone 4 HIT session (hill sprints)
+      // ~10-15 reps x 30-45s @ ~15-17 km/h + jog back (~2 min)
+      const hillReps = 12
+      const hillSprintKmh = 16 // High intensity
+      const sprintDistanceKm = (hillReps * 0.6 / 60) * hillSprintKmh // ~0.6 min per rep
+      const recoveryDistanceKm = (hillReps * 2 / 60) * easyPaceKmh // ~2 min jog back
+      const warmupCooldownKm = (15 / 60) * easyPaceKmh // 15 min warmup+cooldown
+      const hitTotalDistanceKm = Math.round((sprintDistanceKm + recoveryDistanceKm + warmupCooldownKm) * 10) / 10
+
       days.push({
         dayNumber: dayNum,
         notes: 'Zone 4 HIT - Hög intensitet',
@@ -1275,7 +1297,7 @@ function createNorwegianDoublesDays(
           name: 'Backintervaller',
           intensity: 'INTERVAL' as const,
           duration: 45,
-          distance: undefined,
+          distance: hitTotalDistanceKm,
           instructions: `10-15 × 30-45s backe med full vila. Maximal intensitet (>6.0 mmol/L).`,
           segments: [],
         }],
@@ -1284,6 +1306,18 @@ function createNorwegianDoublesDays(
       // Double-threshold day: AM + PM sessions
       const lowThresholdPace = thresholdPaceKmh * 0.95 // AM: 2-3 mmol/L
       const highThresholdPace = thresholdPaceKmh * 0.98 // PM: 3-4 mmol/L
+
+      // AM: 5×6 min with 1 min rest + warmup/cooldown
+      const amWorkDistanceKm = (5 * 6 / 60) * lowThresholdPace
+      const amRestDistanceKm = (4 * 1 / 60) * easyPaceKmh
+      const amWarmupCooldownKm = (20 / 60) * easyPaceKmh
+      const amTotalDistanceKm = Math.round((amWorkDistanceKm + amRestDistanceKm + amWarmupCooldownKm) * 10) / 10
+
+      // PM: 4×8 min with 1.5 min rest + warmup/cooldown
+      const pmWorkDistanceKm = (4 * 8 / 60) * highThresholdPace
+      const pmRestDistanceKm = (3 * 1.5 / 60) * easyPaceKmh
+      const pmWarmupCooldownKm = (20 / 60) * easyPaceKmh
+      const pmTotalDistanceKm = Math.round((pmWorkDistanceKm + pmRestDistanceKm + pmWarmupCooldownKm) * 10) / 10
 
       days.push({
         dayNumber: dayNum,
@@ -1294,7 +1328,7 @@ function createNorwegianDoublesDays(
             name: 'FM: Låg tröskel (2-3 mmol/L)',
             intensity: 'THRESHOLD' as const,
             duration: 55,
-            distance: undefined,
+            distance: amTotalDistanceKm,
             instructions: `FM-pass: 5×6 min @ ${formatPaceMinKm(lowThresholdPace)}/km med 1 min vila. Håll laktat 2-3 mmol/L.`,
             segments: [],
           },
@@ -1303,7 +1337,7 @@ function createNorwegianDoublesDays(
             name: 'EM: Hög tröskel (3-4 mmol/L)',
             intensity: 'THRESHOLD' as const,
             duration: 55,
-            distance: undefined,
+            distance: pmTotalDistanceKm,
             instructions: `EM-pass: 4×8 min @ ${formatPaceMinKm(highThresholdPace)}/km med 90s vila. Håll laktat 3-4 mmol/L.`,
             segments: [],
           },
@@ -1552,12 +1586,19 @@ function createCanovaQualityWorkout(
     intensity = 'INTERVAL'
   }
 
+  // Estimate distance based on 60 min duration and workout intensity
+  // Mix of MP work + easy warmup/cooldown
+  const avgPaceKmh = intensity === 'THRESHOLD' ? thresholdPaceKmh * 0.95 :
+                      intensity === 'INTERVAL' ? marathonPaceKmh * 1.05 :
+                      marathonPaceKmh * 0.85
+  const estimatedDistanceKm = Math.round((60 / 60) * avgPaceKmh * 10) / 10
+
   return {
     type: 'RUNNING' as const,
     name,
     intensity,
     duration: 60,
-    distance: undefined,
+    distance: estimatedDistanceKm,
     instructions: description,
     segments: [],
   }
@@ -1656,6 +1697,11 @@ function createPyramidalDays(
     } else if (dayNum === 2) {
       // Tuesday: Tempo/Threshold (Zone 2 - 20%)
       const tempoMinutes = phase === 'TAPER' ? 15 : Math.min(20 + weekInPhase * 2, 35)
+      const totalDuration = tempoMinutes + 25 // tempo + warmup/cooldown
+      // Calculate distance: tempo part at tempo pace + warmup/cooldown at easy pace
+      const tempoDistanceKm = (tempoMinutes / 60) * tempoPaceKmh
+      const warmupCooldownKm = (25 / 60) * easyPaceKmh
+      const tempoTotalDistanceKm = Math.round((tempoDistanceKm + warmupCooldownKm) * 10) / 10
 
       days.push({
         dayNumber: dayNum,
@@ -1664,8 +1710,8 @@ function createPyramidalDays(
           type: 'RUNNING' as const,
           name: 'Tempopass',
           intensity: 'THRESHOLD' as const,
-          duration: tempoMinutes + 25,
-          distance: undefined,
+          duration: totalDuration,
+          distance: tempoTotalDistanceKm,
           instructions: `Tempo: ${tempoMinutes} min @ ${formatPaceMinKm(tempoPaceKmh)}/km (Zon 2). Jämn ansträngning.`,
           segments: [],
         }],
@@ -1674,6 +1720,12 @@ function createPyramidalDays(
       // Thursday: VO2max intervals (Zone 3 - 10%)
       const reps = phase === 'BASE' ? 4 : 5
       const workMin = phase === 'BASE' ? 3 : 4
+      const restMin = 3
+      // Calculate distance: work at interval pace + rest jogging + warmup/cooldown
+      const workDistanceKm = (reps * workMin / 60) * intervalPaceKmh
+      const restDistanceKm = ((reps - 1) * restMin / 60) * easyPaceKmh
+      const warmupCooldownKm = (20 / 60) * easyPaceKmh
+      const vo2maxTotalDistanceKm = Math.round((workDistanceKm + restDistanceKm + warmupCooldownKm) * 10) / 10
 
       days.push({
         dayNumber: dayNum,
@@ -1683,7 +1735,7 @@ function createPyramidalDays(
           name: 'VO2max-intervaller',
           intensity: 'INTERVAL' as const,
           duration: 50,
-          distance: undefined,
+          distance: vo2maxTotalDistanceKm,
           instructions: `${reps}×${workMin} min @ ${formatPaceMinKm(intervalPaceKmh)}/km med 3 min vila. Hög intensitet (Zon 3).`,
           segments: [],
         }],
