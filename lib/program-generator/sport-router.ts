@@ -17,6 +17,11 @@ import {
   type FitnessLevel,
 } from './templates/general-fitness'
 import { calculatePhases } from './periodization'
+import {
+  calculateVDOT as calculateVDOTDaniels,
+  getTrainingPaces as getTrainingPacesDaniels,
+  type DanielsTrainingPaces,
+} from '@/lib/training-engine/calculations/vdot'
 
 export type DataSourceType = 'TEST' | 'PROFILE' | 'MANUAL'
 
@@ -110,6 +115,87 @@ export interface SportProgramParams {
   fitnessLevel?: FitnessLevel
   hasGymAccess?: boolean
   preferredActivities?: string[]
+
+  // Calendar constraints - blocked dates won't have workouts scheduled
+  calendarConstraints?: {
+    blockedDates: string[] // ISO date strings (YYYY-MM-DD)
+    reducedDates: string[] // dates with reduced training capacity
+    altitudePeriods: { start: string; end: string; altitude: number }[]
+  }
+}
+
+/**
+ * Helper to check if a date is blocked by calendar constraints
+ */
+function isDateBlocked(date: Date, blockedDates: string[]): boolean {
+  const dateStr = date.toISOString().split('T')[0]
+  return blockedDates.includes(dateStr)
+}
+
+/**
+ * Helper to check if a date has reduced capacity
+ */
+function isDateReduced(date: Date, reducedDates: string[]): boolean {
+  const dateStr = date.toISOString().split('T')[0]
+  return reducedDates.includes(dateStr)
+}
+
+/**
+ * Apply calendar constraints to a generated program
+ * - Remove workouts from blocked dates
+ * - Add notes for reduced capacity dates
+ */
+function applyCalendarConstraints(
+  program: CreateTrainingProgramDTO,
+  constraints: SportProgramParams['calendarConstraints']
+): CreateTrainingProgramDTO {
+  if (!constraints) return program
+
+  const { blockedDates = [], reducedDates = [] } = constraints
+
+  // Process each week and day
+  const updatedWeeks = program.weeks?.map(week => {
+    const updatedDays = week.days.map(day => {
+      // Calculate the actual date for this day
+      const weekStartMs = program.startDate.getTime() + (week.weekNumber - 1) * 7 * 24 * 60 * 60 * 1000
+      const dayDate = new Date(weekStartMs + (day.dayNumber - 1) * 24 * 60 * 60 * 1000)
+
+      // Check if this date is blocked
+      if (isDateBlocked(dayDate, blockedDates)) {
+        // Remove all workouts and add a note
+        return {
+          ...day,
+          workouts: [],
+          notes: day.notes
+            ? `${day.notes}\n⚠️ Vilodag (kalenderblockering)`
+            : '⚠️ Vilodag (kalenderblockering)',
+        }
+      }
+
+      // Check if this date has reduced capacity
+      if (isDateReduced(dayDate, reducedDates)) {
+        // Keep workouts but add a note about reduced capacity
+        return {
+          ...day,
+          notes: day.notes
+            ? `${day.notes}\n⚡ Reducerad träningskapacitet`
+            : '⚡ Reducerad träningskapacitet',
+        }
+      }
+
+      return day
+    })
+
+    return {
+      ...week,
+      days: updatedDays,
+    }
+  })
+
+  return {
+    ...program,
+    weeks: updatedWeeks,
+  }
 }
 
 /**
@@ -124,43 +210,53 @@ export async function generateSportProgram(
   console.log(`SPORT ROUTER: Generating ${params.sport} program`)
   console.log(`Goal: ${params.goal}`)
   console.log(`Data Source: ${params.dataSource}`)
+  if (params.calendarConstraints) {
+    console.log(`Calendar: ${params.calendarConstraints.blockedDates.length} blocked, ${params.calendarConstraints.reducedDates.length} reduced`)
+  }
   console.log('=====================================\n')
+
+  let program: CreateTrainingProgramDTO
 
   switch (params.sport) {
     case 'RUNNING':
-      return generateRunningProgram(params, client, test)
+      program = await generateRunningProgram(params, client, test)
+      break
 
     case 'CYCLING':
-      return generateCyclingProgram({
+      program = await generateCyclingProgram({
         ...params,
         ftp: params.manualFtp,
         weeklyHours: params.weeklyHours || 8,
         bikeType: params.bikeType as any,
       } as CyclingProgramParams, client)
+      break
 
     case 'SKIING':
-      return generateSkiingProgram({
+      program = await generateSkiingProgram({
         ...params,
         technique: params.technique as any,
       } as SkiingProgramParams, client, test)
+      break
 
     case 'SWIMMING':
-      return generateSwimmingProgram({
+      program = await generateSwimmingProgram({
         ...params,
         css: params.manualCss,
         poolLength: params.poolLength as any,
       } as SwimmingProgramParams, client)
+      break
 
     case 'TRIATHLON':
-      return generateTriathlonProgram({
+      program = await generateTriathlonProgram({
         ...params,
         ftp: params.manualFtp,
         css: params.manualCss,
         vdot: params.manualVdot,
       } as TriathlonProgramParams, client, test)
+      break
 
     case 'HYROX':
-      return generateHyroxProgram({
+      program = await generateHyroxProgram({
         ...params,
         experienceLevel: params.experienceLevel,
         // Pass race result data for VDOT calculation (pure running races only)
@@ -173,18 +269,29 @@ export async function generateSportProgram(
         hyroxBodyweight: params.hyroxBodyweight,
         strengthPRs: params.strengthPRs,
       } as HyroxProgramParams, client)
+      break
 
     case 'STRENGTH':
-      return generateStrengthProgram({
+      program = await generateStrengthProgram({
         ...params,
       } as StrengthProgramParams, client)
+      break
 
     case 'GENERAL_FITNESS':
-      return generateGeneralFitnessProgram(params, client)
+      program = await generateGeneralFitnessProgram(params, client)
+      break
 
     default:
       throw new Error(`Unsupported sport type: ${params.sport}`)
   }
+
+  // Apply calendar constraints - remove workouts from blocked dates
+  if (params.calendarConstraints) {
+    console.log('Applying calendar constraints to program...')
+    program = applyCalendarConstraints(program, params.calendarConstraints)
+  }
+
+  return program
 }
 
 /**
@@ -638,7 +745,7 @@ function createStrengthWorkout(phase: string, type: 'full' | 'maintenance'): any
   return {
     type: 'STRENGTH' as const,
     name: isFullSession ? 'Styrkepass' : 'Underhållsstyrka',
-    intensity: phase === 'BUILD' ? 'HARD' as const : 'MODERATE' as const,
+    intensity: phase === 'BUILD' ? 'THRESHOLD' as const : 'MODERATE' as const,
     duration,
     instructions: `${focus}. ${exercises}. ${isFullSession ? 'Fullständigt pass med uppvärmning.' : 'Kortare underhållspass.'}`,
     segments: [],
@@ -703,7 +810,85 @@ function getProgressiveFocus(phase: string, methodology: string, paceKmh: number
 }
 
 /**
- * Estimate marathon pace from athlete profile
+ * Training paces result with all Daniels zones
+ */
+interface TrainingPacesResult {
+  marathonPaceKmh: number
+  easyPaceKmh: { min: number; max: number }
+  thresholdPaceKmh: number
+  intervalPaceKmh: number
+  repetitionPaceKmh: number
+  vdot: number | null
+}
+
+/**
+ * Estimate training paces from athlete profile using Jack Daniels' VDOT system
+ * Returns all training paces calculated as proper percentages of VDOT velocity
+ */
+function estimateTrainingPaces(
+  experienceLevel: 'beginner' | 'intermediate' | 'advanced',
+  currentWeeklyVolume?: number,
+  recentRaceDistance?: string,
+  recentRaceTime?: string
+): TrainingPacesResult {
+  // If we have race results, calculate from VDOT using proper Daniels formulas
+  if (recentRaceDistance && recentRaceTime && recentRaceDistance !== 'NONE') {
+    const vdot = calculateVdotFromRace(recentRaceDistance, recentRaceTime)
+    if (vdot) {
+      // Get proper Daniels training paces (calculated as % of VDOT velocity)
+      const danielsPaces = getTrainingPacesDaniels(vdot)
+
+      console.log(`[estimateTrainingPaces] VDOT: ${vdot}`)
+      console.log(`[estimateTrainingPaces] Marathon: ${danielsPaces.marathon.pace}`)
+      console.log(`[estimateTrainingPaces] Threshold: ${danielsPaces.threshold.pace}`)
+      console.log(`[estimateTrainingPaces] Interval: ${danielsPaces.interval.pace}`)
+      console.log(`[estimateTrainingPaces] Easy: ${danielsPaces.easy.minPace} - ${danielsPaces.easy.maxPace}`)
+
+      return {
+        marathonPaceKmh: danielsPaces.marathon.kmh,
+        easyPaceKmh: { min: danielsPaces.easy.minKmh, max: danielsPaces.easy.maxKmh },
+        thresholdPaceKmh: danielsPaces.threshold.kmh,
+        intervalPaceKmh: danielsPaces.interval.kmh,
+        repetitionPaceKmh: danielsPaces.repetition.kmh,
+        vdot,
+      }
+    }
+  }
+
+  // Otherwise estimate from experience level and volume (fallback)
+  const basePaces: Record<string, number> = {
+    'beginner': 9.0,      // ~6:40/km marathon pace
+    'intermediate': 11.0, // ~5:27/km marathon pace
+    'advanced': 13.0,     // ~4:37/km marathon pace
+  }
+
+  let marathonPace = basePaces[experienceLevel] || 10.0
+
+  // Adjust for weekly volume (higher volume = typically faster)
+  if (currentWeeklyVolume) {
+    if (currentWeeklyVolume > 60) marathonPace += 1.0
+    else if (currentWeeklyVolume > 40) marathonPace += 0.5
+    else if (currentWeeklyVolume < 20) marathonPace -= 0.5
+  }
+
+  // For fallback, estimate other paces relative to marathon using Daniels ratios
+  // These ratios assume: Easy 70%, Marathon 84%, Threshold 88%, Interval 100% of VDOT velocity
+  // Marathon = 84% → Threshold = marathon * (88/84) = marathon * 1.048
+  // Marathon = 84% → Interval = marathon * (100/84) = marathon * 1.190
+  // Marathon = 84% → Easy = marathon * (59-74/84) = marathon * (0.70-0.88)
+  return {
+    marathonPaceKmh: marathonPace,
+    easyPaceKmh: { min: marathonPace * 0.70, max: marathonPace * 0.88 },
+    thresholdPaceKmh: marathonPace * 1.048,
+    intervalPaceKmh: marathonPace * 1.19,
+    repetitionPaceKmh: marathonPace * 1.31,
+    vdot: null,
+  }
+}
+
+/**
+ * Estimate marathon pace from athlete profile (legacy wrapper)
+ * @deprecated Use estimateTrainingPaces instead for proper Daniels paces
  */
 function estimateMarathonPace(
   experienceLevel: 'beginner' | 'intermediate' | 'advanced',
@@ -711,49 +896,24 @@ function estimateMarathonPace(
   recentRaceDistance?: string,
   recentRaceTime?: string
 ): number {
-  // If we have race results, calculate from VDOT
-  if (recentRaceDistance && recentRaceTime && recentRaceDistance !== 'NONE') {
-    const vdot = calculateVdotFromRace(recentRaceDistance, recentRaceTime)
-    if (vdot) {
-      // VDOT to marathon pace (simplified Daniels formula)
-      // Higher VDOT = faster pace
-      const marathonPaceMinKm = 7.5 - (vdot - 30) * 0.05
-      return 60 / Math.max(3.5, Math.min(7, marathonPaceMinKm))
-    }
-  }
-
-  // Otherwise estimate from experience level and volume
-  const basePaces: Record<string, number> = {
-    'beginner': 9.0,      // ~6:40/km
-    'intermediate': 11.0, // ~5:27/km
-    'advanced': 13.0,     // ~4:37/km
-  }
-
-  let pace = basePaces[experienceLevel] || 10.0
-
-  // Adjust for weekly volume (higher volume = typically faster)
-  if (currentWeeklyVolume) {
-    if (currentWeeklyVolume > 60) pace += 1.0
-    else if (currentWeeklyVolume > 40) pace += 0.5
-    else if (currentWeeklyVolume < 20) pace -= 0.5
-  }
-
-  return pace
+  const paces = estimateTrainingPaces(experienceLevel, currentWeeklyVolume, recentRaceDistance, recentRaceTime)
+  return paces.marathonPaceKmh
 }
 
 /**
- * Calculate VDOT from race result (simplified)
+ * Calculate VDOT from race result using Jack Daniels' oxygen cost formula
+ * Reference: Daniels' Running Formula (3rd ed.)
  */
 function calculateVdotFromRace(distance: string, timeStr: string): number | null {
-  const distanceKm: Record<string, number> = {
-    '5K': 5,
-    '10K': 10,
-    'HALF': 21.0975,
-    'MARATHON': 42.195,
+  const distanceMeters: Record<string, number> = {
+    '5K': 5000,
+    '10K': 10000,
+    'HALF': 21097.5,
+    'MARATHON': 42195,
   }
 
-  const km = distanceKm[distance]
-  if (!km) return null
+  const meters = distanceMeters[distance]
+  if (!meters) return null
 
   // Parse time (MM:SS or HH:MM:SS)
   const parts = timeStr.split(':').map(Number)
@@ -766,30 +926,12 @@ function calculateVdotFromRace(distance: string, timeStr: string): number | null
     return null
   }
 
-  // Calculate velocity (m/min)
-  const velocity = (km * 1000) / totalMinutes
+  // Use proper Daniels VDOT formula
+  const vdot = calculateVDOTDaniels(meters, totalMinutes)
 
-  // Improved VDOT estimate based on Daniels tables
-  // Uses distance-specific coefficients for better accuracy
-  // Reference points: 5K 20:00=VDOT 43, 10K 41:00=VDOT 48, HM 1:30:00=VDOT 52
-  let vdot: number
+  console.log(`[calculateVdotFromRace] ${distance} in ${timeStr} → VDOT ${vdot}`)
 
-  if (distance === '5K') {
-    // 5K: VDOT ≈ 29 + velocity * 0.057
-    vdot = 29 + velocity * 0.057
-  } else if (distance === '10K') {
-    // 10K: VDOT ≈ 22 + velocity * 0.107
-    // Calibrated: 41:00 (244 m/min) = VDOT 48
-    vdot = 22 + velocity * 0.107
-  } else if (distance === 'HALF') {
-    // Half marathon: VDOT ≈ 17 + velocity * 0.16
-    vdot = 17 + velocity * 0.16
-  } else {
-    // Marathon: VDOT ≈ 12 + velocity * 0.20
-    vdot = 12 + velocity * 0.20
-  }
-
-  return Math.round(Math.min(Math.max(vdot, 30), 85)) // Clamp to reasonable range
+  return vdot
 }
 
 /**
@@ -970,7 +1112,7 @@ function createPolarizedDays(
       // Long run
       const baseDuration = phase === 'TAPER' ? 60 : (phase === 'BASE' ? 75 : 90)
       const duration = baseDuration + weekInPhase * 5
-      const easyPaceKmh = marathonPaceKmh * 0.70
+      const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace
       const distance = Math.round((Math.min(duration, 150) / 60) * easyPaceKmh * 10) / 10
 
       days.push({
@@ -997,7 +1139,7 @@ function createPolarizedDays(
     } else if (easyDays.includes(dayNum)) {
       // Easy run
       const duration = phase === 'TAPER' ? 30 : 40
-      const easyPaceKmh = marathonPaceKmh * 0.72
+      const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace
       const distance = Math.round((duration / 60) * easyPaceKmh * 10) / 10
 
       days.push({
@@ -1027,6 +1169,40 @@ function createPolarizedDays(
 }
 
 /**
+ * Calculate interval pace based on work duration using Daniels' guidelines
+ *
+ * Pace varies by interval duration (from Daniels' Running Formula):
+ * - 30-90s (Repetition): 110% VDOT = marathon × 1.31
+ * - 2-3 min (Fast I): 100-105% VDOT = marathon × 1.19-1.25
+ * - 3-5 min (Interval/VO2max): 98-100% VDOT = marathon × 1.17-1.19
+ * - 5-8 min (Long Interval): 92-95% VDOT = marathon × 1.10-1.13
+ * - 8+ min (Cruise/Threshold): 88% VDOT = marathon × 1.05
+ *
+ * @param marathonPaceKmh - Marathon pace in km/h
+ * @param workDurationMin - Work interval duration in minutes
+ * @returns Pace in km/h for the given interval duration
+ */
+function getIntervalPaceForDuration(marathonPaceKmh: number, workDurationMin: number): number {
+  // Daniels multipliers relative to marathon pace (marathon = 84% VDOT)
+  if (workDurationMin <= 1.5) {
+    // Repetition pace (30-90s): 110% VDOT = 110/84 × marathon
+    return marathonPaceKmh * 1.31
+  } else if (workDurationMin <= 3) {
+    // Fast Interval (2-3 min): ~103% VDOT
+    return marathonPaceKmh * 1.23
+  } else if (workDurationMin <= 5) {
+    // VO2max Interval (3-5 min): 100% VDOT = 100/84 × marathon
+    return marathonPaceKmh * 1.19
+  } else if (workDurationMin <= 8) {
+    // Long Interval (5-8 min): ~94% VDOT - slightly slower for sustainability
+    return marathonPaceKmh * 1.12
+  } else {
+    // Cruise Interval (8+ min): 88% VDOT (threshold pace)
+    return marathonPaceKmh * 1.05
+  }
+}
+
+/**
  * Create quality (interval) workout based on phase
  */
 function createQualityWorkout(
@@ -1035,7 +1211,6 @@ function createQualityWorkout(
   marathonPaceKmh: number,
   goal: string
 ) {
-  const intervalPaceKmh = marathonPaceKmh * 1.10 // ~108-110% marathon pace (threshold+)
 
   // Seiler-style intervals that progress through phases
   let reps: number, workMin: number, restMin: number, name: string, description: string
@@ -1052,7 +1227,6 @@ function createQualityWorkout(
       reps = 4; workMin = 6; restMin = 2
       name = '4x6 min intervaller'
     }
-    description = `Seiler-intervaller i Zon 4-5 (${formatPaceMinKm(intervalPaceKmh)}/km). Hög intensitet men hållbar.`
   } else if (phase === 'BUILD') {
     // Classic 4x8 or 5x8
     if (weekInPhase <= 3) {
@@ -1062,24 +1236,35 @@ function createQualityWorkout(
       reps = 4; workMin = 8; restMin = 2
       name = '4x8 min intervaller'
     }
-    description = `Klassiska Seiler 4x8 i Zon 4-5. "Isoeffort" - håll samma känsla hela vägen.`
   } else if (phase === 'PEAK') {
-    // Race-specific intensity
-    const raceSpecificPace = goal === '5k' || goal === '10k'
-      ? marathonPaceKmh * 1.15
-      : marathonPaceKmh * 1.08
     reps = 5; workMin = 5; restMin = 2
     name = 'Tävlingsspecifika intervaller'
-    description = `Race-pace intervaller (${formatPaceMinKm(raceSpecificPace)}/km). Förbered dig för tävling.`
   } else {
     // Taper - reduced volume, maintain intensity
     reps = 3; workMin = 4; restMin = 2
     name = 'Underhållsintervaller'
-    description = 'Kortare intervaller för att hålla farten utan att trötta ut dig.'
+  }
+
+  // Calculate duration-appropriate interval pace (Daniels-based)
+  const intervalPaceKmh = getIntervalPaceForDuration(marathonPaceKmh, workMin)
+  const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace
+
+  // Generate description with correct pace for this interval duration
+  if (phase === 'BASE') {
+    description = `Seiler-intervaller @ ${formatPaceMinKm(intervalPaceKmh)}/km. VO2max-träning - hög intensitet men hållbar.`
+  } else if (phase === 'BUILD') {
+    description = `Klassiska Seiler 4x${workMin} @ ${formatPaceMinKm(intervalPaceKmh)}/km. "Isoeffort" - håll samma känsla hela vägen.`
+  } else if (phase === 'PEAK') {
+    // Race-specific: use faster pace for 5K/10K goals
+    const raceSpecificPace = goal === '5k' || goal === '10k'
+      ? marathonPaceKmh * 1.19  // Interval pace (100% VDOT)
+      : marathonPaceKmh * 1.08  // Slightly faster than marathon
+    description = `Race-pace intervaller @ ${formatPaceMinKm(raceSpecificPace)}/km. Förbered dig för tävling.`
+  } else {
+    description = `Underhållsintervaller @ ${formatPaceMinKm(intervalPaceKmh)}/km. Håll farten utan att trötta ut dig.`
   }
 
   // Calculate total distance for the workout
-  const easyPaceKmh = marathonPaceKmh * 0.72 // Easy/jog pace for warmup/cooldown/rest
   const workDistanceKm = (reps * workMin / 60) * intervalPaceKmh
   const restDistanceKm = ((reps - 1) * restMin / 60) * easyPaceKmh // Jogging during rest
   const warmupCooldownKm = (20 / 60) * easyPaceKmh // 20 min warmup+cooldown
@@ -1225,10 +1410,10 @@ function createNorwegianSinglesDays(
 
   for (let dayNum = 1; dayNum <= 7; dayNum++) {
     if (dayNum === longRunDay && sessionsPerWeek >= 3) {
-      // Long easy run
+      // Long easy run - Daniels Easy pace is ~82-88% of marathon speed
       const baseDuration = phase === 'TAPER' ? 60 : (phase === 'BASE' ? 75 : 90)
       const duration = Math.min(baseDuration + weekInPhase * 5, 120)
-      const easyPaceKmh = marathonPaceKmh * 0.72
+      const easyPaceKmh = marathonPaceKmh * 0.85 // Long run at comfortable easy pace
       const distance = Math.round((duration / 60) * easyPaceKmh * 10) / 10
 
       days.push({
@@ -1253,9 +1438,9 @@ function createNorwegianSinglesDays(
         workouts: [workout],
       })
     } else if (easyDays.includes(dayNum)) {
-      // Easy recovery run
+      // Easy recovery run - slower end of Daniels Easy zone
       const duration = phase === 'TAPER' ? 30 : 45
-      const easyPaceKmh = marathonPaceKmh * 0.70
+      const easyPaceKmh = marathonPaceKmh * 0.82 // Recovery runs slightly slower
       const distance = Math.round((duration / 60) * easyPaceKmh * 10) / 10
 
       days.push({
@@ -1344,7 +1529,7 @@ function createNorwegianSinglesWorkout(
   }
 
   // Calculate total distance for the workout
-  const easyPaceKmh = marathonPaceKmh * 0.72 // Easy/jog pace for warmup/cooldown/rest
+  const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace // Easy/jog pace for warmup/cooldown/rest
   const workDistanceKm = (reps * workMin / 60) * subThresholdPaceKmh
   const restDistanceKm = ((reps - 1) * restMin / 60) * easyPaceKmh // Jogging during rest
   const warmupCooldownKm = (20 / 60) * easyPaceKmh // 20 min warmup+cooldown
@@ -1466,7 +1651,7 @@ function createNorwegianDoublesDays(
 ) {
   const days = []
   const thresholdPaceKmh = marathonPaceKmh * 1.05
-  const easyPaceKmh = marathonPaceKmh * 0.72
+  const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace
 
   // Double-threshold days: Tuesday (2) and Thursday (4)
   const doubleDays = [2, 4]
@@ -1658,7 +1843,7 @@ function createCanovaDays(
   goal: string
 ) {
   const days = []
-  const easyPaceKmh = marathonPaceKmh * 0.72
+  const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace
   const mpPaceKmh = marathonPaceKmh // Marathon pace
   const thresholdPaceKmh = marathonPaceKmh * 1.08
 
@@ -1886,9 +2071,11 @@ function createPyramidalDays(
   goal: string
 ) {
   const days = []
-  const easyPaceKmh = marathonPaceKmh * 0.72
-  const tempoPaceKmh = marathonPaceKmh * 1.02 // Zone 2 tempo
-  const intervalPaceKmh = marathonPaceKmh * 1.15 // Zone 3 VO2max
+  const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace
+  const tempoPaceKmh = marathonPaceKmh * 1.05 // Threshold pace (88% VDOT)
+  // Interval pace will be calculated based on work duration using getIntervalPaceForDuration
+  const workMin = phase === 'BASE' ? 3 : 4
+  const intervalPaceKmh = getIntervalPaceForDuration(marathonPaceKmh, workMin) // Duration-aware VO2max pace
 
   for (let dayNum = 1; dayNum <= 7; dayNum++) {
     if (dayNum === 7) {
