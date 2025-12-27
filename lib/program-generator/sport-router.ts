@@ -333,7 +333,8 @@ function createCustomRunningProgram(
       params.sessionsPerWeek,
       paceProgression,
       params.goal,
-      methodology
+      methodology,
+      params.targetRaceDate
     ),
   }
 }
@@ -421,7 +422,8 @@ function createProgressiveWeeks(
   sessionsPerWeek: number,
   paceProgression: PaceProgression,
   goal: string,
-  methodology: string
+  methodology: string,
+  targetRaceDate?: Date
 ) {
   const weeks = []
 
@@ -433,6 +435,9 @@ function createProgressiveWeeks(
   // taperWeeks is calculated as remainder
 
   console.log(`[Progressive Weeks] ${methodology}: BASE ${baseWeeks}w, BUILD ${buildWeeks}w, PEAK ${peakWeeks}w, TAPER ${phaseDistribution.taper}w`)
+  if (targetRaceDate) {
+    console.log(`[Progressive Weeks] Target race date: ${targetRaceDate.toISOString().split('T')[0]}`)
+  }
 
   for (let i = 0; i < durationWeeks; i++) {
     let phase: 'BASE' | 'BUILD' | 'PEAK' | 'TAPER'
@@ -488,9 +493,27 @@ function createProgressiveWeeks(
         days = createPolarizedDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, goal)
     }
 
+    // Check if race day falls in this week and mark it appropriately
+    const weekStartDate = new Date(startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000)
+    if (targetRaceDate) {
+      for (let dayIdx = 0; dayIdx < days.length; dayIdx++) {
+        const dayDate = new Date(weekStartDate.getTime() + (days[dayIdx].dayNumber - 1) * 24 * 60 * 60 * 1000)
+        // Compare dates (ignoring time)
+        if (dayDate.toDateString() === targetRaceDate.toDateString()) {
+          console.log(`[Progressive Weeks] Found race day in week ${i + 1}, day ${days[dayIdx].dayNumber}`)
+          // Replace this day with race day marker
+          days[dayIdx] = {
+            dayNumber: days[dayIdx].dayNumber,
+            notes: `🏁 TÄVLINGSDAG - ${goal.toUpperCase()}`,
+            workouts: [], // No workouts on race day - it's race day!
+          }
+        }
+      }
+    }
+
     weeks.push({
       weekNumber: i + 1,
-      startDate: new Date(startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000),
+      startDate: weekStartDate,
       phase,
       volume: volumePercent,
       focus,

@@ -231,6 +231,14 @@ export function DaySidebar({
                 />
               </div>
             )}
+
+            {/* Workout Detail Panel */}
+            {selectedItem?.type === 'WORKOUT' && (
+              <WorkoutDetailPanel
+                workout={selectedItem}
+                isCoachView={isCoachView}
+              />
+            )}
           </>
         )}
 
@@ -569,5 +577,109 @@ function CheckInItem({ checkIn, isSelected, onClick }: CheckInItemProps) {
         )}
       </div>
     </button>
+  )
+}
+
+interface WorkoutDetailPanelProps {
+  workout: UnifiedCalendarItem
+  isCoachView?: boolean
+}
+
+function WorkoutDetailPanel({ workout, isCoachView }: WorkoutDetailPanelProps) {
+  const meta = workout.metadata
+  const workoutType = (meta.workoutType as string) || 'RUNNING'
+  const intensity = (meta.intensity as string) || 'MODERATE'
+  const duration = meta.duration as number | undefined
+  const distance = meta.distance as number | undefined
+  const instructions = meta.instructions as string | undefined
+  const isCompleted = meta.isCompleted as boolean
+  const workoutId = meta.workoutId as string | undefined
+
+  return (
+    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="font-medium text-sm flex items-center gap-2">
+          <Activity className="h-4 w-4 text-blue-500" />
+          Passdetaljer
+        </h4>
+        {isCompleted && (
+          <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+            Genomfört
+          </Badge>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        {/* Title */}
+        <div>
+          <p className="font-medium">{workout.title}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge
+              className={cn(
+                'text-xs',
+                INTENSITY_COLORS[intensity] || 'bg-yellow-500',
+                'text-white'
+              )}
+            >
+              {intensity.charAt(0) + intensity.slice(1).toLowerCase()}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              {workoutType}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Duration & Distance */}
+        {(duration || distance) && (
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            {duration && duration > 0 && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                {duration} min
+              </span>
+            )}
+            {distance && distance > 0 && (
+              <span className="flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                {distance} km
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Instructions */}
+        {instructions && (
+          <div className="text-sm">
+            <p className="font-medium text-muted-foreground mb-1">Instruktioner:</p>
+            <p className="whitespace-pre-wrap">{instructions}</p>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        {workoutId && !isCoachView && (
+          <div className="flex gap-2 pt-2">
+            {!isCompleted ? (
+              <Button
+                variant="default"
+                size="sm"
+                className="flex-1"
+                onClick={() => window.location.href = `/athlete/workouts/${workoutId}/log`}
+              >
+                Logga pass
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => window.location.href = `/athlete/workouts/${workoutId}`}
+              >
+                Visa logg
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
