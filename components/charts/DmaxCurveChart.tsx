@@ -2,6 +2,7 @@
 
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ReferenceLine } from 'recharts'
 import { TestStage } from '@/types'
+import { fitPolynomial3 } from '@/lib/training-engine/utils/polynomial-fit'
 
 interface ThresholdValue {
   intensity: number
@@ -22,6 +23,7 @@ interface DmaxCurveChartProps {
     }
     r2?: number
     confidence?: string
+    hrBasedMethod?: boolean
   }
   intensityUnit: 'km/h' | 'watt' | 'min/km'
   aerobicThreshold?: ThresholdValue
@@ -33,15 +35,11 @@ interface DmaxCurveChartProps {
  *
  * Shows:
  * - Actual test data points (scatter)
- * - Fitted polynomial curve
+ * - Fitted polynomial curve (always fitted to intensity vs lactate)
  * - LT1 (aerobic threshold) marker
  * - LT2 (anaerobic threshold) marker
  */
 export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThreshold, anaerobicThreshold }: DmaxCurveChartProps) {
-  if (!dmaxResult || !dmaxResult.coefficients) {
-    return null
-  }
-
   // Extract intensity values based on test type
   const dataPoints = stages.map(stage => {
     let intensity = 0
@@ -58,19 +56,26 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
       lactate: stage.lactate,
       heartRate: stage.heartRate
     }
-  }).filter(p => p.intensity > 0)
+  }).filter(p => p.intensity > 0).sort((a, b) => a.intensity - b.intensity)
 
-  if (dataPoints.length === 0) {
+  if (dataPoints.length < 3) {
     return null
   }
 
-  // Calculate polynomial curve points
-  const { a, b, c, d } = dmaxResult.coefficients
-  const minIntensity = Math.min(...dataPoints.map(p => p.intensity))
-  const maxIntensity = Math.max(...dataPoints.map(p => p.intensity))
+  // Always fit polynomial to intensity vs lactate for this chart
+  // (dmaxResult.coefficients might be HR-based if hrBasedMethod is true)
+  const intensityValues = dataPoints.map(p => p.intensity)
+  const lactateValues = dataPoints.map(p => p.lactate)
+
+  const regression = fitPolynomial3(intensityValues, lactateValues)
+  const { coefficients, r2 } = regression
+  const { a, b, c, d } = coefficients
+
+  const minIntensity = Math.min(...intensityValues)
+  const maxIntensity = Math.max(...intensityValues)
   const step = (maxIntensity - minIntensity) / 100
 
-  const polynomialCurve = []
+  const polynomialCurve: { intensity: number; lactate: number }[] = []
   for (let intensity = minIntensity; intensity <= maxIntensity; intensity += step) {
     const lactate = a * Math.pow(intensity, 3) + b * Math.pow(intensity, 2) + c * intensity + d
     polynomialCurve.push({
@@ -94,18 +99,28 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
     })
   }
 
-  // Combine data for chart lines
+  // Build chart data: polynomial curve + baseline (no measured points yet)
   const chartData = polynomialCurve.map((point, index) => ({
     intensity: point.intensity,
     polynomial: point.lactate,
-    baseline: baseline[index]?.lactate || 0
+    baseline: baseline[index]?.lactate || 0,
+    measuredLactate: null as number | null
   }))
 
-  // Add data points to chart data for scatter plotting
-  const scatterDataPoints = dataPoints.map(p => ({
-    intensity: p.intensity,
-    measuredLactate: p.lactate
-  }))
+  // Add each measured data point EXACTLY ONCE at its exact intensity
+  dataPoints.forEach(dp => {
+    const polyLactate = a * Math.pow(dp.intensity, 3) + b * Math.pow(dp.intensity, 2) + c * dp.intensity + d
+    const baseLactate = baselineSlope * dp.intensity + baselineIntercept
+    chartData.push({
+      intensity: dp.intensity,
+      polynomial: polyLactate,
+      baseline: baseLactate,
+      measuredLactate: dp.lactate
+    })
+  })
+
+  // Sort by intensity
+  chartData.sort((a, b) => a.intensity - b.intensity)
 
   // Prepare threshold points for visualization
   const lt1Point = aerobicThreshold ? {
@@ -119,7 +134,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
   } : null
 
   // Legacy D-max point (for fallback if no thresholds provided)
-  const dmaxPoint = (!aerobicThreshold && !anaerobicThreshold) ? {
+  const dmaxPoint = (!aerobicThreshold && !anaerobicThreshold && dmaxResult) ? {
     intensity: dmaxResult.intensity,
     dmaxLactate: dmaxResult.lactate
   } : null
@@ -132,7 +147,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
   // Calculate Y-domain manually to ensure rendering
   const maxLactate = Math.max(
     ...dataPoints.map(p => p.lactate),
-    dmaxResult.lactate,
+    ...(dmaxResult ? [dmaxResult.lactate] : []),
     ...chartData.map(c => c.polynomial)
   )
   const yDomain = [0, Math.ceil(maxLactate * 1.1)]
@@ -141,11 +156,9 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h4 className="font-semibold">Laktatkurva med tröskelvärden</h4>
-        {dmaxResult.r2 && (
-          <span className="text-sm text-gray-600">
-            R² = {(dmaxResult.r2 * 100).toFixed(1)}%
-          </span>
-        )}
+        <span className="text-sm text-gray-600">
+          R² = {(r2 * 100).toFixed(1)}%
+        </span>
       </div>
 
       <ResponsiveContainer width="100%" height={450}>
@@ -158,7 +171,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
             dataKey="intensity"
             label={{ value: intensityLabel, position: 'bottom', offset: 0 }}
             type="number"
-            domain={['dataMin', 'dataMax']}
+            domain={[minIntensity - 0.5, maxIntensity + 0.5]}
             allowDataOverflow={false}
             tick={{ dy: 5 }}
           />
@@ -201,14 +214,17 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
             isAnimationActive={false}
           />
 
-          {/* Actual test data points */}
-          <Scatter
-            data={scatterDataPoints}
+          {/* Actual test data points - use Line with dots only where data exists */}
+          <Line
+            type="monotone"
             dataKey="measuredLactate"
+            stroke="transparent"
+            strokeWidth={0}
             name="Uppmätta värden"
-            fill="#ef4444"
-            line={false}
-            shape="circle"
+            dot={{ fill: '#ef4444', r: 6, stroke: '#ef4444', strokeWidth: 2 }}
+            activeDot={{ r: 8 }}
+            isAnimationActive={false}
+            connectNulls={false}
           />
 
           {/* LT1 (Aerobic Threshold) marker - green */}
@@ -265,7 +281,7 @@ export function DmaxCurveChart({ stages, dmaxResult, intensityUnit, aerobicThres
           )}
 
           {/* Legacy D-max point (only shown if no thresholds provided) */}
-          {dmaxPoint && (
+          {dmaxPoint && dmaxResult && (
             <>
               <Scatter
                 data={[dmaxPoint]}

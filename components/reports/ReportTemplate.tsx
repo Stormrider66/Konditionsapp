@@ -7,6 +7,11 @@ import { TestChart } from '../charts/TestChart'
 import { PowerChart } from '../charts/PowerChart'
 import { DmaxCurveChart } from '../charts/DmaxCurveChart'
 import { LactateHeartRateChart } from '../charts/LactateHeartRateChart'
+import { SummaryBox } from './SummaryBox'
+import { StrengthsWeaknesses } from './StrengthsWeaknesses'
+import { PaceZones } from './PaceZones'
+import { TrainingFocus } from './TrainingFocus'
+import { generateFullInterpretation } from '@/lib/calculations/interpretations'
 
 interface ReportTemplateProps {
   client: Client
@@ -25,6 +30,14 @@ export function ReportTemplate({
 }: ReportTemplateProps) {
   const birthDate = client.birthDate instanceof Date ? client.birthDate : new Date(client.birthDate as unknown as string)
   const age = Math.floor((Date.now() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+
+  // Generate full interpretation data
+  const interpretation = generateFullInterpretation(
+    calculations,
+    client,
+    test.testStages,
+    test.testType
+  )
 
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 print:p-6 print:max-w-none" data-pdf-content>
@@ -83,6 +96,16 @@ export function ReportTemplate({
           </div>
         </div>
       </section>
+
+      {/* Summary Box - Key Metrics at a Glance */}
+      <SummaryBox
+        calculations={calculations}
+        client={client}
+        testType={test.testType}
+        vo2maxInterpretation={interpretation.vo2max}
+        athleteType={interpretation.athleteType}
+        primaryStrength={interpretation.strengths[0]}
+      />
 
       {/* Testresultat */}
       <section className="mt-6 border-b pb-6">
@@ -284,11 +307,35 @@ export function ReportTemplate({
         )}
       </section>
 
+      {/* Strengths and Weaknesses */}
+      <StrengthsWeaknesses
+        strengths={interpretation.strengths}
+        weaknesses={interpretation.weaknesses}
+      />
+
       {/* D-max Curve Visualization - shown when D-max visualization is available */}
       {calculations.dmaxVisualization && calculations.dmaxVisualization.coefficients && calculations.aerobicThreshold && calculations.anaerobicThreshold && (
         <section className="mt-6 border-b pb-6 print:break-inside-avoid">
           <h2 className="text-2xl font-semibold mb-4">Tröskelanalys</h2>
+          {/* Lactate vs Heart Rate Chart - Primary (most relevant) */}
           <div className="bg-white p-4 rounded-lg border">
+            <LactateHeartRateChart
+              stages={test.testStages}
+              aerobicThreshold={{
+                heartRate: calculations.aerobicThreshold.heartRate,
+                lactate: calculations.aerobicThreshold.lactate || 0,
+                method: (calculations.aerobicThreshold as any).method
+              }}
+              anaerobicThreshold={{
+                heartRate: calculations.anaerobicThreshold.heartRate,
+                lactate: calculations.anaerobicThreshold.lactate || 0,
+                method: (calculations.anaerobicThreshold as any).method
+              }}
+            />
+          </div>
+
+          {/* Lactate vs Speed/Power Chart */}
+          <div className="bg-white p-4 rounded-lg border mt-6">
             <DmaxCurveChart
               stages={test.testStages}
               dmaxResult={calculations.dmaxVisualization}
@@ -300,23 +347,6 @@ export function ReportTemplate({
               }}
               anaerobicThreshold={{
                 intensity: calculations.anaerobicThreshold.value,
-                lactate: calculations.anaerobicThreshold.lactate || 0,
-                method: (calculations.anaerobicThreshold as any).method
-              }}
-            />
-          </div>
-
-          {/* Lactate vs Heart Rate Chart */}
-          <div className="bg-white p-4 rounded-lg border mt-6">
-            <LactateHeartRateChart
-              stages={test.testStages}
-              aerobicThreshold={{
-                heartRate: calculations.aerobicThreshold.heartRate,
-                lactate: calculations.aerobicThreshold.lactate || 0,
-                method: (calculations.aerobicThreshold as any).method
-              }}
-              anaerobicThreshold={{
-                heartRate: calculations.anaerobicThreshold.heartRate,
                 lactate: calculations.anaerobicThreshold.lactate || 0,
                 method: (calculations.anaerobicThreshold as any).method
               }}
@@ -494,6 +524,14 @@ export function ReportTemplate({
           </div>
         </section>
       )}
+
+      {/* Pace Zones (Running only) */}
+      {test.testType === 'RUNNING' && interpretation.paceZones.length > 0 && (
+        <PaceZones paceZones={interpretation.paceZones} />
+      )}
+
+      {/* Training Focus */}
+      <TrainingFocus trainingFocus={interpretation.trainingFocus} />
 
       {/* Footer */}
       <footer className="mt-8 pt-6 border-t text-sm text-gray-600">
