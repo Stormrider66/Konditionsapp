@@ -39,13 +39,14 @@ import {
 } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CalendarIcon, Loader2, ChevronDown, ChevronUp, Info, Sparkles } from 'lucide-react'
+import { CalendarIcon, Loader2, ChevronDown, ChevronUp, Info, Sparkles, AlertTriangle, Plane, Briefcase, Palmtree, Mountain } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import {
   storeProgramContext,
   type WizardFormData,
   type ProgramContext,
 } from '@/lib/ai/program-context-builder'
+import { addWeeks } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { DataSourceType } from './DataSourceSelector'
 import { HyroxRaceTimeAnalysis } from './HyroxRaceTimeAnalysis'
@@ -83,10 +84,13 @@ const configSchema = z.object({
   // ===== NEW FIELDS =====
 
   // Athlete Profile (Running/HYROX/Triathlon)
-  experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
-  yearsRunning: z.coerce.number().min(0).max(50).optional(),
+  // 4 tiers aligned with vLT2-based classification:
+  // - recreational: vLT2 < 10 km/h, marathon 4:30+
+  // - intermediate: vLT2 10-13 km/h, marathon 3:30-4:30
+  // - advanced: vLT2 13-16 km/h, marathon 3:00-3:30
+  // - elite: vLT2 >= 16 km/h, marathon sub-3h
+  experienceLevel: z.enum(['recreational', 'intermediate', 'advanced', 'elite']).optional(),
   currentWeeklyVolume: z.coerce.number().min(0).max(300).optional(),
-  longestLongRun: z.coerce.number().min(0).max(100).optional(),
 
   // Race Results for VDOT (Running/HYROX/Triathlon - pure running races only)
   recentRaceDistance: z.enum(['NONE', '5K', '10K', 'HALF', 'MARATHON']).optional(),
@@ -101,9 +105,8 @@ const configSchema = z.object({
   scheduleStrengthAfterRunning: z.boolean().optional(),
   scheduleCoreAfterRunning: z.boolean().optional(),
 
-  // Equipment & Monitoring
+  // Equipment
   hasLactateMeter: z.boolean().optional(),
-  hasHRVMonitor: z.boolean().optional(),
   hasPowerMeter: z.boolean().optional(), // Cycling/Triathlon only
 
   // ===== HYROX Station Times (MM:SS format) =====
@@ -145,6 +148,37 @@ interface Client {
   tests: { id: string; testDate: Date; testType: string }[]
 }
 
+// Calendar constraints API response
+interface CalendarConstraintsResponse {
+  constraints: {
+    blockedDates: string[]
+    reducedDates: string[]
+    altitudePeriods: { start: string; end: string; altitude: number; phase: string }[]
+    illnessRecoveryPeriods: { start: string; end: string; returnDate: string }[]
+  }
+  availability: {
+    totalDays: number
+    availableCount: number
+    blockedCount: number
+    reducedCount: number
+    availablePercent: number
+  }
+  recommendation: {
+    shouldUse: boolean
+    reason: string
+    hasBlockers: boolean
+    hasAltitude: boolean
+    hasIllness: boolean
+  }
+  upcomingEvents?: {
+    title: string
+    type: string
+    startDate: string
+    endDate: string
+    impact: string
+  }[]
+}
+
 interface ConfigurationFormProps {
   sport: SportType
   goal: string
@@ -167,7 +201,6 @@ export function ConfigurationForm({
   isSubmitting,
 }: ConfigurationFormProps) {
   const router = useRouter()
-  const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const isHyroxSport = sport === 'HYROX'
 
@@ -186,9 +219,7 @@ export function ConfigurationForm({
       notes: '',
       // New defaults
       experienceLevel: 'intermediate',
-      yearsRunning: undefined,
       currentWeeklyVolume: undefined,
-      longestLongRun: undefined,
       recentRaceDistance: 'NONE',
       recentRaceTime: '',
       targetTime: '',
@@ -197,7 +228,6 @@ export function ConfigurationForm({
       scheduleStrengthAfterRunning: false,
       scheduleCoreAfterRunning: false,
       hasLactateMeter: false,
-      hasHRVMonitor: false,
       hasPowerMeter: false,
       // HYROX specific
       hyroxStationTimes: {
@@ -231,6 +261,8 @@ export function ConfigurationForm({
   const watchTargetDate = form.watch('targetRaceDate')
   const watchIncludeStrength = form.watch('includeStrength')
   const watchRaceDistance = form.watch('recentRaceDistance')
+  const watchMethodology = form.watch('methodology')
+  const watchExperienceLevel = form.watch('experienceLevel')
 
   // Check if sport needs running-specific fields
   const needsRunningFields = sport === 'RUNNING' || sport === 'HYROX' || sport === 'TRIATHLON'
@@ -240,6 +272,79 @@ export function ConfigurationForm({
   // HYROX-specific state
   const [stationTimesOpen, setStationTimesOpen] = useState(false)
   const [strengthPRsOpen, setStrengthPRsOpen] = useState(false)
+
+  // Calendar constraints state
+  const [calendarData, setCalendarData] = useState<CalendarConstraintsResponse | null>(null)
+  const [calendarLoading, setCalendarLoading] = useState(false)
+
+  const watchDurationWeeks = form.watch('durationWeeks')
+
+  // Fetch calendar constraints when client or duration changes
+  useEffect(() => {
+    async function fetchCalendarConstraints() {
+      if (!watchClientId) {
+        setCalendarData(null)
+        return
+      }
+
+      setCalendarLoading(true)
+
+      try {
+        const startDate = new Date()
+        const endDate = watchTargetDate || addWeeks(startDate, watchDurationWeeks || 12)
+
+        // Fetch constraints and upcoming events in parallel
+        const [constraintsRes, eventsRes] = await Promise.all([
+          fetch(
+            `/api/calendar/constraints?clientId=${watchClientId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&includeContext=true`
+          ),
+          fetch(
+            `/api/calendar-events?clientId=${watchClientId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+          )
+        ])
+
+        if (!constraintsRes.ok) {
+          // Calendar might not exist yet - this is okay
+          if (constraintsRes.status === 404) {
+            setCalendarData(null)
+            return
+          }
+          throw new Error('Kunde inte hämta kalenderdata')
+        }
+
+        const constraintsData = await constraintsRes.json()
+
+        // Parse upcoming events if available
+        let upcomingEvents: CalendarConstraintsResponse['upcomingEvents'] = []
+        if (eventsRes.ok) {
+          const eventsData = await eventsRes.json()
+          upcomingEvents = (eventsData.events || eventsData || [])
+            .filter((e: { trainingImpact: string }) => e.trainingImpact !== 'NORMAL')
+            .slice(0, 5)
+            .map((e: { title: string; type: string; startDate: string; endDate: string; trainingImpact: string }) => ({
+              title: e.title,
+              type: e.type,
+              startDate: e.startDate,
+              endDate: e.endDate,
+              impact: e.trainingImpact,
+            }))
+        }
+
+        setCalendarData({
+          ...constraintsData,
+          upcomingEvents,
+        })
+      } catch (error) {
+        console.error('Calendar fetch error:', error)
+        // Don't show error to user - calendar is optional
+        setCalendarData(null)
+      } finally {
+        setCalendarLoading(false)
+      }
+    }
+
+    fetchCalendarConstraints()
+  }, [watchClientId, watchTargetDate, watchDurationWeeks])
 
   // Auto-calculate duration from target date
   useEffect(() => {
@@ -259,7 +364,23 @@ export function ConfigurationForm({
     }
   }, [watchClientId, onClientChange])
 
-  const handleSubmit = form.handleSubmit(onSubmit)
+  // Wrap submit to include calendar constraints
+  const handleSubmit = form.handleSubmit((data) => {
+    // Add calendar constraints to submission if available
+    const submissionData = {
+      ...data,
+      calendarConstraints: calendarData?.constraints ? {
+        blockedDates: calendarData.constraints.blockedDates,
+        reducedDates: calendarData.constraints.reducedDates,
+        altitudePeriods: calendarData.constraints.altitudePeriods.map(p => ({
+          start: p.start,
+          end: p.end,
+          altitude: p.altitude,
+        })),
+      } : undefined,
+    }
+    return onSubmit(submissionData as any)
+  })
 
   // Handle "Continue with AI Studio" button
   const handleContinueWithAI = () => {
@@ -286,9 +407,7 @@ export function ConfigurationForm({
       technique: formData.technique,
       poolLength: formData.poolLength,
       experienceLevel: formData.experienceLevel,
-      yearsRunning: formData.yearsRunning,
       currentWeeklyVolume: formData.currentWeeklyVolume,
-      longestLongRun: formData.longestLongRun,
       recentRaceDistance: formData.recentRaceDistance,
       recentRaceTime: formData.recentRaceTime,
       targetTime: formData.targetTime,
@@ -299,7 +418,6 @@ export function ConfigurationForm({
       scheduleStrengthAfterRunning: formData.scheduleStrengthAfterRunning,
       scheduleCoreAfterRunning: formData.scheduleCoreAfterRunning,
       hasLactateMeter: formData.hasLactateMeter,
-      hasHRVMonitor: formData.hasHRVMonitor,
       hasPowerMeter: formData.hasPowerMeter,
       hyroxStationTimes: formData.hyroxStationTimes,
       hyroxDivision: formData.hyroxDivision,
@@ -608,20 +726,36 @@ export function ConfigurationForm({
                       <SelectItem value="PYRAMIDAL">Pyramidal</SelectItem>
                     </SelectContent>
                   </Select>
+                  {/* Show suggestion when AUTO is selected */}
+                  {field.value === 'AUTO' && (
+                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <div className="flex items-start gap-2">
+                        <Sparkles className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-sm">
+                          <span className="font-medium text-blue-800">
+                            Rekommendation: {getSuggestedMethodology(watchExperienceLevel, goal).name}
+                          </span>
+                          <p className="text-blue-700 mt-1">
+                            {getSuggestedMethodology(watchExperienceLevel, goal).reason}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
           )}
 
-          {/* Experience Level (Running/HYROX/Triathlon) */}
+          {/* Experience Level (Running/HYROX/Triathlon) - 4 tiers aligned with vLT2 */}
           {needsRunningFields && (
             <FormField
               control={form.control}
               name="experienceLevel"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Erfarenhetsnivå</FormLabel>
+                  <FormLabel>Prestationsnivå</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -629,11 +763,35 @@ export function ConfigurationForm({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="beginner">Nybörjare</SelectItem>
-                      <SelectItem value="intermediate">Mellanliggande</SelectItem>
-                      <SelectItem value="advanced">Avancerad</SelectItem>
+                      <SelectItem value="recreational">
+                        <div className="flex flex-col">
+                          <span>Motionär</span>
+                          <span className="text-xs text-muted-foreground">Maraton 4:30+, tröskel &gt;6:00/km</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="intermediate">
+                        <div className="flex flex-col">
+                          <span>Medel</span>
+                          <span className="text-xs text-muted-foreground">Maraton 3:30-4:30, tröskel 4:37-6:00/km</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="advanced">
+                        <div className="flex flex-col">
+                          <span>Avancerad</span>
+                          <span className="text-xs text-muted-foreground">Maraton 3:00-3:30, tröskel 3:45-4:37/km</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="elite">
+                        <div className="flex flex-col">
+                          <span>Elit</span>
+                          <span className="text-xs text-muted-foreground">Maraton sub-3h, tröskel &lt;3:45/km</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormDescription>
+                    Påverkar tempo och progressionshastighet i programmet
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -666,6 +824,94 @@ export function ConfigurationForm({
             />
           )}
         </div>
+
+        {/* Calendar Constraints Section */}
+        {watchClientId && (
+          <div className="border rounded-lg p-4 mt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+              <h3 className="font-medium">Kalenderinformation</h3>
+              {calendarLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            </div>
+
+            {calendarData && calendarData.recommendation.shouldUse ? (
+              <div className="space-y-3">
+                {/* Summary */}
+                <div className="flex flex-wrap gap-3 text-sm">
+                  {calendarData.availability.blockedCount > 0 && (
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 text-red-700 rounded-md">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      <span>{calendarData.availability.blockedCount} blockerade dagar</span>
+                    </div>
+                  )}
+                  {calendarData.availability.reducedCount > 0 && (
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 rounded-md">
+                      <Info className="h-3.5 w-3.5" />
+                      <span>{calendarData.availability.reducedCount} reducerade dagar</span>
+                    </div>
+                  )}
+                  {calendarData.constraints.altitudePeriods.length > 0 && (
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 text-blue-700 rounded-md">
+                      <Mountain className="h-3.5 w-3.5" />
+                      <span>{calendarData.constraints.altitudePeriods.length} höghöjdsläger</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upcoming events list */}
+                {calendarData.upcomingEvents && calendarData.upcomingEvents.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Kommande händelser:</p>
+                    <div className="space-y-1.5">
+                      {calendarData.upcomingEvents.slice(0, 5).map((event, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm pl-2 border-l-2 border-muted">
+                          {event.type === 'TRAVEL' && <Plane className="h-3.5 w-3.5 text-muted-foreground" />}
+                          {event.type === 'WORK_BLOCKER' && <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />}
+                          {event.type === 'VACATION' && <Palmtree className="h-3.5 w-3.5 text-muted-foreground" />}
+                          {event.type === 'ALTITUDE_CAMP' && <Mountain className="h-3.5 w-3.5 text-muted-foreground" />}
+                          {!['TRAVEL', 'WORK_BLOCKER', 'VACATION', 'ALTITUDE_CAMP'].includes(event.type) && (
+                            <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          <span className="font-medium">{event.title}</span>
+                          <span className="text-muted-foreground">
+                            {format(new Date(event.startDate), 'd MMM', { locale: sv })}
+                            {event.startDate !== event.endDate && ` - ${format(new Date(event.endDate), 'd MMM', { locale: sv })}`}
+                          </span>
+                          <span className={cn(
+                            'text-xs px-1.5 py-0.5 rounded',
+                            event.impact === 'NO_TRAINING' && 'bg-red-100 text-red-700',
+                            event.impact === 'REDUCED' && 'bg-amber-100 text-amber-700',
+                            event.impact === 'MODIFIED' && 'bg-blue-100 text-blue-700'
+                          )}>
+                            {event.impact === 'NO_TRAINING' && 'Ingen träning'}
+                            {event.impact === 'REDUCED' && 'Reducerad'}
+                            {event.impact === 'MODIFIED' && 'Anpassad'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <Alert className="bg-blue-50 border-blue-200">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-800">
+                    Programmet kommer automatiskt anpassas efter dessa kalenderbegränsningar.
+                    Träningspass schemaläggs inte på blockerade dagar.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            ) : !calendarLoading ? (
+              <div className="text-sm text-muted-foreground">
+                <p>Inga kalenderbegränsningar hittades för denna period.</p>
+                <p className="mt-1">
+                  Atleten kan lägga till resor, semester och andra blockerare i sin kalender under{' '}
+                  <span className="font-medium">Atlet &rarr; Kalender</span>.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        )}
 
         {/* Race Results Section (for VDOT calculation) */}
         {needsRunningFields && (
@@ -1261,31 +1507,50 @@ export function ConfigurationForm({
                 />
 
                 {watchIncludeStrength && (
-                  <FormField
-                    control={form.control}
-                    name="strengthSessionsPerWeek"
-                    render={({ field }) => (
-                      <FormItem className="ml-7">
-                        <FormLabel>Styrkepass per vecka</FormLabel>
-                        <Select
-                          onValueChange={(v) => field.onChange(parseInt(v))}
-                          value={field.value?.toString()}
-                        >
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="strengthSessionsPerWeek"
+                      render={({ field }) => (
+                        <FormItem className="ml-7">
+                          <FormLabel>Styrkepass per vecka</FormLabel>
+                          <Select
+                            onValueChange={(v) => field.onChange(parseInt(v))}
+                            value={field.value?.toString()}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="w-24">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="1">1x</SelectItem>
+                              <SelectItem value="2">2x</SelectItem>
+                              <SelectItem value="3">3x</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="scheduleStrengthAfterRunning"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 ml-7">
                           <FormControl>
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="1">1x</SelectItem>
-                            <SelectItem value="2">2x</SelectItem>
-                            <SelectItem value="3">3x</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-sm">Schemalägg efter löpning</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </>
                 )}
               </div>
 
@@ -1318,110 +1583,66 @@ export function ConfigurationForm({
                 />
 
                 {(form.watch('coreSessionsPerWeek') ?? 0) > 0 && (
-                  <FormField
-                    control={form.control}
-                    name="coreSessionsPerWeek"
-                    render={({ field }) => (
-                      <FormItem className="ml-7">
-                        <FormLabel>Core-pass per vecka</FormLabel>
-                        <Select
-                          onValueChange={(v) => field.onChange(parseInt(v))}
-                          value={field.value?.toString() || '2'}
-                        >
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="coreSessionsPerWeek"
+                      render={({ field }) => (
+                        <FormItem className="ml-7">
+                          <FormLabel>Core-pass per vecka</FormLabel>
+                          <Select
+                            onValueChange={(v) => field.onChange(parseInt(v))}
+                            value={field.value?.toString() || '2'}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="w-24">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="1">1x</SelectItem>
+                              <SelectItem value="2">2x</SelectItem>
+                              <SelectItem value="3">3x</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="scheduleCoreAfterRunning"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 ml-7">
                           <FormControl>
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="1">1x</SelectItem>
-                            <SelectItem value="2">2x</SelectItem>
-                            <SelectItem value="3">3x</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-sm">Schemalägg efter löpning</FormLabel>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </>
                 )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Advanced Settings (Collapsible) */}
-        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" className="w-full justify-between mt-6">
-              Avancerade inställningar
-              {advancedOpen ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="border rounded-lg p-4 mt-2 space-y-6">
-            {/* Running-specific advanced fields */}
-            {needsRunningFields && (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="yearsRunning"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>År av löpning</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="t.ex. 5"
-                            value={field.value ?? ''}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              field.onChange(val === '' ? undefined : parseInt(val))
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>Antal år med regelbunden löpträning</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="longestLongRun"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Längsta långpass (km)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="t.ex. 25"
-                            value={field.value ?? ''}
-                            onChange={(e) => {
-                              const val = e.target.value
-                              field.onChange(val === '' ? undefined : parseInt(val))
-                            }}
-                          />
-                        </FormControl>
-                        <FormDescription>Längsta distans på ett långpass senaste 6 mån</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </>
-            )}
-
-            {/* Alternative Training */}
+        {/* Cross-training / Alternative Training */}
+        {needsRunningFields && (
+          <div className="border-t pt-6 mt-6">
+            <h3 className="font-medium mb-4">Alternativ träning</h3>
             <FormField
               control={form.control}
               name="alternativeTrainingSessionsPerWeek"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Alternativ träning per vecka</FormLabel>
+                  <FormLabel>Pass per vecka med annan sport</FormLabel>
                   <Select
                     onValueChange={(v) => field.onChange(parseInt(v))}
                     value={field.value?.toString() || '0'}
@@ -1438,131 +1659,67 @@ export function ConfigurationForm({
                       <SelectItem value="3">3</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Cykling, simning, etc. för aktiv återhämtning</FormDescription>
+                  <FormDescription>Cykling, skidåkning, simning, etc. för variation och aktiv återhämtning</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
+          </div>
+        )}
 
-            {/* Scheduling Options */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">Schemaläggning</h4>
-              <FormField
-                control={form.control}
-                name="scheduleStrengthAfterRunning"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Schemalägg styrka efter löpning</FormLabel>
-                      <FormDescription>
-                        Styrkepass placeras efter löppass samma dag
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
+        {/* Equipment - Lactate Meter (Running only, enables Norwegian method) */}
+        {sport === 'RUNNING' && (
+          <div className="border-t pt-6 mt-6">
+            <h3 className="font-medium mb-4">Utrustning</h3>
+            <FormField
+              control={form.control}
+              name="hasLactateMeter"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Har laktatmätare</FormLabel>
+                    <FormDescription>
+                      Möjliggör Norwegian-metoden med tröskelträning baserad på laktatvärden
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
 
-              <FormField
-                control={form.control}
-                name="scheduleCoreAfterRunning"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Schemalägg core efter löpning</FormLabel>
-                      <FormDescription>
-                        Core-pass placeras efter löppass samma dag
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Equipment & Monitoring */}
-            <div className="space-y-3">
-              <h4 className="font-medium text-sm">Utrustning & Övervakning</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="hasLactateMeter"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Har laktatmätare</FormLabel>
-                        <FormDescription>
-                          Möjliggör Norwegian-metoden
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="hasHRVMonitor"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Har HRV-övervakning</FormLabel>
-                        <FormDescription>
-                          Mäter daglig återhämtning
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-
-                {/* Power Meter (Cycling/Triathlon only) */}
-                {needsPowerMeter && (
-                  <FormField
-                    control={form.control}
-                    name="hasPowerMeter"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>Har wattmätare</FormLabel>
-                          <FormDescription>
-                            Aktiverar wattbaserad träning
-                          </FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+        {/* Power Meter (Cycling/Triathlon only) */}
+        {needsPowerMeter && (
+          <div className="border-t pt-6 mt-6">
+            <h3 className="font-medium mb-4">Utrustning</h3>
+            <FormField
+              control={form.control}
+              name="hasPowerMeter"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Har wattmätare</FormLabel>
+                    <FormDescription>
+                      Aktiverar wattbaserad träning och power zones
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
 
         {/* Notes */}
         <FormField
@@ -1676,4 +1833,63 @@ function getSportLabel(sport: SportType): string {
     GENERAL_FITNESS: 'Allmän Fitness',
   }
   return labels[sport] || sport
+}
+
+/**
+ * Get suggested methodology based on experience level and goal
+ */
+function getSuggestedMethodology(
+  experienceLevel: string | undefined,
+  goalType: string
+): { method: string; name: string; reason: string } {
+  // Beginners should use Polarized (simplest, safest)
+  if (experienceLevel === 'beginner') {
+    return {
+      method: 'POLARIZED',
+      name: 'Polarized (80/20)',
+      reason: 'Enklaste och säkraste metoden för nybörjare. 80% lätt träning, 20% hård träning.',
+    }
+  }
+
+  // Intermediate athletes can use Pyramidal for more threshold work
+  if (experienceLevel === 'intermediate') {
+    return {
+      method: 'PYRAMIDAL',
+      name: 'Pyramidal',
+      reason: 'Balanserad metod med mer tröskelträning. Passar dig som har grundläggande kondition.',
+    }
+  }
+
+  // Advanced athletes - select based on goal
+  if (experienceLevel === 'advanced') {
+    switch (goalType) {
+      case 'marathon':
+      case 'half-marathon':
+        return {
+          method: 'CANOVA',
+          name: 'Canova (Marathon-specialist)',
+          reason: 'Marathon-specialist metodik med fokus på specifik uthållighet för längre distanser.',
+        }
+      case '10k':
+      case '5k':
+        return {
+          method: 'NORWEGIAN_SINGLE',
+          name: 'Norwegian Singles',
+          reason: 'Mer tröskelträning för kortare distanser. Effektivt för 5K och 10K.',
+        }
+      default:
+        return {
+          method: 'POLARIZED',
+          name: 'Polarized (80/20)',
+          reason: 'Klassisk och beprövad metod som fungerar för alla nivåer.',
+        }
+    }
+  }
+
+  // Default fallback
+  return {
+    method: 'POLARIZED',
+    name: 'Polarized (80/20)',
+    reason: 'Klassisk och beprövad metod som fungerar för alla nivåer.',
+  }
 }

@@ -36,7 +36,7 @@ interface HyroxAthleteProfileCardProps {
   }
   // Athlete info
   gender?: 'male' | 'female'
-  experienceLevel?: 'beginner' | 'intermediate' | 'advanced'
+  experienceLevel?: 'recreational' | 'intermediate' | 'advanced' | 'elite' | 'beginner'
   currentWeeklyKm?: number
   // Goal
   goalTime?: string // H:MM:SS format

@@ -279,25 +279,92 @@ function calculateVVO2max(vo2max: number, economyCr: number): number {
 
 /**
  * Classify athlete level based on vLT2 speed
- * Based on research recommendations:
- * - Elite: vLT2 > 16 km/h (3:45/km or faster at threshold)
- * - Advanced: vLT2 12-16 km/h (3:45-5:00/km at threshold)
- * - Intermediate: vLT2 10-12 km/h (5:00-6:00/km at threshold)
- * - Recreational: vLT2 < 10 km/h (slower than 6:00/km at threshold)
+ *
+ * Based on research (Computational Physiology for Endurance Performance):
+ * - Elite: vLT2 >= 16 km/h (≤3:45/km at threshold) - Sub-3h marathoners
+ * - Advanced: vLT2 13-16 km/h (3:45-4:37/km at threshold) - 3:00-3:30 marathoners
+ * - Intermediate: vLT2 10-13 km/h (4:37-6:00/km at threshold) - 3:30-4:30 marathoners
+ * - Recreational: vLT2 < 10 km/h (>6:00/km at threshold) - 4:30+ marathoners
+ *
+ * The classification affects race pace coefficients - elite runners can sustain
+ * a higher % of vLT2 for marathon (92-94%) vs recreational (80-85%)
  */
 function classifyAthleteByVLT2(vLT2Kmh: number): AthleteLevelFromVLT2 {
   if (vLT2Kmh >= 16) {
-    console.log(`[classifyAthleteByVLT2] ELITE (vLT2 ${vLT2Kmh.toFixed(1)} km/h >= 16)`)
+    console.log(`[classifyAthleteByVLT2] ELITE (vLT2 ${vLT2Kmh.toFixed(1)} km/h >= 16, ≤3:45/km)`)
     return 'ELITE'
-  } else if (vLT2Kmh >= 14) {
-    console.log(`[classifyAthleteByVLT2] ADVANCED (vLT2 ${vLT2Kmh.toFixed(1)} km/h, 14-16 range)`)
+  } else if (vLT2Kmh >= 13) {
+    console.log(`[classifyAthleteByVLT2] ADVANCED (vLT2 ${vLT2Kmh.toFixed(1)} km/h, 13-16 range)`)
     return 'ADVANCED'
-  } else if (vLT2Kmh >= 11) {
-    console.log(`[classifyAthleteByVLT2] INTERMEDIATE (vLT2 ${vLT2Kmh.toFixed(1)} km/h, 11-14 range)`)
+  } else if (vLT2Kmh >= 10) {
+    console.log(`[classifyAthleteByVLT2] INTERMEDIATE (vLT2 ${vLT2Kmh.toFixed(1)} km/h, 10-13 range)`)
     return 'INTERMEDIATE'
   } else {
-    console.log(`[classifyAthleteByVLT2] RECREATIONAL (vLT2 ${vLT2Kmh.toFixed(1)} km/h < 11)`)
+    console.log(`[classifyAthleteByVLT2] RECREATIONAL (vLT2 ${vLT2Kmh.toFixed(1)} km/h < 10)`)
     return 'RECREATIONAL'
+  }
+}
+
+/**
+ * Experience level type - 4 tiers aligned with vLT2-based classification
+ */
+export type ExperienceLevel = 'recreational' | 'intermediate' | 'advanced' | 'elite'
+
+/**
+ * Map user-input experience level to estimated vLT2 for when no lactate test exists
+ * This provides a reasonable starting point for pace calculations
+ *
+ * 4 tiers aligned with vLT2-based classification:
+ * - elite: vLT2 >= 16 km/h (≤3:45/km at threshold) - Sub-3h marathoners
+ * - advanced: vLT2 13-16 km/h (3:45-4:37/km) - 3:00-3:30 marathoners
+ * - intermediate: vLT2 10-13 km/h (4:37-6:00/km) - 3:30-4:30 marathoners
+ * - recreational: vLT2 < 10 km/h (>6:00/km) - 4:30+ marathoners
+ */
+function experienceLevelToEstimatedVLT2(
+  experienceLevel: ExperienceLevel | 'beginner',  // 'beginner' for backwards compatibility
+  gender?: 'MALE' | 'FEMALE'
+): number {
+  // Gender adjustment (females typically ~10% slower at same effort level)
+  const genderFactor = gender === 'FEMALE' ? 0.90 : 1.0
+
+  // Estimated vLT2 based on typical runners at each level
+  switch (experienceLevel) {
+    case 'elite':
+      // Elite: vLT2 >= 16 km/h (≤3:45/km at threshold)
+      // Typical: 17 km/h (3:32/km) - sub-3h marathoners
+      return 17.0 * genderFactor
+    case 'advanced':
+      // Advanced: vLT2 13-16 km/h (3:45-4:37/km)
+      // Typical: 14.5 km/h (4:08/km) - 3:00-3:30 marathoners
+      return 14.5 * genderFactor
+    case 'intermediate':
+      // Intermediate: vLT2 10-13 km/h (4:37-6:00/km)
+      // Typical: 11.5 km/h (5:13/km) - 3:30-4:30 marathoners
+      return 11.5 * genderFactor
+    case 'recreational':
+    case 'beginner':  // Backwards compatibility
+    default:
+      // Recreational: vLT2 < 10 km/h (>6:00/km)
+      // Typical: 9.0 km/h (6:40/km) - 4:30+ marathoners
+      return 9.0 * genderFactor
+  }
+}
+
+/**
+ * Map experience level to AthleteLevelFromVLT2 for coefficient selection
+ */
+function experienceLevelToAthleteLevel(experienceLevel: ExperienceLevel | 'beginner'): AthleteLevelFromVLT2 {
+  switch (experienceLevel) {
+    case 'elite':
+      return 'ELITE'
+    case 'advanced':
+      return 'ADVANCED'
+    case 'intermediate':
+      return 'INTERMEDIATE'
+    case 'recreational':
+    case 'beginner':
+    default:
+      return 'RECREATIONAL'
   }
 }
 
@@ -398,7 +465,7 @@ function calculateRacePacesFromVLT2(
 function calculateMethodologyPaces(
   methodology: string,
   test?: Test,
-  experienceLevel?: 'beginner' | 'intermediate' | 'advanced',
+  experienceLevel?: ExperienceLevel | 'beginner',
   currentWeeklyVolume?: number,
   recentRaceDistance?: string,
   recentRaceTime?: string,
@@ -1491,7 +1558,7 @@ interface TrainingPacesResult {
  * Returns all training paces calculated as proper percentages of VDOT velocity
  */
 function estimateTrainingPaces(
-  experienceLevel: 'beginner' | 'intermediate' | 'advanced',
+  experienceLevel: ExperienceLevel | 'beginner',
   currentWeeklyVolume?: number,
   recentRaceDistance?: string,
   recentRaceTime?: string
@@ -1521,32 +1588,42 @@ function estimateTrainingPaces(
   }
 
   // Otherwise estimate from experience level and volume (fallback)
-  const basePaces: Record<string, number> = {
-    'beginner': 9.0,      // ~6:40/km marathon pace
-    'intermediate': 11.0, // ~5:27/km marathon pace
-    'advanced': 13.0,     // ~4:37/km marathon pace
+  // Using vLT2-based classification thresholds
+  const baseThresholdPaces: Record<string, number> = {
+    'elite': 17.0,        // ≤3:32/km threshold pace, sub-3h marathon
+    'advanced': 14.5,     // ~4:08/km threshold pace, 3:00-3:30 marathon
+    'intermediate': 11.5, // ~5:13/km threshold pace, 3:30-4:30 marathon
+    'recreational': 9.0,  // ~6:40/km threshold pace, 4:30+ marathon
+    'beginner': 9.0,      // backwards compatibility
   }
 
-  let marathonPace = basePaces[experienceLevel] || 10.0
+  let thresholdPace = baseThresholdPaces[experienceLevel] || 10.0
 
   // Adjust for weekly volume (higher volume = typically faster)
   if (currentWeeklyVolume) {
-    if (currentWeeklyVolume > 60) marathonPace += 1.0
-    else if (currentWeeklyVolume > 40) marathonPace += 0.5
-    else if (currentWeeklyVolume < 20) marathonPace -= 0.5
+    if (currentWeeklyVolume > 100) thresholdPace += 1.0
+    else if (currentWeeklyVolume > 60) thresholdPace += 0.5
+    else if (currentWeeklyVolume < 20) thresholdPace -= 0.5
   }
 
-  // For fallback, estimate other paces relative to marathon using Daniels ratios
-  // These ratios assume: Easy 70%, Marathon 84%, Threshold 88%, Interval 100% of VDOT velocity
-  // Marathon = 84% → Threshold = marathon * (88/84) = marathon * 1.048
-  // Marathon = 84% → Interval = marathon * (100/84) = marathon * 1.190
-  // Marathon = 84% → Easy = marathon * (59-74/84) = marathon * (0.70-0.88)
+  // Get race pace coefficients for this level
+  const athleteLevel = experienceLevelToAthleteLevel(experienceLevel)
+  const coefficients = getRacePaceCoefficients(athleteLevel)
+
+  // Calculate marathon pace from threshold using level-specific coefficients
+  const marathonCoeff = (coefficients.vMarathon.min + coefficients.vMarathon.max) / 2
+  const marathonPace = thresholdPace * marathonCoeff
+
+  // For fallback, estimate other paces relative to threshold
+  // vVO2max ≈ threshold / 0.87 (intermediate estimate)
+  const estimatedVVO2max = thresholdPace / 0.87
+
   return {
     marathonPaceKmh: marathonPace,
-    easyPaceKmh: { min: marathonPace * 0.70, max: marathonPace * 0.88 },
-    thresholdPaceKmh: marathonPace * 1.048,
-    intervalPaceKmh: marathonPace * 1.19,
-    repetitionPaceKmh: marathonPace * 1.31,
+    easyPaceKmh: { min: thresholdPace * 0.70, max: thresholdPace * 0.75 },
+    thresholdPaceKmh: thresholdPace,
+    intervalPaceKmh: estimatedVVO2max * 0.98,
+    repetitionPaceKmh: estimatedVVO2max * 1.05,
     vdot: null,
   }
 }
@@ -1556,7 +1633,7 @@ function estimateTrainingPaces(
  * @deprecated Use estimateTrainingPaces instead for proper Daniels paces
  */
 function estimateMarathonPace(
-  experienceLevel: 'beginner' | 'intermediate' | 'advanced',
+  experienceLevel: ExperienceLevel | 'beginner',
   currentWeeklyVolume?: number,
   recentRaceDistance?: string,
   recentRaceTime?: string

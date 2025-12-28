@@ -151,6 +151,9 @@ export async function POST(request: NextRequest) {
         fitnessLevel: body.fitnessLevel,
         hasGymAccess: body.hasGymAccess,
         preferredActivities: body.preferredActivities,
+
+        // Calendar constraints
+        calendarConstraints: body.calendarConstraints,
       }
 
       // Generate program using sport router
@@ -621,10 +624,16 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     logger.error('Error generating program', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : ''
+    console.error('=== PROGRAM GENERATION ERROR ===')
+    console.error('Error message:', errorMessage)
+    console.error('Error stack:', errorStack)
+    console.error('================================')
     return NextResponse.json(
       {
         success: false,
         error: 'Misslyckades med att skapa träningsprogram',
+        debug: { message: errorMessage, stack: errorStack?.split('\n').slice(0, 5) },
       },
       { status: 500 }
     )

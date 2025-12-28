@@ -272,7 +272,7 @@ export function EventFormDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label>Startdatum</Label>
-              <Popover>
+              <Popover modal={false}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -285,7 +285,7 @@ export function EventFormDialog({
                     {startDate ? format(startDate, 'd MMM yyyy', { locale: sv }) : 'Välj datum'}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-[100]" align="start">
                   <Calendar
                     mode="single"
                     selected={startDate}
@@ -303,7 +303,7 @@ export function EventFormDialog({
 
             <div className="grid gap-2">
               <Label>Slutdatum</Label>
-              <Popover>
+              <Popover modal={false}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -316,7 +316,7 @@ export function EventFormDialog({
                     {endDate ? format(endDate, 'd MMM yyyy', { locale: sv }) : 'Välj datum'}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-[100]" align="start">
                   <Calendar
                     mode="single"
                     selected={endDate}
@@ -518,7 +518,7 @@ export function EventFormDialog({
 
               <div className="grid gap-2">
                 <Label>Beräknad återgång till träning</Label>
-                <Popover>
+                <Popover modal={false}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -533,7 +533,7 @@ export function EventFormDialog({
                         : 'Välj datum'}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-[100]" align="start">
                     <Calendar
                       mode="single"
                       selected={returnToTrainingDate}

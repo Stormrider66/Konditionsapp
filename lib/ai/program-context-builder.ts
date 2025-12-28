@@ -37,9 +37,7 @@ export interface WizardFormData {
 
   // Athlete profile
   experienceLevel?: string
-  yearsRunning?: number
   currentWeeklyVolume?: number
-  longestLongRun?: number
 
   // Race results
   recentRaceDistance?: string
@@ -56,7 +54,6 @@ export interface WizardFormData {
 
   // Equipment
   hasLactateMeter?: boolean
-  hasHRVMonitor?: boolean
   hasPowerMeter?: boolean
 
   // HYROX specific
@@ -183,14 +180,12 @@ export function buildProgramPrompt(context: ProgramContext): string {
   if (wizardData.experienceLevel) {
     const levels: Record<string, string> = {
       beginner: 'Nybörjare',
-      intermediate: 'Mellanliggande',
+      intermediate: 'Medel',
       advanced: 'Avancerad'
     }
     prompt += `- **Erfarenhetsnivå**: ${levels[wizardData.experienceLevel] || wizardData.experienceLevel}\n`
   }
-  if (wizardData.yearsRunning) prompt += `- **År av löpning**: ${wizardData.yearsRunning}\n`
   if (wizardData.currentWeeklyVolume) prompt += `- **Nuvarande veckovolym**: ${wizardData.currentWeeklyVolume} km/vecka\n`
-  if (wizardData.longestLongRun) prompt += `- **Längsta långpass**: ${wizardData.longestLongRun} km\n`
 
   // Program Request
   prompt += '\n## PROGRAMFÖRFRÅGAN\n'
@@ -310,10 +305,9 @@ export function buildProgramPrompt(context: ProgramContext): string {
   }
 
   // Equipment
-  if (wizardData.hasLactateMeter || wizardData.hasHRVMonitor || wizardData.hasPowerMeter) {
+  if (wizardData.hasLactateMeter || wizardData.hasPowerMeter) {
     prompt += '\n## UTRUSTNING\n'
     if (wizardData.hasLactateMeter) prompt += '- Laktatmätare (Norwegian-metoden möjlig)\n'
-    if (wizardData.hasHRVMonitor) prompt += '- HRV-övervakning\n'
     if (wizardData.hasPowerMeter) prompt += '- Wattmätare\n'
   }
 
