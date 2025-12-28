@@ -1,14 +1,34 @@
 // lib/calculations/index.ts
 import { Test, Client, TestCalculations } from '@/types'
 import { calculateBMI, calculateAge } from './basic'
-import { calculateAerobicThreshold, calculateAnaerobicThreshold, calculateDmaxForVisualization, detectLT2Unified } from './thresholds'
+import {
+  calculateAerobicThreshold,
+  calculateAnaerobicThreshold,
+  calculateAerobicThresholdWithOverride,
+  calculateAnaerobicThresholdWithOverride,
+  calculateDmaxForVisualization,
+  detectLT2Unified
+} from './thresholds'
 import { calculateTrainingZones } from './zones'
 import { calculateAllEconomy } from './economy'
 import { identifyVO2max } from './vo2max'
 import { calculateCyclingData, calculateStageWattsPerKg } from './cycling'
 import { convertToLactateData, classifyAthleteProfile } from './elite-threshold-detection'
 
-export async function performAllCalculations(test: Test, client: Client): Promise<TestCalculations> {
+/**
+ * Manual threshold overrides set by test leader
+ */
+export interface ManualThresholdOverrides {
+  manualLT1Lactate?: number | null
+  manualLT1Intensity?: number | null
+  manualLT2Lactate?: number | null
+  manualLT2Intensity?: number | null
+}
+
+export async function performAllCalculations(
+  test: Test & ManualThresholdOverrides,
+  client: Client
+): Promise<TestCalculations> {
   const stages = test.testStages.sort((a, b) => a.sequence - b.sequence)
   const age = calculateAge(client.birthDate)
 
@@ -20,9 +40,26 @@ export async function performAllCalculations(test: Test, client: Client): Promis
   const maxLactate = Math.max(...stages.map((s) => s.lactate))
   const vo2max = identifyVO2max(stages) || 0
 
-  // Trösklar
-  let aerobicThreshold = calculateAerobicThreshold(stages)
-  let anaerobicThreshold = calculateAnaerobicThreshold(stages)
+  // Check for manual overrides from test leader
+  const lt1Override = (test.manualLT1Lactate && test.manualLT1Intensity)
+    ? { lactate: test.manualLT1Lactate, intensity: test.manualLT1Intensity }
+    : null
+
+  const lt2Override = (test.manualLT2Lactate && test.manualLT2Intensity)
+    ? { lactate: test.manualLT2Lactate, intensity: test.manualLT2Intensity }
+    : null
+
+  if (lt1Override || lt2Override) {
+    console.log('╔══════════════════════════════════════════════════════════════╗')
+    console.log('║     MANUAL THRESHOLD OVERRIDES DETECTED                      ║')
+    console.log('╚══════════════════════════════════════════════════════════════╝')
+    if (lt1Override) console.log(`LT1 override: ${lt1Override.lactate} mmol/L @ ${lt1Override.intensity}`)
+    if (lt2Override) console.log(`LT2 override: ${lt2Override.lactate} mmol/L @ ${lt2Override.intensity}`)
+  }
+
+  // Trösklar - use override functions that check for manual values first
+  let aerobicThreshold = calculateAerobicThresholdWithOverride(stages, lt1Override)
+  let anaerobicThreshold = calculateAnaerobicThresholdWithOverride(stages, lt2Override)
 
   if (!aerobicThreshold || !anaerobicThreshold) {
     throw new Error('Kunde inte beräkna tröskelvärden')

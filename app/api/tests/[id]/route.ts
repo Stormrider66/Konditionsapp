@@ -187,6 +187,11 @@ export async function PATCH(
     if (body.aerobicThreshold !== undefined) updateData.aerobicThreshold = body.aerobicThreshold
     if (body.anaerobicThreshold !== undefined) updateData.anaerobicThreshold = body.anaerobicThreshold
     if (body.trainingZones !== undefined) updateData.trainingZones = body.trainingZones
+    // Manual threshold overrides (set by test leader)
+    if (body.manualLT1Lactate !== undefined) updateData.manualLT1Lactate = body.manualLT1Lactate
+    if (body.manualLT1Intensity !== undefined) updateData.manualLT1Intensity = body.manualLT1Intensity
+    if (body.manualLT2Lactate !== undefined) updateData.manualLT2Lactate = body.manualLT2Lactate
+    if (body.manualLT2Intensity !== undefined) updateData.manualLT2Intensity = body.manualLT2Intensity
 
     // Delete old test stages if new ones provided
     if (body.stages && Array.isArray(body.stages)) {

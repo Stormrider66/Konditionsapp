@@ -616,10 +616,259 @@ export function findExponentialRisePoint(
 }
 
 /**
+ * Dickhuth Individual Anaerobic Threshold Method
+ *
+ * Scientific basis: Dickhuth HH et al. (1999) Int J Sports Med
+ *
+ * Method:
+ * 1. Calculate lactate equivalent (lactate / intensity) for each stage
+ * 2. Find the minimum lactate equivalent (most efficient point)
+ * 3. Add 1.5 mmol/L to the lactate at that point = LT2
+ *
+ * This method is more individualized than fixed 4.0 mmol/L because:
+ * - Elite athletes with low baseline (0.8-1.5 mmol/L) get lower LT2
+ * - Recreational athletes with high baseline (1.5-2.5 mmol/L) get appropriate LT2
+ * - Uses the athlete's own lactate curve shape rather than population average
+ */
+export function calculateDickhuthThreshold(stages: TestStage[]): (Threshold & { method: string; confidence: string; minEquivalentIntensity?: number }) | null {
+  console.log('┌── Dickhuth Individual Anaerobic Threshold ─────────────────┐')
+
+  if (stages.length < 3) {
+    console.log('│ ✗ Not enough stages (need 3+)')
+    console.log('└──────────────────────────────────────────────────────────────┘')
+    return null
+  }
+
+  // Determine unit
+  let unit: 'km/h' | 'watt' | 'min/km' = 'km/h'
+  if (stages[0]?.power !== undefined && stages[0].power !== null) {
+    unit = 'watt'
+  } else if (stages[0]?.pace !== undefined && stages[0].pace !== null) {
+    unit = 'min/km'
+  }
+
+  // Calculate lactate equivalent for each stage
+  // For pace (min/km), higher values = slower, so we need to invert
+  const equivalents: { stage: TestStage; intensity: number; equivalent: number }[] = []
+
+  for (const stage of stages) {
+    let intensity: number
+    if (unit === 'km/h') {
+      intensity = stage.speed || 0
+    } else if (unit === 'watt') {
+      intensity = stage.power || 0
+    } else {
+      // For pace, convert to speed equivalent (60 / pace = km/h)
+      intensity = stage.pace ? 60 / stage.pace : 0
+    }
+
+    if (intensity <= 0 || !stage.lactate) continue
+
+    // Lactate equivalent = lactate / intensity
+    // Lower values = more efficient (producing less lactate per unit intensity)
+    const equivalent = stage.lactate / intensity
+    equivalents.push({ stage, intensity, equivalent })
+
+    console.log(`│ ${intensity.toFixed(1)} ${unit}: ${stage.lactate.toFixed(2)} mmol/L → equiv = ${equivalent.toFixed(4)}`)
+  }
+
+  if (equivalents.length < 3) {
+    console.log('│ ✗ Not enough valid data points')
+    console.log('└──────────────────────────────────────────────────────────────┘')
+    return null
+  }
+
+  // Find minimum lactate equivalent (most efficient point = aerobic threshold zone)
+  let minEquivalent = equivalents[0]
+  for (const eq of equivalents) {
+    if (eq.equivalent < minEquivalent.equivalent) {
+      minEquivalent = eq
+    }
+  }
+
+  console.log(`│ `)
+  console.log(`│ ★ Minimum lactate equivalent found:`)
+  console.log(`│   Intensity: ${minEquivalent.intensity.toFixed(1)} ${unit}`)
+  console.log(`│   Lactate: ${minEquivalent.stage.lactate.toFixed(2)} mmol/L`)
+  console.log(`│   Equivalent: ${minEquivalent.equivalent.toFixed(4)}`)
+
+  // LT2 = lactate at minimum equivalent + 1.5 mmol/L
+  const lt2Lactate = minEquivalent.stage.lactate + 1.5
+  console.log(`│ `)
+  console.log(`│ LT2 target = ${minEquivalent.stage.lactate.toFixed(2)} + 1.5 = ${lt2Lactate.toFixed(2)} mmol/L`)
+
+  // Find stages that bracket the LT2 lactate value
+  let lt2Below: TestStage | null = null
+  let lt2Above: TestStage | null = null
+
+  for (let i = 0; i < stages.length; i++) {
+    if (stages[i].lactate <= lt2Lactate) {
+      lt2Below = stages[i]
+    } else if (!lt2Above && stages[i].lactate > lt2Lactate) {
+      lt2Above = stages[i]
+      break
+    }
+  }
+
+  if (!lt2Below || !lt2Above) {
+    // Can't interpolate - use closest stage
+    console.log('│ ⚠ Cannot interpolate, using closest stage')
+
+    let closestStage = stages[0]
+    let closestDiff = Math.abs(stages[0].lactate - lt2Lactate)
+    for (const stage of stages) {
+      const diff = Math.abs(stage.lactate - lt2Lactate)
+      if (diff < closestDiff) {
+        closestDiff = diff
+        closestStage = stage
+      }
+    }
+
+    let value: number
+    if (unit === 'km/h') {
+      value = closestStage.speed || 0
+    } else if (unit === 'watt') {
+      value = closestStage.power || 0
+    } else {
+      value = closestStage.pace || 0
+    }
+
+    console.log(`│ ✓ Dickhuth LT2 (estimation):`)
+    console.log(`│   Intensity: ${value.toFixed(1)} ${unit}`)
+    console.log(`│   Lactate: ${closestStage.lactate.toFixed(2)} mmol/L`)
+    console.log('└──────────────────────────────────────────────────────────────┘')
+
+    return {
+      heartRate: Math.round(closestStage.heartRate),
+      value: Number(value.toFixed(1)),
+      unit,
+      lactate: Number(closestStage.lactate.toFixed(2)),
+      percentOfMax: 0,
+      method: 'DICKHUTH_ESTIMATED',
+      confidence: 'LOW',
+      minEquivalentIntensity: minEquivalent.intensity
+    }
+  }
+
+  // Interpolate to find exact LT2 point
+  const factor = (lt2Lactate - lt2Below.lactate) / (lt2Above.lactate - lt2Below.lactate)
+  const hr = lt2Below.heartRate + factor * (lt2Above.heartRate - lt2Below.heartRate)
+
+  let value: number
+  if (unit === 'km/h') {
+    value = (lt2Below.speed || 0) + factor * ((lt2Above.speed || 0) - (lt2Below.speed || 0))
+  } else if (unit === 'watt') {
+    value = (lt2Below.power || 0) + factor * ((lt2Above.power || 0) - (lt2Below.power || 0))
+  } else {
+    value = (lt2Below.pace || 0) + factor * ((lt2Above.pace || 0) - (lt2Below.pace || 0))
+  }
+
+  console.log(`│ ✓ Dickhuth LT2 (interpolated):`)
+  console.log(`│   Intensity: ${value.toFixed(1)} ${unit}`)
+  console.log(`│   Lactate: ${lt2Lactate.toFixed(2)} mmol/L`)
+  console.log(`│   Heart Rate: ${Math.round(hr)} bpm`)
+  console.log('└──────────────────────────────────────────────────────────────┘')
+
+  return {
+    heartRate: Math.round(hr),
+    value: Number(value.toFixed(1)),
+    unit,
+    lactate: Number(lt2Lactate.toFixed(2)),
+    percentOfMax: 0,
+    method: 'DICKHUTH',
+    confidence: 'MEDIUM',
+    minEquivalentIntensity: minEquivalent.intensity
+  }
+}
+
+/**
+ * Apply manual threshold override if provided
+ * Returns threshold based on test leader's manual values
+ */
+export function applyManualThresholdOverride(
+  stages: TestStage[],
+  manualLactate: number,
+  manualIntensity: number,
+  thresholdType: 'LT1' | 'LT2'
+): Threshold & { method: string; confidence: string } {
+  console.log(`┌── Manual ${thresholdType} Override ────────────────────────────┐`)
+  console.log(`│ Manual lactate: ${manualLactate.toFixed(2)} mmol/L`)
+  console.log(`│ Manual intensity: ${manualIntensity.toFixed(1)}`)
+
+  // Determine unit
+  let unit: 'km/h' | 'watt' | 'min/km' = 'km/h'
+  if (stages[0]?.power !== undefined && stages[0].power !== null) {
+    unit = 'watt'
+  } else if (stages[0]?.pace !== undefined && stages[0].pace !== null) {
+    unit = 'min/km'
+  }
+
+  // Find heart rate at or near the manual intensity
+  let closestStage = stages[0]
+  let closestDiff = Infinity
+
+  for (const stage of stages) {
+    let stageIntensity: number
+    if (unit === 'km/h') {
+      stageIntensity = stage.speed || 0
+    } else if (unit === 'watt') {
+      stageIntensity = stage.power || 0
+    } else {
+      stageIntensity = stage.pace || 0
+    }
+
+    const diff = Math.abs(stageIntensity - manualIntensity)
+    if (diff < closestDiff) {
+      closestDiff = diff
+      closestStage = stage
+    }
+  }
+
+  // Interpolate HR if possible
+  let hr = closestStage.heartRate
+  for (let i = 0; i < stages.length - 1; i++) {
+    let intensity1: number, intensity2: number
+    if (unit === 'km/h') {
+      intensity1 = stages[i].speed || 0
+      intensity2 = stages[i + 1].speed || 0
+    } else if (unit === 'watt') {
+      intensity1 = stages[i].power || 0
+      intensity2 = stages[i + 1].power || 0
+    } else {
+      intensity1 = stages[i].pace || 0
+      intensity2 = stages[i + 1].pace || 0
+    }
+
+    if ((intensity1 <= manualIntensity && manualIntensity <= intensity2) ||
+        (intensity1 >= manualIntensity && manualIntensity >= intensity2)) {
+      const factor = (manualIntensity - intensity1) / (intensity2 - intensity1)
+      hr = stages[i].heartRate + factor * (stages[i + 1].heartRate - stages[i].heartRate)
+      break
+    }
+  }
+
+  console.log(`│ Interpolated HR: ${Math.round(hr)} bpm`)
+  console.log(`│ ✓ Using manual override`)
+  console.log('└──────────────────────────────────────────────────────────────┘')
+
+  return {
+    heartRate: Math.round(hr),
+    value: Number(manualIntensity.toFixed(1)),
+    unit,
+    lactate: Number(manualLactate.toFixed(2)),
+    percentOfMax: 0,
+    method: `MANUAL_${thresholdType}`,
+    confidence: 'HIGH'
+  }
+}
+
+/**
  * Unified LT2 detection using multiple methods with priority:
- * 1. Modified D-max (Bishop) - Primary, most robust
- * 2. Exponential Rise Detection - Fallback for clear inflection curves
- * 3. Baseline + 1.0 mmol/L - Last resort
+ * 1. Manual override (if provided by test leader)
+ * 2. Modified D-max (Bishop) - Primary algorithmic method
+ * 3. Exponential Rise Detection - Fallback for clear inflection curves
+ * 4. Dickhuth method (min lactate equivalent + 1.5) - Better than fixed 4.0
+ * 5. Baseline + 1.0 mmol/L - Last resort
  *
  * Returns the best LT2 estimate with method and confidence indicators
  */
@@ -628,7 +877,7 @@ export function detectLT2Unified(
   profile: AthleteProfile
 ): (Threshold & { method: string; confidence: string }) | null {
   console.log('╔══════════════════════════════════════════════════════════════╗')
-  console.log('║     UNIFIED LT2 DETECTION (3-Method Hierarchy)              ║')
+  console.log('║     UNIFIED LT2 DETECTION (4-Method Hierarchy)              ║')
   console.log('╚══════════════════════════════════════════════════════════════╝')
   console.log(`Profile: ${profile.type}, Baseline: ${profile.baselineAvg.toFixed(2)} mmol/L`)
 
@@ -678,9 +927,26 @@ export function detectLT2Unified(
   console.log('└──────────────────────────────────────────────────────────────┘')
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // METHOD 3: Baseline + 1.0 mmol/L - LAST RESORT
+  // METHOD 3: Dickhuth Individual Anaerobic Threshold
+  // Uses minimum lactate equivalent + 1.5 mmol/L (more individualized than fixed values)
   // ═══════════════════════════════════════════════════════════════════════════
-  console.log('\n┌── METHOD 3: Baseline + 1.0 mmol/L (Last Resort) ─────────────┐')
+  console.log('\n┌── METHOD 3: Dickhuth (Min Equiv + 1.5 mmol/L) ───────────────┐')
+  const dickhuthResult = calculateDickhuthThreshold(stages)
+
+  if (dickhuthResult && dickhuthResult.confidence !== 'LOW') {
+    console.log('│ ✓ Dickhuth method SUCCESS - using as LT2')
+    console.log(`│   Intensity: ${dickhuthResult.value} ${unit}`)
+    console.log(`│   Lactate: ${dickhuthResult.lactate} mmol/L`)
+    console.log('└──────────────────────────────────────────────────────────────┘')
+    return dickhuthResult
+  }
+  console.log('│ ✗ Dickhuth method failed or low confidence')
+  console.log('└──────────────────────────────────────────────────────────────┘')
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // METHOD 4: Baseline + 1.0 mmol/L - LAST RESORT
+  // ═══════════════════════════════════════════════════════════════════════════
+  console.log('\n┌── METHOD 4: Baseline + 1.0 mmol/L (Last Resort) ─────────────┐')
 
   const minLactate = Math.min(...stages.map(s => s.lactate))
   const lt2Target = Math.max(minLactate + 1.0, 2.0)
@@ -801,9 +1067,31 @@ export function calculateAnaerobicThreshold(stages: TestStage[]): Threshold | nu
     return dmaxResult
   }
 
-  console.log('D-max not available, using traditional 4.0 mmol/L method')
+  console.log('D-max not available, trying Dickhuth method')
 
-  // Fallback to traditional linear interpolation at 4.0 mmol/L
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FALLBACK 1: Dickhuth Individual Anaerobic Threshold
+  // Uses minimum lactate equivalent + 1.5 mmol/L
+  // More individualized than fixed 4.0 mmol/L
+  // ═══════════════════════════════════════════════════════════════════════════
+  const dickhuthResult = calculateDickhuthThreshold(stages)
+
+  if (dickhuthResult && dickhuthResult.confidence !== 'LOW') {
+    console.log('✓ Dickhuth method SUCCESS:', {
+      intensity: dickhuthResult.value,
+      lactate: dickhuthResult.lactate,
+      method: dickhuthResult.method,
+      confidence: dickhuthResult.confidence
+    })
+    return dickhuthResult
+  }
+
+  console.log('Dickhuth method not available or low confidence, using traditional 4.0 mmol/L method')
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FALLBACK 2: Traditional linear interpolation at 4.0 mmol/L
+  // Last resort - less accurate for elite and recreational athletes
+  // ═══════════════════════════════════════════════════════════════════════════
   // Specialhantering för "andra gången över 4"
   let firstCrossing = -1
   let secondCrossingBelow: TestStage | null = null
@@ -874,4 +1162,77 @@ export function calculateAnaerobicThreshold(stages: TestStage[]): Threshold | nu
   console.log('Final anaerobic threshold:', threshold)
 
   return threshold
+}
+
+/**
+ * Calculate anaerobic threshold with manual override support
+ *
+ * Priority:
+ * 1. Manual override (if provided by test leader)
+ * 2. D-max methods (Bishop Modified for elite, Standard for others)
+ * 3. Dickhuth method (min lactate equivalent + 1.5 mmol/L)
+ * 4. Fixed 4.0 mmol/L (last resort)
+ */
+export function calculateAnaerobicThresholdWithOverride(
+  stages: TestStage[],
+  manualOverride?: { lactate: number; intensity: number } | null
+): Threshold | null {
+  console.log('╔══════════════════════════════════════════════════════════════╗')
+  console.log('║  ANAEROBIC THRESHOLD WITH MANUAL OVERRIDE SUPPORT           ║')
+  console.log('╚══════════════════════════════════════════════════════════════╝')
+
+  // Check for manual override first
+  if (manualOverride && manualOverride.lactate > 0 && manualOverride.intensity > 0) {
+    console.log('┌── MANUAL OVERRIDE DETECTED ─────────────────────────────────┐')
+    console.log(`│ Manual LT2 lactate: ${manualOverride.lactate} mmol/L`)
+    console.log(`│ Manual LT2 intensity: ${manualOverride.intensity}`)
+    console.log('└──────────────────────────────────────────────────────────────┘')
+
+    return applyManualThresholdOverride(
+      stages,
+      manualOverride.lactate,
+      manualOverride.intensity,
+      'LT2'
+    )
+  }
+
+  // No manual override - use algorithmic detection
+  return calculateAnaerobicThreshold(stages)
+}
+
+/**
+ * Calculate aerobic threshold with manual override support
+ *
+ * Priority:
+ * 1. Manual override (if provided by test leader)
+ * 2. Elite detection (for flat curves)
+ * 3. D-max (if in 1.5-2.5 mmol/L range)
+ * 4. Linear interpolation at 2.0 mmol/L
+ */
+export function calculateAerobicThresholdWithOverride(
+  stages: TestStage[],
+  manualOverride?: { lactate: number; intensity: number } | null
+): (Threshold & { method?: string; confidence?: string; profileType?: string }) | null {
+  console.log('╔══════════════════════════════════════════════════════════════╗')
+  console.log('║  AEROBIC THRESHOLD WITH MANUAL OVERRIDE SUPPORT             ║')
+  console.log('╚══════════════════════════════════════════════════════════════╝')
+
+  // Check for manual override first
+  if (manualOverride && manualOverride.lactate > 0 && manualOverride.intensity > 0) {
+    console.log('┌── MANUAL OVERRIDE DETECTED ─────────────────────────────────┐')
+    console.log(`│ Manual LT1 lactate: ${manualOverride.lactate} mmol/L`)
+    console.log(`│ Manual LT1 intensity: ${manualOverride.intensity}`)
+    console.log('└──────────────────────────────────────────────────────────────┘')
+
+    const result = applyManualThresholdOverride(
+      stages,
+      manualOverride.lactate,
+      manualOverride.intensity,
+      'LT1'
+    )
+    return { ...result, profileType: 'MANUAL' }
+  }
+
+  // No manual override - use algorithmic detection
+  return calculateAerobicThreshold(stages)
 }

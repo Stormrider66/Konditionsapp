@@ -393,6 +393,12 @@ model Test {
   aerobicThreshold    Json?  // {hr: number, value: number, unit: string}
   anaerobicThreshold  Json?  // {hr: number, value: number, unit: string}
 
+  // Manual threshold overrides (set by test leader when algorithm fails)
+  manualLT1Lactate    Float?  // Manual LT1 lactate value (mmol/L)
+  manualLT1Intensity  Float?  // Manual LT1 intensity (speed/power/pace)
+  manualLT2Lactate    Float?  // Manual LT2 lactate value (mmol/L)
+  manualLT2Intensity  Float?  // Manual LT2 intensity (speed/power/pace)
+
   // Träningszoner
   trainingZones Json?  // Array av zoner
 

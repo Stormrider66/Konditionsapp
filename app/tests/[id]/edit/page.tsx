@@ -30,6 +30,11 @@ export default function EditTestPage() {
   const [stages, setStages] = useState<any[]>([])
   const [notes, setNotes] = useState('')
   const [testDate, setTestDate] = useState('')
+  // Manual threshold overrides
+  const [manualLT1Lactate, setManualLT1Lactate] = useState<string>('')
+  const [manualLT1Intensity, setManualLT1Intensity] = useState<string>('')
+  const [manualLT2Lactate, setManualLT2Lactate] = useState<string>('')
+  const [manualLT2Intensity, setManualLT2Intensity] = useState<string>('')
   const { toast } = useToast()
 
   const fetchTestAndClient = useCallback(async () => {
@@ -50,6 +55,11 @@ export default function EditTestPage() {
         setTestDate(dateStr)
         setNotes(testData.notes || '')
         setStages(testData.testStages || [])
+        // Load manual threshold overrides if they exist
+        setManualLT1Lactate(testData.manualLT1Lactate?.toString() || '')
+        setManualLT1Intensity(testData.manualLT1Intensity?.toString() || '')
+        setManualLT2Lactate(testData.manualLT2Lactate?.toString() || '')
+        setManualLT2Intensity(testData.manualLT2Intensity?.toString() || '')
       } else {
         setError(result.error || 'Test not found')
       }
@@ -131,16 +141,27 @@ export default function EditTestPage() {
         cadence: stage.cadence ? parseInt(stage.cadence) : undefined,
       }))
 
-      const updatedTest: Test = {
+      const updatedTest = {
         ...test,
         testDate: new Date(testDate),
         notes,
         testStages,
+        // Include manual threshold overrides for calculation
+        manualLT1Lactate: manualLT1Lactate ? parseFloat(manualLT1Lactate) : null,
+        manualLT1Intensity: manualLT1Intensity ? parseFloat(manualLT1Intensity) : null,
+        manualLT2Lactate: manualLT2Lactate ? parseFloat(manualLT2Lactate) : null,
+        manualLT2Intensity: manualLT2Intensity ? parseFloat(manualLT2Intensity) : null,
       }
 
       console.log('Starting recalculation...')
+      if (manualLT1Lactate || manualLT2Lactate) {
+        console.log('Manual overrides:', {
+          LT1: manualLT1Lactate ? `${manualLT1Lactate} mmol/L @ ${manualLT1Intensity}` : 'none',
+          LT2: manualLT2Lactate ? `${manualLT2Lactate} mmol/L @ ${manualLT2Intensity}` : 'none',
+        })
+      }
 
-      // Perform calculations
+      // Perform calculations (will use manual overrides if provided)
       const calculations = await performAllCalculations(updatedTest, client)
 
       console.log('Calculations completed:', calculations)
@@ -161,6 +182,11 @@ export default function EditTestPage() {
           aerobicThreshold: calculations.aerobicThreshold,
           anaerobicThreshold: calculations.anaerobicThreshold,
           trainingZones: calculations.trainingZones,
+          // Manual threshold overrides
+          manualLT1Lactate: manualLT1Lactate ? parseFloat(manualLT1Lactate) : null,
+          manualLT1Intensity: manualLT1Intensity ? parseFloat(manualLT1Intensity) : null,
+          manualLT2Lactate: manualLT2Lactate ? parseFloat(manualLT2Lactate) : null,
+          manualLT2Intensity: manualLT2Intensity ? parseFloat(manualLT2Intensity) : null,
         }),
       })
 
@@ -414,6 +440,79 @@ export default function EditTestPage() {
                   className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
+
+              {/* Manual Threshold Override Section */}
+              <Card className="border-amber-200 bg-amber-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <span className="text-amber-600">⚡</span>
+                    Manuell tröskelinställning
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Använd dessa fält för att manuellt ställa in tröskelvärden när algoritmen inte ger korrekta värden.
+                    Lämna tom för automatisk beräkning.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* LT1 - Aerobic Threshold */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">LT1 (Aerob tröskel)</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Laktat (mmol/L)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="t.ex. 2.0"
+                          value={manualLT1Lactate}
+                          onChange={(e) => setManualLT1Lactate(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">
+                          {test?.testType === 'RUNNING' ? 'Hastighet (km/h)' : 'Effekt (watt)'}
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder={test?.testType === 'RUNNING' ? 't.ex. 12.5' : 't.ex. 200'}
+                          value={manualLT1Intensity}
+                          onChange={(e) => setManualLT1Intensity(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* LT2 - Anaerobic Threshold */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">LT2 (Anaerob tröskel)</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Laktat (mmol/L)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="t.ex. 4.0"
+                          value={manualLT2Lactate}
+                          onChange={(e) => setManualLT2Lactate(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">
+                          {test?.testType === 'RUNNING' ? 'Hastighet (km/h)' : 'Effekt (watt)'}
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder={test?.testType === 'RUNNING' ? 't.ex. 15.0' : 't.ex. 280'}
+                          value={manualLT2Intensity}
+                          onChange={(e) => setManualLT2Intensity(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               <Button
                 type="submit"
