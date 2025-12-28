@@ -61,10 +61,56 @@ export interface MethodologyPaces {
   intervalPaceKmh?: number     // 100% VDOT velocity
   repetitionPaceKmh?: number   // 110% VDOT velocity
 
-  // Source data
+  // Source data and priority flags
   vdot?: number | null
-  lt2SpeedKmh?: number | null  // From lactate test (most accurate for Norwegian)
-  hasLactateTestData: boolean
+  vo2max?: number | null        // Actual VO2max from lab test (highest priority)
+  lt2SpeedKmh?: number | null   // From lactate test (for Norwegian)
+  hasLabTestData: boolean       // True if using actual VO2max from lab
+  hasLactateTestData: boolean   // True if using LT2 from lactate test
+  dataSource: 'LAB_VO2MAX' | 'LACTATE_TEST' | 'RACE_TIME' | 'ESTIMATION'
+}
+
+/**
+ * Extract actual VO2max from lab test data
+ * This is the most accurate source - direct measurement, not estimation
+ *
+ * Priority hierarchy for pace calculation:
+ * 1. Actual VO2max from lab test (this function)
+ * 2. LT2 from lactate test (extractLT2FromTest)
+ * 3. Race time VDOT estimation
+ * 4. Experience-based estimation
+ */
+function extractVO2maxFromTest(test?: Test): { vo2max: number | null; hasLabTest: boolean } {
+  if (!test) {
+    return { vo2max: null, hasLabTest: false }
+  }
+
+  // Check for actual VO2max from lab test
+  const vo2max = (test as any).vo2max as number | null | undefined
+
+  if (vo2max && vo2max > 0) {
+    console.log(`[extractVO2maxFromTest] Found actual VO2max from lab test: ${vo2max} ml/kg/min`)
+    return { vo2max, hasLabTest: true }
+  }
+
+  return { vo2max: null, hasLabTest: false }
+}
+
+/**
+ * Convert actual VO2max to VDOT equivalent
+ * VDOT ≈ VO2max for well-trained runners (Daniels uses them interchangeably)
+ * For less trained runners, VDOT may be slightly lower than VO2max
+ */
+function vo2maxToVdot(vo2max: number, experienceLevel?: string): number {
+  // VDOT represents "effective" VO2max (running economy adjusted)
+  // Elite runners: VDOT ≈ VO2max (good economy)
+  // Recreational: VDOT ≈ 95-98% of VO2max (less efficient)
+  const efficiencyFactor = experienceLevel === 'advanced' ? 1.0 :
+                            experienceLevel === 'intermediate' ? 0.97 : 0.95
+
+  const vdot = vo2max * efficiencyFactor
+  console.log(`[vo2maxToVdot] VO2max ${vo2max} → VDOT ${vdot.toFixed(1)} (efficiency ${(efficiencyFactor * 100).toFixed(0)}%)`)
+  return vdot
 }
 
 /**
@@ -116,17 +162,67 @@ function calculateMethodologyPaces(
   recentRaceTime?: string,
   goalMarathonPaceKmh?: number
 ): MethodologyPaces {
-  // Extract LT2 from lactate test (gold standard for Norwegian)
+  // =========================================================================
+  // PRIORITY HIERARCHY FOR PACE DATA:
+  // 1. Actual VO2max from lab test (most accurate)
+  // 2. LT2 from lactate test (for threshold-based calculations)
+  // 3. Race time VDOT (if no lab test data)
+  // 4. Experience-based estimation (fallback)
+  // =========================================================================
+
+  // Extract actual VO2max from lab test (Priority 1)
+  const { vo2max, hasLabTest } = extractVO2maxFromTest(test)
+
+  // Extract LT2 from lactate test (Priority 2 - gold standard for Norwegian)
   const { lt2SpeedKmh } = extractLT2FromTest(test)
   const hasLactateTestData = lt2SpeedKmh !== null
 
-  // Get Daniels paces from VDOT (for fallback and Polarized/Pyramidal)
-  const danielsPaces = estimateTrainingPaces(
-    experienceLevel || 'intermediate',
-    currentWeeklyVolume,
-    recentRaceDistance,
-    recentRaceTime
-  )
+  // Determine data source and calculate VDOT
+  let vdot: number | null = null
+  let dataSource: 'LAB_VO2MAX' | 'LACTATE_TEST' | 'RACE_TIME' | 'ESTIMATION'
+
+  if (hasLabTest && vo2max) {
+    // Priority 1: Use actual VO2max from lab test
+    vdot = vo2maxToVdot(vo2max, experienceLevel)
+    dataSource = 'LAB_VO2MAX'
+    console.log(`[calculateMethodologyPaces] Using ACTUAL VO2max from lab: ${vo2max} ml/kg/min → VDOT ${vdot.toFixed(1)}`)
+  } else if (recentRaceDistance && recentRaceTime && recentRaceDistance !== 'NONE') {
+    // Priority 3: Calculate from race time
+    vdot = calculateVdotFromRace(recentRaceDistance, recentRaceTime)
+    dataSource = vdot ? 'RACE_TIME' : 'ESTIMATION'
+    if (vdot) {
+      console.log(`[calculateMethodologyPaces] Using race time VDOT: ${vdot.toFixed(1)}`)
+    }
+  } else {
+    dataSource = 'ESTIMATION'
+  }
+
+  // Get Daniels paces - use actual VDOT if we have it, otherwise estimate
+  let danielsPaces: TrainingPacesResult
+
+  if (vdot) {
+    // We have a real VDOT (from lab or race) - use proper Daniels formulas
+    const paces = getTrainingPacesDaniels(vdot)
+    danielsPaces = {
+      marathonPaceKmh: paces.marathon.kmh,
+      easyPaceKmh: { min: paces.easy.minKmh, max: paces.easy.maxKmh },
+      thresholdPaceKmh: paces.threshold.kmh,
+      intervalPaceKmh: paces.interval.kmh,
+      repetitionPaceKmh: paces.repetition.kmh,
+      vdot,
+    }
+    console.log(`[calculateMethodologyPaces] Daniels paces from VDOT ${vdot.toFixed(1)}:`)
+    console.log(`  Marathon: ${paces.marathon.pace}, Threshold: ${paces.threshold.pace}`)
+  } else {
+    // Fallback: estimate from experience level
+    danielsPaces = estimateTrainingPaces(
+      experienceLevel || 'intermediate',
+      currentWeeklyVolume,
+      recentRaceDistance,
+      recentRaceTime
+    )
+    console.log(`[calculateMethodologyPaces] Using experience-based estimation (no test/race data)`)
+  }
 
   const normalizedMethodology = methodology?.toUpperCase() || 'POLARIZED'
 
@@ -171,9 +267,12 @@ function calculateMethodologyPaces(
       subThresholdPaceKmh,
       norwegianAmPaceKmh,
       norwegianPmPaceKmh,
-      vdot: danielsPaces.vdot,
+      vdot,
+      vo2max,
       lt2SpeedKmh,
+      hasLabTestData: hasLabTest,
       hasLactateTestData,
+      dataSource: hasLactateTestData ? 'LACTATE_TEST' : dataSource,
     }
   }
 
@@ -220,9 +319,12 @@ function calculateMethodologyPaces(
       canovaSpecialEnduranceKmh,
       canovaSpecificKmh,
       canovaSpecialSpeedKmh,
-      vdot: danielsPaces.vdot,
+      vdot,
+      vo2max,
       lt2SpeedKmh,
+      hasLabTestData: hasLabTest,
       hasLactateTestData,
+      dataSource,
     }
   }
 
@@ -244,9 +346,12 @@ function calculateMethodologyPaces(
     thresholdPaceKmh: danielsPaces.thresholdPaceKmh,
     intervalPaceKmh: danielsPaces.intervalPaceKmh,
     repetitionPaceKmh: danielsPaces.repetitionPaceKmh,
-    vdot: danielsPaces.vdot,
+    vdot,
+    vo2max,
     lt2SpeedKmh,
+    hasLabTestData: hasLabTest,
     hasLactateTestData,
+    dataSource,
   }
 }
 
