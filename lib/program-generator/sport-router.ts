@@ -24,25 +24,63 @@ import {
 } from '@/lib/training-engine/calculations/vdot'
 
 // ============================================================================
-// METHODOLOGY-SPECIFIC PACING SYSTEM
+// METHODOLOGY-SPECIFIC PACING SYSTEM - vLT2 PRIMARY ANCHOR
 // ============================================================================
-// Different methodologies use fundamentally different pace calculation systems:
-// - Daniels: VDOT-based (% of VO2max velocity) - used for Polarized/Pyramidal
-// - Norwegian: LT2-based sub-threshold (train 0.3-0.5 mmol/L BELOW threshold)
-// - Canova: Marathon Pace-based (% of goal MP)
+// SCIENTIFIC BASIS (Computational Physiology for Endurance Performance):
+//
+// vLT2 (velocity at Lactate Threshold 2) is the PRIMARY anchor because:
+// 1. It ALREADY INTEGRATES running economy - faster runners at same lactate = better economy
+// 2. Two athletes with same VO2max but different LT2% will have DIFFERENT race paces
+// 3. Two athletes with same VO2max but different economy will have DIFFERENT vLT2
+//
+// PRIORITY HIERARCHY (based on research):
+// 1. vLT2 from D-max (Modified D-max for elite) - PRIMARY ANCHOR
+// 2. vVO2max (VO2max ÷ Economy) - For interval pacing
+// 3. Race time VDOT - Validation/cross-check
+// 4. Experience-based estimation - Fallback
+//
+// Race Pace Coefficients from vLT2 (Table 2 from research):
+// | Race          | Elite    | Advanced | Recreational |
+// |---------------|----------|----------|--------------|
+// | 5K            | 1.10-1.12| 1.06-1.08| 1.03-1.05    |
+// | 10K           | 1.04-1.05| 1.01-1.03| 0.98-1.00    |
+// | Half Marathon | 0.96-0.98| 0.94-0.95| 0.90-0.93    |
+// | Marathon      | 0.92-0.94| 0.88-0.91| 0.80-0.85    |
 // ============================================================================
 
 /**
+ * Athlete level classification based on vLT2 speed
+ * Used to select appropriate race pace coefficients
+ */
+export type AthleteLevelFromVLT2 = 'ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'RECREATIONAL'
+
+/**
+ * Race pace coefficients from vLT2 - based on research Table 2
+ * These represent the % of vLT2 sustainable for each race distance
+ */
+export interface RacePaceCoefficients {
+  level: AthleteLevelFromVLT2
+  v5k: { min: number; max: number }      // Above threshold (anaerobic contribution)
+  v10k: { min: number; max: number }     // At or near threshold
+  vHalfMarathon: { min: number; max: number }  // Below threshold
+  vMarathon: { min: number; max: number }      // Well below threshold
+}
+
+/**
  * Methodology-specific training paces
- * Each methodology calculates paces from different reference points
+ * PRIMARY ANCHOR: vLT2 (velocity at Lactate Threshold 2)
  */
 export interface MethodologyPaces {
   methodology: 'DANIELS' | 'NORWEGIAN' | 'CANOVA'
 
-  // Common reference paces (km/h)
-  marathonPaceKmh: number
+  // ===== PRIMARY ANCHOR: vLT2 =====
+  vLT2Kmh: number                // Velocity at LT2 from D-max (PRIMARY!)
+  athleteLevel: AthleteLevelFromVLT2  // Classification based on vLT2
+
+  // Common reference paces (km/h) - all derived from vLT2
+  marathonPaceKmh: number        // From vLT2 × coefficient
   easyPaceKmh: number
-  thresholdPaceKmh: number  // LT2 pace (4.0 mmol/L)
+  thresholdPaceKmh: number       // = vLT2
 
   // Norwegian-specific (sub-threshold)
   subThresholdPaceKmh?: number      // 2.3-3.0 mmol/L (just below LT2)
@@ -57,17 +95,25 @@ export interface MethodologyPaces {
   canovaSpecificKmh?: number         // 95-105% MP (race zone)
   canovaSpecialSpeedKmh?: number     // 105-110% MP
 
-  // Daniels-specific (VDOT-based)
-  intervalPaceKmh?: number     // 100% VDOT velocity
-  repetitionPaceKmh?: number   // 110% VDOT velocity
+  // Daniels-specific (VDOT-based) - for interval pacing
+  intervalPaceKmh?: number     // From vVO2max
+  repetitionPaceKmh?: number   // ~105% of vVO2max
+  vVO2maxKmh?: number          // Velocity at VO2max (VO2max ÷ Economy)
 
-  // Source data and priority flags
+  // Race pace predictions from vLT2
+  predicted5kPaceKmh?: number
+  predicted10kPaceKmh?: number
+  predictedHalfMarathonPaceKmh?: number
+  predictedMarathonPaceKmh?: number
+
+  // Source data and quality flags
   vdot?: number | null
-  vo2max?: number | null        // Actual VO2max from lab test (highest priority)
-  lt2SpeedKmh?: number | null   // From lactate test (for Norwegian)
-  hasLabTestData: boolean       // True if using actual VO2max from lab
-  hasLactateTestData: boolean   // True if using LT2 from lactate test
-  dataSource: 'LAB_VO2MAX' | 'LACTATE_TEST' | 'RACE_TIME' | 'ESTIMATION'
+  vo2max?: number | null        // Actual VO2max from lab test
+  runningEconomy?: number | null // C_r in ml/kg/km
+  lt2SpeedKmh?: number | null   // Alias for vLT2Kmh
+  hasLabTestData: boolean       // True if we have VO2max + economy
+  hasLactateTestData: boolean   // True if we have D-max vLT2
+  dataSource: 'VLT2_DMAX' | 'VVO2MAX' | 'RACE_TIME' | 'ESTIMATION'
 }
 
 /**
@@ -114,43 +160,239 @@ function vo2maxToVdot(vo2max: number, experienceLevel?: string): number {
 }
 
 /**
- * Extract LT2 (anaerobic threshold) pace from test data
- * This is the gold standard for Norwegian training - actual lactate test results
+ * Extract vLT2 (velocity at LT2) from test data - THE PRIMARY ANCHOR
+ * This is the D-max calculated threshold velocity which already integrates running economy
  */
-function extractLT2FromTest(test?: Test): { lt2SpeedKmh: number | null; lt2PaceMinKm: string | null } {
+function extractVLT2FromTest(test?: Test): {
+  vLT2Kmh: number | null
+  lt2Lactate: number | null
+  lt2HR: number | null
+  hasLactateTest: boolean
+} {
   if (!test?.anaerobicThreshold) {
-    return { lt2SpeedKmh: null, lt2PaceMinKm: null }
+    return { vLT2Kmh: null, lt2Lactate: null, lt2HR: null, hasLactateTest: false }
   }
 
   try {
-    const threshold = test.anaerobicThreshold as { hr?: number; value?: number; unit?: string }
-
-    if (!threshold.value) {
-      return { lt2SpeedKmh: null, lt2PaceMinKm: null }
+    const threshold = test.anaerobicThreshold as {
+      hr?: number
+      value?: number
+      unit?: string
+      lactate?: number
     }
 
-    // The 'value' is typically speed in km/h for running tests
-    const lt2SpeedKmh = threshold.value
-    const lt2PaceMinKm = formatPaceMinKm(lt2SpeedKmh)
+    if (!threshold.value || threshold.value <= 0) {
+      return { vLT2Kmh: null, lt2Lactate: null, lt2HR: null, hasLactateTest: false }
+    }
 
-    console.log(`[extractLT2FromTest] Found LT2 from test: ${lt2SpeedKmh} km/h (${lt2PaceMinKm}/km)`)
-    console.log(`[extractLT2FromTest] LT2 HR: ${threshold.hr || 'N/A'} bpm`)
+    // The 'value' is the velocity at LT2 (D-max calculated)
+    const vLT2Kmh = threshold.value
 
-    return { lt2SpeedKmh, lt2PaceMinKm }
+    console.log(`[extractVLT2FromTest] ★ vLT2 from D-max: ${vLT2Kmh.toFixed(2)} km/h (${formatPaceMinKm(vLT2Kmh)}/km)`)
+    console.log(`[extractVLT2FromTest]   Lactate at LT2: ${threshold.lactate?.toFixed(2) || 'N/A'} mmol/L`)
+    console.log(`[extractVLT2FromTest]   HR at LT2: ${threshold.hr || 'N/A'} bpm`)
+
+    return {
+      vLT2Kmh,
+      lt2Lactate: threshold.lactate || null,
+      lt2HR: threshold.hr || null,
+      hasLactateTest: true
+    }
   } catch (error) {
-    console.warn('[extractLT2FromTest] Failed to parse test data:', error)
-    return { lt2SpeedKmh: null, lt2PaceMinKm: null }
+    console.warn('[extractVLT2FromTest] Failed to parse test data:', error)
+    return { vLT2Kmh: null, lt2Lactate: null, lt2HR: null, hasLactateTest: false }
   }
+}
+
+// Keep old function as alias for compatibility
+function extractLT2FromTest(test?: Test): { lt2SpeedKmh: number | null; lt2PaceMinKm: string | null } {
+  const { vLT2Kmh } = extractVLT2FromTest(test)
+  return {
+    lt2SpeedKmh: vLT2Kmh,
+    lt2PaceMinKm: vLT2Kmh ? formatPaceMinKm(vLT2Kmh) : null
+  }
+}
+
+/**
+ * Extract running economy (C_r) from test data
+ * C_r = oxygen cost in ml/kg/km (lower = more efficient)
+ *
+ * Reference values:
+ * - Elite: 170-190 ml/kg/km
+ * - Well-trained: 200-210 ml/kg/km
+ * - Recreational: 220-240+ ml/kg/km
+ */
+function extractRunningEconomy(test?: Test): { economyCr: number | null; hasEconomy: boolean } {
+  if (!test?.testStages || test.testStages.length === 0) {
+    return { economyCr: null, hasEconomy: false }
+  }
+
+  try {
+    // Find stages with both VO2 and speed data below LT1 (aerobic range)
+    const economyStages = test.testStages.filter(stage =>
+      stage.vo2 && stage.vo2 > 0 &&
+      stage.speed && stage.speed > 0 &&
+      stage.lactate && stage.lactate < 2.5 // Below LT1
+    )
+
+    if (economyStages.length === 0) {
+      console.log('[extractRunningEconomy] No valid economy stages found (need VO2 + speed + lactate < 2.5)')
+      return { economyCr: null, hasEconomy: false }
+    }
+
+    // Calculate C_r for each stage: C_r = VO2 (ml/kg/min) ÷ speed (km/min) = ml/kg/km
+    const crValues = economyStages.map(stage => {
+      const speedKmMin = stage.speed! / 60 // Convert km/h to km/min
+      const cr = stage.vo2! / speedKmMin
+      return cr
+    })
+
+    // Average C_r across aerobic stages
+    const avgCr = crValues.reduce((a, b) => a + b, 0) / crValues.length
+
+    console.log(`[extractRunningEconomy] Running Economy (C_r): ${avgCr.toFixed(1)} ml/kg/km`)
+    console.log(`[extractRunningEconomy]   Stages used: ${economyStages.length}`)
+    console.log(`[extractRunningEconomy]   Quality: ${avgCr < 200 ? 'Excellent' : avgCr < 210 ? 'Good' : avgCr < 230 ? 'Average' : 'Below Average'}`)
+
+    return { economyCr: avgCr, hasEconomy: true }
+  } catch (error) {
+    console.warn('[extractRunningEconomy] Failed to calculate economy:', error)
+    return { economyCr: null, hasEconomy: false }
+  }
+}
+
+/**
+ * Calculate vVO2max (velocity at VO2max) from VO2max and running economy
+ * Formula: vVO2max = VO2max / C_r × 60
+ *
+ * This is used for interval pacing (100% vVO2max) and repetition pacing (~105%)
+ */
+function calculateVVO2max(vo2max: number, economyCr: number): number {
+  // vVO2max (km/h) = VO2max (ml/kg/min) / C_r (ml/kg/km) × 60 (min/h)
+  const vVO2maxKmh = (vo2max / economyCr) * 60
+
+  console.log(`[calculateVVO2max] vVO2max = ${vo2max} / ${economyCr.toFixed(0)} × 60 = ${vVO2maxKmh.toFixed(2)} km/h`)
+  console.log(`[calculateVVO2max]   That's ${formatPaceMinKm(vVO2maxKmh)}/km pace`)
+
+  return vVO2maxKmh
+}
+
+/**
+ * Classify athlete level based on vLT2 speed
+ * Based on research recommendations:
+ * - Elite: vLT2 > 16 km/h (3:45/km or faster at threshold)
+ * - Advanced: vLT2 12-16 km/h (3:45-5:00/km at threshold)
+ * - Intermediate: vLT2 10-12 km/h (5:00-6:00/km at threshold)
+ * - Recreational: vLT2 < 10 km/h (slower than 6:00/km at threshold)
+ */
+function classifyAthleteByVLT2(vLT2Kmh: number): AthleteLevelFromVLT2 {
+  if (vLT2Kmh >= 16) {
+    console.log(`[classifyAthleteByVLT2] ELITE (vLT2 ${vLT2Kmh.toFixed(1)} km/h >= 16)`)
+    return 'ELITE'
+  } else if (vLT2Kmh >= 14) {
+    console.log(`[classifyAthleteByVLT2] ADVANCED (vLT2 ${vLT2Kmh.toFixed(1)} km/h, 14-16 range)`)
+    return 'ADVANCED'
+  } else if (vLT2Kmh >= 11) {
+    console.log(`[classifyAthleteByVLT2] INTERMEDIATE (vLT2 ${vLT2Kmh.toFixed(1)} km/h, 11-14 range)`)
+    return 'INTERMEDIATE'
+  } else {
+    console.log(`[classifyAthleteByVLT2] RECREATIONAL (vLT2 ${vLT2Kmh.toFixed(1)} km/h < 11)`)
+    return 'RECREATIONAL'
+  }
+}
+
+/**
+ * Get race pace coefficients based on athlete level
+ * These coefficients represent the sustainable % of vLT2 for each distance
+ *
+ * From research Table 2 (Computational Physiology for Endurance Performance)
+ */
+function getRacePaceCoefficients(level: AthleteLevelFromVLT2): RacePaceCoefficients {
+  switch (level) {
+    case 'ELITE':
+      return {
+        level,
+        v5k: { min: 1.10, max: 1.12 },      // 10-12% above threshold
+        v10k: { min: 1.04, max: 1.05 },     // 4-5% above threshold
+        vHalfMarathon: { min: 0.96, max: 0.98 },  // 2-4% below threshold
+        vMarathon: { min: 0.92, max: 0.94 }       // 6-8% below threshold
+      }
+
+    case 'ADVANCED':
+      return {
+        level,
+        v5k: { min: 1.06, max: 1.08 },      // 6-8% above threshold
+        v10k: { min: 1.01, max: 1.03 },     // 1-3% above threshold
+        vHalfMarathon: { min: 0.94, max: 0.95 },  // 5-6% below threshold
+        vMarathon: { min: 0.88, max: 0.91 }       // 9-12% below threshold
+      }
+
+    case 'INTERMEDIATE':
+      return {
+        level,
+        v5k: { min: 1.04, max: 1.06 },      // 4-6% above threshold
+        v10k: { min: 0.99, max: 1.01 },     // -1% to +1% of threshold
+        vHalfMarathon: { min: 0.92, max: 0.94 },  // 6-8% below threshold
+        vMarathon: { min: 0.84, max: 0.88 }       // 12-16% below threshold
+      }
+
+    case 'RECREATIONAL':
+    default:
+      return {
+        level,
+        v5k: { min: 1.03, max: 1.05 },      // 3-5% above threshold
+        v10k: { min: 0.98, max: 1.00 },     // -2% to 0% of threshold
+        vHalfMarathon: { min: 0.90, max: 0.93 },  // 7-10% below threshold
+        vMarathon: { min: 0.80, max: 0.85 }       // 15-20% below threshold
+      }
+  }
+}
+
+/**
+ * Calculate predicted race paces from vLT2 using Table 2 coefficients
+ */
+function calculateRacePacesFromVLT2(
+  vLT2Kmh: number,
+  level: AthleteLevelFromVLT2
+): {
+  v5kKmh: number
+  v10kKmh: number
+  vHalfMarathonKmh: number
+  vMarathonKmh: number
+} {
+  const coefficients = getRacePaceCoefficients(level)
+
+  // Use midpoint of coefficient ranges
+  const v5kKmh = vLT2Kmh * ((coefficients.v5k.min + coefficients.v5k.max) / 2)
+  const v10kKmh = vLT2Kmh * ((coefficients.v10k.min + coefficients.v10k.max) / 2)
+  const vHalfMarathonKmh = vLT2Kmh * ((coefficients.vHalfMarathon.min + coefficients.vHalfMarathon.max) / 2)
+  const vMarathonKmh = vLT2Kmh * ((coefficients.vMarathon.min + coefficients.vMarathon.max) / 2)
+
+  console.log(`[calculateRacePacesFromVLT2] Race paces from vLT2 ${vLT2Kmh.toFixed(1)} km/h (${level}):`)
+  console.log(`  5K:   ${v5kKmh.toFixed(2)} km/h (${formatPaceMinKm(v5kKmh)}/km) - ${((coefficients.v5k.min + coefficients.v5k.max) / 2 * 100).toFixed(0)}% of vLT2`)
+  console.log(`  10K:  ${v10kKmh.toFixed(2)} km/h (${formatPaceMinKm(v10kKmh)}/km) - ${((coefficients.v10k.min + coefficients.v10k.max) / 2 * 100).toFixed(0)}% of vLT2`)
+  console.log(`  Half: ${vHalfMarathonKmh.toFixed(2)} km/h (${formatPaceMinKm(vHalfMarathonKmh)}/km) - ${((coefficients.vHalfMarathon.min + coefficients.vHalfMarathon.max) / 2 * 100).toFixed(0)}% of vLT2`)
+  console.log(`  Mara: ${vMarathonKmh.toFixed(2)} km/h (${formatPaceMinKm(vMarathonKmh)}/km) - ${((coefficients.vMarathon.min + coefficients.vMarathon.max) / 2 * 100).toFixed(0)}% of vLT2`)
+
+  return { v5kKmh, v10kKmh, vHalfMarathonKmh, vMarathonKmh }
 }
 
 /**
  * Calculate methodology-specific training paces
  *
+ * NEW PRIORITY HIERARCHY (based on research):
+ * 1. vLT2 from D-max (Modified D-max for elite) - PRIMARY ANCHOR
+ *    - Already integrates running economy
+ *    - Two athletes with same VO2max but different economy = different vLT2
+ * 2. vVO2max (VO2max ÷ Economy × 60) - For interval pacing
+ * 3. Race time VDOT - Validation/cross-check
+ * 4. Experience-based estimation - Fallback
+ *
  * @param methodology - Training methodology (affects how paces are calculated)
- * @param test - Optional lactate test with LT2 data
+ * @param test - Optional lactate test with vLT2 and economy data
  * @param experienceLevel - Athlete experience (for fallback estimation)
- * @param recentRaceDistance - Recent race distance (for VDOT calculation)
- * @param recentRaceTime - Recent race time (for VDOT calculation)
+ * @param recentRaceDistance - Recent race distance (for validation)
+ * @param recentRaceTime - Recent race time (for validation)
  * @param goalMarathonPaceKmh - Optional goal marathon pace (for Canova)
  */
 function calculateMethodologyPaces(
@@ -162,195 +404,244 @@ function calculateMethodologyPaces(
   recentRaceTime?: string,
   goalMarathonPaceKmh?: number
 ): MethodologyPaces {
-  // =========================================================================
-  // PRIORITY HIERARCHY FOR PACE DATA:
-  // 1. Actual VO2max from lab test (most accurate)
-  // 2. LT2 from lactate test (for threshold-based calculations)
-  // 3. Race time VDOT (if no lab test data)
-  // 4. Experience-based estimation (fallback)
-  // =========================================================================
+  console.log('╔══════════════════════════════════════════════════════════════════════╗')
+  console.log('║       vLT2-PRIMARY PACE CALCULATION (Scientific Framework)          ║')
+  console.log('╚══════════════════════════════════════════════════════════════════════╝')
 
-  // Extract actual VO2max from lab test (Priority 1)
+  // =========================================================================
+  // PRIORITY 1: vLT2 from D-max - THE PRIMARY ANCHOR
+  // =========================================================================
+  const { vLT2Kmh, lt2Lactate, lt2HR, hasLactateTest } = extractVLT2FromTest(test)
+
+  // =========================================================================
+  // PRIORITY 2: vVO2max from VO2max + Running Economy - For interval pacing
+  // =========================================================================
   const { vo2max, hasLabTest } = extractVO2maxFromTest(test)
+  const { economyCr, hasEconomy } = extractRunningEconomy(test)
 
-  // Extract LT2 from lactate test (Priority 2 - gold standard for Norwegian)
-  const { lt2SpeedKmh } = extractLT2FromTest(test)
-  const hasLactateTestData = lt2SpeedKmh !== null
-
-  // Determine data source and calculate VDOT
-  let vdot: number | null = null
-  let dataSource: 'LAB_VO2MAX' | 'LACTATE_TEST' | 'RACE_TIME' | 'ESTIMATION'
-
-  if (hasLabTest && vo2max) {
-    // Priority 1: Use actual VO2max from lab test
-    vdot = vo2maxToVdot(vo2max, experienceLevel)
-    dataSource = 'LAB_VO2MAX'
-    console.log(`[calculateMethodologyPaces] Using ACTUAL VO2max from lab: ${vo2max} ml/kg/min → VDOT ${vdot.toFixed(1)}`)
-  } else if (recentRaceDistance && recentRaceTime && recentRaceDistance !== 'NONE') {
-    // Priority 3: Calculate from race time
-    vdot = calculateVdotFromRace(recentRaceDistance, recentRaceTime)
-    dataSource = vdot ? 'RACE_TIME' : 'ESTIMATION'
-    if (vdot) {
-      console.log(`[calculateMethodologyPaces] Using race time VDOT: ${vdot.toFixed(1)}`)
-    }
-  } else {
-    dataSource = 'ESTIMATION'
+  let vVO2maxKmh: number | null = null
+  if (vo2max && economyCr) {
+    vVO2maxKmh = calculateVVO2max(vo2max, economyCr)
   }
 
-  // Get Daniels paces - use actual VDOT if we have it, otherwise estimate
-  let danielsPaces: TrainingPacesResult
-
-  if (vdot) {
-    // We have a real VDOT (from lab or race) - use proper Daniels formulas
-    const paces = getTrainingPacesDaniels(vdot)
-    danielsPaces = {
-      marathonPaceKmh: paces.marathon.kmh,
-      easyPaceKmh: { min: paces.easy.minKmh, max: paces.easy.maxKmh },
-      thresholdPaceKmh: paces.threshold.kmh,
-      intervalPaceKmh: paces.interval.kmh,
-      repetitionPaceKmh: paces.repetition.kmh,
-      vdot,
+  // =========================================================================
+  // PRIORITY 3: Race time VDOT - For validation/cross-check
+  // =========================================================================
+  let vdot: number | null = null
+  if (recentRaceDistance && recentRaceTime && recentRaceDistance !== 'NONE') {
+    vdot = calculateVdotFromRace(recentRaceDistance, recentRaceTime)
+    if (vdot) {
+      console.log(`[calculateMethodologyPaces] Race VDOT: ${vdot.toFixed(1)} (for validation)`)
     }
-    console.log(`[calculateMethodologyPaces] Daniels paces from VDOT ${vdot.toFixed(1)}:`)
-    console.log(`  Marathon: ${paces.marathon.pace}, Threshold: ${paces.threshold.pace}`)
+  }
+
+  // =========================================================================
+  // DETERMINE PRIMARY DATA SOURCE AND vLT2
+  // =========================================================================
+  let primaryVLT2Kmh: number
+  let athleteLevel: AthleteLevelFromVLT2
+  let dataSource: 'VLT2_DMAX' | 'VVO2MAX' | 'RACE_TIME' | 'ESTIMATION'
+
+  if (hasLactateTest && vLT2Kmh) {
+    // PRIORITY 1: Use D-max vLT2 as primary anchor
+    primaryVLT2Kmh = vLT2Kmh
+    dataSource = 'VLT2_DMAX'
+    console.log(`\n★★★ PRIMARY ANCHOR: vLT2 from D-max = ${primaryVLT2Kmh.toFixed(2)} km/h (${formatPaceMinKm(primaryVLT2Kmh)}/km)`)
+    console.log(`    This already integrates running economy!`)
+  } else if (vVO2maxKmh && vo2max) {
+    // PRIORITY 2: Estimate vLT2 from vVO2max
+    // vLT2 ≈ 85-90% of vVO2max for trained runners
+    const estimatedVLT2Percent = experienceLevel === 'advanced' ? 0.90 :
+                                  experienceLevel === 'intermediate' ? 0.87 : 0.85
+    primaryVLT2Kmh = vVO2maxKmh * estimatedVLT2Percent
+    dataSource = 'VVO2MAX'
+    console.log(`\n★ SECONDARY: vLT2 estimated from vVO2max = ${primaryVLT2Kmh.toFixed(2)} km/h`)
+    console.log(`    vVO2max ${vVO2maxKmh.toFixed(2)} × ${(estimatedVLT2Percent * 100).toFixed(0)}% = vLT2`)
+  } else if (vdot) {
+    // PRIORITY 3: Use race VDOT to estimate vLT2
+    const danielsPaces = getTrainingPacesDaniels(vdot)
+    primaryVLT2Kmh = danielsPaces.threshold.kmh
+    dataSource = 'RACE_TIME'
+    console.log(`\n★ TERTIARY: vLT2 from race VDOT = ${primaryVLT2Kmh.toFixed(2)} km/h`)
   } else {
-    // Fallback: estimate from experience level
-    danielsPaces = estimateTrainingPaces(
+    // PRIORITY 4: Estimate from experience level
+    const estimatedPaces = estimateTrainingPaces(
       experienceLevel || 'intermediate',
       currentWeeklyVolume,
       recentRaceDistance,
       recentRaceTime
     )
-    console.log(`[calculateMethodologyPaces] Using experience-based estimation (no test/race data)`)
+    primaryVLT2Kmh = estimatedPaces.thresholdPaceKmh
+    dataSource = 'ESTIMATION'
+    console.log(`\n⚠ FALLBACK: vLT2 from experience estimation = ${primaryVLT2Kmh.toFixed(2)} km/h`)
+    console.log(`    WARNING: No lactate test data - recommend testing for accurate paces`)
+  }
+
+  // Classify athlete by vLT2 speed
+  athleteLevel = classifyAthleteByVLT2(primaryVLT2Kmh)
+
+  // Calculate race pace predictions from vLT2
+  const racePaces = calculateRacePacesFromVLT2(primaryVLT2Kmh, athleteLevel)
+
+  // Calculate easy pace (70-75% of vLT2)
+  const easyPaceKmh = primaryVLT2Kmh * 0.72
+
+  // Calculate interval pace from vVO2max if available, otherwise estimate
+  let intervalPaceKmh: number
+  let repetitionPaceKmh: number
+
+  if (vVO2maxKmh) {
+    // Use actual vVO2max for interval pacing
+    intervalPaceKmh = vVO2maxKmh * 0.98  // ~98-100% of vVO2max
+    repetitionPaceKmh = vVO2maxKmh * 1.05  // ~105% of vVO2max
+    console.log(`\n  Interval paces from vVO2max ${vVO2maxKmh.toFixed(2)} km/h:`)
+    console.log(`    Interval:   ${intervalPaceKmh.toFixed(2)} km/h (${formatPaceMinKm(intervalPaceKmh)}/km)`)
+    console.log(`    Repetition: ${repetitionPaceKmh.toFixed(2)} km/h (${formatPaceMinKm(repetitionPaceKmh)}/km)`)
+  } else {
+    // Estimate from vLT2 (vVO2max ≈ vLT2 / 0.87 for intermediate)
+    const estimatedVVO2max = primaryVLT2Kmh / 0.87
+    intervalPaceKmh = estimatedVVO2max * 0.98
+    repetitionPaceKmh = estimatedVVO2max * 1.05
+    console.log(`\n  Interval paces estimated (no vVO2max data):`)
+    console.log(`    Interval:   ${intervalPaceKmh.toFixed(2)} km/h (${formatPaceMinKm(intervalPaceKmh)}/km)`)
+    console.log(`    Repetition: ${repetitionPaceKmh.toFixed(2)} km/h (${formatPaceMinKm(repetitionPaceKmh)}/km)`)
   }
 
   const normalizedMethodology = methodology?.toUpperCase() || 'POLARIZED'
 
   // =========================================================================
-  // NORWEGIAN METHODOLOGY - Sub-threshold pacing from LT2
+  // NORWEGIAN METHODOLOGY - Sub-threshold pacing from vLT2
   // =========================================================================
   if (normalizedMethodology === 'NORWEGIAN_SINGLE' || normalizedMethodology === 'NORWEGIAN_DOUBLES') {
-    // Use actual LT2 from test if available, otherwise estimate from Daniels threshold
-    const lt2Kmh = lt2SpeedKmh || danielsPaces.thresholdPaceKmh
-
     // Norwegian sub-threshold: Train 0.3-0.5 mmol/L BELOW LT2 (not AT it)
     // This typically translates to 3-5% slower than LT2 pace
-    // Reference: Marius Bakken - train at 97% of LT2 pace for sub-threshold
-    const subThresholdPaceKmh = lt2Kmh * 0.97
+    const subThresholdPaceKmh = primaryVLT2Kmh * 0.97
 
-    // Norwegian Doubles AM/PM differentiation:
-    // AM session (Low Zone 2): 2.0-3.0 mmol/L → LT2 pace + ~20 sec/km
-    // PM session (High Zone 2): 3.0-4.0 mmol/L → LT2 pace + ~10 sec/km
-    // Converting time offset to speed: slower pace = lower km/h
-    const amPaceOffset = 20 / 3600 * lt2Kmh  // 20 sec/km slower in km/h terms
-    const pmPaceOffset = 10 / 3600 * lt2Kmh  // 10 sec/km slower in km/h terms
-    const norwegianAmPaceKmh = lt2Kmh * 0.94  // ~6% slower (low Zone 2)
-    const norwegianPmPaceKmh = lt2Kmh * 0.97  // ~3% slower (high Zone 2)
+    // Norwegian Doubles AM/PM differentiation
+    const norwegianAmPaceKmh = primaryVLT2Kmh * 0.94  // ~6% slower (2-3 mmol/L)
+    const norwegianPmPaceKmh = primaryVLT2Kmh * 0.97  // ~3% slower (3-4 mmol/L)
 
-    // Easy pace for Norwegian: very easy, ~75 sec/km slower than LT2
-    const easyPaceKmh = lt2Kmh * 0.78  // Much slower for true recovery
-
-    console.log(`[calculateMethodologyPaces] ${normalizedMethodology}:`)
-    console.log(`  LT2 (reference): ${formatPaceMinKm(lt2Kmh)}/km ${hasLactateTestData ? '(from test)' : '(estimated)'}`)
-    console.log(`  Sub-threshold:   ${formatPaceMinKm(subThresholdPaceKmh)}/km (97% of LT2)`)
+    console.log(`\n[${normalizedMethodology}] Training paces from vLT2 ${primaryVLT2Kmh.toFixed(1)} km/h:`)
+    console.log(`  vLT2 (reference):  ${formatPaceMinKm(primaryVLT2Kmh)}/km ${dataSource === 'VLT2_DMAX' ? '(D-max ★)' : `(${dataSource})`}`)
+    console.log(`  Sub-threshold:     ${formatPaceMinKm(subThresholdPaceKmh)}/km (97% vLT2)`)
     if (normalizedMethodology === 'NORWEGIAN_DOUBLES') {
-      console.log(`  AM session:      ${formatPaceMinKm(norwegianAmPaceKmh)}/km (94% LT2, 2-3 mmol/L)`)
-      console.log(`  PM session:      ${formatPaceMinKm(norwegianPmPaceKmh)}/km (97% LT2, 3-4 mmol/L)`)
+      console.log(`  AM session:        ${formatPaceMinKm(norwegianAmPaceKmh)}/km (94% vLT2)`)
+      console.log(`  PM session:        ${formatPaceMinKm(norwegianPmPaceKmh)}/km (97% vLT2)`)
     }
-    console.log(`  Easy:            ${formatPaceMinKm(easyPaceKmh)}/km`)
+    console.log(`  Easy:              ${formatPaceMinKm(easyPaceKmh)}/km (72% vLT2)`)
 
     return {
       methodology: 'NORWEGIAN',
-      marathonPaceKmh: danielsPaces.marathonPaceKmh,
+      vLT2Kmh: primaryVLT2Kmh,
+      athleteLevel,
+      marathonPaceKmh: racePaces.vMarathonKmh,
       easyPaceKmh,
-      thresholdPaceKmh: lt2Kmh,
+      thresholdPaceKmh: primaryVLT2Kmh,
       subThresholdPaceKmh,
       norwegianAmPaceKmh,
       norwegianPmPaceKmh,
+      intervalPaceKmh,
+      repetitionPaceKmh,
+      vVO2maxKmh: vVO2maxKmh || undefined,
+      predicted5kPaceKmh: racePaces.v5kKmh,
+      predicted10kPaceKmh: racePaces.v10kKmh,
+      predictedHalfMarathonPaceKmh: racePaces.vHalfMarathonKmh,
+      predictedMarathonPaceKmh: racePaces.vMarathonKmh,
       vdot,
       vo2max,
-      lt2SpeedKmh,
-      hasLabTestData: hasLabTest,
-      hasLactateTestData,
-      dataSource: hasLactateTestData ? 'LACTATE_TEST' : dataSource,
+      runningEconomy: economyCr,
+      lt2SpeedKmh: primaryVLT2Kmh,
+      hasLabTestData: hasLabTest && hasEconomy,
+      hasLactateTestData: hasLactateTest,
+      dataSource,
     }
   }
 
   // =========================================================================
-  // CANOVA METHODOLOGY - Marathon Pace-based zones
+  // CANOVA METHODOLOGY - Marathon Pace-based zones (from vLT2-predicted MP)
   // =========================================================================
   if (normalizedMethodology === 'CANOVA') {
-    // Canova uses Goal Marathon Pace as the reference, NOT threshold/VDOT
-    const mpKmh = goalMarathonPaceKmh || danielsPaces.marathonPaceKmh
+    // Use vLT2-predicted marathon pace OR goal pace
+    const mpKmh = goalMarathonPaceKmh || racePaces.vMarathonKmh
 
     // Canova zones as % of Marathon Pace
-    const canovaRegenerationKmh = mpKmh * 0.65     // 60-70% MP (very slow!)
-    const canovaFundamentalKmh = mpKmh * 0.80      // 80% MP
-    const canovaGeneralEnduranceKmh = mpKmh * 0.875 // 85-90% MP (ACTIVE RECOVERY!)
-    const canovaSpecialEnduranceKmh = mpKmh * 0.925 // 90-95% MP
-    const canovaSpecificKmh = mpKmh                 // 95-105% MP (the race zone)
-    const canovaSpecialSpeedKmh = mpKmh * 1.075     // 105-110% MP
+    const canovaRegenerationKmh = mpKmh * 0.65
+    const canovaFundamentalKmh = mpKmh * 0.80
+    const canovaGeneralEnduranceKmh = mpKmh * 0.875  // Active recovery!
+    const canovaSpecialEnduranceKmh = mpKmh * 0.925
+    const canovaSpecificKmh = mpKmh
+    const canovaSpecialSpeedKmh = mpKmh * 1.075
 
-    // Canova threshold is derived from MP with metabolic compression factor
-    // Elite: MP = 96-98% of threshold
-    // Recreational: MP = 82% of threshold
-    // For intermediate athletes, use ~90%
-    const compressionFactor = experienceLevel === 'advanced' ? 0.95 :
-                              experienceLevel === 'intermediate' ? 0.90 : 0.85
-    const thresholdFromMp = mpKmh / compressionFactor
-
-    console.log(`[calculateMethodologyPaces] CANOVA:`)
+    console.log(`\n[CANOVA] Training paces from vLT2 ${primaryVLT2Kmh.toFixed(1)} km/h → MP ${mpKmh.toFixed(1)} km/h:`)
     console.log(`  Marathon Pace (ref): ${formatPaceMinKm(mpKmh)}/km`)
     console.log(`  Regeneration:        ${formatPaceMinKm(canovaRegenerationKmh)}/km (65% MP)`)
     console.log(`  Fundamental:         ${formatPaceMinKm(canovaFundamentalKmh)}/km (80% MP)`)
     console.log(`  General Endurance:   ${formatPaceMinKm(canovaGeneralEnduranceKmh)}/km (87.5% MP - active recovery!)`)
     console.log(`  Special Endurance:   ${formatPaceMinKm(canovaSpecialEnduranceKmh)}/km (92.5% MP)`)
-    console.log(`  Specific:            ${formatPaceMinKm(canovaSpecificKmh)}/km (100% MP - race zone)`)
+    console.log(`  Specific:            ${formatPaceMinKm(canovaSpecificKmh)}/km (100% MP)`)
     console.log(`  Special Speed:       ${formatPaceMinKm(canovaSpecialSpeedKmh)}/km (107.5% MP)`)
 
     return {
       methodology: 'CANOVA',
+      vLT2Kmh: primaryVLT2Kmh,
+      athleteLevel,
       marathonPaceKmh: mpKmh,
-      easyPaceKmh: canovaRegenerationKmh,  // Canova "easy" = regeneration
-      thresholdPaceKmh: thresholdFromMp,
+      easyPaceKmh: canovaRegenerationKmh,
+      thresholdPaceKmh: primaryVLT2Kmh,
       canovaRegenerationKmh,
       canovaFundamentalKmh,
       canovaGeneralEnduranceKmh,
       canovaSpecialEnduranceKmh,
       canovaSpecificKmh,
       canovaSpecialSpeedKmh,
+      intervalPaceKmh,
+      repetitionPaceKmh,
+      vVO2maxKmh: vVO2maxKmh || undefined,
+      predicted5kPaceKmh: racePaces.v5kKmh,
+      predicted10kPaceKmh: racePaces.v10kKmh,
+      predictedHalfMarathonPaceKmh: racePaces.vHalfMarathonKmh,
+      predictedMarathonPaceKmh: racePaces.vMarathonKmh,
       vdot,
       vo2max,
-      lt2SpeedKmh,
-      hasLabTestData: hasLabTest,
-      hasLactateTestData,
+      runningEconomy: economyCr,
+      lt2SpeedKmh: primaryVLT2Kmh,
+      hasLabTestData: hasLabTest && hasEconomy,
+      hasLactateTestData: hasLactateTest,
       dataSource,
     }
   }
 
   // =========================================================================
-  // DANIELS/POLARIZED/PYRAMIDAL - VDOT-based pacing (default)
+  // DANIELS/POLARIZED/PYRAMIDAL - vLT2-based pacing (default)
   // =========================================================================
-  console.log(`[calculateMethodologyPaces] DANIELS (${normalizedMethodology}):`)
-  console.log(`  VDOT:       ${danielsPaces.vdot || 'estimated'}`)
-  console.log(`  Marathon:   ${formatPaceMinKm(danielsPaces.marathonPaceKmh)}/km`)
-  console.log(`  Threshold:  ${formatPaceMinKm(danielsPaces.thresholdPaceKmh)}/km`)
-  console.log(`  Interval:   ${formatPaceMinKm(danielsPaces.intervalPaceKmh)}/km`)
-  console.log(`  Repetition: ${formatPaceMinKm(danielsPaces.repetitionPaceKmh)}/km`)
-  console.log(`  Easy:       ${formatPaceMinKm(danielsPaces.easyPaceKmh.min)}-${formatPaceMinKm(danielsPaces.easyPaceKmh.max)}/km`)
+  console.log(`\n[${normalizedMethodology}] Training paces from vLT2 ${primaryVLT2Kmh.toFixed(1)} km/h:`)
+  console.log(`  vLT2 (anchor):    ${formatPaceMinKm(primaryVLT2Kmh)}/km ${dataSource === 'VLT2_DMAX' ? '(D-max ★)' : `(${dataSource})`}`)
+  console.log(`  Easy:             ${formatPaceMinKm(easyPaceKmh)}/km (72% vLT2)`)
+  console.log(`  Marathon:         ${formatPaceMinKm(racePaces.vMarathonKmh)}/km (from vLT2 coefficients)`)
+  console.log(`  Threshold:        ${formatPaceMinKm(primaryVLT2Kmh)}/km (= vLT2)`)
+  console.log(`  Interval:         ${formatPaceMinKm(intervalPaceKmh)}/km`)
+  console.log(`  Repetition:       ${formatPaceMinKm(repetitionPaceKmh)}/km`)
 
   return {
     methodology: 'DANIELS',
-    marathonPaceKmh: danielsPaces.marathonPaceKmh,
-    easyPaceKmh: (danielsPaces.easyPaceKmh.min + danielsPaces.easyPaceKmh.max) / 2,
-    thresholdPaceKmh: danielsPaces.thresholdPaceKmh,
-    intervalPaceKmh: danielsPaces.intervalPaceKmh,
-    repetitionPaceKmh: danielsPaces.repetitionPaceKmh,
+    vLT2Kmh: primaryVLT2Kmh,
+    athleteLevel,
+    marathonPaceKmh: racePaces.vMarathonKmh,
+    easyPaceKmh,
+    thresholdPaceKmh: primaryVLT2Kmh,
+    intervalPaceKmh,
+    repetitionPaceKmh,
+    vVO2maxKmh: vVO2maxKmh || undefined,
+    predicted5kPaceKmh: racePaces.v5kKmh,
+    predicted10kPaceKmh: racePaces.v10kKmh,
+    predictedHalfMarathonPaceKmh: racePaces.vHalfMarathonKmh,
+    predictedMarathonPaceKmh: racePaces.vMarathonKmh,
     vdot,
     vo2max,
-    lt2SpeedKmh,
-    hasLabTestData: hasLabTest,
-    hasLactateTestData,
+    runningEconomy: economyCr,
+    lt2SpeedKmh: primaryVLT2Kmh,
+    hasLabTestData: hasLabTest && hasEconomy,
+    hasLactateTestData: hasLactateTest,
     dataSource,
   }
 }
