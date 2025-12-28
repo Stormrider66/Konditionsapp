@@ -32,21 +32,26 @@ export default function TestDetailPage() {
         setTest(testData)
         setClient(testData.client)
 
-        // Convert saved calculations from JSON to TypeScript objects
-        const client = testData.client
-        const bmi = client ? (client.weight / ((client.height / 100) ** 2)) : 0
+        // Use full calculations from API (includes economyData, dmaxVisualization, etc.)
+        if (result.calculations) {
+          setCalculations(result.calculations as TestCalculations)
+        } else {
+          // Fallback: Convert saved calculations from JSON to TypeScript objects
+          const client = testData.client
+          const bmi = client ? (client.weight / ((client.height / 100) ** 2)) : 0
 
-        const calculationsData: TestCalculations = {
-          bmi,
-          vo2max: testData.vo2max || 0,
-          maxHR: testData.maxHR || 0,
-          maxLactate: testData.maxLactate || 0,
-          aerobicThreshold: testData.aerobicThreshold as Threshold | null,
-          anaerobicThreshold: testData.anaerobicThreshold as Threshold | null,
-          trainingZones: (testData.trainingZones as TrainingZone[]) || [],
+          const calculationsData: TestCalculations = {
+            bmi,
+            vo2max: testData.vo2max || 0,
+            maxHR: testData.maxHR || 0,
+            maxLactate: testData.maxLactate || 0,
+            aerobicThreshold: testData.aerobicThreshold as Threshold | null,
+            anaerobicThreshold: testData.anaerobicThreshold as Threshold | null,
+            trainingZones: (testData.trainingZones as TrainingZone[]) || [],
+          }
+
+          setCalculations(calculationsData)
         }
-
-        setCalculations(calculationsData)
       } else {
         setError(result.error || 'Test not found')
       }

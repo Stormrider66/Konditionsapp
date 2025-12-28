@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
-import type { TestStatus, Threshold, TrainingZone } from '@/types'
+import { performAllCalculations, ManualThresholdOverrides } from '@/lib/calculations'
+import type { TestStatus, Threshold, TrainingZone, Test, Client } from '@/types'
 
 type RouteParams = {
   params: Promise<{
@@ -51,9 +52,30 @@ export async function GET(
       )
     }
 
+    // Calculate full test data including economyData and dmaxVisualization
+    let fullCalculations = null
+    if (test.client && test.testStages.length > 0) {
+      try {
+        // Prepare test with manual overrides
+        const testWithOverrides = {
+          ...test,
+          manualLT1Lactate: test.manualLT1Lactate,
+          manualLT1Intensity: test.manualLT1Intensity,
+          manualLT2Lactate: test.manualLT2Lactate,
+          manualLT2Intensity: test.manualLT2Intensity,
+        } as unknown as Test & ManualThresholdOverrides
+
+        fullCalculations = await performAllCalculations(testWithOverrides, test.client as unknown as Client)
+      } catch (calcError) {
+        logger.error('Error calculating test results', {}, calcError)
+        // Continue without full calculations - basic data still available
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: test,
+      calculations: fullCalculations,
     })
   } catch (error) {
     logger.error('Error fetching test', {}, error)

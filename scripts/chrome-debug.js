@@ -57,7 +57,7 @@ async function cdpCommand(wsUrl, method, params = {}) {
         ws.close();
         reject(new Error('Timeout'));
       }
-    }, 10000);
+    }, 30000);
 
     ws.on('open', () => {
       ws.send(JSON.stringify({ id, method, params }));
@@ -112,9 +112,7 @@ const commands = {
 
     console.log(`Taking screenshot of: ${tab.title}`);
     const result = await cdpCommand(tab.webSocketDebuggerUrl, 'Page.captureScreenshot', {
-      format: 'png',
-      quality: 100,
-      fromSurface: true
+      format: 'png'
     });
 
     const filepath = path.resolve(filename);
