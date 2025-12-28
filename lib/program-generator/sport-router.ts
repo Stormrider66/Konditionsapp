@@ -23,6 +23,233 @@ import {
   type DanielsTrainingPaces,
 } from '@/lib/training-engine/calculations/vdot'
 
+// ============================================================================
+// METHODOLOGY-SPECIFIC PACING SYSTEM
+// ============================================================================
+// Different methodologies use fundamentally different pace calculation systems:
+// - Daniels: VDOT-based (% of VO2max velocity) - used for Polarized/Pyramidal
+// - Norwegian: LT2-based sub-threshold (train 0.3-0.5 mmol/L BELOW threshold)
+// - Canova: Marathon Pace-based (% of goal MP)
+// ============================================================================
+
+/**
+ * Methodology-specific training paces
+ * Each methodology calculates paces from different reference points
+ */
+export interface MethodologyPaces {
+  methodology: 'DANIELS' | 'NORWEGIAN' | 'CANOVA'
+
+  // Common reference paces (km/h)
+  marathonPaceKmh: number
+  easyPaceKmh: number
+  thresholdPaceKmh: number  // LT2 pace (4.0 mmol/L)
+
+  // Norwegian-specific (sub-threshold)
+  subThresholdPaceKmh?: number      // 2.3-3.0 mmol/L (just below LT2)
+  norwegianAmPaceKmh?: number       // AM session: 2.0-3.0 mmol/L (LT2 + 20s/km)
+  norwegianPmPaceKmh?: number       // PM session: 3.0-4.0 mmol/L (LT2 + 10s/km)
+
+  // Canova-specific (MP-based zones)
+  canovaRegenerationKmh?: number    // 60-70% MP (very slow recovery)
+  canovaFundamentalKmh?: number     // 80% MP
+  canovaGeneralEnduranceKmh?: number // 85-90% MP (active recovery in intervals!)
+  canovaSpecialEnduranceKmh?: number // 90-95% MP
+  canovaSpecificKmh?: number         // 95-105% MP (race zone)
+  canovaSpecialSpeedKmh?: number     // 105-110% MP
+
+  // Daniels-specific (VDOT-based)
+  intervalPaceKmh?: number     // 100% VDOT velocity
+  repetitionPaceKmh?: number   // 110% VDOT velocity
+
+  // Source data
+  vdot?: number | null
+  lt2SpeedKmh?: number | null  // From lactate test (most accurate for Norwegian)
+  hasLactateTestData: boolean
+}
+
+/**
+ * Extract LT2 (anaerobic threshold) pace from test data
+ * This is the gold standard for Norwegian training - actual lactate test results
+ */
+function extractLT2FromTest(test?: Test): { lt2SpeedKmh: number | null; lt2PaceMinKm: string | null } {
+  if (!test?.anaerobicThreshold) {
+    return { lt2SpeedKmh: null, lt2PaceMinKm: null }
+  }
+
+  try {
+    const threshold = test.anaerobicThreshold as { hr?: number; value?: number; unit?: string }
+
+    if (!threshold.value) {
+      return { lt2SpeedKmh: null, lt2PaceMinKm: null }
+    }
+
+    // The 'value' is typically speed in km/h for running tests
+    const lt2SpeedKmh = threshold.value
+    const lt2PaceMinKm = formatPaceMinKm(lt2SpeedKmh)
+
+    console.log(`[extractLT2FromTest] Found LT2 from test: ${lt2SpeedKmh} km/h (${lt2PaceMinKm}/km)`)
+    console.log(`[extractLT2FromTest] LT2 HR: ${threshold.hr || 'N/A'} bpm`)
+
+    return { lt2SpeedKmh, lt2PaceMinKm }
+  } catch (error) {
+    console.warn('[extractLT2FromTest] Failed to parse test data:', error)
+    return { lt2SpeedKmh: null, lt2PaceMinKm: null }
+  }
+}
+
+/**
+ * Calculate methodology-specific training paces
+ *
+ * @param methodology - Training methodology (affects how paces are calculated)
+ * @param test - Optional lactate test with LT2 data
+ * @param experienceLevel - Athlete experience (for fallback estimation)
+ * @param recentRaceDistance - Recent race distance (for VDOT calculation)
+ * @param recentRaceTime - Recent race time (for VDOT calculation)
+ * @param goalMarathonPaceKmh - Optional goal marathon pace (for Canova)
+ */
+function calculateMethodologyPaces(
+  methodology: string,
+  test?: Test,
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced',
+  currentWeeklyVolume?: number,
+  recentRaceDistance?: string,
+  recentRaceTime?: string,
+  goalMarathonPaceKmh?: number
+): MethodologyPaces {
+  // Extract LT2 from lactate test (gold standard for Norwegian)
+  const { lt2SpeedKmh } = extractLT2FromTest(test)
+  const hasLactateTestData = lt2SpeedKmh !== null
+
+  // Get Daniels paces from VDOT (for fallback and Polarized/Pyramidal)
+  const danielsPaces = estimateTrainingPaces(
+    experienceLevel || 'intermediate',
+    currentWeeklyVolume,
+    recentRaceDistance,
+    recentRaceTime
+  )
+
+  const normalizedMethodology = methodology?.toUpperCase() || 'POLARIZED'
+
+  // =========================================================================
+  // NORWEGIAN METHODOLOGY - Sub-threshold pacing from LT2
+  // =========================================================================
+  if (normalizedMethodology === 'NORWEGIAN_SINGLE' || normalizedMethodology === 'NORWEGIAN_DOUBLES') {
+    // Use actual LT2 from test if available, otherwise estimate from Daniels threshold
+    const lt2Kmh = lt2SpeedKmh || danielsPaces.thresholdPaceKmh
+
+    // Norwegian sub-threshold: Train 0.3-0.5 mmol/L BELOW LT2 (not AT it)
+    // This typically translates to 3-5% slower than LT2 pace
+    // Reference: Marius Bakken - train at 97% of LT2 pace for sub-threshold
+    const subThresholdPaceKmh = lt2Kmh * 0.97
+
+    // Norwegian Doubles AM/PM differentiation:
+    // AM session (Low Zone 2): 2.0-3.0 mmol/L → LT2 pace + ~20 sec/km
+    // PM session (High Zone 2): 3.0-4.0 mmol/L → LT2 pace + ~10 sec/km
+    // Converting time offset to speed: slower pace = lower km/h
+    const amPaceOffset = 20 / 3600 * lt2Kmh  // 20 sec/km slower in km/h terms
+    const pmPaceOffset = 10 / 3600 * lt2Kmh  // 10 sec/km slower in km/h terms
+    const norwegianAmPaceKmh = lt2Kmh * 0.94  // ~6% slower (low Zone 2)
+    const norwegianPmPaceKmh = lt2Kmh * 0.97  // ~3% slower (high Zone 2)
+
+    // Easy pace for Norwegian: very easy, ~75 sec/km slower than LT2
+    const easyPaceKmh = lt2Kmh * 0.78  // Much slower for true recovery
+
+    console.log(`[calculateMethodologyPaces] ${normalizedMethodology}:`)
+    console.log(`  LT2 (reference): ${formatPaceMinKm(lt2Kmh)}/km ${hasLactateTestData ? '(from test)' : '(estimated)'}`)
+    console.log(`  Sub-threshold:   ${formatPaceMinKm(subThresholdPaceKmh)}/km (97% of LT2)`)
+    if (normalizedMethodology === 'NORWEGIAN_DOUBLES') {
+      console.log(`  AM session:      ${formatPaceMinKm(norwegianAmPaceKmh)}/km (94% LT2, 2-3 mmol/L)`)
+      console.log(`  PM session:      ${formatPaceMinKm(norwegianPmPaceKmh)}/km (97% LT2, 3-4 mmol/L)`)
+    }
+    console.log(`  Easy:            ${formatPaceMinKm(easyPaceKmh)}/km`)
+
+    return {
+      methodology: 'NORWEGIAN',
+      marathonPaceKmh: danielsPaces.marathonPaceKmh,
+      easyPaceKmh,
+      thresholdPaceKmh: lt2Kmh,
+      subThresholdPaceKmh,
+      norwegianAmPaceKmh,
+      norwegianPmPaceKmh,
+      vdot: danielsPaces.vdot,
+      lt2SpeedKmh,
+      hasLactateTestData,
+    }
+  }
+
+  // =========================================================================
+  // CANOVA METHODOLOGY - Marathon Pace-based zones
+  // =========================================================================
+  if (normalizedMethodology === 'CANOVA') {
+    // Canova uses Goal Marathon Pace as the reference, NOT threshold/VDOT
+    const mpKmh = goalMarathonPaceKmh || danielsPaces.marathonPaceKmh
+
+    // Canova zones as % of Marathon Pace
+    const canovaRegenerationKmh = mpKmh * 0.65     // 60-70% MP (very slow!)
+    const canovaFundamentalKmh = mpKmh * 0.80      // 80% MP
+    const canovaGeneralEnduranceKmh = mpKmh * 0.875 // 85-90% MP (ACTIVE RECOVERY!)
+    const canovaSpecialEnduranceKmh = mpKmh * 0.925 // 90-95% MP
+    const canovaSpecificKmh = mpKmh                 // 95-105% MP (the race zone)
+    const canovaSpecialSpeedKmh = mpKmh * 1.075     // 105-110% MP
+
+    // Canova threshold is derived from MP with metabolic compression factor
+    // Elite: MP = 96-98% of threshold
+    // Recreational: MP = 82% of threshold
+    // For intermediate athletes, use ~90%
+    const compressionFactor = experienceLevel === 'advanced' ? 0.95 :
+                              experienceLevel === 'intermediate' ? 0.90 : 0.85
+    const thresholdFromMp = mpKmh / compressionFactor
+
+    console.log(`[calculateMethodologyPaces] CANOVA:`)
+    console.log(`  Marathon Pace (ref): ${formatPaceMinKm(mpKmh)}/km`)
+    console.log(`  Regeneration:        ${formatPaceMinKm(canovaRegenerationKmh)}/km (65% MP)`)
+    console.log(`  Fundamental:         ${formatPaceMinKm(canovaFundamentalKmh)}/km (80% MP)`)
+    console.log(`  General Endurance:   ${formatPaceMinKm(canovaGeneralEnduranceKmh)}/km (87.5% MP - active recovery!)`)
+    console.log(`  Special Endurance:   ${formatPaceMinKm(canovaSpecialEnduranceKmh)}/km (92.5% MP)`)
+    console.log(`  Specific:            ${formatPaceMinKm(canovaSpecificKmh)}/km (100% MP - race zone)`)
+    console.log(`  Special Speed:       ${formatPaceMinKm(canovaSpecialSpeedKmh)}/km (107.5% MP)`)
+
+    return {
+      methodology: 'CANOVA',
+      marathonPaceKmh: mpKmh,
+      easyPaceKmh: canovaRegenerationKmh,  // Canova "easy" = regeneration
+      thresholdPaceKmh: thresholdFromMp,
+      canovaRegenerationKmh,
+      canovaFundamentalKmh,
+      canovaGeneralEnduranceKmh,
+      canovaSpecialEnduranceKmh,
+      canovaSpecificKmh,
+      canovaSpecialSpeedKmh,
+      vdot: danielsPaces.vdot,
+      lt2SpeedKmh,
+      hasLactateTestData,
+    }
+  }
+
+  // =========================================================================
+  // DANIELS/POLARIZED/PYRAMIDAL - VDOT-based pacing (default)
+  // =========================================================================
+  console.log(`[calculateMethodologyPaces] DANIELS (${normalizedMethodology}):`)
+  console.log(`  VDOT:       ${danielsPaces.vdot || 'estimated'}`)
+  console.log(`  Marathon:   ${formatPaceMinKm(danielsPaces.marathonPaceKmh)}/km`)
+  console.log(`  Threshold:  ${formatPaceMinKm(danielsPaces.thresholdPaceKmh)}/km`)
+  console.log(`  Interval:   ${formatPaceMinKm(danielsPaces.intervalPaceKmh)}/km`)
+  console.log(`  Repetition: ${formatPaceMinKm(danielsPaces.repetitionPaceKmh)}/km`)
+  console.log(`  Easy:       ${formatPaceMinKm(danielsPaces.easyPaceKmh.min)}-${formatPaceMinKm(danielsPaces.easyPaceKmh.max)}/km`)
+
+  return {
+    methodology: 'DANIELS',
+    marathonPaceKmh: danielsPaces.marathonPaceKmh,
+    easyPaceKmh: (danielsPaces.easyPaceKmh.min + danielsPaces.easyPaceKmh.max) / 2,
+    thresholdPaceKmh: danielsPaces.thresholdPaceKmh,
+    intervalPaceKmh: danielsPaces.intervalPaceKmh,
+    repetitionPaceKmh: danielsPaces.repetitionPaceKmh,
+    vdot: danielsPaces.vdot,
+    lt2SpeedKmh,
+    hasLactateTestData,
+  }
+}
+
 export type DataSourceType = 'TEST' | 'PROFILE' | 'MANUAL'
 
 export interface SportProgramParams {
@@ -458,6 +685,14 @@ function createCustomRunningProgram(
         coreSessionsPerWeek: params.coreSessionsPerWeek,
         scheduleStrengthAfterRunning: params.scheduleStrengthAfterRunning,
         scheduleCoreAfterRunning: params.scheduleCoreAfterRunning,
+      },
+      // Methodology context for LT2-based and MP-based pacing
+      {
+        test: undefined,  // No test in custom program - will use race result estimates
+        experienceLevel: params.experienceLevel,
+        currentWeeklyVolume: params.currentWeeklyVolume,
+        recentRaceDistance: params.recentRaceDistance,
+        recentRaceTime: params.recentRaceTime,
       }
     ),
   }
@@ -547,6 +782,14 @@ interface SupplementaryTraining {
   scheduleCoreAfterRunning?: boolean
 }
 
+interface MethodologyContext {
+  test?: Test
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced'
+  currentWeeklyVolume?: number
+  recentRaceDistance?: string
+  recentRaceTime?: string
+}
+
 function createProgressiveWeeks(
   durationWeeks: number,
   startDate: Date,
@@ -555,9 +798,24 @@ function createProgressiveWeeks(
   goal: string,
   methodology: string,
   targetRaceDate?: Date,
-  supplementaryTraining?: SupplementaryTraining
+  supplementaryTraining?: SupplementaryTraining,
+  methodologyContext?: MethodologyContext
 ) {
   const weeks = []
+
+  // Calculate methodology-specific paces (Norwegian uses LT2 from test, Canova uses MP-based)
+  const methodologyPaces = calculateMethodologyPaces(
+    methodology,
+    methodologyContext?.test,
+    methodologyContext?.experienceLevel,
+    methodologyContext?.currentWeeklyVolume,
+    methodologyContext?.recentRaceDistance,
+    methodologyContext?.recentRaceTime,
+    paceProgression.targetPaceKmh  // Goal marathon pace for Canova
+  )
+
+  console.log(`[Progressive Weeks] Methodology: ${methodologyPaces.methodology}`)
+  console.log(`[Progressive Weeks] LT2 test data: ${methodologyPaces.hasLactateTestData ? 'YES ✓' : 'NO (using estimates)'}`)
 
   // Use methodology-specific phase distribution from periodization.ts
   const phaseDistribution = calculatePhases(durationWeeks, methodology)
@@ -604,19 +862,19 @@ function createProgressiveWeeks(
     // Get focus description based on methodology
     const focus = getProgressiveFocus(phase, methodology, weekPaceKmh)
 
-    // Generate days based on methodology
+    // Generate days based on methodology (passing methodology-specific paces)
     let days
     switch (methodology) {
       case 'NORWEGIAN_SINGLE':
       case 'NORWEGIAN_SINGLES':
-        days = createNorwegianSinglesDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, goal)
+        days = createNorwegianSinglesDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, goal, methodologyPaces)
         break
       case 'NORWEGIAN':
       case 'NORWEGIAN_DOUBLES':
-        days = createNorwegianDoublesDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh)
+        days = createNorwegianDoublesDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, methodologyPaces)
         break
       case 'CANOVA':
-        days = createCanovaDays(sessionsPerWeek, phase, phase === 'BASE' ? 'FUNDAMENTAL' : phase === 'BUILD' ? 'SPECIAL' : 'COMPETITION', weekInPhase, weekPaceKmh, goal)
+        days = createCanovaDays(sessionsPerWeek, phase, phase === 'BASE' ? 'FUNDAMENTAL' : phase === 'BUILD' ? 'SPECIAL' : 'COMPETITION', weekInPhase, weekPaceKmh, goal, methodologyPaces)
         break
       case 'PYRAMIDAL':
         days = createPyramidalDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, goal)
@@ -1412,7 +1670,8 @@ function createNorwegianSinglesDays(
   phase: 'BASE' | 'BUILD' | 'PEAK' | 'TAPER',
   weekInPhase: number,
   marathonPaceKmh: number,
-  goal: string
+  goal: string,
+  methodologyPaces?: MethodologyPaces
 ) {
   const days = []
 
@@ -1450,7 +1709,7 @@ function createNorwegianSinglesDays(
       })
     } else if (qualityDays.includes(dayNum)) {
       // Norwegian Singles quality session (sub-threshold intervals)
-      const workout = createNorwegianSinglesWorkout(phase, weekInPhase, marathonPaceKmh, goal, qualityDays.indexOf(dayNum) + 1)
+      const workout = createNorwegianSinglesWorkout(phase, weekInPhase, marathonPaceKmh, goal, qualityDays.indexOf(dayNum) + 1, methodologyPaces)
       days.push({
         dayNumber: dayNum,
         notes: 'Sub-tröskelintervaller',
@@ -1491,18 +1750,45 @@ function createNorwegianSinglesDays(
 /**
  * Create Norwegian Singles quality workout
  * Key: Sub-threshold at LT2 minus 0.7-1.7 mmol/L (just below lactate threshold)
+ *
+ * Norwegian Singles pacing system (from documentation):
+ * - Uses ACTUAL LT2 from lactate test when available (gold standard)
+ * - Sub-threshold = 97% of LT2 pace (trains at 2.3-3.0 mmol/L, not 4.0)
+ * - Allows 3-4 quality sessions per week (vs 1-2 in traditional threshold)
+ *
+ * Interval paces from 5K (when no lactate data):
+ * - 1K intervals: 85-88% of 5K pace
+ * - 2K intervals: 83-86% of 5K pace (~ half marathon pace)
+ * - 3K intervals: 80-83% of 5K pace (~ 30K pace)
  */
 function createNorwegianSinglesWorkout(
   phase: 'BASE' | 'BUILD' | 'PEAK' | 'TAPER',
   weekInPhase: number,
   marathonPaceKmh: number,
   goal: string,
-  sessionNumber: number
+  sessionNumber: number,
+  methodologyPaces?: MethodologyPaces  // Optional: use actual LT2 from test
 ) {
-  // Norwegian Singles pace: ~95-98% of threshold (sub-threshold)
-  // This is slightly slower than LT2 to allow higher volume
-  const thresholdPaceKmh = marathonPaceKmh * 1.05 // Threshold is ~105% marathon pace
-  const subThresholdPaceKmh = thresholdPaceKmh * 0.97 // Sub-threshold ~97% of LT2
+  // Use methodology-specific pacing if available (from lactate test)
+  // Otherwise fall back to estimation from marathon pace
+  let subThresholdPaceKmh: number
+  let thresholdPaceKmh: number
+  let easyPaceKmh: number
+
+  if (methodologyPaces?.subThresholdPaceKmh) {
+    // Using actual LT2 data from lactate test - Norwegian gold standard!
+    subThresholdPaceKmh = methodologyPaces.subThresholdPaceKmh
+    thresholdPaceKmh = methodologyPaces.thresholdPaceKmh
+    easyPaceKmh = methodologyPaces.easyPaceKmh
+    console.log(`[Norwegian Singles] Using LT2 from test: ${formatPaceMinKm(thresholdPaceKmh)}/km`)
+    console.log(`[Norwegian Singles] Sub-threshold pace: ${formatPaceMinKm(subThresholdPaceKmh)}/km`)
+  } else {
+    // Fallback: estimate from marathon pace (less accurate)
+    thresholdPaceKmh = marathonPaceKmh * 1.05  // Threshold ~105% marathon
+    subThresholdPaceKmh = thresholdPaceKmh * 0.97  // Sub-threshold ~97% of LT2
+    easyPaceKmh = marathonPaceKmh * 0.78  // Much slower for Norwegian easy
+    console.log(`[Norwegian Singles] Estimated sub-threshold: ${formatPaceMinKm(subThresholdPaceKmh)}/km (no LT2 test data)`)
+  }
 
   let reps: number, workMin: number, restMin: number, name: string, description: string
 
@@ -1548,7 +1834,7 @@ function createNorwegianSinglesWorkout(
   }
 
   // Calculate total distance for the workout
-  const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace // Easy/jog pace for warmup/cooldown/rest
+  // easyPaceKmh is already defined above from methodologyPaces or fallback
   const workDistanceKm = (reps * workMin / 60) * subThresholdPaceKmh
   const restDistanceKm = ((reps - 1) * restMin / 60) * easyPaceKmh // Jogging during rest
   const warmupCooldownKm = (20 / 60) * easyPaceKmh // 20 min warmup+cooldown
@@ -1661,16 +1947,45 @@ function createNorwegianDoublesWeeks(
 /**
  * Create 7 days with Norwegian Doubles distribution
  * Key: Tuesday & Thursday are double-threshold days (AM + PM sessions)
+ *
+ * Norwegian Doubles AM/PM differentiation (from documentation):
+ * - AM session (Low Zone 2): 2.0-3.0 mmol/L → ~94% of LT2 pace
+ * - PM session (High Zone 2): 3.0-4.0 mmol/L → ~97% of LT2 pace
+ * - Uses ACTUAL LT2 from lactate test when available
+ * - Priming effect: AM primes metabolism for faster PM session
  */
 function createNorwegianDoublesDays(
   sessionsPerWeek: number,
   phase: 'BASE' | 'BUILD' | 'PEAK' | 'TAPER',
   weekInPhase: number,
-  marathonPaceKmh: number
+  marathonPaceKmh: number,
+  methodologyPaces?: MethodologyPaces  // Optional: use actual LT2 from test
 ) {
   const days = []
-  const thresholdPaceKmh = marathonPaceKmh * 1.05
-  const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace
+
+  // Use methodology-specific pacing if available (from lactate test)
+  let thresholdPaceKmh: number
+  let lowThresholdPace: number  // AM session: 2-3 mmol/L
+  let highThresholdPace: number // PM session: 3-4 mmol/L
+  let easyPaceKmh: number
+
+  if (methodologyPaces?.norwegianAmPaceKmh && methodologyPaces?.norwegianPmPaceKmh) {
+    // Using actual LT2 data - Norwegian gold standard!
+    thresholdPaceKmh = methodologyPaces.thresholdPaceKmh
+    lowThresholdPace = methodologyPaces.norwegianAmPaceKmh   // 94% of LT2
+    highThresholdPace = methodologyPaces.norwegianPmPaceKmh  // 97% of LT2
+    easyPaceKmh = methodologyPaces.easyPaceKmh
+    console.log(`[Norwegian Doubles] Using LT2 from test: ${formatPaceMinKm(thresholdPaceKmh)}/km`)
+    console.log(`[Norwegian Doubles] AM pace (2-3 mmol/L): ${formatPaceMinKm(lowThresholdPace)}/km`)
+    console.log(`[Norwegian Doubles] PM pace (3-4 mmol/L): ${formatPaceMinKm(highThresholdPace)}/km`)
+  } else {
+    // Fallback: estimate from marathon pace
+    thresholdPaceKmh = marathonPaceKmh * 1.05
+    lowThresholdPace = thresholdPaceKmh * 0.94   // AM: ~6% slower than LT2
+    highThresholdPace = thresholdPaceKmh * 0.97  // PM: ~3% slower than LT2
+    easyPaceKmh = marathonPaceKmh * 0.78  // Norwegian easy (very slow)
+    console.log(`[Norwegian Doubles] Estimated paces (no LT2 test data)`)
+  }
 
   // Double-threshold days: Tuesday (2) and Thursday (4)
   const doubleDays = [2, 4]
@@ -1723,8 +2038,7 @@ function createNorwegianDoublesDays(
       })
     } else if (doubleDays.includes(dayNum) && phase !== 'TAPER') {
       // Double-threshold day: AM + PM sessions
-      const lowThresholdPace = thresholdPaceKmh * 0.95 // AM: 2-3 mmol/L
-      const highThresholdPace = thresholdPaceKmh * 0.98 // PM: 3-4 mmol/L
+      // lowThresholdPace and highThresholdPace are already set above from methodologyPaces
 
       // AM: 5×6 min with 1 min rest + warmup/cooldown
       const amWorkDistanceKm = (5 * 6 / 60) * lowThresholdPace
@@ -1852,6 +2166,15 @@ function createCanovaWeeks(
 /**
  * Create 7 days with Canova distribution
  * Key workouts: Long intervals at marathon pace, progressive tempo runs
+ *
+ * Canova MP-based pacing system (from documentation):
+ * - All paces calculated as % of Goal Marathon Pace
+ * - Regeneration: 60-70% MP (very slow!)
+ * - Fundamental: 80% MP
+ * - General Endurance: 85-90% MP (used for ACTIVE RECOVERY in intervals!)
+ * - Special Endurance: 90-95% MP
+ * - Specific: 95-105% MP (THE RACE ZONE)
+ * - Special Speed: 105-110% MP
  */
 function createCanovaDays(
   sessionsPerWeek: number,
@@ -1859,12 +2182,47 @@ function createCanovaDays(
   canovaPhase: string,
   weekInPhase: number,
   marathonPaceKmh: number,
-  goal: string
+  goal: string,
+  methodologyPaces?: MethodologyPaces  // Optional: use calculated Canova zones
 ) {
   const days = []
-  const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace
-  const mpPaceKmh = marathonPaceKmh // Marathon pace
-  const thresholdPaceKmh = marathonPaceKmh * 1.08
+
+  // Use methodology-specific pacing if available
+  let mpPaceKmh: number
+  let regenerationPaceKmh: number
+  let fundamentalPaceKmh: number
+  let generalEnduranceKmh: number  // Active recovery during intervals!
+  let specialEnduranceKmh: number
+  let specificPaceKmh: number
+  let specialSpeedKmh: number
+
+  if (methodologyPaces?.canovaSpecificKmh) {
+    // Using Canova-calculated zones
+    mpPaceKmh = methodologyPaces.marathonPaceKmh
+    regenerationPaceKmh = methodologyPaces.canovaRegenerationKmh!  // 65% MP
+    fundamentalPaceKmh = methodologyPaces.canovaFundamentalKmh!   // 80% MP
+    generalEnduranceKmh = methodologyPaces.canovaGeneralEnduranceKmh!  // 87.5% MP
+    specialEnduranceKmh = methodologyPaces.canovaSpecialEnduranceKmh!  // 92.5% MP
+    specificPaceKmh = methodologyPaces.canovaSpecificKmh!  // 100% MP
+    specialSpeedKmh = methodologyPaces.canovaSpecialSpeedKmh!  // 107.5% MP
+
+    console.log(`[Canova] Using MP-based zones:`)
+    console.log(`  MP: ${formatPaceMinKm(mpPaceKmh)}/km`)
+    console.log(`  Regeneration: ${formatPaceMinKm(regenerationPaceKmh)}/km (65% MP)`)
+    console.log(`  Active Recovery: ${formatPaceMinKm(generalEnduranceKmh)}/km (87.5% MP - NOT jogging!)`)
+  } else {
+    // Fallback: calculate from marathon pace
+    mpPaceKmh = marathonPaceKmh
+    regenerationPaceKmh = mpPaceKmh * 0.65     // 65% MP (very slow!)
+    fundamentalPaceKmh = mpPaceKmh * 0.80      // 80% MP
+    generalEnduranceKmh = mpPaceKmh * 0.875    // 87.5% MP (active recovery!)
+    specialEnduranceKmh = mpPaceKmh * 0.925    // 92.5% MP
+    specificPaceKmh = mpPaceKmh                 // 100% MP
+    specialSpeedKmh = mpPaceKmh * 1.075         // 107.5% MP
+  }
+
+  // Canova key principle: "Easy" days are REGENERATION (very slow), not Daniels Easy
+  const easyPaceKmh = regenerationPaceKmh
 
   for (let dayNum = 1; dayNum <= 7; dayNum++) {
     if (dayNum === 7) {
@@ -1894,7 +2252,7 @@ function createCanovaDays(
       })
     } else if (dayNum === 2) {
       // Tuesday: Quality session 1
-      const workout = createCanovaQualityWorkout(canovaPhase, weekInPhase, marathonPaceKmh, goal, 1)
+      const workout = createCanovaQualityWorkout(canovaPhase, weekInPhase, marathonPaceKmh, goal, 1, methodologyPaces)
       days.push({
         dayNumber: dayNum,
         notes: 'Kvalitetspass 1',
@@ -1902,7 +2260,7 @@ function createCanovaDays(
       })
     } else if (dayNum === 4) {
       // Thursday: Quality session 2
-      const workout = createCanovaQualityWorkout(canovaPhase, weekInPhase, marathonPaceKmh, goal, 2)
+      const workout = createCanovaQualityWorkout(canovaPhase, weekInPhase, marathonPaceKmh, goal, 2, methodologyPaces)
       days.push({
         dayNumber: dayNum,
         notes: 'Kvalitetspass 2',
@@ -1958,58 +2316,85 @@ function createCanovaDays(
 
 /**
  * Create Canova quality workout
+ *
+ * Canova workout principles (from documentation):
+ * - ACTIVE RECOVERY during intervals at 85-90% MP (NOT easy jog!)
+ * - Extension principle: Run MORE distance at same pace, not faster
+ * - "Specific Endurance" is the primary training zone (95-105% MP)
  */
 function createCanovaQualityWorkout(
   canovaPhase: string,
   weekInPhase: number,
   marathonPaceKmh: number,
   goal: string,
-  sessionNumber: number
+  sessionNumber: number,
+  methodologyPaces?: MethodologyPaces
 ) {
-  const mpPaceKmh = marathonPaceKmh
-  const thresholdPaceKmh = marathonPaceKmh * 1.08
+  // Use Canova zones if available
+  let mpPaceKmh: number
+  let fundamentalPaceKmh: number
+  let activeRecoveryPaceKmh: number  // 85-90% MP - Canova's key difference!
+  let specialEnduranceKmh: number
+  let specificPaceKmh: number
+  let specialSpeedKmh: number
+
+  if (methodologyPaces?.canovaSpecificKmh) {
+    mpPaceKmh = methodologyPaces.marathonPaceKmh
+    fundamentalPaceKmh = methodologyPaces.canovaFundamentalKmh!
+    activeRecoveryPaceKmh = methodologyPaces.canovaGeneralEnduranceKmh!  // 87.5% MP
+    specialEnduranceKmh = methodologyPaces.canovaSpecialEnduranceKmh!
+    specificPaceKmh = methodologyPaces.canovaSpecificKmh!
+    specialSpeedKmh = methodologyPaces.canovaSpecialSpeedKmh!
+  } else {
+    mpPaceKmh = marathonPaceKmh
+    fundamentalPaceKmh = mpPaceKmh * 0.80
+    activeRecoveryPaceKmh = mpPaceKmh * 0.875  // 87.5% MP - NOT easy jog!
+    specialEnduranceKmh = mpPaceKmh * 0.925
+    specificPaceKmh = mpPaceKmh
+    specialSpeedKmh = mpPaceKmh * 1.075
+  }
+
   const is10KorShorter = goal === '5k' || goal === '10k'
 
   let name: string, description: string, intensity: 'THRESHOLD' | 'INTERVAL' | 'MODERATE'
 
   if (canovaPhase === 'FUNDAMENTAL') {
-    // Fundamental: Build aerobic capacity with varied fartlek
+    // Fundamental: Build aerobic capacity at 80% MP with varied fartlek
     if (sessionNumber === 1) {
       name = 'Varierad fartlek'
-      description = `Fartlek: 8-10 × 2-3 min @ varierande tempo med 1-2 min jogg. Bygg aerob kapacitet.`
+      description = `Fartlek: 8-10 × 2-3 min @ ${formatPaceMinKm(fundamentalPaceKmh)}/km med ${formatPaceMinKm(activeRecoveryPaceKmh)}/km vila. Bygg aerob kapacitet.`
       intensity = 'MODERATE'
     } else {
       name = 'Progressiv tempo'
-      description = `Progressivt tempo: 20-30 min med gradvis ökande tempo. Avsluta @ ${formatPaceMinKm(thresholdPaceKmh)}/km.`
+      description = `Progressivt tempo: Börja @ ${formatPaceMinKm(fundamentalPaceKmh)}/km, avsluta @ ${formatPaceMinKm(specialEnduranceKmh)}/km.`
       intensity = 'THRESHOLD'
     }
   } else if (canovaPhase === 'SPECIAL') {
-    // Special: Marathon-specific intervals
+    // Special: Marathon-specific intervals with ACTIVE RECOVERY (85-90% MP)
     if (sessionNumber === 1) {
       name = 'MP-intervaller'
       description = is10KorShorter
-        ? `6-8 × 1000m @ ${formatPaceMinKm(marathonPaceKmh * 1.1)}/km med 200m jogg. Race-specifik.`
-        : `4-5 × 2000m @ ${formatPaceMinKm(mpPaceKmh)}/km med 400m jogg. Marathon-specifik.`
+        ? `6-8 × 1000m @ ${formatPaceMinKm(specialSpeedKmh)}/km med 400m @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km. Aktiv vila!`
+        : `4-5 × 2000m @ ${formatPaceMinKm(specificPaceKmh)}/km med 400m @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km. Marathon-specifik.`
       intensity = 'THRESHOLD'
     } else {
       name = 'Canova Special Block'
-      description = `Special block: 3 × (3km @ MP + 1km @ tröskel). Bygg uthållighet vid måltempo.`
+      description = `Special block: 3 × (3km @ ${formatPaceMinKm(specificPaceKmh)}/km + 1km @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km). Uthållighet vid MP.`
       intensity = 'THRESHOLD'
     }
   } else {
-    // Competition: Race-specific sharpening
+    // Competition: Race-specific at Specific pace (100% MP)
     name = 'Tävlingsförberedelse'
     description = is10KorShorter
-      ? `4-5 × 1000m @ race pace med full vila. Tävlingskänsla.`
-      : `2 × 3km @ MP med 5 min vila. Slipa formen.`
+      ? `4-5 × 1000m @ ${formatPaceMinKm(specialSpeedKmh)}/km med full vila. Tävlingskänsla.`
+      : `2 × 3km @ ${formatPaceMinKm(specificPaceKmh)}/km med 5 min vila. Slipa formen.`
     intensity = 'INTERVAL'
   }
 
-  // Estimate distance based on 60 min duration and workout intensity
-  // Mix of MP work + easy warmup/cooldown
-  const avgPaceKmh = intensity === 'THRESHOLD' ? thresholdPaceKmh * 0.95 :
-                      intensity === 'INTERVAL' ? marathonPaceKmh * 1.05 :
-                      marathonPaceKmh * 0.85
+  // Estimate distance: Canova workouts include active recovery at 87.5% MP
+  const avgPaceKmh = intensity === 'THRESHOLD' ? specialEnduranceKmh :
+                      intensity === 'INTERVAL' ? specificPaceKmh :
+                      fundamentalPaceKmh
   const estimatedDistanceKm = Math.round((60 / 60) * avgPaceKmh * 10) / 10
 
   return {
