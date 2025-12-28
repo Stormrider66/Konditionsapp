@@ -1,6 +1,6 @@
 // lib/calculations/thresholds.ts
 import { TestStage, Threshold } from '@/types'
-import { calculateDmax, calculateModDmax } from '@/lib/training-engine'
+import { calculateDmax, calculateModDmax, calculateSmartDmax } from '@/lib/training-engine'
 import {
   detectEliteThresholds,
   convertToLactateData,
@@ -153,13 +153,14 @@ export function calculateDmaxForVisualization(stages: TestStage[]): {
     })
 
     // For elite athletes, use Bishop Modified D-max for accurate visualization
+    // For others, use Smart D-max (compares HR-based vs intensity-based, picks best R²)
     let dmaxResult;
     if (profile.type === 'ELITE_FLAT') {
       console.log('[D-max Visualization] ★ ELITE PROFILE - Using Bishop Modified D-max')
       dmaxResult = calculateModDmax({ intensity, lactate, heartRate, unit })
     } else {
-      console.log('[D-max Visualization] Standard profile - Using Standard D-max')
-      dmaxResult = calculateDmax({ intensity, lactate, heartRate, unit })
+      console.log('[D-max Visualization] Standard profile - Using Smart D-max (HR vs Intensity comparison)')
+      dmaxResult = calculateSmartDmax({ intensity, lactate, heartRate, unit })
     }
 
     console.log('[D-max Visualization] Result:', {
@@ -240,10 +241,10 @@ function tryDmaxThreshold(stages: TestStage[]): (Threshold & { method: string; c
       return null
     }
 
-    // Calculate D-max
-    const dmaxResult = calculateDmax({ intensity, lactate, heartRate, unit })
+    // Calculate Smart D-max (compares HR-based vs intensity-based, picks best R²)
+    const dmaxResult = calculateSmartDmax({ intensity, lactate, heartRate, unit })
 
-    console.log('D-max result:', dmaxResult)
+    console.log('Smart D-max result:', dmaxResult, 'Selected method:', dmaxResult.selectedMethod)
 
     // Use D-max if confidence is MEDIUM or HIGH
     if (dmaxResult.confidence === 'HIGH' || dmaxResult.confidence === 'MEDIUM') {

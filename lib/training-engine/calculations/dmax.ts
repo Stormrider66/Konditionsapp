@@ -416,6 +416,197 @@ export function calculateModDmax(data: LactateTestData): DmaxResult {
 }
 
 /**
+ * Calculate D-max using Heart Rate as the x-axis instead of intensity
+ *
+ * Scientific rationale:
+ * - HR directly reflects cardiovascular/metabolic stress
+ * - Robust to protocol variations (incline steps, wind simulation)
+ * - HR integrates all workload factors into single physiological metric
+ * - Particularly useful when tests end with incline increases at constant speed
+ *
+ * The result gives HR at threshold directly, then intensity is interpolated.
+ *
+ * @param data - Lactate test data
+ * @returns D-max result with HR as primary axis
+ */
+export function calculateDmaxByHeartRate(data: LactateTestData): DmaxResult & { hrBasedMethod: boolean } {
+  const { intensity, lactate, heartRate, unit } = data;
+
+  console.log('┌── D-max by Heart Rate ─────────────────────────────────────┐');
+  console.log(`│ Using HR as x-axis instead of ${unit}`);
+
+  // Validation
+  if (heartRate.length < 4) {
+    throw new Error('D-max by HR requires minimum 4 test stages');
+  }
+
+  // Check HR is monotonically increasing (should be in a proper test)
+  let hrIncreasing = true;
+  for (let i = 1; i < heartRate.length; i++) {
+    if (heartRate[i] < heartRate[i - 1] - 2) { // Allow 2 bpm tolerance
+      hrIncreasing = false;
+      break;
+    }
+  }
+
+  if (!hrIncreasing) {
+    console.log('│ ⚠ HR not monotonically increasing - may affect results');
+  }
+
+  // Fit 3rd degree polynomial: lactate = f(heartRate)
+  const regression = fitPolynomial3(heartRate, lactate);
+  const { coefficients, r2 } = regression;
+
+  console.log(`│ Polynomial fit R²: ${r2.toFixed(4)}`);
+
+  if (r2 < 0.85) {
+    // Lower threshold for HR-based (HR can be noisy)
+    console.log('│ ✗ Poor fit - falling back to intensity-based D-max');
+    console.log('└──────────────────────────────────────────────────────────────┘');
+    const fallback = calculateDmax(data);
+    return { ...fallback, hrBasedMethod: false };
+  }
+
+  // Calculate baseline (first HR to last HR)
+  const hr1 = heartRate[0];
+  const lac1 = lactate[0];
+  const hr2 = heartRate[heartRate.length - 1];
+  const lac2 = lactate[lactate.length - 1];
+
+  const baselineSlope = (lac2 - lac1) / (hr2 - hr1);
+  const baselineIntercept = lac1 - baselineSlope * hr1;
+
+  console.log(`│ Baseline: lac = ${baselineSlope.toFixed(4)} × HR + ${baselineIntercept.toFixed(2)}`);
+
+  // Find point of maximum perpendicular distance
+  const dmaxPoint = findMaxPerpendicularDistance(
+    coefficients,
+    baselineSlope,
+    baselineIntercept,
+    hr1,
+    hr2
+  );
+
+  // The D-max point gives us HR at threshold
+  const thresholdHR = dmaxPoint.intensity; // This is HR, not speed
+  const thresholdLactate = dmaxPoint.lactate;
+
+  // Interpolate intensity (speed/power) from HR
+  const thresholdIntensity = interpolateIntensityFromHR(heartRate, intensity, thresholdHR);
+
+  console.log(`│ ★ D-max (HR-based):`);
+  console.log(`│   HR at threshold: ${thresholdHR.toFixed(0)} bpm`);
+  console.log(`│   Lactate: ${thresholdLactate.toFixed(2)} mmol/L`);
+  console.log(`│   Intensity: ${thresholdIntensity.toFixed(1)} ${unit}`);
+  console.log(`│   D-max distance: ${dmaxPoint.distance.toFixed(4)}`);
+  console.log('└──────────────────────────────────────────────────────────────┘');
+
+  // Calculate confidence
+  const confidence = calculateConfidence(r2, dmaxPoint.distance, lactate);
+
+  return {
+    intensity: parseFloat(thresholdIntensity.toFixed(2)),
+    lactate: parseFloat(thresholdLactate.toFixed(2)),
+    heartRate: Math.round(thresholdHR),
+    method: 'DMAX',
+    r2: parseFloat(r2.toFixed(4)),
+    confidence,
+    coefficients,
+    dmaxDistance: parseFloat(dmaxPoint.distance.toFixed(4)),
+    hrBasedMethod: true
+  };
+}
+
+/**
+ * Interpolate intensity (speed/power) from heart rate
+ */
+function interpolateIntensityFromHR(
+  heartRates: number[],
+  intensities: number[],
+  targetHR: number
+): number {
+  // Find bracketing points
+  for (let i = 0; i < heartRates.length - 1; i++) {
+    if (heartRates[i] <= targetHR && heartRates[i + 1] >= targetHR) {
+      const ratio = (targetHR - heartRates[i]) / (heartRates[i + 1] - heartRates[i]);
+      return intensities[i] + ratio * (intensities[i + 1] - intensities[i]);
+    }
+  }
+
+  // Extrapolate if outside range
+  if (targetHR < heartRates[0]) {
+    return intensities[0];
+  }
+  return intensities[intensities.length - 1];
+}
+
+/**
+ * Smart D-max calculation that tries both methods and picks the best
+ *
+ * Priority:
+ * 1. Try HR-based D-max (more robust to protocol variations)
+ * 2. Try intensity-based D-max
+ * 3. Compare R² and use the better fit
+ * 4. If both fail, use fallback
+ */
+export function calculateSmartDmax(data: LactateTestData): DmaxResult & { selectedMethod: string; hrBasedMethod?: boolean } {
+  console.log('╔══════════════════════════════════════════════════════════════╗');
+  console.log('║     SMART D-MAX (HR vs Intensity Comparison)                ║');
+  console.log('╚══════════════════════════════════════════════════════════════╝');
+
+  let hrResult: (DmaxResult & { hrBasedMethod: boolean }) | null = null;
+  let intensityResult: DmaxResult | null = null;
+
+  // Try HR-based D-max
+  try {
+    hrResult = calculateDmaxByHeartRate(data);
+    console.log(`HR-based D-max: R²=${hrResult.r2.toFixed(4)}, confidence=${hrResult.confidence}`);
+  } catch (error) {
+    console.log('HR-based D-max failed:', error);
+  }
+
+  // Try intensity-based D-max
+  try {
+    intensityResult = calculateDmax(data);
+    console.log(`Intensity-based D-max: R²=${intensityResult.r2.toFixed(4)}, confidence=${intensityResult.confidence}`);
+  } catch (error) {
+    console.log('Intensity-based D-max failed:', error);
+  }
+
+  // Compare and select best result
+  if (hrResult && intensityResult) {
+    // Both succeeded - pick the one with better R² and confidence
+    const hrScore = hrResult.r2 * (hrResult.confidence === 'HIGH' ? 1.2 : hrResult.confidence === 'MEDIUM' ? 1.0 : 0.8);
+    const intScore = intensityResult.r2 * (intensityResult.confidence === 'HIGH' ? 1.2 : intensityResult.confidence === 'MEDIUM' ? 1.0 : 0.8);
+
+    console.log(`\nComparison scores: HR=${hrScore.toFixed(3)}, Intensity=${intScore.toFixed(3)}`);
+
+    if (hrScore >= intScore) {
+      console.log('★ Selected: HR-based D-max (better fit)');
+      return { ...hrResult, selectedMethod: 'DMAX_HR' };
+    } else {
+      console.log('★ Selected: Intensity-based D-max (better fit)');
+      return { ...intensityResult, selectedMethod: 'DMAX_INTENSITY', hrBasedMethod: false };
+    }
+  }
+
+  if (hrResult) {
+    console.log('★ Selected: HR-based D-max (intensity-based failed)');
+    return { ...hrResult, selectedMethod: 'DMAX_HR' };
+  }
+
+  if (intensityResult) {
+    console.log('★ Selected: Intensity-based D-max (HR-based failed)');
+    return { ...intensityResult, selectedMethod: 'DMAX_INTENSITY', hrBasedMethod: false };
+  }
+
+  // Both failed - use fallback
+  console.log('★ Both methods failed - using 4.0 mmol/L fallback');
+  const fallback = calculateFallbackThreshold(data, { a: 0, b: 0, c: 0, d: 0 }, 0);
+  return { ...fallback, selectedMethod: 'FALLBACK_4MMOL', hrBasedMethod: false };
+}
+
+/**
  * Find point of maximum perpendicular distance in a specific range
  * Used by Bishop Modified D-max to search only after the modified start point
  */
