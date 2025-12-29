@@ -5,7 +5,7 @@ import { ArrowLeft, Video } from 'lucide-react'
 
 import { requireAthlete, getAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage'
+import { createSignedUrl, normalizeStoragePath, isHttpUrl } from '@/lib/storage/supabase-storage'
 
 import { AthleteVideoUploader } from '@/components/athlete/video/AthleteVideoUploader'
 import { VideoAnalysisDetailCard, AIPoseAnalysis } from '@/components/athlete/video/VideoAnalysisDetailCard'
@@ -76,8 +76,31 @@ export default async function AthleteVideoAnalysisPage() {
       const path = normalizeStoragePath('video-analysis', analysis.videoUrl)
 
       if (!path) {
-        // Likely already a full URL (e.g., signed) - pass through as-is
-        return { ...analysis, videoUrl: analysis.videoUrl }
+        // normalizeStoragePath returns null for HTTP URLs it can't extract a path from.
+        // This could be a valid signed URL OR a malformed legacy URL.
+        if (isHttpUrl(analysis.videoUrl)) {
+          // Check if it looks like a valid Supabase signed URL (contains 'token=' parameter)
+          // or is from a known video hosting domain
+          const looksLikeSignedUrl = analysis.videoUrl.includes('token=') ||
+                                      analysis.videoUrl.includes('supabase.co/storage')
+          if (looksLikeSignedUrl) {
+            // Pass through - it's likely a valid signed URL
+            return { ...analysis, videoUrl: analysis.videoUrl }
+          }
+          // HTTP URL but doesn't look like a valid signed URL - treat as error
+          console.warn('Unrecognized video URL format:', analysis.videoUrl)
+          return {
+            ...analysis,
+            videoUrl: null,
+            videoError: 'Videon kunde inte laddas (ogiltigt URL-format).',
+          }
+        }
+        // Non-HTTP, non-path value - shouldn't happen, but treat as error
+        return {
+          ...analysis,
+          videoUrl: null,
+          videoError: 'Videon saknas för denna analys.',
+        }
       }
 
       try {
