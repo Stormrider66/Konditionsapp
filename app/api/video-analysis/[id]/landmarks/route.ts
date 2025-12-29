@@ -177,28 +177,25 @@ export async function PATCH(
     console.log('[landmarks API] - Will update aiAnalysis text:', aiAnalysisText.length > 0);
     console.log('[landmarks API] - Will update formScore:', aiPoseAnalysis?.score);
     console.log('[landmarks API] - Will set status to COMPLETED:', !!aiPoseAnalysis);
+    // Prisma typings can be stale (e.g. after schema changes). Build update payload as `any`
+    // so this endpoint keeps working even if editor types haven't refreshed yet.
+    const updateData: any = {
+      // IMPORTANT: `landmarksData` contains ONLY the compressed landmarks envelope
+      // (format/frameCount/toonBase64/compressionStats/metadata). Do not mix analysis objects into it.
+      landmarksData: compressedData,
+      ...(aiAnalysisText && { aiAnalysis: aiAnalysisText }),
+      ...(aiPoseAnalysis?.score && { formScore: aiPoseAnalysis.score }),
+      ...(aiPoseAnalysis && { status: 'COMPLETED' }),
+    };
+
+    // Store structured AI pose analysis in dedicated column
+    if (aiPoseAnalysis) {
+      updateData.aiPoseAnalysis = aiPoseAnalysis;
+    }
+
     const updated = await prisma.videoAnalysis.update({
       where: { id },
-      data: {
-        // IMPORTANT: `landmarksData` contains ONLY the compressed landmarks envelope
-        // (format/frameCount/toonBase64/compressionStats/metadata). Do not mix analysis objects into it.
-        landmarksData: compressedData,
-        // Store structured AI pose analysis in dedicated column
-        ...(aiPoseAnalysis && {
-          aiPoseAnalysis: aiPoseAnalysis,
-        }),
-        ...(aiAnalysisText && {
-          aiAnalysis: aiAnalysisText,
-        }),
-        // Update form score if we have one from the AI analysis
-        ...(aiPoseAnalysis?.score && {
-          formScore: aiPoseAnalysis.score,
-        }),
-        // Mark as completed if we have AI analysis
-        ...(aiPoseAnalysis && {
-          status: 'COMPLETED',
-        }),
-      },
+      data: updateData,
       include: {
         athlete: { select: { id: true, name: true } },
         exercise: { select: { id: true, name: true, nameSv: true } },
@@ -246,7 +243,6 @@ export async function GET(
       select: {
         id: true,
         landmarksData: true,
-        aiPoseAnalysis: true, // Structured AI pose analysis from dedicated column
       },
     });
 
@@ -283,8 +279,12 @@ export async function GET(
       aiPoseAnalysis?: object;
     };
 
-    // Get aiPoseAnalysis from dedicated column, fall back to legacy embedded data
-    const aiPoseAnalysis = analysis.aiPoseAnalysis || data.aiPoseAnalysis || null;
+    // Get aiPoseAnalysis from dedicated column via raw query (avoids Prisma TS type mismatch),
+    // fall back to legacy embedded data if needed.
+    const poseRows = await prisma.$queryRaw<
+      Array<{ aiPoseAnalysis: unknown | null }>
+    >`SELECT "aiPoseAnalysis" FROM "VideoAnalysis" WHERE "id" = ${id} LIMIT 1`;
+    const aiPoseAnalysis = poseRows?.[0]?.aiPoseAnalysis ?? data.aiPoseAnalysis ?? null;
 
     let frames: PoseFrame[];
 
