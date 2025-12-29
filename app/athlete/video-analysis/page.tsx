@@ -79,16 +79,20 @@ export default async function AthleteVideoAnalysisPage() {
         // normalizeStoragePath returns null for HTTP URLs it can't extract a path from.
         // This could be a valid signed URL OR a malformed legacy URL.
         if (isHttpUrl(analysis.videoUrl)) {
-          // Check if it looks like a valid Supabase signed URL (contains 'token=' parameter)
-          // or is from a known video hosting domain
-          const looksLikeSignedUrl = analysis.videoUrl.includes('token=') ||
-                                      analysis.videoUrl.includes('supabase.co/storage')
-          if (looksLikeSignedUrl) {
-            // Pass through - it's likely a valid signed URL
-            return { ...analysis, videoUrl: analysis.videoUrl }
+          // Validate signed URL: must have token= parameter in query string
+          // Supabase signed URLs always include ?token=... or &token=...
+          try {
+            const url = new URL(analysis.videoUrl)
+            const hasToken = url.searchParams.has('token')
+            if (hasToken) {
+              // Valid signed URL with token parameter - pass through
+              return { ...analysis, videoUrl: analysis.videoUrl }
+            }
+          } catch {
+            // Invalid URL format - fall through to error
           }
-          // HTTP URL but doesn't look like a valid signed URL - treat as error
-          console.warn('Unrecognized video URL format:', analysis.videoUrl)
+          // HTTP URL without valid token parameter - treat as error
+          console.warn('Unrecognized video URL format (missing token):', analysis.videoUrl)
           return {
             ...analysis,
             videoUrl: null,
