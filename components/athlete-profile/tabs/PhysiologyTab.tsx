@@ -29,11 +29,12 @@ export function PhysiologyTab({ data, viewMode }: PhysiologyTabProps) {
   const { tests, fieldTests, thresholdCalculations } = data.physiology
   const latestTest = tests[0]
 
-  // Get latest thresholds - check ThresholdCalculation first, fall back to Test.anaerobicThreshold
+  // Get latest thresholds - prefer Test.anaerobicThreshold (auto-saved with fresh calculations)
+  // Fall back to ThresholdCalculation for legacy data
   const latestThreshold = thresholdCalculations[0]
   const testAnaerobicThreshold = latestTest?.anaerobicThreshold as { heartRate?: number; value?: number; unit?: string; lactate?: number } | null
-  const lt2Hr = latestThreshold?.lt2Hr ?? testAnaerobicThreshold?.heartRate
-  const lt2Lactate = latestThreshold?.lt2Lactate ?? testAnaerobicThreshold?.lactate
+  const lt2Hr = testAnaerobicThreshold?.heartRate ?? latestThreshold?.lt2Hr
+  const lt2Lactate = testAnaerobicThreshold?.lactate ?? latestThreshold?.lt2Lactate
 
   const hasData = tests.length > 0 || fieldTests.length > 0
 
@@ -226,13 +227,13 @@ export function PhysiologyTab({ data, viewMode }: PhysiologyTabProps) {
                           <div>
                             <p className="text-xs text-gray-500">Aerob tröskel</p>
                             <p className="font-medium">
-                              {aerobicThreshold?.hr ? `${aerobicThreshold.hr} bpm` : '-'}
+                              {(aerobicThreshold?.heartRate || aerobicThreshold?.hr) ? `${aerobicThreshold.heartRate || aerobicThreshold.hr} bpm` : '-'}
                             </p>
                           </div>
                           <div>
                             <p className="text-xs text-gray-500">Anaerob tröskel</p>
                             <p className="font-medium">
-                              {anaerobicThreshold?.hr ? `${anaerobicThreshold.hr} bpm` : '-'}
+                              {(anaerobicThreshold?.heartRate || anaerobicThreshold?.hr) ? `${anaerobicThreshold.heartRate || anaerobicThreshold.hr} bpm` : '-'}
                             </p>
                           </div>
                         </div>
