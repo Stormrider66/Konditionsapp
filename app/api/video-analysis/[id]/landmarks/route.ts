@@ -180,13 +180,12 @@ export async function PATCH(
     const updated = await prisma.videoAnalysis.update({
       where: { id },
       data: {
+        // IMPORTANT: `landmarksData` contains ONLY the compressed landmarks envelope
+        // (format/frameCount/toonBase64/compressionStats/metadata). Do not mix analysis objects into it.
         landmarksData: compressedData,
-        // Also store structured AI pose analysis in landmarksData for retrieval
+        // Store structured AI pose analysis in dedicated column
         ...(aiPoseAnalysis && {
-          landmarksData: {
-            ...compressedData,
-            aiPoseAnalysis,
-          },
+          aiPoseAnalysis: aiPoseAnalysis,
         }),
         ...(aiAnalysisText && {
           aiAnalysis: aiAnalysisText,
@@ -210,6 +209,8 @@ export async function PATCH(
       success: true,
       analysis: updated,
       frameCount: frames.length,
+      // Also return aiPoseAnalysis explicitly for immediate use
+      ...(aiPoseAnalysis ? { aiPoseAnalysis } : {}),
     });
   } catch (error) {
     console.error('Save landmarks error:', error);
@@ -245,6 +246,7 @@ export async function GET(
       select: {
         id: true,
         landmarksData: true,
+        aiPoseAnalysis: true, // Structured AI pose analysis from dedicated column
       },
     });
 
@@ -277,7 +279,12 @@ export async function GET(
         analyzedAt: string;
         model: string;
       };
+      // Legacy: some rows may have aiPoseAnalysis embedded in landmarksData (backward compat)
+      aiPoseAnalysis?: object;
     };
+
+    // Get aiPoseAnalysis from dedicated column, fall back to legacy embedded data
+    const aiPoseAnalysis = analysis.aiPoseAnalysis || data.aiPoseAnalysis || null;
 
     let frames: PoseFrame[];
 
@@ -294,6 +301,7 @@ export async function GET(
         frames,
         compressionStats: data.compressionStats,
         metadata: data.metadata,
+        ...(aiPoseAnalysis ? { aiPoseAnalysis } : {}),
       });
     } else if (data.frames) {
       // Legacy v1 format
@@ -314,6 +322,7 @@ export async function GET(
         frameCount: data.frameCount,
         frames,
         metadata: data.metadata,
+        ...(aiPoseAnalysis ? { aiPoseAnalysis } : {}),
       });
     }
 

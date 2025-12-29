@@ -384,6 +384,13 @@ model Test {
   publicToken     String?   @unique  // Random token for public access
   publicExpiresAt DateTime?          // When public link expires
 
+  // Pre-test baseline measurements
+  restingLactate    Float?  // Resting lactate before test (mmol/L)
+  restingHeartRate  Int?    // Resting heart rate before test (bpm)
+
+  // Post-test measurements (to capture peak lactate, 1-5 min after test)
+  postTestMeasurements Json?  // Array of {timeMin: number, lactate: number, heartRate?: number}
+
   // Beräknade värden
   maxHR      Int?
   maxLactate Float?
@@ -2602,6 +2609,7 @@ model VideoAnalysis {
 
   // AI analysis results
   aiAnalysis      String?      @db.Text
+  aiPoseAnalysis  Json?        // Structured AI pose analysis from Gemini (interpretation, technicalFeedback, patterns, recommendations, score)
   aiProvider      AIProvider   @default(GOOGLE)
   modelUsed       String?      // e.g., "gemini-3-pro"
 
