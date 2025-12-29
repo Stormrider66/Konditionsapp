@@ -25,11 +25,21 @@ export interface TextPart {
   text: string;
 }
 
+export interface VideoMetadata {
+  /** The end offset of the video (e.g., "10s") */
+  endOffset?: string;
+  /** Frame rate for video analysis. Range: (0.0, 24.0]. Default: 1.0 */
+  fps?: number;
+  /** The start offset of the video (e.g., "0s") */
+  startOffset?: string;
+}
+
 export interface InlineDataPart {
   inlineData: {
     mimeType: string;
     data: string; // base64 encoded
   };
+  videoMetadata?: VideoMetadata;
 }
 
 export interface FileDataPart {
@@ -41,22 +51,35 @@ export interface FileDataPart {
 
 export type ContentPart = TextPart | InlineDataPart | FileDataPart;
 
+export interface GenerateContentConfig {
+  /** Maximum number of output tokens (default: uses model default) */
+  maxOutputTokens?: number;
+  /** Temperature for response randomness (0-2, default: 1) */
+  temperature?: number;
+}
+
 /**
  * Generate content with video/audio analysis.
  *
  * @param client - GoogleGenAI client instance
  * @param model - Model ID (e.g., 'gemini-2.5-pro')
  * @param parts - Content parts (text, inline data, or file references)
+ * @param config - Optional generation configuration
  * @returns Generated text response
  */
 export async function generateContent(
   client: GoogleGenAI,
   model: string,
-  parts: ContentPart[]
+  parts: ContentPart[],
+  config?: GenerateContentConfig
 ): Promise<{ text: string; usage?: { inputTokens?: number; outputTokens?: number } }> {
   const response = await client.models.generateContent({
     model,
     contents: [{ role: 'user', parts }],
+    config: config ? {
+      maxOutputTokens: config.maxOutputTokens,
+      temperature: config.temperature,
+    } : undefined,
   });
 
   return {
@@ -149,14 +172,28 @@ export async function uploadFile(
 
 /**
  * Create inline data part from base64-encoded content.
+ *
+ * @param base64Data - Base64 encoded data
+ * @param mimeType - MIME type of the content
+ * @param videoMetadata - Optional video metadata (fps, start/end offsets)
  */
-export function createInlineData(base64Data: string, mimeType: string): InlineDataPart {
-  return {
+export function createInlineData(
+  base64Data: string,
+  mimeType: string,
+  videoMetadata?: VideoMetadata
+): InlineDataPart {
+  const part: InlineDataPart = {
     inlineData: {
       mimeType,
       data: base64Data,
     },
   };
+
+  if (videoMetadata) {
+    part.videoMetadata = videoMetadata;
+  }
+
+  return part;
 }
 
 /**

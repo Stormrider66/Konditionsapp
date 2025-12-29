@@ -22,8 +22,36 @@ import {
   createInlineData,
   createText,
   getGeminiModelId,
+  type VideoMetadata,
 } from '@/lib/ai/google-genai-client';
+
+// Frame rates for different video analysis types
+const VIDEO_FPS = {
+  RUNNING_GAIT: 5, // Higher FPS for fast motion analysis (5 frames/sec)
+  STRENGTH: 2,     // Lower FPS for slower strength movements
+  DEFAULT: 1,      // Default FPS
+} as const;
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
+import { isHttpUrl, downloadAsBase64 as downloadFromStorage } from '@/lib/storage/supabase-storage';
+
+const VIDEO_BUCKET = 'video-analysis';
+
+/**
+ * Fetch video as base64 from either a full URL or Supabase storage path.
+ */
+async function getVideoAsBase64(videoUrl: string): Promise<{ base64: string; mimeType: string }> {
+  if (isHttpUrl(videoUrl)) {
+    // Full URL - fetch directly
+    return fetchAsBase64(videoUrl);
+  }
+
+  // Supabase storage path - download from storage
+  const result = await downloadFromStorage(VIDEO_BUCKET, videoUrl);
+  return {
+    base64: result.base64,
+    mimeType: result.mimeType || 'video/mp4',
+  };
+}
 
 interface AnalysisResult {
   formScore: number;
@@ -121,13 +149,19 @@ export async function POST(
       // For STRENGTH and other types, use text-based approach
       const prompt = buildAnalysisPrompt(analysis);
 
-      // Fetch video and convert to base64
-      const { base64, mimeType } = await fetchAsBase64(analysis.videoUrl);
+      // Fetch video and convert to base64 (handles both URLs and storage paths)
+      const { base64, mimeType } = await getVideoAsBase64(analysis.videoUrl);
 
-      // Call Gemini with video
+      // Configure video metadata with appropriate FPS for the video type
+      const fps = analysis.videoType === 'STRENGTH' ? VIDEO_FPS.STRENGTH : VIDEO_FPS.DEFAULT;
+      const videoMetadata: VideoMetadata = { fps };
+
+      console.log(`[Video Analysis] Analyzing ${analysis.videoType} video with ${fps} FPS`);
+
+      // Call Gemini with video and metadata for proper frame sampling
       const result = await generateContent(client, modelId, [
         createText(prompt),
-        createInlineData(base64, mimeType),
+        createInlineData(base64, mimeType, videoMetadata),
       ]);
 
       // Parse the AI response
@@ -388,11 +422,18 @@ async function analyzeRunningGait(
 
   const prompt = `Du är en erfaren löpbiomekaniker och idrottsfysiolog. Analysera denna löpvideo noggrant.
 
+## VIKTIGT: ANALYSERA HELA VIDEON
+Du har tillgång till HELA videon med flera bildrutor (frames) över tid. Analysera rörelsen genom HELA videosekvensen, inte bara en enskild bildruta. Titta på:
+- Hur rörelsen förändras genom videon
+- Konsistensen i löpteknik över tid
+- Eventuella mönster som upprepas vid varje steg
+- Räkna faktiska steg för att uppskatta kadens
+
 ## ATLET INFORMATION
 - **Namn**: ${athleteName}
 - **Pronomen**: ${gender}
 
-## ANALYSERA FÖLJANDE ASPEKTER
+## ANALYSERA FÖLJANDE ASPEKTER (baserat på hela videosekvensen)
 
 ### 1. BIOMETRISKA MÄTVÄRDEN
 Uppskatta baserat på videoanalys:
@@ -475,13 +516,21 @@ SVARA I FÖLJANDE JSON-FORMAT:
 \`\`\``;
 
   try {
-    // Fetch video and convert to base64
-    const { base64, mimeType } = await fetchAsBase64(analysis.videoUrl);
+    // Fetch video and convert to base64 (handles both URLs and storage paths)
+    const { base64, mimeType } = await getVideoAsBase64(analysis.videoUrl);
 
-    // Generate analysis
+    // Configure video metadata with higher FPS for running gait analysis
+    // This ensures Gemini samples more frames for accurate motion analysis
+    const videoMetadata: VideoMetadata = {
+      fps: VIDEO_FPS.RUNNING_GAIT, // 5 FPS for detailed motion capture
+    };
+
+    console.log(`[Video Analysis] Analyzing running gait video with ${videoMetadata.fps} FPS`);
+
+    // Generate analysis with video metadata for proper frame sampling
     const result = await generateContent(client, modelId, [
       createText(prompt),
-      createInlineData(base64, mimeType),
+      createInlineData(base64, mimeType, videoMetadata),
     ]);
 
     // Parse the structured response

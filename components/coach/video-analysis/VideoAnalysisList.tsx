@@ -100,8 +100,10 @@ export function VideoAnalysisList() {
     try {
       const response = await fetch('/api/clients?limit=100')
       const data = await response.json()
-      if (data.clients) {
-        setAthletes(data.clients.map((c: { id: string; name: string }) => ({
+      // API returns { success: true, data: clients[] }
+      const clients = data.data || data.clients || []
+      if (clients.length > 0) {
+        setAthletes(clients.map((c: { id: string; name: string }) => ({
           id: c.id,
           name: c.name,
         })))
