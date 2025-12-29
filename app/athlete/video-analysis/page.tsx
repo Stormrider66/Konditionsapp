@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 type VideoAnalysisRow = {
   id: string
   createdAt: Date
-  videoUrl: string
+  videoUrl: string | null
   videoType: string | null
   cameraAngle: string | null
   formScore: number | null
@@ -64,10 +64,19 @@ export default async function AthleteVideoAnalysisPage() {
   // Generate signed URLs for video access (Supabase storage requires signed URLs for private buckets)
   const analysesWithSignedUrls: VideoAnalysisWithVideo[] = await Promise.all(
     videoAnalyses.map(async (analysis): Promise<VideoAnalysisWithVideo> => {
+      // Guard: if videoUrl is null/empty, return early with error message
+      if (!analysis.videoUrl) {
+        return {
+          ...analysis,
+          videoUrl: null,
+          videoError: 'Videon saknas för denna analys.',
+        }
+      }
+
       const path = normalizeStoragePath('video-analysis', analysis.videoUrl)
 
       if (!path) {
-        // Likely already a full URL (e.g., signed) or empty value.
+        // Likely already a full URL (e.g., signed) - pass through as-is
         return { ...analysis, videoUrl: analysis.videoUrl }
       }
 
