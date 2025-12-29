@@ -1063,12 +1063,37 @@ export function calculateAnaerobicThreshold(stages: TestStage[]): Threshold | nu
   const dmaxResult = tryDmaxThreshold(stages)
 
   if (dmaxResult) {
-    // D-max represents the lactate turnpoint - the individualized anaerobic threshold
-    console.log('Using Standard D-max for anaerobic threshold:', dmaxResult)
-    return dmaxResult
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VALIDATION: Check if D-max result is physiologically plausible
+    // For steep curves (high lactate range), standard D-max can find the FIRST
+    // turnpoint (LT1) instead of LT2. This happens because the baseline from
+    // first-to-last creates a steep line, and max distance is found early.
+    // ═══════════════════════════════════════════════════════════════════════════
+    const dmaxLactate = dmaxResult.lactate ?? 0
+    const dmaxLactateIsSuspiciouslyLow = dmaxLactate < 3.0 && profile.maxLactate > 8
+    const dmaxIsNearLT1 = dmaxLactate < profile.baselineAvg + 1.0
+
+    if (dmaxLactateIsSuspiciouslyLow || dmaxIsNearLT1) {
+      console.log('┌────────────────────────────────────────────────────────────────┐')
+      console.log('│  D-MAX VALIDATION WARNING                                      │')
+      console.log('├────────────────────────────────────────────────────────────────┤')
+      console.log(`│  D-max lactate: ${dmaxLactate.toFixed(2)} mmol/L`)
+      console.log(`│  Max lactate: ${profile.maxLactate.toFixed(2)} mmol/L`)
+      console.log(`│  Baseline avg: ${profile.baselineAvg.toFixed(2)} mmol/L`)
+      console.log(`│  Suspiciously low: ${dmaxLactateIsSuspiciouslyLow}`)
+      console.log(`│  Near LT1: ${dmaxIsNearLT1}`)
+      console.log('│  → Standard D-max likely found LT1, not LT2!')
+      console.log('│  → Falling back to Dickhuth or 4.0 mmol/L method')
+      console.log('└────────────────────────────────────────────────────────────────┘')
+      // Don't return dmaxResult - fall through to Dickhuth/4.0 fallback
+    } else {
+      // D-max represents the lactate turnpoint - the individualized anaerobic threshold
+      console.log('Using Standard D-max for anaerobic threshold:', dmaxResult)
+      return dmaxResult
+    }
   }
 
-  console.log('D-max not available, trying Dickhuth method')
+  console.log('D-max not available or invalid, trying Dickhuth method')
 
   // ═══════════════════════════════════════════════════════════════════════════
   // FALLBACK 1: Dickhuth Individual Anaerobic Threshold
@@ -1078,16 +1103,36 @@ export function calculateAnaerobicThreshold(stages: TestStage[]): Threshold | nu
   const dickhuthResult = calculateDickhuthThreshold(stages)
 
   if (dickhuthResult && dickhuthResult.confidence !== 'LOW') {
-    console.log('✓ Dickhuth method SUCCESS:', {
-      intensity: dickhuthResult.value,
-      lactate: dickhuthResult.lactate,
-      method: dickhuthResult.method,
-      confidence: dickhuthResult.confidence
-    })
-    return dickhuthResult
+    // ═══════════════════════════════════════════════════════════════════════════
+    // VALIDATION: Dickhuth can also give low values for steep curves
+    // For athletes with high max lactate (>8 mmol/L), LT2 should typically be
+    // at least 3.5 mmol/L. Lower values suggest Dickhuth is not appropriate.
+    // ═══════════════════════════════════════════════════════════════════════════
+    const dickhuthLactate = dickhuthResult.lactate ?? 0
+    const dickhuthTooLow = dickhuthLactate < 3.5 && profile.maxLactate > 8
+
+    if (dickhuthTooLow) {
+      console.log('┌────────────────────────────────────────────────────────────────┐')
+      console.log('│  DICKHUTH VALIDATION WARNING                                   │')
+      console.log('├────────────────────────────────────────────────────────────────┤')
+      console.log(`│  Dickhuth lactate: ${dickhuthLactate.toFixed(2)} mmol/L`)
+      console.log(`│  Max lactate: ${profile.maxLactate.toFixed(2)} mmol/L`)
+      console.log('│  → Dickhuth too low for this steep curve!')
+      console.log('│  → Falling back to traditional 4.0 mmol/L method')
+      console.log('└────────────────────────────────────────────────────────────────┘')
+      // Don't return - fall through to 4.0 mmol/L method
+    } else {
+      console.log('✓ Dickhuth method SUCCESS:', {
+        intensity: dickhuthResult.value,
+        lactate: dickhuthResult.lactate,
+        method: dickhuthResult.method,
+        confidence: dickhuthResult.confidence
+      })
+      return dickhuthResult
+    }
   }
 
-  console.log('Dickhuth method not available or low confidence, using traditional 4.0 mmol/L method')
+  console.log('Dickhuth method not available, low confidence, or invalid - using traditional 4.0 mmol/L method')
 
   // ═══════════════════════════════════════════════════════════════════════════
   // FALLBACK 2: Traditional linear interpolation at 4.0 mmol/L
