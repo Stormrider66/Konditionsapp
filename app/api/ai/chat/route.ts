@@ -267,7 +267,15 @@ export async function POST(request: NextRequest) {
             orderBy: { createdAt: 'desc' },
             take: 5,
             where: { status: 'COMPLETED' },
-            include: {
+            select: {
+              id: true,
+              createdAt: true,
+              videoType: true,
+              cameraAngle: true,
+              formScore: true,
+              issuesDetected: true,
+              recommendations: true,
+              aiPoseAnalysis: true,
               runningGaitAnalysis: true,
             },
           },

@@ -71,6 +71,28 @@ interface GarminMetricsData {
   readinessScore: number | null;
 }
 
+interface AIPoseAnalysis {
+  interpretation?: string;
+  technicalFeedback?: Array<{
+    area: string;
+    observation: string;
+    impact: string;
+    suggestion: string;
+  }>;
+  patterns?: Array<{
+    pattern: string;
+    significance: string;
+  }>;
+  recommendations?: Array<{
+    priority: number;
+    title: string;
+    description: string;
+    exercises: string[];
+  }>;
+  overallAssessment?: string;
+  score?: number;
+}
+
 interface VideoAnalysis {
   id: string;
   createdAt: Date;
@@ -79,6 +101,7 @@ interface VideoAnalysis {
   formScore: number | null;
   issuesDetected: string[] | null;
   recommendations: string[] | null;
+  aiPoseAnalysis: AIPoseAnalysis | null;
   runningGaitAnalysis: RunningGaitAnalysis | null;
 }
 
@@ -936,6 +959,50 @@ function buildVideoAnalysisContext(videoAnalyses: VideoAnalysis[]): string {
     }
     if (video.recommendations && video.recommendations.length > 0) {
       context += `- **Generella rekommendationer**: ${video.recommendations.join(', ')}\n`;
+    }
+
+    // Structured AI Pose Analysis from Gemini
+    const poseAnalysis = video.aiPoseAnalysis;
+    if (poseAnalysis) {
+      context += `\n#### AI Poseanalys (Gemini)\n`;
+
+      if (poseAnalysis.interpretation) {
+        context += `**Tolkning**: ${poseAnalysis.interpretation}\n\n`;
+      }
+
+      if (poseAnalysis.technicalFeedback && poseAnalysis.technicalFeedback.length > 0) {
+        context += `**Teknisk feedback**:\n`;
+        for (const fb of poseAnalysis.technicalFeedback) {
+          context += `- **${fb.area}**: ${fb.observation}\n`;
+          context += `  - Påverkan: ${fb.impact}\n`;
+          context += `  - Förslag: ${fb.suggestion}\n`;
+        }
+        context += '\n';
+      }
+
+      if (poseAnalysis.patterns && poseAnalysis.patterns.length > 0) {
+        context += `**Identifierade rörelsemönster**:\n`;
+        for (const p of poseAnalysis.patterns) {
+          context += `- **${p.pattern}**: ${p.significance}\n`;
+        }
+        context += '\n';
+      }
+
+      if (poseAnalysis.recommendations && poseAnalysis.recommendations.length > 0) {
+        context += `**AI-rekommendationer (prioritetsordning)**:\n`;
+        const sortedRecs = [...poseAnalysis.recommendations].sort((a, b) => a.priority - b.priority);
+        for (const rec of sortedRecs) {
+          context += `${rec.priority}. **${rec.title}**: ${rec.description}\n`;
+          if (rec.exercises && rec.exercises.length > 0) {
+            context += `   - Övningar: ${rec.exercises.join(', ')}\n`;
+          }
+        }
+        context += '\n';
+      }
+
+      if (poseAnalysis.overallAssessment) {
+        context += `**Sammanfattande bedömning**: ${poseAnalysis.overallAssessment}\n`;
+      }
     }
 
     // Detailed running gait analysis

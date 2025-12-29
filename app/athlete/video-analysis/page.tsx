@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Video } from 'lucide-react'
 import Link from 'next/link'
+import { VideoAnalysisDetailCard, AIPoseAnalysis } from '@/components/athlete/video/VideoAnalysisDetailCard'
 
 export default async function AthleteVideoAnalysisPage() {
   const user = await requireAthlete()
@@ -17,7 +18,7 @@ export default async function AthleteVideoAnalysisPage() {
     redirect('/login')
   }
 
-  // Get client info and existing analyses
+  // Get client info and existing analyses with AI pose analysis
   const [client, videoAnalyses] = await Promise.all([
     prisma.client.findUnique({
       where: { id: clientId },
@@ -26,8 +27,16 @@ export default async function AthleteVideoAnalysisPage() {
     prisma.videoAnalysis.findMany({
       where: { athleteId: clientId },
       orderBy: { createdAt: 'desc' },
-      take: 5,
-      include: {
+      take: 10,
+      select: {
+        id: true,
+        createdAt: true,
+        videoType: true,
+        cameraAngle: true,
+        formScore: true,
+        aiAnalysis: true,
+        aiPoseAnalysis: true,
+        status: true,
         exercise: {
           select: { name: true, nameSv: true },
         },
@@ -77,43 +86,28 @@ export default async function AthleteVideoAnalysisPage() {
       {videoAnalyses.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Senaste analyser</CardTitle>
+            <CardTitle>Dina videoanalyser</CardTitle>
             <CardDescription>
-              Dina senaste videoanalyser och feedback
+              Klicka på en analys för att se detaljerad feedback
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {videoAnalyses.map((analysis) => (
-                <div
+                <VideoAnalysisDetailCard
                   key={analysis.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(analysis.createdAt).toLocaleDateString('sv-SE')}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {analysis.formScore !== null && (
-                      <span className={`px-2 py-1 rounded text-sm font-medium ${
-                        analysis.formScore >= 80 ? 'bg-green-100 text-green-800' :
-                        analysis.formScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {analysis.formScore}/100
-                      </span>
-                    )}
-                    {analysis.aiAnalysis ? (
-                      <span className="text-xs text-green-600">Analyserad</span>
-                    ) : (
-                      <span className="text-xs text-gray-500">Vantar pa analys</span>
-                    )}
-                  </div>
-                </div>
+                  analysis={{
+                    id: analysis.id,
+                    createdAt: analysis.createdAt,
+                    videoType: analysis.videoType,
+                    cameraAngle: analysis.cameraAngle,
+                    formScore: analysis.formScore,
+                    aiAnalysis: analysis.aiAnalysis,
+                    aiPoseAnalysis: analysis.aiPoseAnalysis as AIPoseAnalysis | null,
+                    status: analysis.status,
+                    exercise: analysis.exercise,
+                  }}
+                />
               ))}
             </div>
           </CardContent>
