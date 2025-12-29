@@ -1,14 +1,34 @@
 // app/athlete/video-analysis/page.tsx
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, Video } from 'lucide-react'
+
 import { requireAthlete, getAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage'
+
 import { AthleteVideoUploader } from '@/components/athlete/video/AthleteVideoUploader'
+import { VideoAnalysisDetailCard, AIPoseAnalysis } from '@/components/athlete/video/VideoAnalysisDetailCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Video } from 'lucide-react'
-import Link from 'next/link'
-import { VideoAnalysisDetailCard, AIPoseAnalysis } from '@/components/athlete/video/VideoAnalysisDetailCard'
-import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage'
+
+type VideoAnalysisRow = {
+  id: string
+  createdAt: Date
+  videoUrl: string
+  videoType: string | null
+  cameraAngle: string | null
+  formScore: number | null
+  aiAnalysis: string | null
+  aiPoseAnalysis: unknown | null
+  status: string
+  exercise: { name: string; nameSv: string | null } | null
+}
+
+type VideoAnalysisWithVideo = Omit<VideoAnalysisRow, 'videoUrl'> & {
+  videoUrl: string | null
+  videoError?: string | null
+}
 
 export default async function AthleteVideoAnalysisPage() {
   const user = await requireAthlete()
@@ -19,44 +39,50 @@ export default async function AthleteVideoAnalysisPage() {
     redirect('/login')
   }
 
-  // Get client info and existing analyses with AI pose analysis
-  const [client, videoAnalyses] = await Promise.all([
-    prisma.client.findUnique({
-      where: { id: clientId },
-      select: { name: true },
-    }),
-    prisma.videoAnalysis.findMany({
-      where: { athleteId: clientId },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      select: {
-        id: true,
-        createdAt: true,
-        videoUrl: true,
-        videoType: true,
-        cameraAngle: true,
-        formScore: true,
-        aiAnalysis: true,
-        aiPoseAnalysis: true,
-        status: true,
-        exercise: {
-          select: { name: true, nameSv: true },
-        },
+  // Prisma typings can appear stale locally (especially on Windows) if `prisma generate` didn’t fully run.
+  // Calling through `any` avoids TS false-positives about select fields/relations.
+  const videoAnalyses = (await (prisma as any).videoAnalysis.findMany({
+    where: { athleteId: clientId },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+    select: {
+      id: true,
+      createdAt: true,
+      videoUrl: true,
+      videoType: true,
+      cameraAngle: true,
+      formScore: true,
+      aiAnalysis: true,
+      aiPoseAnalysis: true,
+      status: true,
+      exercise: {
+        select: { name: true, nameSv: true },
       },
-    }),
-  ])
+    },
+  })) as VideoAnalysisRow[]
 
   // Generate signed URLs for video access (Supabase storage requires signed URLs for private buckets)
-  const analysesWithSignedUrls = await Promise.all(
-    videoAnalyses.map(async (analysis) => {
+  const analysesWithSignedUrls: VideoAnalysisWithVideo[] = await Promise.all(
+    videoAnalyses.map(async (analysis): Promise<VideoAnalysisWithVideo> => {
       const path = normalizeStoragePath('video-analysis', analysis.videoUrl)
-      if (!path) return analysis
+
+      if (!path) {
+        // Likely already a full URL (e.g., signed) or empty value.
+        return { ...analysis, videoUrl: analysis.videoUrl }
+      }
+
       try {
         const signedUrl = await createSignedUrl('video-analysis', path, 60 * 60) // 1 hour expiry
         return { ...analysis, videoUrl: signedUrl }
       } catch (error) {
+        // IMPORTANT: Never fall back to returning the raw storage path for private buckets,
+        // because the video player cannot load it and the UI would fail silently.
         console.error('Failed to create signed URL for video:', error)
-        return analysis
+        return {
+          ...analysis,
+          videoUrl: null,
+          videoError: 'Kunde inte ladda videon (åtkomstfel). Försök igen senare.',
+        }
       }
     })
   )
@@ -78,9 +104,7 @@ export default async function AthleteVideoAnalysisPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold">Ladda upp video</h1>
-            <p className="text-muted-foreground text-sm">
-              Ladda upp en video av din teknik for analys
-            </p>
+            <p className="text-muted-foreground text-sm">Ladda upp en video av din teknik for analys</p>
           </div>
         </div>
       </div>
@@ -90,8 +114,8 @@ export default async function AthleteVideoAnalysisPage() {
         <CardHeader>
           <CardTitle>Ny videoanalys</CardTitle>
           <CardDescription>
-            Ladda upp en video av din lopstil, lyft eller annan teknik. Din coach kommer att
-            analysera videon och ge feedback.
+            Ladda upp en video av din lopstil, lyft eller annan teknik. Din coach kommer att analysera videon och ge
+            feedback.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -104,9 +128,7 @@ export default async function AthleteVideoAnalysisPage() {
         <Card>
           <CardHeader>
             <CardTitle>Dina videoanalyser</CardTitle>
-            <CardDescription>
-              Klicka på en analys för att se detaljerad feedback
-            </CardDescription>
+            <CardDescription>Klicka på en analys för att se detaljerad feedback</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -117,6 +139,7 @@ export default async function AthleteVideoAnalysisPage() {
                     id: analysis.id,
                     createdAt: analysis.createdAt,
                     videoUrl: analysis.videoUrl,
+                    videoError: analysis.videoError ?? null,
                     videoType: analysis.videoType,
                     cameraAngle: analysis.cameraAngle,
                     formScore: analysis.formScore,

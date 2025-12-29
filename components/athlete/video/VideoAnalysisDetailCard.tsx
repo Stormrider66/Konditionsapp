@@ -31,7 +31,8 @@ interface VideoAnalysisDetailCardProps {
   analysis: {
     id: string
     createdAt: Date
-    videoUrl: string
+    videoUrl: string | null
+    videoError?: string | null
     videoType: string | null
     cameraAngle: string | null
     formScore: number | null
@@ -157,6 +158,16 @@ export function VideoAnalysisDetailCard({ analysis }: VideoAnalysisDetailCardPro
               >
                 Din webbläsare stöder inte videouppspelning.
               </video>
+            </div>
+          )}
+
+          {!analysis.videoUrl && analysis.videoError && (
+            <div className="p-3 rounded-lg border bg-yellow-50 text-yellow-900 text-sm flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 text-yellow-700" />
+              <div>
+                <p className="font-medium">Videon är inte tillgänglig</p>
+                <p className="text-yellow-800">{analysis.videoError}</p>
+              </div>
             </div>
           )}
 
