@@ -35,6 +35,15 @@ export default function EditTestPage() {
   const [manualLT1Intensity, setManualLT1Intensity] = useState<string>('')
   const [manualLT2Lactate, setManualLT2Lactate] = useState<string>('')
   const [manualLT2Intensity, setManualLT2Intensity] = useState<string>('')
+  // Pre-test baseline measurements
+  const [restingLactate, setRestingLactate] = useState<string>('')
+  const [restingHeartRate, setRestingHeartRate] = useState<string>('')
+  // Post-test measurements (peak lactate)
+  const [postTestMeasurements, setPostTestMeasurements] = useState<Array<{
+    timeMin: number
+    lactate: number
+    heartRate?: number
+  }>>([])
   const { toast } = useToast()
 
   const fetchTestAndClient = useCallback(async () => {
@@ -60,6 +69,11 @@ export default function EditTestPage() {
         setManualLT1Intensity(testData.manualLT1Intensity?.toString() || '')
         setManualLT2Lactate(testData.manualLT2Lactate?.toString() || '')
         setManualLT2Intensity(testData.manualLT2Intensity?.toString() || '')
+        // Load pre-test baseline measurements
+        setRestingLactate(testData.restingLactate?.toString() || '')
+        setRestingHeartRate(testData.restingHeartRate?.toString() || '')
+        // Load post-test measurements
+        setPostTestMeasurements(testData.postTestMeasurements || [])
       } else {
         setError(result.error || 'Test not found')
       }
@@ -101,6 +115,24 @@ export default function EditTestPage() {
     const updated = [...stages]
     updated[index] = { ...updated[index], [field]: value }
     setStages(updated)
+  }
+
+  // Post-test measurement helpers
+  const addPostTestMeasurement = () => {
+    const lastTime = postTestMeasurements.length > 0
+      ? postTestMeasurements[postTestMeasurements.length - 1].timeMin + 1
+      : 1
+    setPostTestMeasurements([...postTestMeasurements, { timeMin: lastTime, lactate: 0 }])
+  }
+
+  const removePostTestMeasurement = (index: number) => {
+    setPostTestMeasurements(postTestMeasurements.filter((_, i) => i !== index))
+  }
+
+  const updatePostTestMeasurement = (index: number, field: string, value: any) => {
+    const updated = [...postTestMeasurements]
+    updated[index] = { ...updated[index], [field]: value }
+    setPostTestMeasurements(updated)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,6 +219,11 @@ export default function EditTestPage() {
           manualLT1Intensity: manualLT1Intensity ? parseFloat(manualLT1Intensity) : null,
           manualLT2Lactate: manualLT2Lactate ? parseFloat(manualLT2Lactate) : null,
           manualLT2Intensity: manualLT2Intensity ? parseFloat(manualLT2Intensity) : null,
+          // Pre-test baseline measurements
+          restingLactate: restingLactate ? parseFloat(restingLactate) : null,
+          restingHeartRate: restingHeartRate ? parseInt(restingHeartRate) : null,
+          // Post-test measurements
+          postTestMeasurements: postTestMeasurements.length > 0 ? postTestMeasurements : null,
         }),
       })
 
@@ -292,6 +329,42 @@ export default function EditTestPage() {
                   required
                 />
               </div>
+
+              {/* Pre-test baseline measurements */}
+              <Card className="border-blue-200 bg-blue-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <span className="text-blue-600">🩸</span>
+                    Vilolaktat (före test)
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Mät vilovärden innan testet börjar för att etablera baslinje.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Vilolaktat (mmol/L)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        placeholder="t.ex. 1.2"
+                        value={restingLactate}
+                        onChange={(e) => setRestingLactate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Vilopuls (bpm)</Label>
+                      <Input
+                        type="number"
+                        placeholder="t.ex. 60"
+                        value={restingHeartRate}
+                        onChange={(e) => setRestingHeartRate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -429,6 +502,78 @@ export default function EditTestPage() {
                   </Card>
                 ))}
               </div>
+
+              {/* Post-test measurements (peak lactate) */}
+              <Card className="border-red-200 bg-red-50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <span className="text-red-600">📈</span>
+                    Maxlaktat efter test
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Mät laktat 1-5 minuter efter testet för att fånga det faktiska maxvärdet.
+                    Laktat fortsätter ofta stiga efter avslutad belastning.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {postTestMeasurements.map((measurement, index) => (
+                    <div key={index} className="flex items-end gap-3 p-3 bg-white rounded-lg border">
+                      <div className="space-y-1 flex-1">
+                        <Label className="text-xs">Tid efter test (min)</Label>
+                        <Input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          max="10"
+                          value={measurement.timeMin}
+                          onChange={(e) =>
+                            updatePostTestMeasurement(index, 'timeMin', parseFloat(e.target.value))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1 flex-1">
+                        <Label className="text-xs">Laktat (mmol/L)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={measurement.lactate || ''}
+                          onChange={(e) =>
+                            updatePostTestMeasurement(index, 'lactate', parseFloat(e.target.value))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1 flex-1">
+                        <Label className="text-xs">Puls (bpm)</Label>
+                        <Input
+                          type="number"
+                          value={measurement.heartRate || ''}
+                          onChange={(e) =>
+                            updatePostTestMeasurement(index, 'heartRate', e.target.value ? parseInt(e.target.value) : undefined)
+                          }
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removePostTestMeasurement(index)}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addPostTestMeasurement}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Lägg till mätning
+                  </Button>
+                </CardContent>
+              </Card>
 
               <div className="space-y-2">
                 <Label htmlFor="notes">Anteckningar</Label>

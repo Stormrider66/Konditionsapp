@@ -66,6 +66,42 @@ export async function GET(
         } as unknown as Test & ManualThresholdOverrides
 
         fullCalculations = await performAllCalculations(testWithOverrides, test.client as unknown as Client)
+
+        // Auto-save calculated values to database if they differ from stored values
+        // This ensures profile page always shows fresh calculations
+        if (fullCalculations) {
+          console.log('=== AUTO-SAVE DEBUG ===')
+          console.log('Stored anaerobicThreshold:', JSON.stringify(test.anaerobicThreshold))
+          console.log('Calculated anaerobicThreshold:', JSON.stringify(fullCalculations.anaerobicThreshold))
+
+          const needsUpdate =
+            test.vo2max !== fullCalculations.vo2max ||
+            test.maxHR !== fullCalculations.maxHR ||
+            test.maxLactate !== fullCalculations.maxLactate ||
+            JSON.stringify(test.aerobicThreshold) !== JSON.stringify(fullCalculations.aerobicThreshold) ||
+            JSON.stringify(test.anaerobicThreshold) !== JSON.stringify(fullCalculations.anaerobicThreshold)
+
+          console.log('Needs update:', needsUpdate)
+
+          if (needsUpdate) {
+            console.log('Updating test with new thresholds...')
+            await prisma.test.update({
+              where: { id },
+              data: {
+                vo2max: fullCalculations.vo2max,
+                maxHR: fullCalculations.maxHR,
+                maxLactate: fullCalculations.maxLactate,
+                aerobicThreshold: fullCalculations.aerobicThreshold as any,
+                anaerobicThreshold: fullCalculations.anaerobicThreshold as any,
+                trainingZones: fullCalculations.trainingZones as any,
+              },
+            })
+            console.log('✅ Auto-saved fresh calculations to database')
+            logger.info('Auto-saved fresh calculations to database', { testId: id })
+          } else {
+            console.log('No update needed - values match')
+          }
+        }
       } catch (calcError) {
         logger.error('Error calculating test results', {}, calcError)
         // Continue without full calculations - basic data still available
@@ -214,6 +250,11 @@ export async function PATCH(
     if (body.manualLT1Intensity !== undefined) updateData.manualLT1Intensity = body.manualLT1Intensity
     if (body.manualLT2Lactate !== undefined) updateData.manualLT2Lactate = body.manualLT2Lactate
     if (body.manualLT2Intensity !== undefined) updateData.manualLT2Intensity = body.manualLT2Intensity
+    // Pre-test baseline measurements
+    if (body.restingLactate !== undefined) updateData.restingLactate = body.restingLactate
+    if (body.restingHeartRate !== undefined) updateData.restingHeartRate = body.restingHeartRate
+    // Post-test measurements (peak lactate)
+    if (body.postTestMeasurements !== undefined) updateData.postTestMeasurements = body.postTestMeasurements
 
     // Delete old test stages if new ones provided
     if (body.stages && Array.isArray(body.stages)) {

@@ -8,7 +8,7 @@ import { ReportTemplate } from '@/components/reports/ReportTemplate'
 import { PDFExportButton } from '@/components/reports/PDFExportButton'
 import { ShareReportButton } from '@/components/reports/ShareReportButton'
 import { Button } from '@/components/ui/button'
-import { Home, User, Printer, ArrowLeft, Edit2 } from 'lucide-react'
+import { Home, User, Printer, ArrowLeft, Edit2, RefreshCw } from 'lucide-react'
 import type { Test, Client, TestCalculations, Threshold, TrainingZone } from '@/types'
 
 export default function TestDetailPage() {
@@ -16,6 +16,7 @@ export default function TestDetailPage() {
   const id = params.id as string
 
   const [loading, setLoading] = useState(true)
+  const [recalculating, setRecalculating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [test, setTest] = useState<Test | null>(null)
   const [client, setClient] = useState<Client | null>(null)
@@ -62,6 +63,27 @@ export default function TestDetailPage() {
       setLoading(false)
     }
   }, [id])
+
+  const handleRecalculate = useCallback(async () => {
+    try {
+      setRecalculating(true)
+      const response = await fetch(`/api/tests/${id}/recalculate`, {
+        method: 'POST',
+      })
+      const result = await response.json()
+
+      if (result.success) {
+        // Refresh the test data to show updated calculations
+        await fetchTest()
+      } else {
+        console.error('Recalculation failed:', result.error)
+      }
+    } catch (err) {
+      console.error('Error recalculating:', err)
+    } finally {
+      setRecalculating(false)
+    }
+  }, [id, fetchTest])
 
   useEffect(() => {
     fetchTest()
@@ -148,6 +170,14 @@ export default function TestDetailPage() {
               Redigera
             </Button>
           </Link>
+          <Button
+            variant="outline"
+            onClick={handleRecalculate}
+            disabled={recalculating}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${recalculating ? 'animate-spin' : ''}`} />
+            {recalculating ? 'Beräknar...' : 'Beräkna om'}
+          </Button>
           <Button variant="secondary" onClick={() => window.print()}>
             <Printer className="w-4 h-4 mr-2" />
             Skriv ut
