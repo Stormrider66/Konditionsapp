@@ -63,15 +63,15 @@ export function WorkoutLoggingForm({
       completed: existingLog?.completed ?? true,
       duration: existingLog?.duration || workout.duration || undefined,
       distance: existingLog?.distance || workout.distance || undefined,
-      avgPace: existingLog?.avgPace || undefined,
+      avgPace: existingLog?.avgPace || '',
       avgHR: existingLog?.avgHR || undefined,
       maxHR: existingLog?.maxHR || undefined,
       perceivedEffort: existingLog?.perceivedEffort || undefined,
       difficulty: existingLog?.difficulty || undefined,
-      feeling: existingLog?.feeling || undefined,
-      notes: existingLog?.notes || undefined,
-      dataFileUrl: existingLog?.dataFileUrl || undefined,
-      stravaUrl: existingLog?.stravaUrl || undefined,
+      feeling: existingLog?.feeling || '',
+      notes: existingLog?.notes || '',
+      dataFileUrl: existingLog?.dataFileUrl || '',
+      stravaUrl: existingLog?.stravaUrl || '',
     },
   })
 
@@ -291,6 +291,7 @@ export function WorkoutLoggingForm({
                     <Input
                       placeholder="t.ex. 5:30"
                       {...field}
+                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormDescription>Format: MM:SS</FormDescription>
@@ -428,7 +429,7 @@ export function WorkoutLoggingForm({
                 <FormItem>
                   <FormLabel>Känsla</FormLabel>
                   <FormControl>
-                    <Input placeholder="t.ex. Stark, Trött, Bra" {...field} />
+                    <Input placeholder="t.ex. Stark, Trött, Bra" {...field} value={field.value || ''} />
                   </FormControl>
                   <FormDescription>
                     Hur kände du dig under passet?
@@ -449,6 +450,7 @@ export function WorkoutLoggingForm({
                       placeholder="Detaljer om passet, hur det gick, eventuella problem..."
                       rows={4}
                       {...field}
+                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -478,6 +480,7 @@ export function WorkoutLoggingForm({
                       type="url"
                       placeholder="https://www.strava.com/activities/..."
                       {...field}
+                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormDescription>
@@ -499,6 +502,7 @@ export function WorkoutLoggingForm({
                       type="url"
                       placeholder="Länk till GPX, FIT eller TCX-fil..."
                       {...field}
+                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormDescription>
