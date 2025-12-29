@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -283,6 +283,8 @@ export function VideoAnalysisCard({
   const [showPoseDialog, setShowPoseDialog] = useState(false)
   const [isSavingPose, setIsSavingPose] = useState(false)
   const [poseAnalysisData, setPoseAnalysisData] = useState<Record<string, unknown> | null>(null)
+  // Use ref to avoid stale closure issues when saving
+  const poseAnalysisDataRef = useRef<Record<string, unknown> | null>(null)
   const [showExtendedPoseData, setShowExtendedPoseData] = useState(false)
   const [extendedPoseData, setExtendedPoseData] = useState<{
     frameCount: number
@@ -297,7 +299,11 @@ export function VideoAnalysisCard({
 
   // Callback to receive pose analysis data from PoseAnalyzer
   const handlePoseAnalysisUpdate = (data: Record<string, unknown>) => {
+    console.log('[VideoAnalysisCard] handlePoseAnalysisUpdate called with:', data)
+    console.log('[VideoAnalysisCard] data has score:', (data as { score?: number })?.score)
+    // Update both state and ref to ensure latest value is always available
     setPoseAnalysisData(data)
+    poseAnalysisDataRef.current = data
   }
 
   // Fetch extended pose data (landmarks)
@@ -472,6 +478,16 @@ export function VideoAnalysisCard({
     summary: string
   }) => {
     setIsSavingPose(true)
+
+    // Read from ref to avoid stale closure issues
+    const currentAiPoseAnalysis = poseAnalysisDataRef.current
+
+    // Debug logging
+    console.log('[VideoAnalysisCard] Saving pose analysis...')
+    console.log('[VideoAnalysisCard] poseAnalysisData (state):', poseAnalysisData)
+    console.log('[VideoAnalysisCard] poseAnalysisDataRef.current:', currentAiPoseAnalysis)
+    console.log('[VideoAnalysisCard] Has AI analysis:', currentAiPoseAnalysis !== null)
+
     try {
       const response = await fetch(`/api/video-analysis/${analysis.id}/landmarks`, {
         method: 'PATCH',
@@ -479,6 +495,8 @@ export function VideoAnalysisCard({
         body: JSON.stringify({
           frames: data.frames,
           summary: data.summary,
+          // Include the Gemini AI pose analysis if available (from ref to avoid stale closure)
+          aiPoseAnalysis: currentAiPoseAnalysis,
         }),
       })
 
@@ -488,9 +506,12 @@ export function VideoAnalysisCard({
         throw new Error(result.error || 'Kunde inte spara posedata')
       }
 
+      const hasAiAnalysis = currentAiPoseAnalysis !== null
       toast({
-        title: 'Poseanalys sparad!',
-        description: `${result.frameCount} frames sparade till "${analysis.exercise?.nameSv || analysis.exercise?.name || 'videoanalysen'}". Klicka på "Visa resultat" för att se analysen.`,
+        title: hasAiAnalysis ? 'Analys sparad!' : 'Poseanalys sparad!',
+        description: hasAiAnalysis
+          ? `${result.frameCount} frames och Gemini AI-analys sparade. Klicka på "Visa resultat" för att se analysen.`
+          : `${result.frameCount} frames sparade till "${analysis.exercise?.nameSv || analysis.exercise?.name || 'videoanalysen'}". Klicka på "Visa resultat" för att se analysen.`,
       })
 
       onAnalysisComplete()

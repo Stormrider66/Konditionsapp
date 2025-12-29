@@ -30,9 +30,33 @@ const frameSchema = z.object({
   landmarks: z.array(landmarkSchema),
 });
 
+// Schema for the AI pose analysis from Gemini
+const aiPoseAnalysisSchema = z.object({
+  interpretation: z.string(),
+  technicalFeedback: z.array(z.object({
+    area: z.string(),
+    observation: z.string(),
+    impact: z.string(),
+    suggestion: z.string(),
+  })),
+  patterns: z.array(z.object({
+    pattern: z.string(),
+    significance: z.string(),
+  })),
+  recommendations: z.array(z.object({
+    priority: z.number(),
+    title: z.string(),
+    description: z.string(),
+    exercises: z.array(z.string()),
+  })),
+  overallAssessment: z.string(),
+  score: z.number().optional(),
+}).optional();
+
 const updateSchema = z.object({
   frames: z.array(frameSchema),
   summary: z.string().optional(),
+  aiPoseAnalysis: aiPoseAnalysisSchema.nullable(), // Allow null when no AI analysis was run
 });
 
 export async function PATCH(
@@ -44,7 +68,17 @@ export async function PATCH(
     const { id } = await params;
 
     const body = await request.json();
-    const { frames, summary } = updateSchema.parse(body);
+
+    // Debug logging
+    console.log('[landmarks API] Received request body keys:', Object.keys(body));
+    console.log('[landmarks API] aiPoseAnalysis received:', body.aiPoseAnalysis !== null && body.aiPoseAnalysis !== undefined);
+    if (body.aiPoseAnalysis) {
+      console.log('[landmarks API] aiPoseAnalysis score:', body.aiPoseAnalysis.score);
+    }
+
+    const { frames, summary, aiPoseAnalysis } = updateSchema.parse(body);
+
+    console.log('[landmarks API] After Zod parse - aiPoseAnalysis:', aiPoseAnalysis !== null && aiPoseAnalysis !== undefined);
 
     // Verify ownership
     const analysis = await prisma.videoAnalysis.findFirst({
@@ -90,15 +124,80 @@ export async function PATCH(
       },
     };
 
-    // Update analysis with landmarks
+    // Build AI analysis text combining summary and structured AI pose analysis
+    let aiAnalysisText = analysis.aiAnalysis || '';
+
+    if (summary) {
+      aiAnalysisText = aiAnalysisText
+        ? `${aiAnalysisText}\n\n--- Pose Analysis ---\n${summary}`
+        : `--- Pose Analysis ---\n${summary}`;
+    }
+
+    console.log('[landmarks API] Building AI analysis text, aiPoseAnalysis exists:', !!aiPoseAnalysis);
+    if (aiPoseAnalysis) {
+      console.log('[landmarks API] Adding Gemini analysis to aiAnalysisText with score:', aiPoseAnalysis.score);
+      // Format the AI pose analysis as structured text
+      const aiPoseText = [
+        '\n\n--- Gemini AI Pose Analysis ---',
+        `Score: ${aiPoseAnalysis.score || 'N/A'}/100`,
+        '',
+        'Tolkning:',
+        aiPoseAnalysis.interpretation,
+        '',
+        ...(aiPoseAnalysis.technicalFeedback.length > 0 ? [
+          'Teknisk feedback:',
+          ...aiPoseAnalysis.technicalFeedback.map((fb, i) =>
+            `${i + 1}. ${fb.area}: ${fb.observation} - ${fb.suggestion}`
+          ),
+          '',
+        ] : []),
+        ...(aiPoseAnalysis.patterns.length > 0 ? [
+          'Identifierade mönster:',
+          ...aiPoseAnalysis.patterns.map(p => `• ${p.pattern}: ${p.significance}`),
+          '',
+        ] : []),
+        ...(aiPoseAnalysis.recommendations.length > 0 ? [
+          'Rekommendationer:',
+          ...aiPoseAnalysis.recommendations.map(r =>
+            `${r.priority}. ${r.title}: ${r.description}`
+          ),
+          '',
+        ] : []),
+        'Sammanfattning:',
+        aiPoseAnalysis.overallAssessment,
+      ].join('\n');
+
+      aiAnalysisText = aiAnalysisText
+        ? `${aiAnalysisText}${aiPoseText}`
+        : aiPoseText;
+    }
+
+    // Update analysis with landmarks and AI analysis
+    console.log('[landmarks API] Saving to database:');
+    console.log('[landmarks API] - Will update aiAnalysis text:', aiAnalysisText.length > 0);
+    console.log('[landmarks API] - Will update formScore:', aiPoseAnalysis?.score);
+    console.log('[landmarks API] - Will set status to COMPLETED:', !!aiPoseAnalysis);
     const updated = await prisma.videoAnalysis.update({
       where: { id },
       data: {
         landmarksData: compressedData,
-        ...(summary && {
-          aiAnalysis: analysis.aiAnalysis
-            ? `${analysis.aiAnalysis}\n\n--- Pose Analysis ---\n${summary}`
-            : `--- Pose Analysis ---\n${summary}`,
+        // Also store structured AI pose analysis in landmarksData for retrieval
+        ...(aiPoseAnalysis && {
+          landmarksData: {
+            ...compressedData,
+            aiPoseAnalysis,
+          },
+        }),
+        ...(aiAnalysisText && {
+          aiAnalysis: aiAnalysisText,
+        }),
+        // Update form score if we have one from the AI analysis
+        ...(aiPoseAnalysis?.score && {
+          formScore: aiPoseAnalysis.score,
+        }),
+        // Mark as completed if we have AI analysis
+        ...(aiPoseAnalysis && {
+          status: 'COMPLETED',
         }),
       },
       include: {

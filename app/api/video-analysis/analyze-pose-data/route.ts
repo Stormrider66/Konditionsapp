@@ -15,6 +15,15 @@ interface JointAngle {
   status: 'good' | 'warning' | 'critical'
 }
 
+interface AngleRange {
+  name: string
+  current: number
+  min: number
+  max: number
+  range: number
+  status: 'good' | 'warning' | 'critical'
+}
+
 interface PoseFrame {
   timestamp: number
   landmarks: Array<{
@@ -30,8 +39,10 @@ interface AnalyzePoseDataRequest {
   exerciseName?: string
   exerciseNameSv?: string
   angles: JointAngle[]
+  angleRanges?: AngleRange[] // Full min/max/range data across all frames
   frames: PoseFrame[]
   frameCount: number
+  cameraAngle?: 'SAGITTAL' | 'FRONTAL' | 'UNKNOWN' // Detected camera viewing angle
 }
 
 export async function POST(request: NextRequest) {
@@ -67,7 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: AnalyzePoseDataRequest = await request.json()
-    const { videoType, exerciseName, exerciseNameSv, angles, frames, frameCount } = body
+    const { videoType, exerciseName, exerciseNameSv, angles, angleRanges, frames, frameCount, cameraAngle } = body
 
     if (!angles || angles.length === 0) {
       return NextResponse.json(
@@ -90,16 +101,34 @@ export async function POST(request: NextRequest) {
     // Build context about the exercise
     const exerciseContext = exerciseNameSv || exerciseName || getVideoTypeLabel(videoType)
 
-    // Prepare pose data summary
-    const angleSummary = angles.map(a =>
-      `- ${a.name}: ${a.angle.toFixed(1)}° (${getStatusLabel(a.status)})`
-    ).join('\n')
+    // Use angleRanges if available (much better data!), fallback to single-frame angles
+    const hasRangeData = angleRanges && angleRanges.length > 0
 
-    // Calculate statistics from angles
-    const goodCount = angles.filter(a => a.status === 'good').length
-    const warningCount = angles.filter(a => a.status === 'warning').length
-    const criticalCount = angles.filter(a => a.status === 'critical').length
-    const totalAngles = angles.length
+    // Prepare pose data summary - prefer range data for accuracy
+    let angleSummary: string
+    let goodCount: number
+    let warningCount: number
+    let criticalCount: number
+
+    if (hasRangeData) {
+      // Use min/max/range data - this shows the FULL motion across all frames
+      angleSummary = angleRanges.map(a =>
+        `- ${a.name}: Min ${a.min}° / Max ${a.max}° (rörelseomfång: ${a.range}°)`
+      ).join('\n')
+      goodCount = angleRanges.filter(a => a.status === 'good').length
+      warningCount = angleRanges.filter(a => a.status === 'warning').length
+      criticalCount = angleRanges.filter(a => a.status === 'critical').length
+    } else {
+      // Fallback to single-frame data (less accurate)
+      angleSummary = angles.map(a =>
+        `- ${a.name}: ${a.angle.toFixed(1)}° (${getStatusLabel(a.status)})`
+      ).join('\n')
+      goodCount = angles.filter(a => a.status === 'good').length
+      warningCount = angles.filter(a => a.status === 'warning').length
+      criticalCount = angles.filter(a => a.status === 'critical').length
+    }
+
+    const totalAngles = hasRangeData ? angleRanges.length : angles.length
     const score = totalAngles > 0 ? Math.round((goodCount / totalAngles) * 100) : 0
 
     // Sample frame data for pattern analysis (don't send all frames - too much data)
@@ -115,16 +144,20 @@ export async function POST(request: NextRequest) {
       score,
       frameCount,
       sampleFrames,
+      hasRangeData,
+      angleRanges,
+      cameraAngle: cameraAngle || 'UNKNOWN',
     })
 
     console.log(`[Pose Data Analysis] Sending to ${modelId} for analysis...`)
     console.log(`[Pose Data Analysis] Exercise: ${exerciseContext}, Angles: ${totalAngles}, Frames: ${frameCount}`)
 
-    // Send to Gemini
+    // Send to Gemini with increased token limit for detailed JSON response
     const result = await generateContent(
       client,
       modelId,
-      [createText(prompt)]
+      [createText(prompt)],
+      { maxOutputTokens: 4096 } // Ensure we get complete JSON response
     )
 
     console.log(`[Pose Data Analysis] Response received, length: ${result.text.length} chars`)
@@ -202,10 +235,42 @@ interface PromptParams {
   score: number
   frameCount: number
   sampleFrames: string
+  hasRangeData?: boolean
+  angleRanges?: AngleRange[]
+  cameraAngle?: 'SAGITTAL' | 'FRONTAL' | 'UNKNOWN'
 }
 
 function buildAnalysisPrompt(params: PromptParams): string {
-  const { exerciseContext, videoType, angleSummary, goodCount, warningCount, criticalCount, score, frameCount, sampleFrames } = params
+  const { exerciseContext, videoType, angleSummary, goodCount, warningCount, criticalCount, score, frameCount, sampleFrames, hasRangeData, angleRanges, cameraAngle } = params
+
+  // Build asymmetry analysis for running gait
+  let asymmetryNote = ''
+  if (hasRangeData && angleRanges && videoType === 'RUNNING_GAIT') {
+    // Find left/right pairs and compare their ranges
+    const leftKnee = angleRanges.find(a => a.name.includes('vänster') && a.name.toLowerCase().includes('knä'))
+    const rightKnee = angleRanges.find(a => a.name.includes('höger') && a.name.toLowerCase().includes('knä'))
+    const leftArm = angleRanges.find(a => a.name.includes('vänster') && a.name.toLowerCase().includes('arm'))
+    const rightArm = angleRanges.find(a => a.name.includes('höger') && a.name.toLowerCase().includes('arm'))
+
+    const comparisons: string[] = []
+    if (leftKnee && rightKnee) {
+      const kneeDiff = Math.abs(leftKnee.range - rightKnee.range)
+      const kneeAsymmetry = Math.round((kneeDiff / Math.max(leftKnee.range, rightKnee.range)) * 100)
+      comparisons.push(`Knälyft: Vänster ${leftKnee.min}°-${leftKnee.max}° vs Höger ${rightKnee.min}°-${rightKnee.max}° (${kneeAsymmetry}% skillnad i rörelseomfång)`)
+    }
+    if (leftArm && rightArm) {
+      const armDiff = Math.abs(leftArm.range - rightArm.range)
+      const armAsymmetry = Math.round((armDiff / Math.max(leftArm.range, rightArm.range)) * 100)
+      comparisons.push(`Armsving: Vänster ${leftArm.min}°-${leftArm.max}° vs Höger ${rightArm.min}°-${rightArm.max}° (${armAsymmetry}% skillnad)`)
+    }
+    if (comparisons.length > 0) {
+      asymmetryNote = `\n\n## Asymmetrianalys (höger vs vänster)\n${comparisons.join('\n')}`
+    }
+  }
+
+  const dataTypeExplanation = hasRangeData
+    ? `\n\n**VIKTIGT**: Data nedan visar MIN/MAX-värden över HELA videosekvensen (${frameCount} frames), inte en enskild bildruta. Detta ger en komplett bild av löparens rörelseomfång genom hela löpcykeln.`
+    : `\n\n**OBS**: Data nedan är från en enskild bildruta. För mer tillförlitlig analys behövs min/max-intervall över hela videon.`
 
   return `Du är en expert på biomekanisk analys och rörelseteknik. Analysera följande data från en MediaPipe skelettspårningsanalys.
 
@@ -213,29 +278,66 @@ function buildAnalysisPrompt(params: PromptParams): string {
 - Övning/Rörelse: ${exerciseContext}
 - Typ: ${videoType === 'RUNNING_GAIT' ? 'Löpteknik' : videoType === 'STRENGTH' ? 'Styrkeövning' : 'Sportspecifik rörelse'}
 - Antal analyserade frames: ${frameCount}
+${dataTypeExplanation}
 
-## Uppmätta ledvinklar (genomsnitt)
+## ${hasRangeData ? 'Ledvinklar - Rörelseomfång (Min/Max över hela videon)' : 'Uppmätta ledvinklar'}
 ${angleSummary}
-
-## Sammanfattning
-- Optimala vinklar: ${goodCount}
-- Varningar: ${warningCount}
-- Kritiska avvikelser: ${criticalCount}
-- Poäng baserat på MediaPipe: ${score}%
+${asymmetryNote}
 
 ## Samplade frame-positioner (nyckelpositioner)
 ${sampleFrames}
 
 ---
 
+${hasRangeData && videoType === 'RUNNING_GAIT' ? `
+**KAMERAVINKEL: ${cameraAngle === 'FRONTAL' ? 'FRAMIFRÅN/BAKIFRÅN (Frontalplan)' : cameraAngle === 'SAGITTAL' ? 'FRÅN SIDAN (Sagittalplan)' : 'OKÄND'}**
+
+${cameraAngle === 'FRONTAL' ? `
+**VIKTIGT - FRONTALPLANSANALYS:**
+Detta är en video tagen FRAMIFRÅN eller BAKIFRÅN. Vinkeldata reflekterar mätningar i FRONTALPLANET.
+- ❌ Knälyft, höftflexion/extension och bållutning framåt kan INTE mätas korrekt från denna vinkel
+- ✅ Fokusera istället på: bäckenstabilitet, knävalgus/varus, lateral sväng, armkorsning
+
+**REFERENSVÄRDEN FÖR FRONTALPLAN (fram-/bakvy):**
+- Bäckentippning (sidovinkel): 0-8° (liten skillnad = bra stabilitet)
+- Överkroppssväng (sidled): 0-15% av höftbredd (låg = effektivt)
+- Knästabilitet: 0-30 (lågt värde = knä håller linje, högt = valgus/inåtvridning)
+- Armkorsning: 0-50% (armar ska inte korsa mittlinjen för mycket)
+- Armbågsvinkel: 70-120° (kompakt armsving)
+
+**VAD ATT ANALYSERA:**
+- Bäckenstabilitet: Jämna höfter = stark glutes medius
+- Knävalgus: Knä som faller inåt = risk för löparknä, behöver stärka glutes
+- Lateral sväng: Överdriven sidorörelse i överkropp = slöseri med energi
+- Armkorsning: Armar som korsar mittlinjen = rotation istället för framdrift
+` : `
+**ANALYSERA LÖPTEKNIK BASERAT PÅ SIDOVY (SAGITTALPLAN):**
+- För löpning är det NORMALT att vänster och höger sida visar olika värden vid en given tidpunkt (en fot i luften, en på marken)
+- Bedöm SYMMETRI genom att jämföra MIN/MAX-intervallen för höger och vänster sida - liknande intervall = symmetrisk löpstil
+- Rörelseomfång (range) är viktigare än enskilda momentanvärden
+
+**TYPISKA REFERENSVÄRDEN FÖR SIDOVY:**
+- Knälyft: 30-90° (högre = bättre knädrive)
+- Höftvinkel: 140-180° (lägre vid frånskjut = bättre extension, högre vid swing = bättre flexion)
+- Fotvinkel: 80-130° (dorsiflexion, indikerar fotisättning och ankelstyvhet)
+- Bålvinkel: 5-20° framåtlutning (lätt framåtlutning är optimalt)
+- Armsving: 70-110° (runt 90° är idealt)
+
+**VIKTIGT ATT ANALYSERA:**
+- Höftextension: Litet höftvinkel-minimum indikerar bra frånskjut
+- Fotisättning: Fotvinkel vid markkontakt indikerar hälisättare vs framfotsisättare
+- Bålvinkel: För upprätt (<5°) = ineffektiv, för mycket (>20°) = överdriven lutning
+`}
+` : ''}
+
 Ge en detaljerad analys på SVENSKA med följande struktur. Svara i JSON-format:
 
 {
-  "interpretation": "Övergripande tolkning av rörelsedata (2-3 meningar)",
+  "interpretation": "Övergripande tolkning av rörelsedata (2-3 meningar). ${hasRangeData ? 'Basera på MIN/MAX-intervallen, inte enskilda värden.' : ''}",
   "technicalFeedback": [
     {
       "area": "Område (t.ex. Knävinkel, Höftflexion)",
-      "observation": "Vad data visar",
+      "observation": "Vad data visar - ${hasRangeData ? 'referera till min/max-intervall och rörelseomfång' : 'vad mätningen visar'}",
       "impact": "Hur detta påverkar prestanda/skaderisk",
       "suggestion": "Konkret förslag för förbättring"
     }
@@ -255,14 +357,27 @@ Ge en detaljerad analys på SVENSKA med följande struktur. Svara i JSON-format:
     }
   ],
   "overallAssessment": "Sammanfattande bedömning (1-2 meningar)",
-  "score": 75
+  "score": <poäng 0-100 baserat på rörelseomfång och symmetri>
 }
 
 Fokusera på:
-1. ${videoType === 'RUNNING_GAIT' ? 'Löpekonomi, fotisättning, kadensoptimering, höftextension' : 'Korrekt form, kontroll, stabilitet, progressionsmöjligheter'}
-2. Asymmetrier mellan höger/vänster sida
-3. Potentiella skaderisker baserat på vinklarna
-4. Praktiska, genomförbara förbättringsförslag
+${videoType === 'RUNNING_GAIT' && cameraAngle === 'FRONTAL' ? `
+1. Bäckenstabilitet och höftdropp (glutes medius styrka)
+2. Knästabilitet och valgus/varus (knä inåt = risk för löparknä)
+3. Lateral sväng i överkropp (slösar energi om överdriven)
+4. Armkorsning och axelspänning
+5. Praktiska styrkeövningar för gluteus medius och fotledsstabilitet
+` : videoType === 'RUNNING_GAIT' ? `
+1. Löpekonomi: höftextension vid frånskjut, fotisättning, bålhållning och armsving
+2. ${hasRangeData ? 'Jämför MIN/MAX-intervallen mellan höger och vänster sida för att bedöma symmetri' : 'Asymmetrier mellan höger/vänster sida'}
+3. Höftvinkel och fotvinkel för att identifiera överstriding eller ineffektiv frånskjut
+4. Praktiska, genomförbara förbättringsförslag med specifika övningar
+` : `
+1. Korrekt form, kontroll, stabilitet, progressionsmöjligheter
+2. ${hasRangeData ? 'Jämför MIN/MAX-intervallen mellan höger och vänster sida för att bedöma symmetri' : 'Asymmetrier mellan höger/vänster sida'}
+3. Potentiella skaderisker baserat på rörelsemönster
+4. Praktiska, genomförbara förbättringsförslag med specifika övningar
+`}
 
 Svara ENDAST med JSON-objektet, ingen annan text.`
 }
@@ -320,15 +435,26 @@ function parseGeminiResponse(response: string): GeminiAnalysis {
       overallAssessment: parsed.overallAssessment || 'Ingen bedömning tillgänglig',
       score: parsed.score,
     }
-  } catch {
-    console.error('[Pose Data Analysis] Failed to parse JSON, returning raw response')
+  } catch (error) {
+    console.error('[Pose Data Analysis] Failed to parse JSON:', error)
+    console.error('[Pose Data Analysis] Raw response (first 500 chars):', response.slice(0, 500))
+
+    // Try to extract partial data from truncated JSON
+    const interpretationMatch = response.match(/"interpretation"\s*:\s*"([^"]+)"/)
+    const scoreMatch = response.match(/"score"\s*:\s*(\d+)/)
+
+    // Don't show raw JSON to user - provide a helpful fallback message
     return {
-      interpretation: response.slice(0, 500),
+      interpretation: interpretationMatch
+        ? interpretationMatch[1]
+        : 'AI-analysen kunde inte slutföras helt. Svaret var ofullständigt. Vänligen försök igen.',
       technicalFeedback: [],
       patterns: [],
       recommendations: [],
-      overallAssessment: 'Kunde inte tolka AI-svaret strukturerat',
-      score: undefined,
+      overallAssessment: interpretationMatch
+        ? 'Endast partiell analys kunde hämtas. Kör analysen igen för fullständiga rekommendationer.'
+        : 'Kunde inte tolka AI-svaret. Försök igen.',
+      score: scoreMatch ? parseInt(scoreMatch[1], 10) : undefined,
     }
   }
 }

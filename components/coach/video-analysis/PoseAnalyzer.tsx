@@ -31,7 +31,7 @@ import {
   MousePointer,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { FormFeedbackPanel } from './FormFeedbackPanel'
+// FormFeedbackPanel removed - redundant with Gemini AI pose analysis
 
 // BlazePose landmark indices
 const POSE_LANDMARKS = {
@@ -159,6 +159,73 @@ function calculateAnkleAngle(knee: PoseLandmark, ankle: PoseLandmark, footIndex:
   return calculateAngle(knee, ankle, footIndex)
 }
 
+// Calculate trunk lean angle (torso angle relative to vertical - 0° is upright)
+function calculateTrunkAngle(shoulder: PoseLandmark, hip: PoseLandmark): number {
+  const dx = shoulder.x - hip.x
+  const dy = shoulder.y - hip.y
+  // Angle from vertical (y-axis pointing down in screen coords)
+  // Positive = forward lean, negative = backward lean
+  const radians = Math.atan2(dx, -dy) // negative dy because y increases downward
+  return radians * 180 / Math.PI
+}
+
+// Calculate lateral trunk sway (for frontal view)
+function calculateLateralTrunkSway(leftShoulder: PoseLandmark, rightShoulder: PoseLandmark, leftHip: PoseLandmark, rightHip: PoseLandmark): number {
+  // Midpoint of shoulders vs midpoint of hips
+  const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2
+  const hipMidX = (leftHip.x + rightHip.x) / 2
+  // Sway = horizontal displacement as percentage of hip width
+  const hipWidth = Math.abs(rightHip.x - leftHip.x)
+  if (hipWidth < 0.01) return 0
+  return ((shoulderMidX - hipMidX) / hipWidth) * 100
+}
+
+// Calculate hip drop (for frontal view - pelvic tilt in frontal plane)
+function calculateHipDrop(leftHip: PoseLandmark, rightHip: PoseLandmark): number {
+  // Difference in Y position between left and right hip
+  // Positive = left hip dropped, Negative = right hip dropped
+  const dy = (leftHip.y - rightHip.y)
+  const dx = Math.abs(rightHip.x - leftHip.x)
+  if (dx < 0.01) return 0
+  const radians = Math.atan2(dy, dx)
+  return radians * 180 / Math.PI
+}
+
+// Calculate knee valgus/varus (for frontal view)
+function calculateKneeAlignment(hip: PoseLandmark, knee: PoseLandmark, ankle: PoseLandmark): number {
+  // Horizontal alignment: positive = valgus (knee in), negative = varus (knee out)
+  // Compare knee X position relative to line from hip to ankle
+  const expectedKneeX = hip.x + (ankle.x - hip.x) * ((knee.y - hip.y) / (ankle.y - hip.y + 0.001))
+  return (knee.x - expectedKneeX) * 1000 // Scale to meaningful number
+}
+
+// Detect camera viewing angle based on landmark positions
+type CameraAngle = 'SAGITTAL' | 'FRONTAL' | 'UNKNOWN'
+
+function detectCameraAngle(landmarks: PoseLandmark[]): CameraAngle {
+  const leftShoulder = landmarks[POSE_LANDMARKS.LEFT_SHOULDER]
+  const rightShoulder = landmarks[POSE_LANDMARKS.RIGHT_SHOULDER]
+  const leftHip = landmarks[POSE_LANDMARKS.LEFT_HIP]
+  const rightHip = landmarks[POSE_LANDMARKS.RIGHT_HIP]
+
+  if (!leftShoulder || !rightShoulder || !leftHip || !rightHip) return 'UNKNOWN'
+
+  // Calculate horizontal distance between left and right shoulders
+  const shoulderXDistance = Math.abs(rightShoulder.x - leftShoulder.x)
+  const hipXDistance = Math.abs(rightHip.x - leftHip.x)
+
+  // If we can see significant width between shoulders/hips, we're viewing from front/back
+  // Typical values: frontal view ~0.15-0.3, sagittal view ~0.02-0.08
+  const avgWidthVisible = (shoulderXDistance + hipXDistance) / 2
+
+  if (avgWidthVisible > 0.12) {
+    return 'FRONTAL' // Behind or front view
+  } else if (avgWidthVisible < 0.08) {
+    return 'SAGITTAL' // Side view
+  }
+  return 'UNKNOWN' // Ambiguous angle
+}
+
 export function PoseAnalyzer({
   videoUrl,
   videoType,
@@ -182,6 +249,7 @@ export function PoseAnalyzer({
   const [angleRanges, setAngleRanges] = useState<Map<string, AngleRange>>(new Map())
   const [isAnalysisComplete, setIsAnalysisComplete] = useState(false)
   const [isAnalyzingWithAI, setIsAnalyzingWithAI] = useState(false)
+  const [detectedCameraAngle, setDetectedCameraAngle] = useState<CameraAngle>('UNKNOWN')
   const [aiPoseAnalysis, setAiPoseAnalysis] = useState<{
     interpretation: string
     technicalFeedback: Array<{
@@ -220,75 +288,260 @@ export function PoseAnalyzer({
   const [hoveredLandmark, setHoveredLandmark] = useState<number | null>(null)
   const [hasEdits, setHasEdits] = useState(false)
 
-  // Calculate joint angles based on video type
-  const calculateJointAngles = useCallback((landmarks: PoseLandmark[], type: string): JointAngle[] => {
+  // Calculate joint angles based on video type AND camera angle
+  const calculateJointAngles = useCallback((landmarks: PoseLandmark[], type: string, cameraAngle: CameraAngle): JointAngle[] => {
     const angles: JointAngle[] = []
 
-    // Common angles for all types
-    // Knee angles
-    const leftKneeAngle = calculateAngle(
-      landmarks[POSE_LANDMARKS.LEFT_HIP],
-      landmarks[POSE_LANDMARKS.LEFT_KNEE],
-      landmarks[POSE_LANDMARKS.LEFT_ANKLE]
-    )
-    const rightKneeAngle = calculateAngle(
-      landmarks[POSE_LANDMARKS.RIGHT_HIP],
-      landmarks[POSE_LANDMARKS.RIGHT_KNEE],
-      landmarks[POSE_LANDMARKS.RIGHT_ANKLE]
-    )
+    if (type === 'RUNNING_GAIT') {
+      // CAMERA ANGLE SPECIFIC CALCULATIONS FOR RUNNING
+      if (cameraAngle === 'FRONTAL') {
+        // ============================================
+        // FRONTAL VIEW (Behind/Front) - Different angles!
+        // Can measure: hip drop, knee valgus, lateral sway, foot alignment
+        // CANNOT accurately measure: trunk forward lean, hip flexion/extension, knee lift
+        // ============================================
 
-    // Hip angles
-    const leftHipAngle = calculateAngle(
-      landmarks[POSE_LANDMARKS.LEFT_SHOULDER],
-      landmarks[POSE_LANDMARKS.LEFT_HIP],
-      landmarks[POSE_LANDMARKS.LEFT_KNEE]
-    )
-    const rightHipAngle = calculateAngle(
-      landmarks[POSE_LANDMARKS.RIGHT_SHOULDER],
-      landmarks[POSE_LANDMARKS.RIGHT_HIP],
-      landmarks[POSE_LANDMARKS.RIGHT_KNEE]
-    )
+        // Hip drop / Pelvic tilt (frontal plane)
+        const hipDrop = calculateHipDrop(
+          landmarks[POSE_LANDMARKS.LEFT_HIP],
+          landmarks[POSE_LANDMARKS.RIGHT_HIP]
+        )
+        angles.push({
+          name: 'Bäckentippning (sidovinkel)',
+          angle: Math.round(Math.abs(hipDrop)),
+          status: evaluateAngle(Math.abs(hipDrop), 0, 8), // 0-8° is acceptable
+        })
 
-    // Elbow angles
-    const leftElbowAngle = calculateAngle(
-      landmarks[POSE_LANDMARKS.LEFT_SHOULDER],
-      landmarks[POSE_LANDMARKS.LEFT_ELBOW],
-      landmarks[POSE_LANDMARKS.LEFT_WRIST]
-    )
-    const rightElbowAngle = calculateAngle(
-      landmarks[POSE_LANDMARKS.RIGHT_SHOULDER],
-      landmarks[POSE_LANDMARKS.RIGHT_ELBOW],
-      landmarks[POSE_LANDMARKS.RIGHT_WRIST]
-    )
+        // Lateral trunk sway
+        const trunkSway = calculateLateralTrunkSway(
+          landmarks[POSE_LANDMARKS.LEFT_SHOULDER],
+          landmarks[POSE_LANDMARKS.RIGHT_SHOULDER],
+          landmarks[POSE_LANDMARKS.LEFT_HIP],
+          landmarks[POSE_LANDMARKS.RIGHT_HIP]
+        )
+        angles.push({
+          name: 'Överkroppssväng (sidled)',
+          angle: Math.round(Math.abs(trunkSway)),
+          status: evaluateAngle(Math.abs(trunkSway), 0, 15), // Low sway is better
+        })
 
-    // Shin angles (tibia relative to vertical)
-    const leftShinAngle = calculateShinAngle(
-      landmarks[POSE_LANDMARKS.LEFT_KNEE],
-      landmarks[POSE_LANDMARKS.LEFT_ANKLE]
-    )
-    const rightShinAngle = calculateShinAngle(
-      landmarks[POSE_LANDMARKS.RIGHT_KNEE],
-      landmarks[POSE_LANDMARKS.RIGHT_ANKLE]
-    )
+        // Knee valgus/varus (left)
+        const leftKneeAlignment = calculateKneeAlignment(
+          landmarks[POSE_LANDMARKS.LEFT_HIP],
+          landmarks[POSE_LANDMARKS.LEFT_KNEE],
+          landmarks[POSE_LANDMARKS.LEFT_ANKLE]
+        )
+        angles.push({
+          name: 'Knästabilitet vänster',
+          angle: Math.round(Math.abs(leftKneeAlignment)),
+          status: evaluateAngle(Math.abs(leftKneeAlignment), 0, 30), // Near 0 is good
+        })
 
-    // Ankle/foot angles (dorsiflexion)
-    const leftAnkleAngle = calculateAnkleAngle(
-      landmarks[POSE_LANDMARKS.LEFT_KNEE],
-      landmarks[POSE_LANDMARKS.LEFT_ANKLE],
-      landmarks[POSE_LANDMARKS.LEFT_FOOT_INDEX]
-    )
-    const rightAnkleAngle = calculateAnkleAngle(
-      landmarks[POSE_LANDMARKS.RIGHT_KNEE],
-      landmarks[POSE_LANDMARKS.RIGHT_ANKLE],
-      landmarks[POSE_LANDMARKS.RIGHT_FOOT_INDEX]
-    )
+        // Knee valgus/varus (right)
+        const rightKneeAlignment = calculateKneeAlignment(
+          landmarks[POSE_LANDMARKS.RIGHT_HIP],
+          landmarks[POSE_LANDMARKS.RIGHT_KNEE],
+          landmarks[POSE_LANDMARKS.RIGHT_ANKLE]
+        )
+        angles.push({
+          name: 'Knästabilitet höger',
+          angle: Math.round(Math.abs(rightKneeAlignment)),
+          status: evaluateAngle(Math.abs(rightKneeAlignment), 0, 30),
+        })
 
-    if (type === 'STRENGTH') {
-      // Squat/deadlift specific ranges
+        // Shoulder symmetry (arm swing in frontal plane - crossing body)
+        const shoulderWidth = Math.abs(landmarks[POSE_LANDMARKS.RIGHT_SHOULDER].x - landmarks[POSE_LANDMARKS.LEFT_SHOULDER].x)
+        const leftArmCross = Math.abs(landmarks[POSE_LANDMARKS.LEFT_WRIST].x - landmarks[POSE_LANDMARKS.LEFT_SHOULDER].x) / (shoulderWidth + 0.01) * 100
+        const rightArmCross = Math.abs(landmarks[POSE_LANDMARKS.RIGHT_WRIST].x - landmarks[POSE_LANDMARKS.RIGHT_SHOULDER].x) / (shoulderWidth + 0.01) * 100
+
+        angles.push({
+          name: 'Armkorsning vänster',
+          angle: Math.round(leftArmCross),
+          status: evaluateAngle(leftArmCross, 0, 50), // Arms should stay near body
+        })
+        angles.push({
+          name: 'Armkorsning höger',
+          angle: Math.round(rightArmCross),
+          status: evaluateAngle(rightArmCross, 0, 50),
+        })
+
+        // Elbow angles (still relevant from behind)
+        const leftElbowAngle = calculateAngle(
+          landmarks[POSE_LANDMARKS.LEFT_SHOULDER],
+          landmarks[POSE_LANDMARKS.LEFT_ELBOW],
+          landmarks[POSE_LANDMARKS.LEFT_WRIST]
+        )
+        const rightElbowAngle = calculateAngle(
+          landmarks[POSE_LANDMARKS.RIGHT_SHOULDER],
+          landmarks[POSE_LANDMARKS.RIGHT_ELBOW],
+          landmarks[POSE_LANDMARKS.RIGHT_WRIST]
+        )
+        angles.push({
+          name: 'Armbågsvinkel vänster',
+          angle: Math.round(leftElbowAngle),
+          status: evaluateAngle(leftElbowAngle, 70, 120),
+        })
+        angles.push({
+          name: 'Armbågsvinkel höger',
+          angle: Math.round(rightElbowAngle),
+          status: evaluateAngle(rightElbowAngle, 70, 120),
+        })
+
+      } else {
+        // ============================================
+        // SAGITTAL VIEW (Side) - Standard running angles
+        // Can measure: trunk forward lean, hip flexion/extension, knee lift, foot strike
+        // ============================================
+
+        // Knee angles (knee lift/flexion during swing)
+        const leftKneeAngle = calculateAngle(
+          landmarks[POSE_LANDMARKS.LEFT_HIP],
+          landmarks[POSE_LANDMARKS.LEFT_KNEE],
+          landmarks[POSE_LANDMARKS.LEFT_ANKLE]
+        )
+        const rightKneeAngle = calculateAngle(
+          landmarks[POSE_LANDMARKS.RIGHT_HIP],
+          landmarks[POSE_LANDMARKS.RIGHT_KNEE],
+          landmarks[POSE_LANDMARKS.RIGHT_ANKLE]
+        )
+        angles.push({
+          name: 'Knälyft vänster',
+          angle: Math.round(180 - leftKneeAngle),
+          status: evaluateAngle(180 - leftKneeAngle, 30, 90),
+        })
+        angles.push({
+          name: 'Knälyft höger',
+          angle: Math.round(180 - rightKneeAngle),
+          status: evaluateAngle(180 - rightKneeAngle, 30, 90),
+        })
+
+        // Hip angles (hip flexion/extension)
+        const leftHipAngle = calculateAngle(
+          landmarks[POSE_LANDMARKS.LEFT_SHOULDER],
+          landmarks[POSE_LANDMARKS.LEFT_HIP],
+          landmarks[POSE_LANDMARKS.LEFT_KNEE]
+        )
+        const rightHipAngle = calculateAngle(
+          landmarks[POSE_LANDMARKS.RIGHT_SHOULDER],
+          landmarks[POSE_LANDMARKS.RIGHT_HIP],
+          landmarks[POSE_LANDMARKS.RIGHT_KNEE]
+        )
+        angles.push({
+          name: 'Höftvinkel vänster',
+          angle: Math.round(leftHipAngle),
+          status: evaluateAngle(leftHipAngle, 140, 180),
+        })
+        angles.push({
+          name: 'Höftvinkel höger',
+          angle: Math.round(rightHipAngle),
+          status: evaluateAngle(rightHipAngle, 140, 180),
+        })
+
+        // Foot/Ankle angles (dorsiflexion)
+        const leftAnkleAngle = calculateAnkleAngle(
+          landmarks[POSE_LANDMARKS.LEFT_KNEE],
+          landmarks[POSE_LANDMARKS.LEFT_ANKLE],
+          landmarks[POSE_LANDMARKS.LEFT_FOOT_INDEX]
+        )
+        const rightAnkleAngle = calculateAnkleAngle(
+          landmarks[POSE_LANDMARKS.RIGHT_KNEE],
+          landmarks[POSE_LANDMARKS.RIGHT_ANKLE],
+          landmarks[POSE_LANDMARKS.RIGHT_FOOT_INDEX]
+        )
+        angles.push({
+          name: 'Fotvinkel vänster',
+          angle: Math.round(leftAnkleAngle),
+          status: evaluateAngle(leftAnkleAngle, 80, 130),
+        })
+        angles.push({
+          name: 'Fotvinkel höger',
+          angle: Math.round(rightAnkleAngle),
+          status: evaluateAngle(rightAnkleAngle, 80, 130),
+        })
+
+        // Trunk lean (forward lean from vertical)
+        const leftTrunkAngle = calculateTrunkAngle(
+          landmarks[POSE_LANDMARKS.LEFT_SHOULDER],
+          landmarks[POSE_LANDMARKS.LEFT_HIP]
+        )
+        const rightTrunkAngle = calculateTrunkAngle(
+          landmarks[POSE_LANDMARKS.RIGHT_SHOULDER],
+          landmarks[POSE_LANDMARKS.RIGHT_HIP]
+        )
+        const trunkAngle = (leftTrunkAngle + rightTrunkAngle) / 2
+        angles.push({
+          name: 'Bålvinkel (framåtlutning)',
+          angle: Math.round(Math.abs(trunkAngle)),
+          status: evaluateAngle(Math.abs(trunkAngle), 5, 20),
+        })
+
+        // Arm swing angles
+        const leftElbowAngle = calculateAngle(
+          landmarks[POSE_LANDMARKS.LEFT_SHOULDER],
+          landmarks[POSE_LANDMARKS.LEFT_ELBOW],
+          landmarks[POSE_LANDMARKS.LEFT_WRIST]
+        )
+        const rightElbowAngle = calculateAngle(
+          landmarks[POSE_LANDMARKS.RIGHT_SHOULDER],
+          landmarks[POSE_LANDMARKS.RIGHT_ELBOW],
+          landmarks[POSE_LANDMARKS.RIGHT_WRIST]
+        )
+        angles.push({
+          name: 'Armsving vänster',
+          angle: Math.round(leftElbowAngle),
+          status: evaluateAngle(leftElbowAngle, 70, 110),
+        })
+        angles.push({
+          name: 'Armsving höger',
+          angle: Math.round(rightElbowAngle),
+          status: evaluateAngle(rightElbowAngle, 70, 110),
+        })
+      }
+    } else if (type === 'STRENGTH') {
+      // Strength exercises - camera angle less critical but still relevant
+      const leftKneeAngle = calculateAngle(
+        landmarks[POSE_LANDMARKS.LEFT_HIP],
+        landmarks[POSE_LANDMARKS.LEFT_KNEE],
+        landmarks[POSE_LANDMARKS.LEFT_ANKLE]
+      )
+      const rightKneeAngle = calculateAngle(
+        landmarks[POSE_LANDMARKS.RIGHT_HIP],
+        landmarks[POSE_LANDMARKS.RIGHT_KNEE],
+        landmarks[POSE_LANDMARKS.RIGHT_ANKLE]
+      )
+      const leftHipAngle = calculateAngle(
+        landmarks[POSE_LANDMARKS.LEFT_SHOULDER],
+        landmarks[POSE_LANDMARKS.LEFT_HIP],
+        landmarks[POSE_LANDMARKS.LEFT_KNEE]
+      )
+      const rightHipAngle = calculateAngle(
+        landmarks[POSE_LANDMARKS.RIGHT_SHOULDER],
+        landmarks[POSE_LANDMARKS.RIGHT_HIP],
+        landmarks[POSE_LANDMARKS.RIGHT_KNEE]
+      )
+      const leftShinAngle = calculateShinAngle(
+        landmarks[POSE_LANDMARKS.LEFT_KNEE],
+        landmarks[POSE_LANDMARKS.LEFT_ANKLE]
+      )
+      const rightShinAngle = calculateShinAngle(
+        landmarks[POSE_LANDMARKS.RIGHT_KNEE],
+        landmarks[POSE_LANDMARKS.RIGHT_ANKLE]
+      )
+      const leftAnkleAngle = calculateAnkleAngle(
+        landmarks[POSE_LANDMARKS.LEFT_KNEE],
+        landmarks[POSE_LANDMARKS.LEFT_ANKLE],
+        landmarks[POSE_LANDMARKS.LEFT_FOOT_INDEX]
+      )
+      const rightAnkleAngle = calculateAnkleAngle(
+        landmarks[POSE_LANDMARKS.RIGHT_KNEE],
+        landmarks[POSE_LANDMARKS.RIGHT_ANKLE],
+        landmarks[POSE_LANDMARKS.RIGHT_FOOT_INDEX]
+      )
+
       angles.push({
         name: 'Vänster knä',
         angle: Math.round(leftKneeAngle),
-        status: evaluateAngle(leftKneeAngle, 80, 170), // Good squat depth
+        status: evaluateAngle(leftKneeAngle, 80, 170),
       })
       angles.push({
         name: 'Höger knä',
@@ -305,7 +558,6 @@ export function PoseAnalyzer({
         angle: Math.round(rightHipAngle),
         status: evaluateAngle(rightHipAngle, 70, 180),
       })
-      // Shin angles - ideal is some forward lean (5-25° for squat)
       angles.push({
         name: 'Vänster skenben',
         angle: Math.round(leftShinAngle),
@@ -316,7 +568,6 @@ export function PoseAnalyzer({
         angle: Math.round(rightShinAngle),
         status: evaluateAngle(rightShinAngle, 5, 35),
       })
-      // Ankle angles - dorsiflexion during squat
       angles.push({
         name: 'Vänster fotled',
         angle: Math.round(leftAnkleAngle),
@@ -327,30 +578,29 @@ export function PoseAnalyzer({
         angle: Math.round(rightAnkleAngle),
         status: evaluateAngle(rightAnkleAngle, 70, 130),
       })
-    } else if (type === 'RUNNING_GAIT') {
-      // Running specific angles
-      angles.push({
-        name: 'Knälyft vänster',
-        angle: Math.round(180 - leftKneeAngle),
-        status: evaluateAngle(180 - leftKneeAngle, 30, 90),
-      })
-      angles.push({
-        name: 'Knälyft höger',
-        angle: Math.round(180 - rightKneeAngle),
-        status: evaluateAngle(180 - rightKneeAngle, 30, 90),
-      })
-      angles.push({
-        name: 'Armsving vänster',
-        angle: Math.round(leftElbowAngle),
-        status: evaluateAngle(leftElbowAngle, 70, 110), // ~90 degrees ideal
-      })
-      angles.push({
-        name: 'Armsving höger',
-        angle: Math.round(rightElbowAngle),
-        status: evaluateAngle(rightElbowAngle, 70, 110),
-      })
     } else {
       // Sport-specific (general)
+      const leftKneeAngle = calculateAngle(
+        landmarks[POSE_LANDMARKS.LEFT_HIP],
+        landmarks[POSE_LANDMARKS.LEFT_KNEE],
+        landmarks[POSE_LANDMARKS.LEFT_ANKLE]
+      )
+      const rightKneeAngle = calculateAngle(
+        landmarks[POSE_LANDMARKS.RIGHT_HIP],
+        landmarks[POSE_LANDMARKS.RIGHT_KNEE],
+        landmarks[POSE_LANDMARKS.RIGHT_ANKLE]
+      )
+      const leftElbowAngle = calculateAngle(
+        landmarks[POSE_LANDMARKS.LEFT_SHOULDER],
+        landmarks[POSE_LANDMARKS.LEFT_ELBOW],
+        landmarks[POSE_LANDMARKS.LEFT_WRIST]
+      )
+      const rightElbowAngle = calculateAngle(
+        landmarks[POSE_LANDMARKS.RIGHT_SHOULDER],
+        landmarks[POSE_LANDMARKS.RIGHT_ELBOW],
+        landmarks[POSE_LANDMARKS.RIGHT_WRIST]
+      )
+
       angles.push({
         name: 'Vänster knä',
         angle: Math.round(leftKneeAngle),
@@ -502,8 +752,18 @@ export function PoseAnalyzer({
             framesRef.current = [...framesRef.current, newFrame]
             setFrames(prev => [...prev, newFrame])
 
-            // Calculate joint angles
-            const angles = calculateJointAngles(landmarks, videoType)
+            // Detect camera angle (only on first few frames to establish)
+            if (framesRef.current.length <= 5) {
+              const detected = detectCameraAngle(landmarks)
+              if (detected !== 'UNKNOWN') {
+                setDetectedCameraAngle(detected)
+                console.log(`[PoseAnalyzer] Camera angle detected: ${detected}`)
+              }
+            }
+
+            // Calculate joint angles based on detected camera view
+            const currentCameraAngle = detectedCameraAngle !== 'UNKNOWN' ? detectedCameraAngle : detectCameraAngle(landmarks)
+            const angles = calculateJointAngles(landmarks, videoType, currentCameraAngle)
             setCurrentAngles(angles)
 
             // Update min/max angle ranges
@@ -604,6 +864,17 @@ export function PoseAnalyzer({
     setAiPoseAnalysis(null)
 
     try {
+      // Convert angleRanges Map to array with full range data (min/max/avg)
+      // This gives Gemini the FULL motion data, not just one frame
+      const angleRangesArray = Array.from(angleRanges.values()).map(range => ({
+        name: range.name,
+        current: range.current,
+        min: range.min,
+        max: range.max,
+        range: range.max - range.min, // Total range of motion
+        status: range.status,
+      }))
+
       const response = await fetch('/api/video-analysis/analyze-pose-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -612,8 +883,10 @@ export function PoseAnalyzer({
           exerciseName,
           exerciseNameSv,
           angles: currentAngles,
+          angleRanges: angleRangesArray, // Send the full range data!
           frames,
           frameCount: frames.length,
+          cameraAngle: detectedCameraAngle, // Send detected camera viewing angle
         }),
       })
 
@@ -626,8 +899,15 @@ export function PoseAnalyzer({
       setAiPoseAnalysis(data.analysis)
 
       // Notify parent about the AI analysis for page context
+      console.log('[PoseAnalyzer] Gemini analysis complete, notifying parent...')
+      console.log('[PoseAnalyzer] onAIPoseAnalysis callback exists:', !!onAIPoseAnalysis)
+      console.log('[PoseAnalyzer] data.analysis:', data.analysis)
       if (onAIPoseAnalysis) {
+        console.log('[PoseAnalyzer] Calling onAIPoseAnalysis...')
         onAIPoseAnalysis(data.analysis)
+        console.log('[PoseAnalyzer] onAIPoseAnalysis called successfully')
+      } else {
+        console.warn('[PoseAnalyzer] onAIPoseAnalysis callback is undefined!')
       }
 
       toast({
@@ -695,6 +975,7 @@ export function PoseAnalyzer({
     setCurrentAngles([])
     setAngleRanges(new Map())
     setIsAnalysisComplete(false)
+    setDetectedCameraAngle('UNKNOWN')
     setIsReviewMode(false)
     setIsReviewPlaying(false)
     setCurrentFrameIndex(0)
@@ -817,11 +1098,11 @@ export function PoseAnalyzer({
       }
     })
 
-    // Update current angles for this frame
-    const angles = calculateJointAngles(landmarks, videoType)
+    // Update current angles for this frame (using detected camera angle)
+    const angles = calculateJointAngles(landmarks, videoType, detectedCameraAngle)
     setCurrentAngles(angles)
     setCurrentFrameIndex(index)
-  }, [frames, calculateJointAngles, videoType, isEditMode, hoveredLandmark, draggingLandmark])
+  }, [frames, calculateJointAngles, videoType, isEditMode, hoveredLandmark, draggingLandmark, detectedCameraAngle])
 
   // Start review mode
   const startReviewMode = useCallback(() => {
@@ -1060,14 +1341,14 @@ export function PoseAnalyzer({
   // Handle mouse up
   const handleCanvasMouseUp = useCallback(() => {
     if (draggingLandmark !== null) {
-      // Recalculate angles after edit
+      // Recalculate angles after edit (using detected camera angle)
       if (currentFrameIndex < frames.length) {
-        const angles = calculateJointAngles(frames[currentFrameIndex].landmarks, videoType)
+        const angles = calculateJointAngles(frames[currentFrameIndex].landmarks, videoType, detectedCameraAngle)
         setCurrentAngles(angles)
       }
       setDraggingLandmark(null)
     }
-  }, [draggingLandmark, currentFrameIndex, frames, calculateJointAngles, videoType])
+  }, [draggingLandmark, currentFrameIndex, frames, calculateJointAngles, videoType, detectedCameraAngle])
 
   // Handle mouse leave
   const handleCanvasMouseLeave = useCallback(() => {
@@ -1405,11 +1686,16 @@ export function PoseAnalyzer({
             </div>
           )}
 
-          {/* Frame count and AI analysis button */}
+          {/* Frame count, camera angle, and AI analysis button */}
           {frames.length > 0 && (
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="text-sm text-muted-foreground">
-                Analyserade frames: {frames.length}
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <span>Analyserade frames: {frames.length}</span>
+                {detectedCameraAngle !== 'UNKNOWN' && (
+                  <Badge variant="outline" className={detectedCameraAngle === 'SAGITTAL' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200'}>
+                    {detectedCameraAngle === 'SAGITTAL' ? '📐 Sidovy' : '👀 Fram-/Bakvy'}
+                  </Badge>
+                )}
               </div>
               {currentAngles.length > 0 && !isPlaying && (
                 <Button
@@ -1545,16 +1831,7 @@ export function PoseAnalyzer({
         </Card>
       )}
 
-      {/* Exercise Form Feedback Panel */}
-      {currentAngles.length > 0 && (
-        <FormFeedbackPanel
-          angles={currentAngles}
-          videoType={videoType}
-          exerciseName={exerciseName}
-          exerciseNameSv={exerciseNameSv}
-          aiAnalysis={aiAnalysis}
-        />
-      )}
+      {/* Note: FormFeedbackPanel removed - redundant with Gemini AI pose analysis above */}
     </div>
   )
 }
