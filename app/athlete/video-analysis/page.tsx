@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, Video } from 'lucide-react'
 import Link from 'next/link'
 import { VideoAnalysisDetailCard, AIPoseAnalysis } from '@/components/athlete/video/VideoAnalysisDetailCard'
+import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage'
 
 export default async function AthleteVideoAnalysisPage() {
   const user = await requireAthlete()
@@ -31,6 +32,7 @@ export default async function AthleteVideoAnalysisPage() {
       select: {
         id: true,
         createdAt: true,
+        videoUrl: true,
         videoType: true,
         cameraAngle: true,
         formScore: true,
@@ -43,6 +45,21 @@ export default async function AthleteVideoAnalysisPage() {
       },
     }),
   ])
+
+  // Generate signed URLs for video access (Supabase storage requires signed URLs for private buckets)
+  const analysesWithSignedUrls = await Promise.all(
+    videoAnalyses.map(async (analysis) => {
+      const path = normalizeStoragePath('video-analysis', analysis.videoUrl)
+      if (!path) return analysis
+      try {
+        const signedUrl = await createSignedUrl('video-analysis', path, 60 * 60) // 1 hour expiry
+        return { ...analysis, videoUrl: signedUrl }
+      } catch (error) {
+        console.error('Failed to create signed URL for video:', error)
+        return analysis
+      }
+    })
+  )
 
   return (
     <div className="container mx-auto py-4 sm:py-6 px-4 sm:px-6 max-w-3xl">
@@ -83,7 +100,7 @@ export default async function AthleteVideoAnalysisPage() {
       </Card>
 
       {/* Recent Analyses */}
-      {videoAnalyses.length > 0 && (
+      {analysesWithSignedUrls.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Dina videoanalyser</CardTitle>
@@ -93,12 +110,13 @@ export default async function AthleteVideoAnalysisPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {videoAnalyses.map((analysis) => (
+              {analysesWithSignedUrls.map((analysis) => (
                 <VideoAnalysisDetailCard
                   key={analysis.id}
                   analysis={{
                     id: analysis.id,
                     createdAt: analysis.createdAt,
+                    videoUrl: analysis.videoUrl,
                     videoType: analysis.videoType,
                     cameraAngle: analysis.cameraAngle,
                     formScore: analysis.formScore,

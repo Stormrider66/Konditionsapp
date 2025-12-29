@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Clock, Eye, Target, Lightbulb, TrendingUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Clock, Eye, Target, Lightbulb, TrendingUp, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +31,7 @@ interface VideoAnalysisDetailCardProps {
   analysis: {
     id: string
     createdAt: Date
+    videoUrl: string
     videoType: string | null
     cameraAngle: string | null
     formScore: number | null
@@ -145,6 +146,20 @@ export function VideoAnalysisDetailCard({ analysis }: VideoAnalysisDetailCardPro
       {/* Expanded Content */}
       {isExpanded && hasAnalysis && (
         <div className="border-t p-4 space-y-4 bg-muted/20">
+          {/* Video Player */}
+          {analysis.videoUrl && (
+            <div className="rounded-lg overflow-hidden border bg-black">
+              <video
+                src={analysis.videoUrl}
+                controls
+                className="w-full max-h-[400px] object-contain"
+                preload="metadata"
+              >
+                Din webbläsare stöder inte videouppspelning.
+              </video>
+            </div>
+          )}
+
           {/* Score and Overall Assessment */}
           {poseAnalysis?.overallAssessment && (
             <div className="p-4 bg-background rounded-lg border">

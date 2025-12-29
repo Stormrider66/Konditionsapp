@@ -162,6 +162,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
         { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame },
         { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge },
         { href: '/athlete/concept2', label: 'Concept2', icon: Ship },
+        { href: '/athlete/video-analysis', label: 'Videoanalys', icon: Video },
       ],
     },
     more: {
@@ -195,6 +196,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame, description: 'AMRAP, EMOM & CrossFit' },
     { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge, description: 'Hastighetsbaserad styrketräning' },
     { href: '/athlete/concept2', label: 'Concept2', icon: Ship, description: 'RowErg, SkiErg & BikeErg' },
+    { href: '/athlete/video-analysis', label: 'Videoanalys', icon: Video, description: 'Teknikanalys & feedback' },
 
     // Tests & Data
     { href: '/athlete/tests', label: 'Tester & Rapporter', icon: FlaskConical, description: 'Testresultat och rapporter' },
