@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/server'
+import { sendWelcomeEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -65,6 +66,19 @@ export async function POST(request: NextRequest) {
         language: 'sv',
       },
     })
+
+    // Send welcome email to new users
+    try {
+      await sendWelcomeEmail(
+        supabaseUser.email,
+        name,
+        'sv' // Default to Swedish
+      )
+      logger.info('Welcome email sent', { userId: created.id, email: supabaseUser.email })
+    } catch (emailError) {
+      // Don't fail the signup if email fails
+      logger.error('Failed to send welcome email', { userId: created.id }, emailError)
+    }
 
     return NextResponse.json({ success: true, data: created }, { status: 201 })
   } catch (error) {

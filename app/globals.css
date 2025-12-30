@@ -58,8 +58,13 @@ body {
 
   /* Loading animation */
   @keyframes shimmer {
-    0% { background-position: -1000px 0; }
-    100% { background-position: 1000px 0; }
+    0% {
+      background-position: -1000px 0;
+    }
+
+    100% {
+      background-position: 1000px 0;
+    }
   }
 
   .shimmer {
@@ -73,6 +78,7 @@ body {
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
@@ -88,6 +94,7 @@ body {
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
@@ -100,9 +107,12 @@ body {
 
   /* Pulse animation */
   @keyframes pulse-soft {
-    0%, 100% {
+
+    0%,
+    100% {
       opacity: 1;
     }
+
     50% {
       opacity: 0.8;
     }
@@ -143,6 +153,7 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -171,12 +182,11 @@ body {
   }
 }
 
-
-
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }

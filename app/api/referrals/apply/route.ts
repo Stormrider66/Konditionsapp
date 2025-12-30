@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { sendReferralRewardEmail } from '@/lib/email'
 import { z } from 'zod'
 
 const applySchema = z.object({
@@ -155,7 +156,17 @@ export async function PUT(request: NextRequest) {
         status: 'PENDING',
       },
       include: {
-        referralCode: true,
+        referralCode: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     })
 
@@ -214,6 +225,26 @@ export async function PUT(request: NextRequest) {
         referredRewardGranted: true,
       },
     })
+
+    // Send email notification to referrer
+    const referrer = referral.referralCode.user
+    if (referrer.email) {
+      const referredName = user.name || user.email.split('@')[0]
+      try {
+        await sendReferralRewardEmail(
+          referrer.email,
+          referrer.name || referrer.email.split('@')[0],
+          referredName,
+          'FREE_MONTH',
+          1,
+          'sv' // Default to Swedish, could be determined from user preferences
+        )
+        logger.info('Referral reward email sent', { referrerId: referrer.id, referredEmail: user.email })
+      } catch (emailError) {
+        // Don't fail the whole request if email fails
+        logger.error('Failed to send referral reward email', { referrerId: referrer.id }, emailError)
+      }
+    }
 
     return NextResponse.json({
       success: true,

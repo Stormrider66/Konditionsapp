@@ -8,6 +8,11 @@
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { SubscriptionTier, SubscriptionStatus } from '@prisma/client';
+import {
+  sendSubscriptionConfirmationEmail,
+  sendSubscriptionCancelledEmail,
+  sendPaymentFailedEmail,
+} from '@/lib/email';
 
 // Lazy initialize Stripe client to avoid build-time errors
 let _stripe: Stripe | null = null;
@@ -289,6 +294,38 @@ async function handleCoachCheckoutComplete(
     },
   });
 
+  // Send subscription confirmation email
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (user?.email) {
+      const pricing = COACH_PRICING[tier as keyof typeof COACH_PRICING];
+      const isYearly = cycle === 'YEARLY';
+      const amount = isYearly
+        ? `${pricing?.yearly || 0} kr/år`
+        : `${pricing?.monthly || 0} kr/månad`;
+
+      // Calculate next billing date (1 month or 1 year from now)
+      const nextBillingDate = new Date();
+      if (isYearly) {
+        nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1);
+      } else {
+        nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+      }
+
+      await sendSubscriptionConfirmationEmail(
+        user.email,
+        user.name || user.email.split('@')[0],
+        subscriptionTier,
+        amount,
+        nextBillingDate.toLocaleDateString('sv-SE'),
+        'sv'
+      );
+    }
+  } catch (emailError) {
+    console.error('Failed to send subscription confirmation email:', emailError);
+    // Don't fail the webhook for email errors
+  }
+
   return { handled: true, message: `Coach subscription created for user ${userId}` };
 }
 
@@ -350,11 +387,17 @@ async function handleCoachSubscriptionUpdated(
 async function handleCoachSubscriptionDeleted(
   subscription: Stripe.Subscription
 ): Promise<{ handled: boolean; message: string }> {
-  const { userId } = subscription.metadata || {};
+  const { userId, tier } = subscription.metadata || {};
 
   if (!userId) {
     return { handled: false, message: 'Missing userId in coach subscription metadata' };
   }
+
+  // Get the current period end for the email
+  const subscriptionAny = subscription as unknown as { current_period_end?: number };
+  const endDate = subscriptionAny.current_period_end
+    ? new Date(subscriptionAny.current_period_end * 1000)
+    : new Date();
 
   // Downgrade to FREE tier
   await prisma.subscription.update({
@@ -366,6 +409,23 @@ async function handleCoachSubscriptionDeleted(
       maxAthletes: 1,
     },
   });
+
+  // Send subscription cancelled email
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (user?.email) {
+      await sendSubscriptionCancelledEmail(
+        user.email,
+        user.name || user.email.split('@')[0],
+        tier || 'Subscription',
+        endDate.toLocaleDateString('sv-SE'),
+        'sv'
+      );
+    }
+  } catch (emailError) {
+    console.error('Failed to send subscription cancelled email:', emailError);
+    // Don't fail the webhook for email errors
+  }
 
   return { handled: true, message: `Coach subscription cancelled for user ${userId}` };
 }
@@ -414,7 +474,11 @@ async function handleCoachInvoiceSucceeded(
 async function handleCoachInvoiceFailed(
   invoice: Stripe.Invoice
 ): Promise<{ handled: boolean; message: string }> {
-  const invoiceAny = invoice as unknown as { subscription?: string | null };
+  const invoiceAny = invoice as unknown as {
+    subscription?: string | null;
+    amount_due?: number;
+    next_payment_attempt?: number | null;
+  };
   const subscriptionId = invoiceAny.subscription;
 
   if (!subscriptionId) {
@@ -426,8 +490,33 @@ async function handleCoachInvoiceFailed(
   if (subscription?.metadata?.userId && subscription?.metadata?.type === 'coach') {
     console.error(`Coach payment failed for user ${subscription.metadata.userId}`);
 
-    // Could send notification, update status, etc.
-    // For now, just log - Stripe will handle retries
+    // Send payment failed email
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: subscription.metadata.userId },
+      });
+
+      if (user?.email) {
+        const amount = invoiceAny.amount_due
+          ? `${(invoiceAny.amount_due / 100).toFixed(0)} kr`
+          : 'Okänt belopp';
+        const retryDate = invoiceAny.next_payment_attempt
+          ? new Date(invoiceAny.next_payment_attempt * 1000).toLocaleDateString('sv-SE')
+          : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE'); // 3 days
+
+        await sendPaymentFailedEmail(
+          user.email,
+          user.name || user.email.split('@')[0],
+          amount,
+          retryDate,
+          'sv'
+        );
+      }
+    } catch (emailError) {
+      console.error('Failed to send payment failed email:', emailError);
+      // Don't fail the webhook for email errors
+    }
+
     return {
       handled: true,
       message: `Coach payment failed for user ${subscription.metadata.userId}`,

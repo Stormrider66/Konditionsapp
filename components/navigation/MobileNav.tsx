@@ -8,7 +8,7 @@ import { SportType } from '@prisma/client'
 import {
   Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
   ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings,
-  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell, Gift
+  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell, Gift, BarChart3
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -115,6 +115,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       label: 'Mer',
       icon: Menu,
       items: [
+        { href: '/coach/analytics', label: 'Analys', icon: BarChart3 },
         { href: '/teams', label: 'Lag', icon: Users2 },
         { href: '/coach/documents', label: 'Dokument', icon: FileStack },
         { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
@@ -137,6 +138,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: '/coach/cardio', label: 'Cardio Studio', icon: Heart },
     { href: '/coach/video-analysis', label: 'Videoanalys', icon: Video },
     { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
+    { href: '/coach/analytics', label: 'Analys', icon: BarChart3 },
     { href: '/teams', label: 'Lag', icon: Users2 },
     { href: '/coach/documents', label: 'Dokument', icon: FileStack },
     { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
