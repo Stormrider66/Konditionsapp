@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
         exerciseId: validated.exerciseId,
         videoUrl: validated.videoUrl,
         videoType: validated.videoType,
+        hyroxStation: validated.hyroxStation,
         duration: validated.duration,
         landmarksData: validated.landmarksData,
         status: 'PENDING',

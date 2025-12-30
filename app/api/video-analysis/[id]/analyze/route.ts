@@ -641,13 +641,9 @@ async function analyzeSkiingTechnique(
     skiingAnalysisData.rhythmConsistency = parsedAnalysis.rhythm.consistency;
   }
 
-  // Use powerScore as efficiencyScore for double pole
-  if ('powerScore' in parsedAnalysis) {
-    skiingAnalysisData.efficiencyScore = parsedAnalysis.powerScore;
-  }
-  if ('rhythmScore' in parsedAnalysis) {
-    skiingAnalysisData.timingScore = parsedAnalysis.rhythmScore;
-  }
+  // Note: powerScore, rhythmScore, balanceScore, timingScore are already correctly
+  // handled at lines 560-572 based on what the AI returns for each technique type.
+  // Do NOT overwrite efficiencyScore with powerScore - they are separate metrics.
 
   // Create the skiing analysis record
   const skiingAnalysis = await prisma.skiingTechniqueAnalysis.create({
@@ -685,11 +681,7 @@ async function analyzeHyroxStation(
   client: ReturnType<typeof createGoogleGenAIClient>,
   modelId: string
 ): Promise<NextResponse> {
-  // Get the station type from the request body or default to SKIERG
-  // In production, this would be passed from the upload form
-  // For now, we'll parse it from a stored field or query param
-
-  // Fetch full analysis to get station type from stationMetrics or similar
+  // Fetch full analysis to get station type and athlete context
   const fullAnalysis = await prisma.videoAnalysis.findUnique({
     where: { id },
     include: {
@@ -705,10 +697,8 @@ async function analyzeHyroxStation(
     return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
   }
 
-  // Get station type from recommendations field (temporary storage) or default
-  // In the future, add a proper stationType field to VideoAnalysis
-  const stationTypeRaw = (fullAnalysis.recommendations as unknown as { stationType?: string })?.stationType || 'SKIERG';
-  const stationType = stationTypeRaw as HyroxStationType;
+  // Get station type from the hyroxStation field (set during upload)
+  const stationType = (fullAnalysis.hyroxStation || 'SKIERG') as HyroxStationType;
 
   // Build athlete context for HYROX
   const athleteContext = fullAnalysis.athlete?.sportProfile?.hyroxSettings
@@ -775,6 +765,8 @@ async function analyzeHyroxStation(
   }));
 
   // Update the video analysis record
+  // Note: raceStrategyTips is stored in HyroxStationAnalysis, not here.
+  // Keep recommendations as a simple array for consistency with skiing analysis.
   await prisma.videoAnalysis.update({
     where: { id },
     data: {
@@ -784,10 +776,7 @@ async function analyzeHyroxStation(
       modelUsed: modelId,
       formScore: Math.round(parsedAnalysis.formScore),
       issuesDetected: issues,
-      recommendations: {
-        recommendations,
-        raceStrategyTips: parsedAnalysis.insights.raceStrategyTips,
-      },
+      recommendations,
     },
   });
 

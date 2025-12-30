@@ -2600,7 +2600,8 @@ model VideoAnalysis {
 
   // Video source
   videoUrl        String       // Supabase Storage URL
-  videoType       String       // "STRENGTH", "RUNNING_GAIT", "SPORT_SPECIFIC"
+  videoType       String       // "STRENGTH", "RUNNING_GAIT", "SPORT_SPECIFIC", "SKIING_*", "HYROX_STATION"
+  hyroxStation    String?      // For HYROX_STATION: "SKIERG", "SLED_PUSH", "SLED_PULL", etc.
   cameraAngle     String?      // "FRONT", "SIDE", "BACK" - camera angle for view-specific analysis
   duration        Int?         // seconds
 
