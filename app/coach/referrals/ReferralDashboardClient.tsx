@@ -20,7 +20,7 @@ import {
   Mail,
   ExternalLink,
 } from 'lucide-react';
-import { useTranslations } from '@/i18n/client';
+import { useTranslations, useLocale } from '@/i18n/client';
 import { format } from 'date-fns';
 import { sv, enUS } from 'date-fns/locale';
 
@@ -87,6 +87,8 @@ export function ReferralDashboardClient({
   stats,
 }: ReferralDashboardClientProps) {
   const t = useTranslations('referrals');
+  const locale = useLocale();
+  const dateLocale = locale === 'sv' ? sv : enUS;
   const { toast } = useToast();
   const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
@@ -408,9 +410,9 @@ export function ReferralDashboardClient({
                       {getStatusBadge(referral.status)}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(referral.createdAt), 'PPP')}
+                      {format(new Date(referral.createdAt), 'PPP', { locale: dateLocale })}
                       {referral.completedAt && (
-                        <> • {t('completed')} {format(new Date(referral.completedAt), 'PPP')}</>
+                        <> • {t('completed')} {format(new Date(referral.completedAt), 'PPP', { locale: dateLocale })}</>
                       )}
                     </p>
                   </div>

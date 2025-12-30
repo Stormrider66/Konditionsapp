@@ -79,7 +79,7 @@ export default function PricingPage() {
 
   const getPriceSuffix = (planId: string) => {
     if (planId === 'starter' || planId === 'enterprise') return ''
-    return isYearly ? t('perMonth') : t('perMonth')
+    return t('perMonth')
   }
 
   return (
