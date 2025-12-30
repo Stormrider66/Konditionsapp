@@ -11,15 +11,19 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
 const loginSchema = z.object({
-  email: z.string().email('Ogiltig e-postadress'),
-  password: z.string().min(6, 'Lösenordet måste vara minst 6 tecken'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
+  const t = useTranslations('auth')
+  const tCommon = useTranslations('common')
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
@@ -71,13 +75,18 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      {/* Language switcher in top right */}
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher showLabel={false} />
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
             Star by Thomson
           </CardTitle>
           <CardDescription className="text-center">
-            Logga in på ditt konto
+            {t('loginDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -87,7 +96,7 @@ export default function LoginPage() {
                 htmlFor="email"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                E-post
+                {t('emailLabel')}
               </label>
               <input
                 id="email"
@@ -95,7 +104,7 @@ export default function LoginPage() {
                 className={`flex h-10 w-full rounded-md border ${
                   errors.email ? 'border-red-500' : 'border-input'
                 } bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                placeholder="din@email.com"
+                placeholder={t('emailPlaceholder')}
                 {...register('email')}
                 disabled={isLoading}
               />
@@ -109,7 +118,7 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Lösenord
+                {t('passwordLabel')}
               </label>
               <input
                 id="password"
@@ -117,7 +126,7 @@ export default function LoginPage() {
                 className={`flex h-10 w-full rounded-md border ${
                   errors.password ? 'border-red-500' : 'border-input'
                 } bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                placeholder="••••••••"
+                placeholder={t('passwordPlaceholder')}
                 {...register('password')}
                 disabled={isLoading}
               />
@@ -134,19 +143,19 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loggar in...
+                  {tCommon('loading')}
                 </>
               ) : (
-                'Logga in'
+                t('loginButton')
               )}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-muted-foreground">
-            Har du inget konto?{' '}
+            {t('noAccount')}{' '}
             <Link href="/register" className="text-blue-600 hover:underline">
-              Skapa ett konto
+              {t('signUpLink')}
             </Link>
           </div>
         </CardFooter>

@@ -14,14 +14,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { LogOut, User as UserIcon } from 'lucide-react'
+import { LogOut, User as UserIcon, CreditCard, Gift, Settings } from 'lucide-react'
 import { signOut } from '@/app/actions/auth'
+import { useTranslations } from '@/i18n/client'
 
 interface UserNavProps {
   user: User | null
 }
 
 export function UserNav({ user }: UserNavProps) {
+  const t = useTranslations('common')
+  const tAuth = useTranslations('auth')
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -39,10 +42,10 @@ export function UserNav({ user }: UserNavProps) {
     return (
       <div className="flex flex-col sm:flex-row gap-2">
         <Link href="/login" className="w-full sm:w-auto">
-          <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">Logga in</Button>
+          <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">{t('login')}</Button>
         </Link>
         <Link href="/register" className="w-full sm:w-auto">
-          <Button className="gradient-primary w-full sm:w-auto min-h-[44px]">Skapa konto</Button>
+          <Button className="gradient-primary w-full sm:w-auto min-h-[44px]">{t('register')}</Button>
         </Link>
       </div>
     )
@@ -77,9 +80,22 @@ export function UserNav({ user }: UserNavProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild className="min-h-[44px]">
+          <Link href="/coach/subscription">
+            <CreditCard className="mr-2 h-4 w-4 flex-shrink-0" />
+            <span>{t('subscription')}</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="min-h-[44px]">
+          <Link href="/coach/referrals">
+            <Gift className="mr-2 h-4 w-4 flex-shrink-0" />
+            <span>{t('referrals')}</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} disabled={isLoggingOut} className="min-h-[44px]">
           <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />
-          <span>{isLoggingOut ? 'Loggar ut...' : 'Logga ut'}</span>
+          <span>{isLoggingOut ? t('loading') : t('logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

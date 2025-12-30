@@ -4,6 +4,7 @@ import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { addDays, startOfDay, endOfDay, subDays } from 'date-fns'
 import Link from 'next/link'
+import { getTranslations } from '@/i18n/server'
 import { TodaysWorkouts } from '@/components/athlete/TodaysWorkouts'
 import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
 import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
@@ -41,6 +42,8 @@ import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidge
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 
 export default async function AthleteDashboardPage() {
+  const t = await getTranslations('athlete')
+  const tNav = await getTranslations('nav')
   const user = await requireAthlete()
 
   // Get athlete account with sport profile
@@ -250,11 +253,11 @@ export default async function AthleteDashboardPage() {
   // Quick links based on sport
   const getQuickLinks = () => {
     const baseLinks = [
-      { href: '/athlete/tests', icon: ClipboardList, label: 'Tester & Rapporter', color: 'text-red-500' },
-      { href: '/athlete/history', icon: TrendingUp, label: 'Träningshistorik', color: 'text-blue-500' },
-      { href: '/athlete/programs', icon: Calendar, label: 'Alla program', color: 'text-green-500' },
-      { href: '/athlete/settings/nutrition', icon: Utensils, label: 'Kostinställningar', color: 'text-emerald-500' },
-      { href: '/athlete/profile', icon: User, label: 'Min profil', color: 'text-purple-500' },
+      { href: '/athlete/tests', icon: ClipboardList, label: t('testsAndReports'), color: 'text-red-500' },
+      { href: '/athlete/history', icon: TrendingUp, label: t('trainingHistory'), color: 'text-blue-500' },
+      { href: '/athlete/programs', icon: Calendar, label: t('allPrograms'), color: 'text-green-500' },
+      { href: '/athlete/settings/nutrition', icon: Utensils, label: t('nutritionSettings'), color: 'text-emerald-500' },
+      { href: '/athlete/profile', icon: User, label: t('myProfile'), color: 'text-purple-500' },
     ]
     return baseLinks
   }
@@ -265,9 +268,9 @@ export default async function AthleteDashboardPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Hej, {athleteAccount.client.name}!</h1>
+            <h1 className="text-2xl font-bold">{t('greeting', { name: athleteAccount.client.name })}</h1>
             <p className="text-muted-foreground text-sm">
-              Välkommen tillbaka. Här är din träningsöversikt.
+              {t('welcomeBack')}
             </p>
           </div>
           {/* Integration Status Badges */}
@@ -387,7 +390,7 @@ export default async function AthleteDashboardPage() {
           {/* Quick Links */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Snabblänkar</CardTitle>
+              <CardTitle className="text-base">{t('quickLinks')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {getQuickLinks().map((link) => (
@@ -422,22 +425,22 @@ export default async function AthleteDashboardPage() {
                 )}
                 <div className="flex-1">
                   <p className="font-medium text-sm">
-                    {isCyclist ? 'Cykelinställningar' :
-                     isSkier ? 'Skidinställningar' :
-                     isSwimmer ? 'Siminställningar' :
-                     isTriathlete ? 'Triatloninställningar' :
-                     isHyroxAthlete ? 'HYROX-inställningar' :
-                     isGeneralFitnessAthlete ? 'Fitnessinställningar' :
-                     'Personliga rekord'}
+                    {isCyclist ? t('cyclingSettings') :
+                     isSkier ? t('skiingSettings') :
+                     isSwimmer ? t('swimmingSettings') :
+                     isTriathlete ? t('triathlonSettings') :
+                     isHyroxAthlete ? t('hyroxSettings') :
+                     isGeneralFitnessAthlete ? t('fitnessSettings') :
+                     t('personalRecords')}
                   </p>
                   <p className="text-xs text-indigo-100">
-                    {isCyclist ? 'FTP, vikt och zoner' :
-                     isSkier ? 'Tempo, teknik och zoner' :
-                     isSwimmer ? 'CSS, simtag och zoner' :
-                     isTriathlete ? 'Sim/Cykel/Löp-profil' :
-                     isHyroxAthlete ? 'Stationer och benchmark' :
-                     isGeneralFitnessAthlete ? 'Mål och aktiviteter' :
-                     'Dina bästa tider'}
+                    {isCyclist ? t('ftpWeightZones') :
+                     isSkier ? t('paceTechiqueZones') :
+                     isSwimmer ? t('cssStrokeZones') :
+                     isTriathlete ? t('swimBikeRunProfile') :
+                     isHyroxAthlete ? t('stationsAndBenchmarks') :
+                     isGeneralFitnessAthlete ? t('goalsAndActivities') :
+                     t('yourBestTimes')}
                   </p>
                 </div>
               </div>
@@ -445,7 +448,7 @@ export default async function AthleteDashboardPage() {
                 href={isRunner ? '/athlete/history' : '/athlete/profile'}
                 className="block mt-3 text-xs text-indigo-100 hover:text-white"
               >
-                Visa mer →
+                {t('viewMore')} →
               </Link>
             </CardContent>
           </Card>

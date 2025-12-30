@@ -136,6 +136,22 @@ enum InvitationType {
   REFERRAL         // Referral bonus link
 }
 
+// ==================== REFERRAL SYSTEM ====================
+
+enum ReferralStatus {
+  PENDING     // User signed up but hasn't completed onboarding/subscription
+  COMPLETED   // User completed signup and referral is valid
+  EXPIRED     // Referral expired (e.g., user never completed signup)
+  REVOKED     // Referral was revoked (e.g., refund, fraud)
+}
+
+enum ReferralRewardType {
+  FREE_MONTH           // One month free subscription
+  DISCOUNT_PERCENT     // Percentage discount on next billing
+  EXTENDED_TRIAL       // Extended trial period
+  ATHLETE_SLOTS        // Additional athlete slots
+}
+
 // ==================== CALENDAR SYSTEM ====================
 
 enum CalendarEventType {
@@ -253,6 +269,12 @@ model User {
   createdCalendarEvents   CalendarEvent[]         @relation("CreatedCalendarEvents")
   modifiedCalendarEvents  CalendarEvent[]         @relation("ModifiedCalendarEvents")
   calendarChanges         CalendarEventChange[]   @relation("CalendarChanges")
+
+  // Referral System relations
+  referralCode            ReferralCode?           // Coach's unique referral code
+  referralsMade           Referral[]              @relation("ReferrerUser")  // Referrals this user made
+  referredBy              Referral[]              @relation("ReferredUser")  // How this user was referred
+  referralRewards         ReferralReward[]        // Rewards received
 
   @@index([email])
   @@index([role])
@@ -535,6 +557,94 @@ model Subscription {
   @@index([userId])
   @@index([status])
   @@index([tier])
+}
+
+// ==================== REFERRAL SYSTEM ====================
+
+/// Unique referral code for each coach
+model ReferralCode {
+  id        String   @id @default(uuid())
+  userId    String   @unique  // One code per coach
+  code      String   @unique  // e.g., "JOHN2024", "STAR-ABC123"
+  isActive  Boolean  @default(true)
+
+  // Usage tracking
+  totalUses     Int  @default(0)  // Total times code was used
+  successfulReferrals Int @default(0)  // Completed referrals
+
+  // Optional limits
+  maxUses   Int?     // null = unlimited
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referrals Referral[]
+
+  @@index([code])
+  @@index([userId])
+  @@index([isActive])
+}
+
+/// Tracks individual referrals (when someone signs up using a referral code)
+model Referral {
+  id              String         @id @default(uuid())
+  referralCodeId  String
+  referrerUserId  String         // Coach who made the referral
+  referredUserId  String?        // User who signed up (null until they complete signup)
+  referredEmail   String         // Email used during signup (for tracking before account created)
+
+  status          ReferralStatus @default(PENDING)
+
+  // Reward tracking
+  referrerRewardGranted Boolean @default(false)
+  referredRewardGranted Boolean @default(false)
+
+  // Timestamps
+  signupAt        DateTime?      // When referred user signed up
+  completedAt     DateTime?      // When referral was marked complete
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  referralCode    ReferralCode   @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  referrerUser    User           @relation("ReferrerUser", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referredUser    User?          @relation("ReferredUser", fields: [referredUserId], references: [id], onDelete: SetNull)
+  rewards         ReferralReward[]
+
+  @@unique([referralCodeId, referredEmail])  // Prevent duplicate referrals for same email
+  @@index([referrerUserId])
+  @@index([referredUserId])
+  @@index([referredEmail])
+  @@index([status])
+}
+
+/// Rewards granted for successful referrals
+model ReferralReward {
+  id          String             @id @default(uuid())
+  referralId  String
+  userId      String             // User who received the reward
+
+  rewardType  ReferralRewardType
+  value       Float              // e.g., 1 for 1 month, 20 for 20% discount, 5 for 5 athlete slots
+
+  // Status
+  applied     Boolean   @default(false)
+  appliedAt   DateTime?
+  expiresAt   DateTime?
+
+  // For subscription-related rewards
+  stripeDiscountId String?       // If using Stripe coupon
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  referral    Referral  @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([referralId])
+  @@index([userId])
+  @@index([applied])
 }
 
 // ==================== ATHLETE SUBSCRIPTION (Direct Athletes) ====================

@@ -25,9 +25,15 @@ import {
   ClipboardList,
 } from 'lucide-react'
 import { format, subDays } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { sv, enUS } from 'date-fns/locale'
+import { getTranslations, getLocale } from '@/i18n/server'
 
 export default async function CoachDashboardPage() {
+  const t = await getTranslations('coach')
+  const tNav = await getTranslations('nav')
+  const tCommon = await getTranslations('common')
+  const locale = await getLocale()
+  const dateLocale = locale === 'sv' ? sv : enUS
   const user = await requireCoach()
 
   // Get coach's clients count
@@ -133,9 +139,9 @@ export default async function CoachDashboardPage() {
     <div className="container mx-auto py-6 px-4 max-w-7xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold">{tNav('dashboard')}</h1>
         <p className="text-muted-foreground text-sm">
-          Välkommen tillbaka, {user.name}
+          {t('welcomeBack', { name: user.name })}
         </p>
       </div>
 
@@ -145,13 +151,13 @@ export default async function CoachDashboardPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm">Atleter</p>
+                <p className="text-blue-100 text-sm">{t('athletes')}</p>
                 <p className="text-3xl font-bold">{clientsCount}</p>
               </div>
               <Users className="h-8 w-8 opacity-80" />
             </div>
             <Link href="/clients" className="text-xs text-blue-100 hover:text-white flex items-center gap-1 mt-2">
-              Visa alla <ArrowRight className="h-3 w-3" />
+              {t('viewAll')} <ArrowRight className="h-3 w-3" />
             </Link>
           </CardContent>
         </Card>
@@ -160,13 +166,13 @@ export default async function CoachDashboardPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm">Aktiva program</p>
+                <p className="text-green-100 text-sm">{t('activePrograms')}</p>
                 <p className="text-3xl font-bold">{activeProgramsCount}</p>
               </div>
               <Calendar className="h-8 w-8 opacity-80" />
             </div>
             <Link href="/coach/programs" className="text-xs text-green-100 hover:text-white flex items-center gap-1 mt-2">
-              Visa program <ArrowRight className="h-3 w-3" />
+              {t('viewPrograms')} <ArrowRight className="h-3 w-3" />
             </Link>
           </CardContent>
         </Card>
@@ -175,12 +181,12 @@ export default async function CoachDashboardPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm">Pass denna vecka</p>
+                <p className="text-purple-100 text-sm">{t('workoutsThisWeek')}</p>
                 <p className="text-3xl font-bold">{completedLogsThisWeek}</p>
               </div>
               <Activity className="h-8 w-8 opacity-80" />
             </div>
-            <p className="text-xs text-purple-100 mt-2">Genomförda av atleter</p>
+            <p className="text-xs text-purple-100 mt-2">{t('completedByAthletes')}</p>
           </CardContent>
         </Card>
 
@@ -188,12 +194,12 @@ export default async function CoachDashboardPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className={logsNeedingFeedback.length > 0 ? 'text-red-100 text-sm' : 'text-slate-100 text-sm'}>Behöver feedback</p>
+                <p className={logsNeedingFeedback.length > 0 ? 'text-red-100 text-sm' : 'text-slate-100 text-sm'}>{t('needsFeedback')}</p>
                 <p className="text-3xl font-bold">{logsNeedingFeedback.length}</p>
               </div>
               <AlertCircle className="h-8 w-8 opacity-80" />
             </div>
-            <p className={`text-xs mt-2 ${logsNeedingFeedback.length > 0 ? 'text-red-100' : 'text-slate-100'}`}>Pass utan feedback</p>
+            <p className={`text-xs mt-2 ${logsNeedingFeedback.length > 0 ? 'text-red-100' : 'text-slate-100'}`}>{t('workoutsWithoutFeedback')}</p>
           </CardContent>
         </Card>
       </div>
@@ -208,7 +214,7 @@ export default async function CoachDashboardPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-red-500" />
-                  Behöver feedback
+                  {t('needsFeedback')}
                 </CardTitle>
                 {logsNeedingFeedback.length > 0 && (
                   <Badge variant="destructive">{logsNeedingFeedback.length}</Badge>
@@ -219,7 +225,7 @@ export default async function CoachDashboardPage() {
               {logsNeedingFeedback.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
                   <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-green-500" />
-                  <p className="text-sm">Alla pass har feedback!</p>
+                  <p className="text-sm">{t('allWorkoutsHaveFeedback')}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -233,19 +239,19 @@ export default async function CoachDashboardPage() {
                           {log.workout.day.week.program.client.name}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {log.workout.name} • {log.completedAt ? format(new Date(log.completedAt), 'd MMM', { locale: sv }) : '-'}
+                          {log.workout.name} • {log.completedAt ? format(new Date(log.completedAt), 'd MMM', { locale: dateLocale }) : '-'}
                         </p>
                       </div>
                       <Link href={`/coach/athletes/${log.workout.day.week.program.client.id}/logs`}>
                         <Button size="sm" variant="outline" className="text-xs h-8">
-                          Ge feedback
+                          {t('giveFeedback')}
                         </Button>
                       </Link>
                     </div>
                   ))}
                   {logsNeedingFeedback.length > 4 && (
                     <p className="text-xs text-muted-foreground text-center pt-2">
-                      +{logsNeedingFeedback.length - 4} fler pass
+                      {t('moreWorkouts', { count: logsNeedingFeedback.length - 4 })}
                     </p>
                   )}
                 </div>
@@ -258,17 +264,17 @@ export default async function CoachDashboardPage() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Activity className="h-4 w-4 text-blue-500" />
-                Senaste aktiviteten
+                {t('recentActivity')}
               </CardTitle>
               <CardDescription className="text-xs">
-                Pass loggade senaste 7 dagarna
+                {t('workoutsLoggedLast7Days')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {recentLogs.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
                   <Activity className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Inga pass loggade ännu</p>
+                  <p className="text-sm">{t('noWorkoutsLoggedYet')}</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
@@ -291,7 +297,7 @@ export default async function CoachDashboardPage() {
                       </div>
                       <div className="text-right flex-shrink-0 ml-2">
                         <p className="text-xs text-muted-foreground">
-                          {log.completedAt ? format(new Date(log.completedAt), 'd MMM', { locale: sv }) : '-'}
+                          {log.completedAt ? format(new Date(log.completedAt), 'd MMM', { locale: dateLocale }) : '-'}
                         </p>
                         {log.perceivedEffort && (
                           <Badge variant="outline" className="text-[10px] h-5">
@@ -312,7 +318,7 @@ export default async function CoachDashboardPage() {
           {/* Weekly Summary */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Veckans sammanfattning</CardTitle>
+              <CardTitle className="text-base">{t('weeklySummary')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
@@ -321,7 +327,7 @@ export default async function CoachDashboardPage() {
                 </div>
                 <div>
                   <p className="text-xl font-bold">{completedLogsThisWeek}</p>
-                  <p className="text-xs text-muted-foreground">Slutförda pass</p>
+                  <p className="text-xs text-muted-foreground">{t('completedWorkouts')}</p>
                 </div>
               </div>
 
@@ -331,7 +337,7 @@ export default async function CoachDashboardPage() {
                 </div>
                 <div>
                   <p className="text-xl font-bold">{feedbackGiven}</p>
-                  <p className="text-xs text-muted-foreground">Feedback given</p>
+                  <p className="text-xs text-muted-foreground">{t('feedbackGiven')}</p>
                 </div>
               </div>
 
@@ -341,7 +347,7 @@ export default async function CoachDashboardPage() {
                 </div>
                 <div>
                   <p className="text-xl font-bold">{avgRPE}</p>
-                  <p className="text-xs text-muted-foreground">Genomsnittlig RPE</p>
+                  <p className="text-xs text-muted-foreground">{t('averageRpe')}</p>
                 </div>
               </div>
             </CardContent>
@@ -354,12 +360,12 @@ export default async function CoachDashboardPage() {
                 <div className="flex items-center gap-3">
                   <HeartPulse className="h-6 w-6 text-red-500" />
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{activeInjuries} aktiva skador</p>
-                    <p className="text-xs text-muted-foreground">Kräver uppföljning</p>
+                    <p className="font-medium text-sm">{t('activeInjuries', { count: activeInjuries })}</p>
+                    <p className="text-xs text-muted-foreground">{t('requiresFollowUp')}</p>
                   </div>
                   <Link href="/coach/injuries">
                     <Button size="sm" variant="outline" className="text-xs h-8">
-                      Visa
+                      {tCommon('view')}
                     </Button>
                   </Link>
                 </div>
@@ -370,31 +376,31 @@ export default async function CoachDashboardPage() {
           {/* Quick Links */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Snabblänkar</CardTitle>
+              <CardTitle className="text-base">{t('quickLinks')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <Link href="/test" className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition">
                   <ClipboardList className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm">Nytt laktattest</span>
+                  <span className="text-sm">{t('newLactateTest')}</span>
                 </div>
               </Link>
               <Link href="/coach/programs/new" className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition">
                   <Calendar className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Skapa program</span>
+                  <span className="text-sm">{t('createProgram')}</span>
                 </div>
               </Link>
               <Link href="/coach/messages" className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition">
                   <MessageSquare className="h-4 w-4 text-orange-500" />
-                  <span className="text-sm">Meddelanden</span>
+                  <span className="text-sm">{tNav('messages')}</span>
                 </div>
               </Link>
               <Link href="/coach/monitoring" className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition">
                   <Activity className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm">Monitorering</span>
+                  <span className="text-sm">{t('monitoring')}</span>
                 </div>
               </Link>
             </CardContent>

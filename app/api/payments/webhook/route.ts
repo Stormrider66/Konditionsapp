@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { handleStripeWebhook, verifyWebhookSignature } from '@/lib/payments/stripe';
+import { handleCoachStripeWebhook } from '@/lib/payments/coach-stripe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,15 +36,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Handle the event
-    const result = await handleStripeWebhook(event);
+    // Try coach webhook handler first (checks for type: 'coach' in metadata)
+    const coachResult = await handleCoachStripeWebhook(event);
 
-    console.log(`Webhook ${event.type}:`, result.message);
+    if (coachResult.handled) {
+      console.log(`Coach webhook ${event.type}:`, coachResult.message);
+      return NextResponse.json({
+        received: true,
+        handled: true,
+        message: coachResult.message,
+      });
+    }
+
+    // Fall back to athlete webhook handler
+    const athleteResult = await handleStripeWebhook(event);
+
+    console.log(`Athlete webhook ${event.type}:`, athleteResult.message);
 
     return NextResponse.json({
       received: true,
-      handled: result.handled,
-      message: result.message,
+      handled: athleteResult.handled,
+      message: athleteResult.message,
     });
   } catch (error) {
     console.error('Webhook error:', error);

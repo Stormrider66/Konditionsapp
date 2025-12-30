@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -9,25 +9,71 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Gift, CheckCircle2 } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'Namnet måste vara minst 2 tecken'),
-  email: z.string().email('Ogiltig e-postadress'),
-  password: z.string().min(6, 'Lösenordet måste vara minst 6 tecken'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: 'Lösenorden matchar inte',
+  message: 'Passwords do not match',
   path: ['confirmPassword'],
 })
 
 type RegisterFormData = z.infer<typeof registerSchema>
 
+interface ReferralInfo {
+  code: string
+  referrerName: string
+  benefit: string
+}
+
 export default function RegisterPage() {
+  const t = useTranslations('auth')
+  const tCommon = useTranslations('common')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [referralInfo, setReferralInfo] = useState<ReferralInfo | null>(null)
+  const [referralValidated, setReferralValidated] = useState(false)
+
+  // Check for referral code in URL
+  useEffect(() => {
+    const refCode = searchParams.get('ref')
+    if (refCode && !referralValidated) {
+      validateReferralCode(refCode)
+    }
+  }, [searchParams, referralValidated])
+
+  const validateReferralCode = async (code: string) => {
+    try {
+      const response = await fetch('/api/referrals/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+
+      const data = await response.json()
+
+      if (data.success && data.valid) {
+        setReferralInfo({
+          code: data.data.code,
+          referrerName: data.data.referrerName,
+          benefit: data.data.benefit,
+        })
+      }
+      setReferralValidated(true)
+    } catch (error) {
+      console.error('Failed to validate referral code:', error)
+      setReferralValidated(true)
+    }
+  }
 
   const {
     register,
@@ -43,6 +89,22 @@ export default function RegisterPage() {
     try {
       const supabase = createClient()
 
+      // Apply referral code before creating user (to track the referral)
+      if (referralInfo) {
+        try {
+          await fetch('/api/referrals/apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: referralInfo.code,
+              email: data.email,
+            }),
+          })
+        } catch (error) {
+          console.warn('Failed to apply referral code:', error)
+        }
+      }
+
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -56,7 +118,7 @@ export default function RegisterPage() {
 
       if (authError) {
         toast({
-          title: 'Registrering misslyckades',
+          title: t('registrationFailed'),
           description: authError.message,
           variant: 'destructive',
         })
@@ -79,9 +141,23 @@ export default function RegisterPage() {
           console.warn('Could not create user in database')
         }
 
+        // Complete referral if applicable
+        if (referralInfo) {
+          try {
+            await fetch('/api/referrals/apply', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+            })
+          } catch (error) {
+            console.warn('Failed to complete referral:', error)
+          }
+        }
+
         toast({
-          title: 'Välkommen!',
-          description: 'Ditt konto har skapats.',
+          title: t('welcomeMessage'),
+          description: referralInfo
+            ? t('accountCreatedWithReferral')
+            : t('accountCreatedSuccess'),
         })
 
         router.push('/')
@@ -89,8 +165,8 @@ export default function RegisterPage() {
       }
     } catch (error) {
       toast({
-        title: 'Ett fel uppstod',
-        description: 'Kunde inte skapa konto. Försök igen senare.',
+        title: t('errorOccurred'),
+        description: t('couldNotCreateAccount'),
         variant: 'destructive',
       })
     } finally {
@@ -100,13 +176,39 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      {/* Language switcher in top right */}
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher showLabel={false} />
+      </div>
+
       <Card className="w-full max-w-md">
+        {/* Referral Banner */}
+        {referralInfo && (
+          <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-3 rounded-t-lg">
+            <div className="flex items-center gap-2">
+              <Gift className="h-5 w-5" />
+              <div className="flex-1">
+                <p className="font-medium text-sm">
+                  {t('referredBy', { name: referralInfo.referrerName })}
+                </p>
+                <p className="text-xs opacity-90">
+                  <CheckCircle2 className="h-3 w-3 inline mr-1" />
+                  {referralInfo.benefit}
+                </p>
+              </div>
+              <Badge className="bg-white/20 hover:bg-white/30 text-white border-0">
+                {referralInfo.code}
+              </Badge>
+            </div>
+          </div>
+        )}
+
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
             Star by Thomson
           </CardTitle>
           <CardDescription className="text-center">
-            Skapa ett nytt konto
+            {t('registerDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -116,7 +218,7 @@ export default function RegisterPage() {
                 htmlFor="name"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Namn
+                {t('nameLabel')}
               </label>
               <input
                 id="name"
@@ -124,7 +226,7 @@ export default function RegisterPage() {
                 className={`flex h-10 w-full rounded-md border ${
                   errors.name ? 'border-red-500' : 'border-input'
                 } bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                placeholder="Ditt namn"
+                placeholder={t('namePlaceholder')}
                 {...register('name')}
                 disabled={isLoading}
               />
@@ -138,7 +240,7 @@ export default function RegisterPage() {
                 htmlFor="email"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                E-post
+                {t('emailLabel')}
               </label>
               <input
                 id="email"
@@ -146,7 +248,7 @@ export default function RegisterPage() {
                 className={`flex h-10 w-full rounded-md border ${
                   errors.email ? 'border-red-500' : 'border-input'
                 } bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                placeholder="din@email.com"
+                placeholder={t('emailPlaceholder')}
                 {...register('email')}
                 disabled={isLoading}
               />
@@ -160,7 +262,7 @@ export default function RegisterPage() {
                 htmlFor="password"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Lösenord
+                {t('passwordLabel')}
               </label>
               <input
                 id="password"
@@ -168,7 +270,7 @@ export default function RegisterPage() {
                 className={`flex h-10 w-full rounded-md border ${
                   errors.password ? 'border-red-500' : 'border-input'
                 } bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                placeholder="••••••••"
+                placeholder={t('passwordPlaceholder')}
                 {...register('password')}
                 disabled={isLoading}
               />
@@ -182,7 +284,7 @@ export default function RegisterPage() {
                 htmlFor="confirmPassword"
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Bekräfta lösenord
+                {t('confirmPasswordLabel')}
               </label>
               <input
                 id="confirmPassword"
@@ -190,7 +292,7 @@ export default function RegisterPage() {
                 className={`flex h-10 w-full rounded-md border ${
                   errors.confirmPassword ? 'border-red-500' : 'border-input'
                 } bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                placeholder="••••••••"
+                placeholder={t('passwordPlaceholder')}
                 {...register('confirmPassword')}
                 disabled={isLoading}
               />
@@ -207,19 +309,19 @@ export default function RegisterPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Skapar konto...
+                  {t('creatingAccount')}
                 </>
               ) : (
-                'Skapa konto'
+                t('registerButton')
               )}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-muted-foreground">
-            Har du redan ett konto?{' '}
+            {t('hasAccount')}{' '}
             <Link href="/login" className="text-blue-600 hover:underline">
-              Logga in
+              {t('signInLink')}
             </Link>
           </div>
         </CardFooter>

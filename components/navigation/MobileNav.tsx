@@ -8,7 +8,7 @@ import { SportType } from '@prisma/client'
 import {
   Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
   ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings,
-  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell
+  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell, Gift
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +22,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { UserNav } from './UserNav'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
+import { useTranslations } from '@/i18n/client'
 
 // Sport icons and labels
 const SPORT_DISPLAY: Record<SportType, { icon: string; label: string; labelSv: string }> = {
@@ -51,6 +53,8 @@ interface MobileNavProps {
 }
 
 export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavProps) {
+  const t = useTranslations('nav')
+  const tSports = useTranslations('sports')
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
@@ -114,6 +118,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
         { href: '/teams', label: 'Lag', icon: Users2 },
         { href: '/coach/documents', label: 'Dokument', icon: FileStack },
         { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
+        { href: '/coach/referrals', label: 'Värvningar', icon: Gift },
         { href: '/coach/settings/ai', label: 'Inställningar', icon: Settings },
       ],
     },
@@ -135,6 +140,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: '/teams', label: 'Lag', icon: Users2 },
     { href: '/coach/documents', label: 'Dokument', icon: FileStack },
     { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
+    { href: '/coach/referrals', label: 'Värvningar', icon: Gift },
     { href: '/coach/settings/ai', label: 'Inställningar', icon: Settings },
   ]
 
@@ -257,6 +263,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <LanguageSwitcher showLabel={false} variant="ghost" />
               {(userRole === 'COACH' || userRole === 'ATHLETE') && (
                 <NotificationBell clientId={clientId} />
               )}
@@ -521,6 +528,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
                 })
               )}
               <div className="border-l border-white/20 pl-3 ml-2 flex items-center gap-2">
+                <LanguageSwitcher showLabel={false} variant="ghost" />
                 {(userRole === 'COACH' || userRole === 'ATHLETE') && (
                   <NotificationBell clientId={clientId} />
                 )}

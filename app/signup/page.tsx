@@ -17,22 +17,26 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, User, Mail, Lock, Calendar, Users } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
 const signupSchema = z.object({
-  name: z.string().min(2, 'Namnet måste vara minst 2 tecken'),
-  email: z.string().email('Ogiltig e-postadress'),
-  password: z.string().min(8, 'Lösenordet måste vara minst 8 tecken'),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
   gender: z.enum(['MALE', 'FEMALE']).optional(),
   inviteCode: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: 'Lösenorden matchar inte',
+  message: 'Passwords do not match',
   path: ['confirmPassword'],
 })
 
 type SignupFormData = z.infer<typeof signupSchema>
 
 function SignupForm() {
+  const t = useTranslations('auth')
+  const tCommon = useTranslations('common')
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -74,16 +78,16 @@ function SignupForm() {
 
       if (!response.ok) {
         toast({
-          title: 'Registrering misslyckades',
-          description: result.error || 'Kunde inte skapa konto',
+          title: t('registrationFailed'),
+          description: result.error || t('couldNotCreateAccount'),
           variant: 'destructive',
         })
         return
       }
 
       toast({
-        title: 'Välkommen!',
-        description: 'Ditt konto har skapats. Du kommer nu att guidas genom onboarding.',
+        title: t('welcomeMessage'),
+        description: t('accountCreatedOnboarding'),
       })
 
       // Redirect to onboarding
@@ -91,8 +95,8 @@ function SignupForm() {
       router.refresh()
     } catch (error) {
       toast({
-        title: 'Ett fel uppstod',
-        description: 'Kunde inte skapa konto. Försök igen senare.',
+        title: t('errorOccurred'),
+        description: t('couldNotCreateAccount'),
         variant: 'destructive',
       })
     } finally {
@@ -106,7 +110,7 @@ function SignupForm() {
       <div className="space-y-2">
         <label htmlFor="name" className="text-sm font-medium flex items-center gap-2">
           <User className="h-4 w-4 text-muted-foreground" />
-          Namn
+          {t('nameLabel')}
         </label>
         <input
           id="name"
@@ -114,7 +118,7 @@ function SignupForm() {
           className={`flex h-10 w-full rounded-md border ${
             errors.name ? 'border-red-500' : 'border-input'
           } bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
-          placeholder="Ditt namn"
+          placeholder={t('namePlaceholder')}
           {...register('name')}
           disabled={isLoading}
         />
@@ -127,7 +131,7 @@ function SignupForm() {
       <div className="space-y-2">
         <label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
           <Mail className="h-4 w-4 text-muted-foreground" />
-          E-post
+          {t('emailLabel')}
         </label>
         <input
           id="email"
@@ -135,7 +139,7 @@ function SignupForm() {
           className={`flex h-10 w-full rounded-md border ${
             errors.email ? 'border-red-500' : 'border-input'
           } bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
-          placeholder="din@email.com"
+          placeholder={t('emailPlaceholder')}
           {...register('email')}
           disabled={isLoading}
         />
@@ -148,7 +152,7 @@ function SignupForm() {
       <div className="space-y-2">
         <label htmlFor="gender" className="text-sm font-medium flex items-center gap-2">
           <Users className="h-4 w-4 text-muted-foreground" />
-          Kön (valfritt)
+          {t('genderLabel')}
         </label>
         <select
           id="gender"
@@ -156,9 +160,9 @@ function SignupForm() {
           {...register('gender')}
           disabled={isLoading}
         >
-          <option value="">Välj...</option>
-          <option value="MALE">Man</option>
-          <option value="FEMALE">Kvinna</option>
+          <option value="">{t('selectOption')}</option>
+          <option value="MALE">{t('male')}</option>
+          <option value="FEMALE">{t('female')}</option>
         </select>
       </div>
 
@@ -166,7 +170,7 @@ function SignupForm() {
       <div className="space-y-2">
         <label htmlFor="password" className="text-sm font-medium flex items-center gap-2">
           <Lock className="h-4 w-4 text-muted-foreground" />
-          Lösenord
+          {t('passwordLabel')}
         </label>
         <input
           id="password"
@@ -174,7 +178,7 @@ function SignupForm() {
           className={`flex h-10 w-full rounded-md border ${
             errors.password ? 'border-red-500' : 'border-input'
           } bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
-          placeholder="Minst 8 tecken"
+          placeholder={t('minCharacters', { count: 8 })}
           {...register('password')}
           disabled={isLoading}
         />
@@ -187,7 +191,7 @@ function SignupForm() {
       <div className="space-y-2">
         <label htmlFor="confirmPassword" className="text-sm font-medium flex items-center gap-2">
           <Lock className="h-4 w-4 text-muted-foreground" />
-          Bekräfta lösenord
+          {t('confirmPasswordLabel')}
         </label>
         <input
           id="confirmPassword"
@@ -195,7 +199,7 @@ function SignupForm() {
           className={`flex h-10 w-full rounded-md border ${
             errors.confirmPassword ? 'border-red-500' : 'border-input'
           } bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
-          placeholder="Upprepa lösenord"
+          placeholder={t('repeatPassword')}
           {...register('confirmPassword')}
           disabled={isLoading}
         />
@@ -208,7 +212,7 @@ function SignupForm() {
       <div className="space-y-2">
         <label htmlFor="inviteCode" className="text-sm font-medium flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
-          Inbjudningskod (valfritt)
+          {t('inviteCodeLabel')}
         </label>
         <input
           id="inviteCode"
@@ -228,10 +232,10 @@ function SignupForm() {
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Skapar konto...
+            {t('creatingAccount')}
           </>
         ) : (
-          'Skapa konto'
+          t('registerButton')
         )}
       </Button>
     </form>
@@ -263,18 +267,25 @@ function SignupFormFallback() {
 }
 
 export default function AthleteSignupPage() {
+  const t = useTranslations('auth')
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-8">
+      {/* Language switcher in top right */}
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher showLabel={false} />
+      </div>
+
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
             <User className="h-6 w-6 text-blue-600" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            Skapa atletkonto
+            {t('createAthleteAccount')}
           </CardTitle>
           <CardDescription>
-            Kom igång med din träning idag
+            {t('getStartedWithTraining')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -284,15 +295,15 @@ export default function AthleteSignupPage() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-muted-foreground">
-            Har du redan ett konto?{' '}
+            {t('hasAccount')}{' '}
             <Link href="/login" className="text-blue-600 hover:underline">
-              Logga in
+              {t('signInLink')}
             </Link>
           </div>
           <div className="text-xs text-center text-muted-foreground">
-            Är du tränare?{' '}
+            {t('areYouCoach')}{' '}
             <Link href="/register" className="text-blue-600 hover:underline">
-              Skapa ett tränarkonto
+              {t('createCoachAccount')}
             </Link>
           </div>
         </CardFooter>
