@@ -39,10 +39,14 @@ import {
   ChevronUp,
   BarChart3,
   Printer,
+  Snowflake,
+  Zap,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { PoseAnalyzer, PoseFrame } from './PoseAnalyzer'
+import { SkiingTechniqueDashboard } from './SkiingTechniqueDashboard'
+import { HyroxStationDashboard } from './HyroxStationDashboard'
 // Context loading removed to prevent infinite render loops
 
 interface Issue {
@@ -70,6 +74,8 @@ interface VideoAnalysis {
   createdAt: string
   athlete: { id: string; name: string } | null
   exercise: { id: string; name: string; nameSv: string | null } | null
+  skiingTechniqueAnalysis?: Record<string, unknown> | null
+  hyroxStationAnalysis?: Record<string, unknown> | null
 }
 
 interface VideoAnalysisCardProps {
@@ -81,6 +87,10 @@ interface VideoAnalysisCardProps {
 const VIDEO_TYPE_INFO = {
   STRENGTH: { label: 'Styrkeövning', icon: Dumbbell, color: 'text-orange-500' },
   RUNNING_GAIT: { label: 'Löpteknik', icon: PersonStanding, color: 'text-blue-500' },
+  SKIING_CLASSIC: { label: 'Klassisk skidåkning', icon: Snowflake, color: 'text-cyan-500' },
+  SKIING_SKATING: { label: 'Skate-skidåkning', icon: Snowflake, color: 'text-cyan-500' },
+  SKIING_DOUBLE_POLE: { label: 'Dubbelstakning', icon: Snowflake, color: 'text-cyan-500' },
+  HYROX_STATION: { label: 'HYROX Station', icon: Zap, color: 'text-orange-600' },
   SPORT_SPECIFIC: { label: 'Sportspecifik', icon: Activity, color: 'text-purple-500' },
 }
 
@@ -883,8 +893,26 @@ export function VideoAnalysisCard({
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Score overview */}
-            {analysis.formScore !== null && (
+            {/* Skiing Technique Dashboard */}
+            {analysis.skiingTechniqueAnalysis && (
+              analysis.videoType === 'SKIING_CLASSIC' ||
+              analysis.videoType === 'SKIING_SKATING' ||
+              analysis.videoType === 'SKIING_DOUBLE_POLE'
+            ) && (
+              <SkiingTechniqueDashboard
+                data={analysis.skiingTechniqueAnalysis as unknown as Parameters<typeof SkiingTechniqueDashboard>[0]['data']}
+              />
+            )}
+
+            {/* HYROX Station Dashboard */}
+            {analysis.hyroxStationAnalysis && analysis.videoType === 'HYROX_STATION' && (
+              <HyroxStationDashboard
+                data={analysis.hyroxStationAnalysis as unknown as Parameters<typeof HyroxStationDashboard>[0]['data']}
+              />
+            )}
+
+            {/* Score overview (for non-specialized analysis types) */}
+            {analysis.formScore !== null && !analysis.skiingTechniqueAnalysis && !analysis.hyroxStationAnalysis && (
               <div className="text-center p-6 bg-muted rounded-lg">
                 <div className={`text-5xl font-bold ${getScoreColor(analysis.formScore)}`}>
                   {analysis.formScore}

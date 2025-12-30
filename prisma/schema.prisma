@@ -2630,6 +2630,12 @@ model VideoAnalysis {
   // Extended analysis (for RUNNING_GAIT type)
   runningGaitAnalysis RunningGaitAnalysis?
 
+  // Extended analysis (for SKIING_* types)
+  skiingTechniqueAnalysis SkiingTechniqueAnalysis?
+
+  // Extended analysis (for HYROX_STATION type)
+  hyroxStationAnalysis HyroxStationAnalysis?
+
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -2804,6 +2810,185 @@ model RunningGaitAnalysis {
   @@index([videoAnalysisId])
   @@index([injuryRiskLevel])
   @@index([cadence])
+}
+
+/// Skiing technique analysis (for SKIING_CLASSIC, SKIING_SKATING, SKIING_DOUBLE_POLE types)
+model SkiingTechniqueAnalysis {
+  id                    String    @id @default(uuid())
+  videoAnalysisId       String    @unique
+
+  // Technique context
+  techniqueType         String    // CLASSIC, SKATING, DOUBLE_POLE
+  skatingVariant        String?   // V1, V2, V2_ALT (only for SKATING)
+  terrainType           String?   // FLAT, UPHILL, DOWNHILL
+
+  // Overall scores (0-100)
+  overallScore          Float?
+  balanceScore          Float?    // Classic/Skating only
+  timingScore           Float?    // Classic/Skating only
+  efficiencyScore       Float?
+  powerScore            Float?    // Double pole only
+  rhythmScore           Float?    // Double pole only
+
+  // Pole mechanics (all techniques)
+  poleAngleAtPlant      Float?    // degrees
+  poleAngleAtRelease    Float?    // degrees
+  polePlantTiming       String?   // EARLY, ON_TIME, LATE
+  poleForceApplication  String?   // GOOD, WEAK, INCONSISTENT
+  armSwingSymmetry      Float?    // 0-100 percentage
+
+  // Hip and core position (all techniques)
+  hipPositionScore      Float?    // 0-100
+  hipHeightConsistency  Float?    // 0-100
+  coreEngagement        String?   // GOOD, MODERATE, POOR
+  forwardLean           Float?    // degrees from vertical
+
+  // Weight transfer (all techniques)
+  weightTransferScore   Float?    // 0-100
+  weightShiftTiming     String?   // EARLY, ON_TIME, LATE
+  lateralStability      Float?    // 0-100
+
+  // Classic-specific metrics
+  kickTimingScore       Float?    // 0-100
+  kickExtension         String?   // FULL, PARTIAL, INCOMPLETE
+  glidePhaseDuration    Float?    // seconds
+  legRecoveryPattern    String?   // EFFICIENT, MODERATE, INEFFICIENT
+  waxPocketEngagement   String?   // GOOD, PARTIAL, POOR
+
+  // Skating-specific metrics
+  edgeAngleLeft         Float?    // degrees
+  edgeAngleRight        Float?    // degrees
+  edgeAngleSymmetry     Float?    // 0-100
+  pushOffAngle          Float?    // degrees from ski direction
+  vPatternWidth         Float?    // cm estimated
+  skateFrequency        Float?    // cycles per second
+  recoveryLegPath       String?   // COMPACT, WIDE, INCONSISTENT
+
+  // Double pole-specific metrics
+  trunkFlexionRange     Float?    // degrees
+  compressionDepth      String?   // SHALLOW, OPTIMAL, EXCESSIVE
+  returnPhaseSpeed      String?   // FAST, MODERATE, SLOW
+  legDriveContribution  String?   // SIGNIFICANT, MODERATE, MINIMAL
+  rhythmConsistency     Float?    // 0-100
+
+  // AI insights (Swedish)
+  primaryStrengths      Json?     // string[]
+  primaryWeaknesses     Json?     // string[]
+  techniqueDrills       Json?     // { drill: string, focus: string, priority: number }[]
+  comparisonToElite     String?   @db.Text // narrative comparison
+
+  videoAnalysis         VideoAnalysis @relation(fields: [videoAnalysisId], references: [id], onDelete: Cascade)
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([videoAnalysisId])
+  @@index([techniqueType])
+  @@index([overallScore])
+}
+
+/// HYROX station analysis (for HYROX_STATION video type)
+/// Covers all 8 HYROX stations: SkiErg, Sled Push, Sled Pull, Burpee Broad Jump, Rowing, Farmers Carry, Sandbag Lunge, Wall Balls
+model HyroxStationAnalysis {
+  id                    String    @id @default(uuid())
+  videoAnalysisId       String    @unique
+
+  // Station identification
+  stationType           String    // SKIERG, SLED_PUSH, SLED_PULL, BURPEE_BROAD_JUMP, ROWING, FARMERS_CARRY, SANDBAG_LUNGE, WALL_BALLS
+
+  // Overall assessment (0-100)
+  overallScore          Float?
+  efficiencyScore       Float?
+  formScore             Float?
+  paceConsistency       Float?
+
+  // Movement quality
+  coreStability         Float?    // 0-100
+  breathingPattern      String?   // GOOD, INCONSISTENT, POOR
+  movementEconomy       Float?    // 0-100
+
+  // Pace analysis
+  movementCadence       Float?    // reps per minute or strokes per minute
+  cadenceVariation      Float?    // percentage variation
+  restPauses            Int?      // number of pauses detected
+
+  // Fatigue indicators
+  fatigueIndicators     Json?     // { earlyPhase: string[], latePhase: string[] }
+  formDegradation       Float?    // percentage decline from start to end
+
+  // Station-specific metrics (JSON - varies by station)
+  stationMetrics        Json?
+
+  // SkiErg specific
+  pullLength            String?   // SHORT, OPTIMAL, LONG
+  hipHingeDepth         String?   // SHALLOW, OPTIMAL, EXCESSIVE
+  armExtension          String?   // INCOMPLETE, FULL, OVEREXTENDED
+  legDriveContribution  String?   // MINIMAL, MODERATE, SIGNIFICANT
+
+  // Sled Push specific
+  bodyAngle             Float?    // degrees from vertical
+  armLockout            String?   // BENT, LOCKED, OVEREXTENDED
+  strideLength          String?   // SHORT, OPTIMAL, OVERSTRIDING
+  drivePhase            String?   // WEAK, GOOD, POWERFUL
+
+  // Sled Pull specific
+  pullTechnique         String?   // ARM_DOMINANT, HIP_DRIVEN, MIXED
+  ropePath              String?   // STRAIGHT, DIAGONAL, INCONSISTENT
+  anchorStability       String?   // STABLE, SHIFTING, UNSTABLE
+
+  // Burpee Broad Jump specific
+  burpeeDepth           String?   // SHALLOW, FULL, EXCESSIVE
+  jumpDistance          String?   // SHORT, GOOD, EXCELLENT
+  transitionSpeed       String?   // SLOW, MODERATE, FAST
+  landingMechanics      String?   // POOR, ACCEPTABLE, GOOD
+
+  // Rowing specific
+  driveSequence         String?   // CORRECT, ARMS_EARLY, BACK_EARLY
+  laybackAngle          Float?    // degrees
+  catchPosition         String?   // COMPRESSED, OPTIMAL, OVERREACHING
+  strokeRate            Float?    // strokes per minute
+  powerApplication      String?   // FRONT_LOADED, EVEN, BACK_LOADED
+
+  // Farmers Carry specific
+  shoulderPack          String?   // ELEVATED, PACKED, DEPRESSED
+  trunkPosture          String?   // UPRIGHT, LEANING, SWAYING
+  stridePattern         String?   // SHORT_CHOPPY, SMOOTH, OVERSTRIDING
+  gripFatigue           String?   // NONE, MODERATE, SIGNIFICANT
+
+  // Sandbag Lunge specific
+  bagPosition           String?   // HIGH_CHEST, SHOULDER, DROPPING
+  kneeTracking          String?   // GOOD, VALGUS, VARUS
+  stepLength            String?   // SHORT, OPTIMAL, OVERSTRIDING
+  torsoPosition         String?   // UPRIGHT, FORWARD_LEAN, EXCESSIVE_LEAN
+
+  // Wall Balls specific
+  squatDepth            String?   // SHALLOW, PARALLEL, DEEP
+  throwMechanics        String?   // ARM_DOMINANT, HIP_DRIVEN, COORDINATED
+  wallBallCatchHeight   String?   // HIGH, OPTIMAL, LOW
+  rhythmConsistency     Float?    // 0-100
+
+  // Benchmark comparison
+  benchmarkLevel        String?   // BEGINNER, INTERMEDIATE, ADVANCED, ELITE
+  estimatedStationTime  Int?      // seconds (projected time for standard reps)
+
+  // Athlete profile integration
+  isWeakStation         Boolean   @default(false)
+  isStrongStation       Boolean   @default(false)
+
+  // AI insights (Swedish)
+  primaryStrengths      Json?     // string[]
+  primaryWeaknesses     Json?     // string[]
+  improvementDrills     Json?     // { drill: string, focus: string, priority: number }[]
+  raceStrategyTips      Json?     // string[]
+
+  videoAnalysis         VideoAnalysis @relation(fields: [videoAnalysisId], references: [id], onDelete: Cascade)
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([videoAnalysisId])
+  @@index([stationType])
+  @@index([overallScore])
 }
 
 /// Audio recordings for voice-based daily check-in (Gemini 3 Pro transcription)

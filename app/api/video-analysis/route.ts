@@ -13,11 +13,20 @@ import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-st
 
 const createAnalysisSchema = z.object({
   videoUrl: z.string().url(),
-  videoType: z.enum(['STRENGTH', 'RUNNING_GAIT', 'SPORT_SPECIFIC']),
+  videoType: z.enum([
+    'STRENGTH',
+    'RUNNING_GAIT',
+    'SKIING_CLASSIC',
+    'SKIING_SKATING',
+    'SKIING_DOUBLE_POLE',
+    'HYROX_STATION',
+    'SPORT_SPECIFIC',
+  ]),
   athleteId: z.string().uuid().optional(),
   exerciseId: z.string().uuid().optional(),
   duration: z.number().optional(),
   landmarksData: z.any().optional(),
+  hyroxStation: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -117,6 +126,8 @@ export async function GET(request: NextRequest) {
       include: {
         athlete: { select: { id: true, name: true } },
         exercise: { select: { id: true, name: true, nameSv: true } },
+        skiingTechniqueAnalysis: true,
+        hyroxStationAnalysis: true,
       },
       orderBy: { createdAt: 'desc' },
       take: limit,

@@ -212,6 +212,10 @@ export function VideoAnalysisList() {
               <SelectItem value="all">Alla typer</SelectItem>
               <SelectItem value="STRENGTH">Styrkeövning</SelectItem>
               <SelectItem value="RUNNING_GAIT">Löpteknik</SelectItem>
+              <SelectItem value="SKIING_CLASSIC">Skidåkning - Klassisk</SelectItem>
+              <SelectItem value="SKIING_SKATING">Skidåkning - Skating</SelectItem>
+              <SelectItem value="SKIING_DOUBLE_POLE">Skidåkning - Dubbelstakning</SelectItem>
+              <SelectItem value="HYROX_STATION">HYROX Station</SelectItem>
               <SelectItem value="SPORT_SPECIFIC">Sportspecifik</SelectItem>
             </SelectContent>
           </Select>

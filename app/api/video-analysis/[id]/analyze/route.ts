@@ -27,12 +27,32 @@ import {
 
 // Frame rates for different video analysis types
 const VIDEO_FPS = {
-  RUNNING_GAIT: 5, // Higher FPS for fast motion analysis (5 frames/sec)
-  STRENGTH: 2,     // Lower FPS for slower strength movements
-  DEFAULT: 1,      // Default FPS
+  RUNNING_GAIT: 5,        // Higher FPS for fast motion analysis (5 frames/sec)
+  STRENGTH: 2,            // Lower FPS for slower strength movements
+  SKIING_CLASSIC: 8,      // Fast cyclic motion, need detail
+  SKIING_SKATING: 8,      // Fast lateral movement
+  SKIING_DOUBLE_POLE: 6,  // Less lateral movement
+  HYROX_STATION: 4,       // Similar to strength, functional movements
+  DEFAULT: 1,             // Default FPS
 } as const;
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
 import { isHttpUrl, downloadAsBase64 as downloadFromStorage } from '@/lib/storage/supabase-storage';
+import {
+  buildSkiingPrompt,
+  isSkiingVideoType,
+  getSkiingFPS,
+  getSkiingTechniqueType,
+  type SkiingTechniqueType as SkiingVideoType,
+} from '@/lib/ai/skiing-prompts';
+import { parseSkiingAnalysisResponse } from '@/lib/validations/skiing-analysis';
+import {
+  buildHyroxPrompt,
+  isHyroxVideoType,
+  getHyroxFPS,
+  type HyroxStationType,
+  HYROX_STATION_LABELS,
+} from '@/lib/ai/hyrox-prompts';
+import { parseHyroxAnalysisResponse } from '@/lib/validations/hyrox-analysis';
 
 const VIDEO_BUCKET = 'video-analysis';
 
@@ -144,6 +164,16 @@ export async function POST(
       // Use different analysis approach based on video type
       if (analysis.videoType === 'RUNNING_GAIT') {
         return await analyzeRunningGait(id, analysis, client, modelId);
+      }
+
+      // Handle skiing video types
+      if (isSkiingVideoType(analysis.videoType)) {
+        return await analyzeSkiingTechnique(id, analysis, client, modelId);
+      }
+
+      // Handle HYROX station video type
+      if (isHyroxVideoType(analysis.videoType)) {
+        return await analyzeHyroxStation(id, analysis, client, modelId);
       }
 
       // For STRENGTH and other types, use text-based approach
@@ -402,6 +432,468 @@ function parseAnalysisResponse(response: string): AnalysisResult {
       areasForImprovement: [],
     };
   }
+}
+
+/**
+ * Analyze skiing technique video (Classic, Skating, or Double Pole).
+ * Uses Swedish prompts for detailed technique analysis.
+ */
+async function analyzeSkiingTechnique(
+  id: string,
+  analysis: {
+    videoUrl: string;
+    videoType: string;
+    athlete: { id: string; name: string; gender: string | null } | null;
+  },
+  client: ReturnType<typeof createGoogleGenAIClient>,
+  modelId: string
+): Promise<NextResponse> {
+  const videoType = analysis.videoType as SkiingVideoType;
+
+  // Get athlete's skiing settings if available
+  let skiingSettings = undefined;
+  if (analysis.athlete?.id) {
+    const sportProfile = await prisma.sportProfile.findUnique({
+      where: { clientId: analysis.athlete.id },
+      select: { skiingSettings: true },
+    });
+    skiingSettings = sportProfile?.skiingSettings as Record<string, unknown> | undefined;
+  }
+
+  // Build the skiing-specific prompt
+  const prompt = buildSkiingPrompt(videoType, {
+    gender: analysis.athlete?.gender || 'MALE',
+    athleteName: analysis.athlete?.name,
+    experienceLevel: skiingSettings?.experienceLevel as string | undefined,
+    skiingSettings: skiingSettings as {
+      technique?: string;
+      primaryDiscipline?: string;
+      terrainPreference?: string;
+      currentThresholdPace?: number | null;
+    } | undefined,
+  });
+
+  // Fetch video as base64
+  const { base64, mimeType } = await getVideoAsBase64(analysis.videoUrl);
+
+  // Get appropriate FPS for skiing video type
+  const fps = getSkiingFPS(videoType);
+  const videoMetadata: VideoMetadata = { fps };
+
+  console.log(`[Video Analysis] Analyzing ${videoType} skiing video with ${fps} FPS`);
+
+  // Call Gemini with video
+  const result = await generateContent(client, modelId, [
+    createText(prompt),
+    createInlineData(base64, mimeType, videoMetadata),
+  ]);
+
+  // Parse the structured response
+  const parsedAnalysis = parseSkiingAnalysisResponse(videoType, result.text);
+
+  if (!parsedAnalysis) {
+    console.error('[Skiing Analysis] Failed to parse AI response');
+    // Still save the raw response
+    await prisma.videoAnalysis.update({
+      where: { id },
+      data: {
+        status: 'COMPLETED',
+        aiAnalysis: result.text,
+        aiProvider: 'GOOGLE',
+        modelUsed: modelId,
+        formScore: 50, // Default score
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      warning: 'Analysis completed but structured parsing failed',
+      rawAnalysis: result.text,
+    });
+  }
+
+  // Map technique type for database
+  const techniqueType = getSkiingTechniqueType(videoType);
+
+  // Determine overall form score (use overallScore or average available scores)
+  const formScore = Math.round(parsedAnalysis.overallScore || 50);
+
+  // Extract insights for the base VideoAnalysis record
+  const issues = parsedAnalysis.insights?.weaknesses?.map((weakness, i) => ({
+    issue: weakness,
+    severity: 'MEDIUM' as const,
+    description: weakness,
+  })) || [];
+
+  const recommendations = parsedAnalysis.insights?.drills?.map((drill, i) => ({
+    priority: drill.priority,
+    recommendation: drill.drill,
+    explanation: drill.focus,
+  })) || [];
+
+  // Update the VideoAnalysis record
+  await prisma.videoAnalysis.update({
+    where: { id },
+    data: {
+      status: 'COMPLETED',
+      aiAnalysis: result.text,
+      aiProvider: 'GOOGLE',
+      modelUsed: modelId,
+      formScore,
+      issuesDetected: issues,
+      recommendations,
+    },
+  });
+
+  // Create the detailed SkiingTechniqueAnalysis record
+  const skiingAnalysisData: Record<string, unknown> = {
+    videoAnalysisId: id,
+    techniqueType,
+    overallScore: parsedAnalysis.overallScore,
+    efficiencyScore: parsedAnalysis.efficiencyScore,
+    primaryStrengths: parsedAnalysis.insights?.strengths || [],
+    primaryWeaknesses: parsedAnalysis.insights?.weaknesses || [],
+    techniqueDrills: parsedAnalysis.insights?.drills || [],
+    comparisonToElite: parsedAnalysis.insights?.eliteComparison,
+  };
+
+  // Handle technique-specific scores (DoublePole has powerScore/rhythmScore, others have balanceScore/timingScore)
+  if ('balanceScore' in parsedAnalysis) {
+    skiingAnalysisData.balanceScore = parsedAnalysis.balanceScore;
+  }
+  if ('timingScore' in parsedAnalysis) {
+    skiingAnalysisData.timingScore = parsedAnalysis.timingScore;
+  }
+  if ('powerScore' in parsedAnalysis) {
+    skiingAnalysisData.powerScore = parsedAnalysis.powerScore;
+  }
+  if ('rhythmScore' in parsedAnalysis) {
+    skiingAnalysisData.rhythmScore = parsedAnalysis.rhythmScore;
+  }
+
+  // Add technique-specific fields based on video type
+  if ('poleAnalysis' in parsedAnalysis && parsedAnalysis.poleAnalysis) {
+    skiingAnalysisData.poleAngleAtPlant = parsedAnalysis.poleAnalysis.plantAngle;
+    skiingAnalysisData.poleAngleAtRelease = parsedAnalysis.poleAnalysis.releaseAngle;
+    skiingAnalysisData.polePlantTiming = parsedAnalysis.poleAnalysis.timing;
+    skiingAnalysisData.poleForceApplication = parsedAnalysis.poleAnalysis.forceApplication;
+    skiingAnalysisData.armSwingSymmetry = parsedAnalysis.poleAnalysis.armSymmetry;
+  }
+
+  if ('hipPosition' in parsedAnalysis && parsedAnalysis.hipPosition) {
+    skiingAnalysisData.hipPositionScore = parsedAnalysis.hipPosition.score;
+    skiingAnalysisData.hipHeightConsistency = parsedAnalysis.hipPosition.heightConsistency;
+    skiingAnalysisData.forwardLean = parsedAnalysis.hipPosition.forwardLean;
+    skiingAnalysisData.coreEngagement = parsedAnalysis.hipPosition.coreEngagement;
+  }
+
+  // Classic-specific fields
+  if ('kickAnalysis' in parsedAnalysis && parsedAnalysis.kickAnalysis) {
+    skiingAnalysisData.kickTimingScore = parsedAnalysis.kickAnalysis.timingScore;
+    skiingAnalysisData.kickExtension = parsedAnalysis.kickAnalysis.extension;
+    skiingAnalysisData.waxPocketEngagement = parsedAnalysis.kickAnalysis.waxPocketEngagement;
+  }
+
+  if ('weightTransfer' in parsedAnalysis && parsedAnalysis.weightTransfer) {
+    skiingAnalysisData.weightTransferScore = parsedAnalysis.weightTransfer.score;
+    skiingAnalysisData.weightShiftTiming = parsedAnalysis.weightTransfer.timing;
+    skiingAnalysisData.lateralStability = parsedAnalysis.weightTransfer.lateralStability;
+  }
+
+  if ('glidePhase' in parsedAnalysis && parsedAnalysis.glidePhase) {
+    skiingAnalysisData.glidePhaseDuration = parsedAnalysis.glidePhase.duration;
+    skiingAnalysisData.legRecoveryPattern = parsedAnalysis.glidePhase.legRecovery;
+  }
+
+  // Skating-specific fields
+  if ('skatingVariant' in parsedAnalysis) {
+    skiingAnalysisData.skatingVariant = parsedAnalysis.skatingVariant;
+  }
+
+  if ('edgeAnalysis' in parsedAnalysis && parsedAnalysis.edgeAnalysis) {
+    skiingAnalysisData.edgeAngleLeft = parsedAnalysis.edgeAnalysis.leftAngle;
+    skiingAnalysisData.edgeAngleRight = parsedAnalysis.edgeAnalysis.rightAngle;
+    skiingAnalysisData.edgeAngleSymmetry = parsedAnalysis.edgeAnalysis.symmetry;
+    skiingAnalysisData.pushOffAngle = parsedAnalysis.edgeAnalysis.pushOffAngle;
+  }
+
+  if ('vPattern' in parsedAnalysis && parsedAnalysis.vPattern) {
+    skiingAnalysisData.vPatternWidth = parsedAnalysis.vPattern.width;
+    skiingAnalysisData.skateFrequency = parsedAnalysis.vPattern.frequency;
+  }
+
+  if ('recovery' in parsedAnalysis && parsedAnalysis.recovery) {
+    skiingAnalysisData.recoveryLegPath = parsedAnalysis.recovery.legPath;
+  }
+
+  // Double pole-specific fields
+  if ('trunkAnalysis' in parsedAnalysis && parsedAnalysis.trunkAnalysis) {
+    skiingAnalysisData.trunkFlexionRange = parsedAnalysis.trunkAnalysis.flexionRange;
+    skiingAnalysisData.compressionDepth = parsedAnalysis.trunkAnalysis.compressionDepth;
+    skiingAnalysisData.returnPhaseSpeed = parsedAnalysis.trunkAnalysis.returnSpeed;
+  }
+
+  if ('legDrive' in parsedAnalysis && parsedAnalysis.legDrive) {
+    skiingAnalysisData.legDriveContribution = parsedAnalysis.legDrive.contribution;
+  }
+
+  if ('rhythm' in parsedAnalysis && parsedAnalysis.rhythm) {
+    skiingAnalysisData.rhythmConsistency = parsedAnalysis.rhythm.consistency;
+  }
+
+  // Use powerScore as efficiencyScore for double pole
+  if ('powerScore' in parsedAnalysis) {
+    skiingAnalysisData.efficiencyScore = parsedAnalysis.powerScore;
+  }
+  if ('rhythmScore' in parsedAnalysis) {
+    skiingAnalysisData.timingScore = parsedAnalysis.rhythmScore;
+  }
+
+  // Create the skiing analysis record
+  const skiingAnalysis = await prisma.skiingTechniqueAnalysis.create({
+    data: skiingAnalysisData as any,
+  });
+
+  // Fetch the updated video analysis
+  const updatedAnalysis = await prisma.videoAnalysis.findUnique({
+    where: { id },
+    include: {
+      athlete: { select: { id: true, name: true } },
+      skiingTechniqueAnalysis: true,
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    analysis: updatedAnalysis,
+    skiingAnalysis,
+    result: parsedAnalysis,
+  });
+}
+
+/**
+ * Analyze HYROX station video with station-specific prompts.
+ * Supports all 8 HYROX stations with specialized analysis.
+ */
+async function analyzeHyroxStation(
+  id: string,
+  analysis: {
+    videoUrl: string;
+    videoType: string | null;
+    athlete: { id: string; name: string; gender: string | null } | null;
+  },
+  client: ReturnType<typeof createGoogleGenAIClient>,
+  modelId: string
+): Promise<NextResponse> {
+  // Get the station type from the request body or default to SKIERG
+  // In production, this would be passed from the upload form
+  // For now, we'll parse it from a stored field or query param
+
+  // Fetch full analysis to get station type from stationMetrics or similar
+  const fullAnalysis = await prisma.videoAnalysis.findUnique({
+    where: { id },
+    include: {
+      athlete: {
+        include: {
+          sportProfile: true,
+        },
+      },
+    },
+  });
+
+  if (!fullAnalysis) {
+    return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
+  }
+
+  // Get station type from recommendations field (temporary storage) or default
+  // In the future, add a proper stationType field to VideoAnalysis
+  const stationTypeRaw = (fullAnalysis.recommendations as unknown as { stationType?: string })?.stationType || 'SKIERG';
+  const stationType = stationTypeRaw as HyroxStationType;
+
+  // Build athlete context for HYROX
+  const athleteContext = fullAnalysis.athlete?.sportProfile?.hyroxSettings
+    ? {
+        hyroxCategory: (fullAnalysis.athlete.sportProfile.hyroxSettings as { category?: string })?.category,
+        stationTimes: (fullAnalysis.athlete.sportProfile.hyroxSettings as { stationTimes?: Record<string, number> })?.stationTimes,
+        weakStations: (fullAnalysis.athlete.sportProfile.hyroxSettings as { weakStations?: string[] })?.weakStations,
+        strongStations: (fullAnalysis.athlete.sportProfile.hyroxSettings as { strongStations?: string[] })?.strongStations,
+      }
+    : undefined;
+
+  // Build the prompt with station-specific focus
+  const prompt = buildHyroxPrompt(stationType, athleteContext);
+
+  // Fetch video and convert to base64
+  const { base64, mimeType } = await getVideoAsBase64(analysis.videoUrl);
+
+  // Configure video metadata with appropriate FPS
+  const fps = getHyroxFPS();
+  const videoMetadata: VideoMetadata = { fps };
+
+  console.log(`[Video Analysis] Analyzing HYROX ${HYROX_STATION_LABELS[stationType]} with ${fps} FPS`);
+
+  // Call Gemini with video
+  const result = await generateContent(client, modelId, [
+    createText(prompt),
+    createInlineData(base64, mimeType, videoMetadata),
+  ]);
+
+  // Parse the response
+  const parsedAnalysis = parseHyroxAnalysisResponse(stationType, result.text);
+
+  if (!parsedAnalysis) {
+    // Fallback: store raw response if parsing fails
+    await prisma.videoAnalysis.update({
+      where: { id },
+      data: {
+        status: 'COMPLETED',
+        aiAnalysis: result.text,
+        aiProvider: 'GOOGLE',
+        modelUsed: modelId,
+        formScore: 50, // Default score
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      warning: 'Could not parse structured response',
+      rawAnalysis: result.text,
+    });
+  }
+
+  // Convert strengths/weaknesses to issue/recommendation format
+  const issues = parsedAnalysis.insights.weaknesses.map((weakness, i) => ({
+    issue: weakness,
+    severity: 'MEDIUM' as const,
+    description: weakness,
+  }));
+
+  const recommendations = parsedAnalysis.insights.drills.map((drill, i) => ({
+    priority: drill.priority,
+    recommendation: drill.drill,
+    explanation: drill.focus,
+  }));
+
+  // Update the video analysis record
+  await prisma.videoAnalysis.update({
+    where: { id },
+    data: {
+      status: 'COMPLETED',
+      aiAnalysis: result.text,
+      aiProvider: 'GOOGLE',
+      modelUsed: modelId,
+      formScore: Math.round(parsedAnalysis.formScore),
+      issuesDetected: issues,
+      recommendations: {
+        recommendations,
+        raceStrategyTips: parsedAnalysis.insights.raceStrategyTips,
+      },
+    },
+  });
+
+  // Create the detailed HyroxStationAnalysis record
+  const hyroxAnalysisData: Record<string, unknown> = {
+    videoAnalysisId: id,
+    stationType,
+    overallScore: parsedAnalysis.overallScore,
+    efficiencyScore: parsedAnalysis.efficiencyScore,
+    formScore: parsedAnalysis.formScore,
+    paceConsistency: parsedAnalysis.paceConsistency,
+    coreStability: parsedAnalysis.coreStability,
+    breathingPattern: parsedAnalysis.breathingPattern,
+    movementCadence: parsedAnalysis.movementCadence,
+    fatigueIndicators: parsedAnalysis.fatigueIndicators || null,
+    primaryStrengths: parsedAnalysis.insights.strengths,
+    primaryWeaknesses: parsedAnalysis.insights.weaknesses,
+    improvementDrills: parsedAnalysis.insights.drills,
+    raceStrategyTips: parsedAnalysis.insights.raceStrategyTips,
+  };
+
+  // Add station-specific fields based on station type
+  if (stationType === 'SKIERG' && 'pullLength' in parsedAnalysis) {
+    hyroxAnalysisData.pullLength = parsedAnalysis.pullLength;
+    hyroxAnalysisData.hipHingeDepth = parsedAnalysis.hipHingeDepth;
+    hyroxAnalysisData.armExtension = parsedAnalysis.armExtension;
+    hyroxAnalysisData.legDriveContribution = parsedAnalysis.legDriveContribution;
+  }
+
+  if (stationType === 'SLED_PUSH' && 'bodyAngle' in parsedAnalysis) {
+    hyroxAnalysisData.bodyAngle = parsedAnalysis.bodyAngle;
+    hyroxAnalysisData.armLockout = parsedAnalysis.armLockout;
+    hyroxAnalysisData.strideLength = parsedAnalysis.strideLength;
+    hyroxAnalysisData.drivePhase = parsedAnalysis.drivePhase;
+  }
+
+  if (stationType === 'SLED_PULL' && 'pullTechnique' in parsedAnalysis) {
+    hyroxAnalysisData.pullTechnique = parsedAnalysis.pullTechnique;
+    hyroxAnalysisData.ropePath = parsedAnalysis.ropePath;
+    hyroxAnalysisData.anchorStability = parsedAnalysis.anchorStability;
+  }
+
+  if (stationType === 'BURPEE_BROAD_JUMP' && 'burpeeDepth' in parsedAnalysis) {
+    hyroxAnalysisData.burpeeDepth = parsedAnalysis.burpeeDepth;
+    hyroxAnalysisData.jumpDistance = parsedAnalysis.jumpDistance;
+    hyroxAnalysisData.transitionSpeed = parsedAnalysis.transitionSpeed;
+    hyroxAnalysisData.landingMechanics = parsedAnalysis.landingMechanics;
+  }
+
+  if (stationType === 'ROWING' && 'driveSequence' in parsedAnalysis) {
+    hyroxAnalysisData.driveSequence = parsedAnalysis.driveSequence;
+    hyroxAnalysisData.laybackAngle = parsedAnalysis.laybackAngle;
+    hyroxAnalysisData.catchPosition = parsedAnalysis.catchPosition;
+    hyroxAnalysisData.strokeRate = parsedAnalysis.strokeRate;
+    hyroxAnalysisData.powerApplication = parsedAnalysis.powerApplication;
+  }
+
+  if (stationType === 'FARMERS_CARRY' && 'shoulderPack' in parsedAnalysis) {
+    hyroxAnalysisData.shoulderPack = parsedAnalysis.shoulderPack;
+    hyroxAnalysisData.trunkPosture = parsedAnalysis.trunkPosture;
+    hyroxAnalysisData.stridePattern = parsedAnalysis.stridePattern;
+    hyroxAnalysisData.gripFatigue = parsedAnalysis.gripFatigue;
+  }
+
+  if (stationType === 'SANDBAG_LUNGE' && 'bagPosition' in parsedAnalysis) {
+    hyroxAnalysisData.bagPosition = parsedAnalysis.bagPosition;
+    hyroxAnalysisData.kneeTracking = parsedAnalysis.kneeTracking;
+    hyroxAnalysisData.stepLength = parsedAnalysis.stepLength;
+    hyroxAnalysisData.torsoPosition = parsedAnalysis.torsoPosition;
+  }
+
+  if (stationType === 'WALL_BALLS' && 'squatDepth' in parsedAnalysis) {
+    hyroxAnalysisData.squatDepth = parsedAnalysis.squatDepth;
+    hyroxAnalysisData.throwMechanics = parsedAnalysis.throwMechanics;
+    hyroxAnalysisData.wallBallCatchHeight = parsedAnalysis.wallBallCatchHeight;
+    hyroxAnalysisData.rhythmConsistency = parsedAnalysis.rhythmConsistency;
+  }
+
+  // Check if this is a weak/strong station for the athlete
+  if (athleteContext?.weakStations?.includes(stationType)) {
+    hyroxAnalysisData.isWeakStation = true;
+  }
+  if (athleteContext?.strongStations?.includes(stationType)) {
+    hyroxAnalysisData.isStrongStation = true;
+  }
+
+  // Create the HYROX analysis record
+  const hyroxAnalysis = await prisma.hyroxStationAnalysis.create({
+    data: hyroxAnalysisData as any,
+  });
+
+  // Fetch the updated video analysis
+  const updatedAnalysis = await prisma.videoAnalysis.findUnique({
+    where: { id },
+    include: {
+      athlete: { select: { id: true, name: true } },
+      hyroxStationAnalysis: true,
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    analysis: updatedAnalysis,
+    hyroxAnalysis,
+    result: parsedAnalysis,
+  });
 }
 
 /**

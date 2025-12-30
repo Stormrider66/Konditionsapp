@@ -30,6 +30,8 @@ import {
   User,
   ArrowRight,
   UserRound,
+  Snowflake,
+  Zap,
 } from 'lucide-react'
 
 interface VideoUploaderProps {
@@ -54,11 +56,46 @@ const VIDEO_TYPES = [
     icon: PersonStanding,
   },
   {
+    value: 'SKIING_CLASSIC',
+    label: 'Klassisk skidåkning',
+    description: 'Diagonalgång, teknik och timing',
+    icon: Snowflake,
+  },
+  {
+    value: 'SKIING_SKATING',
+    label: 'Skate-skidåkning',
+    description: 'V1, V2 eller V2-alternativ teknik',
+    icon: Snowflake,
+  },
+  {
+    value: 'SKIING_DOUBLE_POLE',
+    label: 'Dubbelstakning',
+    description: 'Stakningsteknik och rytm',
+    icon: Snowflake,
+  },
+  {
+    value: 'HYROX_STATION',
+    label: 'HYROX Station',
+    description: 'Analys av HYROX-stationer',
+    icon: Zap,
+  },
+  {
     value: 'SPORT_SPECIFIC',
     label: 'Sportspecifik',
     description: 'Annan idrottsspecifik rörelse',
     icon: Activity,
   },
+] as const
+
+const HYROX_STATIONS = [
+  { value: 'SKIERG', label: 'SkiErg', description: '1000m' },
+  { value: 'SLED_PUSH', label: 'Sled Push', description: '50m' },
+  { value: 'SLED_PULL', label: 'Sled Pull', description: '50m' },
+  { value: 'BURPEE_BROAD_JUMP', label: 'Burpee Broad Jump', description: '80 reps' },
+  { value: 'ROWING', label: 'Rodd', description: '1000m' },
+  { value: 'FARMERS_CARRY', label: 'Farmers Carry', description: '200m' },
+  { value: 'SANDBAG_LUNGE', label: 'Sandbag Lunge', description: '100m' },
+  { value: 'WALL_BALLS', label: 'Wall Balls', description: '75-100 reps' },
 ] as const
 
 const CAMERA_ANGLES = [
@@ -98,6 +135,7 @@ export function VideoUploader({
   const [cameraAngle, setCameraAngle] = useState<string>('')
   const [athleteId, setAthleteId] = useState<string>('')
   const [exerciseId, setExerciseId] = useState<string>('')
+  const [hyroxStation, setHyroxStation] = useState<string>('')
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
@@ -160,6 +198,7 @@ export function VideoUploader({
       if (cameraAngle) formData.append('cameraAngle', cameraAngle)
       if (athleteId) formData.append('athleteId', athleteId)
       if (exerciseId) formData.append('exerciseId', exerciseId)
+      if (hyroxStation) formData.append('hyroxStation', hyroxStation)
 
       const response = await fetch('/api/video-analysis/upload', {
         method: 'POST',
@@ -200,6 +239,7 @@ export function VideoUploader({
     setCameraAngle('')
     setAthleteId('')
     setExerciseId('')
+    setHyroxStation('')
     onClose()
   }
 
@@ -277,6 +317,33 @@ export function VideoUploader({
                     </button>
                   )
                 })}
+              </div>
+            </div>
+          )}
+
+          {/* HYROX Station Selection - Only for HYROX_STATION */}
+          {videoType === 'HYROX_STATION' && (
+            <div className="space-y-2">
+              <Label>Välj station *</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Vilken HYROX-station vill du analysera?
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {HYROX_STATIONS.map((station) => (
+                  <button
+                    key={station.value}
+                    type="button"
+                    onClick={() => setHyroxStation(station.value)}
+                    className={`p-3 rounded-lg border text-left transition-colors ${
+                      hyroxStation === station.value
+                        ? 'border-yellow-500 bg-yellow-50 text-yellow-900'
+                        : 'border-muted hover:border-muted-foreground/50'
+                    }`}
+                  >
+                    <div className="font-medium text-sm">{station.label}</div>
+                    <div className="text-xs text-muted-foreground">{station.description}</div>
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -398,7 +465,7 @@ export function VideoUploader({
           <Button variant="outline" onClick={handleClose} disabled={isUploading}>
             Avbryt
           </Button>
-          <Button onClick={handleUpload} disabled={!selectedFile || !videoType || (videoType === 'RUNNING_GAIT' && !cameraAngle) || isUploading}>
+          <Button onClick={handleUpload} disabled={!selectedFile || !videoType || (videoType === 'RUNNING_GAIT' && !cameraAngle) || (videoType === 'HYROX_STATION' && !hyroxStation) || isUploading}>
             {isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

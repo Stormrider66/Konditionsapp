@@ -23,9 +23,24 @@ interface AthleteVideoUploaderProps {
 }
 
 const VIDEO_TYPES = [
-  { value: 'RUNNING_GAIT', label: 'Lopteknik' },
+  { value: 'RUNNING_GAIT', label: 'Löpteknik' },
   { value: 'STRENGTH', label: 'Styrkelyft' },
+  { value: 'SKIING_CLASSIC', label: 'Klassisk skidåkning' },
+  { value: 'SKIING_SKATING', label: 'Skate-skidåkning' },
+  { value: 'SKIING_DOUBLE_POLE', label: 'Dubbelstakning' },
+  { value: 'HYROX_STATION', label: 'HYROX Station' },
   { value: 'SPORT_SPECIFIC', label: 'Sportspecifik teknik' },
+]
+
+const HYROX_STATIONS = [
+  { value: 'SKIERG', label: 'SkiErg (1000m)' },
+  { value: 'SLED_PUSH', label: 'Sled Push (50m)' },
+  { value: 'SLED_PULL', label: 'Sled Pull (50m)' },
+  { value: 'BURPEE_BROAD_JUMP', label: 'Burpee Broad Jump (80 reps)' },
+  { value: 'ROWING', label: 'Rodd (1000m)' },
+  { value: 'FARMERS_CARRY', label: 'Farmers Carry (200m)' },
+  { value: 'SANDBAG_LUNGE', label: 'Sandbag Lunge (100m)' },
+  { value: 'WALL_BALLS', label: 'Wall Balls (75-100 reps)' },
 ]
 
 export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
@@ -36,6 +51,7 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [videoType, setVideoType] = useState<string>('RUNNING_GAIT')
+  const [hyroxStation, setHyroxStation] = useState<string>('')
   const [notes, setNotes] = useState('')
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -66,6 +82,9 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
       formData.append('file', selectedFile)
       formData.append('clientId', clientId)
       formData.append('videoType', videoType)
+      if (hyroxStation) {
+        formData.append('hyroxStation', hyroxStation)
+      }
       if (notes) {
         formData.append('notes', notes)
       }
@@ -145,7 +164,12 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
       {/* Video Type Selection */}
       <div className="space-y-2">
         <Label>Typ av video</Label>
-        <Select value={videoType} onValueChange={setVideoType}>
+        <Select value={videoType} onValueChange={(value) => {
+          setVideoType(value)
+          if (value !== 'HYROX_STATION') {
+            setHyroxStation('')
+          }
+        }}>
           <SelectTrigger>
             <SelectValue placeholder="Valj typ" />
           </SelectTrigger>
@@ -158,6 +182,25 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
           </SelectContent>
         </Select>
       </div>
+
+      {/* HYROX Station Selection - Only for HYROX_STATION */}
+      {videoType === 'HYROX_STATION' && (
+        <div className="space-y-2">
+          <Label>Välj HYROX-station</Label>
+          <Select value={hyroxStation} onValueChange={setHyroxStation}>
+            <SelectTrigger>
+              <SelectValue placeholder="Välj station" />
+            </SelectTrigger>
+            <SelectContent>
+              {HYROX_STATIONS.map((station) => (
+                <SelectItem key={station.value} value={station.value}>
+                  {station.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Dropzone */}
       <div
@@ -222,7 +265,7 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
       {/* Upload Button */}
       <Button
         onClick={handleUpload}
-        disabled={!selectedFile || isUploading}
+        disabled={!selectedFile || isUploading || (videoType === 'HYROX_STATION' && !hyroxStation)}
         className="w-full"
         size="lg"
       >
