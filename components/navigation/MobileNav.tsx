@@ -8,7 +8,7 @@ import { SportType } from '@prisma/client'
 import {
   Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
   ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings,
-  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell, Gift, BarChart3
+  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell, Gift, BarChart3, Shield
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -121,6 +121,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
         { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
         { href: '/coach/referrals', label: 'Värvningar', icon: Gift },
         { href: '/coach/settings/ai', label: 'Inställningar', icon: Settings },
+        ...(userRole === 'ADMIN' ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
       ],
     },
   }
@@ -144,6 +145,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
     { href: '/coach/referrals', label: 'Värvningar', icon: Gift },
     { href: '/coach/settings/ai', label: 'Inställningar', icon: Settings },
+    ...(userRole === 'ADMIN' ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
   ]
 
   // Legacy base + coach links for backwards compatibility
