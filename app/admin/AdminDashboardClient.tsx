@@ -121,17 +121,32 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
 
   useEffect(() => {
     fetchStats();
   }, [range]);
 
+  // Debounce search input to avoid excessive API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Reset page when search or role filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, roleFilter]);
+
+  // Fetch users when tab active and params change
   useEffect(() => {
     if (activeTab === 'users') {
       fetchUsers();
     }
-  }, [activeTab, page, roleFilter]);
+  }, [activeTab, page, roleFilter, debouncedSearch]);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -154,7 +169,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
       const params = new URLSearchParams({
         page: String(page),
         limit: '20',
-        ...(search && { search }),
+        ...(debouncedSearch && { search: debouncedSearch }),
         ...(roleFilter && { role: roleFilter }),
       });
       const response = await fetch(`/api/admin/users?${params}`);
@@ -171,8 +186,9 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
   };
 
   const handleSearch = () => {
+    // Immediately apply search (bypass debounce) for explicit user action
+    setDebouncedSearch(search);
     setPage(1);
-    fetchUsers();
   };
 
   const updateUserRole = async (userId: string, role: string) => {
@@ -504,7 +520,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                     <Search className="h-4 w-4" />
                   </Button>
                 </div>
-                <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v); setPage(1); }}>
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
                   <SelectTrigger className="w-[150px]">
                     <SelectValue placeholder={t('allRoles')} />
                   </SelectTrigger>
