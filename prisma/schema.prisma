@@ -1280,6 +1280,10 @@ model Exercise {
   iconUrl             String?              // URL to exercise-specific icon
   iconCategory        String?              // Category for fallback icon: "strength", "cardio", "core", "plyometric", "olympic", "gymnastics"
 
+  // Exercise images (AI-generated, stored in Supabase)
+  imageUrls           Json?                // Array of image paths: ["system/posterior-chain/squat-1.webp", ...]
+  primaryImageIndex   Int?     @default(0) // Index of primary image for thumbnails
+
   coach                User?                 @relation(fields: [coachId], references: [id], onDelete: SetNull)
   segments             WorkoutSegment[]
   progressionTracking  ProgressionTracking[]

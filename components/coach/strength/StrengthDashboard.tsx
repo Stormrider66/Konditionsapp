@@ -5,7 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dumbbell, Activity, Calendar, Library, Plus, FolderOpen, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ExerciseLibrary } from './ExerciseLibrary'
+import dynamic from 'next/dynamic'
+
+const ExerciseLibraryBrowser = dynamic(
+  () => import('@/components/coach/exercise-library/ExerciseLibraryBrowser').then(mod => mod.ExerciseLibraryBrowser),
+  { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground">Laddar övningsbibliotek...</div> }
+)
 import { ExerciseCreator } from './ExerciseCreator'
 import { SessionBuilder } from './SessionBuilder'
 import { SectionWorkoutBuilder } from './SectionWorkoutBuilder'
@@ -217,7 +222,7 @@ export function StrengthDashboard() {
         </TabsList>
 
         <TabsContent value="library" className="space-y-4">
-          <ExerciseLibrary />
+          <ExerciseLibraryBrowser mode="browse" />
         </TabsContent>
 
         <TabsContent value="sessions" className="space-y-4">

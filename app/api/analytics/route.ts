@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       prisma.test.count({
         where: {
           client: { userId: user.id },
-          date: { gte: startDate, lte: endDate },
+          testDate: { gte: startDate, lte: endDate },
         },
       }),
 

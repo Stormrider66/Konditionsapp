@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
       // Tests in period
       prisma.test.count({
         where: {
-          date: { gte: startDate, lte: endDate },
+          testDate: { gte: startDate, lte: endDate },
         },
       }),
 

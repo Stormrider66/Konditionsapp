@@ -26,6 +26,7 @@ interface FocusModeExercise {
   nameSv?: string
   videoUrl?: string
   instructions?: string
+  imageUrls?: string[]
   sets: number
   repsTarget: number | string
   weight?: number
@@ -119,6 +120,7 @@ export async function GET(
         nameSv: true,
         videoUrl: true,
         instructions: true,
+        imageUrls: true,
       },
     })
 
@@ -160,6 +162,11 @@ export async function GET(
         const details = exerciseMap.get(ex.exerciseId)
         const logs = setLogsByExercise[ex.exerciseId] || []
 
+        // Parse imageUrls from JSON if it exists
+        const imageUrls = details?.imageUrls
+          ? (Array.isArray(details.imageUrls) ? details.imageUrls : []) as string[]
+          : undefined
+
         focusModeExercises.push({
           id: `${section}-${ex.exerciseId}-${orderIndex}`,
           exerciseId: ex.exerciseId,
@@ -167,6 +174,7 @@ export async function GET(
           nameSv: details?.nameSv ?? undefined,
           videoUrl: details?.videoUrl ?? undefined,
           instructions: details?.instructions ?? undefined,
+          imageUrls,
           sets: ex.sets,
           repsTarget: ex.reps,
           weight: ex.weight,

@@ -54,6 +54,76 @@ export async function downloadAsBase64(bucket: string, path: string): Promise<{ 
   return { base64, mimeType }
 }
 
+// ============================================
+// Exercise Images Storage (Public Bucket)
+// ============================================
+
+const EXERCISE_IMAGES_BUCKET = 'exercise-images'
+
+/**
+ * Get public URL for an exercise image stored in Supabase
+ * @param path - Storage path (e.g., "system/posterior-chain/squat-1.webp")
+ * @returns Full public URL
+ */
+export function getExerciseImagePublicUrl(path: string): string {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not defined')
+  }
+  return `${supabaseUrl}/storage/v1/object/public/${EXERCISE_IMAGES_BUCKET}/${path}`
+}
+
+/**
+ * Resolve an array of storage paths to full public URLs
+ * @param paths - Array of storage paths
+ * @returns Array of full public URLs
+ */
+export function resolveExerciseImageUrls(paths: string[] | null | undefined): string[] {
+  if (!paths || !Array.isArray(paths)) return []
+  return paths.map(path => getExerciseImagePublicUrl(path))
+}
+
+/**
+ * Upload an exercise image to Supabase Storage
+ * @param file - File or Buffer to upload
+ * @param path - Storage path (e.g., "system/posterior-chain/squat-1.webp")
+ * @param contentType - MIME type (default: image/webp)
+ * @returns The storage path
+ */
+export async function uploadExerciseImage(
+  file: File | Buffer,
+  path: string,
+  contentType: string = 'image/webp'
+): Promise<string> {
+  const admin = createAdminSupabaseClient()
+  const { data, error } = await admin.storage
+    .from(EXERCISE_IMAGES_BUCKET)
+    .upload(path, file, {
+      contentType,
+      upsert: true
+    })
+
+  if (error) {
+    throw error
+  }
+  return data.path
+}
+
+/**
+ * Delete an exercise image from Supabase Storage
+ * @param path - Storage path to delete
+ */
+export async function deleteExerciseImage(path: string): Promise<void> {
+  const admin = createAdminSupabaseClient()
+  const { error } = await admin.storage
+    .from(EXERCISE_IMAGES_BUCKET)
+    .remove([path])
+
+  if (error) {
+    throw error
+  }
+}
+
 
 
 

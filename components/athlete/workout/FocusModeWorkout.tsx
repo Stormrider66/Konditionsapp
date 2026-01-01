@@ -38,6 +38,8 @@ import {
 } from 'lucide-react'
 import { SetLoggingForm, SetLogData } from './SetLoggingForm'
 import { RestTimer } from './RestTimer'
+import { ExerciseImage } from '@/components/themed/ExerciseImage'
+import { ExerciseHeader } from '@/components/themed/ExerciseHeader'
 
 interface FocusModeExercise {
   id: string
@@ -46,6 +48,7 @@ interface FocusModeExercise {
   nameSv?: string
   videoUrl?: string
   instructions?: string
+  imageUrls?: string[]
   sets: number
   repsTarget: number | string
   weight?: number
@@ -391,20 +394,57 @@ export function FocusModeWorkout({
             {/* Exercise info */}
             {currentExercise && (
               <>
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold">
-                    {currentExercise.nameSv || currentExercise.name}
-                  </h2>
-                  <p className="text-muted-foreground">
-                    {currentExercise.sets} set × {currentExercise.repsTarget} reps
-                    {currentExercise.weight && ` @ ${currentExercise.weight} kg`}
-                  </p>
-                  {currentExercise.tempo && (
-                    <Badge variant="outline" className="mt-1">
-                      Tempo: {currentExercise.tempo}
-                    </Badge>
-                  )}
-                </div>
+                {/* Exercise Image Display */}
+                {currentExercise.imageUrls && currentExercise.imageUrls.length > 0 ? (
+                  <div className="flex flex-col items-center">
+                    {/* Styled Header */}
+                    <ExerciseHeader
+                      nameSv={currentExercise.nameSv}
+                      nameEn={currentExercise.name}
+                      name={currentExercise.name}
+                      size="xl"
+                      showSubtitle={!!currentExercise.nameSv && currentExercise.nameSv !== currentExercise.name}
+                      className="rounded-b-none"
+                    />
+                    {/* Exercise Image */}
+                    <ExerciseImage
+                      imageUrls={currentExercise.imageUrls}
+                      exerciseId={currentExercise.exerciseId}
+                      size="xl"
+                      showCarousel={currentExercise.imageUrls.length > 1}
+                      enableLightbox={true}
+                      className="rounded-t-none"
+                    />
+                    {/* Exercise details below image */}
+                    <div className="mt-3 text-center">
+                      <p className="text-muted-foreground">
+                        {currentExercise.sets} set × {currentExercise.repsTarget} reps
+                        {currentExercise.weight && ` @ ${currentExercise.weight} kg`}
+                      </p>
+                      {currentExercise.tempo && (
+                        <Badge variant="outline" className="mt-1">
+                          Tempo: {currentExercise.tempo}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* Fallback: Text-only display when no images */
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold">
+                      {currentExercise.nameSv || currentExercise.name}
+                    </h2>
+                    <p className="text-muted-foreground">
+                      {currentExercise.sets} set × {currentExercise.repsTarget} reps
+                      {currentExercise.weight && ` @ ${currentExercise.weight} kg`}
+                    </p>
+                    {currentExercise.tempo && (
+                      <Badge variant="outline" className="mt-1">
+                        Tempo: {currentExercise.tempo}
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
                 {/* Video/Instructions button */}
                 {(currentExercise.videoUrl || currentExercise.instructions) && (

@@ -64,6 +64,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { ExerciseImage } from '@/components/themed/ExerciseImage'
 
 interface ExerciseLibraryBrowserProps {
   onSelectExercise?: (exercise: Exercise) => void
@@ -219,18 +220,45 @@ export function ExerciseLibraryBrowser({
   // Render exercise card (grid view)
   const renderExerciseCard = (exercise: Exercise) => {
     const isFavorite = favorites.has(exercise.id)
+    const imageUrls = exercise.imageUrls as string[] | null
 
     return (
       <Card
         key={exercise.id}
-        className="cursor-pointer hover:shadow-lg transition-all"
+        className="cursor-pointer hover:shadow-lg transition-all overflow-hidden"
         onClick={() => handleSelectExercise(exercise)}
       >
-        <CardHeader className="pb-2">
+        {/* Image Thumbnail */}
+        {imageUrls && imageUrls.length > 0 ? (
+          <div className="relative aspect-[3/4] bg-black/90 overflow-hidden">
+            <ExerciseImage
+              imageUrls={imageUrls}
+              exerciseId={exercise.id}
+              size="md"
+              showCarousel={false}
+              enableLightbox={false}
+              className="w-full h-full"
+            />
+            {imageUrls.length > 1 && (
+              <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-white text-xs">
+                +{imageUrls.length - 1}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="aspect-[3/4] bg-muted/30 flex items-center justify-center">
+            <div className="text-muted-foreground/50 text-4xl">
+              {exercise.category === 'PLYOMETRIC' ? '🦘' :
+               exercise.category === 'CORE' ? '🎯' : '💪'}
+            </div>
+          </div>
+        )}
+
+        <CardHeader className="pb-2 pt-3">
           <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="text-sm">{exercise.name}</CardTitle>
-              <p className="text-xs text-gray-500 mt-1">{exercise.muscleGroup}</p>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-sm truncate">{exercise.nameSv || exercise.name}</CardTitle>
+              <p className="text-xs text-gray-500 mt-1 truncate">{exercise.muscleGroup}</p>
             </div>
             <Button
               variant="ghost"
@@ -239,7 +267,7 @@ export function ExerciseLibraryBrowser({
                 e.stopPropagation()
                 toggleFavorite(exercise.id)
               }}
-              className="h-8 w-8"
+              className="h-8 w-8 flex-shrink-0"
             >
               {isFavorite ? (
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -249,22 +277,21 @@ export function ExerciseLibraryBrowser({
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="pb-4">
+        <CardContent className="pb-4 pt-0">
           <div className="flex flex-wrap gap-1 mb-2">
             {exercise.biomechanicalPillar && (
               <Badge className={`text-xs ${getPillarColor(exercise.biomechanicalPillar)}`}>
-                {exercise.biomechanicalPillar}
+                {exercise.biomechanicalPillar.replace(/_/g, ' ')}
               </Badge>
             )}
             {exercise.progressionLevel && (
               <Badge variant="outline" className="text-xs">
-                {exercise.progressionLevel}
+                {exercise.progressionLevel.replace('_', ' ')}
               </Badge>
             )}
           </div>
-          <p className="text-xs text-gray-600 line-clamp-2">{exercise.description}</p>
           {exercise.equipment && (
-            <p className="text-xs text-gray-500 mt-2">Equipment: {exercise.equipment}</p>
+            <p className="text-xs text-gray-500 truncate">{exercise.equipment}</p>
           )}
         </CardContent>
       </Card>
@@ -351,15 +378,28 @@ export function ExerciseLibraryBrowser({
 
           <ScrollArea className="max-h-[70vh]">
             <div className="space-y-6">
+              {/* Exercise Images */}
+              {(selectedExercise.imageUrls as string[] | null)?.length ? (
+                <div className="flex justify-center">
+                  <ExerciseImage
+                    imageUrls={selectedExercise.imageUrls as string[]}
+                    exerciseId={selectedExercise.id}
+                    size="xl"
+                    showCarousel={true}
+                    enableLightbox={true}
+                  />
+                </div>
+              ) : null}
+
               {/* Badges */}
               <div className="flex flex-wrap gap-2">
                 {selectedExercise.biomechanicalPillar && (
                   <Badge className={getPillarColor(selectedExercise.biomechanicalPillar)}>
-                    {selectedExercise.biomechanicalPillar}
+                    {selectedExercise.biomechanicalPillar.replace(/_/g, ' ')}
                   </Badge>
                 )}
                 {selectedExercise.progressionLevel && (
-                  <Badge variant="outline">{selectedExercise.progressionLevel}</Badge>
+                  <Badge variant="outline">{selectedExercise.progressionLevel.replace('_', ' ')}</Badge>
                 )}
                 {selectedExercise.difficulty && (
                   <Badge variant="secondary">{selectedExercise.difficulty}</Badge>
