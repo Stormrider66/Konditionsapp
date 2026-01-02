@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useState, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { ProgramPreview } from './ProgramPreview'
+import { EnhancedProgramPreview } from './EnhancedProgramPreview'
 import { JsonDataCard, tryParseJson } from './JsonDataCard'
 
 interface Message {
@@ -24,9 +24,10 @@ interface ChatMessageProps {
   coachName?: string | null
   conversationId?: string | null
   onProgramSaved?: (programId: string) => void
+  onPublishProgram?: (content: string) => void
 }
 
-export function ChatMessage({ message, athleteId, athleteName, coachName, conversationId, onProgramSaved }: ChatMessageProps) {
+export function ChatMessage({ message, athleteId, athleteName, coachName, conversationId, onProgramSaved, onPublishProgram }: ChatMessageProps) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
@@ -185,13 +186,14 @@ export function ChatMessage({ message, athleteId, athleteName, coachName, conver
 
         {/* Program Preview for assistant messages containing program JSON */}
         {!isUser && !isSystem && (
-          <ProgramPreview
+          <EnhancedProgramPreview
             content={message.content}
             athleteId={athleteId}
             athleteName={athleteName}
             coachName={coachName}
             conversationId={conversationId}
             onProgramSaved={onProgramSaved}
+            onPublish={() => onPublishProgram?.(message.content)}
           />
         )}
       </div>

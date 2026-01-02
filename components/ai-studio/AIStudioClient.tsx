@@ -48,6 +48,8 @@ import { ContextPanel } from './ContextPanel'
 import { GlobalModelDisplay } from './GlobalModelDisplay'
 import { ChatMessage } from './ChatMessage'
 import { CostEstimate, SessionCostSummary } from './CostEstimate'
+import { PublishProgramDialog } from './PublishProgramDialog'
+import { parseAIProgram } from '@/lib/ai/program-parser'
 import type { AIProvider } from '@prisma/client'
 
 interface Client {
@@ -135,6 +137,12 @@ export function AIStudioClient({
   const [conversations, setConversations] = useState(initialConversations)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
 
+  // Publish dialog state
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false)
+  const [publishContent, setPublishContent] = useState<string>('')
+  const [hasExistingProgram, setHasExistingProgram] = useState(false)
+  const [existingProgramName, setExistingProgramName] = useState<string | undefined>()
+
   // Manual input state (AI SDK 5 no longer manages input state)
   const [input, setInput] = useState('')
 
@@ -207,6 +215,36 @@ export function AIStudioClient({
       setProgramContextLoaded(true)
     }
   }, [programMode, programContextLoaded])
+
+  // Check for existing programs when athlete is selected
+  useEffect(() => {
+    async function checkExistingPrograms() {
+      if (!selectedAthlete) {
+        setHasExistingProgram(false)
+        setExistingProgramName(undefined)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/clients/${selectedAthlete}/programs?active=true`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.programs && data.programs.length > 0) {
+            setHasExistingProgram(true)
+            setExistingProgramName(data.programs[0].name)
+          } else {
+            setHasExistingProgram(false)
+            setExistingProgramName(undefined)
+          }
+        }
+      } catch {
+        // Silently fail - just assume no existing program
+        setHasExistingProgram(false)
+      }
+    }
+
+    checkExistingPrograms()
+  }, [selectedAthlete])
 
   // Handle "Start with context" button click - send initial message with program context
   async function handleStartWithContext() {
@@ -689,6 +727,10 @@ export function AIStudioClient({
                     onProgramSaved={(programId) => {
                       router.push(`/coach/programs/${programId}`)
                     }}
+                    onPublishProgram={(content) => {
+                      setPublishContent(content)
+                      setPublishDialogOpen(true)
+                    }}
                   />
                 )
               })}
@@ -773,6 +815,32 @@ export function AIStudioClient({
           </form>
         </div>
       </div>
+
+      {/* Publish Program Dialog */}
+      {selectedAthlete && selectedAthleteData && (
+        <PublishProgramDialog
+          open={publishDialogOpen}
+          onOpenChange={setPublishDialogOpen}
+          programName={
+            (() => {
+              const parsed = parseAIProgram(publishContent)
+              return parsed.success && parsed.program
+                ? parsed.program.name || 'Nytt program'
+                : 'Nytt program'
+            })()
+          }
+          athleteId={selectedAthlete}
+          athleteName={selectedAthleteData.name}
+          aiOutput={publishContent}
+          conversationId={currentConversationId}
+          hasExistingProgram={hasExistingProgram}
+          existingProgramName={existingProgramName}
+          onSuccess={(programId) => {
+            setPublishDialogOpen(false)
+            router.push(`/coach/programs/${programId}`)
+          }}
+        />
+      )}
     </div>
   )
 }

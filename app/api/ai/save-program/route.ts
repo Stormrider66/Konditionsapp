@@ -9,10 +9,18 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { parseAIProgram, convertToDbFormat, validateProgramCompleteness } from '@/lib/ai/program-parser';
 
+type ProgramType = 'MAIN' | 'COMPLEMENTARY';
+type ExistingProgramAction = 'KEEP' | 'DEACTIVATE' | 'REPLACE';
+
 interface SaveProgramRequest {
   aiOutput: string;
   clientId: string;
   conversationId?: string;
+  // New publish options
+  programType?: ProgramType;
+  existingProgramAction?: ExistingProgramAction;
+  startDate?: string; // ISO date string
+  notifyAthlete?: boolean;
 }
 
 export async function POST(request: NextRequest) {
@@ -20,7 +28,18 @@ export async function POST(request: NextRequest) {
     const user = await requireCoach();
 
     const body: SaveProgramRequest = await request.json();
-    const { aiOutput, clientId, conversationId } = body;
+    const {
+      aiOutput,
+      clientId,
+      conversationId,
+      programType = 'MAIN',
+      existingProgramAction,
+      startDate: startDateStr,
+      notifyAthlete = false,
+    } = body;
+
+    // Parse start date if provided
+    const customStartDate = startDateStr ? new Date(startDateStr) : undefined;
 
     if (!aiOutput || !clientId) {
       return NextResponse.json(
@@ -71,22 +90,50 @@ export async function POST(request: NextRequest) {
     const { programData, weeksData } = convertToDbFormat(
       parseResult.program,
       clientId,
-      user.id
+      user.id,
+      customStartDate // Pass custom start date
     );
 
     // Save to database in a transaction
     const savedProgram = await prisma.$transaction(async (tx) => {
+      // Handle existing programs based on action
+      if (existingProgramAction && existingProgramAction !== 'KEEP') {
+        const existingPrograms = await tx.trainingProgram.findMany({
+          where: { clientId, isActive: true },
+        });
+
+        for (const existing of existingPrograms) {
+          if (existingProgramAction === 'DEACTIVATE') {
+            await tx.trainingProgram.update({
+              where: { id: existing.id },
+              data: { isActive: false },
+            });
+          } else if (existingProgramAction === 'REPLACE') {
+            // Delete the existing program (cascade will handle weeks/days/workouts)
+            await tx.trainingProgram.delete({
+              where: { id: existing.id },
+            });
+          }
+        }
+      }
+
+      // Prepare description with program type info
+      const descriptionWithType = programType === 'COMPLEMENTARY'
+        ? `[Kompletterande] ${programData.description || ''}`
+        : programData.description;
+
       // Create the training program
       const program = await tx.trainingProgram.create({
         data: {
           name: programData.name,
-          description: programData.description,
+          description: descriptionWithType,
           clientId: programData.clientId,
           coachId: programData.coachId,
-          startDate: programData.startDate,
+          startDate: customStartDate || programData.startDate,
           endDate: programData.endDate,
           goalType: programData.goalType,
           generatedFromTest: false,
+          isActive: true,
         },
       });
 
@@ -188,11 +235,42 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Send notification to athlete if requested
+    let notificationSent = false;
+    if (notifyAthlete) {
+      try {
+        // Check if athlete has an account
+        const athleteAccount = await prisma.athleteAccount.findFirst({
+          where: { clientId },
+          include: { user: true },
+        });
+
+        if (athleteAccount?.user?.email) {
+          // Create an in-app message notification
+          await prisma.message.create({
+            data: {
+              senderId: user.id,
+              receiverId: athleteAccount.userId,
+              content: `Ett nytt träningsprogram har publicerats: "${savedProgram.name}". Gå till din dashboard för att se det.`,
+              isRead: false,
+            },
+          });
+          notificationSent = true;
+        }
+      } catch (notifyError) {
+        console.error('Failed to send notification:', notifyError);
+        // Don't fail the request if notification fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       program: programWithDetails,
       warnings: validation.warnings,
-      message: `Program "${savedProgram.name}" saved successfully with ${weeksData.length} weeks`,
+      notificationSent,
+      message: `Program "${savedProgram.name}" saved successfully with ${weeksData.length} weeks${
+        notificationSent ? ' och atlet har meddelats' : ''
+      }`,
     });
   } catch (error) {
     console.error('Save program error:', error);

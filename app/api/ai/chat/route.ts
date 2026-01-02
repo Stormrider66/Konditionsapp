@@ -19,6 +19,9 @@ import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
 import { buildCalendarContext } from '@/lib/ai/calendar-context-builder';
 
+// Allow longer execution time for AI streaming responses (60 seconds)
+export const maxDuration = 60;
+
 // Support both old (content) and new (parts) message formats
 interface UIMessagePart {
   type: 'text';

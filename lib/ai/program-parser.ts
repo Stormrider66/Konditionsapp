@@ -307,7 +307,8 @@ function mapToPeriodPhase(phaseName: string): PeriodPhase {
 export function convertToDbFormat(
   program: ParsedProgram,
   clientId: string,
-  coachId: string
+  coachId: string,
+  customStartDate?: Date
 ): {
   programData: {
     name: string;
@@ -341,7 +342,7 @@ export function convertToDbFormat(
     }>;
   }>;
 } {
-  const startDate = new Date();
+  const startDate = customStartDate ? new Date(customStartDate) : new Date();
   startDate.setHours(0, 0, 0, 0);
 
   const endDate = new Date(startDate);
