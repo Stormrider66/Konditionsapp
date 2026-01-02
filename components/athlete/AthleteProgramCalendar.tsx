@@ -13,25 +13,34 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown, ChevronUp, CheckCircle2, Clock, MapPin, Heart } from 'lucide-react'
+import { ChevronDown, ChevronUp, CheckCircle2, Clock, MapPin, Heart, Info, Zap, Activity, Dumbbell, Play, Timer, Moon, Calendar } from 'lucide-react'
 import { cn, formatPace } from '@/lib/utils'
 import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider'
 import { getThemeStyles } from '@/lib/themes/theme-utils'
 import { MINIMALIST_WHITE_THEME } from '@/lib/themes/definitions'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
 
 interface AthleteProgramCalendarProps {
   program: any
   athleteId: string
+  variant?: 'default' | 'glass'
 }
 
-export function AthleteProgramCalendar({ program, athleteId }: AthleteProgramCalendarProps) {
+export function AthleteProgramCalendar({ program, athleteId, variant = 'glass' }: AthleteProgramCalendarProps) {
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
+  const isGlass = variant === 'glass';
 
   // Get theme from context (optional - falls back to default)
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
   const themeStyles = getThemeStyles(theme)
-  const isDark = theme.id === 'FITAPP_DARK'
+  const isDark = theme.id === 'FITAPP_DARK' || isGlass;
 
   const toggleWeek = (weekId: string) => {
     setExpandedWeeks((prev) => {
@@ -67,30 +76,37 @@ export function AthleteProgramCalendar({ program, athleteId }: AthleteProgramCal
   }
 
   return (
-    <div className="space-y-4" style={themeStyles}>
-      <div className="flex justify-between items-center">
-        <h2 className={cn("text-2xl font-bold", isDark && "text-white")}>Träningskalender</h2>
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className={cn("text-3xl font-black tracking-tight uppercase italic", isDark ? "text-white" : "text-slate-900")}>
+            Tränings<span className="text-blue-600">kalender</span>
+          </h2>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">
+            Följ din plan vecka för vecka
+          </p>
+        </div>
         <div className="flex gap-2">
           <Button
-            variant={isDark ? "secondary" : "outline"}
+            variant="ghost"
             size="sm"
             onClick={() => setExpandedWeeks(new Set(program.weeks.map((w: any) => w.id)))}
-            className={isDark ? "bg-slate-700 text-white hover:bg-slate-600" : ""}
+            className="rounded-xl h-9 px-4 font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-white/10 text-slate-300"
           >
             Expandera alla
           </Button>
           <Button
-            variant={isDark ? "secondary" : "outline"}
+            variant="ghost"
             size="sm"
             onClick={() => setExpandedWeeks(new Set())}
-            className={isDark ? "bg-slate-700 text-white hover:bg-slate-600" : ""}
+            className="rounded-xl h-9 px-4 font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-white/10 text-slate-300"
           >
             Minimera alla
           </Button>
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-6">
         {program.weeks.map((week: any) => (
           <WeekCard
             key={week.id}
@@ -101,6 +117,7 @@ export function AthleteProgramCalendar({ program, athleteId }: AthleteProgramCal
             isCurrent={week.weekNumber === getCurrentWeek(program)}
             athleteId={athleteId}
             isDark={isDark}
+            isGlass={isGlass}
           />
         ))}
       </div>
@@ -116,6 +133,7 @@ interface WeekCardProps {
   isCurrent: boolean
   athleteId: string
   isDark: boolean
+  isGlass?: boolean
 }
 
 function WeekCard({
@@ -126,6 +144,7 @@ function WeekCard({
   isCurrent,
   athleteId,
   isDark,
+  isGlass = false,
 }: WeekCardProps) {
   const weekStartDate = addDays(new Date(programStartDate), (week.weekNumber - 1) * 7)
   const weekEndDate = addDays(weekStartDate, 6)
@@ -154,71 +173,102 @@ function WeekCard({
   // Calculate weekly totals (memoized)
   const weeklyStats = useMemo(() => calculateWeeklyStats(week), [week])
 
+  const CardWrapper = isGlass ? GlassCard : Card;
+
   return (
-    <Card
+    <CardWrapper
       className={cn(
-        'transition-all',
-        isCurrent && 'border-primary border-2',
-        isExpanded && 'shadow-md',
-        isDark && 'bg-slate-800 border-slate-700'
+        'transition-all duration-500 overflow-hidden',
+        isCurrent && (isGlass ? 'border-blue-500/40 ring-1 ring-blue-500/20' : 'border-primary border-2'),
+        isExpanded && (isGlass ? 'bg-white/10 shadow-2xl shadow-black/40' : 'shadow-md'),
+        !isGlass && isDark && 'bg-slate-800 border-slate-700'
       )}
     >
       <Collapsible open={isExpanded} onOpenChange={onToggle}>
         <CollapsibleTrigger asChild>
-          <CardHeader className={cn(
-            "cursor-pointer transition-colors",
-            isDark ? "hover:bg-slate-700/50" : "hover:bg-accent/50"
+          <div className={cn(
+            "p-6 cursor-pointer transition-all flex items-center justify-between",
+            isGlass ? (isExpanded ? "bg-blue-600/5" : "hover:bg-white/5") : (isDark ? "hover:bg-slate-700/50" : "hover:bg-accent/50")
           )}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <CardTitle className={cn("text-lg", isDark && "text-white")}>Vecka {week.weekNumber}</CardTitle>
-                    {isCurrent && <Badge variant="default" className={isDark ? "bg-red-500" : ""}>Aktuell vecka</Badge>}
-                    <Badge
-                      variant="outline"
-                      className={cn(getPhaseBadgeClass(week.phase), isDark && "border-slate-600")}
-                    >
-                      {formatPhase(week.phase)}
+            <div className="flex items-center gap-6">
+              <div className={cn(
+                "w-14 h-14 rounded-2xl flex flex-col items-center justify-center border transition-transform duration-500",
+                isCurrent
+                  ? "bg-blue-600 border-blue-400 text-white scale-110 shadow-lg shadow-blue-600/20"
+                  : (isGlass ? "bg-white/5 border-white/5 text-slate-500 group-hover:border-white/10" : "bg-muted border-transparent")
+              )}>
+                <span className="text-[9px] font-black uppercase tracking-tighter mb-0.5">Vecka</span>
+                <span className="text-xl font-black leading-none">{week.weekNumber}</span>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+                  <h3 className={cn("text-xl font-black tracking-tight uppercase italic", isDark ? "text-white" : "")}>
+                    Fas: <span className="text-blue-500">{formatPhase(week.phase)}</span>
+                  </h3>
+                  {isCurrent && (
+                    <Badge className="bg-blue-600 hover:bg-blue-600 text-[9px] font-black uppercase tracking-widest h-5 px-2 rounded-lg border-0">
+                      Aktuell
                     </Badge>
-                  </div>
-                  <p className={cn("text-sm", isDark ? "text-slate-400" : "text-muted-foreground")}>
-                    {format(weekStartDate, 'd MMM', { locale: sv })} -{' '}
-                    {format(weekEndDate, 'd MMM yyyy', { locale: sv })}
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <Calendar className="h-3 w-3" />
+                  <span>
+                    {format(weekStartDate, 'd MMM', { locale: sv })} — {format(weekEndDate, 'd MMM yyyy', { locale: sv })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-8">
+              <div className="hidden lg:flex flex-col items-end gap-1">
+                {week.focus && (
+                  <p className={cn("text-[10px] font-black uppercase tracking-[0.15em] max-w-[200px] truncate", isDark ? "text-slate-400" : "text-muted-foreground")}>
+                    Mål: {week.focus}
                   </p>
+                )}
+                <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                  {weeklyStats.totalDistance > 0 && <span>{weeklyStats.totalDistance.toFixed(1)} km</span>}
+                  {weeklyStats.totalDuration > 0 && <span>{weeklyStats.totalDuration} min</span>}
                 </div>
               </div>
 
               <div className="flex items-center gap-4">
-                {week.focus && (
-                  <p className={cn("text-sm max-w-md hidden md:block", isDark ? "text-slate-400" : "text-muted-foreground")}>
-                    {week.focus}
-                  </p>
-                )}
-                <div className={cn("flex items-center gap-3 text-xs", isDark ? "text-slate-400" : "text-muted-foreground")}>
-                  <Badge variant="secondary" className={isDark ? "bg-slate-700 text-slate-300" : ""}>
-                    {completedWorkouts}/{totalWorkouts} klara
-                  </Badge>
-                  {weeklyStats.totalDistance > 0 && (
-                    <span className="font-medium">📏 {weeklyStats.totalDistance.toFixed(1)} km</span>
-                  )}
-                  {weeklyStats.totalDuration > 0 && (
-                    <span className="font-medium">⏱ {weeklyStats.totalDuration} min</span>
-                  )}
+                <div className="relative w-12 h-12 flex items-center justify-center">
+                  <svg className="w-full h-full -rotate-90">
+                    <circle
+                      cx="24" cy="24" r="20"
+                      className="stroke-white/5" strokeWidth="4" fill="none"
+                    />
+                    <circle
+                      cx="24" cy="24" r="20"
+                      className="stroke-emerald-500 transition-all duration-1000"
+                      strokeWidth="4" fill="none"
+                      strokeDasharray={126}
+                      strokeDashoffset={126 - (126 * completedWorkouts) / (totalWorkouts || 1)}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="absolute text-[10px] font-black text-white">{completedWorkouts}/{totalWorkouts}</span>
                 </div>
+
                 {isExpanded ? (
-                  <ChevronUp className={cn("h-5 w-5", isDark && "text-slate-400")} />
+                  <ChevronUp className={cn("h-5 w-5", isDark ? "text-slate-400" : "")} />
                 ) : (
-                  <ChevronDown className={cn("h-5 w-5", isDark && "text-slate-400")} />
+                  <ChevronDown className={cn("h-5 w-5", isDark ? "text-slate-400" : "")} />
                 )}
               </div>
             </div>
-          </CardHeader>
+          </div>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <CardContent className="pt-0">
-            <div className="space-y-3">
+          <div className={cn("p-6 pt-2 space-y-6", isGlass ? "bg-black/20" : "")}>
+            <div className="relative space-y-4">
+              {/* Timeline Line */}
+              <div className="absolute left-[47px] top-6 bottom-6 w-px bg-white/5" />
+
               {week.days && week.days.length > 0 ? (
                 week.days.map((day: any) => (
                   <DayCard
@@ -227,18 +277,19 @@ function WeekCard({
                     date={addDays(weekStartDate, day.dayNumber - 1)}
                     athleteId={athleteId}
                     isDark={isDark}
+                    isGlass={isGlass}
                   />
                 ))
               ) : (
-                <p className={cn("text-center py-8", isDark ? "text-slate-400" : "text-muted-foreground")}>
-                  Inga träningspass denna vecka
+                <p className={cn("text-center py-12", isDark ? "text-slate-600" : "text-muted-foreground")}>
+                  Inga träningspass planerade för denna vecka.
                 </p>
               )}
             </div>
-          </CardContent>
+          </div>
         </CollapsibleContent>
       </Collapsible>
-    </Card>
+    </CardWrapper>
   )
 }
 
@@ -247,147 +298,114 @@ interface DayCardProps {
   date: Date
   athleteId: string
   isDark: boolean
+  isGlass?: boolean
 }
 
-function DayCard({ day, date, athleteId, isDark }: DayCardProps) {
+function DayCard({ day, date, athleteId, isDark, isGlass = false }: DayCardProps) {
   const dayNames = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
+  const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
 
   if (!day.workouts || day.workouts.length === 0) {
     return (
-      <div className={cn(
-        "flex items-center gap-4 p-3 rounded-lg",
-        isDark ? "bg-slate-700/30" : "bg-muted/30"
-      )}>
-        <div className="w-24 flex-shrink-0">
-          <p className={cn("font-medium text-sm", isDark && "text-slate-300")}>{dayNames[day.dayNumber - 1]}</p>
-          <p className={cn("text-xs", isDark ? "text-slate-500" : "text-muted-foreground")}>
-            {format(date, 'd MMM', { locale: sv })}
+      <div className="relative flex items-center gap-6 group">
+        <div className={cn(
+          "relative z-10 w-24 flex flex-col items-center justify-center p-2 rounded-xl transition-all",
+          isToday ? "bg-red-600 shadow-lg shadow-red-600/20" : "bg-white/5"
+        )}>
+          <p className={cn("text-[9px] font-black uppercase tracking-widest", isToday ? "text-red-100" : "text-slate-500")}>
+            {dayNames[day.dayNumber - 1].slice(0, 3)}
           </p>
+          <p className={cn("text-sm font-black", isToday ? "text-white" : "text-slate-400")}>{format(date, 'd MMM')}</p>
         </div>
-        <div className="flex-1">
-          <p className={cn("text-sm", isDark ? "text-slate-500" : "text-muted-foreground")}>Vilodag</p>
+
+        <div className="flex-1 py-4 border-b border-white/5 opacity-40 italic flex items-center gap-2">
+          <Moon className="h-3.5 w-3.5" />
+          <span className="text-xs font-black uppercase tracking-widest text-slate-500">Aktiv Vila</span>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {day.workouts.map((workout: any) => {
         const isCompleted = workout.logs && workout.logs.length > 0 && workout.logs[0].completed
 
         return (
-          <div
-            key={workout.id}
-            className={cn(
-              "flex items-start gap-4 p-3 rounded-lg hover:shadow-sm transition-shadow",
-              isDark ? "bg-slate-700/50 border border-slate-600" : "bg-card border"
-            )}
-          >
-            <div className="w-24 flex-shrink-0">
-              <p className={cn("font-medium text-sm", isDark && "text-slate-300")}>{dayNames[day.dayNumber - 1]}</p>
-              <p className={cn("text-xs", isDark ? "text-slate-500" : "text-muted-foreground")}>
-                {format(date, 'd MMM', { locale: sv })}
+          <div key={workout.id} className="relative flex items-start gap-6 group">
+            <div className={cn(
+              "relative z-10 w-24 flex flex-col items-center justify-center p-2 rounded-xl transition-all",
+              isToday ? "bg-blue-600 shadow-lg shadow-blue-600/20" : "bg-white/5"
+            )}>
+              <p className={cn("text-[9px] font-black uppercase tracking-widest", isToday ? "text-blue-100" : "text-slate-500")}>
+                {dayNames[day.dayNumber - 1].slice(0, 3)}
               </p>
+              <p className={cn("text-sm font-black", isToday ? "text-white" : "text-slate-400")}>{format(date, 'd MMM')}</p>
             </div>
 
-            <div className="flex-1 space-y-2">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className={cn("font-semibold", isDark && "text-white")}>{workout.name}</h4>
-                  {isCompleted && (
-                    <Badge variant="default" className="bg-green-500">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Klar
+            <div className={cn(
+              "flex-1 p-5 rounded-2xl border transition-all duration-300",
+              isGlass ? "bg-white/5 border-white/5 hover:bg-white/10" : "bg-card border",
+              isCompleted && (isGlass ? "bg-emerald-500/5 border-emerald-500/10 opacity-80" : "bg-emerald-50")
+            )}>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h4 className={cn("text-lg font-black tracking-tight uppercase italic", isDark ? "text-white" : "")}>
+                      {workout.name}
+                    </h4>
+                    {isCompleted && (
+                      <div className="bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Klar
+                      </div>
+                    )}
+                    <Badge variant="outline" className={cn(
+                      "text-[9px] font-black uppercase tracking-widest px-2 h-5 rounded-lg border-white/10 bg-white/5",
+                      getIntensityBadgeClass(workout.intensity, true)
+                    )}>
+                      {formatIntensity(workout.intensity)}
                     </Badge>
-                  )}
-                  <Badge
-                    variant="outline"
-                    className={cn(getIntensityBadgeClass(workout.intensity), isDark && "border-slate-600")}
-                  >
-                    {formatIntensity(workout.intensity)}
-                  </Badge>
-                </div>
-                {workout.instructions && (
-                  <p className={cn("text-sm", isDark ? "text-slate-400" : "text-muted-foreground")}>{workout.instructions}</p>
-                )}
-              </div>
+                  </div>
 
-              {workout.segments && workout.segments.length > 0 && (
-                <div className="text-xs space-y-1">
-                  {workout.segments.slice(0, 3).map((segment: any) => (
-                    <div key={segment.id} className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="secondary" className={cn("text-xs", isDark && "bg-slate-600 text-slate-300")}>
-                        {formatSegmentType(segment.type)}
-                      </Badge>
-                      <span className={isDark ? "text-slate-400" : "text-muted-foreground"}>
-                        {/* Show exercise name for strength/plyo/core */}
-                        {segment.exercise && segment.exercise.nameSv ? (
-                          <>
-                            {segment.exercise.nameSv}
-                            {segment.sets && segment.repsCount && (
-                              <> ({segment.sets} set × {segment.repsCount} reps{segment.rest && ` med ${segment.rest}s vila`})</>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {segment.description}
-                            {segment.duration && ` (${segment.duration} min)`}
-                            {segment.pace && ` @ ${formatPace(segment.pace)}`}
-                            {segment.heartRate && segment.pace && (
-                              <> | {segment.heartRate}</>
-                            )}
-                            {segment.heartRate && !segment.pace && (
-                              <> @ {segment.heartRate}</>
-                            )}
-                          </>
-                        )}
-                      </span>
-                    </div>
-                  ))}
-                  {workout.segments.length > 3 && (
-                    <p className={isDark ? "text-slate-500" : "text-muted-foreground"}>
-                      +{workout.segments.length - 3} fler segment
+                  {workout.instructions && (
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-2 uppercase tracking-wide">
+                      &quot;{workout.instructions}&quot;
                     </p>
                   )}
+
+                  <div className="flex items-center gap-4 pt-2">
+                    {workout.duration && (
+                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <Timer className="h-3.5 w-3.5 text-blue-500" />
+                        <span>{workout.duration} min</span>
+                      </div>
+                    )}
+                    {workout.distance && (
+                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <MapPin className="h-3.5 w-3.5 text-emerald-500" />
+                        <span>{workout.distance} km</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              <div className={cn("flex items-center gap-4 text-xs", isDark ? "text-slate-400" : "text-muted-foreground")}>
-                {workout.duration && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {workout.duration} min
-                  </span>
-                )}
-                {workout.distance && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {workout.distance} km
-                  </span>
-                )}
+                <div className="flex md:flex-col items-center md:items-end gap-2">
+                  {isCompleted ? (
+                    <Link href={`/athlete/workouts/${workout.id}`}>
+                      <Button variant="ghost" size="sm" className="rounded-xl h-10 px-5 font-black uppercase tracking-widest text-[10px] bg-white/5 border border-white/10 hover:bg-white/10 text-white">
+                        Visa logg
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link href={`/athlete/workouts/${workout.id}`}>
+                      <Button size="sm" className="rounded-xl h-10 px-6 font-black uppercase tracking-widest text-[10px] bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/10">
+                        Starta pass
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {isCompleted ? (
-                <>
-                  <Link href={`/athlete/workouts/${workout.id}`}>
-                    <Button variant={isDark ? "secondary" : "outline"} size="sm" className={isDark ? "bg-slate-600 text-white hover:bg-slate-500" : ""}>
-                      Visa logg
-                    </Button>
-                  </Link>
-                  <Link href={`/athlete/workouts/${workout.id}/log`}>
-                    <Button variant="ghost" size="sm" className={isDark ? "text-slate-400 hover:text-white hover:bg-slate-600" : ""}>
-                      Redigera
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <Link href={`/athlete/workouts/${workout.id}/log`}>
-                  <Button size="sm" className={isDark ? "bg-red-500 hover:bg-red-600" : ""}>Logga pass</Button>
-                </Link>
-              )}
             </div>
           </div>
         )
@@ -424,7 +442,7 @@ function formatIntensity(intensity: string): string {
     MODERATE: 'Måttlig',
     THRESHOLD: 'Tröskel',
     INTERVAL: 'Intervall',
-    MAX: 'Max',
+    MAX: 'Maximal',
   }
   return intensities[intensity] || intensity
 }
@@ -459,7 +477,19 @@ function getPhaseBadgeClass(phase: string): string {
   return classes[phase] || ''
 }
 
-function getIntensityBadgeClass(intensity: string): string {
+function getIntensityBadgeClass(intensity: string, isGlass: boolean = false): string {
+  if (isGlass) {
+    const classes: Record<string, string> = {
+      RECOVERY: 'text-purple-400',
+      EASY: 'text-emerald-400',
+      MODERATE: 'text-yellow-400',
+      THRESHOLD: 'text-orange-400',
+      INTERVAL: 'text-red-400',
+      MAX: 'text-red-500',
+    }
+    return classes[intensity] || ''
+  }
+
   const classes: Record<string, string> = {
     RECOVERY: 'border-purple-300 text-purple-700',
     EASY: 'border-green-300 text-green-700',

@@ -17,6 +17,14 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard';
+import { cn } from '@/lib/utils';
+import {
   Mic,
   Square,
   Play,
@@ -33,6 +41,7 @@ interface AudioRecorderProps {
   onRecordingComplete?: (result: AudioJournalResult) => void;
   onCancel?: () => void;
   maxDuration?: number; // seconds
+  variant?: 'default' | 'glass';
 }
 
 interface AudioJournalResult {
@@ -62,7 +71,9 @@ export function AudioRecorder({
   onRecordingComplete,
   onCancel,
   maxDuration = 60,
+  variant = 'default',
 }: AudioRecorderProps) {
+  const isGlass = variant === 'glass';
   const [state, setState] = useState<RecordingState>('idle');
   const [duration, setDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -110,7 +121,7 @@ export function AudioRecorder({
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.lineWidth = 2;
-      ctx.strokeStyle = 'rgb(59, 130, 246)'; // blue-500
+      ctx.strokeStyle = isGlass ? 'rgb(96, 165, 250)' : 'rgb(59, 130, 246)'; // blue-400 or blue-500
       ctx.beginPath();
 
       const sliceWidth = canvas.width / bufferLength;
@@ -298,6 +309,215 @@ export function AudioRecorder({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  if (isGlass) {
+    return (
+      <GlassCard className="w-full">
+        <GlassCardHeader className="pb-4">
+          <GlassCardTitle className="flex items-center gap-2 text-2xl font-black tracking-tight">
+            <Mic className="h-6 w-6 text-blue-500" />
+            Röstincheckning
+          </GlassCardTitle>
+          <GlassCardDescription className="text-slate-400 font-medium">
+            Berätta hur du mår idag - sömn, energi, ömhet, stress eller motivation. Vi analyserar din röst direkt.
+          </GlassCardDescription>
+        </GlassCardHeader>
+
+        <GlassCardContent className="space-y-6">
+          {/* Error display */}
+          {error && (
+            <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex gap-3 text-red-400 text-sm animate-in fade-in slide-in-from-top-1">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
+          {/* Waveform visualization */}
+          {state === 'recording' && (
+            <div className="relative group">
+              <div className="absolute inset-0 bg-blue-500/5 blur-xl group-hover:bg-blue-500/10 transition-all rounded-2xl" />
+              <div className="relative border border-white/5 rounded-2xl bg-white/5 backdrop-blur-sm overflow-hidden">
+                <canvas
+                  ref={canvasRef}
+                  width={400}
+                  height={100}
+                  className="w-full h-24"
+                />
+                <div className="absolute top-3 right-3 flex items-center gap-2 px-3 py-1 bg-red-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white">Spelar in</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Recording progress */}
+          {(state === 'recording' || state === 'recorded') && (
+            <div className="space-y-3">
+              <div className="flex justify-between items-end">
+                <span className="text-3xl font-black text-white tabular-nums">
+                  {formatDuration(duration)}
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">
+                  Maxtid {formatDuration(maxDuration)}
+                </span>
+              </div>
+              <Progress
+                value={(duration / maxDuration) * 100}
+                className="h-1.5 bg-white/5"
+              // Note: The Progress component internal bar style needs to be handled via CSS or by using a custom progress BAR
+              />
+            </div>
+          )}
+
+          {/* Audio playback */}
+          {audioUrl && (
+            <audio
+              ref={audioRef}
+              src={audioUrl}
+              onEnded={() => setIsPlaying(false)}
+              className="hidden"
+            />
+          )}
+
+          {/* Processing status */}
+          {(state === 'uploading' || state === 'processing') && (
+            <div className="flex flex-col items-center justify-center gap-4 py-8 animate-in fade-in zoom-in-95">
+              <div className="relative">
+                <div className="absolute inset-0 bg-blue-500/20 blur-2xl animate-pulse" />
+                <Loader2 className="h-12 w-12 text-blue-500 animate-spin relative" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="font-black text-white uppercase tracking-widest text-xs">
+                  {state === 'uploading' ? 'Laddar upp...' : 'AI Analyserar...'}
+                </p>
+                <p className="text-xs text-slate-500 font-medium">Extraherar biometrisk data från din röst</p>
+              </div>
+            </div>
+          )}
+
+          {/* Result preview */}
+          {state === 'complete' && result && (
+            <div className="space-y-4 p-5 bg-emerald-500/5 rounded-2xl border border-emerald-500/20 animate-in zoom-in-95 duration-500">
+              <div className="flex items-center gap-3 text-emerald-400">
+                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+                <span className="font-black uppercase tracking-widest text-xs">Analys slutförd</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Readiness</p>
+                  <p className="text-2xl font-black text-white">{result.aiInterpretation.readinessEstimate}/10</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Åtgärd</p>
+                  <p className="text-base font-bold text-white leading-tight">
+                    {result.aiInterpretation.recommendedAction === 'PROCEED'
+                      ? 'Kör enligt plan'
+                      : result.aiInterpretation.recommendedAction === 'REDUCE'
+                        ? 'Minska intensitet'
+                        : result.aiInterpretation.recommendedAction === 'EASY'
+                          ? 'Lugnt pass'
+                          : 'Vila'}
+                  </p>
+                </div>
+              </div>
+
+              {result.aiInterpretation.flaggedConcerns.length > 0 && (
+                <div className="pt-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-orange-500 mb-1">Noterat av AI</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {result.aiInterpretation.flaggedConcerns.map((concern, idx) => (
+                      <span key={idx} className="bg-orange-500/10 text-orange-400 px-2.5 py-1 rounded-lg text-[10px] font-bold">
+                        {concern}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-3 mt-4">
+            {state === 'idle' && (
+              <Button
+                onClick={startRecording}
+                size="lg"
+                className="w-full h-16 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-sm shadow-[0_4px_20px_rgba(37,99,235,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Mic className="h-5 w-5 mr-3" />
+                Starta inspelning
+              </Button>
+            )}
+
+            {state === 'recording' && (
+              <Button
+                onClick={stopRecording}
+                variant="destructive"
+                size="lg"
+                className="w-full h-16 rounded-2xl bg-red-600 hover:bg-red-500 font-black uppercase tracking-widest text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Square className="h-5 w-5 mr-3" />
+                Stoppa inspelning
+              </Button>
+            )}
+
+            {state === 'recorded' && (
+              <div className="w-full space-y-3">
+                <Button
+                  onClick={uploadAndProcess}
+                  size="lg"
+                  className="w-full h-16 rounded-2xl bg-white text-black hover:bg-slate-100 font-black uppercase tracking-widest text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Upload className="h-5 w-5 mr-3" />
+                  Skicka in för analys
+                </Button>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={togglePlayback}
+                    variant="ghost"
+                    className="flex-1 h-12 rounded-xl bg-white/5 border border-white/10 text-white font-bold uppercase tracking-wider text-xs"
+                  >
+                    {isPlaying ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                    {isPlaying ? 'Pausa' : 'Lyssna'}
+                  </Button>
+
+                  <Button
+                    onClick={deleteRecording}
+                    variant="ghost"
+                    className="flex-1 h-12 rounded-xl bg-red-500/5 hover:bg-red-500/10 text-red-400 font-bold uppercase tracking-wider text-xs"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Ta bort
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {state === 'error' && (
+              <Button onClick={deleteRecording} variant="outline" size="lg" className="w-full rounded-xl bg-white/5 border-white/10 text-white font-bold h-12">
+                Försök igen
+              </Button>
+            )}
+
+            {(state === 'idle' || state === 'recorded' || state === 'error') && onCancel && (
+              <Button
+                onClick={onCancel}
+                variant="ghost"
+                className="w-full text-slate-500 font-bold uppercase tracking-widest text-[10px] hover:text-slate-300"
+              >
+                Avbryt och gå till formulär
+              </Button>
+            )}
+          </div>
+        </GlassCardContent>
+      </GlassCard>
+    )
+  }
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -382,10 +602,10 @@ export function AudioRecorder({
                 {result.aiInterpretation.recommendedAction === 'PROCEED'
                   ? 'Kör enligt plan'
                   : result.aiInterpretation.recommendedAction === 'REDUCE'
-                  ? 'Minska intensitet'
-                  : result.aiInterpretation.recommendedAction === 'EASY'
-                  ? 'Lätt pass'
-                  : 'Vila'}
+                    ? 'Minska intensitet'
+                    : result.aiInterpretation.recommendedAction === 'EASY'
+                      ? 'Lätt pass'
+                      : 'Vila'}
               </p>
               {result.aiInterpretation.flaggedConcerns.length > 0 && (
                 <p className="text-yellow-700 dark:text-yellow-300">

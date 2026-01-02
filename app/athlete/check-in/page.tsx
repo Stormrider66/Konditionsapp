@@ -35,15 +35,17 @@ export default async function CheckInPage() {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Daglig incheckning</h1>
-        <p className="text-muted-foreground">
-          Ta 2 minuter för att rapportera hur du mår idag. Detta hjälper oss att anpassa din träning.
+    <div className="container max-w-2xl mx-auto py-8 px-4 sm:px-6">
+      <div className="mb-10 text-center animate-in fade-in slide-in-from-top-4 duration-700">
+        <h1 className="text-4xl font-black mb-4 tracking-tighter text-white uppercase">
+          Daglig <span className="text-blue-500">Check-in</span>
+        </h1>
+        <p className="text-slate-400 font-medium max-w-md mx-auto">
+          Ta 60 sekunder för att logga ditt mående. Vi anpassar din träning i realtid baserat på din återhämtning.
         </p>
       </div>
 
-      <DailyCheckInForm clientId={client.id} />
+      <DailyCheckInForm clientId={client.id} variant="glass" />
     </div>
   );
 }

@@ -15,9 +15,10 @@ import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 interface TechniqueTabProps {
   data: AthleteProfileData
   viewMode: 'coach' | 'athlete'
+  variant?: 'default' | 'glass'
 }
 
-export function TechniqueTab({ data, viewMode }: TechniqueTabProps) {
+export function TechniqueTab({ data, viewMode, variant = 'default' }: TechniqueTabProps) {
   const { videoAnalyses, gaitAnalyses } = data.technique
 
   const hasData = videoAnalyses.length > 0 || gaitAnalyses.length > 0

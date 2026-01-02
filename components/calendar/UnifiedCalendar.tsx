@@ -13,7 +13,7 @@
  * - FAB for quick actions
  */
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import useSWR from 'swr'
@@ -35,6 +35,13 @@ import { UnifiedCalendarItem } from './types'
 import type { Conflict, ConflictResolution } from '@/lib/calendar/conflict-detection'
 import { CalendarEventType } from '@prisma/client'
 import { cn } from '@/lib/utils'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -53,10 +60,12 @@ interface UnifiedCalendarProps {
   clientId: string
   clientName?: string
   isCoachView?: boolean
+  variant?: 'default' | 'glass'
 }
 
-export function UnifiedCalendar({ clientId, clientName, isCoachView = false }: UnifiedCalendarProps) {
+export function UnifiedCalendar({ clientId, clientName, isCoachView = false, variant = 'default' }: UnifiedCalendarProps) {
   const { toast } = useToast()
+  const isGlass = variant === 'glass'
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedItem, setSelectedItem] = useState<UnifiedCalendarItem | null>(null)
@@ -101,6 +110,16 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false }: U
   )
 
   const items: UnifiedCalendarItem[] = data?.items || []
+
+  // Compute items for the selected date
+  const selectedDateItems = useMemo(() => {
+    if (!selectedDate) return []
+    return items.filter(item => isSameDay(new Date(item.date), selectedDate))
+  }, [items, selectedDate])
+
+  // Blocked and reduced dates for mobile move workflow (empty by default)
+  const blockedDates: Date[] = []
+  const reducedDates: Date[] = []
 
   const handlePreviousMonth = useCallback(() => {
     setCurrentMonth((prev) => subMonths(prev, 1))
@@ -381,32 +400,223 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false }: U
     setRescheduleState(null)
   }, [])
 
-  if (error) {
+  if (isGlass) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-red-600">Kunde inte ladda kalender. Försök igen senare.</p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col lg:flex-row gap-4 h-full relative">
+        {/* Main Calendar Area */}
+        <GlassCard className="flex-1">
+          <GlassCardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-5 w-5 text-orange-500" />
+                <GlassCardTitle className="text-lg">
+                  {clientName ? `${clientName}s kalender` : 'Kalender'}
+                </GlassCardTitle>
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => handleAddEvent(selectedDate || new Date())}
+                className="hidden md:flex bg-orange-600 hover:bg-orange-700 text-white border-none"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Ny händelse
+              </Button>
+            </div>
+
+            {/* Month Navigation */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={handlePreviousMonth} className="hover:bg-white/10 text-slate-400">
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleNextMonth} className="hover:bg-white/10 text-slate-400">
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={handleToday} className="text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-white hover:bg-white/10">
+                  Idag
+                </Button>
+              </div>
+
+              <h2 className="text-xl font-black capitalize text-white tracking-tight">
+                {format(currentMonth, 'MMMM yyyy', { locale: sv })}
+              </h2>
+
+              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'month' | 'agenda')} className="hidden sm:block">
+                <TabsList className="h-8 bg-white/5 border border-white/10">
+                  <TabsTrigger value="month" className="text-[10px] uppercase font-bold tracking-widest px-3 data-[state=active]:bg-white/10 data-[state=active]:text-white">
+                    Månad
+                  </TabsTrigger>
+                  <TabsTrigger value="agenda" className="text-[10px] uppercase font-bold tracking-widest px-3 data-[state=active]:bg-white/10 data-[state=active]:text-white">
+                    Lista
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            {/* Summary Stats */}
+            {data?.counts && (
+              <div className="flex gap-4 mt-4 text-[10px] font-bold uppercase tracking-wider">
+                {data.counts.workouts > 0 && (
+                  <span className="flex items-center gap-1.5 text-slate-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                    {data.counts.workouts} pass
+                  </span>
+                )}
+                {data.counts.races > 0 && (
+                  <span className="flex items-center gap-1.5 text-slate-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                    {data.counts.races} tävlingar
+                  </span>
+                )}
+                {data.counts.calendarEvents > 0 && (
+                  <span className="flex items-center gap-1.5 text-slate-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+                    {data.counts.calendarEvents} händelser
+                  </span>
+                )}
+              </div>
+            )}
+          </GlassCardHeader>
+
+          <GlassCardContent className="pt-2">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin text-orange-500/50" />
+              </div>
+            ) : activeView === 'month' ? (
+              <div
+                ref={swipeRef}
+                className={cn(
+                  'transition-transform duration-200 ease-out',
+                  isSwiping && 'transition-none'
+                )}
+                style={{
+                  transform: isSwiping ? `translateX(${swipeOffset}px)` : undefined,
+                }}
+              >
+                <MonthViewDraggable
+                  clientId={clientId}
+                  month={currentMonth}
+                  items={items}
+                  onDayClick={handleDayClick}
+                  onItemClick={handleItemClick}
+                  selectedDate={selectedDate}
+                  onReschedule={handleReschedule}
+                  isRescheduling={isCheckingConflicts || isRescheduling}
+                  isGlass={true}
+                />
+              </div>
+            ) : (
+              <AgendaView
+                items={items}
+                onItemClick={handleItemClick}
+                selectedItem={selectedItem}
+                isGlass={true}
+              />
+            )}
+          </GlassCardContent>
+        </GlassCard>
+
+        {/* Day Details Sidebar */}
+        <div className="hidden lg:block w-80 shrink-0">
+          <DaySidebar
+            clientId={clientId}
+            date={selectedDate}
+            items={selectedDateItems}
+            selectedItem={selectedItem}
+            onItemClick={handleItemClick}
+            onAddEvent={() => handleAddEvent(selectedDate || undefined)}
+            onEditEvent={handleEditEvent}
+            onEventDeleted={handleEventDeleted}
+            isCoachView={isCoachView}
+            variant="glass"
+          />
+        </div>
+
+        {/* Mobile Sheets & FAB */}
+        <MobileDaySheet
+          date={selectedDate}
+          items={selectedDateItems}
+          selectedItem={selectedItem}
+          isOpen={isMobileDaySheetOpen}
+          onClose={() => setIsMobileDaySheetOpen(false)}
+          onItemClick={handleItemClick}
+          onAddEvent={() => {
+            setIsMobileDaySheetOpen(false)
+            handleAddEvent(selectedDate || undefined)
+          }}
+          onEditEvent={(item) => {
+            setIsMobileDaySheetOpen(false)
+            handleEditEvent(item)
+          }}
+          onEventDeleted={handleEventDeleted}
+          onMoveWorkout={handleMobileMove}
+          isCoachView={isCoachView}
+          variant="glass"
+        />
+
+        <MobileMoveWorkoutSheet
+          isOpen={isMobileMoveSheetOpen}
+          onClose={() => {
+            setIsMobileMoveSheetOpen(false)
+            setWorkoutToMove(null)
+          }}
+          workout={workoutToMove}
+          onConfirm={handleMobileMoveConfirm}
+          isLoading={isRescheduling}
+          blockedDates={blockedDates}
+          reducedDates={reducedDates}
+          variant="glass"
+        />
+
+        <MobileCalendarFAB
+          onAction={handleFABAction}
+          selectedDate={selectedDate}
+          visible={!isMobileDaySheetOpen && !isMobileMoveSheetOpen && !isEventDialogOpen}
+          variant="glass"
+        />
+
+        {/* Dialogs */}
+        <EventFormDialog
+          clientId={clientId}
+          open={isEventDialogOpen}
+          onOpenChange={setIsEventDialogOpen}
+          date={selectedDate || new Date()}
+          event={editingEvent}
+          onSaved={handleEventSaved}
+        />
+
+        {rescheduleState && (
+          <ConflictDialog
+            open={showConflictDialog}
+            onOpenChange={setShowConflictDialog}
+            conflicts={rescheduleState.conflicts}
+            workoutName={rescheduleState.workoutName}
+            originalDate={rescheduleState.originalDate}
+            targetDate={rescheduleState.targetDate}
+            onResolve={handleConflictResolve}
+            onCancel={handleCancelReschedule}
+            isLoading={isRescheduling}
+          />
+        )}
+
+        {rescheduleState && (
+          <RescheduleConfirmDialog
+            open={showConfirmDialog}
+            onOpenChange={setShowConfirmDialog}
+            workoutName={rescheduleState.workoutName}
+            workoutType={rescheduleState.workoutType}
+            originalDate={rescheduleState.originalDate}
+            targetDate={rescheduleState.targetDate}
+            onConfirm={(reason) => executeReschedule(reason, false)}
+            onCancel={handleCancelReschedule}
+            isLoading={isRescheduling}
+          />
+        )}
+      </div>
     )
   }
-
-  // Get items for selected date (for mobile sheet)
-  const selectedDateItems = items.filter((item) => {
-    if (!selectedDate) return false
-    const itemDate = new Date(item.date)
-    return isSameDay(itemDate, selectedDate)
-  })
-
-  // Get blocked dates for move sheet
-  const blockedDates = items
-    .filter((i) => i.type === 'CALENDAR_EVENT' && i.metadata.trainingImpact === 'NO_TRAINING')
-    .map((i) => new Date(i.date))
-
-  const reducedDates = items
-    .filter((i) => i.type === 'CALENDAR_EVENT' &&
-      (i.metadata.trainingImpact === 'REDUCED' || i.metadata.trainingImpact === 'MODIFIED'))
-    .map((i) => new Date(i.date))
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 h-full relative">
@@ -631,9 +841,10 @@ interface AgendaViewProps {
   items: UnifiedCalendarItem[]
   onItemClick: (item: UnifiedCalendarItem) => void
   selectedItem: UnifiedCalendarItem | null
+  isGlass?: boolean
 }
 
-function AgendaView({ items, onItemClick, selectedItem }: AgendaViewProps) {
+function AgendaView({ items, onItemClick, selectedItem, isGlass = false }: AgendaViewProps) {
   // Group items by date
   const groupedItems: Record<string, UnifiedCalendarItem[]> = {}
   for (const item of items) {
@@ -668,6 +879,7 @@ function AgendaView({ items, onItemClick, selectedItem }: AgendaViewProps) {
                 item={item}
                 isSelected={selectedItem?.id === item.id}
                 onClick={() => onItemClick(item)}
+                isGlass={isGlass}
               />
             ))}
           </div>
@@ -681,9 +893,10 @@ interface AgendaItemProps {
   item: UnifiedCalendarItem
   isSelected: boolean
   onClick: () => void
+  isGlass?: boolean
 }
 
-function AgendaItem({ item, isSelected, onClick }: AgendaItemProps) {
+function AgendaItem({ item, isSelected, onClick, isGlass = false }: AgendaItemProps) {
   const typeColors: Record<string, string> = {
     WORKOUT: 'border-l-blue-500',
     RACE: 'border-l-red-500',
@@ -694,11 +907,14 @@ function AgendaItem({ item, isSelected, onClick }: AgendaItemProps) {
 
   return (
     <button
-      className={`w-full text-left p-3 rounded-lg border-l-4 ${
-        typeColors[item.type]
-      } bg-card hover:bg-accent transition-colors ${
-        isSelected ? 'ring-2 ring-primary' : ''
-      }`}
+      className={cn(
+        "w-full text-left p-4 rounded-xl border-l-4 transition-all duration-300",
+        typeColors[item.type],
+        isGlass
+          ? "bg-white/5 border-r border-t border-b border-white/10 hover:bg-white/10 hover:border-white/20"
+          : "bg-card hover:bg-accent border shadow-sm",
+        isSelected && (isGlass ? "ring-1 ring-orange-500/50 bg-orange-500/5" : "ring-2 ring-primary")
+      )}
       onClick={onClick}
     >
       <div className="flex items-center justify-between">

@@ -13,9 +13,10 @@ import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 interface GoalsPlanningTabProps {
   data: AthleteProfileData
   viewMode: 'coach' | 'athlete'
+  variant?: 'default' | 'glass'
 }
 
-export function GoalsPlanningTab({ data, viewMode }: GoalsPlanningTabProps) {
+export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsPlanningTabProps) {
   const sportProfile = data.identity.sportProfile
   const { programs } = data.training
   const { raceResults } = data.performance

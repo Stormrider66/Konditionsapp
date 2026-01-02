@@ -36,6 +36,14 @@ import {
 import { WorkoutHistoryCharts } from '@/components/athlete/WorkoutHistoryCharts'
 import { PersonalRecords } from '@/components/athlete/PersonalRecords'
 import { ExportDataButton } from '@/components/athlete/ExportDataButton'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
+import { cn } from '@/lib/utils'
 
 interface HistoryPageProps {
   searchParams: Promise<{
@@ -139,11 +147,11 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
   const totalDuration = logs.reduce((sum, log) => sum + (log.duration || 0), 0)
   const avgRPE = logs.filter(log => log.perceivedEffort).length > 0
     ? (
-        logs
-          .filter(log => log.perceivedEffort)
-          .reduce((sum, log) => sum + (log.perceivedEffort || 0), 0) /
-        logs.filter(log => log.perceivedEffort).length
-      ).toFixed(1)
+      logs
+        .filter(log => log.perceivedEffort)
+        .reduce((sum, log) => sum + (log.perceivedEffort || 0), 0) /
+      logs.filter(log => log.perceivedEffort).length
+    ).toFixed(1)
     : '-'
 
   const avgPaceCalc = logs.filter(log => log.avgPace).length > 0
@@ -151,103 +159,115 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
     : null
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
+    <div className="min-h-screen pb-20 pt-6 px-4 max-w-7xl mx-auto">
       <Link href="/athlete/dashboard">
-        <Button variant="ghost" className="mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till dashboard
+        <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white">
+          <ArrowLeft className="mr-2 h-3.5 w-3.5" />
+          Tillbaka
         </Button>
       </Link>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Träningshistorik</h1>
-        <p className="text-muted-foreground">
-          Översikt över dina genomförda träningspass och framsteg
-        </p>
+      <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="space-y-2">
+          <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tighter uppercase italic leading-none">
+            Tränings<span className="text-blue-600">historik</span>
+          </h1>
+          <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-[10px]">
+            Översikt över dina genomförda träningspass och framsteg
+          </p>
+        </div>
+        <ExportDataButton logs={logs as any} />
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <GlassCard>
+          <GlassCardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Totalt pass
-              </CardTitle>
-              <Calendar className="h-5 w-5 text-blue-500" />
+              </span>
+              <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <Calendar className="h-4 w-4 text-blue-400" />
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalWorkouts}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="text-3xl font-black text-white">{totalWorkouts}</div>
+            <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">
               Senaste {timeframe === '7days' ? '7 dagarna' : timeframe === '30days' ? '30 dagarna' : timeframe === '3months' ? '3 månaderna' : timeframe === '6months' ? '6 månaderna' : 'året'}
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="pb-3">
+        <GlassCard>
+          <GlassCardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Total distans
-              </CardTitle>
-              <TrendingUp className="h-5 w-5 text-green-500" />
+              </span>
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <TrendingUp className="h-4 w-4 text-emerald-400" />
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalDistance.toFixed(1)}</div>
-            <p className="text-xs text-muted-foreground mt-1">kilometer</p>
-          </CardContent>
-        </Card>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="text-3xl font-black text-white">{totalDistance.toFixed(1)}</div>
+            <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">kilometer körda</p>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="pb-3">
+        <GlassCard>
+          <GlassCardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Total tid
-              </CardTitle>
-              <Clock className="h-5 w-5 text-orange-500" />
+              </span>
+              <div className="p-1.5 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                <Clock className="h-4 w-4 text-orange-400" />
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="text-3xl font-black text-white">
               {Math.floor(totalDuration / 60)}h {totalDuration % 60}m
             </div>
-            <p className="text-xs text-muted-foreground mt-1">träning</p>
-          </CardContent>
-        </Card>
+            <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">effektiv träning</p>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardHeader className="pb-3">
+        <GlassCard>
+          <GlassCardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Snitt RPE
-              </CardTitle>
-              <Zap className="h-5 w-5 text-red-500" />
+              </span>
+              <div className="p-1.5 rounded-lg bg-red-500/10 border border-red-500/20">
+                <Zap className="h-4 w-4 text-red-400" />
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{avgRPE}</div>
-            <p className="text-xs text-muted-foreground mt-1">upplevd ansträngning</p>
-          </CardContent>
-        </Card>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="text-3xl font-black text-white">{avgRPE}</div>
+            <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">upplevd ansträngning</p>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader>
+      <GlassCard className="mb-8">
+        <GlassCardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
+              <GlassCardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5 text-orange-500" />
                 Filtrera
-              </CardTitle>
-              <CardDescription>Välj tidsperiod och typ av träning</CardDescription>
+              </GlassCardTitle>
+              <GlassCardDescription>Välj tidsperiod och typ av träning</GlassCardDescription>
             </div>
-            <ExportDataButton logs={logs as any} />
           </div>
-        </CardHeader>
-        <CardContent>
+        </GlassCardHeader>
+        <GlassCardContent>
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Timeframe filters */}
             <div className="flex-1">
@@ -308,88 +328,85 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Personal Records */}
-      <PersonalRecords athleteId={user.id} />
+      <PersonalRecords athleteId={user.id} variant="glass" />
 
       {/* Progress Charts */}
-      <WorkoutHistoryCharts logs={logs as any} timeframe={timeframe} />
+      <WorkoutHistoryCharts logs={logs as any} timeframe={timeframe} variant="glass" />
 
       {/* Workout History Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Alla träningspass</CardTitle>
-          <CardDescription>
-            Detaljerad översikt över alla dina genomförda pass
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle className="text-xl font-black tracking-tight text-white uppercase italic">Alla träningspass</GlassCardTitle>
+          <GlassCardDescription className="text-slate-500 font-bold uppercase text-[9px] tracking-widest">
+            DETALJERAD ÖVERSIKT ÖVER ALLA DINA GENOMFÖRDA PASS
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           {logs.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Inga pass hittades för vald period</p>
+            <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5">
+              <Calendar className="h-16 w-16 mx-auto mb-6 opacity-10 text-white" />
+              <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Inga pass hittades för vald period</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Datum</TableHead>
-                    <TableHead>Pass</TableHead>
-                    <TableHead>Typ</TableHead>
-                    <TableHead>Distans</TableHead>
-                    <TableHead>Tid</TableHead>
-                    <TableHead>Tempo</TableHead>
-                    <TableHead className="text-center">RPE</TableHead>
-                    <TableHead className="text-center">Puls (snitt)</TableHead>
-                    <TableHead className="text-right">Åtgärd</TableHead>
+                  <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Datum</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Träningspass</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Kategori</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Distans</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tid</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1 text-center">RPE</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Åtgärd</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {logs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium">
-                        {log.completedAt ? format(new Date(log.completedAt), 'PPP', { locale: sv }) : '-'}
+                    <TableRow key={log.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                      <TableCell className="py-5 font-black text-xs text-slate-400">
+                        {log.completedAt ? format(new Date(log.completedAt), 'd MMM yyyy', { locale: sv }) : '-'}
                       </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{log.workout.name}</div>
-                          <div className="text-xs text-muted-foreground">
+                      <TableCell className="py-5">
+                        <div className="space-y-0.5">
+                          <div className="font-black text-white uppercase italic tracking-tight group-hover:text-blue-400 transition-colors">
+                            {log.workout.name}
+                          </div>
+                          <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
                             {log.workout.day.week.program.name}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
+                      <TableCell className="py-5">
+                        <Badge className="bg-white/5 border-0 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg h-6">
                           {formatWorkoutType(log.workout.type)}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        {log.distance ? `${log.distance} km` : '-'}
+                      <TableCell className="py-5 font-black text-white text-xs">
+                        {log.distance ? `${log.distance.toFixed(1)} km` : '-'}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-5 font-black text-white text-xs">
                         {log.duration ? `${log.duration} min` : '-'}
                       </TableCell>
-                      <TableCell>
-                        {log.avgPace || '-'}
-                      </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="py-5 text-center">
                         {log.perceivedEffort ? (
-                          <Badge variant="outline" className={getRPEBadgeClass(log.perceivedEffort)}>
-                            {log.perceivedEffort}/10
-                          </Badge>
+                          <div className={cn(
+                            "inline-flex items-center justify-center w-8 h-8 rounded-lg font-black text-xs",
+                            getRPEBadgeClass(log.perceivedEffort)
+                          )}>
+                            {log.perceivedEffort}
+                          </div>
                         ) : (
-                          '-'
+                          <span className="text-slate-700 font-black">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-center">
-                        {log.avgHR ? `${log.avgHR} bpm` : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="py-5 text-right">
                         <Link href={`/athlete/workouts/${log.workout.id}`}>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
                             Visa
                           </Button>
                         </Link>
@@ -400,8 +417,8 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     </div>
   )
 }
@@ -422,8 +439,8 @@ function formatWorkoutType(type: string): string {
 }
 
 function getRPEBadgeClass(rpe: number): string {
-  if (rpe <= 3) return 'border-green-400 text-green-700 bg-green-50'
-  if (rpe <= 5) return 'border-yellow-400 text-yellow-700 bg-yellow-50'
-  if (rpe <= 7) return 'border-orange-400 text-orange-700 bg-orange-50'
-  return 'border-red-400 text-red-700 bg-red-50'
+  if (rpe <= 3) return 'bg-emerald-500/10 text-emerald-400'
+  if (rpe <= 5) return 'bg-yellow-500/10 text-yellow-400'
+  if (rpe <= 7) return 'bg-orange-500/10 text-orange-400'
+  return 'bg-red-500/10 text-red-500'
 }

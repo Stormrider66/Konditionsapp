@@ -24,6 +24,13 @@ import {
   Mountain,
   Thermometer,
 } from 'lucide-react'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -59,6 +66,7 @@ interface MobileDaySheetProps {
   onEventDeleted: () => void
   onMoveWorkout?: (item: UnifiedCalendarItem) => void
   isCoachView?: boolean
+  variant?: 'default' | 'glass'
 }
 
 export function MobileDaySheet({
@@ -73,7 +81,9 @@ export function MobileDaySheet({
   onEventDeleted,
   onMoveWorkout,
   isCoachView,
+  variant = 'default',
 }: MobileDaySheetProps) {
+  const isGlass = variant === 'glass'
   const sheetRef = useRef<HTMLDivElement>(null)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -194,9 +204,11 @@ export function MobileDaySheet({
       <div
         ref={sheetRef}
         className={cn(
-          'absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl shadow-xl',
+          'absolute bottom-0 left-0 right-0 shadow-2xl transition-all duration-300 ease-out',
+          isGlass
+            ? 'bg-slate-950/90 backdrop-blur-xl border-t border-white/10 rounded-t-[2.5rem]'
+            : 'bg-background rounded-t-2xl shadow-xl',
           'max-h-[85vh] flex flex-col',
-          'transform transition-transform duration-300 ease-out',
           isOpen && !isDragging ? 'translate-y-0' : '',
           !isOpen ? 'translate-y-full' : ''
         )}
@@ -212,31 +224,51 @@ export function MobileDaySheet({
           data-drag-handle
           className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
         >
-          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          <div className={cn(
+            "w-12 h-1.5 rounded-full transition-colors",
+            isGlass ? "bg-white/10" : "bg-muted-foreground/30"
+          )} />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pb-3 border-b">
+        <div className={cn(
+          "flex items-center justify-between px-6 pb-4 pt-1",
+          isGlass ? "border-b border-white/5" : "border-b"
+        )}>
           <div>
-            <h2 className="text-lg font-semibold capitalize">
+            <h2 className={cn(
+              "text-2xl font-black capitalize tracking-tight",
+              isGlass ? "text-white" : ""
+            )}>
               {format(date, 'EEEE', { locale: sv })}
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className={cn(
+              "text-sm font-bold uppercase tracking-widest opacity-50",
+              isGlass ? "text-slate-400" : "text-muted-foreground"
+            )}>
               {format(date, 'd MMMM yyyy', { locale: sv })}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="default"
+              variant={isGlass ? "ghost" : "default"}
               size="sm"
               onClick={onAddEvent}
-              className="h-9"
+              className={cn(
+                "h-10 px-4 font-black text-xs uppercase tracking-widest",
+                isGlass ? "bg-white/5 border border-white/10 text-white hover:bg-white/10" : ""
+              )}
             >
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="h-4 w-4 mr-2" />
               Lägg till
             </Button>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-5 w-5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className={isGlass ? "text-slate-400 hover:text-white hover:bg-white/5" : ""}
+            >
+              <X className="h-6 w-6" />
             </Button>
           </div>
         </div>
@@ -244,22 +276,34 @@ export function MobileDaySheet({
         {/* Content */}
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4">
           {items.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>Inga händelser denna dag</p>
+            <div className="text-center py-16 flex flex-col items-center gap-4">
+              <div className={cn(
+                "w-16 h-16 rounded-full flex items-center justify-center",
+                isGlass ? "bg-slate-500/10" : "bg-muted/50"
+              )}>
+                <Clock className={cn("h-8 w-8 opacity-20", isGlass ? "text-slate-400" : "")} />
+              </div>
+              <div className="space-y-1">
+                <p className={cn("font-black text-lg", isGlass ? "text-white" : "")}>Inga händelser</p>
+                <p className="text-sm text-muted-foreground">Välförtjänt vila eller dags att planera?</p>
+              </div>
               <Button
                 variant="outline"
-                className="mt-4"
+                className={cn(
+                  "mt-2 font-black text-xs uppercase tracking-widest rounded-full px-6",
+                  isGlass ? "bg-white/5 border-white/10 text-slate-400 hover:text-white" : ""
+                )}
                 onClick={onAddEvent}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Lägg till händelse
+                Planera dagen
               </Button>
             </div>
           ) : (
             <>
               {/* Workouts */}
               {workouts.length > 0 && (
-                <Section title="Träningspass" count={workouts.length}>
+                <Section title="Träningspass" count={workouts.length} isGlass={isGlass}>
                   {workouts.map((workout) => (
                     <WorkoutCard
                       key={workout.id}
@@ -267,6 +311,7 @@ export function MobileDaySheet({
                       isSelected={selectedItem?.id === workout.id}
                       onClick={() => onItemClick(workout)}
                       onMove={onMoveWorkout ? () => onMoveWorkout(workout) : undefined}
+                      isGlass={isGlass}
                     />
                   ))}
                 </Section>
@@ -274,13 +319,14 @@ export function MobileDaySheet({
 
               {/* Races */}
               {races.length > 0 && (
-                <Section title="Tävlingar" count={races.length}>
+                <Section title="Tävlingar" count={races.length} isGlass={isGlass}>
                   {races.map((race) => (
                     <RaceCard
                       key={race.id}
                       race={race}
                       isSelected={selectedItem?.id === race.id}
                       onClick={() => onItemClick(race)}
+                      isGlass={isGlass}
                     />
                   ))}
                 </Section>
@@ -288,7 +334,7 @@ export function MobileDaySheet({
 
               {/* Calendar Events */}
               {events.length > 0 && (
-                <Section title="Händelser" count={events.length}>
+                <Section title="Händelser" count={events.length} isGlass={isGlass}>
                   {events.map((event) => (
                     <EventCard
                       key={event.id}
@@ -298,6 +344,7 @@ export function MobileDaySheet({
                       onEdit={isCoachView ? () => onEditEvent(event) : undefined}
                       onDelete={() => handleDelete(event)}
                       isDeleting={isDeleting}
+                      isGlass={isGlass}
                     />
                   ))}
                 </Section>
@@ -305,41 +352,43 @@ export function MobileDaySheet({
 
               {/* Field Tests */}
               {fieldTests.length > 0 && (
-                <Section title="Fälttester" count={fieldTests.length}>
+                <Section title="Fälttester" count={fieldTests.length} isGlass={isGlass}>
                   {fieldTests.map((test) => (
                     <FieldTestCard
                       key={test.id}
                       test={test}
                       isSelected={selectedItem?.id === test.id}
                       onClick={() => onItemClick(test)}
+                      isGlass={isGlass}
                     />
                   ))}
                 </Section>
               )}
 
-              {/* Post-Event Monitoring for Illness/Altitude Camp */}
+              {/* Post-Event Monitoring */}
               {selectedItem?.type === 'CALENDAR_EVENT' &&
                 (selectedItem.metadata.eventType === 'ILLNESS' ||
                   selectedItem.metadata.eventType === 'ALTITUDE_CAMP') && (
-                <div className="mt-4">
-                  <PostEventMonitor
-                    eventType={selectedItem.metadata.eventType as 'ILLNESS' | 'ALTITUDE_CAMP'}
-                    eventData={{
-                      startDate: new Date(selectedItem.date),
-                      endDate: selectedItem.endDate ? new Date(selectedItem.endDate) : new Date(selectedItem.date),
-                      illnessType: selectedItem.metadata.illnessType as string | undefined,
-                      hadFever: selectedItem.metadata.hadFever as boolean | undefined,
-                      feverDays: selectedItem.metadata.feverDays as number | undefined,
-                      symptomsBelowNeck: selectedItem.metadata.symptomsBelowNeck as boolean | undefined,
-                      medicalClearance: selectedItem.metadata.medicalClearance as boolean | undefined,
-                      returnToTrainingDate: selectedItem.metadata.returnToTrainingDate
-                        ? new Date(selectedItem.metadata.returnToTrainingDate as string)
-                        : undefined,
-                      altitude: selectedItem.metadata.altitude as number | undefined,
-                    }}
-                  />
-                </div>
-              )}
+                  <div className="mt-6">
+                    <PostEventMonitor
+                      eventType={selectedItem.metadata.eventType as 'ILLNESS' | 'ALTITUDE_CAMP'}
+                      eventData={{
+                        startDate: new Date(selectedItem.date),
+                        endDate: selectedItem.endDate ? new Date(selectedItem.endDate) : new Date(selectedItem.date),
+                        illnessType: selectedItem.metadata.illnessType as string | undefined,
+                        hadFever: selectedItem.metadata.hadFever as boolean | undefined,
+                        feverDays: selectedItem.metadata.feverDays as number | undefined,
+                        symptomsBelowNeck: selectedItem.metadata.symptomsBelowNeck as boolean | undefined,
+                        medicalClearance: selectedItem.metadata.medicalClearance as boolean | undefined,
+                        returnToTrainingDate: selectedItem.metadata.returnToTrainingDate
+                          ? new Date(selectedItem.metadata.returnToTrainingDate as string)
+                          : undefined,
+                        altitude: selectedItem.metadata.altitude as number | undefined,
+                      }}
+                      variant={isGlass ? "glass" : "default"}
+                    />
+                  </div>
+                )}
             </>
           )}
         </div>
@@ -353,18 +402,31 @@ interface SectionProps {
   title: string
   count: number
   children: React.ReactNode
+  isGlass?: boolean
 }
 
-function Section({ title, count, children }: SectionProps) {
+function Section({ title, count, children, isGlass = false }: SectionProps) {
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-2">
-        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-        <Badge variant="secondary" className="text-xs">
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 px-1">
+        <h3 className={cn(
+          "text-[10px] uppercase font-black tracking-widest",
+          isGlass ? "text-slate-500" : "text-muted-foreground"
+        )}>
+          {title}
+        </h3>
+        <div className={cn(
+          "h-px flex-1",
+          isGlass ? "bg-white/5" : "bg-muted"
+        )} />
+        <Badge variant="secondary" className={cn(
+          "text-[10px] font-bold px-1.5 h-4 min-w-4 flex items-center justify-center rounded-full",
+          isGlass ? "bg-white/10 text-slate-400 border-none" : ""
+        )}>
           {count}
         </Badge>
       </div>
-      <div className="space-y-2">{children}</div>
+      <div className="space-y-3">{children}</div>
     </div>
   )
 }
@@ -375,9 +437,10 @@ interface WorkoutCardProps {
   isSelected: boolean
   onClick: () => void
   onMove?: () => void
+  isGlass?: boolean
 }
 
-function WorkoutCard({ workout, isSelected, onClick, onMove }: WorkoutCardProps) {
+function WorkoutCard({ workout, isSelected, onClick, onMove, isGlass = false }: WorkoutCardProps) {
   const workoutType = workout.metadata.workoutType as string
   const colorClass =
     WORKOUT_TYPE_COLORS[workoutType as keyof typeof WORKOUT_TYPE_COLORS] ||
@@ -386,18 +449,28 @@ function WorkoutCard({ workout, isSelected, onClick, onMove }: WorkoutCardProps)
   return (
     <div
       className={cn(
-        'p-3 rounded-lg border transition-all active:scale-[0.98]',
-        colorClass.replace('bg-', 'bg-').replace('/20', '/10'),
-        'border-l-4',
-        colorClass.replace('bg-', 'border-l-').replace('/20', '-500'),
-        isSelected && 'ring-2 ring-primary'
+        'p-4 rounded-2xl border transition-all active:scale-[0.98] duration-300',
+        isGlass
+          ? "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+          : cn(
+            colorClass.replace('bg-', 'bg-').replace('/20', '/10'),
+            'border-l-4',
+            colorClass.replace('bg-', 'border-l-').replace('/20', '-500')
+          ),
+        isSelected && (isGlass ? 'ring-1 ring-blue-500/50 bg-blue-500/5' : 'ring-2 ring-primary')
       )}
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-sm truncate">{workout.title}</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h4 className={cn(
+            "font-black text-base tracking-tight truncate",
+            isGlass ? "text-white" : ""
+          )}>{workout.title}</h4>
+          <p className={cn(
+            "text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50",
+            isGlass ? "text-slate-400" : "text-muted-foreground"
+          )}>
             {workoutType?.replace(/_/g, ' ')}
           </p>
         </div>
@@ -437,28 +510,40 @@ interface RaceCardProps {
   race: UnifiedCalendarItem
   isSelected: boolean
   onClick: () => void
+  isGlass?: boolean
 }
 
-function RaceCard({ race, isSelected, onClick }: RaceCardProps) {
+function RaceCard({ race, isSelected, onClick, isGlass = false }: RaceCardProps) {
   return (
     <div
       className={cn(
-        'p-3 rounded-lg border border-l-4 border-l-red-500 bg-red-500/10',
-        'transition-all active:scale-[0.98]',
-        isSelected && 'ring-2 ring-primary'
+        'p-4 rounded-2xl border transition-all active:scale-[0.98] duration-300',
+        isGlass
+          ? "bg-red-500/5 border-red-500/20 hover:bg-red-500/10 hover:border-red-500/30"
+          : 'border-l-4 border-l-red-500 bg-red-500/10',
+        isSelected && (isGlass ? 'ring-1 ring-red-500/60 bg-red-500/10' : 'ring-2 ring-primary')
       )}
       onClick={onClick}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-sm truncate">{race.title}</h4>
+          <h4 className={cn(
+            "font-black text-base tracking-tight truncate",
+            isGlass ? "text-white" : ""
+          )}>{race.title}</h4>
           {typeof race.metadata.distance === 'string' && race.metadata.distance && (
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className={cn(
+              "text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50",
+              isGlass ? "text-slate-400" : "text-muted-foreground"
+            )}>
               {race.metadata.distance}
             </p>
           )}
         </div>
-        <Badge variant="destructive" className="text-xs shrink-0 ml-2">
+        <Badge variant="destructive" className={cn(
+          "text-[10px] uppercase font-bold tracking-tight rounded-md px-2",
+          isGlass ? "bg-red-500/20 text-red-400 border-none" : ""
+        )}>
           {typeof race.metadata.classification === 'string' ? race.metadata.classification : 'Tävling'}
         </Badge>
       </div>
@@ -481,6 +566,7 @@ interface EventCardProps {
   onEdit?: () => void
   onDelete: () => void
   isDeleting: boolean
+  isGlass?: boolean
 }
 
 function EventCard({
@@ -490,6 +576,7 @@ function EventCard({
   onEdit,
   onDelete,
   isDeleting,
+  isGlass = false,
 }: EventCardProps) {
   const eventType = event.metadata.eventType as string
   const config = EVENT_TYPE_CONFIG[eventType as keyof typeof EVENT_TYPE_CONFIG] || {
@@ -505,9 +592,11 @@ function EventCard({
   return (
     <div
       className={cn(
-        'p-3 rounded-lg border transition-all',
-        config.bgColor,
-        isSelected && 'ring-2 ring-primary'
+        'p-4 rounded-2xl border transition-all duration-300',
+        isGlass
+          ? "bg-white/5 border-white/10"
+          : config.bgColor,
+        isSelected && (isGlass ? 'ring-1 ring-purple-500/50 bg-purple-500/5' : 'ring-2 ring-primary')
       )}
       onClick={onClick}
     >
@@ -614,15 +703,18 @@ interface FieldTestCardProps {
   test: UnifiedCalendarItem
   isSelected: boolean
   onClick: () => void
+  isGlass?: boolean
 }
 
-function FieldTestCard({ test, isSelected, onClick }: FieldTestCardProps) {
+function FieldTestCard({ test, isSelected, onClick, isGlass = false }: FieldTestCardProps) {
   return (
     <div
       className={cn(
-        'p-3 rounded-lg border border-l-4 border-l-green-500 bg-green-500/10',
-        'transition-all active:scale-[0.98]',
-        isSelected && 'ring-2 ring-primary'
+        'p-4 rounded-2xl border transition-all active:scale-[0.98] duration-300',
+        isGlass
+          ? "bg-green-500/5 border-green-500/20 hover:bg-green-500/10 hover:border-green-500/30"
+          : 'border-l-4 border-l-green-500 bg-green-500/10',
+        isSelected && (isGlass ? 'ring-1 ring-green-500/50 bg-green-500/5' : 'ring-2 ring-primary')
       )}
       onClick={onClick}
     >

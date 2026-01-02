@@ -80,8 +80,21 @@ const SLUG_TO_EXERCISE = {
   'l-sit': 'L-Sit',
   'pull-up': 'Pull-Up',
   'push-up': 'Push-Up',
-  'farmers-carry': 'Farmers Carry',
+  'farmers-carry': 'Farmers Walk',
   'step-up': 'Step-Up',
+  'tahavningar-bojda-ben': 'Tåhävningar (böjda ben)',
+  'tahavningar-raka-ben': 'Tåhävningar (raka ben)',
+  'bred-hopp-max': 'Bred hopp (max)',
+  // Additional mappings for new images
+  'farmers-carry-hyrox': 'Farmers Carry (HYROX)',
+  'ghd-sit-up': 'GHD Sit-Up',
+  'bike-calories': 'Cykel (Kalorier)',
+  'cable-pull-through': 'Cable Pull-Through',
+  'turkish-get-up': 'Turkish Get-Up',
+  'step-ups-med-knadrive': 'Step-Ups med Knädrive',
+  'burpee-pull-up': 'Burpee Pull-Up',
+  'butterfly-pull-up': 'Butterfly Pull-Up',
+  'chest-to-bar-pull-up': 'Chest-to-Bar Pull-Up',
 }
 
 async function findExercise(slug) {

@@ -46,6 +46,7 @@ interface MonthViewDraggableProps {
   selectedDate: Date | null
   onReschedule: (workoutId: string, newDate: Date, originalDate: Date) => void
   isRescheduling?: boolean
+  isGlass?: boolean
 }
 
 export function MonthViewDraggable({
@@ -56,6 +57,7 @@ export function MonthViewDraggable({
   selectedDate,
   onReschedule,
   isRescheduling = false,
+  isGlass = false,
 }: MonthViewDraggableProps) {
   const [activeItem, setActiveItem] = useState<UnifiedCalendarItem | null>(null)
   const [overDateKey, setOverDateKey] = useState<string | null>(null)

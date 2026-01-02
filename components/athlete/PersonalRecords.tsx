@@ -5,12 +5,23 @@ import { Badge } from '@/components/ui/badge'
 import { Trophy, TrendingUp, Clock, Heart, Zap } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
+import { cn } from '@/lib/utils'
 
 interface PersonalRecordsProps {
   athleteId: string
+  variant?: 'default' | 'glass'
 }
 
-export async function PersonalRecords({ athleteId }: PersonalRecordsProps) {
+export async function PersonalRecords({ athleteId, variant = 'default' }: PersonalRecordsProps) {
+  const isGlass = variant === 'glass'
+
   // Fetch all completed workout logs
   const logs = await prisma.workoutLog.findMany({
     where: {
@@ -23,6 +34,7 @@ export async function PersonalRecords({ athleteId }: PersonalRecordsProps) {
           id: true,
           name: true,
           type: true,
+          intensity: true,
         },
       },
     },
@@ -33,6 +45,32 @@ export async function PersonalRecords({ athleteId }: PersonalRecordsProps) {
 
   if (records.length === 0) {
     return null
+  }
+
+  if (isGlass) {
+    return (
+      <GlassCard className="mb-8 overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+          <Trophy className="h-32 w-32 text-orange-500 rotate-12" />
+        </div>
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-orange-500" />
+            Personliga rekord
+          </GlassCardTitle>
+          <GlassCardDescription>
+            Dina bästa prestationer och milstolpar
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {records.map((record, index) => (
+              <RecordCard key={index} record={record} isGlass={true} />
+            ))}
+          </div>
+        </GlassCardContent>
+      </GlassCard>
+    )
   }
 
   return (
@@ -57,7 +95,7 @@ export async function PersonalRecords({ athleteId }: PersonalRecordsProps) {
   )
 }
 
-function RecordCard({ record }: { record: any }) {
+function RecordCard({ record, isGlass = false }: { record: any; isGlass?: boolean }) {
   const icons = {
     distance: TrendingUp,
     duration: Clock,
@@ -70,19 +108,42 @@ function RecordCard({ record }: { record: any }) {
   const Icon = icons[record.type as keyof typeof icons] || Trophy
 
   return (
-    <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg">
-      <div className="p-2 bg-yellow-100 rounded-lg">
-        <Icon className="h-5 w-5 text-yellow-700" />
+    <div className={cn(
+      "flex items-start gap-3 p-4 rounded-xl transition-all duration-300",
+      isGlass
+        ? "bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20"
+        : "bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200"
+    )}>
+      <div className={cn(
+        "p-2 rounded-lg shrink-0",
+        isGlass ? "bg-orange-500/20" : "bg-yellow-100"
+      )}>
+        <Icon className={cn(
+          "h-5 w-5",
+          isGlass ? "text-orange-400" : "text-yellow-700"
+        )} />
       </div>
-      <div className="flex-1">
-        <p className="text-sm font-medium text-muted-foreground">{record.title}</p>
-        <p className="text-2xl font-bold text-yellow-900">{record.value}</p>
+      <div className="flex-1 min-w-0">
+        <p className={cn(
+          "text-xs font-bold uppercase tracking-wider",
+          isGlass ? "text-slate-500" : "text-muted-foreground"
+        )}>{record.title}</p>
+        <p className={cn(
+          "text-2xl font-black truncate",
+          isGlass ? "text-white" : "text-yellow-900"
+        )}>{record.value}</p>
         <div className="flex items-center gap-2 mt-1">
-          <Badge variant="outline" className="text-xs">
+          <Badge variant={isGlass ? "secondary" : "outline"} className={cn(
+            "text-[10px] py-0 px-1.5 h-4 font-bold border-none",
+            isGlass && "bg-white/10 text-slate-300"
+          )}>
             {record.workoutName}
           </Badge>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className={cn(
+          "text-[10px] font-medium mt-1 uppercase tracking-tight",
+          isGlass ? "text-slate-500" : "text-muted-foreground"
+        )}>
           {format(new Date(record.date), 'PPP', { locale: sv })}
         </p>
       </div>

@@ -14,6 +14,7 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship } from 'lucide-react'
@@ -46,6 +47,7 @@ interface UnifiedActivity {
 interface IntegratedRecentActivityProps {
   clientId: string
   limit?: number
+  variant?: 'default' | 'glass'
 }
 
 const SOURCE_CONFIG = {
@@ -64,7 +66,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   SKIING: <PersonStanding className="h-4 w-4" />,
 }
 
-export function IntegratedRecentActivity({ clientId, limit = 10 }: IntegratedRecentActivityProps) {
+export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'default' }: IntegratedRecentActivityProps) {
   const [activities, setActivities] = useState<UnifiedActivity[]>([])
   const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0, concept2: 0 })
   const [isLoading, setIsLoading] = useState(true)
@@ -131,6 +133,52 @@ export function IntegratedRecentActivity({ clientId, limit = 10 }: IntegratedRec
 
   const totalSynced = counts.strava + counts.garmin
 
+  if (variant === 'glass') {
+    return (
+      <GlassCard>
+        <GlassCardHeader>
+          <div className="flex items-center justify-between">
+            <GlassCardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-orange-500" />
+              Senaste aktiviteter
+            </GlassCardTitle>
+            {totalSynced > 0 && (
+              <div className="flex gap-1">
+                {counts.strava > 0 && (
+                  <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-400 border-orange-500/20">
+                    {counts.strava} Strava
+                  </Badge>
+                )}
+                {counts.garmin > 0 && (
+                  <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-400 border-blue-500/20">
+                    {counts.garmin} Garmin
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+        </GlassCardHeader>
+        <GlassCardContent>
+          {activities.length === 0 ? (
+            <div className="text-center py-8">
+              <Activity className="mx-auto h-12 w-12 text-slate-600 mb-4" />
+              <p className="text-slate-400">Ingen aktivitet ännu</p>
+              <p className="text-sm text-slate-500 mt-2">
+                Logga ett pass eller anslut Strava/Garmin
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {activities.map((activity) => (
+                <ActivityCard key={activity.id} activity={activity} variant="glass" />
+              ))}
+            </div>
+          )}
+        </GlassCardContent>
+      </GlassCard>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -176,9 +224,57 @@ export function IntegratedRecentActivity({ clientId, limit = 10 }: IntegratedRec
   )
 }
 
-function ActivityCard({ activity }: { activity: UnifiedActivity }) {
+function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActivity, variant?: 'default' | 'glass' }) {
   const sourceConfig = SOURCE_CONFIG[activity.source]
   const typeIcon = TYPE_ICONS[activity.type] || <Activity className="h-4 w-4" />
+
+  if (variant === 'glass') {
+    return (
+      <div className="border border-white/10 rounded-lg p-3 space-y-2 hover:bg-white/5 transition-colors bg-black/20">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-slate-400">{typeIcon}</span>
+              <h4 className="font-medium text-sm truncate text-slate-200">{activity.name}</h4>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span>
+                {formatDistanceToNow(new Date(activity.date), {
+                  addSuffix: true,
+                  locale: sv,
+                })}
+              </span>
+              <Badge className={`text-xs px-1.5 py-0 ${activity.source === 'strava' ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-700 text-slate-300'}`}>
+                {sourceConfig.icon} {sourceConfig.label}
+              </Badge>
+            </div>
+          </div>
+
+          {activity.tss && (
+            <Badge variant="outline" className="text-xs whitespace-nowrap border-white/10 text-slate-400">
+              TSS {activity.tss}
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+          {activity.duration && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {activity.duration} min
+            </span>
+          )}
+          {activity.distance && (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {activity.distance.toFixed(1)} km
+            </span>
+          )}
+          {/* ... rest of metrics ... */}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="border rounded-lg p-3 space-y-2 hover:bg-gray-50/50 transition-colors">

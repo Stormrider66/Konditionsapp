@@ -10,9 +10,20 @@ import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 interface InjuryHealthTabProps {
   data: AthleteProfileData
   viewMode: 'coach' | 'athlete'
+  variant?: 'default' | 'glass'
 }
 
-export function InjuryHealthTab({ data, viewMode }: InjuryHealthTabProps) {
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
+import { cn } from '@/lib/utils'
+
+export function InjuryHealthTab({ data, viewMode, variant = 'default' }: InjuryHealthTabProps) {
+  const isGlass = variant === 'glass'
   const { injuryAssessments, crossTrainingSessions } = data.health
 
   // Separate active vs resolved injuries
@@ -21,122 +32,139 @@ export function InjuryHealthTab({ data, viewMode }: InjuryHealthTabProps) {
 
   const hasData = injuryAssessments.length > 0 || crossTrainingSessions.length > 0
 
+  const CardWrapper = isGlass ? GlassCard : Card;
+
   if (!hasData) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Ingen hälsodata</h3>
-          <p className="text-gray-500">
+      <CardWrapper>
+        <CardContent className="py-20 text-center">
+          <Heart className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-white/10" : "text-gray-300")} />
+          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-white" : "text-gray-900")}>
+            Ingen hälsodata
+          </h3>
+          <p className={cn("font-medium max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
             Inga skadebedömningar eller korsträningspass registrerade.
           </p>
         </CardContent>
-      </Card>
+      </CardWrapper>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Active Injuries Alert */}
       {activeInjuries.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-red-800">
-              <AlertTriangle className="h-5 w-5" />
+        <CardWrapper className={cn(
+          "border-red-500/20",
+          isGlass ? "bg-red-500/5" : "bg-red-50"
+        )}>
+          <CardHeader className="pb-4">
+            <CardTitle className={cn(
+              "flex items-center gap-2 text-xl font-black uppercase italic tracking-tight",
+              isGlass ? "text-red-500" : "text-red-800"
+            )}>
+              <AlertTriangle className="h-6 w-6" />
               Aktiva skador ({activeInjuries.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {activeInjuries.map((injury) => (
-              <InjuryCard key={injury.id} injury={injury} isActive />
+              <InjuryCard key={injury.id} injury={injury} isActive isGlass={isGlass} />
             ))}
           </CardContent>
-        </Card>
+        </CardWrapper>
       )}
 
       {/* Injury Timeline */}
-      <Card>
+      <CardWrapper>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className={cn("flex items-center gap-2 text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>
             <Clock className="h-5 w-5" />
             Skadehistorik
           </CardTitle>
-          <CardDescription>
-            {injuryAssessments.length} bedömningar registrerade
+          <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
+            {injuryAssessments.length} BEDÖMNINGAR REGISTRERADE
           </CardDescription>
         </CardHeader>
         <CardContent>
           {injuryAssessments.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <CheckCircle className="h-12 w-12 text-green-300 mx-auto mb-3" />
-              <p>Ingen skadehistorik - fortsätt så!</p>
+            <div className="text-center py-12">
+              <CheckCircle className={cn("h-16 w-16 mx-auto mb-4", isGlass ? "text-emerald-500/20" : "text-green-300")} />
+              <p className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "text-gray-500")}>Ingen skadehistorik - fortsätt så!</p>
             </div>
           ) : (
-            <div className="relative">
+            <div className="relative pt-2">
               {/* Timeline line */}
-              <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
+              <div className={cn("absolute left-4 top-0 bottom-0 w-0.5", isGlass ? "bg-white/5" : "bg-gray-100")} />
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {injuryAssessments.slice(0, 10).map((injury) => (
                   <div key={injury.id} className="relative pl-10">
                     {/* Timeline dot */}
                     <div
-                      className={`absolute left-2.5 w-3 h-3 rounded-full border-2 border-white ${
+                      className={cn(
+                        "absolute left-2.5 w-3.5 h-3.5 rounded-full border-2 transition-transform hover:scale-125 z-10",
+                        isGlass ? "border-slate-900" : "border-white",
                         injury.resolved
-                          ? 'bg-green-500'
+                          ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]'
                           : injury.status === 'ACTIVE'
-                          ? 'bg-red-500'
-                          : 'bg-yellow-500'
-                      }`}
+                            ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'
+                            : 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]'
+                      )}
                     />
 
-                    <InjuryCard injury={injury} isActive={!injury.resolved} />
+                    <InjuryCard injury={injury} isActive={!injury.resolved} isGlass={isGlass} />
                   </div>
                 ))}
               </div>
             </div>
           )}
         </CardContent>
-      </Card>
+      </CardWrapper>
 
       {/* Cross Training Sessions */}
       {crossTrainingSessions.length > 0 && (
-        <Card>
+        <CardWrapper>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bike className="h-5 w-5" />
+            <CardTitle className={cn("flex items-center gap-2 text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>
+              <Bike className="h-5 w-5 text-blue-500" />
               Korsträning
             </CardTitle>
-            <CardDescription>
-              Alternativ träning under skador eller för variation
+            <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
+              ALTERNATIV TRÄNING UNDER SKADOR ELLER FÖR VARIATION
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {crossTrainingSessions.slice(0, 10).map((session) => (
+            <div className="space-y-2">
+              {crossTrainingSessions.slice(0, 5).map((session) => (
                 <div
                   key={session.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
+                  className={cn(
+                    "flex items-center justify-between p-4 rounded-2xl transition-all",
+                    isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "border hover:bg-gray-50"
+                  )}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Activity className="h-4 w-4 text-blue-600" />
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "p-2.5 rounded-xl",
+                      isGlass ? "bg-blue-500/10 text-blue-400" : "bg-blue-50 text-blue-600"
+                    )}>
+                      <Activity className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-medium">{getModalityLabel(session.modality)}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-gray-900")}>{getModalityLabel(session.modality)}</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                         {format(new Date(session.date), 'd MMM yyyy', { locale: sv })}
                         {session.reason && ` • ${getReasonLabel(session.reason)}`}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right text-sm">
-                    <p className="font-medium">{session.duration} min</p>
-                    {session.distance && (
-                      <p className="text-gray-500">{(session.distance / 1000).toFixed(1)} km</p>
-                    )}
+                  <div className="text-right">
+                    <p className={cn("font-black italic text-lg", isGlass ? "text-white" : "text-gray-900")}>
+                      {session.duration} <span className="text-[10px] uppercase font-black tracking-widest text-slate-500">min</span>
+                    </p>
                     {session.tssEquivalent && (
-                      <Badge variant="outline" className="text-xs mt-1">
+                      <Badge className={cn("font-black tracking-widest text-[8px] h-4 px-1.5 rounded-md border-0 mt-1", isGlass ? "bg-blue-500/10 text-blue-400" : "bg-blue-50 text-blue-600")}>
                         ~{Math.round(session.tssEquivalent)} TSS
                       </Badge>
                     )}
@@ -145,14 +173,14 @@ export function InjuryHealthTab({ data, viewMode }: InjuryHealthTabProps) {
               ))}
             </div>
           </CardContent>
-        </Card>
+        </CardWrapper>
       )}
 
       {/* Resolved Injuries */}
       {resolvedInjuries.length > 0 && (
-        <Card>
+        <CardWrapper>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-700">
+            <CardTitle className={cn("flex items-center gap-2 text-xl font-black uppercase italic tracking-tight", isGlass ? "text-emerald-500" : "text-green-700")}>
               <CheckCircle className="h-5 w-5" />
               Tidigare skador ({resolvedInjuries.length})
             </CardTitle>
@@ -162,25 +190,28 @@ export function InjuryHealthTab({ data, viewMode }: InjuryHealthTabProps) {
               {resolvedInjuries.slice(0, 5).map((injury) => (
                 <div
                   key={injury.id}
-                  className="flex items-center justify-between p-3 border rounded-lg bg-green-50"
+                  className={cn(
+                    "flex items-center justify-between p-4 rounded-2xl transition-all",
+                    isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "bg-green-50/50 border border-green-100"
+                  )}
                 >
                   <div>
-                    <p className="font-medium">{getInjuryTypeLabel(injury.injuryType || 'OTHER')}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-gray-900")}>{getInjuryTypeLabel(injury.injuryType || 'OTHER')}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                       {format(new Date(injury.date), 'd MMM yyyy', { locale: sv })}
                       {injury.resolvedDate && (
                         <> → {format(new Date(injury.resolvedDate), 'd MMM yyyy', { locale: sv })}</>
                       )}
                     </p>
                   </div>
-                  <Badge variant="outline" className="text-green-700 border-green-300">
-                    Läkt
+                  <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-emerald-500/10 text-emerald-400" : "bg-green-100 text-green-700")}>
+                    LÄKT
                   </Badge>
                 </div>
               ))}
             </div>
           </CardContent>
-        </Card>
+        </CardWrapper>
       )}
     </div>
   )
@@ -190,63 +221,73 @@ export function InjuryHealthTab({ data, viewMode }: InjuryHealthTabProps) {
 function InjuryCard({
   injury,
   isActive,
+  isGlass = false,
 }: {
   injury: AthleteProfileData['health']['injuryAssessments'][0]
   isActive: boolean
+  isGlass?: boolean
 }) {
   return (
     <div
-      className={`p-4 rounded-lg border ${
-        isActive ? 'bg-white border-red-200' : 'bg-white'
-      }`}
+      className={cn(
+        "p-5 rounded-3xl transition-all duration-300",
+        isGlass
+          ? "bg-white/[0.02] border border-white/5 hover:bg-white/5"
+          : (isActive ? 'bg-white border-red-200' : 'bg-white border')
+      )}
     >
-      <div className="flex items-start justify-between mb-2">
+      <div className="flex items-start justify-between mb-4">
         <div>
-          <p className="font-medium">{getInjuryTypeLabel(injury.injuryType || 'OTHER')}</p>
+          <p className={cn("font-black uppercase italic tracking-tight text-lg", isGlass ? "text-white" : "text-gray-900")}>
+            {getInjuryTypeLabel(injury.injuryType || 'OTHER')}
+          </p>
           {injury.painLocation && (
-            <p className="text-sm text-gray-500">{injury.painLocation}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{injury.painLocation}</p>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={getStatusVariant(injury.status)}>
+          <Badge className={cn(
+            "font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0",
+            injury.status === 'ACTIVE' ? "bg-red-500 text-white" : "bg-white/10 text-slate-400"
+          )}>
             {getStatusLabel(injury.status)}
           </Badge>
           {injury.phase && (
-            <Badge variant="outline">{getPhaseLabel(injury.phase)}</Badge>
+            <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/5 text-slate-500" : "bg-slate-100 text-slate-600")}>{getPhaseLabel(injury.phase)}</Badge>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mt-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-white/5">
         <div>
-          <p className="text-gray-500">Smärtnivå</p>
-          <p className="font-medium flex items-center gap-1">
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Smärtnivå</p>
+          <div className="flex items-center gap-2">
             <PainIndicator level={injury.painLevel} />
-            {injury.painLevel}/10
-          </p>
+            <span className={cn("text-xl font-black italic", isGlass ? "text-white" : "text-gray-900")}>{injury.painLevel}/10</span>
+          </div>
         </div>
         <div>
-          <p className="text-gray-500">Datum</p>
-          <p className="font-medium">
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Datum</p>
+          <p className={cn("text-sm font-black uppercase tracking-widest", isGlass ? "text-slate-300" : "text-gray-900")}>
             {format(new Date(injury.date), 'd MMM yyyy', { locale: sv })}
           </p>
         </div>
         {injury.estimatedTimeOff && (
           <div>
-            <p className="text-gray-500">Uppskattad vila</p>
-            <p className="font-medium">{injury.estimatedTimeOff}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Ber. vila</p>
+            <p className={cn("text-sm font-black uppercase tracking-widest", isGlass ? "text-slate-300" : "text-gray-900")}>{injury.estimatedTimeOff}</p>
           </div>
         )}
         {injury.gaitAffected && (
           <div>
-            <p className="text-gray-500">Gång påverkad</p>
-            <p className="font-medium text-red-600">Ja</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Gång påverkad</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-red-500">JA</p>
           </div>
         )}
       </div>
 
       {injury.notes && (
-        <p className="text-sm text-gray-600 mt-3 border-t pt-3">{injury.notes}</p>
+        <p className={cn("text-xs font-medium mt-4 leading-relaxed", isGlass ? "text-slate-500" : "text-gray-600")}>{injury.notes}</p>
       )}
     </div>
   )
@@ -254,9 +295,9 @@ function InjuryCard({
 
 function PainIndicator({ level }: { level: number }) {
   const color =
-    level <= 3 ? 'bg-green-500' : level <= 5 ? 'bg-yellow-500' : level <= 7 ? 'bg-orange-500' : 'bg-red-500'
+    level <= 3 ? 'bg-emerald-500' : level <= 5 ? 'bg-yellow-500' : level <= 7 ? 'bg-orange-500' : 'bg-red-500'
 
-  return <div className={`w-2 h-2 rounded-full ${color}`} />
+  return <div className={cn("w-2.5 h-2.5 rounded-full", color, "shadow-[0_0_8px_currentColor]")} />
 }
 
 // Helper functions

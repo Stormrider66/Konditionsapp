@@ -50,6 +50,7 @@ export async function GET() {
     today.setHours(0, 0, 0, 0)
 
     // Fetch data in parallel
+    // Note: Using DailyMetrics model which is where DailyCheckInForm saves data
     const [
       latestCheckIn,
       recentCheckIns,
@@ -57,8 +58,8 @@ export async function GET() {
       activeInjuries,
       recentWorkoutLogs,
     ] = await Promise.all([
-      // Latest check-in (today)
-      prisma.dailyCheckIn.findFirst({
+      // Latest check-in (today) - using DailyMetrics where form saves
+      prisma.dailyMetrics.findFirst({
         where: {
           clientId,
           date: { gte: today },
@@ -66,8 +67,8 @@ export async function GET() {
         orderBy: { date: 'desc' },
       }),
 
-      // Recent check-ins (last 7 days)
-      prisma.dailyCheckIn.findMany({
+      // Recent check-ins (last 7 days) - using DailyMetrics
+      prisma.dailyMetrics.findMany({
         where: {
           clientId,
           date: {
@@ -103,11 +104,12 @@ export async function GET() {
         },
       }),
 
-      // Active injuries
+      // Active injuries (excluding ones just created today - no need to remind immediately)
       prisma.injuryAssessment.findMany({
         where: {
           clientId,
           status: { not: 'FULLY_RECOVERED' },
+          detectedAt: { lt: today }, // Only show injuries from before today
         },
         select: {
           painLocation: true,

@@ -22,17 +22,30 @@ interface IntegrationStatus {
   syncEnabled?: boolean
 }
 
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
+import { cn } from '@/lib/utils'
+
 interface IntegrationsSettingsProps {
   clientId: string
+  variant?: 'default' | 'glass'
 }
 
-export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
+export function IntegrationsSettings({ clientId, variant = 'default' }: IntegrationsSettingsProps) {
   const { toast } = useToast()
+  const isGlass = variant === 'glass'
   const [stravaStatus, setStravaStatus] = useState<IntegrationStatus | null>(null)
   const [garminStatus, setGarminStatus] = useState<IntegrationStatus | null>(null)
   const [concept2Status, setConcept2Status] = useState<IntegrationStatus | null>(null)
   const [loading, setLoading] = useState({ strava: false, garmin: false, concept2: false })
   const [syncing, setSyncing] = useState({ strava: false, garmin: false, concept2: false })
+
+  const CardWrapper = isGlass ? GlassCard : Card;
 
   const fetchStravaStatus = useCallback(async () => {
     try {
@@ -375,49 +388,61 @@ export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
   }
 
   return (
-    <Card>
+    <CardWrapper>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5" />
+          <CardTitle className={cn("flex items-center gap-2", isGlass ? "text-white font-black uppercase italic tracking-tight" : "")}>
+            <Link2 className={cn("h-5 w-5", isGlass ? "text-blue-500" : "")} />
             Integrationer
           </CardTitle>
           <IntegrationsHelpModal />
         </div>
-        <CardDescription>
+        <CardDescription className={cn(isGlass ? "text-slate-500 font-medium" : "")}>
           Anslut dina träningsappar för att synkronisera aktiviteter och hälsodata
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Strava */}
-        <div className="border rounded-lg p-4">
+        <div className={cn(
+          "rounded-xl p-4 transition-all duration-300",
+          isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "border"
+        )}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Activity className="h-5 w-5 text-orange-600" />
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center",
+                isGlass ? "bg-orange-500/10 border border-orange-500/20" : "bg-orange-100"
+              )}>
+                <Activity className={cn("h-5 w-5", isGlass ? "text-orange-400" : "text-orange-600")} />
               </div>
               <div>
-                <h3 className="font-medium">Strava</h3>
-                <p className="text-sm text-muted-foreground">
-                  Synkronisera löpning, cykling och andra aktiviteter
+                <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>Strava</h3>
+                <p className={cn("text-xs", isGlass ? "text-slate-500" : "text-muted-foreground")}>
+                  Synkronisera löpning och cykling
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {stravaStatus?.connected ? (
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  Ansluten
+                </div>
               ) : (
-                <XCircle className="h-5 w-5 text-gray-400" />
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-slate-700" />
+                  Frånkopplad
+                </div>
               )}
             </div>
           </div>
 
           {stravaStatus?.connected && (
-            <div className="mt-3 pt-3 border-t text-sm text-muted-foreground">
+            <div className={cn(
+              "mt-3 pt-3 border-t text-[10px] font-black uppercase tracking-widest",
+              isGlass ? "border-white/5 text-slate-500" : "text-muted-foreground"
+            )}>
               <p>Senaste synk: {formatDate(stravaStatus.lastSyncAt)}</p>
-              {stravaStatus.activityCount !== undefined && (
-                <p>{stravaStatus.activityCount} aktiviteter synkade</p>
-              )}
             </div>
           )}
 
@@ -429,25 +454,26 @@ export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
                   size="sm"
                   onClick={syncStrava}
                   disabled={syncing.strava}
+                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest", isGlass ? "border-white/10 text-white hover:bg-white/10" : "")}
                 >
                   {syncing.strava ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                   ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <RefreshCw className="h-3.5 w-3.5 mr-2" />
                   )}
                   Synka nu
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={disconnectStrava}
                   disabled={loading.strava}
-                  className="text-red-600 hover:text-red-700"
+                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 hover:bg-red-500/10")}
                 >
                   {loading.strava ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                   ) : (
-                    <Unlink className="h-4 w-4 mr-2" />
+                    <Unlink className="h-3.5 w-3.5 mr-2" />
                   )}
                   Koppla bort
                 </Button>
@@ -457,12 +483,15 @@ export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
                 size="sm"
                 onClick={connectStrava}
                 disabled={loading.strava}
-                className="bg-orange-600 hover:bg-orange-700"
+                className={cn(
+                  "h-9 text-[11px] font-black uppercase tracking-widest",
+                  isGlass ? "bg-orange-600 hover:bg-orange-700 text-white border-0" : "bg-orange-600 hover:bg-orange-700"
+                )}
               >
                 {loading.strava ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                 ) : (
-                  <Link2 className="h-4 w-4 mr-2" />
+                  <Link2 className="h-3.5 w-3.5 mr-2" />
                 )}
                 Anslut Strava
               </Button>
@@ -471,30 +500,45 @@ export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
         </div>
 
         {/* Garmin */}
-        <div className="border rounded-lg p-4">
+        <div className={cn(
+          "rounded-xl p-4 transition-all duration-300",
+          isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "border"
+        )}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Watch className="h-5 w-5 text-blue-600" />
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center",
+                isGlass ? "bg-blue-500/10 border border-blue-500/20" : "bg-blue-100"
+              )}>
+                <Watch className={cn("h-5 w-5", isGlass ? "text-blue-400" : "text-blue-600")} />
               </div>
               <div>
-                <h3 className="font-medium">Garmin Connect</h3>
-                <p className="text-sm text-muted-foreground">
-                  Synkronisera HRV, sömn och träningsdata
+                <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>Garmin</h3>
+                <p className={cn("text-xs", isGlass ? "text-slate-500" : "text-muted-foreground")}>
+                  Synkronisera HRV och sömn
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {garminStatus?.connected ? (
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  Ansluten
+                </div>
               ) : (
-                <XCircle className="h-5 w-5 text-gray-400" />
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-slate-700" />
+                  Frånkopplad
+                </div>
               )}
             </div>
           </div>
 
           {garminStatus?.connected && (
-            <div className="mt-3 pt-3 border-t text-sm text-muted-foreground">
+            <div className={cn(
+              "mt-3 pt-3 border-t text-[10px] font-black uppercase tracking-widest",
+              isGlass ? "border-white/5 text-slate-500" : "text-muted-foreground"
+            )}>
               <p>Senaste synk: {formatDate(garminStatus.lastSyncAt)}</p>
             </div>
           )}
@@ -507,25 +551,26 @@ export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
                   size="sm"
                   onClick={syncGarmin}
                   disabled={syncing.garmin}
+                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest", isGlass ? "border-white/10 text-white hover:bg-white/10" : "")}
                 >
                   {syncing.garmin ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                   ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <RefreshCw className="h-3.5 w-3.5 mr-2" />
                   )}
                   Synka nu
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={disconnectGarmin}
                   disabled={loading.garmin}
-                  className="text-red-600 hover:text-red-700"
+                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 hover:bg-red-500/10")}
                 >
                   {loading.garmin ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                   ) : (
-                    <Unlink className="h-4 w-4 mr-2" />
+                    <Unlink className="h-3.5 w-3.5 mr-2" />
                   )}
                   Koppla bort
                 </Button>
@@ -535,12 +580,15 @@ export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
                 size="sm"
                 onClick={connectGarmin}
                 disabled={loading.garmin}
-                className="bg-blue-600 hover:bg-blue-700"
+                className={cn(
+                  "h-9 text-[11px] font-black uppercase tracking-widest",
+                  isGlass ? "bg-blue-600 hover:bg-blue-700 text-white border-0" : "bg-blue-600 hover:bg-blue-700"
+                )}
               >
                 {loading.garmin ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                 ) : (
-                  <Link2 className="h-4 w-4 mr-2" />
+                  <Link2 className="h-3.5 w-3.5 mr-2" />
                 )}
                 Anslut Garmin
               </Button>
@@ -549,43 +597,39 @@ export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
         </div>
 
         {/* Concept2 */}
-        <div className="border rounded-lg p-4">
+        <div className={cn(
+          "rounded-xl p-4 transition-all duration-300",
+          isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "border"
+        )}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center">
-                <Waves className="h-5 w-5 text-cyan-600" />
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center",
+                isGlass ? "bg-cyan-500/10 border border-cyan-500/20" : "bg-cyan-100"
+              )}>
+                <Waves className={cn("h-5 w-5", isGlass ? "text-cyan-400" : "text-cyan-600")} />
               </div>
               <div>
-                <h3 className="font-medium">Concept2 Logbook</h3>
-                <p className="text-sm text-muted-foreground">
-                  Synkronisera rodd, SkiErg och BikeErg-pass
+                <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>Concept2</h3>
+                <p className={cn("text-xs", isGlass ? "text-slate-500" : "text-muted-foreground")}>
+                  Synkronisera roddpass
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {concept2Status?.connected ? (
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  Ansluten
+                </div>
               ) : (
-                <XCircle className="h-5 w-5 text-gray-400" />
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-slate-700" />
+                  Frånkopplad
+                </div>
               )}
             </div>
           </div>
-
-          {concept2Status?.connected && (
-            <div className="mt-3 pt-3 border-t text-sm text-muted-foreground">
-              <p>Senaste synk: {formatDate(concept2Status.lastSyncAt)}</p>
-              {concept2Status.resultCount !== undefined && (
-                <p>{concept2Status.resultCount} träningspass synkade</p>
-              )}
-              {concept2Status.resultsByType && Object.keys(concept2Status.resultsByType).length > 0 && (
-                <p className="text-xs mt-1">
-                  {Object.entries(concept2Status.resultsByType)
-                    .map(([type, count]) => `${type}: ${count}`)
-                    .join(' • ')}
-                </p>
-              )}
-            </div>
-          )}
 
           <div className="mt-4 flex gap-2">
             {concept2Status?.connected ? (
@@ -595,25 +639,26 @@ export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
                   size="sm"
                   onClick={syncConcept2}
                   disabled={syncing.concept2}
+                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest", isGlass ? "border-white/10 text-white hover:bg-white/10" : "")}
                 >
                   {syncing.concept2 ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                   ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <RefreshCw className="h-3.5 w-3.5 mr-2" />
                   )}
                   Synka nu
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={disconnectConcept2}
                   disabled={loading.concept2}
-                  className="text-red-600 hover:text-red-700"
+                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 hover:bg-red-500/10")}
                 >
                   {loading.concept2 ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                   ) : (
-                    <Unlink className="h-4 w-4 mr-2" />
+                    <Unlink className="h-3.5 w-3.5 mr-2" />
                   )}
                   Koppla bort
                 </Button>
@@ -623,12 +668,15 @@ export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
                 size="sm"
                 onClick={connectConcept2}
                 disabled={loading.concept2}
-                className="bg-cyan-600 hover:bg-cyan-700"
+                className={cn(
+                  "h-9 text-[11px] font-black uppercase tracking-widest",
+                  isGlass ? "bg-cyan-600 hover:bg-cyan-700 text-white border-0" : "bg-cyan-600 hover:bg-cyan-700"
+                )}
               >
                 {loading.concept2 ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
                 ) : (
-                  <Link2 className="h-4 w-4 mr-2" />
+                  <Link2 className="h-3.5 w-3.5 mr-2" />
                 )}
                 Anslut Concept2
               </Button>
@@ -636,6 +684,6 @@ export function IntegrationsSettings({ clientId }: IntegrationsSettingsProps) {
           </div>
         </div>
       </CardContent>
-    </Card>
+    </CardWrapper>
   )
 }

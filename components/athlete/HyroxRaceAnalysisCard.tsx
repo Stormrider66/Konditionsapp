@@ -39,6 +39,7 @@ interface HyroxRaceAnalysisCardProps {
   targetLevel?: PerformanceLevel // For benchmark comparison
   targetTime?: string // HH:MM:SS format
   compact?: boolean // For smaller displays
+  variant?: 'default' | 'glass'
 }
 
 const STATION_LABELS: Record<string, string> = {
@@ -87,6 +88,7 @@ export function HyroxRaceAnalysisCard({
   targetLevel = 'intermediate',
   targetTime,
   compact = false,
+  variant = 'default',
 }: HyroxRaceAnalysisCardProps) {
   const analysis = useMemo(() => {
     // Convert to StationTimes format

@@ -18,13 +18,23 @@ import {
 import { format, startOfWeek, endOfWeek, eachWeekOfInterval, subWeeks } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { TrendingUp, Zap, Clock, MapPin } from 'lucide-react'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
 
 interface WorkoutHistoryChartsProps {
   logs: any[]
   timeframe: string
+  variant?: 'default' | 'glass'
 }
 
-export function WorkoutHistoryCharts({ logs, timeframe }: WorkoutHistoryChartsProps) {
+export function WorkoutHistoryCharts({ logs, timeframe, variant = 'default' }: WorkoutHistoryChartsProps) {
+  const isGlass = variant === 'glass'
+
   // Prepare data for weekly volume chart
   const weeklyVolumeData = prepareWeeklyVolumeData(logs, timeframe)
 
@@ -34,193 +44,226 @@ export function WorkoutHistoryCharts({ logs, timeframe }: WorkoutHistoryChartsPr
   // Prepare data for pace progression (running only)
   const paceProgressionData = preparePaceProgressionData(logs, timeframe)
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      {/* Weekly Volume Chart */}
-      <Card>
+  const chartGridColor = isGlass ? "rgba(255, 255, 255, 0.05)" : "#e0e0e0"
+  const chartTextColor = isGlass ? "#94a3b8" : "#888"
+
+  const renderCard = (title: string, description: string, icon: React.ReactNode, content: React.ReactNode, fullWidth = false) => {
+    if (isGlass) {
+      return (
+        <GlassCard className={fullWidth ? "lg:col-span-2" : ""}>
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
+              {icon}
+              {title}
+            </GlassCardTitle>
+            <GlassCardDescription>
+              {description}
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent>
+            {content}
+          </GlassCardContent>
+        </GlassCard>
+      )
+    }
+
+    return (
+      <Card className={fullWidth ? "lg:col-span-2" : ""}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-500" />
-            Veckovis volym
+            {icon}
+            {title}
           </CardTitle>
           <CardDescription>
-            Totalt antal kilometer och minuter per vecka
+            {description}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {weeklyVolumeData.length === 0 ? (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              Ingen data tillgänglig
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={weeklyVolumeData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis
-                  dataKey="week"
-                  tick={{ fontSize: 12 }}
-                  stroke="#888"
-                />
-                <YAxis
-                  yAxisId="left"
-                  tick={{ fontSize: 12 }}
-                  stroke="#888"
-                  label={{ value: 'km', angle: -90, position: 'insideLeft' }}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  tick={{ fontSize: 12 }}
-                  stroke="#888"
-                  label={{ value: 'min', angle: 90, position: 'insideRight' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                  }}
-                />
-                <Legend />
-                <Bar
-                  yAxisId="left"
-                  dataKey="distance"
-                  fill="#3b82f6"
-                  name="Distans (km)"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  yAxisId="right"
-                  dataKey="duration"
-                  fill="#f59e0b"
-                  name="Tid (min)"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
+          {content}
         </CardContent>
       </Card>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      {/* Weekly Volume Chart */}
+      {renderCard(
+        "Veckovis volym",
+        "Totalt antal kilometer och minuter per vecka",
+        <TrendingUp className="h-5 w-5 text-blue-400" />,
+        weeklyVolumeData.length === 0 ? (
+          <div className="h-[300px] flex items-center justify-center text-slate-500 font-medium italic">
+            Ingen data tillgänglig
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={weeklyVolumeData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} vertical={false} />
+              <XAxis
+                dataKey="week"
+                tick={{ fontSize: 10, fill: chartTextColor, fontWeight: 600 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                yAxisId="left"
+                tick={{ fontSize: 10, fill: chartTextColor, fontWeight: 600 }}
+                axisLine={false}
+                tickLine={false}
+                label={{ value: 'km', angle: -90, position: 'insideLeft', fill: chartTextColor, fontSize: 10, fontWeight: 700 }}
+              />
+              <YAxis
+                yAxisId="right"
+                orientation="right"
+                tick={{ fontSize: 10, fill: chartTextColor, fontWeight: 600 }}
+                axisLine={false}
+                tickLine={false}
+                label={{ value: 'min', angle: 90, position: 'insideRight', fill: chartTextColor, fontSize: 10, fontWeight: 700 }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: isGlass ? 'rgba(15, 23, 42, 0.9)' : '#fff',
+                  border: isGlass ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #ccc',
+                  borderRadius: '12px',
+                  backdropFilter: isGlass ? 'blur(8px)' : 'none',
+                  color: isGlass ? '#fff' : '#000',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                }}
+                itemStyle={{ fontSize: '12px', fontWeight: 600 }}
+              />
+              <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 600, color: chartTextColor }} />
+              <Bar
+                yAxisId="left"
+                dataKey="distance"
+                fill="#3b82f6"
+                name="Distans (km)"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                yAxisId="right"
+                dataKey="duration"
+                fill="#f59e0b"
+                name="Tid (min)"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )
+      )}
 
       {/* RPE Trend Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-red-500" />
-            RPE-trend
-          </CardTitle>
-          <CardDescription>
-            Upplevd ansträngning över tid
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {rpeTrendData.length === 0 ? (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              Ingen RPE-data tillgänglig
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={rpeTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis
-                  dataKey="week"
-                  tick={{ fontSize: 12 }}
-                  stroke="#888"
-                />
-                <YAxis
-                  domain={[0, 10]}
-                  ticks={[0, 2, 4, 6, 8, 10]}
-                  tick={{ fontSize: 12 }}
-                  stroke="#888"
-                  label={{ value: 'RPE', angle: -90, position: 'insideLeft' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="avgRPE"
-                  stroke="#ef4444"
-                  strokeWidth={2}
-                  name="Genomsnittlig RPE"
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="maxRPE"
-                  stroke="#fca5a5"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  name="Max RPE"
-                  dot={{ r: 3 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+      {renderCard(
+        "RPE-trend",
+        "Upplevd ansträngning över tid",
+        <Zap className="h-5 w-5 text-red-400" />,
+        rpeTrendData.length === 0 ? (
+          <div className="h-[300px] flex items-center justify-center text-slate-500 font-medium italic">
+            Ingen RPE-data tillgänglig
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={rpeTrendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} vertical={false} />
+              <XAxis
+                dataKey="week"
+                tick={{ fontSize: 10, fill: chartTextColor, fontWeight: 600 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                domain={[0, 10]}
+                ticks={[0, 2, 4, 6, 8, 10]}
+                tick={{ fontSize: 10, fill: chartTextColor, fontWeight: 600 }}
+                axisLine={false}
+                tickLine={false}
+                label={{ value: 'RPE', angle: -90, position: 'insideLeft', fill: chartTextColor, fontSize: 10, fontWeight: 700 }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: isGlass ? 'rgba(15, 23, 42, 0.9)' : '#fff',
+                  border: isGlass ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #ccc',
+                  borderRadius: '12px',
+                  backdropFilter: isGlass ? 'blur(8px)' : 'none',
+                  color: isGlass ? '#fff' : '#000'
+                }}
+                itemStyle={{ fontSize: '12px', fontWeight: 600 }}
+              />
+              <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 600, color: chartTextColor }} />
+              <Line
+                type="monotone"
+                dataKey="avgRPE"
+                stroke="#ef4444"
+                strokeWidth={3}
+                name="Snitt RPE"
+                dot={{ r: 4, fill: "#ef4444", strokeWidth: 0 }}
+                activeDot={{ r: 6, strokeWidth: 0 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="maxRPE"
+                stroke="#fca5a5"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                name="Max RPE"
+                dot={{ r: 3, fill: "#fca5a5", strokeWidth: 0 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )
+      )}
 
       {/* Pace Progression Chart (Running only) */}
-      {paceProgressionData.length > 0 && (
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-green-500" />
-              Tempoutveckling (Löpning)
-            </CardTitle>
-            <CardDescription>
-              Genomsnittligt tempo per vecka för löppass
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={paceProgressionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                <XAxis
-                  dataKey="week"
-                  tick={{ fontSize: 12 }}
-                  stroke="#888"
-                />
-                <YAxis
-                  tick={{ fontSize: 12 }}
-                  stroke="#888"
-                  label={{ value: 'Tempo (min/km)', angle: -90, position: 'insideLeft' }}
-                  domain={['dataMin - 0.5', 'dataMax + 0.5']}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #ccc',
-                    borderRadius: '4px',
-                  }}
-                  formatter={(value: any) => [`${value.toFixed(2)} min/km`, 'Tempo']}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="avgPace"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  name="Genomsnittligt tempo"
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {paceProgressionData.length > 0 && renderCard(
+        "Tempoutveckling (Löpning)",
+        "Genomsnittligt tempo per vecka för löppass",
+        <Clock className="h-5 w-5 text-emerald-400" />,
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={paceProgressionData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} vertical={false} />
+            <XAxis
+              dataKey="week"
+              tick={{ fontSize: 10, fill: chartTextColor, fontWeight: 600 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 10, fill: chartTextColor, fontWeight: 600 }}
+              axisLine={false}
+              tickLine={false}
+              label={{ value: 'Tempo (min/km)', angle: -90, position: 'insideLeft', fill: chartTextColor, fontSize: 10, fontWeight: 700 }}
+              domain={['dataMin - 0.5', 'dataMax + 0.5']}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: isGlass ? 'rgba(15, 23, 42, 0.9)' : '#fff',
+                border: isGlass ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #ccc',
+                borderRadius: '12px',
+                backdropFilter: isGlass ? 'blur(8px)' : 'none',
+                color: isGlass ? '#fff' : '#000'
+              }}
+              itemStyle={{ fontSize: '12px', fontWeight: 600 }}
+              formatter={(value: any) => [`${value.toFixed(2)} min/km`, 'Tempo']}
+            />
+            <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px', fontWeight: 600, color: chartTextColor }} />
+            <Line
+              type="monotone"
+              dataKey="avgPace"
+              stroke="#10b981"
+              strokeWidth={3}
+              name="Snitt-tempo"
+              dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }}
+              activeDot={{ r: 6, strokeWidth: 0 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>,
+        true
       )}
     </div>
   )
 }
 
-// Helper function to prepare weekly volume data
+// Helper function to prepare weekly volume data ... (rest of the functions stay the same)
 function prepareWeeklyVolumeData(logs: any[], timeframe: string) {
   if (logs.length === 0) return []
 
@@ -254,15 +297,12 @@ function prepareWeeklyVolumeData(logs: any[], timeframe: string) {
   return result
 }
 
-// Helper function to prepare RPE trend data
 function prepareRPETrendData(logs: any[], timeframe: string) {
   if (logs.length === 0) return []
 
-  // Filter logs with RPE data
   const logsWithRPE = logs.filter(log => log.perceivedEffort)
   if (logsWithRPE.length === 0) return []
 
-  // Group by week
   const weeklyRPE = new Map<string, number[]>()
 
   logsWithRPE.forEach((log) => {
@@ -276,7 +316,6 @@ function prepareRPETrendData(logs: any[], timeframe: string) {
     weeklyRPE.get(weekKey)!.push(log.perceivedEffort)
   })
 
-  // Calculate averages
   const result = Array.from(weeklyRPE.entries())
     .map(([weekKey, rpeValues]) => ({
       week: format(new Date(weekKey), 'MMM d', { locale: sv }),
@@ -289,16 +328,13 @@ function prepareRPETrendData(logs: any[], timeframe: string) {
   return result
 }
 
-// Helper function to prepare pace progression data
 function preparePaceProgressionData(logs: any[], timeframe: string) {
-  // Filter running logs with pace data
   const runningLogs = logs.filter(
     log => log.workout.type === 'RUNNING' && log.avgPace && log.distance && log.duration
   )
 
   if (runningLogs.length === 0) return []
 
-  // Group by week
   const weeklyPace = new Map<string, { paces: number[]; distances: number[] }>()
 
   runningLogs.forEach((log) => {
@@ -309,7 +345,6 @@ function preparePaceProgressionData(logs: any[], timeframe: string) {
       weeklyPace.set(weekKey, { paces: [], distances: [] })
     }
 
-    // Convert pace string (MM:SS) to decimal minutes
     const paceMinutes = convertPaceToMinutes(log.avgPace)
     if (paceMinutes) {
       weeklyPace.get(weekKey)!.paces.push(paceMinutes)
@@ -317,7 +352,6 @@ function preparePaceProgressionData(logs: any[], timeframe: string) {
     }
   })
 
-  // Calculate weighted averages (by distance)
   const result = Array.from(weeklyPace.entries())
     .map(([weekKey, data]) => {
       const totalDistance = data.distances.reduce((a, b) => a + b, 0)
@@ -335,10 +369,8 @@ function preparePaceProgressionData(logs: any[], timeframe: string) {
   return result
 }
 
-// Helper to convert pace string to minutes
 function convertPaceToMinutes(pace: string): number | null {
   try {
-    // Handle formats like "5:30" or "5:30.5"
     const parts = pace.split(':')
     if (parts.length !== 2) return null
 

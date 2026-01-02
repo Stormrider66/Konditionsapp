@@ -84,12 +84,15 @@ interface MobileCalendarFABProps {
   selectedDate: Date | null
   /** Whether the FAB is visible */
   visible?: boolean
+  /** Visual variant */
+  variant?: 'default' | 'glass'
 }
 
 export function MobileCalendarFAB({
   onAction,
   selectedDate,
   visible = true,
+  variant = 'default',
 }: MobileCalendarFABProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 

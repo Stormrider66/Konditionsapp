@@ -54,6 +54,16 @@ export function WorkoutThemeProvider({
     }
   }, [initialPreferences]);
 
+  // Apply visual theme (CSS class) to document
+  useEffect(() => {
+    const isDark = preferences.appTheme === 'FITAPP_DARK';
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [preferences.appTheme]);
+
   const updateTheme = useCallback(
     async (type: 'appTheme' | 'pdfTheme', themeId: ThemeId) => {
       // Update local state immediately for responsiveness

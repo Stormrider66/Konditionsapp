@@ -54,12 +54,14 @@ interface PostEventMonitorProps {
     altitude?: number
   }
   currentDate?: Date
+  variant?: 'default' | 'glass'
 }
 
 export function PostEventMonitor({
   eventType,
   eventData,
   currentDate = new Date(),
+  variant = 'default',
 }: PostEventMonitorProps) {
   const monitoringData = useMemo(() => {
     if (eventType === 'ILLNESS' && eventData.illnessType) {

@@ -1,0 +1,327 @@
+'use client'
+
+/**
+ * HeroWorkoutCard - The inspiring main workout card on the athlete dashboard
+ *
+ * Features:
+ * - AI-generated or rule-based focus points (title, description, category badge)
+ * - Exercise imagery with muscle highlighting
+ * - Metrics row: Duration, Volume, Intensity
+ * - GlassCard styling with hover effects
+ */
+
+import Link from 'next/link'
+import Image from 'next/image'
+import { Activity, Flame, Timer, Dumbbell, Play, Zap, Route, TrendingUp } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { DashboardWorkoutWithContext } from '@/types/prisma-types'
+import { generateSimpleFocus, type WorkoutFocus } from '@/lib/hero-card'
+import { useMemo } from 'react'
+
+interface HeroWorkoutCardProps {
+  workout: DashboardWorkoutWithContext
+  athleteName?: string
+}
+
+// Map category/pillar to image paths
+const CATEGORY_IMAGES: Record<string, string[]> = {
+  'STYRKA NEDRE KROPP': [
+    '/images/posterior-chain/marklyft-1.png',
+    '/images/posterior-chain/romanian-deadlift-1.png',
+    '/images/posterior-chain/hip-thrust-med-skivstang-1.png',
+  ],
+  'POSTERIOR_CHAIN': [
+    '/images/posterior-chain/marklyft-1.png',
+    '/images/posterior-chain/kettlebell-swing-1.png',
+    '/images/posterior-chain/romanian-deadlift-1.png',
+  ],
+  'QUAD-DOMINANT': [
+    '/images/knee-dominance/knaboj-1.png',
+    '/images/knee-dominance/front-squat-1.png',
+    '/images/knee-dominance/goblet-squat-1.png',
+  ],
+  'KNEE_DOMINANCE': [
+    '/images/knee-dominance/knaboj-1.png',
+    '/images/knee-dominance/front-squat-1.png',
+    '/images/knee-dominance/lunge-1.png',
+  ],
+  'BALANS & STABILITET': [
+    '/images/unilateral/bulgarisk-utfallsboj-1.png',
+    '/images/unilateral/enbenig-rumansk-marklyft-1.png',
+    '/images/unilateral/step-ups-med-knadrive-1.png',
+  ],
+  'UNILATERAL': [
+    '/images/unilateral/bulgarisk-utfallsboj-1.png',
+    '/images/unilateral/enbenig-rumansk-marklyft-1.png',
+    '/images/unilateral/step-ups-med-knadrive-1.png',
+  ],
+  'CORE STABILITET': [
+    '/images/core/plank-1.png',
+    '/images/core/dead-bug-1.png',
+    '/images/core/pallof-press-1.png',
+  ],
+  'CORE': [
+    '/images/core/plank-1.png',
+    '/images/core/farmers-carry-1.png',
+    '/images/core/russian-twist-1.png',
+  ],
+  'ANTI_ROTATION_CORE': [
+    '/images/core/pallof-press-1.png',
+    '/images/core/dead-bug-1.png',
+    '/images/core/plank-1.png',
+  ],
+  'ÖVERKROPP': [
+    '/images/upper-body/bankpress-1.png',
+    '/images/upper-body/pull-up-1.png',
+    '/images/upper-body/push-up-1.png',
+  ],
+  'UPPER_BODY': [
+    '/images/upper-body/bankpress-1.png',
+    '/images/upper-body/pull-up-1.png',
+    '/images/upper-body/bent-over-row-1.png',
+  ],
+  'FOT & VRIST': [
+    '/images/foot-ankle/tahavningar-raka-ben-1.png',
+    '/images/foot-ankle/pogo-jumps-1.png',
+    '/images/foot-ankle/tahavningar-bojda-ben-1.png',
+  ],
+  'FOOT_ANKLE': [
+    '/images/foot-ankle/tahavningar-raka-ben-1.png',
+    '/images/foot-ankle/pogo-jumps-1.png',
+    '/images/foot-ankle/tahavningar-bojda-ben-1.png',
+  ],
+  'EXPLOSIVITET': [
+    '/images/posterior-chain/box-jump-1.png',
+    '/images/posterior-chain/bred-hopp-max-1.png',
+    '/images/knee-dominance/hoppsquat-1.png',
+  ],
+  'STYRKA': [
+    '/images/knee-dominance/knaboj-1.png',
+    '/images/posterior-chain/marklyft-1.png',
+    '/images/upper-body/bankpress-1.png',
+  ],
+  'LÖPNING': [
+    '/images/posterior-chain/row-calories-1.png', // Use as fallback for now
+  ],
+  'ÅTERHÄMTNING': [
+    '/images/core/bird-dog-1.png',
+  ],
+}
+
+// Get a random image for a category
+function getCategoryImage(category: string): string | null {
+  const images = CATEGORY_IMAGES[category] || CATEGORY_IMAGES['STYRKA']
+  if (!images || images.length === 0) return null
+  // Use a consistent image based on category name hash
+  const index = category.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % images.length
+  return images[index]
+}
+
+// Format intensity for display
+function formatIntensity(intensity: string): string {
+  const intensities: Record<string, string> = {
+    RECOVERY: 'Lätt',
+    EASY: 'Lätt',
+    MODERATE: 'Måttlig',
+    THRESHOLD: 'Tröskel',
+    INTERVAL: 'Intensiv',
+    MAX: 'Max',
+  }
+  return intensities[intensity] || intensity
+}
+
+// Get intensity color class
+function getIntensityColor(intensity: string): string {
+  const colors: Record<string, string> = {
+    RECOVERY: 'text-emerald-400',
+    EASY: 'text-emerald-400',
+    MODERATE: 'text-yellow-400',
+    THRESHOLD: 'text-orange-400',
+    INTERVAL: 'text-red-400',
+    MAX: 'text-red-500',
+  }
+  return colors[intensity] || 'text-orange-400'
+}
+
+// Get badge icon based on workout type
+function getBadgeIcon(type: string) {
+  switch (type) {
+    case 'RUNNING':
+      return Route
+    case 'STRENGTH':
+      return Dumbbell
+    case 'PLYOMETRIC':
+      return Zap
+    case 'CORE':
+      return Activity
+    default:
+      return Flame
+  }
+}
+
+// Estimate volume from segments (sets × reps × weight)
+function estimateVolume(segments: DashboardWorkoutWithContext['segments']): number | null {
+  if (!segments || segments.length === 0) return null
+
+  let totalVolume = 0
+  for (const segment of segments) {
+    if (segment.sets && segment.repsCount) {
+      const reps = parseInt(segment.repsCount) || 0
+      const weight = parseFloat(segment.weight?.replace(/[^0-9.]/g, '') || '0') || 0
+      // If bodyweight exercise, estimate 50kg
+      const effectiveWeight = weight > 0 ? weight : 50
+      totalVolume += segment.sets * reps * effectiveWeight
+    }
+  }
+
+  return totalVolume > 0 ? totalVolume : null
+}
+
+// Format volume for display
+function formatVolume(volume: number): string {
+  if (volume >= 1000) {
+    return `${(volume / 1000).toFixed(1).replace('.0', '')}k kg`
+  }
+  return `${Math.round(volume)} kg`
+}
+
+export function HeroWorkoutCard({ workout, athleteName }: HeroWorkoutCardProps) {
+  // Generate focus if not already set
+  const focus: WorkoutFocus = useMemo(() => {
+    if (workout.heroTitle && workout.heroDescription && workout.heroCategory) {
+      return {
+        title: workout.heroTitle,
+        description: workout.heroDescription,
+        category: workout.heroCategory,
+        imageKey: workout.heroImageKey,
+        generatedBy: (workout.focusGeneratedBy as 'AI' | 'RULE_BASED') || 'RULE_BASED',
+      }
+    }
+    return generateSimpleFocus(
+      workout.type,
+      workout.intensity,
+      workout.name,
+      workout.description
+    )
+  }, [workout])
+
+  const categoryImage = getCategoryImage(focus.category)
+  const volume = estimateVolume(workout.segments)
+  const isCompleted = workout.logs && workout.logs.length > 0 && workout.logs[0].completed
+  const BadgeIcon = getBadgeIcon(workout.type)
+
+  return (
+    <GlassCard className="lg:col-span-2 rounded-2xl group">
+      {/* Hover gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+      {/* Background exercise image */}
+      {categoryImage && (
+        <div className="absolute top-0 right-0 p-6 md:p-8 w-1/2 h-full hidden md:block opacity-40 mix-blend-screen pointer-events-none">
+          <div className="relative w-full h-full">
+            <Image
+              src={categoryImage}
+              alt={focus.title}
+              fill
+              style={{ objectFit: 'contain', objectPosition: 'right center' }}
+              className="drop-shadow-[0_0_15px_rgba(255,100,0,0.3)]"
+              priority
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="p-6 md:p-8 relative z-10 flex flex-col h-full justify-between min-h-[280px] md:min-h-[300px]">
+        <div>
+          {/* Category Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold uppercase tracking-wider mb-4">
+            <BadgeIcon className="w-3 h-3" />
+            {focus.category}
+          </div>
+
+          {/* Title */}
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 max-w-md">
+            {focus.title}
+          </h2>
+
+          {/* Description */}
+          <p className="text-slate-400 max-w-sm text-sm md:text-base">
+            {focus.description}
+          </p>
+
+          {/* Completed badge */}
+          {isCompleted && (
+            <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+              <TrendingUp className="w-3 h-3" />
+              Slutfört
+            </div>
+          )}
+        </div>
+
+        {/* Metrics Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6 mt-6 md:mt-8">
+          {workout.duration && (
+            <div>
+              <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Längd</div>
+              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                <Timer className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+                {workout.duration} min
+              </div>
+            </div>
+          )}
+
+          {volume && (
+            <div>
+              <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Volym</div>
+              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                <Dumbbell className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+                {formatVolume(volume)}
+              </div>
+            </div>
+          )}
+
+          {workout.distance && !volume && (
+            <div>
+              <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Distans</div>
+              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                <Route className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+                {workout.distance} km
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Intensitet</div>
+            <div className={`text-lg md:text-xl font-bold flex items-center gap-2 ${getIntensityColor(workout.intensity)}`}>
+              <Activity className="w-4 h-4 md:w-5 md:h-5" />
+              {formatIntensity(workout.intensity)}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Button */}
+        <div className="mt-6">
+          {isCompleted ? (
+            <Link href={`/athlete/workouts/${workout.id}`}>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto min-h-[48px] border-white/20 text-white hover:bg-white/10 hover:border-white/30"
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Visa resultat
+              </Button>
+            </Link>
+          ) : (
+            <Link href={`/athlete/workouts/${workout.id}/log`}>
+              <Button className="w-full sm:w-auto min-h-[48px] bg-orange-600 hover:bg-orange-700 text-white shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0">
+                <Play className="w-4 h-4 mr-2" />
+                Starta pass
+              </Button>
+            </Link>
+          )}
+        </div>
+      </div>
+    </GlassCard>
+  )
+}

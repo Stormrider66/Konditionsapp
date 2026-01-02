@@ -41,7 +41,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Mic, ClipboardList, Watch, CheckCircle2 } from 'lucide-react'
+import { Mic, ClipboardList, Watch, CheckCircle2, ChevronRight, Zap, Moon, Activity, Smile, AlertCircle, Loader2 } from 'lucide-react'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
+import { cn } from '@/lib/utils'
 import { AudioRecorder } from '@/components/athlete/audio-journal/AudioRecorder'
 import { NutritionTipCard, NutritionTipCardSkeleton } from '@/components/nutrition/NutritionTipCard'
 import type { NutritionTip } from '@/lib/nutrition-timing'
@@ -80,7 +88,7 @@ const checkInSchema = z.object({
 
   // Wellness questionnaire (required)
   sleepQuality: z.number().min(1).max(10),
-  sleepHours: z.number().min(0).max(14).step(0.5),
+  sleepHours: z.number().min(0).max(14),
   muscleSoreness: z.number().min(1).max(10),
   energyLevel: z.number().min(1).max(10),
   mood: z.number().min(1).max(10),
@@ -97,6 +105,7 @@ interface DailyCheckInFormProps {
   clientId: string
   sport?: SportType // Primary sport for injury type filtering
   onSuccess?: () => void
+  variant?: 'default' | 'glass'
 }
 
 // Audio recording result type
@@ -120,7 +129,8 @@ interface AudioJournalResult {
   };
 }
 
-export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess }: DailyCheckInFormProps) {
+export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, variant = 'default' }: DailyCheckInFormProps) {
+  const isGlass = variant === 'glass'
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -325,7 +335,10 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess }: Dai
       if (onSuccess) {
         onSuccess()
       } else {
-        router.refresh()
+        // Redirect to athlete dashboard after a short delay to show success feedback
+        setTimeout(() => {
+          router.push('/athlete/dashboard')
+        }, 1500)
       }
     } catch (error) {
       console.error('Error submitting check-in:', error)
@@ -348,15 +361,15 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess }: Dai
       score: result.aiInterpretation.readinessEstimate,
       status: result.aiInterpretation.recommendedAction === 'PROCEED' ? 'OPTIMAL'
         : result.aiInterpretation.recommendedAction === 'REDUCE' ? 'MODERATE'
-        : result.aiInterpretation.recommendedAction === 'EASY' ? 'LOW'
-        : 'CRITICAL',
+          : result.aiInterpretation.recommendedAction === 'EASY' ? 'LOW'
+            : 'CRITICAL',
       recommendation: result.aiInterpretation.recommendedAction === 'PROCEED'
         ? 'Kör enligt plan - du verkar redo för dagens träning!'
         : result.aiInterpretation.recommendedAction === 'REDUCE'
-        ? 'Minska intensiteten något idag baserat på din incheckning.'
-        : result.aiInterpretation.recommendedAction === 'EASY'
-        ? 'Ta det lugnt idag - fokusera på återhämtning.'
-        : 'Vila rekommenderas. Lyssna på kroppen och återhämta dig.',
+          ? 'Minska intensiteten något idag baserat på din incheckning.'
+          : result.aiInterpretation.recommendedAction === 'EASY'
+            ? 'Ta det lugnt idag - fokusera på återhämtning.'
+            : 'Vila rekommenderas. Lyssna på kroppen och återhämta dig.',
       warnings: result.aiInterpretation.flaggedConcerns,
       criticalFlags: [],
     })
@@ -395,20 +408,28 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess }: Dai
     if (onSuccess) {
       onSuccess()
     } else {
-      router.refresh()
+      // Redirect to athlete dashboard after a short delay to show success feedback
+      setTimeout(() => {
+        router.push('/athlete')
+      }, 1500)
     }
   }
 
   return (
     <div className="space-y-6">
       {/* Mode Toggle */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+      <GlassCard className={cn("p-1", !isGlass && "bg-card")}>
+        <GlassCardContent className="p-2">
+          <div className="flex p-1 bg-white/5 rounded-2xl">
             <Button
               type="button"
-              variant={voiceMode ? 'outline' : 'default'}
-              className="w-full sm:w-auto gap-2"
+              variant="ghost"
+              className={cn(
+                "flex-1 h-12 gap-2 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]",
+                !voiceMode
+                  ? "bg-white text-black shadow-lg shadow-white/10"
+                  : "text-slate-500 hover:text-slate-300"
+              )}
               onClick={() => setVoiceMode(false)}
             >
               <ClipboardList className="h-4 w-4" />
@@ -416,8 +437,13 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess }: Dai
             </Button>
             <Button
               type="button"
-              variant={voiceMode ? 'default' : 'outline'}
-              className="w-full sm:w-auto gap-2"
+              variant="ghost"
+              className={cn(
+                "flex-1 h-12 gap-2 rounded-xl transition-all font-black uppercase tracking-widest text-[10px]",
+                voiceMode
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                  : "text-slate-500 hover:text-slate-300"
+              )}
               onClick={() => setVoiceMode(true)}
             >
               <Mic className="h-4 w-4" />
@@ -425,46 +451,54 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess }: Dai
             </Button>
           </div>
           {voiceMode && (
-            <p className="text-sm text-muted-foreground text-center mt-3">
-              Berätta hur du mår - sömn, energi, ömhet, stress och motivation.
+            <p className="text-[11px] font-medium text-slate-400 text-center mt-3 animate-in fade-in duration-500 px-4">
+              Berätta hur du mår - fokusera på sömn, energi, ömhet, stress och motivation.
             </p>
           )}
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Garmin Prefill Banner */}
       {garminPrefill?.available && !voiceMode && (
-        <Card className="border-blue-200 bg-blue-50/50">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Watch className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="font-medium text-sm text-blue-900">Garmin-data tillgängligt</p>
-                  <p className="text-xs text-blue-700">
-                    HRV, puls och sömndata kan fyllas i automatiskt
-                  </p>
-                </div>
+        <div className={cn(
+          "p-4 rounded-[2rem] transition-all duration-500",
+          isGlass
+            ? "bg-blue-500/10 border border-blue-500/20 shadow-[0_4px_20px_rgba(59,130,246,0.1)]"
+            : "border-blue-200 bg-blue-50/50"
+        )}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center">
+                <Watch className="h-6 w-6 text-blue-400" />
               </div>
-              {garminApplied ? (
-                <Badge className="bg-green-100 text-green-700 border-green-200 gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  Tillämpat
-                </Badge>
-              ) : (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                  onClick={applyGarminData}
-                >
-                  Använd Garmin-data
-                </Button>
-              )}
+              <div>
+                <p className={cn("font-black tracking-tight", isGlass ? "text-white" : "text-blue-900")}>Hämta från Garmin</p>
+                <p className={cn("text-xs font-medium", isGlass ? "text-slate-400" : "text-blue-700")}>
+                  HRV, puls och sömndata finns tillgängligt.
+                </p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+            {garminApplied ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 animate-in zoom-in-95">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Klart</span>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  "font-black text-[10px] uppercase tracking-widest h-10 px-4 rounded-xl",
+                  isGlass ? "bg-white/5 border border-white/10 text-blue-400 hover:bg-white/10" : "border-blue-300 text-blue-700"
+                )}
+                onClick={applyGarminData}
+              >
+                Tillämpa
+              </Button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Voice Mode: AudioRecorder */}
@@ -473,421 +507,334 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess }: Dai
           clientId={clientId}
           onRecordingComplete={handleVoiceComplete}
           onCancel={() => setVoiceMode(false)}
+          variant={isGlass ? "glass" : "default"}
         />
       ) : (
         /* Form Mode: Manual form */
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* HRV Section */}
-            <Card>
-            <CardHeader>
-              <CardTitle>Heart Rate Variability (HRV)</CardTitle>
-              <CardDescription>
-                Optional - measure with app like HRV4Training or Elite HRV
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="hrvRMSSD"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>HRV RMSSD (ms)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="e.g., 65"
-                        {...field}
-                        onChange={e =>
-                          field.onChange(
-                            e.target.value ? parseFloat(e.target.value) : undefined
-                          )
-                        }
-                        value={field.value ?? ''}
-                      />
-                    </FormControl>
-                    <FormDescription>Typical range: 20-100 ms</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-purple-500" />
+                  Heart Rate Variability
+                </GlassCardTitle>
+                <GlassCardDescription className="text-slate-400">
+                  Valfritt - hämta från Garmin eller fyll i manuellt.
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="hrvRMSSD"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">HRV RMSSD (ms)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="t.ex. 65"
+                            className="bg-white/5 border-white/10 h-12 text-lg font-black"
+                            {...field}
+                            onChange={e =>
+                              field.onChange(
+                                e.target.value ? parseFloat(e.target.value) : undefined
+                              )
+                            }
+                            value={field.value ?? ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="hrvQuality"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Measurement Quality</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value ?? undefined}
-                    >
+                  <FormField
+                    control={form.control}
+                    name="hrvQuality"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">Kvalitet</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value ?? undefined}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-white/5 border-white/10 h-12">
+                              <SelectValue placeholder="Välj kvalitet" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="bg-slate-900 border-white/10">
+                            <SelectItem value="EXCELLENT">Utmärkt</SelectItem>
+                            <SelectItem value="GOOD">Bra</SelectItem>
+                            <SelectItem value="FAIR">Godkänd</SelectItem>
+                            <SelectItem value="POOR">Dålig</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </GlassCardContent>
+            </GlassCard>
+
+            {/* RHR Section */}
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-blue-500" />
+                  Vilopuls
+                </GlassCardTitle>
+                <GlassCardDescription className="text-slate-400">
+                  Mät direkt när du vaknar för bäst resultat.
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <FormField
+                  control={form.control}
+                  name="restingHR"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">Vilopuls (bpm)</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select quality" />
-                        </SelectTrigger>
+                        <Input
+                          type="number"
+                          placeholder="t.ex. 55"
+                          className="bg-white/5 border-white/10 h-12 text-lg font-black"
+                          {...field}
+                          onChange={e =>
+                            field.onChange(
+                              e.target.value ? parseFloat(e.target.value) : undefined
+                            )
+                          }
+                          value={field.value ?? ''}
+                        />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="EXCELLENT">Excellent</SelectItem>
-                        <SelectItem value="GOOD">Good</SelectItem>
-                        <SelectItem value="FAIR">Fair</SelectItem>
-                        <SelectItem value="POOR">Poor</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      How consistent was your measurement?
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </GlassCardContent>
+            </GlassCard>
 
-          {/* RHR Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Resting Heart Rate (RHR)</CardTitle>
-              <CardDescription>
-                Optional - measure first thing in the morning before getting up
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FormField
-                control={form.control}
-                name="restingHR"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Resting HR (bpm)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="e.g., 55"
-                        {...field}
-                        onChange={e =>
-                          field.onChange(
-                            e.target.value ? parseFloat(e.target.value) : undefined
-                          )
-                        }
-                        value={field.value ?? ''}
-                      />
-                    </FormControl>
-                    <FormDescription>Typical range: 40-80 bpm</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
+            {/* Wellness Questionnaire */}
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                  <Smile className="h-5 w-5 text-yellow-500" />
+                  Mående & Återhämtning
+                </GlassCardTitle>
+                <GlassCardDescription className="text-slate-400 font-medium">
+                  Svara ärligt på samtliga frågor (1-10)
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent className="space-y-10 py-6">
+                {[
+                  { name: 'sleepQuality', label: 'Sömnkvalitet', icon: <Moon className="h-4 w-4" />, low: 'Mycket dålig', high: 'Fantastisk' },
+                  { name: 'sleepHours', label: 'Sömntimmar', icon: <Moon className="h-4 w-4" />, isHours: true },
+                  { name: 'muscleSoreness', label: 'Muskelömhet', icon: <Activity className="h-4 w-4" />, low: 'Ingen ömhet', high: 'Extrem ömhet' },
+                  { name: 'energyLevel', label: 'Energinivå', icon: <Zap className="h-4 w-4" />, low: 'Helt slut', high: 'Maxad energi' },
+                  { name: 'mood', label: 'Humör', icon: <Smile className="h-4 w-4" />, low: 'Lågt', high: 'Toppen' },
+                  { name: 'stress', label: 'Stressnivå', icon: <AlertCircle className="h-4 w-4" />, low: 'Ingen stress', high: 'Extremt stressad' },
+                  { name: 'injuryPain', label: 'Skadekänning/Smärta', icon: <Activity className="h-4 w-4" />, low: 'Ingen smärta', high: 'Problem' },
+                ].map((slider) => (
+                  <FormField
+                    key={slider.name}
+                    control={form.control}
+                    name={slider.name as any}
+                    render={({ field }) => (
+                      <FormItem className="space-y-5">
+                        <div className="flex justify-between items-end">
+                          <FormLabel className="font-black uppercase tracking-widest text-[10px] text-slate-500 flex items-center gap-2">
+                            {slider.icon}
+                            {slider.label}
+                          </FormLabel>
+                          <span className="text-2xl font-black text-white leading-none">
+                            {field.value}{slider.isHours ? 'h' : ''}
+                          </span>
+                        </div>
+                        <FormControl>
+                          <Slider
+                            min={slider.name === 'sleepHours' ? 0 : 1}
+                            max={slider.name === 'sleepHours' ? 12 : 10}
+                            step={slider.name === 'sleepHours' ? 0.5 : 1}
+                            value={[field.value]}
+                            onValueChange={vals => field.onChange(vals[0])}
+                            className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-4 [&_[role=slider]]:border-blue-600 [&_[role=slider]]:bg-white"
+                          />
+                        </FormControl>
+                        {!slider.isHours && (
+                          <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
+                            <span>{slider.low}</span>
+                            <span>{slider.high}</span>
+                          </div>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </GlassCardContent>
+            </GlassCard>
 
-          {/* Wellness Questionnaire */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Daily Wellness</CardTitle>
-              <CardDescription>
-                Answer all 7 questions (1 = poor, 10 = excellent)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="sleepQuality"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sleep Quality: {field.value}/10</FormLabel>
-                    <FormControl>
-                      <Slider
-                        min={1}
-                        max={10}
-                        step={1}
-                        value={[field.value]}
-                        onValueChange={vals => field.onChange(vals[0])}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      1 = Very poor, 10 = Excellent
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            {/* Conditional Injury Selector */}
+            {form.watch('injuryPain') >= 3 && (
+              <InjurySelector
+                sport={sport}
+                painLevel={form.watch('injuryPain')}
+                value={injurySelection}
+                onChange={setInjurySelection}
+                disabled={isSubmitting}
+                variant={isGlass ? "glass" : "default"}
               />
+            )}
 
-              <FormField
-                control={form.control}
-                name="sleepHours"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sleep Duration: {field.value} hours</FormLabel>
-                    <FormControl>
-                      <Slider
-                        min={0}
-                        max={12}
-                        step={0.5}
-                        value={[field.value]}
-                        onValueChange={vals => field.onChange(vals[0])}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* Notes Section */}
+            <GlassCard>
+              <GlassCardHeader>
+                <GlassCardTitle className="text-xl font-black tracking-tight">Noteringar</GlassCardTitle>
+                <GlassCardDescription className="text-slate-400">
+                  Övriga observationer som kan vara relevanta för din coach.
+                </GlassCardDescription>
+              </GlassCardHeader>
+              <GlassCardContent>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          placeholder="t.ex. Kände mig pigg efter en sen kväll, lite känning i knät..."
+                          className="bg-white/5 border-white/10 min-h-[120px] rounded-2xl p-4 text-white"
+                          {...field}
+                          value={field.value ?? ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </GlassCardContent>
+            </GlassCard>
 
-              <FormField
-                control={form.control}
-                name="muscleSoreness"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Muscle Soreness: {field.value}/10</FormLabel>
-                    <FormControl>
-                      <Slider
-                        min={1}
-                        max={10}
-                        step={1}
-                        value={[field.value]}
-                        onValueChange={vals => field.onChange(vals[0])}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      1 = No soreness, 10 = Extreme soreness
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="energyLevel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Energy Level: {field.value}/10</FormLabel>
-                    <FormControl>
-                      <Slider
-                        min={1}
-                        max={10}
-                        step={1}
-                        value={[field.value]}
-                        onValueChange={vals => field.onChange(vals[0])}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      1 = Exhausted, 10 = Full of energy
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="mood"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mood: {field.value}/10</FormLabel>
-                    <FormControl>
-                      <Slider
-                        min={1}
-                        max={10}
-                        step={1}
-                        value={[field.value]}
-                        onValueChange={vals => field.onChange(vals[0])}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      1 = Very low, 10 = Excellent
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="stress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Stress Level: {field.value}/10</FormLabel>
-                    <FormControl>
-                      <Slider
-                        min={1}
-                        max={10}
-                        step={1}
-                        value={[field.value]}
-                        onValueChange={vals => field.onChange(vals[0])}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      1 = No stress, 10 = Extreme stress
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="injuryPain"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Injury/Pain: {field.value}/10</FormLabel>
-                    <FormControl>
-                      <Slider
-                        min={1}
-                        max={10}
-                        step={1}
-                        value={[field.value]}
-                        onValueChange={vals => field.onChange(vals[0])}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      1 = No pain, 10 = Extreme pain
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Conditional Injury Selector (shown when pain >= 3) */}
-          {form.watch('injuryPain') >= 3 && (
-            <InjurySelector
-              sport={sport}
-              painLevel={form.watch('injuryPain')}
-              value={injurySelection}
-              onChange={setInjurySelection}
+            <Button
+              type="submit"
               disabled={isSubmitting}
-            />
-          )}
-
-          {/* Notes Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Notes (Optional)</CardTitle>
-              <CardDescription>
-                Any additional observations or comments
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Textarea
-                        placeholder="e.g., Felt tired after late night, slight knee discomfort..."
-                        {...field}
-                        value={field.value ?? ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
-
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? 'Submitting...' : 'Submit Check-In'}
-          </Button>
-        </form>
-      </Form>
-      )}
-
-      {/* Injury Auto-Response Alert */}
-      {injuryResponse?.triggered && (
-        <Alert variant="destructive" className="border-2">
-          <AlertDescription>
-            <div className="space-y-4">
-              <div>
-                <p className="font-bold text-lg mb-1">⚠️ Automatiskt skaderespons aktiverat</p>
-                <p className="font-medium text-sm opacity-90">
-                  Dina träningspass har automatiskt justerats baserat på rapporterade värden
-                </p>
-              </div>
-
-              <div className="p-4 bg-background/60 rounded-lg space-y-3">
-                <div>
-                  <p className="font-semibold mb-1">{injuryResponse.summary?.title}</p>
-                  <p className="text-sm opacity-90">{injuryResponse.summary?.message}</p>
-                </div>
-
-                {injuryResponse.summary?.programAdjustment && (
-                  <div className="pt-2 border-t border-white/20">
-                    <p className="text-sm font-medium mb-1">Programjustering:</p>
-                    <p className="text-sm opacity-90">{injuryResponse.summary.programAdjustment}</p>
-                  </div>
-                )}
-
-                {injuryResponse.summary?.nextSteps && injuryResponse.summary.nextSteps.length > 0 && (
-                  <div className="pt-2 border-t border-white/20">
-                    <p className="text-sm font-medium mb-2">Nästa steg (Coach):</p>
-                    <ul className="space-y-1 text-sm opacity-90">
-                      {injuryResponse.summary.nextSteps.slice(0, 3).map((step: string, i: number) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="mt-0.5">•</span>
-                          <span>{step}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between text-xs opacity-75">
-                <span>Din coach har blivit notifierad</span>
-                <span className="font-mono">
-                  {injuryResponse.injuryResponse?.workoutsModified || 0} pass modifierade
-                </span>
-              </div>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Readiness Result */}
-      {readinessResult && !injuryResponse?.triggered && (
-        <Alert variant={readinessResult.score < 5 ? "destructive" : "default"}>
-          <AlertDescription>
-            <div className="space-y-3">
-              <div>
-                <p className="font-semibold text-lg">
-                  Readiness Score: {readinessResult.score.toFixed(1)}/10
-                </p>
-                <p className="font-medium text-muted-foreground">{readinessResult.status}</p>
-              </div>
-
-              <div className="p-3 bg-background/50 rounded-md">
-                <p className="font-medium mb-1">Rekommendation:</p>
-                <p className="text-sm">{readinessResult.recommendation}</p>
-              </div>
-
-              {(readinessResult.criticalFlags?.length > 0 || readinessResult.warnings?.length > 0) && (
-                <div className="text-sm space-y-1">
-                  <p className="font-medium">Orsaker:</p>
-                  <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-                    {readinessResult.criticalFlags?.map((flag: string, i: number) => (
-                      <li key={`crit-${i}`} className="text-red-500 font-medium">{flag}</li>
-                    ))}
-                    {readinessResult.warnings?.map((warning: string, i: number) => (
-                      <li key={`warn-${i}`}>{warning}</li>
-                    ))}
-                  </ul>
-                </div>
+              className="w-full h-16 rounded-[2rem] bg-white text-black hover:bg-slate-100 font-black uppercase tracking-widest text-sm shadow-[0_4px_30px_rgba(255,255,255,0.1)] transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Skickar...
+                </>
+              ) : (
+                'Skicka in incheckning'
               )}
-            </div>
-          </AlertDescription>
-        </Alert>
+            </Button>
+          </form>
+        </Form>
+      )}
+
+      {/* Readiness & Injury Results */}
+      {(readinessResult || injuryResponse?.triggered) && (
+        <GlassCard className={cn(
+          "transition-all duration-700 animate-in zoom-in-95",
+          injuryResponse?.triggered ? "border-red-500/30 bg-red-500/5 shadow-[0_0_30px_rgba(239,68,68,0.1)]" : "border-emerald-500/20 bg-emerald-500/5 shadow-[0_0_30px_rgba(16,185,129,0.1)]"
+        )}>
+          <GlassCardContent className="pt-6">
+            {injuryResponse?.triggered ? (
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-red-500/20 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                    <AlertCircle className="h-8 w-8 text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black tracking-tight text-white uppercase">Skaderespons aktiverad</h3>
+                    <p className="text-slate-400 font-medium text-sm">Dina pass har justerats automatiskt.</p>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-4">
+                  <div>
+                    <p className="font-black text-white text-sm uppercase mb-1 tracking-wider">{injuryResponse.summary?.title}</p>
+                    <p className="text-sm text-slate-400 leading-relaxed font-medium">{injuryResponse.summary?.message}</p>
+                  </div>
+
+                  {injuryResponse.summary?.programAdjustment && (
+                    <div className="pt-4 border-t border-white/5">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Programjustering:</p>
+                      <p className="text-white font-bold bg-white/5 p-3 rounded-xl border border-white/5">
+                        {injuryResponse.summary.programAdjustment}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 px-3 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">Coach har notifierats</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      {injuryResponse.injuryResponse?.workoutsModified || 0} pass modifierade
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : readinessResult ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg",
+                      readinessResult.score >= 7 ? "bg-emerald-500/20 text-emerald-400 shadow-emerald-500/20" :
+                        readinessResult.score >= 5 ? "bg-yellow-500/20 text-yellow-400 shadow-yellow-500/20" :
+                          "bg-red-500/20 text-red-400 shadow-red-500/20"
+                    )}>
+                      <Activity className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Readiness Score</p>
+                      <h3 className="text-3xl font-black text-white tracking-tighter tabular-nums">
+                        {readinessResult.score.toFixed(1)}<span className="text-lg text-slate-600">/10</span>
+                      </h3>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border",
+                    readinessResult.score >= 7 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                      readinessResult.score >= 5 ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" :
+                        "bg-red-500/10 text-red-400 border-red-500/20"
+                  )}>
+                    {readinessResult.status}
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Rekommendation</p>
+                  <p className="text-white font-bold leading-relaxed">{readinessResult.recommendation}</p>
+                </div>
+              </div>
+            ) : null}
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Nutrition Tip */}
-      {isLoadingTip && <NutritionTipCardSkeleton />}
-      {nutritionTip && !isLoadingTip && (
-        <NutritionTipCard
-          tip={nutritionTip}
-          onDismiss={() => setNutritionTip(null)}
-        />
+      {(isLoadingTip || nutritionTip) && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+          {isLoadingTip ? (
+            <NutritionTipCardSkeleton variant="glass" />
+          ) : (
+            nutritionTip && (
+              <NutritionTipCard
+                tip={nutritionTip}
+                variant="glass"
+                className="shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
+              />
+            )
+          )}
+        </div>
       )}
     </div>
   )

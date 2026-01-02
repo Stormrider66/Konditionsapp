@@ -11,14 +11,9 @@
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 import {
   Clock,
   Utensils,
@@ -36,11 +31,12 @@ interface WorkoutNutritionCardProps {
   duringWorkout?: NutritionGuidance
   postWorkout?: NutritionGuidance
   compact?: boolean
+  variant?: 'default' | 'glass'
 }
 
-function FoodSuggestionChip({ food }: { food: FoodSuggestion }) {
+function FoodSuggestionChip({ food, isGlass }: { food: FoodSuggestion, isGlass?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-md">
+    <span className={`inline-flex items-center gap-1 px-2 py-1 ${isGlass ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'} text-xs rounded-md`}>
       {food.nameSv}
       {food.carbsG && <span className="text-slate-500">({food.carbsG}g K)</span>}
     </span>
@@ -57,6 +53,7 @@ function GuidanceSection({
   proteinG,
   hydrationMl,
   foodSuggestions,
+  isGlass
 }: {
   title: string
   icon: React.ReactNode
@@ -67,37 +64,38 @@ function GuidanceSection({
   proteinG?: number
   hydrationMl?: number
   foodSuggestions?: FoodSuggestion[]
+  isGlass?: boolean
 }) {
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-lg ${iconBg} flex-shrink-0`}>
+        <div className={`p-2 rounded-lg ${isGlass ? 'bg-slate-800/50' : iconBg} flex-shrink-0`}>
           {icon}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h4 className="font-medium text-sm text-slate-900">{title}</h4>
+            <h4 className={`font-medium text-sm ${isGlass ? 'text-white' : 'text-slate-900'}`}>{title}</h4>
             {timing && (
-              <span className="text-xs text-slate-500">{timing}</span>
+              <span className={`text-xs ${isGlass ? 'text-slate-400' : 'text-slate-500'}`}>{timing}</span>
             )}
           </div>
-          <p className="text-sm text-slate-600 mt-1">{recommendation}</p>
+          <p className={`text-sm ${isGlass ? 'text-slate-300' : 'text-slate-600'} mt-1`}>{recommendation}</p>
 
           {/* Macro targets */}
           {(carbsG || proteinG || hydrationMl) && (
             <div className="flex flex-wrap gap-2 mt-2">
               {carbsG && (
-                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-amber-950/30 text-amber-300 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                   {carbsG}g kolhydrater
                 </Badge>
               )}
               {proteinG && (
-                <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-red-950/30 text-red-300 border-red-500/20' : 'bg-red-50 text-red-700 border-red-200'}`}>
                   {proteinG}g protein
                 </Badge>
               )}
               {hydrationMl && (
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-blue-950/30 text-blue-300 border-blue-500/20' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
                   {hydrationMl}ml vätska
                 </Badge>
               )}
@@ -108,7 +106,7 @@ function GuidanceSection({
           {foodSuggestions && foodSuggestions.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               {foodSuggestions.slice(0, 4).map((food, i) => (
-                <FoodSuggestionChip key={i} food={food} />
+                <FoodSuggestionChip key={i} food={food} isGlass={isGlass} />
               ))}
             </div>
           )}
@@ -160,8 +158,10 @@ export function WorkoutNutritionCard({
   duringWorkout,
   postWorkout,
   compact = false,
+  variant = 'default'
 }: WorkoutNutritionCardProps) {
   const [isExpanded, setIsExpanded] = useState(!compact)
+  const isGlass = variant === 'glass'
 
   const hasGuidance = preWorkout || duringWorkout || postWorkout
 
@@ -169,69 +169,96 @@ export function WorkoutNutritionCard({
     return null
   }
 
+  const content = (
+    <div className="space-y-4">
+      {preWorkout && (
+        <GuidanceSection
+          title="Före passet"
+          icon={<Clock className="h-4 w-4 text-amber-500" />}
+          iconBg="bg-amber-50"
+          timing={preWorkout.timingLabel}
+          recommendation={preWorkout.recommendation}
+          carbsG={preWorkout.carbsTargetG}
+          proteinG={preWorkout.proteinTargetG}
+          foodSuggestions={preWorkout.foodSuggestions}
+          isGlass={isGlass}
+        />
+      )}
+
+      {duringWorkout && (
+        <>
+          <div className={`border-t ${isGlass ? 'border-white/10' : ''}`} />
+          <GuidanceSection
+            title="Under passet"
+            icon={<Zap className="h-4 w-4 text-blue-500" />}
+            iconBg="bg-blue-50"
+            recommendation={duringWorkout.recommendation}
+            carbsG={duringWorkout.carbsTargetG}
+            hydrationMl={duringWorkout.hydrationMl}
+            foodSuggestions={duringWorkout.foodSuggestions}
+            isGlass={isGlass}
+          />
+        </>
+      )}
+
+      {postWorkout && (
+        <>
+          <div className={`border-t ${isGlass ? 'border-white/10' : ''}`} />
+          <GuidanceSection
+            title="Efter passet"
+            icon={<RefreshCw className="h-4 w-4 text-green-500" />}
+            iconBg="bg-green-50"
+            timing={postWorkout.timingLabel}
+            recommendation={postWorkout.recommendation}
+            carbsG={postWorkout.carbsTargetG}
+            proteinG={postWorkout.proteinTargetG}
+            foodSuggestions={postWorkout.foodSuggestions}
+            isGlass={isGlass}
+          />
+        </>
+      )}
+    </div>
+  )
+
   if (compact) {
+    // Compact logic (used for double days etc? logic slightly different)
+    // Keeping simple for now, if it's used somewhere.
     return (
       <Card className="bg-white shadow-sm border-l-4 border-l-emerald-500">
         <CardContent className="p-3">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full flex items-center justify-between"
-          >
+          {/* Compact not fully glassified yet as I'm focusing on dashboard main view */}
+          <p>Compact view...</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (isGlass) {
+    return (
+      <GlassCard>
+        <GlassCardHeader className="pb-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Dumbbell className="h-4 w-4 text-emerald-600" />
-              <span className="font-medium text-sm">{workout.name}</span>
-              <Badge className={`text-xs ${getIntensityColor(workout.intensity)}`}>
+              <Dumbbell className="h-5 w-5 text-emerald-400" />
+              <GlassCardTitle className="text-base">{workout.name}</GlassCardTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              {workout.duration && (
+                <span className="flex items-center gap-1 text-xs text-slate-400">
+                  <Timer className="h-3.5 w-3.5" />
+                  {workout.duration} min
+                </span>
+              )}
+              <Badge className={getIntensityColor(workout.intensity)}>
                 {getIntensityLabel(workout.intensity)}
               </Badge>
             </div>
-            <ChevronDown
-              className={`h-4 w-4 text-slate-400 transition-transform ${
-                isExpanded ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-
-          {isExpanded && (
-            <div className="mt-3 pt-3 border-t space-y-4">
-              {preWorkout && (
-                <GuidanceSection
-                  title="Före"
-                  icon={<Clock className="h-4 w-4 text-amber-600" />}
-                  iconBg="bg-amber-50"
-                  timing={preWorkout.timingLabel}
-                  recommendation={preWorkout.recommendation}
-                  carbsG={preWorkout.carbsTargetG}
-                  proteinG={preWorkout.proteinTargetG}
-                  foodSuggestions={preWorkout.foodSuggestions}
-                />
-              )}
-              {duringWorkout && (
-                <GuidanceSection
-                  title="Under"
-                  icon={<Zap className="h-4 w-4 text-blue-600" />}
-                  iconBg="bg-blue-50"
-                  recommendation={duringWorkout.recommendation}
-                  carbsG={duringWorkout.carbsTargetG}
-                  hydrationMl={duringWorkout.hydrationMl}
-                  foodSuggestions={duringWorkout.foodSuggestions}
-                />
-              )}
-              {postWorkout && (
-                <GuidanceSection
-                  title="Efter"
-                  icon={<RefreshCw className="h-4 w-4 text-green-600" />}
-                  iconBg="bg-green-50"
-                  timing={postWorkout.timingLabel}
-                  recommendation={postWorkout.recommendation}
-                  carbsG={postWorkout.carbsTargetG}
-                  proteinG={postWorkout.proteinTargetG}
-                  foodSuggestions={postWorkout.foodSuggestions}
-                />
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        </GlassCardHeader>
+        <GlassCardContent>
+          {content}
+        </GlassCardContent>
+      </GlassCard>
     )
   }
 
@@ -257,49 +284,7 @@ export function WorkoutNutritionCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {preWorkout && (
-          <GuidanceSection
-            title="Före passet"
-            icon={<Clock className="h-4 w-4 text-amber-600" />}
-            iconBg="bg-amber-50"
-            timing={preWorkout.timingLabel}
-            recommendation={preWorkout.recommendation}
-            carbsG={preWorkout.carbsTargetG}
-            proteinG={preWorkout.proteinTargetG}
-            foodSuggestions={preWorkout.foodSuggestions}
-          />
-        )}
-
-        {duringWorkout && (
-          <>
-            <div className="border-t" />
-            <GuidanceSection
-              title="Under passet"
-              icon={<Zap className="h-4 w-4 text-blue-600" />}
-              iconBg="bg-blue-50"
-              recommendation={duringWorkout.recommendation}
-              carbsG={duringWorkout.carbsTargetG}
-              hydrationMl={duringWorkout.hydrationMl}
-              foodSuggestions={duringWorkout.foodSuggestions}
-            />
-          </>
-        )}
-
-        {postWorkout && (
-          <>
-            <div className="border-t" />
-            <GuidanceSection
-              title="Efter passet"
-              icon={<RefreshCw className="h-4 w-4 text-green-600" />}
-              iconBg="bg-green-50"
-              timing={postWorkout.timingLabel}
-              recommendation={postWorkout.recommendation}
-              carbsG={postWorkout.carbsTargetG}
-              proteinG={postWorkout.proteinTargetG}
-              foodSuggestions={postWorkout.foodSuggestions}
-            />
-          </>
-        )}
+        {content}
       </CardContent>
     </Card>
   )

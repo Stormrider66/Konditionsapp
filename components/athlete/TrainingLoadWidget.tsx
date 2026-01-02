@@ -17,6 +17,7 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -35,9 +36,10 @@ interface TrainingLoadData {
 
 interface TrainingLoadWidgetProps {
   clientId: string
+  variant?: 'default' | 'glass'
 }
 
-export function TrainingLoadWidget({ clientId }: TrainingLoadWidgetProps) {
+export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLoadWidgetProps) {
   const [data, setData] = useState<TrainingLoadData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +67,21 @@ export function TrainingLoadWidget({ clientId }: TrainingLoadWidgetProps) {
   }, [clientId])
 
   if (isLoading) {
+    if (variant === 'glass') {
+      return (
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Träningsbelastning
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <Skeleton className="h-32 w-full bg-white/10" />
+          </GlassCardContent>
+        </GlassCard>
+      )
+    }
     return (
       <Card>
         <CardHeader>
@@ -81,6 +98,29 @@ export function TrainingLoadWidget({ clientId }: TrainingLoadWidgetProps) {
   }
 
   if (error || !data) {
+    if (variant === 'glass') {
+      return (
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Träningsbelastning
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="text-center py-6">
+              <Activity className="h-10 w-10 text-slate-500 mx-auto mb-2" />
+              <p className="text-sm text-slate-400">
+                {error || 'Ingen träningsdata tillgänglig'}
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Anslut Strava eller Garmin för att se din belastning
+              </p>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+      )
+    }
     return (
       <Card>
         <CardHeader>
@@ -121,6 +161,89 @@ export function TrainingLoadWidget({ clientId }: TrainingLoadWidgetProps) {
 
   const riskConfig = getRiskConfig(data.riskLevel)
   const acwrPercent = Math.min(100, (data.acwr / 1.5) * 100)
+
+  if (variant === 'glass') {
+    return (
+      <GlassCard>
+        <GlassCardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <GlassCardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-cyan-400" />
+              Träningsbelastning
+            </GlassCardTitle>
+            <Badge className={`${riskConfig.bg} ${riskConfig.color} border-0`}>
+              {riskConfig.icon} {riskConfig.label}
+            </Badge>
+          </div>
+          <p className="text-sm text-slate-400">Senaste 7 dagarna</p>
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-4">
+          {/* Weekly TSS */}
+          <div className="flex items-center justify-between text-white">
+            <div>
+              <p className="text-3xl font-bold">{data.weeklyTSS}</p>
+              <p className="text-sm text-slate-400">TSS denna vecka</p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-medium">{data.dailyAvgTSS}</p>
+              <p className="text-xs text-slate-400">snitt/dag</p>
+            </div>
+          </div>
+
+          {/* ACWR */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">ACWR (Akut:Kronisk)</span>
+              <span className="font-medium text-white">{data.acwr.toFixed(2)}</span>
+            </div>
+            <div className="relative">
+              <Progress value={acwrPercent} className="h-2 bg-slate-800" indicatorClassName="bg-cyan-500" />
+              {/* Optimal zone indicator */}
+              <div className="absolute top-0 left-[53%] w-[27%] h-2 border-l-2 border-r-2 border-green-500/50 opacity-50" />
+            </div>
+            <div className="flex justify-between text-xs text-slate-500">
+              <span>0.8 (Låg)</span>
+              <span className="text-green-500">0.8-1.3 (Optimal)</span>
+              <span>1.5+ (Hög)</span>
+            </div>
+          </div>
+
+          {/* Activity breakdown */}
+          {Object.keys(data.byType).length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-white/10">
+              <p className="text-sm font-medium text-slate-300">Per aktivitetstyp</p>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(data.byType).slice(0, 4).map(([type, stats]) => (
+                  <div key={type} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400 capitalize">{type.toLowerCase()}</span>
+                    <span className="font-medium text-white">{stats.tss} TSS</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Load comparison */}
+          <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+            {data.riskLevel === 'optimal' ? (
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            ) : data.riskLevel === 'high' || data.riskLevel === 'very_high' ? (
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+            ) : (
+              <Activity className="h-4 w-4 text-blue-500" />
+            )}
+            <p className="text-xs text-slate-400">
+              {data.trend === 'increasing'
+                ? 'Din belastning ökar - övervaka återhämtning'
+                : data.trend === 'decreasing'
+                  ? 'Din belastning minskar - bra för återhämtning'
+                  : 'Din belastning är stabil'}
+            </p>
+          </div>
+        </GlassCardContent>
+      </GlassCard>
+    )
+  }
 
   return (
     <Card>
@@ -195,8 +318,8 @@ export function TrainingLoadWidget({ clientId }: TrainingLoadWidgetProps) {
             {data.trend === 'increasing'
               ? 'Din belastning ökar - övervaka återhämtning'
               : data.trend === 'decreasing'
-              ? 'Din belastning minskar - bra för återhämtning'
-              : 'Din belastning är stabil'}
+                ? 'Din belastning minskar - bra för återhämtning'
+                : 'Din belastning är stabil'}
           </p>
         </div>
       </CardContent>

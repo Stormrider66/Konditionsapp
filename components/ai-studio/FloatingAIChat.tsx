@@ -72,32 +72,33 @@ export function FloatingAIChat({
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null)
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
   const [isContextEnabled, setIsContextEnabled] = useState(true)
+  const [isAthleteUser, setIsAthleteUser] = useState(false)
 
   // Track if context is available
   const hasContext = !!pageContext && Object.keys(pageContext.data || {}).length > 0
 
-  // Fetch model configuration from settings
+  // Fetch model configuration from unified AI config endpoint
+  // Works for both coaches (uses own keys) and athletes (uses coach's keys)
   useEffect(() => {
     async function fetchModelConfig() {
       try {
-        // Fetch both API keys status and default model in parallel
-        const [keysResponse, modelResponse] = await Promise.all([
-          fetch('/api/settings/api-keys'),
-          fetch('/api/settings/default-model'),
-        ])
+        const response = await fetch('/api/ai/config')
+        const data = await response.json()
 
-        const keysData = await keysResponse.json()
-        const modelData = await modelResponse.json()
+        if (data.success) {
+          // Track if user is an athlete
+          if (data.isAthlete) {
+            setIsAthleteUser(true)
+          }
 
-        if (keysData.success) {
           // Check which API keys are configured
-          const anthropicKey = keysData.keys.find((k: { provider: string }) => k.provider === 'anthropic')
-          const googleKey = keysData.keys.find((k: { provider: string }) => k.provider === 'google')
-          const openaiKey = keysData.keys.find((k: { provider: string }) => k.provider === 'openai')
+          const anthropicKey = data.keys.find((k: { provider: string }) => k.provider === 'anthropic')
+          const googleKey = data.keys.find((k: { provider: string }) => k.provider === 'google')
+          const openaiKey = data.keys.find((k: { provider: string }) => k.provider === 'openai')
 
-          // Get default model from the default-model endpoint
-          if (modelData.success && modelData.defaultModel) {
-            const defaultModel = modelData.defaultModel
+          // Use default model if set and provider is configured
+          if (data.defaultModel) {
+            const defaultModel = data.defaultModel
             const provider = defaultModel.provider as 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
 
             // Verify the provider's API key is configured
@@ -534,16 +535,22 @@ export function FloatingAIChat({
         <div className="flex-1 flex items-center justify-center p-6 text-center">
           <div>
             <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="font-semibold mb-2">API-nyckel saknas</h3>
+            <h3 className="font-semibold mb-2">
+              {isAthleteUser ? 'AI-assistenten ej tillgänglig' : 'API-nyckel saknas'}
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Konfigurera din API-nyckel (Anthropic eller Google) för att använda AI-assistenten.
+              {isAthleteUser
+                ? 'Din coach har inte aktiverat AI-assistenten ännu. Kontakta din coach för att aktivera denna funktion.'
+                : 'Konfigurera din API-nyckel (Anthropic eller Google) för att använda AI-assistenten.'}
             </p>
-            <Button asChild>
-              <a href="/coach/settings/ai">
-                <Settings className="h-4 w-4 mr-2" />
-                Gå till inställningar
-              </a>
-            </Button>
+            {!isAthleteUser && (
+              <Button asChild>
+                <a href="/coach/settings/ai">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Gå till inställningar
+                </a>
+              </Button>
+            )}
           </div>
         </div>
       </div>

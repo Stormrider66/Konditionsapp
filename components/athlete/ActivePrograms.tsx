@@ -3,6 +3,7 @@
 
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Target } from 'lucide-react'
@@ -13,12 +14,50 @@ import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME, type WorkoutTheme } fr
 
 interface ActiveProgramsProps {
   programs: ActiveProgramSummary[]
+  variant?: 'default' | 'glass'
 }
 
-export function ActivePrograms({ programs }: ActiveProgramsProps) {
+export function ActivePrograms({ programs, variant = 'default' }: ActiveProgramsProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
+  if (variant === 'glass') {
+    if (programs.length === 0) {
+      return (
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-red-500" />
+              Aktiva program
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <p className="text-center py-8 text-slate-500">
+              Inga aktiva träningsprogram
+            </p>
+          </GlassCardContent>
+        </GlassCard>
+      )
+    }
+
+    return (
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-red-500" />
+            Aktiva program
+          </GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-4">
+          {programs.map((program) => (
+            <ProgramCard key={program.id} program={program} theme={theme} variant="glass" />
+          ))}
+        </GlassCardContent>
+      </GlassCard>
+    )
+  }
+
+  // DEFAULT Render
   if (programs.length === 0) {
     return (
       <Card
@@ -70,11 +109,49 @@ export function ActivePrograms({ programs }: ActiveProgramsProps) {
   )
 }
 
-function ProgramCard({ program, theme }: { program: ActiveProgramSummary; theme: WorkoutTheme }) {
+function ProgramCard({ program, theme, variant = 'default' }: { program: ActiveProgramSummary; theme: WorkoutTheme, variant?: 'default' | 'glass' }) {
   const currentWeek = getCurrentWeek(program)
   const totalWeeks = program.weeks?.length || 0
   const progressPercent = totalWeeks > 0 ? Math.round((currentWeek / totalWeeks) * 100) : 0
   const currentPhase = getCurrentPhase(program)
+
+  if (variant === 'glass') {
+    return (
+      <div className="border border-white/10 rounded-lg p-4 space-y-3 bg-black/20 hover:bg-white/5 transition-colors">
+        <div>
+          <h4 className="font-semibold mb-1 text-white">
+            {program.name}
+          </h4>
+          <p className="text-sm text-slate-400">
+            {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
+            {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={getPhaseBadgeClass(currentPhase)}>
+            {formatPhase(currentPhase)}
+          </Badge>
+          <span className="text-sm text-slate-500">
+            Vecka {currentWeek} av {totalWeeks}
+          </span>
+        </div>
+
+        <div className="w-full rounded-full h-2 overflow-hidden bg-white/10">
+          <div
+            className="h-full transition-all bg-orange-500"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        <Link href={`/athlete/programs/${program.id}`}>
+          <Button variant="outline" size="sm" className="w-full border-white/10 text-white hover:bg-white/5">
+            Visa program
+          </Button>
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -106,7 +183,6 @@ function ProgramCard({ program, theme }: { program: ActiveProgramSummary; theme:
         </span>
       </div>
 
-      {/* Progress bar */}
       <div
         className="w-full rounded-full h-2 overflow-hidden"
         style={{ backgroundColor: theme.colors.border }}

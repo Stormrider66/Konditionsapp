@@ -1175,6 +1175,14 @@ model Workout {
   // Is this a custom workout added by athlete?
   isCustom Boolean @default(false)
 
+  // Hero Card Fields (AI-generated or rule-based)
+  heroTitle        String?   // "Posterior Chain Focus"
+  heroDescription  String?   @db.Text // "Focus on hinge movements. Primary lift: Deadlift"
+  heroCategory     String?   // "HEAVY_LOWER_BODY", "QUAD_DOMINANT", etc.
+  heroImageKey     String?   // Key for exercise image lookup
+  focusGeneratedAt DateTime?
+  focusGeneratedBy String?   // "AI" | "RULE_BASED"
+
   day      TrainingDay      @relation(fields: [dayId], references: [id], onDelete: Cascade)
   segments WorkoutSegment[]
   logs     WorkoutLog[]

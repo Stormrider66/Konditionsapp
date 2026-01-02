@@ -429,6 +429,42 @@ export async function POST(request: NextRequest) {
     // ==========================================
     let injuryTriggered = false
     let injurySummary = null
+    let injuriesResolved = 0
+
+    // Auto-resolve injuries if athlete reports low pain (1-2)
+    // This clears injuries when athlete is recovered
+    if (injuryPain <= 2) {
+      try {
+        const activeInjuries = await prisma.injuryAssessment.findMany({
+          where: {
+            clientId,
+            status: { not: 'FULLY_RECOVERED' },
+          },
+        })
+
+        if (activeInjuries.length > 0) {
+          // Mark all active injuries as recovered
+          await prisma.injuryAssessment.updateMany({
+            where: {
+              clientId,
+              status: { not: 'FULLY_RECOVERED' },
+            },
+            data: {
+              status: 'FULLY_RECOVERED',
+              updatedAt: new Date(),
+            },
+          })
+          injuriesResolved = activeInjuries.length
+          logger.info('Auto-resolved injuries due to low pain report', {
+            clientId,
+            injuryPain,
+            resolvedCount: injuriesResolved
+          })
+        }
+      } catch (error) {
+        logger.error('Error auto-resolving injuries', { clientId }, error)
+      }
+    }
 
     // Trigger injury cascade if pain/readiness thresholds exceeded
     // Note: injuryPain uses natural scale (1 = no pain, 10 = high pain)
@@ -510,6 +546,7 @@ export async function POST(request: NextRequest) {
           }
         : {
             triggered: false,
+            resolved: injuriesResolved > 0 ? injuriesResolved : undefined,
           },
     })
   } catch (error) {

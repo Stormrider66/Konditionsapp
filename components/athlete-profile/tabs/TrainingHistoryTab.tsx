@@ -22,9 +22,20 @@ import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 interface TrainingHistoryTabProps {
   data: AthleteProfileData
   viewMode: 'coach' | 'athlete'
+  variant?: 'default' | 'glass'
 }
 
-export function TrainingHistoryTab({ data, viewMode }: TrainingHistoryTabProps) {
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
+import { cn } from '@/lib/utils'
+
+export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: TrainingHistoryTabProps) {
+  const isGlass = variant === 'glass'
   const { programs, trainingLoads, workoutLogs } = data.training
   const athleteProfile = data.identity.athleteProfile
 
@@ -49,243 +60,274 @@ export function TrainingHistoryTab({ data, viewMode }: TrainingHistoryTabProps) 
 
   const hasData = programs.length > 0 || trainingLoads.length > 0 || workoutLogs.length > 0
 
+  const CardWrapper = isGlass ? GlassCard : Card;
+
   if (!hasData) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Ingen träningshistorik</h3>
-          <p className="text-gray-500">
+      <CardWrapper>
+        <CardContent className="py-20 text-center">
+          <Calendar className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-white/10" : "text-gray-300")} />
+          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-white" : "text-gray-900")}>
+            Ingen träningshistorik
+          </h3>
+          <p className={cn("font-medium max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
             Logga träningspass för att se historik och belastningsdata här.
           </p>
         </CardContent>
-      </Card>
+      </CardWrapper>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={CheckCircle}
-          iconColor="text-green-500"
-          label="Genomförda pass"
+          accentColor="emerald"
+          label="Slutförda pass"
           value={completedWorkouts.toString()}
           subtext="senaste 90 dagarna"
+          isGlass={isGlass}
         />
 
         <StatCard
           icon={Activity}
-          iconColor="text-blue-500"
+          accentColor="blue"
           label="Total distans"
           value={`${(totalDistance / 1000).toFixed(1)}`}
           unit="km"
+          isGlass={isGlass}
         />
 
         <StatCard
           icon={Timer}
-          iconColor="text-purple-500"
+          accentColor="purple"
           label="Total tid"
           value={formatDuration(totalDuration)}
+          isGlass={isGlass}
         />
 
         <StatCard
           icon={latestAcwr && latestAcwr > 1.5 ? AlertTriangle : TrendingUp}
-          iconColor={getAcwrColor(latestAcwr || 0)}
+          accentColor={latestAcwr && latestAcwr > 1.5 ? 'red' : 'emerald'}
           label="ACWR"
           value={latestAcwr ? latestAcwr.toFixed(2) : '-'}
           subtext={getAcwrLabel(latestAcwr || 0)}
+          isGlass={isGlass}
         />
       </div>
 
       {/* Experience Summary */}
       {athleteProfile && (
-        <Card>
+        <CardWrapper>
           <CardHeader>
-            <CardTitle>Träningsbakgrund</CardTitle>
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Träningsbakgrund</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {athleteProfile.yearsRunning && (
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Års erfarenhet</p>
-                  <p className="text-lg font-semibold">{athleteProfile.yearsRunning} år</p>
+                <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Erfarenhet</p>
+                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>{athleteProfile.yearsRunning} år</p>
                 </div>
               )}
               {athleteProfile.typicalWeeklyKm && (
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Normal veckovolym</p>
-                  <p className="text-lg font-semibold">{athleteProfile.typicalWeeklyKm} km</p>
+                <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Veckovolym</p>
+                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>{athleteProfile.typicalWeeklyKm} km</p>
                 </div>
               )}
               {athleteProfile.longestLongRun && (
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Längsta långpass</p>
-                  <p className="text-lg font-semibold">{athleteProfile.longestLongRun} km</p>
+                <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Längsta pass</p>
+                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>{athleteProfile.longestLongRun} km</p>
                 </div>
               )}
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500">Utrustning</p>
-                <div className="flex gap-1 mt-1">
+              <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Utrustning</p>
+                <div className="flex gap-2 flex-wrap">
                   {athleteProfile.hasLactateMeter && (
-                    <Badge variant="outline" className="text-xs">Laktat</Badge>
+                    <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/10 text-white" : "bg-slate-200 text-slate-700")}>Laktat</Badge>
                   )}
                   {athleteProfile.hasHRVMonitor && (
-                    <Badge variant="outline" className="text-xs">HRV</Badge>
+                    <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/10 text-white" : "bg-slate-200 text-slate-700")}>HRV</Badge>
                   )}
                   {athleteProfile.hasPowerMeter && (
-                    <Badge variant="outline" className="text-xs">Power</Badge>
-                  )}
-                  {!athleteProfile.hasLactateMeter && !athleteProfile.hasHRVMonitor && !athleteProfile.hasPowerMeter && (
-                    <span className="text-sm text-gray-500">-</span>
+                    <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/10 text-white" : "bg-slate-200 text-slate-700")}>Power</Badge>
                   )}
                 </div>
               </div>
             </div>
           </CardContent>
-        </Card>
+        </CardWrapper>
       )}
 
       {/* ACWR Chart */}
       {acwrData.length > 7 && (
-        <Card>
+        <CardWrapper>
           <CardHeader>
-            <CardTitle>Akut:Kronisk Arbetsbelastning (ACWR)</CardTitle>
-            <CardDescription>
-              Optimal zon: 0.8 - 1.3 • Skaderisk ökar vid {'>'} 1.5
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Akut:Kronisk belastning (ACWR)</CardTitle>
+            <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
+              OPTIMAL ZON: 0.8 - 1.3 • SKADERISK ÖKAR VID {'>'} 1.5
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
+            <div className="h-72 mt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={acwrData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" fontSize={12} />
-                  <YAxis domain={[0, 2]} fontSize={12} />
-                  <Tooltip />
-                  <Legend />
-                  <ReferenceLine y={0.8} stroke="#22c55e" strokeDasharray="3 3" />
-                  <ReferenceLine y={1.3} stroke="#22c55e" strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    fontSize={10}
+                    tick={{ fill: isGlass ? '#64748b' : '#6b7280', fontWeight: 700 }}
+                    axisLine={false}
+                    tickLine={false}
+                    dy={10}
+                  />
+                  <YAxis
+                    domain={[0, 2]}
+                    fontSize={10}
+                    tick={{ fill: isGlass ? '#64748b' : '#6b7280', fontWeight: 700 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: isGlass ? '#0f172a' : '#fff',
+                      borderColor: isGlass ? '#1e293b' : '#e2e8f0',
+                      borderRadius: '12px',
+                      color: isGlass ? '#fff' : '#000',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase'
+                    }}
+                  />
+                  <ReferenceLine y={0.8} stroke={isGlass ? "rgba(34, 197, 94, 0.2)" : "#22c55e"} strokeDasharray="3 3" />
+                  <ReferenceLine y={1.3} stroke={isGlass ? "rgba(34, 197, 94, 0.2)" : "#22c55e"} strokeDasharray="3 3" />
                   <ReferenceLine y={1.5} stroke="#ef4444" strokeDasharray="3 3" />
                   <Line
                     type="monotone"
                     dataKey="acwr"
                     name="ACWR"
                     stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={{ r: 2 }}
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: isGlass ? '#0f172a' : '#fff' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex items-center justify-center gap-6 mt-4 text-xs">
+            <div className="flex items-center justify-center gap-6 mt-6">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-0.5 bg-green-500"></div>
-                <span className="text-gray-600">Optimal zon (0.8-1.3)</span>
+                <div className="w-2 h-2 rounded-full bg-emerald-500/50"></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Optimal zon (0.8-1.3)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-0.5 bg-red-500"></div>
-                <span className="text-gray-600">Varning ({'>'} 1.5)</span>
+                <div className="w-2 h-2 rounded-full bg-red-500/50"></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Varning ({'>'} 1.5)</span>
               </div>
             </div>
           </CardContent>
-        </Card>
+        </CardWrapper>
       )}
 
-      {/* Active Programs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Träningsprogram</CardTitle>
-          <CardDescription>{programs.length} program registrerade</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {programs.length === 0 ? (
-            <p className="text-center text-gray-500 py-6">Inga program tilldelade</p>
-          ) : (
-            <div className="space-y-3">
-              {programs.slice(0, 5).map((program) => {
-                const isActive = program.isActive
-                const progress = calculateProgramProgress(program.startDate, program.endDate)
-
-                return (
-                  <div
-                    key={program.id}
-                    className="p-4 border rounded-lg space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{program.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
-                          {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {program.goalType && (
-                          <Badge variant="outline">{getGoalTypeLabel(program.goalType)}</Badge>
-                        )}
-                        {isActive && <Badge>Aktiv</Badge>}
-                      </div>
-                    </div>
-                    {isActive && (
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Framsteg</span>
-                          <span>{Math.round(progress)}%</span>
-                        </div>
-                        <Progress value={progress} className="h-1" />
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Training Load History */}
-      {trainingLoads.length > 0 && (
-        <Card>
+      {/* Active Programs & Load History */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <CardWrapper>
           <CardHeader>
-            <CardTitle>Daglig belastning</CardTitle>
-            <CardDescription>Senaste 14 dagarna</CardDescription>
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Träningsprogram</CardTitle>
+            <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
+              {programs.length} program registrerade
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {programs.length === 0 ? (
+              <p className={cn("text-center py-10 font-bold uppercase tracking-widest text-[10px]", isGlass ? "text-slate-600" : "text-gray-400")}>Inga program tilldelade</p>
+            ) : (
+              <div className="space-y-3">
+                {programs.slice(0, 5).map((program) => {
+                  const isActive = program.isActive
+                  const progress = calculateProgramProgress(program.startDate, program.endDate)
+
+                  return (
+                    <div
+                      key={program.id}
+                      className={cn(
+                        "p-4 rounded-2xl space-y-3",
+                        isGlass ? "bg-white/[0.02] border border-white/5" : "border"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-gray-900")}>{program.name}</p>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                            {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
+                            {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {program.goalType && (
+                            <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/10 text-slate-400" : "bg-slate-100 text-slate-600")}>{getGoalTypeLabel(program.goalType)}</Badge>
+                          )}
+                          {isActive && <Badge className="font-black uppercase tracking-widest text-[8px] h-4 rounded-md bg-emerald-500 text-white border-0">Aktiv</Badge>}
+                        </div>
+                      </div>
+                      {isActive && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
+                            <span>Framsteg</span>
+                            <span>{Math.round(progress)}%</span>
+                          </div>
+                          <Progress value={progress} className={cn("h-1.5", isGlass ? "bg-white/5" : "")} indicatorClassName="bg-emerald-500" />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </CardContent>
+        </CardWrapper>
+
+        <CardWrapper>
+          <CardHeader>
+            <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Daglig belastning</CardTitle>
+            <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
+              SENASTE 14 DAGARNA
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {trainingLoads.slice(0, 14).map((load) => (
+              {trainingLoads.slice(0, 10).map((load) => (
                 <div
                   key={load.id}
-                  className="flex items-center justify-between p-2 border rounded"
+                  className={cn(
+                    "flex items-center justify-between p-3 rounded-2xl transition-all",
+                    isGlass ? "bg-white/[0.01] border border-white/5 hover:bg-white/5" : "border hover:bg-gray-50"
+                  )}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium w-20">
+                    <span className={cn("text-[10px] font-black uppercase tracking-tighter w-16", isGlass ? "text-slate-400" : "text-gray-600")}>
                       {format(new Date(load.date), 'EEE d MMM', { locale: sv })}
                     </span>
                     {load.workoutType && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 px-1 rounded-md border-0", isGlass ? "bg-white/5 text-slate-500" : "bg-white border")}>
                         {load.workoutType}
                       </Badge>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-sm">
-                    {load.duration && (
-                      <span className="text-gray-500">{formatDuration(load.duration)}</span>
-                    )}
-                    {load.distance && (
-                      <span className="text-gray-500">{(load.distance / 1000).toFixed(1)} km</span>
-                    )}
-                    <span className="font-medium">{Math.round(load.dailyLoad)} TSS</span>
+                  <div className="flex items-center gap-4 text-[10px] font-black uppercase">
+                    <span className={isGlass ? "text-white" : "text-gray-900"}>{Math.round(load.dailyLoad)} <span className="text-slate-500">TSS</span></span>
                     {load.acwrZone && (
                       <Badge
-                        variant={
+                        className={cn(
+                          "font-black tracking-widest text-[8px] h-4 px-1 rounded-md border-0",
                           load.acwrZone === 'SWEET_SPOT'
-                            ? 'default'
+                            ? (isGlass ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-500 text-white')
                             : load.acwrZone === 'HIGH_RISK'
-                            ? 'destructive'
-                            : 'secondary'
-                        }
+                              ? 'bg-red-500 text-white'
+                              : (isGlass ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-700')
+                        )}
                       >
                         {getAcwrZoneLabel(load.acwrZone)}
                       </Badge>
@@ -295,44 +337,63 @@ export function TrainingHistoryTab({ data, viewMode }: TrainingHistoryTabProps) 
               ))}
             </div>
           </CardContent>
-        </Card>
-      )}
+        </CardWrapper>
+      </div>
     </div>
   )
 }
-
 // Helper components
 function StatCard({
   icon: Icon,
-  iconColor,
+  accentColor = 'blue',
   label,
   value,
   unit,
   subtext,
+  isGlass = false,
 }: {
   icon: React.ElementType
-  iconColor: string
+  accentColor?: 'blue' | 'emerald' | 'red' | 'purple' | 'orange' | 'cyan'
   label: string
   value: string
   unit?: string
   subtext?: string
+  isGlass?: boolean
 }) {
+  const accentClasses = {
+    blue: 'text-blue-500 bg-blue-500/10',
+    emerald: 'text-emerald-500 bg-emerald-500/10',
+    red: 'text-red-500 bg-red-500/10',
+    purple: 'text-purple-500 bg-purple-500/10',
+    orange: 'text-orange-500 bg-orange-500/10',
+    cyan: 'text-cyan-500 bg-cyan-500/10',
+  }
+
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm text-gray-500">{label}</p>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-2xl font-bold">{value}</span>
-              {unit && <span className="text-sm text-gray-500">{unit}</span>}
-            </div>
-            {subtext && <p className="text-xs text-gray-400 mt-1">{subtext}</p>}
+    <div className={cn(
+      "p-6 rounded-3xl group transition-all duration-300",
+      isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "bg-white border hover:shadow-md"
+    )}>
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</p>
+          <div className="flex items-baseline gap-1">
+            <span className={cn(
+              "text-3xl font-black uppercase italic tracking-tighter",
+              isGlass ? "text-white" : "text-gray-900"
+            )}>{value}</span>
+            {unit && <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{unit}</span>}
           </div>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
+          {subtext && <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">{subtext}</p>}
         </div>
-      </CardContent>
-    </Card>
+        <div className={cn(
+          "w-10 h-10 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110",
+          accentClasses[accentColor as keyof typeof accentClasses]
+        )}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+    </div>
   )
 }
 

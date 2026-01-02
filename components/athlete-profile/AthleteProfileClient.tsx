@@ -16,6 +16,7 @@ import { InjuryHealthTab } from './tabs/InjuryHealthTab'
 import { ReadinessTab } from './tabs/ReadinessTab'
 import { TechniqueTab } from './tabs/TechniqueTab'
 import { GoalsPlanningTab } from './tabs/GoalsPlanningTab'
+import { cn } from '@/lib/utils'
 
 interface AthleteProfileClientProps {
   data: AthleteProfileData
@@ -44,6 +45,7 @@ export function AthleteProfileClient({
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentTab = searchParams.get('tab') || initialTab
+  const isAthlete = viewMode === 'athlete'
 
   const client = data.identity.client!
   const backLink = viewMode === 'coach' ? `/clients/${client.id}` : '/athlete/dashboard'
@@ -55,14 +57,17 @@ export function AthleteProfileClient({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={cn("min-h-screen", isAthlete ? "bg-transparent pb-20" : "bg-gray-50")}>
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Back Navigation */}
-        <div className="mb-4">
+        <div className="mb-6">
           <Link href={backLink}>
-            <Button variant="ghost" size="sm" className="gap-2">
+            <Button variant="ghost" size="sm" className={cn(
+              "gap-2",
+              isAthlete ? "font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white" : ""
+            )}>
               <ArrowLeft className="h-4 w-4" />
-              {viewMode === 'coach' ? 'Tillbaka till klient' : 'Tillbaka till dashboard'}
+              {viewMode === 'coach' ? 'Tillbaka till klient' : 'Dashboard'}
             </Button>
           </Link>
         </div>
@@ -71,22 +76,31 @@ export function AthleteProfileClient({
         <ProfileHeroSection
           data={data}
           viewMode={viewMode}
+          variant={isAthlete ? "glass" : "default"}
         />
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-10">
           {/* Tab Content - 3 columns on desktop */}
           <div className="lg:col-span-3">
             <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-              {/* Tab List - Horizontal scroll on mobile */}
-              <TabsList className="w-full justify-start overflow-x-auto flex-nowrap bg-white border rounded-lg p-1 h-auto">
+              {/* Tab List */}
+              <TabsList className={cn(
+                "w-full justify-start overflow-x-auto flex-nowrap h-auto mb-8 p-1.5 rounded-2xl",
+                isAthlete ? "bg-white/5 border border-white/5" : "bg-white border"
+              )}>
                 {PROFILE_TABS.map((tab) => {
                   const Icon = tab.icon
                   return (
                     <TabsTrigger
                       key={tab.id}
                       value={tab.id}
-                      className="flex-shrink-0 gap-2 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                      className={cn(
+                        "flex-shrink-0 gap-2 h-10 px-4 rounded-xl transition-all duration-300",
+                        isAthlete
+                          ? "data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-500 font-black uppercase tracking-widest text-[10px]"
+                          : "data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+                      )}
                     >
                       <Icon className="h-4 w-4" />
                       <span className="hidden sm:inline">{tab.label}</span>
@@ -96,37 +110,37 @@ export function AthleteProfileClient({
               </TabsList>
 
               {/* Tab Content */}
-              <div className="mt-4">
+              <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <TabsContent value="physiology" className="mt-0">
-                  <PhysiologyTab data={data} viewMode={viewMode} />
+                  <PhysiologyTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
                 </TabsContent>
 
                 <TabsContent value="performance" className="mt-0">
-                  <PerformanceTab data={data} viewMode={viewMode} />
+                  <PerformanceTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
                 </TabsContent>
 
                 <TabsContent value="body" className="mt-0">
-                  <BodyCompositionTab data={data} viewMode={viewMode} />
+                  <BodyCompositionTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
                 </TabsContent>
 
                 <TabsContent value="training" className="mt-0">
-                  <TrainingHistoryTab data={data} viewMode={viewMode} />
+                  <TrainingHistoryTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
                 </TabsContent>
 
                 <TabsContent value="health" className="mt-0">
-                  <InjuryHealthTab data={data} viewMode={viewMode} />
+                  <InjuryHealthTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
                 </TabsContent>
 
                 <TabsContent value="readiness" className="mt-0">
-                  <ReadinessTab data={data} viewMode={viewMode} />
+                  <ReadinessTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
                 </TabsContent>
 
                 <TabsContent value="technique" className="mt-0">
-                  <TechniqueTab data={data} viewMode={viewMode} />
+                  <TechniqueTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
                 </TabsContent>
 
                 <TabsContent value="goals" className="mt-0">
-                  <GoalsPlanningTab data={data} viewMode={viewMode} />
+                  <GoalsPlanningTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
                 </TabsContent>
               </div>
             </Tabs>

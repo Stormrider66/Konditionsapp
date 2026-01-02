@@ -6,9 +6,17 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, ArrowRight, CheckCircle2, Play } from 'lucide-react'
+import { Calendar, Clock, ArrowRight, CheckCircle2, Play, LayoutGrid } from 'lucide-react'
 import { format, differenceInWeeks, isWithinInterval } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
+import { cn } from '@/lib/utils'
 
 export default async function AthleteProgramsPage() {
   const user = await requireAthlete()
@@ -85,90 +93,124 @@ export default async function AthleteProgramsPage() {
     const isActive = status.label === 'Aktivt'
 
     return (
-      <Link href={`/athlete/programs/${program.id}`} className="block">
-        <Card className={`hover:shadow-md transition-shadow cursor-pointer ${isActive ? 'border-blue-200 bg-blue-50/30' : ''}`}>
-          <CardHeader className="pb-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <CardTitle className="text-base truncate">{program.name}</CardTitle>
-                <CardDescription className="text-xs mt-1">
-                  {format(program.startDate, 'd MMM yyyy', { locale: sv })} - {format(program.endDate, 'd MMM yyyy', { locale: sv })}
-                </CardDescription>
+      <Link href={`/athlete/programs/${program.id}`} className="block group">
+        <GlassCard className={cn(
+          "transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]",
+          isActive && "bg-blue-600/5 border-blue-600/20 shadow-lg shadow-blue-600/5"
+        )}>
+          <GlassCardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0 space-y-1">
+                <GlassCardTitle className="text-xl font-black tracking-tight text-white uppercase italic group-hover:text-blue-400 transition-colors">
+                  {program.name}
+                </GlassCardTitle>
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <Calendar className="h-3 w-3 text-blue-500" />
+                  <span>
+                    {format(program.startDate, 'd MMM yyyy', { locale: sv })} — {format(program.endDate, 'd MMM yyyy', { locale: sv })}
+                  </span>
+                </div>
               </div>
-              <Badge variant={status.variant}>{status.label}</Badge>
+              <Badge className={cn(
+                "rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest border-0",
+                status.label === 'Aktivt' ? "bg-emerald-500/20 text-emerald-400" :
+                  status.label === 'Kommande' ? "bg-blue-500/20 text-blue-400" :
+                    "bg-white/5 text-slate-500"
+              )}>
+                {status.label}
+              </Badge>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span>{program._count.weeks} veckor</span>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="flex items-center gap-6 mb-6">
+              <div className="space-y-1">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">Längd</p>
+                <div className="flex items-center gap-2 text-white font-black">
+                  <Clock className="h-4 w-4 text-blue-500" />
+                  <span>{program._count.weeks} veckor</span>
+                </div>
               </div>
               {currentWeek && (
-                <div className="flex items-center gap-1">
-                  <Play className="h-4 w-4 text-blue-500" />
-                  <span className="text-blue-600 font-medium">Vecka {currentWeek}</span>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">Nuvarande</p>
+                  <div className="flex items-center gap-2 text-blue-400 font-black">
+                    <Play className="h-4 w-4 fill-current" />
+                    <span>Vecka {currentWeek}</span>
+                  </div>
                 </div>
               )}
             </div>
+
             {program.weeks.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1">
-                {program.weeks.slice(0, 6).map((week) => (
+              <div className="flex flex-wrap gap-2">
+                {program.weeks.slice(0, 8).map((week) => (
                   <Badge
                     key={week.id}
                     variant="outline"
-                    className={`text-[10px] ${week.weekNumber === currentWeek ? 'bg-blue-100 border-blue-300' : ''}`}
+                    className={cn(
+                      "text-[9px] font-black uppercase tracking-widest h-6 rounded-lg border-white/5 bg-white/5 text-slate-500",
+                      week.weekNumber === currentWeek && "bg-blue-600/20 text-blue-400 border-blue-600/30"
+                    )}
                   >
-                    {week.phase || `V${week.weekNumber}`}
+                    {week.phase || `W${week.weekNumber}`}
                   </Badge>
                 ))}
-                {program.weeks.length > 6 && (
-                  <Badge variant="outline" className="text-[10px]">
-                    +{program.weeks.length - 6}
-                  </Badge>
+                {program.weeks.length > 8 && (
+                  <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-[9px] font-black text-slate-600">
+                    +{program.weeks.length - 8}
+                  </div>
                 )}
               </div>
             )}
-            <div className="mt-3 flex justify-end">
-              <span className="text-xs text-blue-600 flex items-center gap-1">
-                Visa program <ArrowRight className="h-3 w-3" />
-              </span>
+
+            <div className="mt-8 flex justify-end">
+              <div className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500 flex items-center gap-2 group-hover:gap-3 transition-all">
+                Gå till program <ArrowRight className="h-3 w-3" />
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </Link>
     )
   }
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Mina Program</h1>
-        <p className="text-muted-foreground text-sm">
-          Alla dina träningsprogram samlade på ett ställe
+    <div className="min-h-screen pb-20 pt-10 px-4 max-w-4xl mx-auto">
+      <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
+        <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tighter uppercase leading-none mb-4">
+          Mina <span className="text-blue-600 italic">Program</span>
+        </h1>
+        <p className="text-slate-400 font-medium text-sm max-w-md">
+          Alla dina träningsprogram samlade på ett ställe. Följ din utveckling och se kommande utmaningar.
         </p>
       </div>
 
       {programs.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-            <h3 className="font-medium text-lg mb-2">Inga program ännu</h3>
-            <p className="text-sm text-muted-foreground">
-              Din coach har inte skapat några träningsprogram för dig ännu.
+        <GlassCard>
+          <GlassCardContent className="py-20 text-center space-y-4">
+            <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/5 flex items-center justify-center mx-auto mb-6">
+              <Calendar className="h-10 w-10 text-slate-700" />
+            </div>
+            <h3 className="text-2xl font-black text-white uppercase tracking-tight">Inga program ännu</h3>
+            <p className="text-slate-500 max-w-xs mx-auto font-medium">
+              Din coach har inte skapat några träningsprogram åt dig ännu. De dyker upp här så snart de är klara.
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-12">
           {/* Active Programs */}
           {activePrograms.length > 0 && (
-            <section>
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Play className="h-5 w-5 text-blue-500" />
-                Aktiva Program
-              </h2>
-              <div className="grid gap-4">
+            <section className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-white/5" />
+                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500 flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/5 border border-blue-500/10">
+                  <Play className="h-3 w-3 fill-current" />
+                  Aktiva Program
+                </h2>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
+              <div className="grid gap-6">
                 {activePrograms.map((program) => (
                   <ProgramCard key={program.id} program={program} />
                 ))}
@@ -178,12 +220,16 @@ export default async function AthleteProgramsPage() {
 
           {/* Upcoming Programs */}
           {upcomingPrograms.length > 0 && (
-            <section>
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-orange-500" />
-                Kommande Program
-              </h2>
-              <div className="grid gap-4">
+            <section className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-white/5" />
+                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5">
+                  <Clock className="h-3 w-3" />
+                  Kommande Program
+                </h2>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
+              <div className="grid gap-6">
                 {upcomingPrograms.map((program) => (
                   <ProgramCard key={program.id} program={program} />
                 ))}
@@ -193,11 +239,15 @@ export default async function AthleteProgramsPage() {
 
           {/* Past Programs */}
           {pastPrograms.length > 0 && (
-            <section>
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                Avslutade Program
-              </h2>
+            <section className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-white/5" />
+                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Avslutade Program
+                </h2>
+                <div className="h-px flex-1 bg-white/5" />
+              </div>
               <div className="grid gap-4">
                 {pastPrograms.map((program) => (
                   <ProgramCard key={program.id} program={program} />

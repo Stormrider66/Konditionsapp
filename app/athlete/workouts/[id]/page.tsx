@@ -6,10 +6,18 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, CheckCircle2, Clock, MapPin, Calendar, Edit } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock, MapPin, Calendar, Edit, ClipboardList, Info, Activity, Zap } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { WorkoutSegments } from '@/components/athlete/workout/WorkoutSegments'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
+import { cn } from '@/lib/utils'
 
 interface WorkoutDetailPageProps {
   params: Promise<{
@@ -91,85 +99,112 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
   workoutDate.setDate(workoutDate.getDate() + dayOffset)
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
+    <div className="min-h-screen pb-20 pt-6 px-4 max-w-4xl mx-auto">
       <Link href={`/athlete/programs/${workout.day.week.program.id}`}>
-        <Button variant="ghost" className="mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till program
+        <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white">
+          <ArrowLeft className="mr-2 h-3.5 w-3.5" />
+          Programöversikt
         </Button>
       </Link>
 
-      <div className="mb-8">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">{workout.name}</h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
+      <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
+          <div className="space-y-2">
+            <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tighter uppercase leading-none">
+              {workout.name}
+            </h1>
+            <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-slate-500">
+              <Calendar className="h-3.5 w-3.5 text-blue-500" />
               <span>
-                {format(workoutDate, 'EEEE, d MMMM yyyy', { locale: sv })}
+                {format(workoutDate, 'EEEE d MMM yyyy', { locale: sv })}
               </span>
-              <span>•</span>
+              <span className="text-slate-700">•</span>
               <span>
-                Vecka {workout.day.week.weekNumber}, Dag {workout.day.dayNumber}
+                Vecka <span className="text-white">{workout.day.week.weekNumber}</span>, Dag <span className="text-white">{workout.day.dayNumber}</span>
               </span>
             </div>
           </div>
           {isCompleted && (
-            <Badge variant="default" className="bg-green-500 flex items-center gap-1">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
               <CheckCircle2 className="h-4 w-4" />
-              Slutförd
-            </Badge>
+              <span className="text-[10px] font-black uppercase tracking-widest">Passet slutfört</span>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Workout Details */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Passinformation</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Badge variant="outline" className="text-sm">
-              {formatWorkoutType(workout.type)}
-            </Badge>
-            <Badge variant="outline" className={getIntensityBadgeClass(workout.intensity)}>
-              {formatIntensity(workout.intensity)}
-            </Badge>
-          </div>
+      {/* Workout Info Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <GlassCard className="md:col-span-2">
+          <GlassCardHeader className="pb-3">
+            <GlassCardTitle className="text-lg font-black tracking-tight flex items-center gap-2">
+              <Info className="h-4 w-4 text-blue-500" />
+              Instruktioner
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="flex items-center gap-3 mb-6">
+              <Badge variant="outline" className="rounded-lg h-7 bg-white/5 border-white/10 text-white font-bold px-3">
+                {formatWorkoutType(workout.type)}
+              </Badge>
+              <Badge variant="outline" className={cn("rounded-lg h-7 border-0 font-bold px-3", getIntensityBadgeClass(workout.intensity, true))}>
+                {formatIntensity(workout.intensity)}
+              </Badge>
+            </div>
 
-          {workout.instructions && (
-            <div>
-              <h4 className="font-semibold mb-2">Instruktioner</h4>
-              <p className="text-muted-foreground whitespace-pre-wrap">
+            {workout.instructions ? (
+              <p className="text-slate-300 whitespace-pre-wrap leading-relaxed font-medium">
                 {workout.instructions}
               </p>
-            </div>
-          )}
+            ) : (
+              <p className="text-slate-500 italic">Inga specifika instruktioner angivna.</p>
+            )}
+          </GlassCardContent>
+        </GlassCard>
 
-          {/* Planned metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
-            {workout.duration && (
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Planerad tid</p>
-                  <p className="font-semibold">{workout.duration} min</p>
+        <div className="space-y-6">
+          <GlassCard>
+            <GlassCardHeader className="pb-3">
+              <GlassCardTitle className="text-lg font-black tracking-tight flex items-center gap-2 text-blue-400">
+                <Zap className="h-4 w-4" />
+                Planerade Mål
+              </GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-6">
+              {workout.duration && (
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/10">
+                    <Clock className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Tid</p>
+                    <p className="text-xl font-black text-white">{workout.duration} min</p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {workout.distance && (
-              <div className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Planerad distans</p>
-                  <p className="font-semibold">{workout.distance} km</p>
+              )}
+              {workout.distance && (
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/10">
+                    <MapPin className="h-5 w-5 text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Distans</p>
+                    <p className="text-xl font-black text-white">{workout.distance} km</p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              )}
+            </GlassCardContent>
+          </GlassCard>
+
+          {!isCompleted && (
+            <Link href={`/athlete/workouts/${workout.id}/log`} className="block">
+              <Button className="w-full h-16 rounded-3xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-sm shadow-[0_10px_30px_rgba(37,99,235,0.2)] transition-all hover:scale-[1.02] active:scale-[0.98]">
+                Logga detta pass
+              </Button>
+            </Link>
+          )}
+        </div>
+      </div>
 
       {/* Workout Structure with Lactate Capture Buttons */}
       {workout.segments && workout.segments.length > 0 && (
@@ -185,63 +220,66 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
 
       {/* Completed Workout Log */}
       {existingLog && (
-        <Card className="mb-6">
-          <CardHeader>
+        <GlassCard className="mb-8 border-emerald-500/20 bg-emerald-500/5">
+          <GlassCardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Din genomförda träning</CardTitle>
+              <GlassCardTitle className="text-xl font-black tracking-tight text-white uppercase italic">Genomfört Logg</GlassCardTitle>
               <Link href={`/athlete/workouts/${workout.id}/log`}>
-                <Button variant="outline" size="sm">
-                  <Edit className="mr-2 h-4 w-4" />
+                <Button variant="ghost" size="sm" className="h-9 px-4 rounded-xl font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300">
+                  <Edit className="mr-2 h-3.5 w-3.5" />
                   Redigera
                 </Button>
               </Link>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {existingLog.duration && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Tid</p>
-                  <p className="font-semibold">{existingLog.duration} min</p>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Loggad Tid</p>
+                  <p className="text-2xl font-black text-white">{existingLog.duration} <span className="text-xs text-slate-600">min</span></p>
                 </div>
               )}
               {existingLog.distance && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Distans</p>
-                  <p className="font-semibold">{existingLog.distance} km</p>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Loggad Distans</p>
+                  <p className="text-2xl font-black text-white">{existingLog.distance} <span className="text-xs text-slate-600">km</span></p>
                 </div>
               )}
               {existingLog.avgPace && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Genomsnittstempo</p>
-                  <p className="font-semibold">{existingLog.avgPace}</p>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Tempo</p>
+                  <p className="text-2xl font-black text-white">{existingLog.avgPace} <span className="text-xs text-slate-600">/km</span></p>
                 </div>
               )}
               {existingLog.avgHR && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Genomsnittspuls</p>
-                  <p className="font-semibold">{existingLog.avgHR} slag/min</p>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Snittpuls</p>
+                  <p className="text-2xl font-black text-white">{existingLog.avgHR} <span className="text-xs text-slate-600">bpm</span></p>
                 </div>
               )}
             </div>
 
             {(existingLog.perceivedEffort || existingLog.difficulty) && (
-              <div className="border-t pt-4">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="pt-6 border-t border-white/10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {existingLog.perceivedEffort && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">RPE</p>
-                      <Badge variant="outline" className={getEffortBadgeClass(existingLog.perceivedEffort)}>
-                        {existingLog.perceivedEffort}/10 - {getEffortLabel(existingLog.perceivedEffort)}
-                      </Badge>
+                    <div className="space-y-2">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Perceived Effort (RPE)</p>
+                      <div className={cn(
+                        "inline-flex items-center h-10 px-4 rounded-2xl border font-bold text-sm",
+                        getEffortBadgeClass(existingLog.perceivedEffort, true)
+                      )}>
+                        {existingLog.perceivedEffort}/10 — {getEffortLabel(existingLog.perceivedEffort)}
+                      </div>
                     </div>
                   )}
                   {existingLog.difficulty && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Svårighetsgrad</p>
-                      <Badge variant="outline">
-                        {existingLog.difficulty}/10 - {getDifficultyLabel(existingLog.difficulty)}
-                      </Badge>
+                    <div className="space-y-2">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Känslomässig Svårighet</p>
+                      <div className="inline-flex items-center h-10 px-4 rounded-2xl border border-white/10 bg-white/5 text-white font-bold text-sm">
+                        {existingLog.difficulty}/10 — {getDifficultyLabel(existingLog.difficulty)}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -249,33 +287,35 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
             )}
 
             {existingLog.feeling && (
-              <div className="border-t pt-4">
-                <p className="text-xs text-muted-foreground mb-1">Känsla</p>
-                <p className="text-sm">{existingLog.feeling}</p>
+              <div className="pt-6 border-t border-white/10">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Känsla</p>
+                <p className="text-slate-300 font-medium leading-relaxed italic">&quot;{existingLog.feeling}&quot;</p>
               </div>
             )}
 
             {existingLog.notes && (
-              <div className="border-t pt-4">
-                <p className="text-xs text-muted-foreground mb-1">Anteckningar</p>
-                <p className="text-sm whitespace-pre-wrap">{existingLog.notes}</p>
+              <div className="pt-6 border-t border-white/10">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Anteckningar</p>
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 text-slate-400 text-sm whitespace-pre-wrap leading-relaxed">
+                  {existingLog.notes}
+                </div>
               </div>
             )}
 
             {(existingLog.stravaUrl || existingLog.dataFileUrl) && (
-              <div className="border-t pt-4">
-                <p className="text-xs text-muted-foreground mb-2">Externa länkar</p>
-                <div className="flex gap-2">
+              <div className="pt-6 border-t border-white/10">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-3">Integrations & Data</p>
+                <div className="flex flex-wrap gap-3">
                   {existingLog.stravaUrl && (
                     <a href={existingLog.stravaUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm">
+                      <Button variant="ghost" size="sm" className="h-10 px-5 rounded-xl bg-[#FC642D]/20 border border-[#FC642D]/30 text-[#FC642D] hover:bg-[#FC642D]/30 font-black uppercase tracking-widest text-[10px]">
                         Visa på Strava
                       </Button>
                     </a>
                   )}
                   {existingLog.dataFileUrl && (
                     <a href={existingLog.dataFileUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm">
+                      <Button variant="ghost" size="sm" className="h-10 px-5 rounded-xl bg-white/10 border border-white/20 text-white font-black uppercase tracking-widest text-[10px]">
                         Datafil
                       </Button>
                     </a>
@@ -285,31 +325,18 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
             )}
 
             {existingLog.coachFeedback && (
-              <div className="border-t pt-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-blue-600 text-white rounded-full p-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-4 w-4"
-                      >
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                      </svg>
+              <div className="pt-6 border-t border-white/10">
+                <div className="bg-blue-600/10 border border-blue-600/20 rounded-[2rem] p-6 shadow-lg shadow-blue-600/5">
+                  <div className="flex gap-4">
+                    <div className="hidden sm:flex w-12 h-12 rounded-2xl bg-blue-600/20 items-center justify-center shrink-0 border border-blue-600/20">
+                      <Activity className="h-6 w-6 text-blue-500" />
                     </div>
                     <div>
-                      <p className="font-semibold text-blue-900 text-sm mb-1">
-                        Feedback från coach
-                      </p>
-                      <p className="text-blue-900 text-sm whitespace-pre-wrap">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="font-black text-blue-500 text-[10px] uppercase tracking-[0.2em]">Feedback från Coach</p>
+                        <span className="text-[8px] font-black text-slate-600 uppercase">Privat Logg</span>
+                      </div>
+                      <p className="text-blue-100 text-sm font-medium leading-relaxed whitespace-pre-wrap">
                         {existingLog.coachFeedback}
                       </p>
                     </div>
@@ -318,30 +345,30 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
               </div>
             )}
 
-            <div className="text-xs text-muted-foreground border-t pt-4">
-              Loggad {existingLog.completedAt ? format(new Date(existingLog.completedAt), 'PPP HH:mm', { locale: sv }) : '-'}
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 pt-6 border-t border-white/5 flex justify-between items-center">
+              <span>Timestamp</span>
+              <span>{existingLog.completedAt ? format(new Date(existingLog.completedAt), 'PPP HH:mm', { locale: sv }) : '-'}</span>
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Action Buttons */}
-      <div className="flex gap-3">
-        {isCompleted ? (
-          <Link href={`/athlete/workouts/${workout.id}/log`} className="flex-1">
-            <Button variant="outline" className="w-full">
-              <Edit className="mr-2 h-4 w-4" />
-              Redigera logg
-            </Button>
-          </Link>
-        ) : (
-          <Link href={`/athlete/workouts/${workout.id}/log`} className="flex-1">
-            <Button className="w-full">
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Logga pass
-            </Button>
-          </Link>
-        )}
+      <div className="flex gap-4 mt-12 mb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <Link href={`/athlete/workouts/${workout.id}/log`} className="flex-1">
+          <Button className={cn(
+            "w-full h-16 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99]",
+            isCompleted
+              ? "bg-white/10 border border-white/10 text-white hover:bg-white/20"
+              : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20"
+          )}>
+            {isCompleted ? (
+              <><Edit className="mr-2 h-4 w-4" /> Redigera logg</>
+            ) : (
+              <><CheckCircle2 className="mr-2 h-4 w-4" /> Logga genomfört pass</>
+            )}
+          </Button>
+        </Link>
       </div>
     </div>
   )
@@ -369,12 +396,24 @@ function formatIntensity(intensity: string): string {
     MODERATE: 'Måttlig',
     THRESHOLD: 'Tröskel',
     INTERVAL: 'Intervall',
-    MAX: 'Max',
+    MAX: 'Maximal',
   }
   return intensities[intensity] || intensity
 }
 
-function getIntensityBadgeClass(intensity: string): string {
+function getIntensityBadgeClass(intensity: string, isGlass: boolean = false): string {
+  if (isGlass) {
+    const classes: Record<string, string> = {
+      RECOVERY: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+      EASY: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+      MODERATE: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+      THRESHOLD: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+      INTERVAL: 'bg-red-500/10 text-red-400 border border-red-500/20',
+      MAX: 'bg-red-600/20 text-red-500 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.2)]',
+    }
+    return classes[intensity] || 'bg-white/5 text-white border-white/10'
+  }
+
   const classes: Record<string, string> = {
     RECOVERY: 'border-purple-300 text-purple-700',
     EASY: 'border-green-300 text-green-700',
@@ -395,13 +434,20 @@ function getEffortLabel(effort: number): string {
 }
 
 function getDifficultyLabel(difficulty: number): string {
-  if (difficulty <= 3) return 'Lättare än förväntat'
-  if (difficulty <= 5) return 'Som förväntat'
-  if (difficulty <= 7) return 'Svårare än förväntat'
-  return 'Mycket svårt'
+  if (difficulty <= 3) return 'Lättare än planat'
+  if (difficulty <= 5) return 'Som planat'
+  if (difficulty <= 7) return 'Slitigt'
+  return 'Väldigt tufft'
 }
 
-function getEffortBadgeClass(effort: number): string {
+function getEffortBadgeClass(effort: number, isGlass: boolean = false): string {
+  if (isGlass) {
+    if (effort <= 3) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+    if (effort <= 5) return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+    if (effort <= 7) return 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+    return 'bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
+  }
+
   if (effort <= 3) return 'border-green-300 text-green-700'
   if (effort <= 5) return 'border-yellow-300 text-yellow-700'
   if (effort <= 7) return 'border-orange-300 text-orange-700'

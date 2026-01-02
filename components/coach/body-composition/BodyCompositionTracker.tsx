@@ -521,18 +521,17 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
               editingMeasurement
                 ? {
                     id: editingMeasurement.id,
-                    measurementDate: editingMeasurement.measurementDate.split('T')[0],
-                    weightKg: editingMeasurement.weightKg,
-                    bodyFatPercent: editingMeasurement.bodyFatPercent,
-                    muscleMassKg: editingMeasurement.muscleMassKg,
-                    visceralFat: editingMeasurement.visceralFat,
-                    boneMassKg: editingMeasurement.boneMassKg,
-                    waterPercent: editingMeasurement.waterPercent,
-                    bmrKcal: editingMeasurement.bmrKcal,
-                    metabolicAge: editingMeasurement.metabolicAge,
-                    deviceBrand: editingMeasurement.deviceBrand,
-                    measurementTime: editingMeasurement.measurementTime,
-                    notes: editingMeasurement.notes,
+                    date: editingMeasurement.measurementDate.split('T')[0],
+                    weight: editingMeasurement.weightKg ?? undefined,
+                    bodyFatPercent: editingMeasurement.bodyFatPercent ?? undefined,
+                    muscleMass: editingMeasurement.muscleMassKg ?? undefined,
+                    visceralFat: editingMeasurement.visceralFat ?? undefined,
+                    boneMass: editingMeasurement.boneMassKg ?? undefined,
+                    waterPercent: editingMeasurement.waterPercent ?? undefined,
+                    bmr: editingMeasurement.bmrKcal ?? undefined,
+                    deviceBrand: editingMeasurement.deviceBrand ?? undefined,
+                    measurementTime: editingMeasurement.measurementTime ?? undefined,
+                    notes: editingMeasurement.notes ?? undefined,
                   }
                 : undefined
             }

@@ -1,8 +1,9 @@
+// components/calendar/DaySidebar.tsx
 'use client'
 
 /**
  * Day Sidebar Component
- *
+ * 
  * Shows details for the selected day including all events, workouts, etc.
  */
 
@@ -47,6 +48,13 @@ import {
 import { PostEventMonitor } from './PostEventMonitor'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
 
 interface DaySidebarProps {
   clientId: string
@@ -58,9 +66,11 @@ interface DaySidebarProps {
   onEditEvent: (item: UnifiedCalendarItem) => void
   onEventDeleted: () => void
   isCoachView?: boolean
+  variant?: 'default' | 'glass'
 }
 
 export function DaySidebar({
+  clientId,
   date,
   items,
   selectedItem,
@@ -69,8 +79,23 @@ export function DaySidebar({
   onEditEvent,
   onEventDeleted,
   isCoachView,
+  variant = 'default',
 }: DaySidebarProps) {
+  const isGlass = variant === 'glass'
+
   if (!date) {
+    if (isGlass) {
+      return (
+        <GlassCard className="w-full lg:w-80 shrink-0">
+          <GlassCardContent className="p-12 text-center text-slate-500 font-medium h-[250px] flex flex-col items-center justify-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-slate-500/10 flex items-center justify-center">
+              <ChevronRight className="h-6 w-6 text-slate-500 opacity-50" />
+            </div>
+            <p className="text-sm">Välj en dag i kalendern för att se detaljer</p>
+          </GlassCardContent>
+        </GlassCard>
+      )
+    }
     return (
       <Card className="w-full lg:w-80 shrink-0">
         <CardContent className="p-6 text-center text-muted-foreground">
@@ -85,6 +110,183 @@ export function DaySidebar({
   const events = items.filter((i) => i.type === 'CALENDAR_EVENT')
   const fieldTests = items.filter((i) => i.type === 'FIELD_TEST')
   const checkIns = items.filter((i) => i.type === 'CHECK_IN')
+
+  if (isGlass) {
+    return (
+      <GlassCard className="w-full lg:w-80 shrink-0 max-h-[calc(100vh-200px)] overflow-y-auto">
+        <GlassCardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <GlassCardTitle className="text-xl font-black capitalize text-white tracking-tight">
+              {format(date, 'EEEE d MMMM', { locale: sv })}
+            </GlassCardTitle>
+            <Button variant="ghost" size="icon" onClick={onAddEvent} className="hover:bg-white/10 text-slate-400">
+              <Plus className="h-5 w-5" />
+            </Button>
+          </div>
+        </GlassCardHeader>
+
+        <GlassCardContent className="space-y-6 pt-2">
+          {items.length === 0 ? (
+            <div className="py-12 flex flex-col items-center text-slate-500 gap-2">
+              <div className="w-10 h-10 rounded-full bg-slate-500/5 flex items-center justify-center">
+                <Clock className="h-5 w-5 opacity-20" />
+              </div>
+              <p className="text-xs font-bold uppercase tracking-widest opacity-50">
+                Inga händelser
+              </p>
+            </div>
+          ) : (
+            <>
+              {workouts.length > 0 && (
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-blue-500" />
+                    Pass ({workouts.length})
+                  </h4>
+                  <div className="space-y-2.5">
+                    {workouts.map((workout) => (
+                      <WorkoutItem
+                        key={workout.id}
+                        workout={workout}
+                        isSelected={selectedItem?.id === workout.id}
+                        onClick={() => onItemClick(workout)}
+                        isGlass={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {races.length > 0 && (
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-red-500" />
+                    Tävlingar
+                  </h4>
+                  <div className="space-y-2.5">
+                    {races.map((race) => (
+                      <RaceItem
+                        key={race.id}
+                        race={race}
+                        isSelected={selectedItem?.id === race.id}
+                        onClick={() => onItemClick(race)}
+                        isGlass={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {events.length > 0 && (
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-purple-500" />
+                    Händelser
+                  </h4>
+                  <div className="space-y-2.5">
+                    {events.map((event) => (
+                      <CalendarEventItem
+                        key={event.id}
+                        event={event}
+                        isSelected={selectedItem?.id === event.id}
+                        onClick={() => onItemClick(event)}
+                        onEdit={() => onEditEvent(event)}
+                        onDeleted={onEventDeleted}
+                        isGlass={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {fieldTests.length > 0 && (
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                    <Heart className="h-4 w-4 text-green-500" />
+                    Fälttest
+                  </h4>
+                  <div className="space-y-2.5">
+                    {fieldTests.map((test) => (
+                      <FieldTestItem
+                        key={test.id}
+                        test={test}
+                        isSelected={selectedItem?.id === test.id}
+                        onClick={() => onItemClick(test)}
+                        isGlass={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {checkIns.length > 0 && (
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                    <Thermometer className="h-4 w-4 text-orange-500" />
+                    Daglig avstämning
+                  </h4>
+                  <div className="space-y-2.5">
+                    {checkIns.map((checkIn) => (
+                      <CheckInItem
+                        key={checkIn.id}
+                        checkIn={checkIn}
+                        isSelected={selectedItem?.id === checkIn.id}
+                        onClick={() => onItemClick(checkIn)}
+                        isGlass={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedItem?.type === 'CALENDAR_EVENT' &&
+                (selectedItem.metadata.eventType === 'ILLNESS' ||
+                  selectedItem.metadata.eventType === 'ALTITUDE_CAMP') && (
+                  <div className="mt-6">
+                    <PostEventMonitor
+                      eventType={selectedItem.metadata.eventType as 'ILLNESS' | 'ALTITUDE_CAMP'}
+                      eventData={{
+                        startDate: new Date(selectedItem.date),
+                        endDate: selectedItem.endDate ? new Date(selectedItem.endDate) : new Date(selectedItem.date),
+                        illnessType: selectedItem.metadata.illnessType as string | undefined,
+                        hadFever: selectedItem.metadata.hadFever as boolean | undefined,
+                        feverDays: selectedItem.metadata.feverDays as number | undefined,
+                        symptomsBelowNeck: selectedItem.metadata.symptomsBelowNeck as boolean | undefined,
+                        medicalClearance: selectedItem.metadata.medicalClearance as boolean | undefined,
+                        returnToTrainingDate: selectedItem.metadata.returnToTrainingDate
+                          ? new Date(selectedItem.metadata.returnToTrainingDate as string)
+                          : undefined,
+                        altitude: selectedItem.metadata.altitude as number | undefined,
+                      }}
+                      variant="glass"
+                    />
+                  </div>
+                )}
+
+              {selectedItem?.type === 'WORKOUT' && (
+                <WorkoutDetailPanel
+                  workout={selectedItem}
+                  isCoachView={isCoachView}
+                  isGlass={true}
+                />
+              )}
+            </>
+          )}
+
+          <div className="pt-4 mt-6 border-t border-white/5">
+            <Button
+              variant="ghost"
+              className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all h-10"
+              onClick={onAddEvent}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Lägg till händelse
+            </Button>
+          </div>
+        </GlassCardContent>
+      </GlassCard>
+    )
+  }
 
   return (
     <Card className="w-full lg:w-80 shrink-0 max-h-[calc(100vh-200px)] overflow-y-auto">
@@ -106,7 +308,6 @@ export function DaySidebar({
           </p>
         ) : (
           <>
-            {/* Workouts */}
             {workouts.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -126,7 +327,6 @@ export function DaySidebar({
               </div>
             )}
 
-            {/* Races */}
             {races.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -146,7 +346,6 @@ export function DaySidebar({
               </div>
             )}
 
-            {/* Calendar Events */}
             {events.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -168,7 +367,6 @@ export function DaySidebar({
               </div>
             )}
 
-            {/* Field Tests */}
             {fieldTests.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -188,7 +386,6 @@ export function DaySidebar({
               </div>
             )}
 
-            {/* Check-ins */}
             {checkIns.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -208,31 +405,29 @@ export function DaySidebar({
               </div>
             )}
 
-            {/* Post-Event Monitoring for Illness/Altitude Camp */}
             {selectedItem?.type === 'CALENDAR_EVENT' &&
               (selectedItem.metadata.eventType === 'ILLNESS' ||
                 selectedItem.metadata.eventType === 'ALTITUDE_CAMP') && (
-              <div className="mt-4">
-                <PostEventMonitor
-                  eventType={selectedItem.metadata.eventType as 'ILLNESS' | 'ALTITUDE_CAMP'}
-                  eventData={{
-                    startDate: new Date(selectedItem.date),
-                    endDate: selectedItem.endDate ? new Date(selectedItem.endDate) : new Date(selectedItem.date),
-                    illnessType: selectedItem.metadata.illnessType as string | undefined,
-                    hadFever: selectedItem.metadata.hadFever as boolean | undefined,
-                    feverDays: selectedItem.metadata.feverDays as number | undefined,
-                    symptomsBelowNeck: selectedItem.metadata.symptomsBelowNeck as boolean | undefined,
-                    medicalClearance: selectedItem.metadata.medicalClearance as boolean | undefined,
-                    returnToTrainingDate: selectedItem.metadata.returnToTrainingDate
-                      ? new Date(selectedItem.metadata.returnToTrainingDate as string)
-                      : undefined,
-                    altitude: selectedItem.metadata.altitude as number | undefined,
-                  }}
-                />
-              </div>
-            )}
+                <div className="mt-4">
+                  <PostEventMonitor
+                    eventType={selectedItem.metadata.eventType as 'ILLNESS' | 'ALTITUDE_CAMP'}
+                    eventData={{
+                      startDate: new Date(selectedItem.date),
+                      endDate: selectedItem.endDate ? new Date(selectedItem.endDate) : new Date(selectedItem.date),
+                      illnessType: selectedItem.metadata.illnessType as string | undefined,
+                      hadFever: selectedItem.metadata.hadFever as boolean | undefined,
+                      feverDays: selectedItem.metadata.feverDays as number | undefined,
+                      symptomsBelowNeck: selectedItem.metadata.symptomsBelowNeck as boolean | undefined,
+                      medicalClearance: selectedItem.metadata.medicalClearance as boolean | undefined,
+                      returnToTrainingDate: selectedItem.metadata.returnToTrainingDate
+                        ? new Date(selectedItem.metadata.returnToTrainingDate as string)
+                        : undefined,
+                      altitude: selectedItem.metadata.altitude as number | undefined,
+                    }}
+                  />
+                </div>
+              )}
 
-            {/* Workout Detail Panel */}
             {selectedItem?.type === 'WORKOUT' && (
               <WorkoutDetailPanel
                 workout={selectedItem}
@@ -259,9 +454,10 @@ interface WorkoutItemProps {
   workout: UnifiedCalendarItem
   isSelected: boolean
   onClick: () => void
+  isGlass?: boolean
 }
 
-function WorkoutItem({ workout, isSelected, onClick }: WorkoutItemProps) {
+function WorkoutItem({ workout, isSelected, onClick, isGlass = false }: WorkoutItemProps) {
   const meta = workout.metadata
   const workoutType = (meta.workoutType as string) || 'OTHER'
   const intensity = (meta.intensity as string) || 'MODERATE'
@@ -270,8 +466,11 @@ function WorkoutItem({ workout, isSelected, onClick }: WorkoutItemProps) {
   return (
     <button
       className={cn(
-        'w-full text-left p-3 rounded-lg border transition-colors',
-        isSelected ? 'ring-2 ring-primary' : 'hover:bg-accent'
+        'w-full text-left p-4 rounded-xl border transition-all duration-300',
+        isGlass
+          ? "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+          : isSelected ? 'ring-2 ring-primary' : 'hover:bg-accent',
+        isSelected && isGlass && "ring-1 ring-blue-500/50 bg-blue-500/5"
       )}
       onClick={onClick}
     >
@@ -324,9 +523,10 @@ interface RaceItemProps {
   race: UnifiedCalendarItem
   isSelected: boolean
   onClick: () => void
+  isGlass?: boolean
 }
 
-function RaceItem({ race, isSelected, onClick }: RaceItemProps) {
+function RaceItem({ race, isSelected, onClick, isGlass = false }: RaceItemProps) {
   const meta = race.metadata
   const classification = meta.classification as string
   const isCompleted = meta.isCompleted as boolean
@@ -340,8 +540,13 @@ function RaceItem({ race, isSelected, onClick }: RaceItemProps) {
   return (
     <button
       className={cn(
-        'w-full text-left p-3 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 transition-colors',
-        isSelected ? 'ring-2 ring-primary' : 'hover:bg-red-100 dark:hover:bg-red-950/40'
+        'w-full text-left p-4 rounded-xl border transition-all duration-300',
+        isGlass
+          ? "bg-red-500/5 border-red-500/20 hover:bg-red-500/10 hover:border-red-500/30"
+          : 'border-red-200 bg-red-50 dark:bg-red-950/20',
+        isSelected
+          ? (isGlass ? 'ring-1 ring-red-500/60 bg-red-500/10' : 'ring-2 ring-primary')
+          : ''
       )}
       onClick={onClick}
     >
@@ -371,6 +576,7 @@ interface CalendarEventItemProps {
   onClick: () => void
   onEdit: () => void
   onDeleted: () => void
+  isGlass?: boolean
 }
 
 function CalendarEventItem({
@@ -379,6 +585,7 @@ function CalendarEventItem({
   onClick,
   onEdit,
   onDeleted,
+  isGlass = false,
 }: CalendarEventItemProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const meta = event.metadata
@@ -407,9 +614,11 @@ function CalendarEventItem({
   return (
     <div
       className={cn(
-        'p-3 rounded-lg border transition-colors',
-        config?.bgColor || 'bg-gray-100',
-        isSelected ? 'ring-2 ring-primary' : ''
+        'p-4 rounded-xl border transition-all duration-300',
+        isGlass
+          ? "bg-white/5 border-white/10"
+          : (config?.bgColor || 'bg-gray-100'),
+        isSelected && (isGlass ? 'ring-1 ring-purple-500/50 bg-purple-500/5' : 'ring-2 ring-primary')
       )}
     >
       <button className="w-full text-left" onClick={onClick}>
@@ -444,29 +653,28 @@ function CalendarEventItem({
         </div>
       </button>
 
-      {/* Actions */}
       {!isReadOnly && (
-        <div className="flex items-center gap-1 mt-2 pt-2 border-t">
-          <Button variant="ghost" size="sm" className="h-7" onClick={onEdit}>
+        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-white/5">
+          <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold" onClick={onEdit}>
             <Edit className="h-3 w-3 mr-1" />
             Redigera
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 text-red-600 hover:text-red-700">
+              <Button variant="ghost" size="sm" className="h-7 text-xs uppercase font-bold text-red-400 hover:text-red-300">
                 <Trash2 className="h-3 w-3 mr-1" />
                 Ta bort
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className={isGlass ? "bg-slate-900 border-white/10" : ""}>
               <AlertDialogHeader>
-                <AlertDialogTitle>Ta bort händelse?</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogTitle className={isGlass ? "text-white font-black" : ""}>Ta bort händelse?</AlertDialogTitle>
+                <AlertDialogDescription className={isGlass ? "text-slate-400" : ""}>
                   Är du säker på att du vill ta bort &quot;{event.title}&quot;? Detta kan inte ångras.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                <AlertDialogCancel className={isGlass ? "bg-white/5 border-white/10 text-slate-300" : ""}>Avbryt</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDelete}
                   className="bg-red-600 hover:bg-red-700"
@@ -481,7 +689,7 @@ function CalendarEventItem({
       )}
 
       {isReadOnly && (
-        <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+        <div className="text-[10px] font-medium text-slate-500 mt-2 flex items-center gap-1">
           <ExternalLink className="h-3 w-3" />
           Importerad från {String(meta.externalCalendarName || 'extern kalender')}
         </div>
@@ -494,9 +702,10 @@ interface FieldTestItemProps {
   test: UnifiedCalendarItem
   isSelected: boolean
   onClick: () => void
+  isGlass?: boolean
 }
 
-function FieldTestItem({ test, isSelected, onClick }: FieldTestItemProps) {
+function FieldTestItem({ test, isSelected, onClick, isGlass = false }: FieldTestItemProps) {
   const meta = test.metadata
   const testType = (meta.testType as string) || ''
   const isValidated = meta.validatedByCoach as boolean
@@ -504,8 +713,11 @@ function FieldTestItem({ test, isSelected, onClick }: FieldTestItemProps) {
   return (
     <button
       className={cn(
-        'w-full text-left p-3 rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 transition-colors',
-        isSelected ? 'ring-2 ring-primary' : 'hover:bg-green-100 dark:hover:bg-green-950/40'
+        'w-full text-left p-4 rounded-xl border transition-all duration-300',
+        isGlass
+          ? "bg-green-500/5 border-green-500/20 hover:bg-green-500/10 hover:border-green-500/30"
+          : 'border-green-200 bg-green-50 dark:bg-green-950/20',
+        isSelected && (isGlass ? 'ring-1 ring-green-500/50 bg-green-500/5' : 'ring-2 ring-primary')
       )}
       onClick={onClick}
     >
@@ -534,9 +746,10 @@ interface CheckInItemProps {
   checkIn: UnifiedCalendarItem
   isSelected: boolean
   onClick: () => void
+  isGlass?: boolean
 }
 
-function CheckInItem({ checkIn, isSelected, onClick }: CheckInItemProps) {
+function CheckInItem({ checkIn, isSelected, onClick, isGlass = false }: CheckInItemProps) {
   const meta = checkIn.metadata
   const readinessScore = meta.readinessScore as number | undefined
   const readinessDecision = meta.readinessDecision as string | undefined
@@ -551,8 +764,11 @@ function CheckInItem({ checkIn, isSelected, onClick }: CheckInItemProps) {
   return (
     <button
       className={cn(
-        'w-full text-left p-3 rounded-lg border transition-colors',
-        isSelected ? 'ring-2 ring-primary' : 'hover:bg-accent'
+        'w-full text-left p-4 rounded-xl border transition-all duration-300',
+        isGlass
+          ? "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+          : isSelected ? 'ring-2 ring-primary' : 'hover:bg-accent',
+        isSelected && isGlass && 'ring-1 ring-slate-500/50 bg-slate-500/5'
       )}
       onClick={onClick}
     >
@@ -583,9 +799,10 @@ function CheckInItem({ checkIn, isSelected, onClick }: CheckInItemProps) {
 interface WorkoutDetailPanelProps {
   workout: UnifiedCalendarItem
   isCoachView?: boolean
+  isGlass?: boolean
 }
 
-function WorkoutDetailPanel({ workout, isCoachView }: WorkoutDetailPanelProps) {
+function WorkoutDetailPanel({ workout, isCoachView, isGlass = false }: WorkoutDetailPanelProps) {
   const meta = workout.metadata
   const workoutType = (meta.workoutType as string) || 'RUNNING'
   const intensity = (meta.intensity as string) || 'MODERATE'
@@ -596,14 +813,22 @@ function WorkoutDetailPanel({ workout, isCoachView }: WorkoutDetailPanelProps) {
   const workoutId = meta.workoutId as string | undefined
 
   return (
-    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="font-medium text-sm flex items-center gap-2">
+    <div className={cn(
+      "mt-6 p-5 rounded-2xl border transition-all duration-500 animate-in fade-in slide-in-from-top-2",
+      isGlass
+        ? "bg-blue-500/5 border-blue-500/20 shadow-[0_4px_20px_rgba(59,130,246,0.1)]"
+        : "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800"
+    )}>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="font-black text-[10px] uppercase tracking-widest flex items-center gap-2 text-blue-400">
           <Activity className="h-4 w-4 text-blue-500" />
           Passdetaljer
         </h4>
         {isCompleted && (
-          <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+          <Badge variant="secondary" className={cn(
+            "text-[10px] uppercase font-bold tracking-tight",
+            isGlass ? "bg-emerald-500/20 text-emerald-400 border-none px-2" : "bg-green-100 text-green-700"
+          )}>
             Genomfört
           </Badge>
         )}
@@ -612,8 +837,11 @@ function WorkoutDetailPanel({ workout, isCoachView }: WorkoutDetailPanelProps) {
       <div className="space-y-3">
         {/* Title */}
         <div>
-          <p className="font-medium">{workout.title}</p>
-          <div className="flex items-center gap-2 mt-1">
+          <p className={cn(
+            "font-black text-lg tracking-tight",
+            isGlass ? "text-white" : ""
+          )}>{workout.title}</p>
+          <div className="flex items-center gap-2 mt-2">
             <Badge
               className={cn(
                 'text-xs',
@@ -623,7 +851,10 @@ function WorkoutDetailPanel({ workout, isCoachView }: WorkoutDetailPanelProps) {
             >
               {intensity.charAt(0) + intensity.slice(1).toLowerCase()}
             </Badge>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className={cn(
+              "text-[10px] uppercase font-bold border-none px-2",
+              isGlass ? "bg-white/5 text-slate-400" : "text-xs"
+            )}>
               {workoutType}
             </Badge>
           </div>
@@ -649,9 +880,12 @@ function WorkoutDetailPanel({ workout, isCoachView }: WorkoutDetailPanelProps) {
 
         {/* Instructions */}
         {instructions && (
-          <div className="text-sm">
-            <p className="font-medium text-muted-foreground mb-1">Instruktioner:</p>
-            <p className="whitespace-pre-wrap">{instructions}</p>
+          <div className="text-xs leading-relaxed">
+            <p className="font-bold text-[10px] uppercase tracking-widest text-slate-500 mb-1.5">Instruktioner</p>
+            <p className={cn(
+              "whitespace-pre-wrap font-medium",
+              isGlass ? "text-slate-300" : ""
+            )}>{instructions}</p>
           </div>
         )}
 
@@ -671,7 +905,10 @@ function WorkoutDetailPanel({ workout, isCoachView }: WorkoutDetailPanelProps) {
               <Button
                 variant="outline"
                 size="sm"
-                className="flex-1"
+                className={cn(
+                  "flex-1 font-bold text-[10px] uppercase tracking-widest h-9",
+                  isGlass ? "bg-white/5 border-white/10 text-slate-400 hover:text-white" : ""
+                )}
                 onClick={() => window.location.href = `/athlete/workouts/${workoutId}`}
               >
                 Visa logg

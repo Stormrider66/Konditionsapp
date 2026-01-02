@@ -2,7 +2,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MobileNav } from '@/components/navigation/MobileNav'
+import { MobileNav } from '@/components/navigation/MobileNav' // Keep for non-athlete roles if needed, or remove if unused
+import { GlassHeader } from '@/components/athlete/GlassHeader'
 import { AthleteFloatingChat } from '@/components/athlete/ai/AthleteFloatingChat'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
@@ -39,18 +40,43 @@ export function AthleteLayout({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (user) {
-      // Fetch athlete info including sport profile
-      fetch('/api/athlete/me')
-        .then((res) => res.json())
-        .then((result) => {
-          if (result.success && result.data) {
-            setAthleteInfo(result.data)
-          }
+    let isMounted = true
+    const controller = new AbortController()
+
+    async function fetchAthleteInfo() {
+      if (!user) return
+
+      try {
+        const response = await fetch('/api/athlete/me', {
+          signal: controller.signal
         })
-        .catch((err) => {
-          console.error('Error fetching athlete info:', err)
-        })
+
+        if (!response.ok) {
+          // If we get a 404 or 500, we should probably just ignore or log quietly
+          // as it might be transient or the user isn't fully set up yet.
+          console.warn('Failed to fetch athlete info:', response.status)
+          return
+        }
+
+        const result = await response.json()
+
+        if (isMounted && result.success && result.data) {
+          setAthleteInfo(result.data)
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          // Ignore abort errors
+          return
+        }
+        console.error('Error fetching athlete info:', err)
+      }
+    }
+
+    fetchAthleteInfo()
+
+    return () => {
+      isMounted = false
+      controller.abort()
     }
   }, [user])
 
@@ -96,17 +122,22 @@ function ThemedContent({
   return (
     <div className={cn(
       "min-h-screen transition-colors duration-300",
-      isDark ? "bg-slate-900" : "bg-gray-50"
+      isDark
+        ? "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-slate-200"
+        : "bg-gray-50"
     )}>
       {user && (
-        <MobileNav
+        <GlassHeader
           user={user}
-          userRole="ATHLETE"
-          sportProfile={athleteInfo?.sportProfile}
+          athleteName={athleteInfo?.clientName}
+          clientName={athleteInfo?.clientName}
           clientId={athleteInfo?.clientId}
         />
       )}
-      <div>{children}</div>
+
+      <div className="pt-16">
+        {children}
+      </div>
 
       {/* Floating AI Chat for athletes */}
       {user && athleteInfo?.clientId && (

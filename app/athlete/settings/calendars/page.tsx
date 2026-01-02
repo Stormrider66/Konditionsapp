@@ -1,14 +1,11 @@
-/**
- * Calendar Connections Settings Page
- *
- * Allows athletes to connect external calendars (Google, iCal URL, etc.)
- */
-
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, Calendar as CalendarIcon } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { CalendarConnectionsClient } from './CalendarConnectionsClient'
+import { Button } from '@/components/ui/button'
 
 export const metadata = {
   title: 'Kalenderanslutningar | Star by Thomson',
@@ -86,23 +83,45 @@ export default async function CalendarConnectionsPage() {
   const data = await getClientData()
 
   return (
-    <div className="container max-w-4xl py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Kalenderanslutningar</h1>
-        <p className="text-muted-foreground">
-          Anslut dina externa kalendrar för att se arbete, privata händelser och andra blockerare
-          tillsammans med ditt träningsschema.
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#050505] text-white relative overflow-hidden">
+      {/* Background blobs */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] -z-10" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-orange-600/10 rounded-full blur-[120px] -z-10" />
 
-      <Suspense fallback={<div className="animate-pulse">Laddar...</div>}>
-        <CalendarConnectionsClient
-          clientId={data.clientId}
-          connections={data.connections}
-          googleConfigured={data.googleConfigured}
-          outlookConfigured={data.outlookConfigured}
-        />
-      </Suspense>
+      <div className="container mx-auto py-12 px-4 max-w-4xl relative z-10">
+        <div className="flex items-center justify-between mb-12">
+          <Link href="/athlete/calendar">
+            <Button variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/5 group">
+              <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+              TILLBAKA TILL KALENDERN
+            </Button>
+          </Link>
+        </div>
+
+        <div className="flex items-start gap-4 mb-12">
+          <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-2xl shadow-xl shadow-orange-500/5">
+            <CalendarIcon className="h-8 w-8 text-orange-400" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-1">
+              Kalender<span className="text-orange-400">anslutningar</span>
+            </h1>
+            <p className="text-slate-400 font-medium max-w-2xl">
+              Anslut dina externa kalendrar för att se arbete, privata händelser och andra blockerare
+              tillsammans med ditt träningsschema.
+            </p>
+          </div>
+        </div>
+
+        <Suspense fallback={<div className="animate-pulse text-slate-500 font-black uppercase tracking-widest text-center py-20">Laddar anslutningar...</div>}>
+          <CalendarConnectionsClient
+            clientId={data.clientId}
+            connections={data.connections}
+            googleConfigured={data.googleConfigured}
+            outlookConfigured={data.outlookConfigured}
+          />
+        </Suspense>
+      </div>
     </div>
   )
 }

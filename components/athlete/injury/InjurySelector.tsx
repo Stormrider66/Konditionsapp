@@ -25,7 +25,14 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertTriangle, Thermometer, MapPin } from 'lucide-react'
+import { AlertTriangle, Thermometer, MapPin, Activity } from 'lucide-react'
+import {
+  GlassCard,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardContent,
+  GlassCardDescription
+} from '@/components/ui/GlassCard'
 import {
   BODY_PARTS,
   ILLNESSES,
@@ -35,6 +42,7 @@ import {
   type InjurySelection,
   type IllnessType,
 } from '@/lib/injury-detection/sport-injuries'
+import { cn } from '@/lib/utils'
 
 // ============================================
 // TYPES
@@ -54,6 +62,7 @@ interface InjurySelectorProps {
   value: InjurySelectorValue
   onChange: (value: InjurySelectorValue) => void
   disabled?: boolean
+  variant?: 'default' | 'glass'
 }
 
 // ============================================
@@ -66,7 +75,9 @@ export function InjurySelector({
   value,
   onChange,
   disabled = false,
+  variant = 'default',
 }: InjurySelectorProps) {
+  const isGlass = variant === 'glass'
   const [availableInjuries, setAvailableInjuries] = useState<ReturnType<typeof getInjuriesForSportAndBodyPart>>([])
 
   // Update available injuries when body part changes
@@ -128,176 +139,187 @@ export function InjurySelector({
     })
   }
 
-  return (
-    <Card className={isRequired ? 'border-orange-300 bg-orange-50/50' : 'border-yellow-200 bg-yellow-50/30'}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          {isRequired ? (
-            <AlertTriangle className="h-5 w-5 text-orange-600" />
-          ) : (
-            <MapPin className="h-5 w-5 text-yellow-600" />
-          )}
-          {isRequired
-            ? 'Du har rapporterat smärta'
-            : 'Du har rapporterat lite obehag'}
-        </CardTitle>
-        <CardDescription>
-          {isRequired
-            ? 'Hjälp oss förstå bättre så vi kan anpassa din träning'
-            : 'Vill du specificera? (Valfritt, hjälper oss följa upp)'}
-        </CardDescription>
-      </CardHeader>
+  if (isGlass) {
+    return (
+      <GlassCard className={cn(
+        "transition-all duration-500",
+        isRequired ? 'border-orange-500/30 bg-orange-500/5' : 'border-yellow-500/20 bg-yellow-500/5'
+      )}>
+        <GlassCardHeader className="pb-3 text-left">
+          <GlassCardTitle className="flex items-center gap-2 text-lg font-black tracking-tight">
+            {isRequired ? (
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+            ) : (
+              <Activity className="h-5 w-5 text-yellow-500" />
+            )}
+            {isRequired
+              ? 'Besvär rapporterat'
+              : 'Lite känning?'}
+          </GlassCardTitle>
+          <GlassCardDescription className="font-medium text-slate-400">
+            {isRequired
+              ? 'Hjälp oss förstå så vi kan anpassa din träning'
+              : 'Vill du specificera? (Valfritt)'}
+          </GlassCardDescription>
+        </GlassCardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Illness Checkbox */}
-        <div className="flex items-center space-x-3 p-3 rounded-lg bg-background/50">
-          <Checkbox
-            id="isIllness"
-            checked={value.isIllness}
-            onCheckedChange={handleIllnessChange}
-            disabled={disabled}
-          />
-          <div className="flex items-center gap-2">
-            <Thermometer className="h-4 w-4 text-red-500" />
-            <Label htmlFor="isIllness" className="text-sm font-medium cursor-pointer">
-              Jag är sjuk (feber, magsjuka, förkylning)
-            </Label>
-          </div>
-        </div>
-
-        {/* Illness Type Selector (if illness selected) */}
-        {value.isIllness && (
-          <div className="space-y-2 pl-6">
-            <Label className="text-sm">Typ av sjukdom</Label>
-            <Select
-              value={value.illnessType || ''}
-              onValueChange={handleIllnessTypeChange}
+        <GlassCardContent className="space-y-6">
+          {/* Illness Checkbox */}
+          <div className="flex items-center space-x-3 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+            <Checkbox
+              id="isIllness"
+              checked={value.isIllness}
+              onCheckedChange={handleIllnessChange}
               disabled={disabled}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Välj typ av sjukdom" />
-              </SelectTrigger>
-              <SelectContent>
-                {ILLNESSES.map((illness) => (
-                  <SelectItem key={illness.id} value={illness.id}>
-                    {illness.labelSv}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Alert className="mt-2">
-              <AlertDescription className="text-sm">
-                Vid sjukdom rekommenderas fullständig vila. Ingen träning eller alternativträning.
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-
-        {/* Injury Selection (if not illness) */}
-        {!value.isIllness && (
-          <>
-            {/* Body Part Selector */}
-            <div className="space-y-2">
-              <Label className="text-sm">
-                Var gör det ont?
-                {isRequired && <span className="text-red-500 ml-1">*</span>}
+              className="border-white/20 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+            />
+            <div className="flex items-center gap-2">
+              <Thermometer className="h-4 w-4 text-red-500" />
+              <Label htmlFor="isIllness" className="text-sm font-bold uppercase tracking-widest text-slate-300 cursor-pointer">
+                Jag är sjuk (feber, magsjuka, förkylning)
               </Label>
+            </div>
+          </div>
+
+          {/* Illness Type Selector */}
+          {value.isIllness && (
+            <div className="space-y-3 pl-2 border-l-2 border-red-500/30 ml-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Typ av sjukdom</Label>
               <Select
-                value={value.bodyPart || ''}
-                onValueChange={handleBodyPartChange}
+                value={value.illnessType || ''}
+                onValueChange={handleIllnessTypeChange}
                 disabled={disabled}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Välj kroppsdel" />
+                <SelectTrigger className="bg-white/5 border-white/10 h-10">
+                  <SelectValue placeholder="Välj typ av sjukdom" />
                 </SelectTrigger>
-                <SelectContent>
-                  {BODY_PARTS.map((bodyPart) => (
-                    <SelectItem key={bodyPart.id} value={bodyPart.id}>
-                      {bodyPart.labelSv}
+                <SelectContent className="bg-slate-900 border-white/10">
+                  {ILLNESSES.map((illness) => (
+                    <SelectItem key={illness.id} value={illness.id}>
+                      {illness.labelSv}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            </div>
 
-            {/* Injury Type Selector (appears after body part selection) */}
-            {value.bodyPart && availableInjuries.length > 0 && (
+              <div className="mt-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 font-medium">
+                Vid sjukdom rekommenderas fullständig vila. Din träningsplan kommer att anpassas därefter.
+              </div>
+            </div>
+          )}
+
+          {/* Injury Selection */}
+          {!value.isIllness && (
+            <div className="space-y-5">
+              {/* Body Part Selector */}
               <div className="space-y-2">
-                <Label className="text-sm">
-                  Typ av besvär
-                  {isRequired && <span className="text-red-500 ml-1">*</span>}
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center justify-between">
+                  Var gör det ont?
+                  {isRequired && <span className="text-orange-500">Obligatoriskt</span>}
                 </Label>
                 <Select
-                  value={value.injuryType || ''}
-                  onValueChange={handleInjuryTypeChange}
+                  value={value.bodyPart || ''}
+                  onValueChange={handleBodyPartChange}
                   disabled={disabled}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Välj typ av besvär" />
+                  <SelectTrigger className="bg-white/5 border-white/10 h-12 text-white">
+                    <SelectValue placeholder="Välj kroppsdel" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {availableInjuries.map((injury) => (
-                      <SelectItem key={injury.id} value={injury.id}>
-                        {injury.labelSv}
+                  <SelectContent className="bg-slate-900 border-white/10">
+                    {BODY_PARTS.map((bodyPart) => (
+                      <SelectItem key={bodyPart.id} value={bodyPart.id}>
+                        {bodyPart.labelSv}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-            )}
 
-            {/* Side Selector */}
-            {value.bodyPart && value.bodyPart !== 'OTHER' && (
-              <div className="space-y-2">
-                <Label className="text-sm">Vilken sida?</Label>
-                <RadioGroup
-                  value={value.side}
-                  onValueChange={handleSideChange}
-                  className="flex flex-wrap gap-4"
-                  disabled={disabled}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="LEFT" id="side-left" />
-                    <Label htmlFor="side-left" className="cursor-pointer">Vänster</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="RIGHT" id="side-right" />
-                    <Label htmlFor="side-right" className="cursor-pointer">Höger</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="BOTH" id="side-both" />
-                    <Label htmlFor="side-both" className="cursor-pointer">Båda</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="NA" id="side-na" />
-                    <Label htmlFor="side-na" className="cursor-pointer">Ej aktuellt</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-            )}
-          </>
-        )}
+              {/* Injury Type Selector */}
+              {value.bodyPart && availableInjuries.length > 0 && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Typ av besvär
+                  </Label>
+                  <Select
+                    value={value.injuryType || ''}
+                    onValueChange={handleInjuryTypeChange}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10 h-12 text-white">
+                      <SelectValue placeholder="Välj typ av besvär" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-white/10">
+                      {availableInjuries.map((injury) => (
+                        <SelectItem key={injury.id} value={injury.id}>
+                          {injury.labelSv}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-        {/* Info message based on pain level */}
-        {!value.isIllness && (
-          <div className={`text-xs p-2 rounded ${isRequired ? 'bg-orange-100 text-orange-800' : 'bg-yellow-100 text-yellow-800'}`}>
-            {isRequired ? (
-              <>
-                <strong>Smärta 5+:</strong> Dina pass kommer att justeras automatiskt baserat på denna rapportering.
-                Din coach notifieras.
-              </>
-            ) : (
-              <>
-                <strong>Smärta 3-4:</strong> Vi noterar detta och håller koll. Dina pass påverkas inte automatiskt,
-                men din coach kan se informationen.
-              </>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
+              {/* Side Selector */}
+              {value.bodyPart && value.bodyPart !== 'OTHER' && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Vilken sida?</Label>
+                  <RadioGroup
+                    value={value.side}
+                    onValueChange={handleSideChange}
+                    className="flex flex-wrap gap-2"
+                    disabled={disabled}
+                  >
+                    {[
+                      { value: 'LEFT', label: 'Vänster' },
+                      { value: 'RIGHT', label: 'Höger' },
+                      { value: 'BOTH', label: 'Båda' },
+                      { value: 'NA', label: 'Ej aktuellt' },
+                    ].map((item) => (
+                      <div key={item.value} className="flex-1 min-w-[100px]">
+                        <Label
+                          htmlFor={`side-${item.value.toLowerCase()}`}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-3 rounded-xl border transition-all cursor-pointer h-16",
+                            value.side === item.value
+                              ? "bg-blue-600 border-blue-400 text-white font-bold"
+                              : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10"
+                          )}
+                        >
+                          <RadioGroupItem value={item.value} id={`side-${item.value.toLowerCase()}`} className="sr-only" />
+                          <span className="text-xs uppercase tracking-widest">{item.label}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Info message */}
+          {!value.isIllness && (
+            <div className={cn(
+              "p-4 rounded-2xl text-[11px] font-medium leading-relaxed",
+              isRequired ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+            )}>
+              {isRequired ? (
+                <>
+                  <span className="font-black uppercase tracking-widest block mb-1">Automatisk justering:</span>
+                  Dina pass kommer att justeras automatiskt för att undvika överbelastning. Din coach har notifierats och kommer följa upp.
+                </>
+              ) : (
+                <>
+                  <span className="font-black uppercase tracking-widest block mb-1">Vi noterar känningen:</span>
+                  Passen påverkas inte automatiskt vid den här nivån, men informationen loggas så du och din coach kan följa trender över tid.
+                </>
+              )}
+            </div>
+          )}
+        </GlassCardContent>
+      </GlassCard>
+    )
+  }
 }
 
 // ============================================

@@ -2,7 +2,7 @@
 import { redirect } from 'next/navigation'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { addDays, startOfDay, endOfDay, subDays } from 'date-fns'
+import { addDays, startOfDay, endOfDay, subDays, format } from 'date-fns'
 import Link from 'next/link'
 import { getTranslations } from '@/i18n/server'
 import { TodaysWorkouts } from '@/components/athlete/TodaysWorkouts'
@@ -19,27 +19,21 @@ import { SwimmingDashboard } from '@/components/athlete/SwimmingDashboard'
 import { TriathlonDashboard } from '@/components/athlete/TriathlonDashboard'
 import { HYROXDashboard } from '@/components/athlete/HYROXDashboard'
 import { GeneralFitnessDashboard } from '@/components/athlete/GeneralFitnessDashboard'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { Button } from '@/components/ui/button'
 import {
-  TrendingUp,
-  Trophy,
-  Calendar,
-  Activity,
   Zap,
-  Snowflake,
-  Waves,
-  Medal,
-  Target,
-  Heart,
   ClipboardList,
   User,
-  MessageSquare,
   Utensils,
+  CalendarDays,
+  TrendingUp,
+  Calendar
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
-import { VBTSummaryWidget } from '@/components/athlete/VBTSummaryWidget'
-import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidget'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
+import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel } from '@/components/athlete/dashboard'
+import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 
 export default async function AthleteDashboardPage() {
   const t = await getTranslations('athlete')
@@ -83,7 +77,10 @@ export default async function AthleteDashboardPage() {
   const [
     activePrograms,
     recentLogs,
-    plannedStats
+    plannedStats,
+    latestMetrics,
+    recentLogsWithSetLogs,
+    weeklyTrainingLoad
   ] = await Promise.all([
     // 1. Active Programs
     prisma.trainingProgram.findMany({
@@ -152,7 +149,60 @@ export default async function AthleteDashboardPage() {
         distance: true,
         duration: true,
       }
-    })
+    }),
+
+    // 4. Latest DailyMetrics for readiness score
+    prisma.dailyMetrics.findFirst({
+      where: {
+        clientId: athleteAccount.clientId,
+        date: { gte: todayStart },
+      },
+      orderBy: { date: 'desc' },
+      select: {
+        readinessScore: true,
+        date: true,
+      },
+    }),
+
+    // 5. Recent workout logs with SetLogs for fatigue calculation
+    prisma.workoutLog.findMany({
+      where: {
+        athleteId: user.id,
+        completed: true,
+        completedAt: { gte: subDays(now, 7) },
+      },
+      include: {
+        workout: {
+          select: {
+            type: true,
+            intensity: true,
+          },
+        },
+        setLogs: {
+          include: {
+            exercise: {
+              select: {
+                muscleGroup: true,
+                biomechanicalPillar: true,
+                category: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { completedAt: 'desc' },
+    }),
+
+    // 6. Weekly training load (sum of dailyLoad for last 7 days)
+    prisma.trainingLoad.findMany({
+      where: {
+        clientId: athleteAccount.clientId,
+        date: { gte: subDays(now, 7) },
+      },
+      select: {
+        dailyLoad: true,
+      },
+    }),
   ])
 
   // Fetch workouts with program info
@@ -220,7 +270,6 @@ export default async function AthleteDashboardPage() {
     dayDate: w.day.date
   }))
 
-
   // Calculate stats
   const totalWorkoutsThisWeek = recentLogs.filter(
     (log) => log.completedAt && log.completedAt >= subDays(now, 7)
@@ -238,17 +287,66 @@ export default async function AthleteDashboardPage() {
     (log) => log.completedAt && log.completedAt >= subDays(now, 7) && log.perceivedEffort
   ).length > 0
     ? Math.round(
-        recentLogs
-          .filter((log) => log.completedAt && log.completedAt >= subDays(now, 7) && log.perceivedEffort)
-          .reduce((sum, log) => sum + (log.perceivedEffort || 0), 0) /
-          recentLogs.filter((log) => log.completedAt && log.completedAt >= subDays(now, 7) && log.perceivedEffort).length
-      )
+      recentLogs
+        .filter((log) => log.completedAt && log.completedAt >= subDays(now, 7) && log.perceivedEffort)
+        .reduce((sum, log) => sum + (log.perceivedEffort || 0), 0) /
+      recentLogs.filter((log) => log.completedAt && log.completedAt >= subDays(now, 7) && log.perceivedEffort).length
+    )
     : 0
 
   // Planned stats
   const plannedWorkoutsThisWeek = plannedStats.length
   const plannedDistanceThisWeek = plannedStats.reduce((sum, w) => sum + (w.distance || 0), 0)
   const plannedDurationThisWeek = plannedStats.reduce((sum, w) => sum + (w.duration || 0), 0)
+
+  // Current Phase / Week
+  const currentProgram = activePrograms[0]
+  const currentWeekInfo = currentProgram?.weeks.find(w => {
+    // Simple improved week finding (placeholder logic as we don't have exact dates for weeks)
+    // In real app, we would calculate this based on program start date
+    return true
+  })
+  const currentPhase = currentWeekInfo?.phase || "General Preparation"
+
+  // Calculate muscular fatigue from recent logs
+  const muscularFatigue = calculateMuscularFatigue(
+    recentLogsWithSetLogs.map((log) => ({
+      id: log.id,
+      completedAt: log.completedAt,
+      completed: log.completed,
+      perceivedEffort: log.perceivedEffort,
+      workout: log.workout
+        ? {
+            type: log.workout.type,
+            intensity: log.workout.intensity,
+          }
+        : null,
+      setLogs: log.setLogs.map((sl) => ({
+        id: sl.id,
+        exerciseId: sl.exerciseId,
+        weight: sl.weight,
+        repsCompleted: sl.repsCompleted,
+        rpe: sl.rpe,
+        completedAt: sl.completedAt,
+        exercise: sl.exercise
+          ? {
+              muscleGroup: sl.exercise.muscleGroup,
+              biomechanicalPillar: sl.exercise.biomechanicalPillar,
+              category: sl.exercise.category,
+            }
+          : null,
+      })),
+    })) as WorkoutLogWithSetLogs[]
+  )
+
+  // Get readiness data
+  const readinessScore = latestMetrics?.readinessScore ?? null
+  const hasCheckedInToday = latestMetrics !== null
+  const weeklyTSS = weeklyTrainingLoad.reduce((sum, load) => sum + (load.dailyLoad || 0), 0)
+  const weeklyTSSTarget = 1000 // Default target, could be from athlete profile
+
+  // Get next workout for rest day card
+  const nextWorkout = upcomingWorkouts.length > 0 ? upcomingWorkouts[0] : null
 
   // Quick links based on sport
   const getQuickLinks = () => {
@@ -262,198 +360,122 @@ export default async function AthleteDashboardPage() {
     return baseLinks
   }
 
+  // Hero Card Data
+  const heroWorkout = todaysWorkouts[0] || null
+
   return (
-    <div className="container mx-auto py-4 sm:py-6 px-4 sm:px-6 max-w-7xl">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">{t('greeting', { name: athleteAccount.client.name })}</h1>
-            <p className="text-muted-foreground text-sm">
-              {t('welcomeBack')}
-            </p>
-          </div>
-          {/* Integration Status Badges */}
-          <IntegrationStatusWidget clientId={athleteAccount.clientId} compact />
+    <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
+
+      {/* Welcome Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">{athleteAccount.client.name.split(' ')[0]}</span>
+          </h1>
+          <p className="text-slate-400 flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-orange-500" />
+            <span className="capitalize">{format(now, 'EEEE, d MMMM')}</span>
+            <span className="text-slate-600">•</span>
+            <span className="text-orange-400 font-medium">{currentProgram ? currentProgram.name : 'No Active Program'}</span>
+          </p>
         </div>
+        <Link href={heroWorkout ? `/athlete/workouts/${heroWorkout.id}/log` : '/athlete/programs'}>
+          <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 h-10 px-6">
+            <Zap className="w-4 h-4 mr-2" /> {heroWorkout ? 'Start Session' : 'Find Workout'}
+          </Button>
+        </Link>
       </div>
 
-      {/* AI Suggestions Banner */}
-      <AISuggestionsBanner />
+      {/* AI Suggestions Banner (Moved to top to avoid layout overlap) */}
+      <div className="mb-8">
+        <AISuggestionsBanner />
+      </div>
 
-      {/* Stats Cards - Always show for runners, sport-specific for others */}
-      {isRunner && (
-        <div className="mb-6">
-          <AthleteStats
-            totalWorkouts={totalWorkoutsThisWeek}
-            totalDistance={totalDistanceThisWeek}
-            totalDuration={totalDurationThisWeek}
-            avgEffort={avgEffortThisWeek}
-            plannedWorkouts={plannedWorkoutsThisWeek}
-            plannedDistance={plannedDistanceThisWeek}
-            plannedDuration={plannedDurationThisWeek}
+      {/* Main Grid - Hero Card + Readiness Panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* HERO CARD (Left 2/3) */}
+        {heroWorkout ? (
+          <HeroWorkoutCard
+            workout={heroWorkout}
+            athleteName={athleteAccount.client.name.split(' ')[0]}
           />
-        </div>
-      )}
-
-      {/* Sport-Specific Dashboard */}
-      {isCyclist && (
-        <div className="mb-6">
-          <CyclingDashboard
-            cyclingSettings={sportProfile?.cyclingSettings as any}
-            experience={sportProfile?.cyclingExperience || null}
-            clientName={athleteAccount.client.name}
+        ) : (
+          <RestDayHeroCard
+            nextWorkout={nextWorkout}
+            readinessScore={readinessScore}
+            athleteName={athleteAccount.client.name.split(' ')[0]}
           />
-        </div>
-      )}
+        )}
 
-      {isSkier && (
-        <div className="mb-6">
-          <SkiingDashboard
-            skiingSettings={sportProfile?.skiingSettings as any}
-            experience={null}
-            clientName={athleteAccount.client.name}
-          />
-        </div>
-      )}
+        {/* READINESS PANEL (Right 1/3) */}
+        <ReadinessPanel
+          readinessScore={readinessScore}
+          weeklyTSS={weeklyTSS}
+          weeklyTSSTarget={weeklyTSSTarget}
+          muscularFatigue={muscularFatigue}
+          hasCheckedInToday={hasCheckedInToday}
+        />
+      </div>
 
-      {isSwimmer && (
-        <div className="mb-6">
-          <SwimmingDashboard
-            swimmingSettings={sportProfile?.swimmingSettings as any}
-            experience={null}
-            clientName={athleteAccount.client.name}
-          />
-        </div>
-      )}
 
-      {isTriathlete && (
-        <div className="mb-6">
-          <TriathlonDashboard
-            triathlonSettings={sportProfile?.triathlonSettings as any}
-            experience={null}
-            clientName={athleteAccount.client.name}
-          />
-        </div>
-      )}
 
-      {isHyroxAthlete && (
-        <div className="mb-6">
-          <HYROXDashboard
-            settings={sportProfile?.hyroxSettings as any}
-          />
-        </div>
-      )}
-
-      {isGeneralFitnessAthlete && (
-        <div className="mb-6">
-          <GeneralFitnessDashboard
-            settings={sportProfile?.generalFitnessSettings as any}
-          />
-        </div>
-      )}
-
-      {/* Main Content Grid - 3 columns like coach */}
+      {/* Secondary Grid (Widget Layout) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Main Content (2/3 width) */}
+
+        {/* Left Column (2/3) */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Today's Workouts */}
-          <TodaysWorkouts workouts={todaysWorkouts} />
+          {/* Standard Widgets wrapped or rendered directly - 
+                We might want to hide TodaysWorkouts since we have the Hero Card now, 
+                OR keep it if there are multiple workouts.
+                Let's show UpcomingWorkouts.
+            */}
+
+          {/* Today&apos;s Workouts (If more than 1, show the rest) */}
+          {todaysWorkouts.length > 1 && (
+            <TodaysWorkouts workouts={todaysWorkouts.slice(1)} variant="glass" />
+          )}
 
           {/* Upcoming Workouts */}
-          <UpcomingWorkouts workouts={upcomingWorkouts} />
+          <UpcomingWorkouts workouts={upcomingWorkouts} variant="glass" />
 
           {/* Training Load Widget (TSS from integrations) */}
-          <TrainingLoadWidget clientId={athleteAccount.clientId} />
+          <TrainingLoadWidget clientId={athleteAccount.clientId} variant="glass" />
 
           {/* Nutrition Dashboard */}
           <NutritionDashboard clientId={athleteAccount.clientId} />
 
           {/* Integrated Recent Activity (Manual + Strava + Garmin) */}
-          <IntegratedRecentActivity clientId={athleteAccount.clientId} />
+          <IntegratedRecentActivity clientId={athleteAccount.clientId} variant="glass" />
         </div>
 
-        {/* Right Column - Sidebar (1/3 width) */}
+        {/* Right Column (1/3) */}
         <div className="space-y-6">
           {/* Active Programs */}
-          <ActivePrograms programs={activePrograms} />
-
-          {/* VBT Summary Widget */}
-          <VBTSummaryWidget clientId={athleteAccount.clientId} />
-
-          {/* Concept2 Summary Widget */}
-          <Concept2SummaryWidget clientId={athleteAccount.clientId} />
+          <ActivePrograms programs={activePrograms} variant="glass" />
 
           {/* Integration Status (Full Card) */}
-          <IntegrationStatusWidget clientId={athleteAccount.clientId} />
+          <IntegrationStatusWidget clientId={athleteAccount.clientId} variant="glass" />
 
           {/* Quick Links */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t('quickLinks')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <GlassCard>
+            <GlassCardHeader className="pb-3">
+              <GlassCardTitle className="text-base">{t('quickLinks')}</GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-2">
               {getQuickLinks().map((link) => (
                 <Link key={link.href} href={link.href} className="block">
-                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition">
+                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white">
                     <link.icon className={`h-4 w-4 ${link.color}`} />
                     <span className="text-sm">{link.label}</span>
                   </div>
                 </Link>
               ))}
-            </CardContent>
-          </Card>
-
-          {/* Sport-Specific Quick Link */}
-          <Card className="border-0 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                {isCyclist ? (
-                  <Zap className="h-6 w-6" />
-                ) : isSkier ? (
-                  <Snowflake className="h-6 w-6" />
-                ) : isSwimmer ? (
-                  <Waves className="h-6 w-6" />
-                ) : isTriathlete ? (
-                  <Medal className="h-6 w-6" />
-                ) : isHyroxAthlete ? (
-                  <Target className="h-6 w-6" />
-                ) : isGeneralFitnessAthlete ? (
-                  <Heart className="h-6 w-6" />
-                ) : (
-                  <Trophy className="h-6 w-6" />
-                )}
-                <div className="flex-1">
-                  <p className="font-medium text-sm">
-                    {isCyclist ? t('cyclingSettings') :
-                     isSkier ? t('skiingSettings') :
-                     isSwimmer ? t('swimmingSettings') :
-                     isTriathlete ? t('triathlonSettings') :
-                     isHyroxAthlete ? t('hyroxSettings') :
-                     isGeneralFitnessAthlete ? t('fitnessSettings') :
-                     t('personalRecords')}
-                  </p>
-                  <p className="text-xs text-indigo-100">
-                    {isCyclist ? t('ftpWeightZones') :
-                     isSkier ? t('paceTechiqueZones') :
-                     isSwimmer ? t('cssStrokeZones') :
-                     isTriathlete ? t('swimBikeRunProfile') :
-                     isHyroxAthlete ? t('stationsAndBenchmarks') :
-                     isGeneralFitnessAthlete ? t('goalsAndActivities') :
-                     t('yourBestTimes')}
-                  </p>
-                </div>
-              </div>
-              <Link
-                href={isRunner ? '/athlete/history' : '/athlete/profile'}
-                className="block mt-3 text-xs text-indigo-100 hover:text-white"
-              >
-                {t('viewMore')} →
-              </Link>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
+
       </div>
+
     </div>
   )
 }

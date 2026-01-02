@@ -92,17 +92,17 @@ export default async function AthleteProgramPage({ params }: AthleteProgramPageP
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Link href="/athlete/dashboard">
-        <Button variant="ghost" className="mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till översikt
+    <div className="min-h-screen pb-20 pt-6 px-4 max-w-5xl mx-auto">
+      <Link href="/athlete/programs">
+        <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white">
+          <ArrowLeft className="mr-2 h-3.5 w-3.5" />
+          Mina Program
         </Button>
       </Link>
 
       <AthleteProgramOverview program={program as any} />
 
-      <div className="mt-8">
+      <div className="mt-12">
         <AthleteProgramCalendar program={program as any} athleteId={user.id} />
       </div>
     </div>
