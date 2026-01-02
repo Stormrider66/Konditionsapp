@@ -58,7 +58,7 @@ export function PublishProgramDialog({
   const [publishing, setPublishing] = useState(false)
   const [programType, setProgramType] = useState<ProgramType>('MAIN')
   const [existingAction, setExistingAction] = useState<ExistingProgramAction>(
-    hasExistingProgram ? 'KEEP' : 'KEEP'
+    hasExistingProgram ? 'DEACTIVATE' : 'KEEP'
   )
   const [startDate, setStartDate] = useState<Date>(() => {
     // Default to next Monday

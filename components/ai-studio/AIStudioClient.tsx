@@ -236,6 +236,10 @@ export function AIStudioClient({
             setHasExistingProgram(false)
             setExistingProgramName(undefined)
           }
+        } else {
+          // Reset state on non-OK response
+          setHasExistingProgram(false)
+          setExistingProgramName(undefined)
         }
       } catch {
         // Silently fail - just assume no existing program
