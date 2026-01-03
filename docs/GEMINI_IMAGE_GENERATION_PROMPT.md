@@ -4,13 +4,20 @@
 
 | Status | Count | Percentage |
 |--------|-------|------------|
-| ✅ Completed | **135** | 74.6% |
-| ❌ Remaining | **46** | 25.4% |
+| ✅ Completed | **157** | 86.7% |
+| ❌ Remaining | **24** | 13.3% |
 | **Total** | **181** | 100% |
 
-**Last Updated**: 2 January 2026
+**Last Updated**: 3 January 2026
 
-### Recent Upload (2 Jan 2026)
+### Recent Upload (3 Jan 2026)
+- **141 images** uploaded to Supabase storage
+- **131 exercises** synced to database
+- **10 exercises** with multiple images (2 each)
+- **0 errors**
+- **58 new images** added (Gemini generation batch)
+
+### Previous Upload (2 Jan 2026)
 - **94 images** uploaded to Supabase storage
 - **135 exercises** synced to database
 - **9 exercises** with male/female variants (2 images each)
@@ -45,15 +52,13 @@ We need AI-generated images for each exercise to display during workouts. These 
 
 ---
 
-## REMAINING EXERCISES (46 total)
+## REMAINING EXERCISES (24 total)
 
-### POSTERIOR_CHAIN - 11 remaining
+### POSTERIOR_CHAIN - 10 remaining
 **Folder: `posterior-chain/`**
 
 | Swedish Name | English Name | Filename | Target Muscles |
 |-------------|--------------|----------|----------------|
-| Pushstöt | Push Jerk | push-jerk-1.png | Full Body |
-| Sandsäck Frivändning | Sandbag Clean | sandbag-clean-1.png | Full Body |
 | Sandsäck Frivändning | Sandbag Clean | sandbag-clean-1.png | Full Body |
 | Slädtryckning (HYROX) | Sled Push (HYROX) | sled-push-hyrox-1.png | Legs |
 | Sumo Marklyft Högt Drag | Sumo Deadlift High Pull | sumo-deadlift-high-pull-1.png | Full Body |
@@ -67,7 +72,7 @@ We need AI-generated images for each exercise to display during workouts. These 
 
 ---
 
-### KNEE_DOMINANCE - 6 remaining
+### KNEE_DOMINANCE - 4 remaining
 **Folder: `knee-dominance/`**
 
 | Swedish Name | English Name | Filename | Target Muscles |
@@ -79,17 +84,12 @@ We need AI-generated images for each exercise to display during workouts. These 
 
 ---
 
-### UNILATERAL - 4 remaining
-**Folder: `unilateral/`**
-
-| Swedish Name | English Name | Filename | Target Muscles |
-|-------------|--------------|----------|----------------|
-| Enbenhopp (Bounds) | Single-Leg Bounds | enbenhopp-bounds-1.png | Legs |
-| Pistol Squat Progression | Pistol Squat Progression | pistol-squat-progression-1.png | Quadriceps, Balance |
+### UNILATERAL - 0 remaining ✅
+All unilateral exercises now have images!
 
 ---
 
-### FOOT_ANKLE - 9 remaining
+### FOOT_ANKLE - 4 remaining
 **Folder: `foot-ankle/`**
 
 | Swedish Name | English Name | Filename | Target Muscles |
@@ -98,28 +98,20 @@ We need AI-generated images for each exercise to display during workouts. These 
 | Marmor-pickups | Marble Pickups | marmor-pickups-1.png | Intrinsic Foot Muscles |
 | Simning | Swimming | swimming-1.png | Full Body |
 | Toe Yoga | Toe Yoga | toe-yoga-1.png | Intrinsic Foot Muscles |
-| Ankelhopp | Ankle Hops | ankelhopp-1.png | Calves, Ankle |
-| Löpning | Running | running-1.png | Cardio, Full Body |
-| Double Under | Double Under | double-under-1.png | Full Body |
-| Skipping | Skipping | skipping-1.png | Legs, Calves |
 
 ---
 
-### ANTI_ROTATION_CORE - 8 remaining
+### ANTI_ROTATION_CORE - 2 remaining
 **Folder: `core/`**
 
 | Swedish Name | English Name | Filename | Target Muscles |
 |-------------|--------------|----------|----------------|
 | Sandsäck Över Axeln | Sandbag Over Shoulder | sandbag-over-shoulder-1.png | Full Body |
 | Yoke Walk | Yoke Carry | yoke-carry-1.png | Full Body |
-| KB Windmill | KB Windmill | kb-windmill-1.png | Core |
-| Suitcase Carry | Suitcase Carry | suitcase-carry-1.png | Obliques, Core |
-| Toes-to-Bar | Toes-to-Bar | toes-to-bar-1.png | Core |
-| V-Up | V-Up | v-up-1.png | Core |
 
 ---
 
-### UPPER_BODY - 8 remaining
+### UPPER_BODY - 4 remaining
 **Folder: `upper-body/`**
 
 | Swedish Name | English Name | Filename | Target Muscles |
@@ -128,28 +120,27 @@ We need AI-generated images for each exercise to display during workouts. These 
 | Rodd (Meter) | Row (Meters) | row-meters-1.png | Full Body |
 | Rodd (HYROX) | Rowing (HYROX) | rowing-hyrox-1.png | Full Body |
 | Strikt Handstående Armhävning | Strict Handstand Push-Up | strict-handstand-push-up-1.png | Shoulders |
-| DB Row | DB Row | db-row-1.png | Back |
 
 ---
 
-## COMPLETED EXERCISES (135)
+## COMPLETED EXERCISES (157)
 
 ### ✅ Already Generated & Synced
 
-**Posterior Chain (40):**
+**Posterior Chain (45):**
 Amerikansk Kettlebell Swing, Lådhopp, Boxhopp Över, Bred hopp (max), Burpee, Burpee Boxhopp Över, Frivändning, Stöt, Hantel Ryck, Hängande Frivändning, Hängande Ryck, Hip Thrust med skivstång (2), Kettlebell Swing, Marklyft (2), Muscle-Up (Stång), Muscle-Up (Ringar), Power Frivändning, Power Ryck, Rumänsk marklyft, Ryck, Wall Ball, Good Morning, Turkish Get-Up, Burpee Broad Jump, Cluster, Cable Pull-Through, SkiErg, Sumo Deadlift, KB Clean, KB Snatch, Split Jerk, DB Clean, DB Deadlift, DB Thruster, Clamshells with Band, Reverse Hyperextension, Hang Power Clean, Single-Leg Bridge, Fire Hydrants, KB Thruster, Man Maker, Med Ball Clean, Legless Rope Climb, Push Jerk, Rope Climb
 
-**Knee Dominance (15):**
+**Knee Dominance (21):**
 Frontknäböj (2), Goblet Squat (2), Hoppsquat, Knäböj (2), Step-Up, Pistol Squat, Benpress, Air Squat, Utfall (2), Overhead Squat, Wall Sit, Countermovement Jumps, Cyclist Squat, DB Box Step-Over, Box Jump (18-24"), Low Box Jumps, Overhead Lunge, Sandbag Lunges (HYROX), Split Squat, Squat Clean, Squat Jumps
 
-**Unilateral (11):**
+**Unilateral (17) ✅ COMPLETE:**
 Bakåtlunges (2), Bulgarisk utfallsböj, Enbenig rumänsk marklyft, Step-Ups med knädrive, Curtsy Lunges, Box Pistol, Lateral Bounds, Enbenig benpress, Lateral Lunges, Single-Leg Bounds, Pistol Squat Progression, Step-Ups (high), Single Under, Repeated Bounds, Skater Squats, Split Jumps, Triple Jump
 
-**Foot/Ankle (9):**
+**Foot/Ankle (14):**
 Assault Bike (Kalorier), Pogo Jumps, Tåhävningar (böjda ben), Tåhävningar (raka ben), Bike (Calories), Running, Double Under, Skipping, Ankle Hops, Jump Rope, Ankle Dorsiflexion (band), Bike (Meters), Enbenig tåhävning, Hälgång
 
-**Core (23):**
+**Core (27):**
 Ab Wheel Rollouts, Bird Dog, Dead Bug, Farmers Walk, L-Sit, Pallof Press, Planka, Rysk Twist, Sidplank, Slädragning, Slädtryckning, Mountain Climber, Back Extension, Copenhagen Plank, Farmers Carry (HYROX), GHD Sit-Up, Hanging Knee Raise, Sandbag Carry, Stir the Pot, Toes-to-Bar, V-Up, Suitcase Carry, KB Windmill, Sit-Up, Hip Extension, Pallof Press (band), Knees-to-Elbow
 
-**Upper Body (16):**
-Bänkpress (2), Dips, Handstående Armhävning, Chins (2), Armhävning (2), Rodd (Kalorier), Bent Over Row, Box Dips, Burpee Pull-Up, Butterfly Pull-Up, Chest-to-Bar Pull-Up, Devil Press (Stång), Muscle-Up (Ringar), Pendlay Row, DB Push Press, DB Row, DB Strict Press, Kipping Pull-Up, Handstand Walk, Ring Dip
+**Upper Body (20):**
+Bänkpress (2), Dips, Handstående Armhävning, Chins (2), Armhävning (2), Rodd (Kalorier), Bent Over Row, Box Dips, Burpee Pull-Up, Butterfly Pull-Up, Chest-to-Bar Pull-Up, Devil Press, Muscle-Up (Ringar), Muscle-Up (Stång), Pendlay Row, DB Push Press, DB Row, DB Strict Press, Kipping Pull-Up, Handstand Walk, Ring Dip
