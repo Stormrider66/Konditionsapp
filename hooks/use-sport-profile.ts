@@ -29,6 +29,10 @@ export const SPORT_ICONS: Record<SportType, string> = {
   GENERAL_FITNESS: '🏋️',
   SWIMMING: '🏊‍♂️',
   STRENGTH: '🏋️',
+  TEAM_FOOTBALL: '⚽',
+  TEAM_ICE_HOCKEY: '🏒',
+  TEAM_HANDBALL: '🤾',
+  TEAM_FLOORBALL: '🏑',
 }
 
 // Sport labels for display
@@ -41,6 +45,10 @@ export const SPORT_LABELS: Record<SportType, { en: string; sv: string }> = {
   GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän Fitness' },
   SWIMMING: { en: 'Swimming', sv: 'Simning' },
   STRENGTH: { en: 'Strength Training', sv: 'Styrketräning' },
+  TEAM_FOOTBALL: { en: 'Football', sv: 'Fotboll' },
+  TEAM_ICE_HOCKEY: { en: 'Ice Hockey', sv: 'Ishockey' },
+  TEAM_HANDBALL: { en: 'Handball', sv: 'Handboll' },
+  TEAM_FLOORBALL: { en: 'Floorball', sv: 'Innebandy' },
 }
 
 export function useSportProfile(clientId?: string): UseSportProfileResult {

@@ -49,6 +49,7 @@ interface StrengthSessionDetailSheetProps {
   onEdit: () => void;
   onDelete: () => void;
   onAssign: () => void;
+  onTeamAssign?: () => void;
 }
 
 const phaseLabels: Record<string, { label: string; color: string }> = {
@@ -80,6 +81,7 @@ export function StrengthSessionDetailSheet({
   onEdit,
   onDelete,
   onAssign,
+  onTeamAssign,
 }: StrengthSessionDetailSheetProps) {
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
@@ -178,6 +180,12 @@ export function StrengthSessionDetailSheet({
             <Users className="h-4 w-4 mr-1" />
             Tilldela
           </Button>
+          {onTeamAssign && (
+            <Button variant="outline" size="sm" onClick={onTeamAssign}>
+              <Users className="h-4 w-4 mr-1" />
+              Tilldela lag
+            </Button>
+          )}
           <SessionExportButton
             sessionType="strength"
             getSessionData={() => exportData}

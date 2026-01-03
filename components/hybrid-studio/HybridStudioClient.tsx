@@ -63,6 +63,7 @@ import {
 import { HybridWorkoutBuilder } from './HybridWorkoutBuilder';
 import { WorkoutDetailSheet } from './WorkoutDetailSheet';
 import { WorkoutAssignmentDialog } from './WorkoutAssignmentDialog';
+import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog';
 import type { HybridWorkoutWithSections, HybridSectionData } from '@/types';
 
 interface HybridMovement {
@@ -146,6 +147,7 @@ export function HybridStudioClient() {
   const [sheetWorkout, setSheetWorkout] = useState<HybridWorkout | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [isTeamAssignOpen, setIsTeamAssignOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!deleteWorkout) return;
@@ -196,6 +198,10 @@ export function HybridStudioClient() {
 
   const handleSheetAssign = () => {
     setIsAssignOpen(true);
+  };
+
+  const handleSheetTeamAssign = () => {
+    setIsTeamAssignOpen(true);
   };
 
   const fetchWorkouts = useCallback(async () => {
@@ -422,6 +428,7 @@ export function HybridStudioClient() {
         onEdit={handleSheetEdit}
         onDelete={handleSheetDelete}
         onAssign={handleSheetAssign}
+        onTeamAssign={handleSheetTeamAssign}
       />
 
       {/* Assignment Dialog */}
@@ -432,6 +439,21 @@ export function HybridStudioClient() {
           onOpenChange={setIsAssignOpen}
           onAssigned={() => {
             setIsAssignOpen(false);
+            fetchWorkouts();
+          }}
+        />
+      )}
+
+      {/* Team Assignment Dialog */}
+      {sheetWorkout && (
+        <TeamWorkoutAssignmentDialog
+          workoutType="hybrid"
+          workoutId={sheetWorkout.id}
+          workoutName={sheetWorkout.name}
+          open={isTeamAssignOpen}
+          onOpenChange={setIsTeamAssignOpen}
+          onAssigned={() => {
+            setIsTeamAssignOpen(false);
             fetchWorkouts();
           }}
         />

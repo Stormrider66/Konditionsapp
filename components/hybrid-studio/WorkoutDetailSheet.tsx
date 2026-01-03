@@ -56,6 +56,7 @@ interface WorkoutDetailSheetProps {
   onEdit: () => void;
   onDelete: () => void;
   onAssign: () => void;
+  onTeamAssign?: () => void;
 }
 
 const formatLabels: Record<string, { label: string; icon: React.ReactNode }> = {
@@ -153,6 +154,7 @@ export function WorkoutDetailSheet({
   onEdit,
   onDelete,
   onAssign,
+  onTeamAssign,
 }: WorkoutDetailSheetProps) {
   const [results, setResults] = useState<HybridWorkoutResult[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
@@ -249,6 +251,12 @@ export function WorkoutDetailSheet({
             <Users className="h-4 w-4 mr-1" />
             Tilldela
           </Button>
+          {onTeamAssign && (
+            <Button variant="outline" size="sm" onClick={onTeamAssign}>
+              <Users className="h-4 w-4 mr-1" />
+              Tilldela lag
+            </Button>
+          )}
           <HybridWorkoutExportButton workout={workout} />
         </div>
 

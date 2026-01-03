@@ -406,6 +406,10 @@ function buildSportProfileContext(sportProfile: {
     SKIING: 'Längdskidor',
     GENERAL_FITNESS: 'Allmän fitness',
     STRENGTH: 'Styrketräning',
+    TEAM_FOOTBALL: 'Fotboll',
+    TEAM_ICE_HOCKEY: 'Ishockey',
+    TEAM_HANDBALL: 'Handboll',
+    TEAM_FLOORBALL: 'Innebandy',
   }
 
   context += `- **Primär idrott**: ${sportNames[sportProfile.primarySport]}\n`

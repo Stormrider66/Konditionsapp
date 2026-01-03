@@ -8,7 +8,7 @@ import { SportType } from '@prisma/client'
 import {
   Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
   ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings,
-  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell, Gift, BarChart3, Shield
+  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell, Gift, BarChart3, Shield, Building2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +35,10 @@ const SPORT_DISPLAY: Record<SportType, { icon: string; label: string; labelSv: s
   GENERAL_FITNESS: { icon: '🏋️', label: 'General Fitness', labelSv: 'Allmän Fitness' },
   SWIMMING: { icon: '🏊‍♂️', label: 'Swimming', labelSv: 'Simning' },
   STRENGTH: { icon: '🏋️', label: 'Strength Training', labelSv: 'Styrketräning' },
+  TEAM_FOOTBALL: { icon: '⚽', label: 'Football', labelSv: 'Fotboll' },
+  TEAM_ICE_HOCKEY: { icon: '🏒', label: 'Ice Hockey', labelSv: 'Ishockey' },
+  TEAM_HANDBALL: { icon: '🤾', label: 'Handball', labelSv: 'Handboll' },
+  TEAM_FLOORBALL: { icon: '🏑', label: 'Floorball', labelSv: 'Innebandy' },
 }
 
 interface SportProfile {
@@ -117,6 +121,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       items: [
         { href: '/coach/analytics', label: 'Analys', icon: BarChart3 },
         { href: '/teams', label: 'Lag', icon: Users2 },
+        { href: '/coach/organizations', label: 'Organisationer', icon: Building2 },
         { href: '/coach/documents', label: 'Dokument', icon: FileStack },
         { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
         { href: '/coach/referrals', label: 'Värvningar', icon: Gift },
@@ -141,6 +146,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
     { href: '/coach/analytics', label: 'Analys', icon: BarChart3 },
     { href: '/teams', label: 'Lag', icon: Users2 },
+    { href: '/coach/organizations', label: 'Organisationer', icon: Building2 },
     { href: '/coach/documents', label: 'Dokument', icon: FileStack },
     { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
     { href: '/coach/referrals', label: 'Värvningar', icon: Gift },

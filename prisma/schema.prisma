@@ -38,6 +38,11 @@ enum SportType {
   HYROX             // Functional fitness racing
   GENERAL_FITNESS   // CrossFit-style, general PT programs
   STRENGTH          // Standalone strength training programs
+  // Team Sports
+  TEAM_FOOTBALL     // Soccer/Football
+  TEAM_ICE_HOCKEY   // Ice hockey
+  TEAM_HANDBALL     // Handball
+  TEAM_FLOORBALL    // Floorball (innebandy)
 }
 
 enum TestStatus {
@@ -265,6 +270,10 @@ model User {
   businessMemberships BusinessMember[]
   tester              Tester?
 
+  // Team Sports System relations
+  organizations           Organization[]
+  teamWorkoutBroadcasts   TeamWorkoutBroadcast[]  @relation("CoachBroadcasts")
+
   // Calendar System relations
   createdCalendarEvents   CalendarEvent[]         @relation("CreatedCalendarEvents")
   modifiedCalendarEvents  CalendarEvent[]         @relation("ModifiedCalendarEvents")
@@ -280,19 +289,90 @@ model User {
   @@index([role])
 }
 
-model Team {
-  id        String   @id @default(uuid())
-  userId    String
-  name      String
-  description String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ==================== TEAM SPORTS SYSTEM ====================
 
-  user      User     @relation(fields: [userId], references: [id])
-  members   Client[]
+/// Organization groups multiple teams (e.g., "IFK Göteborg" with U19, U21, Senior)
+model Organization {
+  id          String     @id @default(uuid())
+  userId      String     // Coach who owns the organization
+  name        String     // e.g., "IFK Göteborg"
+  description String?
+  sportType   SportType? // Primary sport for this organization
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user        User       @relation(fields: [userId], references: [id])
+  teams       Team[]     // Teams belonging to this organization
 
   @@index([userId])
   @@index([name])
+}
+
+model Team {
+  id             String        @id @default(uuid())
+  userId         String
+  name           String
+  description    String?
+
+  // Organization grouping (optional)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  // Team sport configuration
+  sportType      SportType?
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user           User          @relation(fields: [userId], references: [id])
+  members        Client[]
+
+  // Team workout broadcasts
+  workoutBroadcasts TeamWorkoutBroadcast[]
+
+  @@index([userId])
+  @@index([name])
+  @@index([organizationId])
+}
+
+/// Tracks when a workout was assigned to an entire team
+/// Links individual assignments for aggregation/reporting
+model TeamWorkoutBroadcast {
+  id              String     @id @default(uuid())
+  teamId          String
+  coachId         String
+
+  // What was assigned (polymorphic - one will be set)
+  strengthSessionId    String?
+  cardioSessionId      String?
+  hybridWorkoutId      String?
+
+  // Assignment metadata
+  assignedDate    DateTime   @db.Date
+  notes           String?    @db.Text
+
+  // Cached stats for dashboard
+  totalAssigned   Int        @default(0)
+  totalCompleted  Int        @default(0)
+
+  createdAt       DateTime   @default(now())
+
+  team            Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  coach           User       @relation("CoachBroadcasts", fields: [coachId], references: [id])
+
+  strengthSession  StrengthSession?  @relation(fields: [strengthSessionId], references: [id])
+  cardioSession    CardioSession?    @relation(fields: [cardioSessionId], references: [id])
+  hybridWorkout    HybridWorkout?    @relation(fields: [hybridWorkoutId], references: [id])
+
+  // Individual assignments from this broadcast
+  strengthAssignments StrengthSessionAssignment[]
+  cardioAssignments   CardioSessionAssignment[]
+  hybridAssignments   HybridWorkoutAssignment[]
+
+  @@index([teamId])
+  @@index([coachId])
+  @@index([assignedDate])
 }
 
 model Client {
@@ -3347,6 +3427,9 @@ model HybridWorkout {
   assignments     HybridWorkoutAssignment[]
   workoutLogs     HybridWorkoutLog[]
 
+  // Team workout broadcasts
+  teamWorkoutBroadcasts TeamWorkoutBroadcast[]
+
   // Tags for filtering
   tags            String[]     @default([])
 
@@ -3509,6 +3592,10 @@ model HybridWorkoutAssignment {
   customScaling   String?      // Suggested scaling for this athlete
   scalingNotes    String?      // "Use 30kg for thrusters"
 
+  // Team broadcast tracking (null if individual assignment)
+  teamBroadcastId String?
+  teamBroadcast   TeamWorkoutBroadcast? @relation(fields: [teamBroadcastId], references: [id], onDelete: SetNull)
+
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -3516,6 +3603,7 @@ model HybridWorkoutAssignment {
   @@index([athleteId])
   @@index([assignedDate])
   @@index([status])
+  @@index([teamBroadcastId])
   @@unique([workoutId, athleteId, assignedDate])
 }
 
@@ -3636,6 +3724,9 @@ model StrengthSession {
   // Assignments
   assignments       StrengthSessionAssignment[]
 
+  // Team workout broadcasts
+  teamWorkoutBroadcasts TeamWorkoutBroadcast[]
+
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -3671,6 +3762,10 @@ model StrengthSessionAssignment {
   // Per-set logging (detailed)
   setLogs           SetLog[]
 
+  // Team broadcast tracking (null if individual assignment)
+  teamBroadcastId   String?
+  teamBroadcast     TeamWorkoutBroadcast? @relation(fields: [teamBroadcastId], references: [id], onDelete: SetNull)
+
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -3678,6 +3773,7 @@ model StrengthSessionAssignment {
   @@index([athleteId])
   @@index([assignedDate])
   @@index([status])
+  @@index([teamBroadcastId])
   @@unique([sessionId, athleteId, assignedDate])
 }
 
@@ -3755,6 +3851,9 @@ model CardioSession {
   // Focus Mode logs
   sessionLogs       CardioSessionLog[]
 
+  // Team workout broadcasts
+  teamWorkoutBroadcasts TeamWorkoutBroadcast[]
+
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -3788,6 +3887,10 @@ model CardioSessionAssignment {
   avgHeartRate      Int?
   actualSegments    Json?        // Logged segment data
 
+  // Team broadcast tracking (null if individual assignment)
+  teamBroadcastId   String?
+  teamBroadcast     TeamWorkoutBroadcast? @relation(fields: [teamBroadcastId], references: [id], onDelete: SetNull)
+
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -3795,6 +3898,7 @@ model CardioSessionAssignment {
   @@index([athleteId])
   @@index([assignedDate])
   @@index([status])
+  @@index([teamBroadcastId])
   @@unique([sessionId, athleteId, assignedDate])
 }
 

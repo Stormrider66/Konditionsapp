@@ -50,6 +50,7 @@ interface CardioSessionDetailSheetProps {
   onEdit: () => void;
   onDelete: () => void;
   onAssign: () => void;
+  onTeamAssign?: () => void;
 }
 
 const sportLabels: Record<string, { label: string; icon: string }> = {
@@ -115,6 +116,7 @@ export function CardioSessionDetailSheet({
   onEdit,
   onDelete,
   onAssign,
+  onTeamAssign,
 }: CardioSessionDetailSheetProps) {
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
@@ -210,6 +212,12 @@ export function CardioSessionDetailSheet({
             <Users className="h-4 w-4 mr-1" />
             Tilldela
           </Button>
+          {onTeamAssign && (
+            <Button variant="outline" size="sm" onClick={onTeamAssign}>
+              <Users className="h-4 w-4 mr-1" />
+              Tilldela lag
+            </Button>
+          )}
           <SessionExportButton
             sessionType="cardio"
             getSessionData={() => exportData}

@@ -12,14 +12,71 @@ export type PeriodPhase = 'BASE' | 'BUILD' | 'PEAK' | 'TAPER' | 'RECOVERY' | 'TR
 export type SubscriptionTier = 'FREE' | 'BASIC' | 'PRO' | 'ENTERPRISE'
 export type SubscriptionStatus = 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'TRIAL'
 
+// Multi-sport types (including team sports)
+export type SportType =
+  | 'RUNNING'
+  | 'CYCLING'
+  | 'SKIING'
+  | 'SWIMMING'
+  | 'TRIATHLON'
+  | 'HYROX'
+  | 'GENERAL_FITNESS'
+  | 'STRENGTH'
+  // Team Sports
+  | 'TEAM_FOOTBALL'
+  | 'TEAM_ICE_HOCKEY'
+  | 'TEAM_HANDBALL'
+  | 'TEAM_FLOORBALL'
+
+export const TEAM_SPORT_TYPES = [
+  'TEAM_FOOTBALL',
+  'TEAM_ICE_HOCKEY',
+  'TEAM_HANDBALL',
+  'TEAM_FLOORBALL',
+] as const
+
+export function isTeamSport(sport: SportType): boolean {
+  return sport.startsWith('TEAM_')
+}
+
+// Organization groups multiple teams (e.g., "IFK Göteborg" with U19, U21, Senior)
+export interface Organization {
+  id: string
+  userId: string
+  name: string
+  description?: string
+  sportType?: SportType
+  teams?: Team[]
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface Team {
   id: string
   userId: string
   name: string
   description?: string
+  organizationId?: string | null
+  organization?: Organization | null
+  sportType?: SportType | null
   members?: Client[]
   createdAt: Date
   updatedAt: Date
+}
+
+// Tracks when a workout was assigned to an entire team
+export interface TeamWorkoutBroadcast {
+  id: string
+  teamId: string
+  coachId: string
+  strengthSessionId?: string | null
+  cardioSessionId?: string | null
+  hybridWorkoutId?: string | null
+  assignedDate: Date
+  notes?: string | null
+  totalAssigned: number
+  totalCompleted: number
+  createdAt: Date
 }
 
 export interface Client {
@@ -192,6 +249,22 @@ export interface CreateClientDTO {
 export interface CreateTeamDTO {
   name: string
   description?: string
+  organizationId?: string
+  sportType?: SportType
+}
+
+export interface CreateOrganizationDTO {
+  name: string
+  description?: string
+  sportType?: SportType
+}
+
+export interface TeamAssignWorkoutDTO {
+  workoutType: 'strength' | 'cardio' | 'hybrid'
+  workoutId: string
+  assignedDate: string
+  notes?: string
+  excludeAthleteIds?: string[]
 }
 
 export interface CreateTestDTO {

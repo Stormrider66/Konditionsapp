@@ -335,6 +335,136 @@ BIOMECHANISK BALANS:
 - Foot/Ankle (Calf raises)
 - Core (Stabilitet)
 - Upper Body (Push/Pull)`
+  },
+
+  TEAM_FOOTBALL: {
+    systemContext: `Du skapar träningsprogram för fotbollsspelare.
+
+NYCKELPRINCIPER FÖR FOTBOLL:
+- Matchdagsperiodisering (MD+/MD-)
+- Explosivitet och sprintkapacitet
+- Aerob och anaerob uthållighet
+- Förebyggande av hamstringsskador
+- Teknisk träning integrerad med kondition`,
+    zoneGuidance: `INTENSITETSZONER FOTBOLL:
+- Återhämtning: <70% maxHR, aktiv återhämtning
+- Aerob bas: 70-80% maxHR, längre pass
+- Tempo: 80-88% maxHR, spelformationer
+- Hög intensitet: 88-95% maxHR, spelmoment
+- Sprint: >95% maxHR, explosiva moment`,
+    sessionTypes: [
+      'Taktikträning (spelmoment med bollar)',
+      'Konditionspass (smålagsspel 4v4-8v8)',
+      'Sprintträning (10-40m intervaller)',
+      'Styrketräning (explosivitet focus)',
+      'Återhämtningspass (lätt jogg/pool)',
+      'Teknikträning (bollkontroll)',
+      'Matchförberedelse (taktik genomgång)'
+    ],
+    periodizationNotes: `PERIODISERING FOTBOLL:
+- Försäsong (4-6 veckor): Bygg aerob bas och styrka
+- Tävlingssäsong: MD-baserad veckoplanering
+- MD-3/MD-4: Högintensiva pass
+- MD-2: Reducerad volym, taktik
+- MD-1: Lätt aktivering
+- MD+1: Aktiv återhämtning
+- Uppehåll: Underhållsträning`
+  },
+
+  TEAM_ICE_HOCKEY: {
+    systemContext: `Du skapar träningsprogram för ishockeyspelare.
+
+NYCKELPRINCIPER FÖR ISHOCKEY:
+- Intervallbaserad sport (40-60 sek byten)
+- Explosiv kraft och acceleration
+- Återhämtning mellan byten
+- Skadeförebyggande (höft, ljumske)
+- On-ice och off-ice balans`,
+    zoneGuidance: `INTENSITETSZONER ISHOCKEY:
+- Återhämtning: Lätt skridsko, <70% maxHR
+- Aerob bas: 70-80% maxHR, längre intervaller
+- Tröskelnivå: 80-90% maxHR, 30-60 sek arbete
+- Anaerob: 90-95% maxHR, bytessimuleringar
+- Max: >95% maxHR, explosiva spurter`,
+    sessionTypes: [
+      'On-ice intervaller (30/30 sek arbete/vila)',
+      'Off-ice kondition (cykel, löpning)',
+      'Explosiv styrka (power cleans, box jumps)',
+      'Skridskospecifik styrka (sidosteg)',
+      'Återhämtning (pool, stretching)',
+      'Teknikträning (stickhandling)',
+      'Spelmoment (powerplay, boxplay)'
+    ],
+    periodizationNotes: `PERIODISERING ISHOCKEY:
+- Off-season: Aerob bas, styrka, rörlighet
+- Pre-season: Sport-specifik kondition, explosivitet
+- In-season: Underhåll, matchfokus
+- Matchdag: Aktivering, taktik
+- Playoff: Reducerad volym, hög intensitet`
+  },
+
+  TEAM_HANDBALL: {
+    systemContext: `Du skapar träningsprogram för handbollsspelare.
+
+NYCKELPRINCIPER FÖR HANDBOLL:
+- Intermittent högintensiv sport
+- Kast- och hoppkraft
+- Snabba riktningsförändringar
+- Axel- och knäförebyggande
+- Taktisk spelförståelse`,
+    zoneGuidance: `INTENSITETSZONER HANDBOLL:
+- Återhämtning: <70% maxHR, lätt aktivitet
+- Aerob: 70-80% maxHR, uthållighetsträning
+- Tempo: 80-88% maxHR, spelformer
+- Anspel: 88-95% maxHR, intensiva moment
+- Max: >95% maxHR, sprinter och hopp`,
+    sessionTypes: [
+      'Spelformationer (6v6, 5v5)',
+      'Konditionsträning (intervaller)',
+      'Styrketräning (överkropp, kast)',
+      'Hoppträning (plyometrics)',
+      'Teknikträning (skott, passningar)',
+      'Taktikpass (försvar, anfall)',
+      'Återhämtningspass (lätt aktivitet)'
+    ],
+    periodizationNotes: `PERIODISERING HANDBOLL:
+- Försäsong: Bygg kondition och styrka
+- Uppbyggnad: Sport-specifik träning
+- Tävlingssäsong: Matchbaserad planering
+- Matchvecka: Reducera volym mot match
+- Återhämtning: Aktiv vila efter match`
+  },
+
+  TEAM_FLOORBALL: {
+    systemContext: `Du skapar träningsprogram för innebandyspelare.
+
+NYCKELPRINCIPER FÖR INNEBANDY:
+- Intervallsport med snabba byten
+- Sprintkapacitet och acceleration
+- Låg kroppsvikt, hög explosivitet
+- Rörlighet i höft och rygg
+- Teknik med klubba och boll`,
+    zoneGuidance: `INTENSITETSZONER INNEBANDY:
+- Återhämtning: <70% maxHR, lätt löpning
+- Aerob bas: 70-80% maxHR, grundkondition
+- Tempo: 80-88% maxHR, spelformer
+- Hög intensitet: 88-95% maxHR, spelmoment
+- Sprint: >95% maxHR, explosiva byten`,
+    sessionTypes: [
+      'Spelträning (olika formationer)',
+      'Intervallöpning (20-40 sek)',
+      'Styrketräning (benexplosivitet)',
+      'Teknikpass (bollkontroll, skott)',
+      'Snabbhetsträning (reaktion, acceleration)',
+      'Taktikträning (positioner)',
+      'Återhämtning (stretching, pool)'
+    ],
+    periodizationNotes: `PERIODISERING INNEBANDY:
+- Sommarträning: Aerob bas, styrka
+- Försäsong: Sport-specifik kondition
+- Säsong: Matchanpassad träning
+- Matchvecka: Minska volym mot match
+- Återhämtning: Vila och underhåll`
   }
 };
 

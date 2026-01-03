@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { TeamForm } from '@/components/forms/TeamForm'
 import { MobileNav } from '@/components/navigation/MobileNav'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
-import { Trash2, Edit2, Users, Plus, ArrowLeft } from 'lucide-react'
+import { Trash2, Edit2, Users, Plus, ArrowLeft, BarChart3, Building2 } from 'lucide-react'
 import type { Team } from '@/types'
 import {
   AlertDialog,
@@ -22,16 +23,152 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
+// Team type with simplified organization (API returns partial)
+interface TeamWithPartialOrg {
+  id: string
+  userId: string
+  name: string
+  description?: string
+  organizationId?: string | null
+  sportType?: string | null
+  organization?: {
+    id: string
+    name: string
+  } | null
+  members?: { id: string; name: string }[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Use this for teams in this page
+type ExtendedTeam = TeamWithPartialOrg
+
+// Sport type labels in Swedish
+const sportTypeLabels: Record<string, string> = {
+  TEAM_FOOTBALL: 'Fotboll',
+  TEAM_ICE_HOCKEY: 'Ishockey',
+  TEAM_HANDBALL: 'Handboll',
+  TEAM_FLOORBALL: 'Innebandy',
+}
+
+// TeamCard component for consistent rendering
+function TeamCard({
+  team,
+  onEdit,
+  onDelete,
+}: {
+  team: ExtendedTeam
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <Card className="hover:shadow-lg transition">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex justify-between items-start">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold">{team.name}</h3>
+              {team.sportType && (
+                <Badge variant="secondary" className="text-xs">
+                  {sportTypeLabels[team.sportType] || team.sportType}
+                </Badge>
+              )}
+            </div>
+            {team.description && (
+              <p className="text-sm text-muted-foreground font-normal">{team.description}</p>
+            )}
+          </div>
+          <div className="flex gap-1">
+            <Link href={`/coach/teams/${team.id}`}>
+              <Button variant="ghost" size="sm" title="Visa dashboard">
+                <BarChart3 className="w-4 h-4" />
+              </Button>
+            </Link>
+            <Button variant="ghost" size="sm" onClick={onEdit} title="Redigera lag">
+              <Edit2 className="w-4 h-4 text-blue-600" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              title="Ta bort lag"
+            >
+              <Trash2 className="w-4 h-4 text-red-600" />
+            </Button>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Users className="w-4 h-4" />
+            <span>
+              {team.members && team.members.length > 0
+                ? `${team.members.length} spelare`
+                : 'Inga spelare'}
+            </span>
+          </div>
+          {team.members && team.members.length > 0 && (
+            <div className="pt-3 border-t">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Spelare:</p>
+              <ul className="space-y-1">
+                {team.members.slice(0, 5).map((member) => (
+                  <li key={member.id} className="text-sm">
+                    {member.name}
+                  </li>
+                ))}
+                {team.members.length > 5 && (
+                  <li className="text-sm text-muted-foreground italic">
+                    +{team.members.length - 5} till
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+          <Link href={`/coach/teams/${team.id}`} className="block pt-2">
+            <Button variant="outline" size="sm" className="w-full gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Visa dashboard
+            </Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function TeamsPage() {
-  const [teams, setTeams] = useState<Team[]>([])
+  const [teams, setTeams] = useState<ExtendedTeam[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [editingTeam, setEditingTeam] = useState<Team | null>(null)
+  const [editingTeam, setEditingTeam] = useState<ExtendedTeam | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [teamToDelete, setTeamToDelete] = useState<Team | null>(null)
+  const [teamToDelete, setTeamToDelete] = useState<ExtendedTeam | null>(null)
   const [deleting, setDeleting] = useState(false)
   const { toast } = useToast()
+
+  // Group teams by organization
+  const groupedTeams = useMemo(() => {
+    const groups: Record<string, ExtendedTeam[]> = {}
+    const noOrg: ExtendedTeam[] = []
+
+    teams.forEach((team) => {
+      if (team.organization) {
+        const orgName = team.organization.name
+        if (!groups[orgName]) {
+          groups[orgName] = []
+        }
+        groups[orgName].push(team)
+      } else {
+        noOrg.push(team)
+      }
+    })
+
+    return { groups, noOrg }
+  }, [teams])
+
+  const hasOrganizations = Object.keys(groupedTeams.groups).length > 0
 
   const fetchTeams = useCallback(async () => {
     try {
@@ -70,16 +207,18 @@ export default function TeamsPage() {
   }, [fetchTeams])
 
   const handleTeamSuccess = (team: Team) => {
+    // API returns partial organization, cast accordingly
+    const extendedTeam = team as ExtendedTeam
     if (editingTeam) {
-      setTeams(teams.map((t) => (t.id === team.id ? team : t)))
+      setTeams(teams.map((t) => (t.id === team.id ? extendedTeam : t)))
       setEditingTeam(null)
     } else {
-      setTeams([team, ...teams])
+      setTeams([extendedTeam, ...teams])
     }
     setShowForm(false)
   }
 
-  const handleDeleteClick = (team: Team) => {
+  const handleDeleteClick = (team: ExtendedTeam) => {
     setTeamToDelete(team)
     setDeleteDialogOpen(true)
   }
@@ -126,7 +265,7 @@ export default function TeamsPage() {
         {showForm ? (
           <div>
             <TeamForm
-              team={editingTeam || undefined}
+              team={(editingTeam as Team) || undefined}
               onSuccess={handleTeamSuccess}
               onCancel={() => {
                 setShowForm(false)
@@ -144,6 +283,16 @@ export default function TeamsPage() {
               </Button>
             </div>
 
+            {/* Quick links */}
+            <div className="flex gap-2">
+              <Link href="/coach/organizations">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Building2 className="w-4 h-4" />
+                  Organisationer
+                </Button>
+              </Link>
+            </div>
+
             {loading ? (
               <Card>
                 <CardContent className="p-12 text-center">
@@ -159,71 +308,57 @@ export default function TeamsPage() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {teams.map((team) => (
-                  <Card key={team.id} className="hover:shadow-lg transition">
-                    <CardHeader>
-                      <CardTitle className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-xl">{team.name}</h3>
-                          {team.description && (
-                            <p className="text-sm text-gray-500 font-normal mt-1">
-                              {team.description}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
+              <div className="space-y-8">
+                {/* Teams grouped by organization */}
+                {hasOrganizations &&
+                  Object.entries(groupedTeams.groups).map(([orgName, orgTeams]) => (
+                    <div key={orgName} className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-5 h-5 text-muted-foreground" />
+                        <h3 className="text-lg font-semibold">{orgName}</h3>
+                        <Badge variant="secondary">{orgTeams.length} lag</Badge>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {orgTeams.map((team) => (
+                          <TeamCard
+                            key={team.id}
+                            team={team}
+                            onEdit={() => {
                               setEditingTeam(team)
                               setShowForm(true)
                             }}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition"
-                            title="Redigera lag"
-                          >
-                            <Edit2 className="w-4 h-4 text-blue-600" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(team)}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition"
-                            title="Ta bort lag"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </button>
-                        </div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Users className="w-4 h-4" />
-                          <span>
-                            {team.members && team.members.length > 0
-                              ? `${team.members.length} medlemmar`
-                              : 'Inga medlemmar'}
-                          </span>
-                        </div>
-                        {team.members && team.members.length > 0 && (
-                          <div className="pt-3 border-t border-gray-200">
-                            <p className="text-xs font-medium text-gray-500 mb-2">Medlemmar:</p>
-                            <ul className="space-y-1">
-                              {team.members.slice(0, 5).map((member) => (
-                                <li key={member.id} className="text-sm text-gray-700">
-                                  {member.name}
-                                </li>
-                              ))}
-                              {team.members.length > 5 && (
-                                <li className="text-sm text-gray-500 italic">
-                                  +{team.members.length - 5} till
-                                </li>
-                              )}
-                            </ul>
-                          </div>
-                        )}
+                            onDelete={() => handleDeleteClick(team)}
+                          />
+                        ))}
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    </div>
+                  ))}
+
+                {/* Teams without organization */}
+                {groupedTeams.noOrg.length > 0 && (
+                  <div className="space-y-4">
+                    {hasOrganizations && (
+                      <div className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-muted-foreground" />
+                        <h3 className="text-lg font-semibold">Fristående lag</h3>
+                        <Badge variant="outline">{groupedTeams.noOrg.length} lag</Badge>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {groupedTeams.noOrg.map((team) => (
+                        <TeamCard
+                          key={team.id}
+                          team={team}
+                          onEdit={() => {
+                            setEditingTeam(team)
+                            setShowForm(true)
+                          }}
+                          onDelete={() => handleDeleteClick(team)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -1,22 +1,21 @@
-// app/api/teams/route.ts
+// app/api/organizations/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
-// Validation schema for team creation
-const createTeamSchema = z.object({
-  name: z.string().min(2, 'Team name must be at least 2 characters').max(100),
+// Validation schema for organization creation
+const createOrganizationSchema = z.object({
+  name: z.string().min(2, 'Organization name must be at least 2 characters').max(100),
   description: z.string().max(500).optional(),
-  organizationId: z.string().uuid().optional(),
   sportType: z.enum([
     'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'STRENGTH',
     'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL'
   ]).optional(),
 })
 
-// GET /api/teams - Get all teams for the authenticated user
+// GET /api/organizations - Get all organizations for the authenticated user
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -34,16 +33,14 @@ export async function GET() {
       )
     }
 
-    const teams = await prisma.team.findMany({
+    const organizations = await prisma.organization.findMany({
       where: {
         userId: user.id,
       },
       include: {
-        members: true,
-        organization: {
-          select: {
-            id: true,
-            name: true,
+        teams: {
+          include: {
+            members: true,
           },
         },
       },
@@ -54,21 +51,21 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: teams,
+      data: organizations,
     })
   } catch (error) {
-    logger.error('Error fetching teams', {}, error)
+    logger.error('Error fetching organizations', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch teams',
+        error: 'Failed to fetch organizations',
       },
       { status: 500 }
     )
   }
 }
 
-// POST /api/teams - Create a new team
+// POST /api/organizations - Create a new organization
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -89,7 +86,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Validate input
-    const validation = createTeamSchema.safeParse(body)
+    const validation = createOrganizationSchema.safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
         {
@@ -103,39 +100,17 @@ export async function POST(request: NextRequest) {
 
     const data = validation.data
 
-    // If organizationId is provided, verify it exists and belongs to user
-    if (data.organizationId) {
-      const org = await prisma.organization.findFirst({
-        where: {
-          id: data.organizationId,
-          userId: user.id,
-        },
-      })
-      if (!org) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Organization not found or unauthorized',
-          },
-          { status: 404 }
-        )
-      }
-    }
-
-    const team = await prisma.team.create({
+    const organization = await prisma.organization.create({
       data: {
         userId: user.id,
         name: data.name,
         description: data.description || null,
-        organizationId: data.organizationId || null,
         sportType: data.sportType || null,
       },
       include: {
-        members: true,
-        organization: {
-          select: {
-            id: true,
-            name: true,
+        teams: {
+          include: {
+            members: true,
           },
         },
       },
@@ -144,17 +119,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        data: team,
-        message: 'Team created successfully',
+        data: organization,
+        message: 'Organization created successfully',
       },
       { status: 201 }
     )
   } catch (error) {
-    logger.error('Error creating team', {}, error)
+    logger.error('Error creating organization', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create team',
+        error: 'Failed to create organization',
       },
       { status: 500 }
     )

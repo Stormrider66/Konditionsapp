@@ -45,6 +45,7 @@ import { toast } from 'sonner';
 import type { CardioSessionData } from '@/types';
 import { CardioSessionDetailSheet } from './CardioSessionDetailSheet';
 import { CardioSessionAssignmentDialog } from './CardioSessionAssignmentDialog';
+import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 
 interface CardioSessionLibraryProps {
@@ -110,6 +111,11 @@ export function CardioSessionLibrary({
   const [assignSessionId, setAssignSessionId] = useState<string | undefined>();
   const [assignSessionName, setAssignSessionName] = useState<string | undefined>();
 
+  // Team assignment dialog state
+  const [isTeamAssignOpen, setIsTeamAssignOpen] = useState(false);
+  const [teamAssignSessionId, setTeamAssignSessionId] = useState<string | undefined>();
+  const [teamAssignSessionName, setTeamAssignSessionName] = useState<string | undefined>();
+
   // Delete confirmation
   const [deleteSession, setDeleteSession] = useState<CardioSessionData | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -162,6 +168,14 @@ export function CardioSessionLibrary({
       setAssignSessionId(sheetSession.id);
       setAssignSessionName(sheetSession.name);
       setIsAssignOpen(true);
+    }
+  }
+
+  function handleSheetTeamAssign() {
+    if (sheetSession) {
+      setTeamAssignSessionId(sheetSession.id);
+      setTeamAssignSessionName(sheetSession.name);
+      setIsTeamAssignOpen(true);
     }
   }
 
@@ -334,6 +348,7 @@ export function CardioSessionLibrary({
         onEdit={handleSheetEdit}
         onDelete={handleSheetDelete}
         onAssign={handleSheetAssign}
+        onTeamAssign={handleSheetTeamAssign}
       />
 
       {/* Assignment Dialog */}
@@ -347,6 +362,21 @@ export function CardioSessionLibrary({
           setIsAssignOpen(false);
         }}
       />
+
+      {/* Team Assignment Dialog */}
+      {teamAssignSessionId && teamAssignSessionName && (
+        <TeamWorkoutAssignmentDialog
+          workoutType="cardio"
+          workoutId={teamAssignSessionId}
+          workoutName={teamAssignSessionName}
+          open={isTeamAssignOpen}
+          onOpenChange={setIsTeamAssignOpen}
+          onAssigned={() => {
+            fetchSessions();
+            setIsTeamAssignOpen(false);
+          }}
+        />
+      )}
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteSession} onOpenChange={() => setDeleteSession(null)}>

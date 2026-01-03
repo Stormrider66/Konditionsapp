@@ -15,6 +15,11 @@ type RouteParams = {
 const updateTeamSchema = z.object({
   name: z.string().min(2, 'Team name must be at least 2 characters').max(100).optional(),
   description: z.string().max(500).optional(),
+  organizationId: z.string().uuid().optional().nullable(),
+  sportType: z.enum([
+    'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'STRENGTH',
+    'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL'
+  ]).optional().nullable(),
 })
 
 // GET /api/teams/[id] - Get a specific team
@@ -45,6 +50,12 @@ export async function GET(
       },
       include: {
         members: true,
+        organization: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     })
 
@@ -132,6 +143,25 @@ export async function PUT(
 
     const data = validation.data
 
+    // If organizationId is provided, verify it exists and belongs to user
+    if (data.organizationId) {
+      const org = await prisma.organization.findFirst({
+        where: {
+          id: data.organizationId,
+          userId: user.id,
+        },
+      })
+      if (!org) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Organization not found or unauthorized',
+          },
+          { status: 404 }
+        )
+      }
+    }
+
     const team = await prisma.team.update({
       where: {
         id,
@@ -139,9 +169,17 @@ export async function PUT(
       data: {
         ...(data.name && { name: data.name }),
         ...(data.description !== undefined && { description: data.description || null }),
+        ...(data.organizationId !== undefined && { organizationId: data.organizationId }),
+        ...(data.sportType !== undefined && { sportType: data.sportType }),
       },
       include: {
         members: true,
+        organization: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     })
 
