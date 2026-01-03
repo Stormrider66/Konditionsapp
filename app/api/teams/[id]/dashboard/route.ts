@@ -1,4 +1,4 @@
-// app/api/teams/[teamId]/dashboard/route.ts
+// app/api/teams/[id]/dashboard/route.ts
 /**
  * Team Dashboard API
  *
@@ -14,10 +14,10 @@ import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 
 interface RouteContext {
-  params: Promise<{ teamId: string }>
+  params: Promise<{ id: string }>
 }
 
-// GET /api/teams/[teamId]/dashboard
+// GET /api/teams/[id]/dashboard
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const supabase = await createClient()
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       )
     }
 
-    const { teamId } = await context.params
+    const { id: teamId } = await context.params
 
     // Verify team exists and user owns it
     const team = await prisma.team.findFirst({

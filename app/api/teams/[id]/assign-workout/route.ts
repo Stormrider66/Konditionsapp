@@ -1,4 +1,4 @@
-// app/api/teams/[teamId]/assign-workout/route.ts
+// app/api/teams/[id]/assign-workout/route.ts
 /**
  * Team Workout Assignment API
  *
@@ -13,7 +13,7 @@ import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
 interface RouteContext {
-  params: Promise<{ teamId: string }>
+  params: Promise<{ id: string }>
 }
 
 // Validation schema for team workout assignment
@@ -27,7 +27,7 @@ const teamAssignWorkoutSchema = z.object({
   excludeAthleteIds: z.array(z.string().uuid()).optional(),
 })
 
-// POST /api/teams/[teamId]/assign-workout
+// POST /api/teams/[id]/assign-workout
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const supabase = await createClient()
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       )
     }
 
-    const { teamId } = await context.params
+    const { id: teamId } = await context.params
     const body = await request.json()
 
     // Validate input
