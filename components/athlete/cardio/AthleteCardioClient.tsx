@@ -354,36 +354,44 @@ export function AthleteCardioClient({
     )
   }
 
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Cardio Pass</h1>
-          <p className="text-muted-foreground">
-            Dina löppass, cykelpass och andra konditionspass
-          </p>
-        </div>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">Cardio Pass</h1>
+        <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">
+          Dina löppass, cykelpass och andra konditionspass
+        </p>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-none lg:flex">
-          <TabsTrigger value="upcoming" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-none lg:flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+          <TabsTrigger
+            value="upcoming"
+            className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
+          >
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline">Kommande</span>
             {upcomingAssignments.length > 0 && (
-              <Badge variant="secondary" className="ml-1">
+              <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-100">
                 {upcomingAssignments.length}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
+          <TabsTrigger
+            value="history"
+            className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
+          >
             <History className="h-4 w-4" />
             <span className="hidden sm:inline">Historik</span>
           </TabsTrigger>
           {canAccessTemplates && (
-            <TabsTrigger value="templates" className="flex items-center gap-2">
+            <TabsTrigger
+              value="templates"
+              className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
+            >
               <Library className="h-4 w-4" />
               <span className="hidden sm:inline">Mallar</span>
             </TabsTrigger>
@@ -391,17 +399,19 @@ export function AthleteCardioClient({
         </TabsList>
 
         {/* Upcoming Sessions */}
-        <TabsContent value="upcoming" className="mt-6">
+        <TabsContent value="upcoming" className="mt-8">
           {upcomingAssignments.length === 0 ? (
-            <div className="text-center py-12">
-              <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Inga kommande pass</h3>
-              <p className="text-muted-foreground">
+            <div className="text-center py-20 bg-slate-50 border border-dashed border-slate-200 dark:bg-white/5 dark:border-white/10 rounded-3xl">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Activity className="h-8 w-8 text-slate-300 dark:text-slate-500" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Inga kommande pass</h3>
+              <p className="text-slate-500 dark:text-slate-400 font-medium max-w-sm mx-auto">
                 Din tränare har inte tilldelat några cardiopass ännu.
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {upcomingAssignments.map((assignment) => (
                 <CardioSessionCard
                   key={assignment.id}
@@ -424,12 +434,14 @@ export function AthleteCardioClient({
         </TabsContent>
 
         {/* History */}
-        <TabsContent value="history" className="mt-6">
+        <TabsContent value="history" className="mt-8">
           {completedAssignments.length === 0 ? (
-            <div className="text-center py-12">
-              <History className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Ingen historik ännu</h3>
-              <p className="text-muted-foreground">
+            <div className="text-center py-20 bg-slate-50 border border-dashed border-slate-200 dark:bg-white/5 dark:border-white/10 rounded-3xl">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <History className="h-8 w-8 text-slate-300 dark:text-slate-500" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Ingen historik ännu</h3>
+              <p className="text-slate-500 dark:text-slate-400 font-medium">
                 Slutförda pass visas här.
               </p>
             </div>
@@ -438,27 +450,29 @@ export function AthleteCardioClient({
               {completedAssignments.map((assignment) => (
                 <div
                   key={assignment.id}
-                  className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
+                  className="flex items-center justify-between p-5 bg-white border border-slate-200 dark:bg-white/5 dark:border-white/10 rounded-2xl hover:shadow-lg transition-all duration-300 group"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                      <Activity className="h-5 w-5 text-green-700" />
+                  <div className="flex items-center gap-5">
+                    <div className="h-12 w-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                      <Activity className="h-6 w-6" />
                     </div>
                     <div>
-                      <h4 className="font-medium">{assignment.session.name}</h4>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(assignment.assignedDate).toLocaleDateString('sv-SE')}
+                      <h4 className="font-black text-lg text-slate-900 dark:text-white tracking-tight">{assignment.session.name}</h4>
+                      <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(assignment.assignedDate).toLocaleDateString('sv-SE')}
+                        </span>
                         {assignment.session.totalDuration && (
-                          <>
-                            <Clock className="h-3 w-3 ml-2" />
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="h-3 w-3" />
                             {formatDuration(assignment.session.totalDuration)}
-                          </>
+                          </span>
                         )}
                       </div>
                     </div>
                   </div>
-                  <Badge className="bg-green-100 text-green-700">Slutförd</Badge>
+                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 font-bold uppercase tracking-wide">Slutförd</Badge>
                 </div>
               ))}
             </div>
@@ -467,14 +481,16 @@ export function AthleteCardioClient({
 
         {/* Templates (PRO+) */}
         {canAccessTemplates && (
-          <TabsContent value="templates" className="mt-6">
-            <div className="text-center py-12">
-              <Library className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Mallbibliotek</h3>
-              <p className="text-muted-foreground mb-4">
+          <TabsContent value="templates" className="mt-8">
+            <div className="text-center py-20 bg-slate-50 border border-dashed border-slate-200 dark:bg-white/5 dark:border-white/10 rounded-3xl">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Library className="h-8 w-8 text-slate-300 dark:text-slate-500" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Mallbibliotek</h3>
+              <p className="text-slate-500 dark:text-slate-400 font-medium mb-6">
                 Bläddra bland systemmallar och skapa egna pass.
               </p>
-              <Button variant="outline">
+              <Button variant="outline" className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:text-white dark:hover:bg-white/10 font-bold">
                 Bläddra mallar
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>

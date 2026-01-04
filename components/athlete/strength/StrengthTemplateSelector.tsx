@@ -8,7 +8,15 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+  GlassCardFooter
+} from '@/components/ui/GlassCard'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -68,12 +76,12 @@ interface TemplateSummary {
 }
 
 const CATEGORY_LABELS: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  RUNNER: { label: 'Löpare', icon: TrendingUp, color: 'bg-blue-100 text-blue-800' },
-  BEGINNER: { label: 'Nybörjare', icon: Target, color: 'bg-green-100 text-green-800' },
-  MARATHON: { label: 'Maraton', icon: Target, color: 'bg-purple-100 text-purple-800' },
-  INJURY_PREVENTION: { label: 'Skadeprevention', icon: Shield, color: 'bg-yellow-100 text-yellow-800' },
-  POWER: { label: 'Kraft', icon: Zap, color: 'bg-red-100 text-red-800' },
-  MAINTENANCE: { label: 'Underhåll', icon: Dumbbell, color: 'bg-gray-100 text-gray-800' },
+  RUNNER: { label: 'Löpare', icon: TrendingUp, color: 'bg-blue-100 text-blue-800 dark:bg-blue-500/10 dark:text-blue-400' },
+  BEGINNER: { label: 'Nybörjare', icon: Target, color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400' },
+  MARATHON: { label: 'Maraton', icon: Target, color: 'bg-purple-100 text-purple-800 dark:bg-purple-500/10 dark:text-purple-400' },
+  INJURY_PREVENTION: { label: 'Skadeprevention', icon: Shield, color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/10 dark:text-yellow-400' },
+  POWER: { label: 'Kraft', icon: Zap, color: 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400' },
+  MAINTENANCE: { label: 'Underhåll', icon: Dumbbell, color: 'bg-slate-100 text-slate-800 dark:bg-white/5 dark:text-slate-400' },
 }
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -190,10 +198,10 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
 
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50">
+      <Card className="border-red-200 bg-red-50 dark:bg-red-500/10 dark:border-red-500/20">
         <CardContent className="pt-6 text-center">
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-800">{error}</p>
+          <p className="text-red-800 dark:text-red-300">{error}</p>
         </CardContent>
       </Card>
     )
@@ -204,16 +212,16 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 dark:text-slate-400" />
           <Input
             placeholder="Sök mallar..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-white border-slate-200 dark:bg-white/5 dark:border-white/10"
           />
         </div>
         <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-48">
+          <SelectTrigger className="w-full sm:w-48 bg-white border-slate-200 dark:bg-white/5 dark:border-white/10">
             <SelectValue placeholder="Kategori" />
           </SelectTrigger>
           <SelectContent>
@@ -229,13 +237,13 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
 
       {/* Template grid */}
       {filteredTemplates.length === 0 ? (
-        <Card>
+        <Card className="bg-slate-50 border-slate-200 dark:bg-white/5 dark:border-white/10">
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">Inga mallar hittades.</p>
+            <p className="text-slate-500 dark:text-slate-400">Inga mallar hittades.</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
           {filteredTemplates.map((template) => {
             const categoryInfo = CATEGORY_LABELS[template.category] || {
               label: template.category,
@@ -245,78 +253,78 @@ export function StrengthTemplateSelector({ onAssigned }: StrengthTemplateSelecto
             const CategoryIcon = categoryInfo.icon
 
             return (
-              <Card
+              <GlassCard
                 key={template.id}
-                className="hover:shadow-md transition-shadow cursor-pointer"
+                className="hover:shadow-md transition-all duration-300 cursor-pointer border-slate-200 dark:border-white/5"
                 onClick={() => setSelectedTemplate(template)}
               >
-                <CardHeader className="pb-2">
+                <GlassCardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <Badge className={categoryInfo.color}>
+                        <Badge className={`${categoryInfo.color} border-0 font-bold tracking-tight px-2`}>
                           <CategoryIcon className="h-3 w-3 mr-1" />
                           {categoryInfo.label}
                         </Badge>
-                        <Badge variant="outline">
+                        <Badge variant="outline" className="border-slate-200 text-slate-600 dark:border-white/10 dark:text-slate-400 font-bold uppercase tracking-tight text-[10px]">
                           {LEVEL_LABELS[template.athleteLevel]}
                         </Badge>
                       </div>
-                      <CardTitle className="text-lg">{template.nameSv}</CardTitle>
-                      <CardDescription className="line-clamp-2 mt-1">
+                      <GlassCardTitle className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{template.nameSv}</GlassCardTitle>
+                      <GlassCardDescription className="line-clamp-2 mt-1 text-slate-500 dark:text-slate-400">
                         {template.descriptionSv}
-                      </CardDescription>
+                      </GlassCardDescription>
                     </div>
                   </div>
-                </CardHeader>
+                </GlassCardHeader>
 
-                <CardContent className="pb-4">
+                <GlassCardContent className="pb-4">
                   <div className="grid grid-cols-3 gap-2 mb-3">
-                    <div className="text-center p-2 bg-muted/50 rounded">
-                      <Dumbbell className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                      <p className="text-sm font-medium">{template.exerciseCount}</p>
-                      <p className="text-xs text-muted-foreground">Övningar</p>
+                    <div className="text-center p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
+                      <Dumbbell className="h-4 w-4 mx-auto mb-1 text-slate-400 dark:text-slate-500" />
+                      <p className="text-sm font-black text-slate-700 dark:text-slate-300">{template.exerciseCount}</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-500">Övningar</p>
                     </div>
-                    <div className="text-center p-2 bg-muted/50 rounded">
-                      <Clock className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                      <p className="text-sm font-medium">{template.estimatedDuration}</p>
-                      <p className="text-xs text-muted-foreground">min</p>
+                    <div className="text-center p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
+                      <Clock className="h-4 w-4 mx-auto mb-1 text-slate-400 dark:text-slate-500" />
+                      <p className="text-sm font-black text-slate-700 dark:text-slate-300">{template.estimatedDuration}</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-500">min</p>
                     </div>
-                    <div className="text-center p-2 bg-muted/50 rounded">
-                      <Calendar className="h-4 w-4 mx-auto mb-1 text-muted-foreground" />
-                      <p className="text-sm font-medium">{template.sessionsPerWeek}x</p>
-                      <p className="text-xs text-muted-foreground">/vecka</p>
+                    <div className="text-center p-2 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
+                      <Calendar className="h-4 w-4 mx-auto mb-1 text-slate-400 dark:text-slate-500" />
+                      <p className="text-sm font-black text-slate-700 dark:text-slate-300">{template.sessionsPerWeek}x</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-500">/vecka</p>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap gap-1">
                     {template.includesWarmup && (
-                      <Badge variant="outline" className="text-xs">
-                        <Flame className="h-3 w-3 mr-1 text-yellow-500" />
+                      <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-tight border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
+                        <Flame className="h-3 w-3 mr-1 text-amber-500" />
                         Uppvärmning
                       </Badge>
                     )}
                     {template.includesCore && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-tight border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
                         <Target className="h-3 w-3 mr-1 text-purple-500" />
                         Core
                       </Badge>
                     )}
                     {template.includesCooldown && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-tight border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
                         <Timer className="h-3 w-3 mr-1 text-green-500" />
                         Nedvarvning
                       </Badge>
                     )}
                   </div>
-                </CardContent>
+                </GlassCardContent>
 
-                <CardFooter className="pt-0">
-                  <Button className="w-full" variant="outline">
+                <GlassCardFooter className="pt-0">
+                  <Button className="w-full bg-white border-slate-200 text-slate-900 hover:bg-slate-50 dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/20 font-bold shadow-sm" variant="outline">
                     Välj denna mall
                   </Button>
-                </CardFooter>
-              </Card>
+                </GlassCardFooter>
+              </GlassCard>
             )
           })}
         </div>

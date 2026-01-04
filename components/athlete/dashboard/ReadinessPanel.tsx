@@ -134,8 +134,8 @@ export function ReadinessPanel({
   return (
     <GlassCard className="rounded-2xl h-full">
       <GlassCardHeader>
-        <GlassCardTitle className="text-lg flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-cyan-400" />
+        <GlassCardTitle className="text-lg flex items-center gap-2 text-slate-900 dark:text-white transition-colors">
+          <TrendingUp className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
           Beredskap
         </GlassCardTitle>
       </GlassCardHeader>
@@ -143,14 +143,14 @@ export function ReadinessPanel({
       <GlassCardContent className="space-y-6">
         {/* Check-in prompt if not done today */}
         {!hasCheckedInToday && (
-          <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+          <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 transition-colors">
             <div className="flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-orange-400 font-medium">
+                <p className="text-sm text-orange-700 dark:text-orange-400 font-medium">
                   Gör din incheckning
                 </p>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-orange-600/80 dark:text-slate-400 mt-0.5">
                   För att se din beredskapsdata
                 </p>
               </div>
@@ -158,7 +158,7 @@ export function ReadinessPanel({
             <Link href="/athlete/check-in">
               <Button
                 size="sm"
-                className="w-full mt-3 bg-orange-600 hover:bg-orange-700 text-white border-0"
+                className="w-full mt-3 bg-orange-600 hover:bg-orange-700 text-white border-0 shadow-sm"
               >
                 Checka in nu
               </Button>
@@ -168,14 +168,14 @@ export function ReadinessPanel({
 
         {/* Injury Status */}
         {activeInjuries.length > 0 && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 transition-colors">
             <div className="flex items-start gap-2">
-              <Heart className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+              <Heart className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-red-400 font-medium">
+                <p className="text-sm text-red-700 dark:text-red-400 font-medium">
                   Skadestatus
                 </p>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-red-600/80 dark:text-slate-400 mt-0.5">
                   {activeInjuries.length} {activeInjuries.length === 1 ? 'aktiv skada' : 'aktiva skador'}
                 </p>
               </div>
@@ -187,7 +187,7 @@ export function ReadinessPanel({
                   className={`px-2 py-1.5 rounded text-xs border ${getInjurySeverityColor(injury.painLevel)}`}
                 >
                   <span className="font-medium">{translatePainLocation(injury.painLocation)}</span>
-                  <span className="text-slate-400 ml-1">- Smärtnivå {injury.painLevel}/10</span>
+                  <span className="text-slate-500 dark:text-slate-400 ml-1">- Smärtnivå {injury.painLevel}/10</span>
                 </div>
               ))}
             </div>
@@ -203,14 +203,14 @@ export function ReadinessPanel({
         {readinessScore !== null && readinessColors && (
           <div>
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-400">Återhämtningsnivå</span>
+              <span className="text-slate-600 dark:text-slate-400 transition-colors">Återhämtningsnivå</span>
               <span className={`font-bold ${readinessColors.text}`}>
                 {readinessPercentage}%
               </span>
             </div>
             <Progress
               value={readinessPercentage}
-              className={`h-2 bg-slate-800 ${readinessColors.bar} ${readinessColors.glow}`}
+              className={`h-2 bg-slate-200 dark:bg-slate-800 ${readinessColors.bar} ${readinessColors.glow}`}
             />
             <p className="text-xs text-slate-500 mt-1.5">
               {readinessScore >= 7 && 'Utmärkt - redo för intensiv träning'}
@@ -224,10 +224,10 @@ export function ReadinessPanel({
         {readinessScore === null && hasCheckedInToday && (
           <div>
             <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-400">Återhämtningsnivå</span>
+              <span className="text-slate-600 dark:text-slate-400 transition-colors">Återhämtningsnivå</span>
               <span className="text-slate-500 font-medium">—</span>
             </div>
-            <Progress value={0} className="h-2 bg-slate-800" />
+            <Progress value={0} className="h-2 bg-slate-200 dark:bg-slate-800" />
             <p className="text-xs text-slate-500 mt-1.5">
               Ingen data tillgänglig
             </p>
@@ -237,14 +237,14 @@ export function ReadinessPanel({
         {/* Weekly Load */}
         <div>
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-slate-400">Veckobelastning</span>
-            <span className="text-orange-400 font-bold">
+            <span className="text-slate-600 dark:text-slate-400 transition-colors">Veckobelastning</span>
+            <span className="text-orange-600 dark:text-orange-400 font-bold transition-colors">
               {weeklyTSS !== null ? Math.round(weeklyTSS) : 0} / {weeklyTSSTarget}
             </span>
           </div>
           <Progress
             value={loadPercentage}
-            className={`h-2 bg-slate-800 ${getLoadColor(weeklyTSS || 0, weeklyTSSTarget)}`}
+            className={`h-2 bg-slate-200 dark:bg-slate-800 ${getLoadColor(weeklyTSS || 0, weeklyTSSTarget)}`}
           />
           <p className="text-xs text-slate-500 mt-1.5">
             {loadPercentage >= 100 && 'Målbelastning uppnådd'}
@@ -255,9 +255,9 @@ export function ReadinessPanel({
 
         {/* Muscular Fatigue */}
         {muscularFatigue.length > 0 && (
-          <div className="pt-4 border-t border-white/5">
-            <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-slate-400" />
+          <div className="pt-4 border-t border-slate-200 dark:border-white/5 transition-colors">
+            <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-3 flex items-center gap-2 transition-colors">
+              <Activity className="w-4 h-4 text-slate-500 dark:text-slate-400" />
               Muskulär Status
             </h4>
             <div className="flex gap-2 flex-wrap">
@@ -284,9 +284,9 @@ export function ReadinessPanel({
 
         {/* No fatigue data */}
         {muscularFatigue.length === 0 && (
-          <div className="pt-4 border-t border-white/5">
-            <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-slate-400" />
+          <div className="pt-4 border-t border-slate-200 dark:border-white/5 transition-colors">
+            <h4 className="text-sm font-medium text-slate-900 dark:text-white mb-3 flex items-center gap-2 transition-colors">
+              <Activity className="w-4 h-4 text-slate-500 dark:text-slate-400" />
               Muskulär Status
             </h4>
             <p className="text-sm text-slate-500">

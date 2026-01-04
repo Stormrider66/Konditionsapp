@@ -67,7 +67,7 @@ export function ReadinessTab({ data, viewMode, variant = 'default' }: ReadinessT
       <CardWrapper>
         <CardContent className="py-20 text-center">
           <Gauge className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-white/10" : "text-gray-300")} />
-          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-white" : "text-gray-900")}>
+          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
             Ingen beredskapsdata
           </h3>
           <p className={cn("font-medium max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
@@ -160,7 +160,7 @@ export function ReadinessTab({ data, viewMode, variant = 'default' }: ReadinessT
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className={cn("text-5xl font-black italic tracking-tighter", isGlass ? "text-white" : "text-gray-900")}>
+                <span className={cn("text-5xl font-black italic tracking-tighter", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                   {latestMetrics?.hrvRMSSD?.toFixed(0) || '-'}
                 </span>
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">ms</span>
@@ -174,10 +174,10 @@ export function ReadinessTab({ data, viewMode, variant = 'default' }: ReadinessT
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200 dark:border-white/5">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Baseline</p>
-                  <p className={cn("text-sm font-black italic", isGlass ? "text-slate-300" : "text-gray-900")}>{athleteProfile?.hrvBaseline?.toFixed(0) || '-'} ms</p>
+                  <p className={cn("text-sm font-black italic", isGlass ? "text-slate-500 dark:text-slate-300" : "text-gray-900")}>{athleteProfile?.hrvBaseline?.toFixed(0) || '-'} ms</p>
                 </div>
                 {latestMetrics?.hrvTrend && (
                   <div>
@@ -208,7 +208,7 @@ export function ReadinessTab({ data, viewMode, variant = 'default' }: ReadinessT
             </CardHeader>
             <CardContent>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className={cn("text-5xl font-black italic tracking-tighter", isGlass ? "text-white" : "text-gray-900")}>
+                <span className={cn("text-5xl font-black italic tracking-tighter", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                   {latestCheckIn?.restingHR || latestMetrics?.restingHR || '-'}
                 </span>
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">bpm</span>
@@ -221,9 +221,9 @@ export function ReadinessTab({ data, viewMode, variant = 'default' }: ReadinessT
                   </Badge>
                 )}
               </div>
-              <div className="pt-4 border-t border-white/5">
+              <div className="pt-4 border-t border-slate-200 dark:border-white/5">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Baseline</p>
-                <p className={cn("text-sm font-black italic", isGlass ? "text-slate-300" : "text-gray-900")}>{athleteProfile?.rhrBaseline || '-'} bpm</p>
+                <p className={cn("text-sm font-black italic", isGlass ? "text-slate-500 dark:text-slate-300" : "text-gray-900")}>{athleteProfile?.rhrBaseline || '-'} bpm</p>
               </div>
             </CardContent>
           </CardWrapper>
@@ -261,7 +261,7 @@ export function ReadinessTab({ data, viewMode, variant = 'default' }: ReadinessT
                       backgroundColor: isGlass ? '#0f172a' : '#fff',
                       borderColor: isGlass ? '#1e293b' : '#e2e8f0',
                       borderRadius: '12px',
-                      color: isGlass ? '#fff' : '#000',
+                      color: isGlass ? '#475569' : '#000',
                       fontSize: '11px',
                       fontWeight: 700,
                       textTransform: 'uppercase'
@@ -308,9 +308,9 @@ export function ReadinessTab({ data, viewMode, variant = 'default' }: ReadinessT
                   <p className="text-[10px] font-black uppercase tracking-widest text-pink-500/70 mb-1">Nuvarande fas</p>
                   <p className={cn("text-lg font-black uppercase italic", isGlass ? "text-pink-400" : "text-pink-800")}>{getCyclePhaseLabel(latestCycle.currentPhase || '')}</p>
                 </div>
-                <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
+                <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5" : "bg-gray-50")}>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Cykeldag</p>
-                  <p className={cn("text-lg font-black italic", isGlass ? "text-white" : "text-gray-900")}>Dag {calculateCycleDay(latestCycle.startDate)}</p>
+                  <p className={cn("text-lg font-black italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>Dag {calculateCycleDay(latestCycle.startDate)}</p>
                 </div>
               </div>
             </CardContent>
@@ -355,7 +355,7 @@ export function ReadinessTab({ data, viewMode, variant = 'default' }: ReadinessT
                 key={checkIn.id}
                 className={cn(
                   "flex items-center justify-between p-4 rounded-2xl transition-all",
-                  isGlass ? "bg-white/[0.01] border border-white/5 hover:bg-white/5" : "border hover:bg-gray-50"
+                  isGlass ? "bg-white/50 dark:bg-white/[0.01] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5" : "border hover:bg-gray-50"
                 )}
               >
                 <div className="flex items-center gap-4">
@@ -368,11 +368,11 @@ export function ReadinessTab({ data, viewMode, variant = 'default' }: ReadinessT
                     {checkIn.readinessScore?.toFixed(0) || '-'}
                   </div>
                   <div>
-                    <p className={cn("font-black uppercase italic text-xs tracking-tight", isGlass ? "text-white" : "text-gray-900")}>
+                    <p className={cn("font-black uppercase italic text-xs tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                       {format(new Date(checkIn.date), 'EEEE d MMMM', { locale: sv })}
                     </p>
                     {checkIn.readinessDecision && (
-                      <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0 mt-1", isGlass ? "bg-white/5 text-slate-500" : "bg-white border")}>
+                      <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0 mt-1", isGlass ? "bg-white/50 dark:bg-white/5 text-slate-500" : "bg-white border")}>
                         {getDecisionLabel(checkIn.readinessDecision)}
                       </Badge>
                     )}
@@ -413,7 +413,7 @@ function FactorCard({
   return (
     <div className={cn(
       "p-4 rounded-2xl group transition-all duration-300",
-      isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "bg-gray-50 border border-transparent hover:border-gray-200"
+      isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5" : "bg-gray-50 border border-transparent hover:border-gray-200"
     )}>
       <div className="flex items-center gap-2 text-slate-500 mb-2">
         <Icon className="h-3.5 w-3.5" />

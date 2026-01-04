@@ -101,21 +101,21 @@ export default async function AthleteProgramsPage() {
           <GlassCardHeader className="pb-3">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0 space-y-1">
-                <GlassCardTitle className="text-xl font-black tracking-tight text-white uppercase italic group-hover:text-blue-400 transition-colors">
+                <GlassCardTitle className="text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   {program.name}
                 </GlassCardTitle>
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  <Calendar className="h-3 w-3 text-blue-500" />
+                  <Calendar className="h-3 w-3 text-blue-600 dark:text-blue-500" />
                   <span>
                     {format(program.startDate, 'd MMM yyyy', { locale: sv })} — {format(program.endDate, 'd MMM yyyy', { locale: sv })}
                   </span>
                 </div>
               </div>
               <Badge className={cn(
-                "rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest border-0",
-                status.label === 'Aktivt' ? "bg-emerald-500/20 text-emerald-400" :
-                  status.label === 'Kommande' ? "bg-blue-500/20 text-blue-400" :
-                    "bg-white/5 text-slate-500"
+                "rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest border-0 transition-colors",
+                status.label === 'Aktivt' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400" :
+                  status.label === 'Kommande' ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400" :
+                    "bg-slate-100 text-slate-600 dark:bg-white/5 dark:text-slate-500"
               )}>
                 {status.label}
               </Badge>
@@ -124,16 +124,16 @@ export default async function AthleteProgramsPage() {
           <GlassCardContent>
             <div className="flex items-center gap-6 mb-6">
               <div className="space-y-1">
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">Längd</p>
-                <div className="flex items-center gap-2 text-white font-black">
-                  <Clock className="h-4 w-4 text-blue-500" />
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Längd</p>
+                <div className="flex items-center gap-2 text-slate-900 dark:text-white font-black transition-colors">
+                  <Clock className="h-4 w-4 text-blue-600 dark:text-blue-500" />
                   <span>{program._count.weeks} veckor</span>
                 </div>
               </div>
               {currentWeek && (
                 <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">Nuvarande</p>
-                  <div className="flex items-center gap-2 text-blue-400 font-black">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Nuvarande</p>
+                  <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-black transition-colors">
                     <Play className="h-4 w-4 fill-current" />
                     <span>Vecka {currentWeek}</span>
                   </div>
@@ -148,15 +148,16 @@ export default async function AthleteProgramsPage() {
                     key={week.id}
                     variant="outline"
                     className={cn(
-                      "text-[9px] font-black uppercase tracking-widest h-6 rounded-lg border-white/5 bg-white/5 text-slate-500",
-                      week.weekNumber === currentWeek && "bg-blue-600/20 text-blue-400 border-blue-600/30"
+                      "text-[9px] font-black uppercase tracking-widest h-6 rounded-lg transition-colors",
+                      "bg-slate-100 border-slate-200 text-slate-600 dark:bg-white/5 dark:border-white/5 dark:text-slate-500",
+                      week.weekNumber === currentWeek && "bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-600/20 dark:border-blue-600/30 dark:text-blue-400"
                     )}
                   >
                     {week.phase || `W${week.weekNumber}`}
                   </Badge>
                 ))}
                 {program.weeks.length > 8 && (
-                  <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-[9px] font-black text-slate-600">
+                  <div className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-white/5 flex items-center justify-center text-[9px] font-black text-slate-600 dark:text-slate-500 transition-colors">
                     +{program.weeks.length - 8}
                   </div>
                 )}
@@ -164,7 +165,7 @@ export default async function AthleteProgramsPage() {
             )}
 
             <div className="mt-8 flex justify-end">
-              <div className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500 flex items-center gap-2 group-hover:gap-3 transition-all">
+              <div className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600 dark:text-blue-500 flex items-center gap-2 group-hover:gap-3 transition-all">
                 Gå till program <ArrowRight className="h-3 w-3" />
               </div>
             </div>
@@ -177,10 +178,10 @@ export default async function AthleteProgramsPage() {
   return (
     <div className="min-h-screen pb-20 pt-10 px-4 max-w-4xl mx-auto">
       <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-        <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tighter uppercase leading-none mb-4">
-          Mina <span className="text-blue-600 italic">Program</span>
+        <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none mb-4 transition-colors">
+          Mina <span className="text-blue-600 dark:text-blue-500 italic">Program</span>
         </h1>
-        <p className="text-slate-400 font-medium text-sm max-w-md">
+        <p className="text-slate-600 dark:text-slate-400 font-medium text-sm max-w-md transition-colors">
           Alla dina träningsprogram samlade på ett ställe. Följ din utveckling och se kommande utmaningar.
         </p>
       </div>
@@ -188,11 +189,11 @@ export default async function AthleteProgramsPage() {
       {programs.length === 0 ? (
         <GlassCard>
           <GlassCardContent className="py-20 text-center space-y-4">
-            <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/5 flex items-center justify-center mx-auto mb-6">
-              <Calendar className="h-10 w-10 text-slate-700" />
+            <div className="w-20 h-20 rounded-3xl bg-slate-100 border-slate-200 dark:bg-white/5 dark:border-white/5 flex items-center justify-center mx-auto mb-6 transition-colors">
+              <Calendar className="h-10 w-10 text-slate-400 dark:text-slate-500" />
             </div>
-            <h3 className="text-2xl font-black text-white uppercase tracking-tight">Inga program ännu</h3>
-            <p className="text-slate-500 max-w-xs mx-auto font-medium">
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight transition-colors">Inga program ännu</h3>
+            <p className="text-slate-600 dark:text-slate-500 max-w-xs mx-auto font-medium transition-colors">
               Din coach har inte skapat några träningsprogram åt dig ännu. De dyker upp här så snart de är klara.
             </p>
           </GlassCardContent>
@@ -203,12 +204,12 @@ export default async function AthleteProgramsPage() {
           {activePrograms.length > 0 && (
             <section className="space-y-6">
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-white/5" />
-                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500 flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/5 border border-blue-500/10">
+                <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
+                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 dark:text-blue-500 flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 transition-colors">
                   <Play className="h-3 w-3 fill-current" />
                   Aktiva Program
                 </h2>
-                <div className="h-px flex-1 bg-white/5" />
+                <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
               </div>
               <div className="grid gap-6">
                 {activePrograms.map((program) => (
@@ -222,12 +223,12 @@ export default async function AthleteProgramsPage() {
           {upcomingPrograms.length > 0 && (
             <section className="space-y-6">
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-white/5" />
-                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5">
+                <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
+                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 dark:text-blue-400 flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border-slate-200 dark:bg-white/5 dark:border-white/5 transition-colors">
                   <Clock className="h-3 w-3" />
                   Kommande Program
                 </h2>
-                <div className="h-px flex-1 bg-white/5" />
+                <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
               </div>
               <div className="grid gap-6">
                 {upcomingPrograms.map((program) => (
@@ -241,12 +242,12 @@ export default async function AthleteProgramsPage() {
           {pastPrograms.length > 0 && (
             <section className="space-y-6">
               <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-white/5" />
-                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/5">
+                <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
+                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-slate-500 flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border-slate-200 dark:bg-white/5 dark:border-white/5 transition-colors">
                   <CheckCircle2 className="h-3 w-3" />
                   Avslutade Program
                 </h2>
-                <div className="h-px flex-1 bg-white/5" />
+                <div className="h-px flex-1 bg-slate-200 dark:bg-white/5 transition-colors" />
               </div>
               <div className="grid gap-4">
                 {pastPrograms.map((program) => (

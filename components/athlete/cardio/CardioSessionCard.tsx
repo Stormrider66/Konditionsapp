@@ -1,14 +1,13 @@
-'use client'
-
-/**
- * CardioSessionCard Component
- *
- * Card for displaying cardio session on athlete dashboard.
- */
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardFooter,
+  GlassCardHeader,
+  GlassCardTitle
+} from '@/components/ui/GlassCard'
 import { Progress } from '@/components/ui/progress'
 import {
   Clock,
@@ -42,11 +41,11 @@ interface CardioSessionCardProps {
 }
 
 const STATUS_BADGES: Record<AssignmentStatus, { label: string; className: string }> = {
-  PENDING: { label: 'Planerad', className: 'bg-gray-100 text-gray-700' },
-  SCHEDULED: { label: 'Pågående', className: 'bg-blue-100 text-blue-700' },
-  COMPLETED: { label: 'Slutförd', className: 'bg-green-100 text-green-700' },
-  SKIPPED: { label: 'Hoppades över', className: 'bg-yellow-100 text-yellow-700' },
-  MODIFIED: { label: 'Modifierad', className: 'bg-purple-100 text-purple-700' },
+  PENDING: { label: 'Planerad', className: 'bg-slate-100 text-slate-700 dark:bg-white/5 dark:text-slate-300' },
+  SCHEDULED: { label: 'Pågående', className: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' },
+  COMPLETED: { label: 'Slutförd', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' },
+  SKIPPED: { label: 'Hoppades över', className: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400' },
+  MODIFIED: { label: 'Modifierad', className: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400' },
 }
 
 const SPORT_NAMES: Record<string, string> = {
@@ -60,7 +59,7 @@ const SEGMENT_COLORS: Record<SegmentType, string> = {
   WARMUP: 'bg-amber-500',
   COOLDOWN: 'bg-blue-500',
   INTERVAL: 'bg-red-500',
-  STEADY: 'bg-green-500',
+  STEADY: 'bg-emerald-500',
   RECOVERY: 'bg-sky-500',
   HILL: 'bg-orange-500',
   DRILLS: 'bg-purple-500',
@@ -129,51 +128,51 @@ export function CardioSessionCard({
   const uniqueSegmentTypes = [...new Set(segmentTypes)]
 
   return (
-    <Card className={cn(
-      'transition-all',
+    <GlassCard className={cn(
+      'transition-all duration-300 hover:shadow-md dark:border-white/5',
       isCompleted && 'opacity-75',
-      isInProgress && 'ring-2 ring-blue-500'
+      isInProgress && 'ring-2 ring-blue-500 dark:ring-blue-500/50'
     )}>
-      <CardHeader className="pb-2">
+      <GlassCardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="text-xs font-bold text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10">
                 {SPORT_NAMES[sport] || sport}
               </Badge>
-              <Badge className={cn('text-xs', STATUS_BADGES[status].className)}>
+              <Badge className={cn('text-[10px] font-black uppercase tracking-wider', STATUS_BADGES[status].className)}>
                 {isCompleted && <CheckCircle2 className="h-3 w-3 mr-1" />}
                 {STATUS_BADGES[status].label}
               </Badge>
             </div>
-            <CardTitle className="text-lg">{sessionName}</CardTitle>
+            <GlassCardTitle className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{sessionName}</GlassCardTitle>
           </div>
-          <div className="text-right">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+          <div className="text-right shrink-0">
+            <div className="flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               <Calendar className="h-3 w-3" />
               {formatDate(assignedDate)}
             </div>
           </div>
         </div>
-      </CardHeader>
+      </GlassCardHeader>
 
-      <CardContent className="space-y-4">
+      <GlassCardContent className="space-y-4">
         {/* Quick stats */}
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-4 text-xs font-medium flex-wrap">
           {totalDuration && (
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-4 w-4" />
+            <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+              <Clock className="h-3.5 w-3.5 text-blue-500" />
               {formatDuration(totalDuration)}
             </div>
           )}
           {totalDistance && (
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Route className="h-4 w-4" />
+            <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+              <Route className="h-3.5 w-3.5 text-emerald-500" />
               {formatDistance(totalDistance)}
             </div>
           )}
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Zap className="h-4 w-4" />
+          <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300">
+            <Zap className="h-3.5 w-3.5 text-amber-500" />
             {segmentCount} segment
           </div>
         </div>
@@ -184,7 +183,7 @@ export function CardioSessionCard({
             {uniqueSegmentTypes.map((type) => (
               <div
                 key={type}
-                className={cn('h-2 w-2 rounded-full', SEGMENT_COLORS[type])}
+                className={cn('h-1.5 w-6 rounded-full', SEGMENT_COLORS[type])}
                 title={type}
               />
             ))}
@@ -194,41 +193,41 @@ export function CardioSessionCard({
         {/* Progress for in-progress sessions */}
         {isInProgress && segmentCount > 0 && (
           <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
               <span>Framsteg</span>
               <span>{completedSegments}/{segmentCount}</span>
             </div>
-            <Progress value={progressPercent} className="h-2" />
+            <Progress value={progressPercent} className="h-1.5" />
           </div>
         )}
 
         {/* Description or notes */}
         {(description || notes) && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
             {notes || description}
           </p>
         )}
-      </CardContent>
+      </GlassCardContent>
 
-      <CardFooter>
+      <GlassCardFooter>
         {isCompleted ? (
-          <Button variant="outline" className="w-full" disabled>
+          <Button variant="outline" className="w-full bg-slate-50 border-slate-200 text-slate-500 dark:bg-white/5 dark:border-white/10 dark:text-slate-400" disabled>
             <CheckCircle2 className="h-4 w-4 mr-2" />
             Slutförd
           </Button>
         ) : isInProgress ? (
-          <Button className="w-full" onClick={() => onStartFocusMode(id)}>
+          <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20" onClick={() => onStartFocusMode(id)}>
             <Play className="h-4 w-4 mr-2" />
             Fortsätt pass
           </Button>
         ) : (
-          <Button className="w-full" onClick={() => onStartFocusMode(id)}>
+          <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 shadow-lg transition-all" onClick={() => onStartFocusMode(id)}>
             <Play className="h-4 w-4 mr-2" />
             Starta Focus Mode
           </Button>
         )}
-      </CardFooter>
-    </Card>
+      </GlassCardFooter>
+    </GlassCard>
   )
 }
 

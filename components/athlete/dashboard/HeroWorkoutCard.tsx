@@ -253,20 +253,20 @@ export function HeroWorkoutCard({ workout, athleteName }: HeroWorkoutCardProps) 
   const BadgeIcon = getBadgeIcon(workout.type)
 
   return (
-    <GlassCard className="lg:col-span-2 rounded-2xl group">
+    <GlassCard className="lg:col-span-2 rounded-2xl group transition-all">
       {/* Hover gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
       {/* Background exercise image */}
       {categoryImage && (
-        <div className="absolute top-0 right-0 p-6 md:p-8 w-1/2 h-full hidden md:block opacity-40 mix-blend-screen pointer-events-none">
+        <div className="absolute top-0 right-0 p-6 md:p-8 w-1/2 h-full hidden md:block opacity-20 dark:opacity-40 mix-blend-multiply dark:mix-blend-screen pointer-events-none transition-opacity">
           <div className="relative w-full h-full">
             <Image
               src={categoryImage}
               alt={focus.title}
               fill
               style={{ objectFit: 'contain', objectPosition: 'right center' }}
-              className="drop-shadow-[0_0_15px_rgba(255,100,0,0.3)]"
+              className="dark:drop-shadow-[0_0_15px_rgba(255,100,0,0.3)] grayscale-[20%] dark:grayscale-0"
               priority
             />
           </div>
@@ -276,24 +276,24 @@ export function HeroWorkoutCard({ workout, athleteName }: HeroWorkoutCardProps) 
       <div className="p-6 md:p-8 relative z-10 flex flex-col h-full justify-between min-h-[280px] md:min-h-[300px]">
         <div>
           {/* Category Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold uppercase tracking-wider mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 text-orange-700 dark:text-orange-400 text-xs font-bold uppercase tracking-wider mb-4 transition-colors">
             <BadgeIcon className="w-3 h-3" />
             {focus.category}
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-2 max-w-md">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2 max-w-md transition-colors">
             {focus.title}
           </h2>
 
           {/* Description */}
-          <p className="text-slate-400 max-w-sm text-sm md:text-base">
+          <p className="text-slate-600 dark:text-slate-400 max-w-sm text-sm md:text-base transition-colors">
             {focus.description}
           </p>
 
           {/* Completed badge */}
           {isCompleted && (
-            <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+            <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-medium transition-colors">
               <TrendingUp className="w-3 h-3" />
               Slutfört
             </div>
@@ -305,8 +305,8 @@ export function HeroWorkoutCard({ workout, athleteName }: HeroWorkoutCardProps) 
           {workout.duration && (
             <div>
               <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Längd</div>
-              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-                <Timer className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+              <div className="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 transition-colors">
+                <Timer className="w-4 h-4 md:w-5 md:h-5 text-orange-600 dark:text-orange-500" />
                 {workout.duration} min
               </div>
             </div>
@@ -315,8 +315,8 @@ export function HeroWorkoutCard({ workout, athleteName }: HeroWorkoutCardProps) 
           {volume && (
             <div>
               <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Volym</div>
-              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-                <Dumbbell className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+              <div className="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 transition-colors">
+                <Dumbbell className="w-4 h-4 md:w-5 md:h-5 text-orange-600 dark:text-orange-500" />
                 {formatVolume(volume)}
               </div>
             </div>
@@ -325,8 +325,8 @@ export function HeroWorkoutCard({ workout, athleteName }: HeroWorkoutCardProps) 
           {workout.distance && !volume && (
             <div>
               <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Distans</div>
-              <div className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-                <Route className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+              <div className="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 transition-colors">
+                <Route className="w-4 h-4 md:w-5 md:h-5 text-orange-600 dark:text-orange-500" />
                 {workout.distance} km
               </div>
             </div>
@@ -347,7 +347,7 @@ export function HeroWorkoutCard({ workout, athleteName }: HeroWorkoutCardProps) 
             <Link href={`/athlete/workouts/${workout.id}`}>
               <Button
                 variant="outline"
-                className="w-full sm:w-auto min-h-[48px] border-white/20 text-white hover:bg-white/10 hover:border-white/30"
+                className="w-full sm:w-auto min-h-[48px] border-slate-200 dark:border-white/20 text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/30 transition-all"
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Visa resultat
@@ -355,7 +355,7 @@ export function HeroWorkoutCard({ workout, athleteName }: HeroWorkoutCardProps) 
             </Link>
           ) : (
             <Link href={`/athlete/workouts/${workout.id}/log`}>
-              <Button className="w-full sm:w-auto min-h-[48px] bg-orange-600 hover:bg-orange-700 text-white shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0">
+              <Button className="w-full sm:w-auto min-h-[48px] bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 transition-all">
                 <Play className="w-4 h-4 mr-2" />
                 Starta pass
               </Button>

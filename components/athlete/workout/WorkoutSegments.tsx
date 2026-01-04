@@ -83,10 +83,10 @@ export function WorkoutSegments({
 
   if (isGlass) {
     return (
-      <GlassCard className="border-white/5 bg-white/5">
+      <GlassCard className="border-white/20 bg-white/50 dark:border-white/5 dark:bg-white/5 transition-colors">
         <GlassCardHeader className="pb-4">
-          <GlassCardTitle className="text-xl font-black tracking-tight text-white flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-blue-500" />
+          <GlassCardTitle className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2 transition-colors">
+            <ClipboardList className="h-5 w-5 text-blue-600 dark:text-blue-500" />
             Pass-struktur
           </GlassCardTitle>
         </GlassCardHeader>
@@ -102,30 +102,30 @@ export function WorkoutSegments({
               return (
                 <div
                   key={segment.id}
-                  className="group relative flex items-start gap-5 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all duration-300"
+                  className="group relative flex items-start gap-5 p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10 transition-all duration-300"
                 >
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center font-black text-sm border border-blue-600/20 shadow-lg shadow-blue-600/5 group-hover:scale-110 transition-transform">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-100 text-blue-600 border border-blue-200 dark:bg-blue-600/20 dark:text-blue-400 flex items-center justify-center font-black text-sm dark:border-blue-600/20 shadow-lg shadow-blue-600/5 group-hover:scale-110 transition-transform">
                     {index + 1}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <Badge className="bg-white/10 hover:bg-white/20 text-white border-0 font-bold px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider">
+                      <Badge className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white border-0 font-bold px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider transition-colors">
                         {formatSegmentType(segment.type)}
                       </Badge>
                       {segment.exercise?.nameSv && (
-                        <span className="font-black text-white text-sm uppercase tracking-tight">
+                        <span className="font-black text-slate-900 dark:text-white text-sm uppercase tracking-tight transition-colors">
                           {segment.exercise.nameSv}
                         </span>
                       )}
                       {isInterval && (
-                        <div className="px-2 py-0.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-[10px] font-black uppercase">
+                        <div className="px-2 py-0.5 rounded-lg border border-red-200 bg-red-100 text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400 text-[10px] font-black uppercase transition-colors">
                           #{currentIntervalNumber}
                         </div>
                       )}
                     </div>
-                    <div className="text-sm text-slate-400 font-medium leading-relaxed">
-                      {segment.description && <p className="mb-1 text-slate-200">{segment.description}</p>}
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-black uppercase tracking-widest text-slate-500">
+                    <div className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed transition-colors">
+                      {segment.description && <p className="mb-1 text-slate-700 dark:text-slate-200 transition-colors">{segment.description}</p>}
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">
                         {segment.duration && (
                           <span className="flex items-center gap-1.5">
                             <Clock className="h-3 w-3" />
@@ -133,24 +133,24 @@ export function WorkoutSegments({
                           </span>
                         )}
                         {segment.pace && (
-                          <span className="flex items-center gap-1.5 text-blue-400">
+                          <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 transition-colors">
                             <Zap className="h-3 w-3" />
                             {segment.pace}
                           </span>
                         )}
                         {segment.heartRate && (
-                          <span className="flex items-center gap-1.5 text-red-400">
+                          <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400 transition-colors">
                             <Activity className="h-3 w-3" />
                             {segment.heartRate} bpm
                           </span>
                         )}
                         {segment.sets && segment.repsCount && (
-                          <span className="text-emerald-400">
+                          <span className="text-emerald-600 dark:text-emerald-400 transition-colors">
                             {segment.sets} set × {segment.repsCount} reps
                           </span>
                         )}
                         {segment.rest && (
-                          <span className="text-slate-600 italic">
+                          <span className="text-slate-500 dark:text-slate-500 italic">
                             {segment.rest}s vila
                           </span>
                         )}
@@ -176,11 +176,11 @@ export function WorkoutSegments({
 
           {/* Summary for interval workouts */}
           {intervalCounter > 0 && (
-            <div className="mt-8 pt-6 border-t border-white/5">
-              <div className="flex items-start gap-4 p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10">
-                <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                  <span className="font-black text-blue-400 uppercase tracking-widest">{intervalCounter} intervall</span> ingår i detta pass.
+            <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/5 transition-colors">
+              <div className="flex items-start gap-4 p-4 rounded-2xl bg-blue-50 border border-blue-100 dark:bg-blue-500/5 dark:border-blue-500/10 transition-colors">
+                <Info className="h-5 w-5 text-blue-600 dark:text-blue-500 shrink-0 mt-0.5 transition-colors" />
+                <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed transition-colors">
+                  <span className="font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest transition-colors">{intervalCounter} intervall</span> ingår i detta pass.
                   Tryck på kameraikonen vid varje intervall för att scanna ditt laktatvärde direkt under passet.
                 </p>
               </div>

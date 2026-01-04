@@ -73,41 +73,41 @@ export const MINIMALIST_WHITE_THEME: WorkoutTheme = {
   nameSv: 'Minimalistisk Vit',
   colors: {
     // Backgrounds
-    background: '#ffffff',
-    backgroundCard: '#fafafa',
-    backgroundAccent: '#f5f5f5',
+    background: '#f8fafc', // Slate-50 - softer than pure white
+    backgroundCard: '#ffffff',
+    backgroundAccent: '#f1f5f9', // Slate-100
 
     // Text
-    textPrimary: '#1a1a1a',
-    textSecondary: '#4a4a4a',
-    textMuted: '#9ca3af',
+    textPrimary: '#0f172a', // Slate-900
+    textSecondary: '#334155', // Slate-700 (Darker for better contrast)
+    textMuted: '#64748b', // Slate-500 (Darker for better contrast)
 
     // Brand/Accent
-    accent: '#1a1a1a',
-    accentHover: '#333333',
+    accent: '#ea580c', // Orange-600 (matching the brand orange used in dark mode)
+    accentHover: '#c2410c', // Orange-700
     accentText: '#ffffff',
 
     // Status colors
-    success: '#22c55e',
-    warning: '#f59e0b',
-    error: '#ef4444',
+    success: '#10b981', // Emerald-500
+    warning: '#f59e0b', // Amber-500
+    error: '#ef4444', // Red-500
 
     // Borders
-    border: '#e5e7eb',
-    borderStrong: '#d1d5db',
+    border: '#e2e8f0', // Slate-200
+    borderStrong: '#cbd5e1', // Slate-300
 
     // Exercise-specific
-    exerciseNumber: '#1a1a1a',
+    exerciseNumber: '#ea580c',
     exerciseNumberText: '#ffffff',
-    setsReps: '#1a1a1a',
-    restTime: '#6b7280',
+    setsReps: '#0f172a',
+    restTime: '#64748b',
 
     // Section colors
-    warmup: '#22c55e',
+    warmup: '#10b981',
     warmupText: '#ffffff',
     strength: '#ef4444',
     strengthText: '#ffffff',
-    metcon: '#1a1a1a',
+    metcon: '#ea580c',
     metconText: '#ffffff',
     cooldown: '#3b82f6',
     cooldownText: '#ffffff',

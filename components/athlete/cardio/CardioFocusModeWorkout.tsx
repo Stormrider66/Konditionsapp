@@ -6,6 +6,7 @@
  * Full-screen cardio workout execution with segment-by-segment progression.
  */
 
+
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -81,13 +82,13 @@ interface CardioFocusModeWorkoutProps {
 }
 
 const SEGMENT_COLORS: Record<SegmentType, string> = {
-  WARMUP: 'bg-amber-500',
-  COOLDOWN: 'bg-blue-500',
-  INTERVAL: 'bg-red-500',
-  STEADY: 'bg-green-500',
-  RECOVERY: 'bg-sky-500',
-  HILL: 'bg-orange-500',
-  DRILLS: 'bg-purple-500',
+  WARMUP: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
+  COOLDOWN: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+  INTERVAL: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400',
+  STEADY: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400',
+  RECOVERY: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-400',
+  HILL: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400',
+  DRILLS: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400',
 }
 
 type ViewState = 'timer' | 'logging' | 'complete'
@@ -247,15 +248,15 @@ export function CardioFocusModeWorkout({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <Button variant="ghost" size="icon" onClick={() => setShowExitDialog(true)}>
-          <X className="h-5 w-5" />
+      <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
+        <Button variant="ghost" size="icon" onClick={() => setShowExitDialog(true)} className="hover:bg-slate-100 dark:hover:bg-white/10">
+          <X className="h-5 w-5 text-slate-700 dark:text-slate-300" />
         </Button>
         <div className="text-center">
-          <h1 className="font-semibold text-sm">{sessionName}</h1>
-          <p className="text-xs text-muted-foreground">
+          <h1 className="font-bold text-sm text-slate-900 dark:text-white uppercase tracking-wide">{sessionName}</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             Segment {currentIndex + 1} av {segments.length}
           </p>
         </div>
@@ -263,27 +264,28 @@ export function CardioFocusModeWorkout({
       </div>
 
       {/* Progress bar */}
-      <div className="px-4 py-2 border-b">
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-white/5">
         <div className="flex items-center gap-4">
-          <Progress value={progressPercent} className="flex-1 h-2" />
-          <span className="text-xs text-muted-foreground font-medium">
+          <Progress value={progressPercent} className="flex-1 h-3 rounded-full bg-slate-100 dark:bg-white/10" />
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">
             {completedCount}/{segments.length}
           </span>
         </div>
         {/* Segment type indicators */}
-        <div className="flex gap-1 mt-2 overflow-x-auto pb-1">
+        <div className="flex gap-1.5 mt-3 overflow-x-auto pb-1 custom-scrollbar">
           {segments.map((seg, idx) => (
             <div
               key={seg.id}
               className={cn(
-                'h-1.5 rounded-full flex-shrink-0 transition-all',
-                idx < segments.length / 2 ? 'w-3' : 'w-2',
+                'h-2 rounded-full flex-shrink-0 transition-all duration-300',
+                idx < segments.length / 2 ? 'w-4' : 'w-3',
                 seg.completed || seg.skipped
-                  ? 'bg-green-500'
+                  ? 'bg-emerald-500'
                   : idx === currentIndex
-                    ? SEGMENT_COLORS[seg.type]
-                    : 'bg-muted'
+                    ? SEGMENT_COLORS[seg.type].split(' ')[0] // extract just the bg color logic if possible, or mapping
+                    : 'bg-slate-200 dark:bg-white/10'
               )}
+              style={idx === currentIndex ? {} : {}}
             />
           ))}
         </div>
@@ -307,19 +309,24 @@ export function CardioFocusModeWorkout({
           />
         ) : viewState === 'timer' && !currentSegment.plannedDuration ? (
           // No duration - show segment info and allow marking complete
-          <div className="text-center space-y-6">
-            <Badge className={cn('text-lg py-2 px-4', `${SEGMENT_COLORS[currentSegment.type].replace('bg-', 'bg-')}/20 text-${SEGMENT_COLORS[currentSegment.type].replace('bg-', '')}`)}>
+          <div className="text-center space-y-8 max-w-sm mx-auto">
+            <Badge className={cn('text-lg py-2 px-6 font-black uppercase tracking-wider', SEGMENT_COLORS[currentSegment.type])}>
               {currentSegment.typeName}
             </Badge>
             {currentSegment.plannedDistance && (
-              <p className="text-3xl font-bold">
-                {currentSegment.plannedDistance.toFixed(2)} km
-              </p>
+              <div className="space-y-1">
+                <p className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">
+                  {currentSegment.plannedDistance.toFixed(2)}
+                </p>
+                <p className="text-xl font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest">km</p>
+              </div>
             )}
             {currentSegment.notes && (
-              <p className="text-muted-foreground">{currentSegment.notes}</p>
+              <div className="bg-white/50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/10 backdrop-blur-sm">
+                <p className="text-slate-600 dark:text-slate-300 font-medium leading-relaxed">{currentSegment.notes}</p>
+              </div>
             )}
-            <Button size="lg" onClick={handleTimerComplete}>
+            <Button size="lg" onClick={handleTimerComplete} className="w-full h-14 text-lg font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20">
               <CheckCircle2 className="h-5 w-5 mr-2" />
               Markera som slutförd
             </Button>
@@ -341,27 +348,28 @@ export function CardioFocusModeWorkout({
       </div>
 
       {/* Footer navigation */}
-      <div className="p-4 border-t flex items-center justify-between">
+      <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md flex items-center justify-between sticky bottom-0 z-10">
         <Button
           variant="outline"
           size="icon"
           onClick={goToPrevious}
           disabled={currentIndex === 0}
+          className="border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
           <Clock className="h-4 w-4" />
           <span>
             {segments
               .slice(currentIndex)
               .reduce((sum, s) => sum + (s.plannedDuration || 0), 0) > 0
               ? formatDuration(
-                  segments
-                    .slice(currentIndex)
-                    .reduce((sum, s) => sum + (s.plannedDuration || 0), 0)
-                )
+                segments
+                  .slice(currentIndex)
+                  .reduce((sum, s) => sum + (s.plannedDuration || 0), 0)
+              )
               : '-'
             } kvar
           </span>
@@ -372,6 +380,7 @@ export function CardioFocusModeWorkout({
           size="icon"
           onClick={goToNext}
           disabled={currentIndex >= segments.length - 1}
+          className="border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
@@ -401,7 +410,7 @@ export function CardioFocusModeWorkout({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               Pass slutfört!
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -438,7 +447,7 @@ export function CardioFocusModeWorkout({
           </div>
 
           <AlertDialogFooter>
-            <AlertDialogAction onClick={handleFinalComplete}>
+            <AlertDialogAction onClick={handleFinalComplete} className="bg-emerald-600 hover:bg-emerald-700 text-white">
               Slutför pass
             </AlertDialogAction>
           </AlertDialogFooter>

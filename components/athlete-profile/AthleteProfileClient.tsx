@@ -64,7 +64,7 @@ export function AthleteProfileClient({
           <Link href={backLink}>
             <Button variant="ghost" size="sm" className={cn(
               "gap-2",
-              isAthlete ? "font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white" : ""
+              isAthlete ? "font-black uppercase tracking-widest text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" : ""
             )}>
               <ArrowLeft className="h-4 w-4" />
               {viewMode === 'coach' ? 'Tillbaka till klient' : 'Dashboard'}
@@ -87,7 +87,7 @@ export function AthleteProfileClient({
               {/* Tab List */}
               <TabsList className={cn(
                 "w-full justify-start overflow-x-auto flex-nowrap h-auto mb-8 p-1.5 rounded-2xl",
-                isAthlete ? "bg-white/5 border border-white/5" : "bg-white border"
+                isAthlete ? "bg-white border-slate-200 dark:bg-white/5 dark:border-white/5 shadow-sm dark:shadow-none transition-colors" : "bg-white border"
               )}>
                 {PROFILE_TABS.map((tab) => {
                   const Icon = tab.icon
@@ -98,7 +98,7 @@ export function AthleteProfileClient({
                       className={cn(
                         "flex-shrink-0 gap-2 h-10 px-4 rounded-xl transition-all duration-300",
                         isAthlete
-                          ? "data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-500 font-black uppercase tracking-widest text-[10px]"
+                          ? "data-[state=active]:bg-blue-600 data-[state=active]:text-white text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest text-[10px]"
                           : "data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
                       )}
                     >

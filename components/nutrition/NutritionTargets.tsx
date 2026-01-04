@@ -34,14 +34,14 @@ interface MacroItemProps {
 function MacroItem({ label, value, unit, icon, color, bgColor, isGlass }: MacroItemProps) {
   return (
     <div className="flex items-center gap-3">
-      <div className={`p-2 rounded-lg ${isGlass ? 'bg-slate-800/50' : bgColor}`}>
+      <div className={`p-2 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : bgColor}`}>
         <div className={color}>{icon}</div>
       </div>
       <div className="flex-1">
-        <p className={`text-xs ${isGlass ? 'text-slate-400' : 'text-slate-500'}`}>{label}</p>
-        <p className={`font-semibold ${isGlass ? 'text-white' : 'text-slate-900'}`}>
+        <p className={`text-xs ${isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500'}`}>{label}</p>
+        <p className={`font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
           {value.toLocaleString('sv-SE')}
-          <span className={`text-xs font-normal ml-1 ${isGlass ? 'text-slate-400' : 'text-slate-500'}`}>{unit}</span>
+          <span className={`text-xs font-normal ml-1 ${isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500'}`}>{unit}</span>
         </p>
       </div>
     </div>
@@ -170,23 +170,23 @@ export function NutritionTargets({ targets, isRestDay = false, compact = false, 
   const content = (
     <>
       {/* Calories - prominent display */}
-      <div className={`flex items-center gap-4 p-3 rounded-lg ${isGlass ? 'bg-orange-950/20 border border-orange-500/10' : 'bg-orange-50'}`}>
-        <div className={`p-2.5 rounded-full ${isGlass ? 'bg-orange-500/20' : 'bg-orange-100'}`}>
-          <Flame className={`h-5 w-5 ${isGlass ? 'text-orange-400' : 'text-orange-600'}`} />
+      <div className={`flex items-center gap-4 p-3 rounded-lg ${isGlass ? 'bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-500/10' : 'bg-orange-50'}`}>
+        <div className={`p-2.5 rounded-full ${isGlass ? 'bg-orange-100 dark:bg-orange-500/20' : 'bg-orange-100'}`}>
+          <Flame className={`h-5 w-5 ${isGlass ? 'text-orange-600 dark:text-orange-400' : 'text-orange-600'}`} />
         </div>
         <div>
-          <p className={`text-xs ${isGlass ? 'text-orange-300' : 'text-orange-700'}`}>Totalt energibehov</p>
-          <p className={`text-2xl font-bold ${isGlass ? 'text-orange-100' : 'text-orange-900'}`}>
+          <p className={`text-xs ${isGlass ? 'text-orange-700 dark:text-orange-300' : 'text-orange-700'}`}>Totalt energibehov</p>
+          <p className={`text-2xl font-bold ${isGlass ? 'text-orange-900 dark:text-orange-100' : 'text-orange-900'}`}>
             {targets.caloriesKcal.toLocaleString('sv-SE')}
-            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-orange-300' : ''}`}>kcal</span>
+            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-orange-700 dark:text-orange-300' : ''}`}>kcal</span>
           </p>
         </div>
       </div>
 
       {/* Macro distribution bar */}
       <div className="space-y-2">
-        <p className={`text-xs font-medium ${isGlass ? 'text-slate-400' : 'text-slate-500'}`}>Makrofördelning</p>
-        <div className="flex h-3 rounded-full overflow-hidden bg-slate-800">
+        <p className={`text-xs font-medium ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-500'}`}>Makrofördelning</p>
+        <div className="flex h-3 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-800">
           <div
             className="bg-amber-500 transition-all"
             style={{ width: `${carbPercent}%` }}
@@ -203,7 +203,7 @@ export function NutritionTargets({ targets, isRestDay = false, compact = false, 
             title={`Fett ${fatPercent}%`}
           />
         </div>
-        <div className={`flex justify-between text-xs ${isGlass ? 'text-slate-400' : 'text-slate-500'}`}>
+        <div className={`flex justify-between text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-500'}`}>
           <span className="flex items-center gap-1">
             <CircleDot className="h-2.5 w-2.5 text-amber-500" />
             Kolhydrater {carbPercent}%
@@ -221,52 +221,52 @@ export function NutritionTargets({ targets, isRestDay = false, compact = false, 
 
       {/* Individual macros */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-        <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
+        <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
           <div className="flex items-center gap-2">
             <Wheat className="h-4 w-4 text-amber-500" />
-            <span className={`text-xs ${isGlass ? 'text-slate-400' : 'text-slate-600'}`}>Kolhydrater</span>
+            <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Kolhydrater</span>
           </div>
-          <p className={`text-xl font-semibold ${isGlass ? 'text-white' : 'text-slate-900'}`}>
+          <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
             {targets.carbsG}
-            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-500' : 'text-slate-500'}`}>g</span>
+            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-600 dark:text-slate-500' : 'text-slate-500'}`}>g</span>
           </p>
         </div>
 
-        <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
+        <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
           <div className="flex items-center gap-2">
             <Beef className="h-4 w-4 text-red-500" />
-            <span className={`text-xs ${isGlass ? 'text-slate-400' : 'text-slate-600'}`}>Protein</span>
+            <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Protein</span>
           </div>
-          <p className={`text-xl font-semibold ${isGlass ? 'text-white' : 'text-slate-900'}`}>
+          <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
             {targets.proteinG}
-            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-500' : 'text-slate-500'}`}>g</span>
+            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-600 dark:text-slate-500' : 'text-slate-500'}`}>g</span>
           </p>
         </div>
 
-        <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
+        <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
           <div className="flex items-center gap-2">
             <CircleDot className="h-4 w-4 text-emerald-500" />
-            <span className={`text-xs ${isGlass ? 'text-slate-400' : 'text-slate-600'}`}>Fett</span>
+            <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Fett</span>
           </div>
-          <p className={`text-xl font-semibold ${isGlass ? 'text-white' : 'text-slate-900'}`}>
+          <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
             {targets.fatG}
-            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-500' : 'text-slate-500'}`}>g</span>
+            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-600 dark:text-slate-500' : 'text-slate-500'}`}>g</span>
           </p>
         </div>
       </div>
 
       {/* Hydration */}
-      <div className={`flex items-center gap-3 p-3 rounded-lg ${isGlass ? 'bg-blue-950/20 border border-blue-500/10' : 'bg-blue-50'}`}>
-        <div className={`p-2 rounded-full ${isGlass ? 'bg-blue-500/20' : 'bg-blue-100'}`}>
-          <Droplets className={`h-4 w-4 ${isGlass ? 'text-blue-400' : 'text-blue-600'}`} />
+      <div className={`flex items-center gap-3 p-3 rounded-lg ${isGlass ? 'bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-500/10' : 'bg-blue-50'}`}>
+        <div className={`p-2 rounded-full ${isGlass ? 'bg-blue-100 dark:bg-blue-500/20' : 'bg-blue-100'}`}>
+          <Droplets className={`h-4 w-4 ${isGlass ? 'text-blue-600 dark:text-blue-400' : 'text-blue-600'}`} />
         </div>
         <div className="flex-1">
-          <p className={`text-xs ${isGlass ? 'text-blue-300' : 'text-blue-700'}`}>Vätskebehov</p>
-          <p className={`font-semibold ${isGlass ? 'text-blue-100' : 'text-blue-900'}`}>
+          <p className={`text-xs ${isGlass ? 'text-blue-700 dark:text-blue-300' : 'text-blue-700'}`}>Vätskebehov</p>
+          <p className={`font-semibold ${isGlass ? 'text-blue-900 dark:text-blue-100' : 'text-blue-900'}`}>
             {(targets.hydrationMl / 1000).toFixed(1)} liter
           </p>
         </div>
-        <p className={`text-xs ${isGlass ? 'text-blue-300' : 'text-blue-600'}`}>
+        <p className={`text-xs ${isGlass ? 'text-blue-700 dark:text-blue-300' : 'text-blue-600'}`}>
           {Math.round(targets.hydrationMl / 250)} glas vatten
         </p>
       </div>

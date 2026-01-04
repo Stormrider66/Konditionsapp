@@ -139,18 +139,18 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
         <GlassCardHeader>
           <div className="flex items-center justify-between">
             <GlassCardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-orange-500" />
+              <Activity className="h-5 w-5 text-orange-600 dark:text-orange-500" />
               Senaste aktiviteter
             </GlassCardTitle>
             {totalSynced > 0 && (
               <div className="flex gap-1">
                 {counts.strava > 0 && (
-                  <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-400 border-orange-500/20">
+                  <Badge variant="outline" className="text-xs bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-500/20">
                     {counts.strava} Strava
                   </Badge>
                 )}
                 {counts.garmin > 0 && (
-                  <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-400 border-blue-500/20">
+                  <Badge variant="outline" className="text-xs bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20">
                     {counts.garmin} Garmin
                   </Badge>
                 )}
@@ -230,12 +230,12 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
 
   if (variant === 'glass') {
     return (
-      <div className="border border-white/10 rounded-lg p-3 space-y-2 hover:bg-white/5 transition-colors bg-black/20">
+      <div className="border border-slate-200 dark:border-white/10 rounded-lg p-3 space-y-2 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors bg-slate-50 dark:bg-black/20">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-slate-400">{typeIcon}</span>
-              <h4 className="font-medium text-sm truncate text-slate-200">{activity.name}</h4>
+              <span className="text-slate-500 dark:text-slate-400">{typeIcon}</span>
+              <h4 className="font-medium text-sm truncate text-slate-800 dark:text-slate-200">{activity.name}</h4>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-500">
               <span>
@@ -244,20 +244,20 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
                   locale: sv,
                 })}
               </span>
-              <Badge className={`text-xs px-1.5 py-0 ${activity.source === 'strava' ? 'bg-orange-500/20 text-orange-400' : 'bg-slate-700 text-slate-300'}`}>
+              <Badge className={`text-xs px-1.5 py-0 ${activity.source === 'strava' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
                 {sourceConfig.icon} {sourceConfig.label}
               </Badge>
             </div>
           </div>
 
           {activity.tss && (
-            <Badge variant="outline" className="text-xs whitespace-nowrap border-white/10 text-slate-400">
+            <Badge variant="outline" className="text-xs whitespace-nowrap border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400">
               TSS {activity.tss}
             </Badge>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
           {activity.duration && (
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />

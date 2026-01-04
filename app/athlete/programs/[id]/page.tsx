@@ -94,7 +94,7 @@ export default async function AthleteProgramPage({ params }: AthleteProgramPageP
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-5xl mx-auto">
       <Link href="/athlete/programs">
-        <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white">
+        <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
           <ArrowLeft className="mr-2 h-3.5 w-3.5" />
           Mina Program
         </Button>

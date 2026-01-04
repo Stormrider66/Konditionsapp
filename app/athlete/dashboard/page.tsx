@@ -330,9 +330,9 @@ export default async function AthleteDashboardPage() {
       perceivedEffort: log.perceivedEffort,
       workout: log.workout
         ? {
-            type: log.workout.type,
-            intensity: log.workout.intensity,
-          }
+          type: log.workout.type,
+          intensity: log.workout.intensity,
+        }
         : null,
       setLogs: log.setLogs.map((sl) => ({
         id: sl.id,
@@ -343,10 +343,10 @@ export default async function AthleteDashboardPage() {
         completedAt: sl.completedAt,
         exercise: sl.exercise
           ? {
-              muscleGroup: sl.exercise.muscleGroup,
-              biomechanicalPillar: sl.exercise.biomechanicalPillar,
-              category: sl.exercise.category,
-            }
+            muscleGroup: sl.exercise.muscleGroup,
+            biomechanicalPillar: sl.exercise.biomechanicalPillar,
+            category: sl.exercise.category,
+          }
           : null,
       })),
     })) as WorkoutLogWithSetLogs[]
@@ -382,18 +382,18 @@ export default async function AthleteDashboardPage() {
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-            Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">{athleteAccount.client.name.split(' ')[0]}</span>
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
+            Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500">{athleteAccount.client.name.split(' ')[0]}</span>
           </h1>
-          <p className="text-slate-400 flex items-center gap-2">
-            <CalendarDays className="w-4 h-4 text-orange-500" />
+          <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2 transition-colors">
+            <CalendarDays className="w-4 h-4 text-orange-600 dark:text-orange-500" />
             <span className="capitalize">{format(now, 'EEEE, d MMMM')}</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-orange-400 font-medium">{currentProgram ? currentProgram.name : 'No Active Program'}</span>
+            <span className="text-slate-400 dark:text-slate-600">•</span>
+            <span className="text-orange-600 dark:text-orange-400 font-medium">{currentProgram ? currentProgram.name : 'No Active Program'}</span>
           </p>
         </div>
         <Link href={heroWorkout ? `/athlete/workouts/${heroWorkout.id}/log` : '/athlete/programs'}>
-          <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 h-10 px-6">
+          <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 h-10 px-6 transition-all">
             <Zap className="w-4 h-4 mr-2" /> {heroWorkout ? 'Start Session' : 'Find Workout'}
           </Button>
         </Link>
@@ -427,7 +427,7 @@ export default async function AthleteDashboardPage() {
           weeklyTSSTarget={weeklyTSSTarget}
           muscularFatigue={muscularFatigue}
           hasCheckedInToday={hasCheckedInToday}
-          activeInjuries={activeInjuries}
+          activeInjuries={activeInjuries.filter((injury): injury is { painLocation: string; painLevel: number } => injury.painLocation !== null)}
         />
       </div>
 
@@ -478,7 +478,7 @@ export default async function AthleteDashboardPage() {
             <GlassCardContent className="space-y-2">
               {getQuickLinks().map((link) => (
                 <Link key={link.href} href={link.href} className="block">
-                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition text-slate-300 hover:text-white">
+                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
                     <link.icon className={`h-4 w-4 ${link.color}`} />
                     <span className="text-sm">{link.label}</span>
                   </div>

@@ -227,6 +227,39 @@ enum StrengthPhase {
   TAPER                  // 1-2 weeks, 41-60% volume reduction
 }
 
+// ==================== ERGOMETER FIELD TESTING ====================
+
+enum ErgometerType {
+  WATTBIKE         // Wattbike indoor cycling ergometer
+  CONCEPT2_ROW     // Concept2 RowErg (rowing machine)
+  CONCEPT2_SKIERG  // Concept2 SkiErg (skiing machine)
+  CONCEPT2_BIKEERG // Concept2 BikeErg (cycling machine)
+  ASSAULT_BIKE     // Air bike / fan bike (Assault, Echo, Schwinn, etc.)
+}
+
+enum ErgometerTestProtocol {
+  // Peak Power Tests (Anaerobic Capacity)
+  PEAK_POWER_6S         // 6-second max power - Wattbike neuromuscular test
+  PEAK_POWER_7_STROKE   // 7-stroke max power - Concept2 machines
+  PEAK_POWER_30S        // 30-second Wingate-style sprint
+
+  // Threshold / Time Trial Tests
+  TT_1K                 // 1000m time trial - SkiErg standard
+  TT_2K                 // 2000m time trial - Row/Ski/BikeErg standard
+  TT_10MIN              // 10-minute max calories - Air Bike threshold
+  TT_20MIN              // 20-minute FTP test - Wattbike/Cycling
+
+  // MAP Tests (Maximal Aerobic Power)
+  MAP_RAMP              // Incremental ramp test to exhaustion
+
+  // Critical Power Tests
+  CP_3MIN_ALL_OUT       // 3-minute all-out test (CP + W' calculation)
+  CP_MULTI_TRIAL        // Multiple trials (3-min + 12-min) for CP model
+
+  // Interval Tests
+  INTERVAL_4X4          // 4×4min with 3min rest - custom threshold test
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -456,6 +489,11 @@ model Client {
   // Calendar System relations
   calendarEvents           CalendarEvent[]
   calendarEventChanges     CalendarEventChange[]
+
+  // Ergometer Field Testing System relations
+  ergometerFieldTests      ErgometerFieldTest[]    @relation("ClientErgometerTests")
+  ergometerThresholds      ErgometerThreshold[]    @relation("ClientErgometerThresholds")
+  ergometerZones           ErgometerZone[]         @relation("ClientErgometerZones")
   externalCalendarConnections ExternalCalendarConnection[]
 
   @@index([userId])
@@ -2585,6 +2623,7 @@ model SportProfile {
   hyroxSettings       Json?   // { division, stationWeaknesses, bestTime, etc. }
   generalFitnessSettings Json? // { preferredFormats, equipmentAccess, etc. }
   swimmingSettings    Json?   // { poolLength, cssSpeed, strokePrefs, etc. }
+  ergometerSettings   Json?   // { preferredModalities, dragFactors, equipmentAccess, bikeBrand, etc. }
 
   // Equipment access (affects workout generation)
   equipment           Json?   // { treadmill, bike, rower, skiErg, pool, gym, etc. }
@@ -4349,4 +4388,211 @@ model ExternalCalendarConnection {
   @@unique([clientId, provider, calendarId])
   @@index([clientId])
   @@index([provider])
+}
+
+// ==================== ERGOMETER FIELD TESTING SYSTEM ====================
+// Purpose: Field tests for ergometer-based conditioning
+// Supports: Wattbike, Concept2 Row/SkiErg/BikeErg, Assault/Air Bikes
+// Primary users: Team sports (hockey, football, handball) and functional fitness (HYROX, CrossFit)
+
+model ErgometerFieldTest {
+  id              String                  @id @default(uuid())
+  clientId        String
+  ergometerType   ErgometerType
+  testProtocol    ErgometerTestProtocol
+  testDate        DateTime
+
+  // Equipment Settings
+  dragFactor      Int?                    // Concept2: 80-200 (Row: 110-130, Ski: 80-100)
+  damperSetting   Int?                    // Concept2: 1-10
+  airResistance   Int?                    // Wattbike: 1-10
+  magnetResistance Int?                   // Wattbike: 1-4
+  bikeBrand       String?                 // Air bike brand: ASSAULT, ECHO, SCHWINN (brand-agnostic storage)
+
+  // Environmental Conditions
+  conditions      Json?                   // { temperature, humidity, altitude }
+
+  // Raw Test Data (flexible JSON per protocol)
+  rawData         Json                    // Protocol-specific raw data
+
+  // Derived Metrics - Power
+  peakPower       Float?                  // Watts (instantaneous max)
+  avgPower        Float?                  // Watts (test average)
+  endPower        Float?                  // Watts (last 30s for CP tests)
+  normalizedPower Float?                  // Watts (NP calculation)
+
+  // Derived Metrics - Pace (Concept2 only)
+  avgPace         Float?                  // seconds per 500m
+  bestPace        Float?                  // seconds per 500m (fastest split)
+
+  // Derived Metrics - Critical Power Model
+  criticalPower   Float?                  // CP in Watts
+  wPrime          Float?                  // W' in Joules (anaerobic work capacity)
+  wPrimeKJ        Float?                  // W' in kJ (for display)
+
+  // Derived Metrics - Distance/Time/Calories
+  totalDistance   Float?                  // meters
+  totalTime       Float?                  // seconds
+  totalCalories   Float?                  // for Air Bike tests
+  strokeRate      Float?                  // strokes/min or RPM
+
+  // Heart Rate Data
+  avgHR           Float?                  // bpm
+  maxHR           Float?                  // bpm
+  hrAtEnd         Float?                  // bpm (threshold estimation)
+
+  // Interval Test Data (4×4min etc)
+  intervalData    Json?                   // Array of { avgPower, avgHR, duration }
+
+  // Model Quality & Confidence
+  r2              Float?                  // R² for CP model fit (0-1)
+  confidence      String?                 // VERY_HIGH, HIGH, MEDIUM, LOW
+  modelFit        String?                 // EXCELLENT, GOOD, FAIR, POOR
+
+  // Validation
+  valid           Boolean                 @default(true)
+  warnings        Json?                   // Array of warning strings
+  errors          Json?                   // Array of error strings
+  notes           String?
+  rpe             Int?                    // 1-10 perceived exertion
+
+  // Relationships
+  client          Client                  @relation("ClientErgometerTests", fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([clientId, ergometerType])
+  @@index([clientId, testDate])
+  @@index([ergometerType, testProtocol])
+  @@index([confidence, valid])
+}
+
+model ErgometerThreshold {
+  id              String          @id @default(uuid())
+  clientId        String
+  ergometerType   ErgometerType
+
+  // Source test reference
+  sourceTestId    String?         // ErgometerFieldTest ID
+  sourceMethod    String          // CP_MODEL, FTP_TEST, MAP_RAMP, TT_BASED, INTERVAL_TEST
+
+  // Critical Power Model Parameters
+  criticalPower   Float?          // CP in Watts
+  wPrime          Float?          // W' in Joules
+  wPrimeKJ        Float?          // W' in kJ
+
+  // FTP-based (Wattbike mainly)
+  ftp             Float?          // Functional Threshold Power
+  ftpCorrectionFactor Float?      // 0.90 for non-cyclists, 0.95 for cyclists
+
+  // MAP-based
+  mapWatts        Float?          // Maximal Aerobic Power
+
+  // Peak Power
+  peakPower       Float?          // Peak power (6s or 30s)
+  peakPowerDuration String?       // 6S, 30S, 7_STROKE
+
+  // HR at threshold
+  thresholdHR     Float?          // bpm at CP/FTP
+
+  // Pace (Concept2 only)
+  thresholdPace   Float?          // sec/500m at threshold
+
+  // Validity
+  testDate        DateTime
+  expiresAt       DateTime?       // Suggest retest after 8-12 weeks
+  confidence      String?         // VERY_HIGH, HIGH, MEDIUM, LOW
+  valid           Boolean         @default(true)
+
+  // Relationships
+  client          Client          @relation("ClientErgometerThresholds", fields: [clientId], references: [id], onDelete: Cascade)
+  zones           ErgometerZone[] @relation("ThresholdZones")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([clientId, ergometerType])
+  @@index([clientId, ergometerType])
+  @@index([testDate])
+}
+
+model ErgometerZone {
+  id              String          @id @default(uuid())
+  clientId        String
+  ergometerType   ErgometerType
+
+  // Zone definition (1-6 standard, 1-7 for detailed)
+  zone            Int             // 1-6 (or 1-7)
+  name            String          // Recovery, Endurance, Tempo, Threshold, VO2max, Anaerobic
+  nameSwedish     String          // Återhämtning, Uthållighet, Tempo, Tröskel, VO2max, Anaerob
+
+  // Power targets
+  powerMin        Float           // Watts (lower bound)
+  powerMax        Float           // Watts (upper bound)
+  percentMin      Float           // % of CP/FTP (lower)
+  percentMax      Float           // % of CP/FTP (upper)
+
+  // Pace targets (Concept2 only) - note: lower pace = faster
+  paceMin         Float?          // sec/500m (faster, lower number)
+  paceMax         Float?          // sec/500m (slower, higher number)
+
+  // HR targets (optional)
+  hrMin           Float?          // bpm (lower)
+  hrMax           Float?          // bpm (upper)
+
+  // Training application
+  description     String          // Training effect/application
+  descriptionSwedish String?      // Swedish description
+  typicalDuration String?         // Typical interval duration (e.g., "4-8 min")
+
+  // Source
+  sourceThresholdId String
+  calculationMethod String        // CP_BASED, FTP_BASED, MAP_BASED, TT_BASED
+
+  // Relationships
+  client          Client          @relation("ClientErgometerZones", fields: [clientId], references: [id], onDelete: Cascade)
+  sourceThreshold ErgometerThreshold @relation("ThresholdZones", fields: [sourceThresholdId], references: [id], onDelete: Cascade)
+  createdAt       DateTime        @default(now())
+
+  @@index([clientId, ergometerType])
+  @@index([zone])
+  @@index([sourceThresholdId])
+}
+
+model ErgometerBenchmark {
+  id              String                  @id @default(uuid())
+  ergometerType   ErgometerType
+  testProtocol    ErgometerTestProtocol
+  sport           SportType?              // NULL = general, or specific sport context
+  gender          String                  // MALE, FEMALE
+  tier            String                  // ELITE, ADVANCED, INTERMEDIATE, BEGINNER
+
+  // Benchmark values - Power
+  powerMin        Float?                  // Watts (lower bound for tier)
+  powerMax        Float?                  // Watts (upper bound for tier)
+
+  // Benchmark values - Pace (Concept2)
+  paceMin         Float?                  // sec/500m (faster, lower = better)
+  paceMax         Float?                  // sec/500m (slower)
+
+  // Benchmark values - Time (for TT tests)
+  timeMin         Float?                  // seconds (faster, lower = better)
+  timeMax         Float?                  // seconds (slower)
+
+  // Benchmark values - Calories (Air Bike)
+  caloriesMin     Float?                  // calories (lower bound)
+  caloriesMax     Float?                  // calories (upper bound)
+
+  // Relative benchmarks
+  wattsPerKg      Float?                  // W/kg (relative power)
+
+  // Metadata
+  description     String?                 // Description of benchmark tier
+  descriptionSwedish String?              // Swedish description
+  source          String?                 // Reference source for benchmark data
+
+  createdAt       DateTime                @default(now())
+
+  @@unique([ergometerType, testProtocol, sport, gender, tier])
+  @@index([ergometerType, gender, tier])
+  @@index([sport, gender])
 }

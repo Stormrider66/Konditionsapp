@@ -55,19 +55,21 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
   const CardWrapper = isGlass ? GlassCard : Card;
 
   return (
-    <CardWrapper className={cn(isGlass ? "border-white/5 bg-white/5" : "")}>
+    <CardWrapper className={cn(
+      isGlass ? "border-slate-200 bg-white/80 dark:border-white/5 dark:bg-white/5 shadow-sm dark:shadow-none transition-colors" : ""
+    )}>
       <CardContent className="p-8">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
           {/* Avatar */}
           <div className="relative group">
             <div className={cn(
               "absolute -inset-1 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000",
-              isGlass ? "bg-blue-600" : "bg-primary"
+              isGlass ? "bg-blue-400 dark:bg-blue-600" : "bg-primary"
             )} />
             <Avatar className="h-24 w-24 text-2xl relative border-2 border-white/10">
               <AvatarFallback className={cn(
                 "bg-gradient-to-br text-white font-black",
-                isGlass ? "from-slate-800 to-slate-900" : "from-blue-500 to-purple-600"
+                isGlass ? "from-slate-700 to-slate-800 dark:from-slate-800 dark:to-slate-900" : "from-blue-500 to-purple-600"
               )}>
                 {initials}
               </AvatarFallback>
@@ -78,15 +80,15 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
           <div className="flex-1 min-w-0 text-center md:text-left">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-3">
               <h1 className={cn(
-                "text-3xl md:text-5xl font-black tracking-tighter uppercase italic leading-none",
-                isGlass ? "text-white" : "text-gray-900"
+                "text-3xl md:text-5xl font-black tracking-tighter uppercase italic leading-none transition-colors",
+                isGlass ? "text-slate-900 dark:text-white" : "text-gray-900"
               )}>
                 {client.name}
               </h1>
 
               {/* Sport Badges */}
               {sportProfile?.primarySport && (
-                <Badge className={cn("rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest border-0", sportBadgeColor)}>
+                <Badge className={cn("rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest border-0 transition-colors", sportBadgeColor)}>
                   {getSportDisplayName(sportProfile.primarySport)}
                 </Badge>
               )}
@@ -94,11 +96,11 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
 
             {/* Meta Info Row */}
             <div className={cn(
-              "flex flex-wrap items-center justify-center md:justify-start gap-4 text-[10px] font-black uppercase tracking-widest mb-6",
-              isGlass ? "text-slate-500" : "text-gray-600"
+              "flex flex-wrap items-center justify-center md:justify-start gap-4 text-[10px] font-black uppercase tracking-widest mb-6 transition-colors",
+              isGlass ? "text-slate-600 dark:text-slate-500" : "text-gray-600"
             )}>
               <span className="flex items-center gap-1">
-                <span className={cn(isGlass ? "text-blue-500" : "font-medium")}>{age}</span> år
+                <span className={cn(isGlass ? "text-blue-600 dark:text-blue-500" : "font-medium")}>{age}</span> år
               </span>
               <span className="opacity-20">•</span>
               <span>
@@ -109,7 +111,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
               {client.team && (
                 <>
                   <span className="opacity-20">•</span>
-                  <span className={cn(isGlass ? "text-emerald-500" : "")}>{client.team.name}</span>
+                  <span className={cn(isGlass ? "text-emerald-600 dark:text-emerald-500" : "")}>{client.team.name}</span>
                 </>
               )}
             </div>
@@ -118,16 +120,16 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
               {athleteProfile?.category && (
                 <Badge variant="outline" className={cn(
-                  "text-[9px] font-black uppercase tracking-widest h-6 rounded-lg",
-                  isGlass ? "bg-white/5 border-white/5 text-slate-400" : ""
+                  "text-[9px] font-black uppercase tracking-widest h-6 rounded-lg transition-colors",
+                  isGlass ? "bg-slate-100 border-slate-200 text-slate-500 dark:bg-white/5 dark:border-white/5 dark:text-slate-400" : ""
                 )}>
                   {getCategoryLabel(athleteProfile.category)}
                 </Badge>
               )}
               {athleteProfile?.yearsRunning && (
                 <Badge variant="outline" className={cn(
-                  "text-[9px] font-black uppercase tracking-widest h-6 rounded-lg",
-                  isGlass ? "bg-white/5 border-white/5 text-slate-400" : ""
+                  "text-[9px] font-black uppercase tracking-widest h-6 rounded-lg transition-colors",
+                  isGlass ? "bg-slate-100 border-slate-200 text-slate-500 dark:bg-white/5 dark:border-white/5 dark:text-slate-400" : ""
                 )}>
                   {athleteProfile.yearsRunning} års erfarenhet
                 </Badge>
@@ -156,8 +158,8 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
 
         {/* Key Metrics Row */}
         <div className={cn(
-          "grid grid-cols-2 lg:grid-cols-4 gap-8 mt-10 pt-8",
-          isGlass ? "border-t border-white/5" : "border-t"
+          "grid grid-cols-2 lg:grid-cols-4 gap-8 mt-10 pt-8 transition-colors",
+          isGlass ? "border-t border-slate-200 dark:border-white/5" : "border-t"
         )}>
           <MetricCard
             icon={Activity}
@@ -200,18 +202,18 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
         {/* Latest Test/Race Info */}
         {(latestTest || latestRace) && (
           <div className={cn(
-            "flex flex-wrap justify-center md:justify-start gap-6 mt-8 pt-6 text-[9px] font-black uppercase tracking-[0.2em]",
-            isGlass ? "border-t border-white/5 text-slate-600" : "border-t text-gray-400"
+            "flex flex-wrap justify-center md:justify-start gap-6 mt-8 pt-6 text-[9px] font-black uppercase tracking-[0.2em] transition-colors",
+            isGlass ? "border-t border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-500" : "border-t text-gray-400"
           )}>
             {latestTest && (
               <span className="flex items-center gap-2">
-                <Activity className="h-3 w-3 text-blue-500" />
+                <Activity className="h-3 w-3 text-blue-600 dark:text-blue-500" />
                 Senaste konditionstest: {format(new Date(latestTest.testDate), 'd MMMM yyyy', { locale: sv })}
               </span>
             )}
             {latestRace && (
               <span className="flex items-center gap-2">
-                <Trophy className="h-3 w-3 text-yellow-500" />
+                <Trophy className="h-3 w-3 text-yellow-600 dark:text-yellow-500" />
                 Senaste Tävling: {latestRace.raceName || latestRace.distance} ({format(new Date(latestRace.raceDate), 'd MMM yyyy', { locale: sv })})
               </span>
             )}
@@ -241,30 +243,35 @@ function MetricCard({
   accentColor?: 'blue' | 'emerald' | 'red' | 'purple'
 }) {
   const accentClasses = {
-    blue: 'text-blue-500 bg-blue-500/10',
-    emerald: 'text-emerald-500 bg-emerald-500/10',
-    red: 'text-red-500 bg-red-500/10',
-    purple: 'text-purple-500 bg-purple-500/10',
+    blue: 'text-blue-600 dark:text-blue-500 bg-blue-100 dark:bg-blue-500/10',
+    emerald: 'text-emerald-600 dark:text-emerald-500 bg-emerald-100 dark:bg-emerald-500/10',
+    red: 'text-red-600 dark:text-red-500 bg-red-100 dark:bg-red-500/10',
+    purple: 'text-purple-600 dark:text-purple-500 bg-purple-100 dark:bg-purple-500/10',
   }
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 rounded-3xl bg-white/[0.02] border border-white/5 group hover:bg-white/5 transition-all">
+    <div className={cn(
+      "flex flex-col items-center justify-center p-4 rounded-3xl group transition-all",
+      isGlass
+        ? "bg-slate-50 border border-slate-200 dark:bg-white/[0.02] dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5"
+        : "bg-white/[0.02] border border-white/5 hover:bg-white/5"
+    )}>
       <div className={cn(
         "w-10 h-10 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110",
         accentClasses[accentColor]
       )}>
         <Icon className="h-5 w-5" />
       </div>
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{label}</p>
+      <p className={cn("text-[10px] font-black uppercase tracking-widest mb-1 transition-colors", isGlass ? "text-slate-500 dark:text-slate-500" : "text-slate-500")}>{label}</p>
       <div className="flex items-baseline justify-center gap-1 mb-1">
         <span className={cn(
-          "text-2xl font-black uppercase italic tracking-tighter",
-          isGlass ? "text-white" : "text-gray-900"
+          "text-2xl font-black uppercase italic tracking-tighter transition-colors",
+          isGlass ? "text-slate-900 dark:text-white" : "text-gray-900"
         )}>{value}</span>
-        {unit && <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{unit}</span>}
+        {unit && <span className="text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest">{unit}</span>}
       </div>
       {subtext && (
-        <div className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{subtext}</div>
+        <div className="text-[10px] font-black text-slate-600 dark:text-slate-700 uppercase tracking-tight">{subtext}</div>
       )}
     </div>
   )
@@ -274,14 +281,14 @@ function MetricCard({
 function getSportBadgeColor(sport: string, isGlass: boolean = false): string {
   if (isGlass) {
     const colors: Record<string, string> = {
-      RUNNING: 'bg-emerald-500/10 text-emerald-400',
-      CYCLING: 'bg-blue-500/10 text-blue-400',
-      SWIMMING: 'bg-cyan-500/10 text-cyan-400',
-      TRIATHLON: 'bg-purple-500/10 text-purple-400',
-      HYROX: 'bg-orange-500/10 text-orange-400',
-      SKIING: 'bg-sky-500/10 text-sky-400',
-      GENERAL_FITNESS: 'bg-slate-500/10 text-slate-400',
-      STRENGTH: 'bg-red-500/10 text-red-400',
+      RUNNING: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+      CYCLING: 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400',
+      SWIMMING: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400',
+      TRIATHLON: 'bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400',
+      HYROX: 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400',
+      SKIING: 'bg-sky-100 text-sky-700 dark:bg-sky-500/10 dark:text-sky-400',
+      GENERAL_FITNESS: 'bg-slate-100 text-slate-700 dark:bg-slate-500/10 dark:text-slate-400',
+      STRENGTH: 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400',
     }
     return colors[sport] || 'bg-white/5 text-slate-400'
   }

@@ -120,7 +120,7 @@ export function RestDayHeroCard({ nextWorkout, readinessScore, athleteName }: Re
   const MessageIcon = message.icon
 
   return (
-    <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden">
+    <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden transition-all">
       {/* Calming gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-transparent to-teal-500/5 pointer-events-none" />
 
@@ -130,30 +130,30 @@ export function RestDayHeroCard({ nextWorkout, readinessScore, athleteName }: Re
       <div className="p-6 md:p-8 relative z-10 flex flex-col h-full justify-between min-h-[280px] md:min-h-[300px]">
         <div>
           {/* Rest Day Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold uppercase tracking-wider mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-400 text-xs font-bold uppercase tracking-wider mb-4 transition-colors">
             <Sunrise className="w-3 h-3" />
             Vilodag
           </div>
 
           {/* Title with Icon */}
           <div className="flex items-start gap-4 mb-3">
-            <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
-              <MessageIcon className="w-6 h-6 text-cyan-400" />
+            <div className="p-3 rounded-xl bg-cyan-100 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/20 transition-colors">
+              <MessageIcon className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
             </div>
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+              <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
                 {message.title}
               </h2>
-              <p className="text-slate-400 max-w-md text-sm md:text-base">
+              <p className="text-slate-600 dark:text-slate-400 max-w-md text-sm md:text-base transition-colors">
                 {message.description}
               </p>
             </div>
           </div>
 
           {/* Recovery Tip */}
-          <div className="mt-4 p-3 rounded-lg bg-white/5 border border-white/10">
-            <p className="text-sm text-slate-300 flex items-start gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+          <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 transition-colors">
+            <p className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-500 dark:text-cyan-400 mt-0.5 flex-shrink-0" />
               <span>{message.tip}</span>
             </p>
           </div>
@@ -161,32 +161,32 @@ export function RestDayHeroCard({ nextWorkout, readinessScore, athleteName }: Re
 
         {/* Next Workout Preview */}
         {nextWorkout && (
-          <div className="mt-6 pt-6 border-t border-white/10">
-            <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2 transition-colors">
               <Calendar className="w-4 h-4" />
               Nästa pass
             </h3>
 
             <Link href={`/athlete/workouts/${nextWorkout.id}`}>
-              <div className="group/next p-4 rounded-xl bg-slate-900/50 border border-white/10 hover:border-orange-500/30 hover:bg-slate-900/70 transition-all cursor-pointer">
+              <div className="group/next p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 hover:border-orange-500/30 dark:hover:border-orange-500/30 hover:bg-slate-100 dark:hover:bg-slate-900/70 transition-all cursor-pointer">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-xs text-orange-400 font-medium">
+                      <span className="text-xs text-orange-600 dark:text-orange-400 font-medium transition-colors">
                         {formatNextWorkoutDate(nextWorkout.dayDate)}
                       </span>
                       <span className={`px-2 py-0.5 rounded text-xs border ${getIntensityBadgeStyle(nextWorkout.intensity)}`}>
                         {formatIntensity(nextWorkout.intensity)}
                       </span>
                     </div>
-                    <h4 className="font-semibold text-white truncate group-hover/next:text-orange-400 transition-colors">
+                    <h4 className="font-semibold text-slate-900 dark:text-white truncate group-hover/next:text-orange-600 dark:group-hover/next:text-orange-400 transition-colors">
                       {nextWorkout.name}
                     </h4>
                     <p className="text-sm text-slate-500 truncate">
                       {nextWorkout.programName}
                     </p>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-slate-600 group-hover/next:text-orange-400 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
+                  <ChevronRight className="w-5 h-5 text-slate-400 dark:text-slate-600 group-hover/next:text-orange-500 dark:group-hover/next:text-orange-400 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
                 </div>
 
                 {/* Duration/Distance preview */}
@@ -205,14 +205,14 @@ export function RestDayHeroCard({ nextWorkout, readinessScore, athleteName }: Re
 
         {/* No upcoming workouts */}
         {!nextWorkout && (
-          <div className="mt-6 pt-6 border-t border-white/10">
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
             <p className="text-sm text-slate-500 text-center">
               Inga kommande pass schemalagda
             </p>
             <Link href="/athlete/calendar">
               <Button
                 variant="outline"
-                className="w-full mt-3 border-white/20 text-slate-300 hover:bg-white/10 hover:text-white"
+                className="w-full mt-3 border-slate-200 dark:border-white/20 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all"
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 Visa kalender

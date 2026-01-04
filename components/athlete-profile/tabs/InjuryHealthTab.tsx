@@ -39,7 +39,7 @@ export function InjuryHealthTab({ data, viewMode, variant = 'default' }: InjuryH
       <CardWrapper>
         <CardContent className="py-20 text-center">
           <Heart className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-white/10" : "text-gray-300")} />
-          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-white" : "text-gray-900")}>
+          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
             Ingen hälsodata
           </h3>
           <p className={cn("font-medium max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
@@ -141,7 +141,7 @@ export function InjuryHealthTab({ data, viewMode, variant = 'default' }: InjuryH
                   key={session.id}
                   className={cn(
                     "flex items-center justify-between p-4 rounded-2xl transition-all",
-                    isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "border hover:bg-gray-50"
+                    isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5" : "border hover:bg-gray-50"
                   )}
                 >
                   <div className="flex items-center gap-4">
@@ -152,7 +152,7 @@ export function InjuryHealthTab({ data, viewMode, variant = 'default' }: InjuryH
                       <Activity className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-gray-900")}>{getModalityLabel(session.modality)}</p>
+                      <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{getModalityLabel(session.modality)}</p>
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                         {format(new Date(session.date), 'd MMM yyyy', { locale: sv })}
                         {session.reason && ` • ${getReasonLabel(session.reason)}`}
@@ -160,7 +160,7 @@ export function InjuryHealthTab({ data, viewMode, variant = 'default' }: InjuryH
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={cn("font-black italic text-lg", isGlass ? "text-white" : "text-gray-900")}>
+                    <p className={cn("font-black italic text-lg", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                       {session.duration} <span className="text-[10px] uppercase font-black tracking-widest text-slate-500">min</span>
                     </p>
                     {session.tssEquivalent && (
@@ -192,11 +192,11 @@ export function InjuryHealthTab({ data, viewMode, variant = 'default' }: InjuryH
                   key={injury.id}
                   className={cn(
                     "flex items-center justify-between p-4 rounded-2xl transition-all",
-                    isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "bg-green-50/50 border border-green-100"
+                    isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5" : "bg-green-50/50 border border-green-100"
                   )}
                 >
                   <div>
-                    <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-gray-900")}>{getInjuryTypeLabel(injury.injuryType || 'OTHER')}</p>
+                    <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{getInjuryTypeLabel(injury.injuryType || 'OTHER')}</p>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                       {format(new Date(injury.date), 'd MMM yyyy', { locale: sv })}
                       {injury.resolvedDate && (
@@ -232,13 +232,13 @@ function InjuryCard({
       className={cn(
         "p-5 rounded-3xl transition-all duration-300",
         isGlass
-          ? "bg-white/[0.02] border border-white/5 hover:bg-white/5"
+          ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5"
           : (isActive ? 'bg-white border-red-200' : 'bg-white border')
       )}
     >
       <div className="flex items-start justify-between mb-4">
         <div>
-          <p className={cn("font-black uppercase italic tracking-tight text-lg", isGlass ? "text-white" : "text-gray-900")}>
+          <p className={cn("font-black uppercase italic tracking-tight text-lg", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
             {getInjuryTypeLabel(injury.injuryType || 'OTHER')}
           </p>
           {injury.painLocation && (
@@ -258,24 +258,24 @@ function InjuryCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-white/5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-slate-200 dark:border-white/5">
         <div>
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Smärtnivå</p>
           <div className="flex items-center gap-2">
             <PainIndicator level={injury.painLevel} />
-            <span className={cn("text-xl font-black italic", isGlass ? "text-white" : "text-gray-900")}>{injury.painLevel}/10</span>
+            <span className={cn("text-xl font-black italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{injury.painLevel}/10</span>
           </div>
         </div>
         <div>
           <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Datum</p>
-          <p className={cn("text-sm font-black uppercase tracking-widest", isGlass ? "text-slate-300" : "text-gray-900")}>
+          <p className={cn("text-sm font-black uppercase tracking-widest", isGlass ? "text-slate-500 dark:text-slate-300" : "text-gray-900")}>
             {format(new Date(injury.date), 'd MMM yyyy', { locale: sv })}
           </p>
         </div>
         {injury.estimatedTimeOff && (
           <div>
             <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Ber. vila</p>
-            <p className={cn("text-sm font-black uppercase tracking-widest", isGlass ? "text-slate-300" : "text-gray-900")}>{injury.estimatedTimeOff}</p>
+            <p className={cn("text-sm font-black uppercase tracking-widest", isGlass ? "text-slate-500 dark:text-slate-300" : "text-gray-900")}>{injury.estimatedTimeOff}</p>
           </div>
         )}
         {injury.gaitAffected && (

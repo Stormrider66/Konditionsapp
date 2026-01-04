@@ -67,13 +67,13 @@ function getPriorityStyles(priority: TipPriority, isGlass: boolean = false): {
   if (isGlass) {
     switch (priority) {
       case 'HIGH':
-        return { variant: 'outline', className: 'bg-red-950/30 text-red-300 border-red-500/30' }
+        return { variant: 'outline', className: 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/30' }
       case 'MEDIUM':
-        return { variant: 'outline', className: 'bg-amber-950/30 text-amber-300 border-amber-500/30' }
+        return { variant: 'outline', className: 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30' }
       case 'LOW':
-        return { variant: 'outline', className: 'bg-slate-800/50 text-slate-300 border-slate-700' }
+        return { variant: 'outline', className: 'bg-slate-100/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700' }
       default:
-        return { variant: 'outline', className: 'text-slate-400 border-slate-700' }
+        return { variant: 'outline', className: 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700' }
     }
   }
 
@@ -112,13 +112,13 @@ function getCardBorderClass(priority: TipPriority, isGlass: boolean = false): st
   if (isGlass) {
     switch (priority) {
       case 'HIGH':
-        return 'border-l-4 border-l-red-500/70 bg-red-950/10'
+        return 'border-l-4 border-l-red-500/70 bg-red-50/50 dark:bg-red-950/10'
       case 'MEDIUM':
-        return 'border-l-4 border-l-amber-500/70 bg-amber-950/10'
+        return 'border-l-4 border-l-amber-500/70 bg-amber-50/50 dark:bg-amber-950/10'
       case 'LOW':
-        return 'border-l-4 border-l-slate-500/70 bg-slate-900/40'
+        return 'border-l-4 border-l-slate-400/70 dark:border-l-slate-500/70 bg-slate-50/50 dark:bg-slate-900/40'
       default:
-        return 'bg-slate-900/40'
+        return 'bg-slate-50/50 dark:bg-slate-900/40'
     }
   }
 
@@ -163,12 +163,12 @@ export function NutritionTipCard({
         <GlassCardContent className={compact ? 'p-3' : 'p-4'}>
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-1">
-              <div className="flex-shrink-0 p-1.5 rounded-full bg-slate-800/50">
-                <Icon className="h-4 w-4 text-slate-300" />
+              <div className="flex-shrink-0 p-1.5 rounded-full bg-slate-100 dark:bg-slate-800/50 transition-colors">
+                <Icon className="h-4 w-4 text-slate-500 dark:text-slate-300 transition-colors" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="font-medium text-sm text-white truncate">
+                  <h4 className="font-medium text-sm text-slate-900 dark:text-white truncate transition-colors">
                     {tip.title}
                   </h4>
                   <Badge
@@ -180,7 +180,7 @@ export function NutritionTipCard({
                 </div>
                 {/* Workout context if available */}
                 {tip.workoutContext && (
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 transition-colors">
                     {tip.workoutContext.name}
                     {tip.workoutContext.time && ` kl ${tip.workoutContext.time}`}
                     {tip.workoutContext.intensity && ` (${tip.workoutContext.intensity})`}
@@ -195,7 +195,7 @@ export function NutritionTipCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 text-slate-400 hover:text-white hover:bg-white/10"
+                  className="h-6 w-6 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
                   onClick={() => setIsExpanded(!isExpanded)}
                   aria-label={isExpanded ? 'Minimera' : 'Expandera'}
                 >
@@ -210,7 +210,7 @@ export function NutritionTipCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 text-slate-400 hover:text-white hover:bg-white/10"
+                  className="h-6 w-6 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
                   onClick={handleDismiss}
                   aria-label="Stäng"
                 >
@@ -223,7 +223,7 @@ export function NutritionTipCard({
           {/* Message */}
           {isExpanded && (
             <div className="mt-2">
-              <p className="text-sm text-slate-300 leading-relaxed">
+              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed transition-colors">
                 {tip.message}
               </p>
             </div>

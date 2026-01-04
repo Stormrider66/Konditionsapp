@@ -67,7 +67,7 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
       <CardWrapper>
         <CardContent className="py-20 text-center">
           <Calendar className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-white/10" : "text-gray-300")} />
-          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-white" : "text-gray-900")}>
+          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
             Ingen träningshistorik
           </h3>
           <p className={cn("font-medium max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
@@ -129,22 +129,22 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
               {athleteProfile.yearsRunning && (
                 <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Erfarenhet</p>
-                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>{athleteProfile.yearsRunning} år</p>
+                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{athleteProfile.yearsRunning} år</p>
                 </div>
               )}
               {athleteProfile.typicalWeeklyKm && (
                 <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Veckovolym</p>
-                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>{athleteProfile.typicalWeeklyKm} km</p>
+                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{athleteProfile.typicalWeeklyKm} km</p>
                 </div>
               )}
               {athleteProfile.longestLongRun && (
                 <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Längsta pass</p>
-                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>{athleteProfile.longestLongRun} km</p>
+                  <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{athleteProfile.longestLongRun} km</p>
                 </div>
               )}
-              <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50")}>
+              <div className={cn("p-4 rounded-2xl", isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5" : "bg-gray-50")}>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Utrustning</p>
                 <div className="flex gap-2 flex-wrap">
                   {athleteProfile.hasLactateMeter && (
@@ -254,12 +254,12 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
                       key={program.id}
                       className={cn(
                         "p-4 rounded-2xl space-y-3",
-                        isGlass ? "bg-white/[0.02] border border-white/5" : "border"
+                        isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5" : "border"
                       )}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-gray-900")}>{program.name}</p>
+                          <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{program.name}</p>
                           <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
                             {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
                             {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
@@ -303,7 +303,7 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
                   key={load.id}
                   className={cn(
                     "flex items-center justify-between p-3 rounded-2xl transition-all",
-                    isGlass ? "bg-white/[0.01] border border-white/5 hover:bg-white/5" : "border hover:bg-gray-50"
+                    isGlass ? "bg-white/50 dark:bg-white/[0.01] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5" : "border hover:bg-gray-50"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -317,7 +317,7 @@ export function TrainingHistoryTab({ data, viewMode, variant = 'default' }: Trai
                     )}
                   </div>
                   <div className="flex items-center gap-4 text-[10px] font-black uppercase">
-                    <span className={isGlass ? "text-white" : "text-gray-900"}>{Math.round(load.dailyLoad)} <span className="text-slate-500">TSS</span></span>
+                    <span className={isGlass ? "text-slate-900 dark:text-white" : "text-gray-900"}>{Math.round(load.dailyLoad)} <span className="text-slate-500">TSS</span></span>
                     {load.acwrZone && (
                       <Badge
                         className={cn(
@@ -372,7 +372,7 @@ function StatCard({
   return (
     <div className={cn(
       "p-6 rounded-3xl group transition-all duration-300",
-      isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "bg-white border hover:shadow-md"
+      isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5 shadow-sm" : "bg-white border hover:shadow-md"
     )}>
       <div className="flex items-start justify-between">
         <div className="space-y-1">
@@ -380,7 +380,7 @@ function StatCard({
           <div className="flex items-baseline gap-1">
             <span className={cn(
               "text-3xl font-black uppercase italic tracking-tighter",
-              isGlass ? "text-white" : "text-gray-900"
+              isGlass ? "text-slate-900 dark:text-white" : "text-gray-900"
             )}>{value}</span>
             {unit && <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{unit}</span>}
           </div>

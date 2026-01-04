@@ -57,8 +57,8 @@ export function PhysiologyTab({ data, viewMode, variant = 'default' }: Physiolog
     return (
       <CardWrapper>
         <CardContentWrapper className="py-20 text-center">
-          <Activity className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-white/10" : "text-gray-300")} />
-          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-white" : "text-gray-900")}>
+          <Activity className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-slate-300 dark:text-white/10" : "text-gray-300")} />
+          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
             Ingen fysiologisk data
           </h3>
           <p className={cn("font-medium mb-8 max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
@@ -135,7 +135,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default' }: Physiolog
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className={isGlass ? "border-white/5" : ""}>
+                  <TableRow className={isGlass ? "border-slate-200 dark:border-white/5" : ""}>
                     <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Zon</TableHead>
                     <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Puls (bpm)</TableHead>
                     <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>% av max</TableHead>
@@ -146,7 +146,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default' }: Physiolog
                   {(latestTest.trainingZones as any[]).map((zone, idx) => {
                     const zoneNum = zone.zone || idx + 1
                     return (
-                      <TableRow key={idx} className={isGlass ? "border-white/5 hover:bg-white/5" : ""}>
+                      <TableRow key={idx} className={isGlass ? "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5" : ""}>
                         <TableCell className="py-4">
                           <span className={cn(
                             "inline-flex items-center justify-center w-8 h-8 rounded-xl text-xs font-black border transition-transform hover:scale-110",
@@ -155,7 +155,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default' }: Physiolog
                             {zoneNum}
                           </span>
                         </TableCell>
-                        <TableCell className={cn("font-black text-sm", isGlass ? "text-white" : "")}>
+                        <TableCell className={cn("font-black text-sm", isGlass ? "text-slate-900 dark:text-white" : "")}>
                           {zone.hrMin} - {zone.hrMax}
                         </TableCell>
                         <TableCell className={cn("font-black text-sm text-slate-400")}>
@@ -206,18 +206,18 @@ export function PhysiologyTab({ data, viewMode, variant = 'default' }: Physiolog
                 return (
                   <div key={test.id} className={cn(
                     "rounded-2xl overflow-hidden transition-all duration-300",
-                    isGlass ? "border border-white/5 bg-white/[0.02]" : "border"
+                    isGlass ? "border border-slate-200 dark:border-white/5 bg-white/50 dark:bg-white/[0.02]" : "border"
                   )}>
                     <button
                       onClick={() => setExpandedTestId(isExpanded ? null : test.id)}
                       className={cn(
                         "w-full px-6 py-4 flex items-center justify-between transition-colors",
-                        isGlass ? "hover:bg-white/5" : "hover:bg-gray-50"
+                        isGlass ? "hover:bg-white/50 dark:hover:bg-white/5" : "hover:bg-gray-50"
                       )}
                     >
                       <div className="flex items-center gap-4">
                         <div className="text-left">
-                          <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-gray-900")}>
+                          <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                             {format(new Date(test.testDate), 'd MMMM yyyy', { locale: sv })}
                           </p>
                           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -254,37 +254,37 @@ export function PhysiologyTab({ data, viewMode, variant = 'default' }: Physiolog
                     {isExpanded && (
                       <div className={cn(
                         "px-6 py-6 border-t animate-in slide-in-from-top-2 duration-300",
-                        isGlass ? "bg-white/[0.01] border-white/5 text-slate-400" : "bg-gray-50 text-gray-700"
+                        isGlass ? "bg-slate-50/50 dark:bg-white/[0.01] border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400" : "bg-gray-50 text-gray-700"
                       )}>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                           <div>
                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">VO2max</p>
-                            <p className={cn("font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>
+                            <p className={cn("font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                               {test.vo2max ? `${test.vo2max.toFixed(1)} ml/kg/min` : '-'}
                             </p>
                           </div>
                           <div>
                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Max puls</p>
-                            <p className={cn("font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>
+                            <p className={cn("font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                               {test.maxHR ? `${test.maxHR} bpm` : '-'}
                             </p>
                           </div>
                           <div>
                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Aerob tröskel</p>
-                            <p className={cn("font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>
+                            <p className={cn("font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                               {(aerobicThreshold?.heartRate || aerobicThreshold?.hr) ? `${aerobicThreshold.heartRate || aerobicThreshold.hr} bpm` : '-'}
                             </p>
                           </div>
                           <div>
                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Anaerob tröskel</p>
-                            <p className={cn("font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>
+                            <p className={cn("font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                               {(anaerobicThreshold?.heartRate || anaerobicThreshold?.hr) ? `${anaerobicThreshold.heartRate || anaerobicThreshold.hr} bpm` : '-'}
                             </p>
                           </div>
                         </div>
 
                         {test.notes && (
-                          <div className="mt-6 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                          <div className="mt-6 p-4 rounded-xl bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5">
                             <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-2">Anteckningar</p>
                             <p className="text-xs font-medium leading-relaxed">{test.notes}</p>
                           </div>
@@ -294,7 +294,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default' }: Physiolog
                           <Link href={`/tests/${test.id}`}>
                             <Button size="sm" variant="ghost" className={cn(
                               "font-black uppercase tracking-widest text-[10px] h-9 rounded-lg px-4",
-                              isGlass ? "bg-white/5 hover:bg-white/10 text-white" : ""
+                              isGlass ? "bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 text-slate-900 dark:text-white" : ""
                             )}>
                               Visa detaljer
                             </Button>
@@ -332,11 +332,11 @@ export function PhysiologyTab({ data, viewMode, variant = 'default' }: Physiolog
                   key={test.id}
                   className={cn(
                     "flex items-center justify-between p-4 rounded-2xl transition-colors",
-                    isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "border hover:bg-gray-50"
+                    isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5" : "border hover:bg-gray-50"
                   )}
                 >
                   <div>
-                    <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-gray-900")}>
+                    <p className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                       {getFieldTestTypeLabel(test.testType)}
                     </p>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -401,7 +401,7 @@ function MetricCard({
   return (
     <div className={cn(
       "p-6 rounded-3xl group transition-all duration-300",
-      isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "bg-white border hover:shadow-md"
+      isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5 shadow-sm" : "bg-white border hover:shadow-md"
     )}>
       <div className="flex items-start justify-between">
         <div className="space-y-1">
@@ -409,7 +409,7 @@ function MetricCard({
           <div className="flex items-baseline gap-1">
             <span className={cn(
               "text-3xl font-black uppercase italic tracking-tighter",
-              isGlass ? "text-white" : "text-gray-900"
+              isGlass ? "text-slate-900 dark:text-white" : "text-gray-900"
             )}>{value}</span>
             {unit && <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{unit}</span>}
           </div>
@@ -467,12 +467,12 @@ function getZoneColorClasses(zoneNumber: number, isGlass: boolean = false): stri
   // Zone colors: 1=green (recovery), 2=blue (aerobic), 3=yellow (tempo), 4=orange (threshold), 5=red (VO2max)
   if (isGlass) {
     switch (zoneNumber) {
-      case 1: return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-      case 2: return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-      case 3: return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-      case 4: return 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-      case 5: return 'bg-red-500/10 text-red-400 border-red-500/20'
-      default: return 'bg-white/5 text-slate-400 border-white/10'
+      case 1: return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+      case 2: return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+      case 3: return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20'
+      case 4: return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20'
+      case 5: return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'
+      default: return 'bg-white/5 text-slate-500 dark:text-slate-400 border-white/10'
     }
   }
 

@@ -36,7 +36,7 @@ interface WorkoutNutritionCardProps {
 
 function FoodSuggestionChip({ food, isGlass }: { food: FoodSuggestion, isGlass?: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 ${isGlass ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'} text-xs rounded-md`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-1 ${isGlass ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' : 'bg-slate-100 text-slate-700'} text-xs rounded-md transition-colors`}>
       {food.nameSv}
       {food.carbsG && <span className="text-slate-500">({food.carbsG}g K)</span>}
     </span>
@@ -69,33 +69,33 @@ function GuidanceSection({
   return (
     <div className="space-y-2">
       <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-lg ${isGlass ? 'bg-slate-800/50' : iconBg} flex-shrink-0`}>
+        <div className={`p-2 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : iconBg} flex-shrink-0 transition-colors`}>
           {icon}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h4 className={`font-medium text-sm ${isGlass ? 'text-white' : 'text-slate-900'}`}>{title}</h4>
+            <h4 className={`font-medium text-sm ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'} transition-colors`}>{title}</h4>
             {timing && (
-              <span className={`text-xs ${isGlass ? 'text-slate-400' : 'text-slate-500'}`}>{timing}</span>
+              <span className={`text-xs ${isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500'} transition-colors`}>{timing}</span>
             )}
           </div>
-          <p className={`text-sm ${isGlass ? 'text-slate-300' : 'text-slate-600'} mt-1`}>{recommendation}</p>
+          <p className={`text-sm ${isGlass ? 'text-slate-700 dark:text-slate-300' : 'text-slate-600'} mt-1 transition-colors`}>{recommendation}</p>
 
           {/* Macro targets */}
           {(carbsG || proteinG || hydrationMl) && (
             <div className="flex flex-wrap gap-2 mt-2">
               {carbsG && (
-                <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-amber-950/30 text-amber-300 border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/20' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
                   {carbsG}g kolhydrater
                 </Badge>
               )}
               {proteinG && (
-                <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-red-950/30 text-red-300 border-red-500/20' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/20' : 'bg-red-50 text-red-700 border-red-200'}`}>
                   {proteinG}g protein
                 </Badge>
               )}
               {hydrationMl && (
-                <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-blue-950/30 text-blue-300 border-blue-500/20' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                <Badge variant="outline" className={`text-xs ${isGlass ? 'bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/20' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
                   {hydrationMl}ml vätska
                 </Badge>
               )}
@@ -187,7 +187,7 @@ export function WorkoutNutritionCard({
 
       {duringWorkout && (
         <>
-          <div className={`border-t ${isGlass ? 'border-white/10' : ''}`} />
+          <div className={`border-t ${isGlass ? 'border-slate-200 dark:border-white/10' : ''}`} />
           <GuidanceSection
             title="Under passet"
             icon={<Zap className="h-4 w-4 text-blue-500" />}
@@ -203,7 +203,7 @@ export function WorkoutNutritionCard({
 
       {postWorkout && (
         <>
-          <div className={`border-t ${isGlass ? 'border-white/10' : ''}`} />
+          <div className={`border-t ${isGlass ? 'border-slate-200 dark:border-white/10' : ''}`} />
           <GuidanceSection
             title="Efter passet"
             icon={<RefreshCw className="h-4 w-4 text-green-500" />}

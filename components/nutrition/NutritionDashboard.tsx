@@ -113,21 +113,21 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Utensils className="h-5 w-5 text-cyan-400" />
-          <h2 className="text-lg font-semibold text-white">Kost & Näring</h2>
+          <Utensils className="h-5 w-5 text-cyan-500 dark:text-cyan-400" />
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white transition-colors">Kost & Näring</h2>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-slate-400 capitalize">{formattedDate}</span>
+          <span className="text-sm text-slate-500 dark:text-slate-400 capitalize transition-colors">{formattedDate}</span>
           <Button
             variant="ghost"
             size="icon"
             onClick={fetchGuidance}
-            className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/10"
+            className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
             title="Uppdatera"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-white hover:bg-white/10" title="Inställningar">
+          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title="Inställningar">
             <Link href="/athlete/settings/nutrition">
               <Settings className="h-4 w-4" />
             </Link>
@@ -137,20 +137,20 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
 
       {/* Double day or race week alert */}
       {guidance.isDoubleDay && (
-        <Alert className="bg-amber-950/40 border-amber-500/30">
-          <Sparkles className="h-4 w-4 text-amber-500" />
-          <AlertDescription className="text-amber-200">
-            <span className="font-medium text-amber-100">Dubbeldag!</span> Du har två pass idag.
+        <Alert className="bg-amber-100 dark:bg-amber-950/40 border-amber-200 dark:border-amber-500/30">
+          <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <span className="font-medium text-amber-900 dark:text-amber-100">Dubbeldag!</span> Du har två pass idag.
             Fokusera på snabb återhämtning mellan passen.
           </AlertDescription>
         </Alert>
       )}
 
       {guidance.isRaceWeek && (
-        <Alert className="bg-purple-950/40 border-purple-500/30">
-          <Calendar className="h-4 w-4 text-purple-400" />
-          <AlertDescription className="text-purple-200">
-            <span className="font-medium text-purple-100">Tävlingsvecka!</span> Öka kolhydratintaget
+        <Alert className="bg-purple-100 dark:bg-purple-950/40 border-purple-200 dark:border-purple-500/30">
+          <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          <AlertDescription className="text-purple-800 dark:text-purple-200">
+            <span className="font-medium text-purple-900 dark:text-purple-100">Tävlingsvecka!</span> Öka kolhydratintaget
             och minska fiberrik mat de sista dagarna.
           </AlertDescription>
         </Alert>
@@ -169,7 +169,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         {guidance.mealSuggestions && (
           <GlassCard>
             <GlassCardHeader className="pb-2">
-              <GlassCardTitle className="text-base text-cyan-400">Måltidsstruktur</GlassCardTitle>
+              <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400 transition-colors">Måltidsstruktur</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>
               <div className="space-y-2">
@@ -214,11 +214,11 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           <GlassCard>
             <GlassCardContent className="p-6">
               <div className="flex flex-col items-center justify-center text-center space-y-2">
-                <div className="p-3 bg-slate-800/50 rounded-full">
-                  <Calendar className="h-6 w-6 text-slate-400" />
+                <div className="p-3 bg-slate-100 dark:bg-slate-800/50 rounded-full transition-colors">
+                  <Calendar className="h-6 w-6 text-slate-500 dark:text-slate-400" />
                 </div>
-                <p className="font-medium text-white">Vilodag</p>
-                <p className="text-sm text-slate-400">
+                <p className="font-medium text-slate-900 dark:text-white transition-colors">Vilodag</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400 transition-colors">
                   Inga träningspass schemalagda idag.
                   Perfekt dag för fiberrik mat och mikronäringsämnen!
                 </p>
@@ -231,7 +231,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         {guidance.tomorrowsWorkouts.length > 0 && (
           <GlassCard>
             <GlassCardHeader className="pb-2">
-              <GlassCardTitle className="text-sm text-slate-400 flex items-center gap-2">
+              <GlassCardTitle className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2 transition-colors">
                 <Calendar className="h-4 w-4" />
                 Imorgon
               </GlassCardTitle>
@@ -243,13 +243,13 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
                     key={workout.id}
                     className="flex items-center justify-between text-sm"
                   >
-                    <span className="text-slate-300">{workout.name}</span>
-                    <span className="text-slate-500">
+                    <span className="text-slate-700 dark:text-slate-300 transition-colors">{workout.name}</span>
+                    <span className="text-slate-500 transition-colors">
                       {workout.duration && `${workout.duration} min`}
                     </span>
                   </div>
                 ))}
-                <p className="text-xs text-orange-400 pt-2">
+                <p className="text-xs text-orange-600 dark:text-orange-400 pt-2 transition-colors">
                   Tip: Tänk på att fylla på glykogenlagren ikväll!
                 </p>
               </div>
@@ -260,7 +260,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         {/* Tips */}
         {guidance.tips && guidance.tips.length > 0 && (
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-slate-400">Tips för idag</h3>
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 transition-colors">Tips för idag</h3>
             {guidance.tips.slice(0, 3).map((tip, index) => (
               <NutritionTipCard
                 key={index}
@@ -279,11 +279,11 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
 
 function MealRow({ label, suggestion }: { label: string; suggestion: string }) {
   return (
-    <div className="flex items-start gap-3 py-2 border-b border-white/5 last:border-0">
-      <span className="text-xs font-medium text-slate-400 w-32 flex-shrink-0">
+    <div className="flex items-start gap-3 py-2 border-b border-slate-200 dark:border-white/5 last:border-0 transition-colors">
+      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 w-32 flex-shrink-0 transition-colors">
         {label}
       </span>
-      <span className="text-sm text-slate-300">{suggestion}</span>
+      <span className="text-sm text-slate-700 dark:text-slate-300 transition-colors">{suggestion}</span>
     </div>
   )
 }

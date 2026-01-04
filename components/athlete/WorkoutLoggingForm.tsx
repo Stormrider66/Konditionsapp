@@ -589,9 +589,10 @@ function getDifficultyLabel(difficulty: number): string {
   return 'Mycket svårt'
 }
 
+
 function getEffortBadgeClass(effort: number): string {
-  if (effort <= 3) return 'border-green-300 text-green-700'
-  if (effort <= 5) return 'border-yellow-300 text-yellow-700'
-  if (effort <= 7) return 'border-orange-300 text-orange-700'
-  return 'border-red-300 text-red-700'
+  if (effort <= 3) return 'bg-emerald-100 border-emerald-200 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400'
+  if (effort <= 5) return 'bg-yellow-100 border-yellow-200 text-yellow-700 dark:bg-yellow-500/10 dark:border-yellow-500/20 dark:text-yellow-400'
+  if (effort <= 7) return 'bg-orange-100 border-orange-200 text-orange-700 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400'
+  return 'bg-red-100 border-red-200 text-red-700 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400'
 }

@@ -144,8 +144,8 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
       <>
         <CardWrapper>
           <CardContent className="py-24 text-center">
-            <Trophy className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-white/10" : "text-gray-300")} />
-            <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-white" : "text-gray-900")}>
+            <Trophy className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-slate-300 dark:text-white/10" : "text-gray-300")} />
+            <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
               Ingen prestationsdata
             </h3>
             <p className={cn("font-medium mb-10 max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
@@ -164,7 +164,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                         onClick={btn.onClick}
                         className={cn(
                           "h-11 px-6 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all",
-                          isGlass ? "bg-white/5 hover:bg-white/10 text-white" : "bg-white border"
+                          isGlass ? "bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 text-slate-900 dark:text-white" : "bg-white border"
                         )}
                       >
                         <Icon className={cn("h-4 w-4 mr-2", btn.color)} />
@@ -177,7 +177,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                     onClick={() => setIsStrengthDialogOpen(true)}
                     className={cn(
                       "h-11 px-6 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all",
-                      isGlass ? "bg-white/5 hover:bg-white/10 text-white" : "bg-white border"
+                      isGlass ? "bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 text-slate-900 dark:text-white" : "bg-white border"
                     )}
                   >
                     <Dumbbell className="h-4 w-4 mr-2 text-slate-400" />
@@ -199,7 +199,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
       <div className="space-y-8">
         {/* Sport-Specific Quick Add */}
         {clientId && sportButtons.length > 0 && (
-          <CardWrapper className={isGlass ? "border-white/5 bg-white/5" : "border-dashed"}>
+          <CardWrapper className={isGlass ? "border-slate-200 dark:border-white/5 bg-white/50 dark:bg-white/5" : "border-dashed"}>
             <CardContent className="py-4 px-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <span className={cn("text-[10px] font-black uppercase tracking-[0.2em]", isGlass ? "text-slate-500" : "text-gray-600")}>
@@ -216,7 +216,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                         onClick={btn.onClick}
                         className={cn(
                           "h-9 px-4 rounded-lg font-black uppercase tracking-widest text-[9px]",
-                          isGlass ? "bg-white/5 hover:bg-white/10 text-white" : "bg-white border"
+                          isGlass ? "bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 text-slate-900 dark:text-white" : "bg-white border"
                         )}
                       >
                         <Icon className={cn("h-3.5 w-3.5 mr-1.5", btn.color)} />
@@ -230,7 +230,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                     onClick={() => setIsStrengthDialogOpen(true)}
                     className={cn(
                       "h-9 px-4 rounded-lg font-black uppercase tracking-widest text-[9px]",
-                      isGlass ? "bg-white/5 hover:bg-white/10 text-white" : "bg-white border"
+                      isGlass ? "bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 text-slate-900 dark:text-white" : "bg-white border"
                     )}
                   >
                     <Dumbbell className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
@@ -248,7 +248,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className={cn("flex items-center gap-3 text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>
+                  <CardTitle className={cn("flex items-center gap-3 text-xl font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "")}>
                     <Medal className={cn("h-6 w-6", isGlass ? "text-yellow-400" : "text-yellow-500")} />
                     Personliga rekord
                   </CardTitle>
@@ -282,7 +282,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>Tävlingshistorik</CardTitle>
+                  <CardTitle className={cn("text-xl font-black uppercase italic tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "")}>Tävlingshistorik</CardTitle>
                   <CardDescription className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>
                     {raceResults.length} tävlingar registrerade
                   </CardDescription>
@@ -304,7 +304,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                   </TableHeader>
                   <TableBody>
                     {raceResults.slice(0, 15).map((race) => (
-                      <TableRow key={race.id} className={isGlass ? "border-white/5 hover:bg-white/5" : ""}>
+                      <TableRow key={race.id} className={isGlass ? "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5" : ""}>
                         <TableCell className={cn("whitespace-nowrap font-black text-xs", isGlass ? "text-slate-400" : "")}>
                           {format(new Date(race.raceDate), 'd MMM yyyy', { locale: sv })}
                         </TableCell>
@@ -398,14 +398,14 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
                     {getUniqueExerciseProgressions(progressionTracking)
                       .slice(0, 10)
                       .map((prog) => (
-                        <TableRow key={prog.id} className={isGlass ? "border-white/5 hover:bg-white/5" : ""}>
+                        <TableRow key={prog.id} className={isGlass ? "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5" : ""}>
                           <TableCell className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>
                             {prog.exercise.nameSv || prog.exercise.name}
                           </TableCell>
                           <TableCell className={cn("font-black text-xs", isGlass ? "text-slate-400" : "")}>
                             {prog.sets}x{prog.repsCompleted} @ {prog.actualLoad} kg
                           </TableCell>
-                          <TableCell className={cn("font-black text-sm", isGlass ? "text-white" : "text-gray-900")}>
+                          <TableCell className={cn("font-black text-sm", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                             {prog.estimated1RM ? `${prog.estimated1RM.toFixed(1)} kg` : '-'}
                           </TableCell>
                           <TableCell>
@@ -562,7 +562,7 @@ function PRCard({
     <div className={cn(
       "p-5 rounded-3xl transition-all duration-300",
       isGlass
-        ? "bg-white/[0.02] border border-white/5 hover:bg-white/5"
+        ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5"
         : "bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200"
     )}>
       <div className="flex items-center justify-between mb-3">
@@ -574,10 +574,10 @@ function PRCard({
       </div>
       <p className={cn(
         "text-2xl font-black uppercase italic tracking-tighter mb-4",
-        isGlass ? "text-white" : "text-gray-900"
+        isGlass ? "text-slate-900 dark:text-white" : "text-gray-900"
       )}>{pr.timeFormatted}</p>
 
-      <div className="space-y-2 pt-3 border-t border-white/5">
+      <div className="space-y-2 pt-3 border-t border-slate-200 dark:border-white/5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 grayscale opacity-50">
             <Clock className="h-3 w-3" />
@@ -613,7 +613,7 @@ function StrengthPRCard({
     <div className={cn(
       "p-5 rounded-3xl transition-all duration-300",
       isGlass
-        ? "bg-white/[0.02] border border-white/5 hover:bg-white/5"
+        ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5"
         : "bg-gradient-to-br from-red-50 to-pink-50 border border-red-200"
     )}>
       <div className="flex items-center justify-between mb-3">
@@ -629,12 +629,12 @@ function StrengthPRCard({
       <div className="flex items-baseline gap-1 mb-4">
         <span className={cn(
           "text-3xl font-black uppercase italic tracking-tighter",
-          isGlass ? "text-white" : "text-gray-900"
+          isGlass ? "text-slate-900 dark:text-white" : "text-gray-900"
         )}>{pr.estimated1RM.toFixed(1)}</span>
         <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">KG</span>
       </div>
 
-      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+      <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-white/5">
         <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
           {format(new Date(pr.date), 'd MMM yyyy', { locale: sv })}
         </span>

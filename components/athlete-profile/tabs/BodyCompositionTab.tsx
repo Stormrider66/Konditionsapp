@@ -48,7 +48,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default' }: Body
       <CardWrapper>
         <CardContent className="py-20 text-center">
           <Scale className={cn("h-16 w-16 mx-auto mb-6", isGlass ? "text-white/10" : "text-gray-300")} />
-          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-white" : "text-gray-900")}>
+          <h3 className={cn("text-xl font-black uppercase italic tracking-tight mb-2", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
             Ingen kroppssammansättningsdata
           </h3>
           <p className={cn("font-medium mb-8 max-w-sm mx-auto", isGlass ? "text-slate-500" : "text-gray-500")}>
@@ -244,8 +244,8 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default' }: Body
                 </thead>
                 <tbody>
                   {progressSummary.map((period) => (
-                    <tr key={period.label} className={cn("border-b last:border-0", isGlass ? "border-white/5 hover:bg-white/[0.02]" : "border-gray-50")}>
-                      <td className={cn("py-4 font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>{period.label}</td>
+                    <tr key={period.label} className={cn("border-b last:border-0", isGlass ? "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/[0.02]" : "border-gray-50")}>
+                      <td className={cn("py-4 font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>{period.label}</td>
                       <td className="py-4 text-right font-black">
                         {period.weight !== null ? (
                           <span className={period.weight < 0 ? 'text-emerald-500' : period.weight > 0 ? 'text-red-500' : ''}>
@@ -314,11 +314,11 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default' }: Body
                   key={m.id}
                   className={cn(
                     "flex items-center justify-between p-4 rounded-2xl transition-all",
-                    isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "border hover:bg-gray-50"
+                    isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5" : "border hover:bg-gray-50"
                   )}
                 >
                   <div>
-                    <p className={cn("font-black uppercase italic text-xs tracking-tight", isGlass ? "text-white" : "text-gray-900")}>
+                    <p className={cn("font-black uppercase italic text-xs tracking-tight", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
                       {format(new Date(m.measurementDate), 'd MMM yyyy', { locale: sv })}
                     </p>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -383,7 +383,7 @@ function MetricCard({
   return (
     <div className={cn(
       "p-6 rounded-3xl group transition-all duration-300",
-      isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "bg-white border hover:shadow-md"
+      isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5 hover:bg-white/80 dark:hover:bg-white/5 shadow-sm" : "bg-white border hover:shadow-md"
     )}>
       <div className="flex items-start justify-between">
         <div className="space-y-1">
@@ -391,7 +391,7 @@ function MetricCard({
           <div className="flex items-baseline gap-1">
             <span className={cn(
               "text-3xl font-black uppercase italic tracking-tighter",
-              isGlass ? "text-white" : "text-gray-900"
+              isGlass ? "text-slate-900 dark:text-white" : "text-gray-900"
             )}>{value}</span>
             {unit && <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{unit}</span>}
           </div>
@@ -436,10 +436,10 @@ function DetailItem({
   return (
     <div className={cn(
       "p-4 rounded-2xl transition-all",
-      isGlass ? "bg-white/[0.02] border border-white/5" : "bg-gray-50 border border-transparent"
+      isGlass ? "bg-white/50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/5" : "bg-gray-50 border border-transparent"
     )}>
       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{label}</p>
-      <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-white" : "text-gray-900")}>
+      <p className={cn("text-xl font-black uppercase italic", isGlass ? "text-slate-900 dark:text-white" : "text-gray-900")}>
         {value !== null ? (
           <>
             {typeof value === 'number' && value % 1 !== 0 ? value.toFixed(1) : value}
