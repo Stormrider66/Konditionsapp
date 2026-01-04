@@ -51,9 +51,10 @@ export function AISuggestionsBanner() {
     sessionStorage.setItem('dismissedSuggestions', JSON.stringify([...newDismissed]))
   }
 
-  // Filter out dismissed suggestions
+  // Filter out dismissed suggestions and ones that are shown elsewhere (ReadinessPanel)
   const visibleSuggestions = suggestions
     .filter((s) => !dismissed.has(s.type))
+    .filter((s) => s.type !== 'check-in' && s.type !== 'injury') // Shown in ReadinessPanel
     .sort((a, b) => {
       const priority = { high: 3, medium: 2, low: 1 }
       return priority[b.priority] - priority[a.priority]

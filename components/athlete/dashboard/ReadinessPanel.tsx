@@ -7,15 +7,21 @@
  * - Recovery Score from DailyMetrics (not hardcoded!)
  * - Weekly Load progress bar
  * - Muscular Fatigue badges per muscle group
+ * - Injury Status display
  * - GlassCard styling
  */
 
 import Link from 'next/link'
-import { TrendingUp, Activity, AlertCircle } from 'lucide-react'
+import { TrendingUp, Activity, AlertCircle, Heart } from 'lucide-react'
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from '@/components/ui/GlassCard'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { MuscularFatigueData, getFatigueBadgeColor } from '@/lib/hero-card'
+
+interface ActiveInjury {
+  painLocation: string
+  painLevel: number
+}
 
 interface ReadinessPanelProps {
   readinessScore: number | null // From DailyMetrics (1-10 scale)
@@ -23,6 +29,7 @@ interface ReadinessPanelProps {
   weeklyTSSTarget: number // Target weekly TSS
   muscularFatigue: MuscularFatigueData[]
   hasCheckedInToday: boolean
+  activeInjuries?: ActiveInjury[] // Active injuries to display
 }
 
 // Convert 1-10 readiness to percentage
@@ -76,12 +83,49 @@ function translateFatigueLevel(level: string): string {
   return translations[level] || level
 }
 
+// Get injury severity color
+function getInjurySeverityColor(painLevel: number): string {
+  if (painLevel >= 7) return 'text-red-400 bg-red-500/10 border-red-500/20'
+  if (painLevel >= 4) return 'text-orange-400 bg-orange-500/10 border-orange-500/20'
+  return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
+}
+
+// Translate pain location to Swedish
+function translatePainLocation(location: string): string {
+  const translations: Record<string, string> = {
+    // Lower body
+    KNEE: 'Knä',
+    ANKLE: 'Fotled',
+    HIP: 'Höft',
+    FOOT: 'Fot',
+    CALF: 'Vad',
+    THIGH: 'Lår',
+    HAMSTRING: 'Baksida lår',
+    QUADRICEPS: 'Framsida lår',
+    GROIN: 'Ljumske',
+    GLUTES: 'Säte',
+    // Upper body
+    SHOULDER: 'Axel',
+    ELBOW: 'Armbåge',
+    WRIST: 'Handled',
+    BACK: 'Rygg',
+    LOWER_BACK: 'Nedre rygg',
+    UPPER_BACK: 'Övre rygg',
+    NECK: 'Nacke',
+    CHEST: 'Bröst',
+    // General
+    OTHER: 'Övrigt',
+  }
+  return translations[location] || location
+}
+
 export function ReadinessPanel({
   readinessScore,
   weeklyTSS,
   weeklyTSSTarget,
   muscularFatigue,
   hasCheckedInToday,
+  activeInjuries = [],
 }: ReadinessPanelProps) {
   const readinessPercentage = readinessScore ? readinessToPercentage(readinessScore) : null
   const readinessColors = readinessScore ? getReadinessColor(readinessScore) : null
@@ -119,6 +163,39 @@ export function ReadinessPanel({
                 Checka in nu
               </Button>
             </Link>
+          </div>
+        )}
+
+        {/* Injury Status */}
+        {activeInjuries.length > 0 && (
+          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <div className="flex items-start gap-2">
+              <Heart className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-red-400 font-medium">
+                  Skadestatus
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {activeInjuries.length} {activeInjuries.length === 1 ? 'aktiv skada' : 'aktiva skador'}
+                </p>
+              </div>
+            </div>
+            <div className="mt-2 space-y-1.5">
+              {activeInjuries.map((injury, index) => (
+                <div
+                  key={index}
+                  className={`px-2 py-1.5 rounded text-xs border ${getInjurySeverityColor(injury.painLevel)}`}
+                >
+                  <span className="font-medium">{translatePainLocation(injury.painLocation)}</span>
+                  <span className="text-slate-400 ml-1">- Smärtnivå {injury.painLevel}/10</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              {activeInjuries.some(i => i.painLevel >= 7)
+                ? 'Vila rekommenderas för allvarlig skada'
+                : 'Var uppmärksam under träning'}
+            </p>
           </div>
         )}
 

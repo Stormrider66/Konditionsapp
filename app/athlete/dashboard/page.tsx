@@ -80,7 +80,8 @@ export default async function AthleteDashboardPage() {
     plannedStats,
     latestMetrics,
     recentLogsWithSetLogs,
-    weeklyTrainingLoad
+    weeklyTrainingLoad,
+    activeInjuries
   ] = await Promise.all([
     // 1. Active Programs
     prisma.trainingProgram.findMany({
@@ -201,6 +202,18 @@ export default async function AthleteDashboardPage() {
       },
       select: {
         dailyLoad: true,
+      },
+    }),
+
+    // 7. Active injuries (not fully recovered)
+    prisma.injuryAssessment.findMany({
+      where: {
+        clientId: athleteAccount.clientId,
+        status: { not: 'FULLY_RECOVERED' },
+      },
+      select: {
+        painLocation: true,
+        painLevel: true,
       },
     }),
   ])
@@ -414,6 +427,7 @@ export default async function AthleteDashboardPage() {
           weeklyTSSTarget={weeklyTSSTarget}
           muscularFatigue={muscularFatigue}
           hasCheckedInToday={hasCheckedInToday}
+          activeInjuries={activeInjuries}
         />
       </div>
 

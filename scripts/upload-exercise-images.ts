@@ -26,6 +26,10 @@
  *   npx ts-node scripts/upload-exercise-images.ts --source ./images
  */
 
+// Load environment variables from .env.local
+import * as dotenv from 'dotenv'
+dotenv.config({ path: '.env.local' })
+
 import { createClient } from '@supabase/supabase-js'
 import { PrismaClient } from '@prisma/client'
 import * as fs from 'fs'
@@ -220,6 +224,40 @@ const SLUG_MAPPINGS: Record<string, string[]> = {
   'pull-up': ['Pull-Up', 'Chins'],
   'push-up': ['Push-Up', 'Armhävning'],
   'ring-dip': ['Ring Dip', 'Ring Dips'],
+
+  // New batch (Jan 2026) - Core
+  'sandbag-over-shoulder': ['Sandbag Over Shoulder', 'Sandsäck Över Axel'],
+  'yoke-carry': ['Yoke Carry', 'Yoke Walk'],
+
+  // New batch (Jan 2026) - Foot/Ankle
+  'lateral-hops': ['Lateral Hops', 'Sidohopp'],
+  'marmor-pickups': ['Marble Pickups', 'Marmor Pickups', 'Toe Pickups'],
+  'swimming': ['Swimming', 'Simning'],
+  'toe-yoga': ['Toe Yoga', 'Tåyoga'],
+
+  // New batch (Jan 2026) - Knee Dominance
+  'depth-jumps-30cm': ['Depth Jumps (30cm)', 'Depth Jump 30cm', 'Djuphopp 30cm'],
+  'depth-jumps-40cm': ['Depth Jumps (40cm)', 'Depth Jump 40cm', 'Djuphopp 40cm'],
+  'squat-snatch': ['Squat Snatch', 'Ryck'],
+  'tuck-jumps': ['Tuck Jumps', 'Tuck Jump', 'Knähopp'],
+
+  // New batch (Jan 2026) - Posterior Chain
+  'bar-facing-burpee': ['Bar Facing Burpee', 'Bar-Facing Burpee'],
+  'depth-to-broad-jump': ['Depth to Broad Jump', 'Depth Broad Jump'],
+  'hang-power-snatch': ['Hang Power Snatch', 'Hängande Power Ryck'],
+  'hip-hikes': ['Hip Hikes', 'Höftlyft'],
+  'hoftbrygga': ['Höftbrygga', 'Hip Bridge', 'Glute Bridge'],
+  'sandbag-clean': ['Sandbag Clean', 'Sandsäck Frivändning'],
+  'sled-push-hyrox': ['Sled Push (HYROX)', 'Sled Push HYROX', 'Slädtryckning HYROX'],
+  'sumo-deadlift-high-pull': ['Sumo Deadlift High Pull', 'SDHP'],
+  'thruster': ['Thruster', 'Thrusters'],
+  'wall-balls-hyrox': ['Wall Balls (HYROX)', 'Wall Ball HYROX'],
+
+  // New batch (Jan 2026) - Upper Body
+  'ring-row': ['Ring Row', 'Ring Rows', 'Ringrodd'],
+  'row-meters': ['Row (Meters)', 'Rodd Meter', 'Rowing Meters'],
+  'rowing-hyrox': ['Rowing (HYROX)', 'Row HYROX', 'Rodd HYROX'],
+  'strict-handstand-push-up': ['Strict Handstand Push-Up', 'Strict HSPU', 'Strict Handstand Push Up'],
 }
 
 interface ImageFile {

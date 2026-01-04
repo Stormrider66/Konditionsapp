@@ -102,10 +102,51 @@ const CATEGORY_IMAGES: Record<string, string[]> = {
     '/images/upper-body/bankpress-1.png',
   ],
   'LÖPNING': [
-    '/images/posterior-chain/row-calories-1.png', // Use as fallback for now
+    '/images/foot-ankle/running-1.png',
+    '/images/foot-ankle/skipping-1.png',
+    '/images/foot-ankle/pogo-jumps-1.png',
+  ],
+  'RUNNING': [
+    '/images/foot-ankle/running-1.png',
+    '/images/foot-ankle/skipping-1.png',
+    '/images/foot-ankle/lateral-hops-1.png',
+  ],
+  'CARDIO': [
+    '/images/posterior-chain/skierg-1.png',
+    '/images/posterior-chain/row-calories-1.png',
+    '/images/foot-ankle/assault-bike-calories-1.png',
+  ],
+  'HYROX': [
+    '/images/posterior-chain/sled-push-hyrox-1.png',
+    '/images/posterior-chain/wall-balls-hyrox-1.png',
+    '/images/knee-dominance/sandbag-lunges-hyrox-1.png',
+    '/images/core/farmers-carry-hyrox-1.png',
+  ],
+  'SIMNING': [
+    '/images/foot-ankle/swimming-1.png',
+  ],
+  'SWIMMING': [
+    '/images/foot-ankle/swimming-1.png',
   ],
   'ÅTERHÄMTNING': [
     '/images/core/bird-dog-1.png',
+    '/images/core/dead-bug-1.png',
+    '/images/foot-ankle/toe-yoga-1.png',
+  ],
+  'RECOVERY': [
+    '/images/core/bird-dog-1.png',
+    '/images/core/dead-bug-1.png',
+    '/images/foot-ankle/toe-yoga-1.png',
+  ],
+  'POWER': [
+    '/images/posterior-chain/thruster-1.png',
+    '/images/posterior-chain/hang-power-snatch-1.png',
+    '/images/posterior-chain/box-jump-1.png',
+  ],
+  'OLYMPIC': [
+    '/images/posterior-chain/hang-power-snatch-1.png',
+    '/images/posterior-chain/sandbag-clean-1.png',
+    '/images/knee-dominance/squat-snatch-1.png',
   ],
 }
 
