@@ -29,7 +29,12 @@ import {
   Calendar,
   Clock,
   Info,
+  Waves,
 } from 'lucide-react';
+import { Concept2WorkoutList } from './integrations';
+import { TeamRankCard } from './TeamRankCard';
+import { PerformancePredictionCard } from './predictions';
+import { RacePacingCard } from './pacing';
 import { format, formatDistanceToNow, differenceInWeeks } from 'date-fns';
 import { sv } from 'date-fns/locale';
 
@@ -347,6 +352,26 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
           })}
         </div>
       )}
+
+      {/* Performance Predictions */}
+      <div className="mt-6">
+        <PerformancePredictionCard clientId={clientId} ergometerType={activeTab || undefined} />
+      </div>
+
+      {/* Race Day Pacing */}
+      <div className="mt-6">
+        <RacePacingCard clientId={clientId} ergometerType={activeTab || undefined} />
+      </div>
+
+      {/* Team Ranking */}
+      <div className="mt-6">
+        <TeamRankCard clientId={clientId} />
+      </div>
+
+      {/* Concept2 Synced Workouts */}
+      <div className="mt-6">
+        <Concept2WorkoutList clientId={clientId} maxItems={10} />
+      </div>
     </div>
   );
 }

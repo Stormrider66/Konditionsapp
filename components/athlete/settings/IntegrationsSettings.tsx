@@ -631,6 +631,47 @@ export function IntegrationsSettings({ clientId, variant = 'default' }: Integrat
             </div>
           </div>
 
+          {concept2Status?.connected && (
+            <div className={cn(
+              "mt-3 pt-3 border-t",
+              isGlass ? "border-white/5" : ""
+            )}>
+              <div className="flex items-center justify-between">
+                <div className={cn(
+                  "text-[10px] font-black uppercase tracking-widest",
+                  isGlass ? "text-slate-500" : "text-muted-foreground"
+                )}>
+                  <p>Senaste synk: {formatDate(concept2Status.lastSyncAt)}</p>
+                </div>
+                {concept2Status.resultCount !== undefined && concept2Status.resultCount > 0 && (
+                  <div className={cn(
+                    "text-[10px] font-black uppercase tracking-widest",
+                    isGlass ? "text-cyan-400" : "text-cyan-600"
+                  )}>
+                    {concept2Status.resultCount} pass
+                  </div>
+                )}
+              </div>
+              {concept2Status.resultsByType && Object.keys(concept2Status.resultsByType).length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {Object.entries(concept2Status.resultsByType).map(([type, count]) => (
+                    <span
+                      key={type}
+                      className={cn(
+                        "inline-flex items-center px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider",
+                        isGlass
+                          ? "bg-white/5 text-slate-400 border border-white/10"
+                          : "bg-slate-100 text-slate-600"
+                      )}
+                    >
+                      {type === 'rower' ? 'Rodd' : type === 'skierg' ? 'SkiErg' : type === 'bike' ? 'BikeErg' : type}: {count as number}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="mt-4 flex gap-2">
             {concept2Status?.connected ? (
               <>

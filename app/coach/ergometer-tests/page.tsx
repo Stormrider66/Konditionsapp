@@ -198,7 +198,7 @@ export default function CoachErgometerTestsPage() {
             <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">Valj en atlet</h3>
             <p className="text-muted-foreground text-sm mb-4">
-              Valj en atlet fran listan ovan for att se testhistorik, eller klicka "Nytt test" for att genomfora ett test.
+              Valj en atlet fran listan ovan for att se testhistorik, eller klicka &quot;Nytt test&quot; for att genomfora ett test.
             </p>
           </CardContent>
         </Card>
@@ -231,7 +231,7 @@ export default function CoachErgometerTestsPage() {
                   <div className="text-center py-8 text-muted-foreground">
                     <Activity className="h-10 w-10 mx-auto mb-3 opacity-50" />
                     <p>Inga tester registrerade an.</p>
-                    <p className="text-sm">Klicka "Nytt test" for att lagga till ett test.</p>
+                    <p className="text-sm">Klicka &quot;Nytt test&quot; for att lagga till ett test.</p>
                   </div>
                 ) : (
                   <ErgometerTestList tests={tests} />

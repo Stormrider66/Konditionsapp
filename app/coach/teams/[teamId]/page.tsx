@@ -37,6 +37,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { TeamDashboardClient } from './TeamDashboardClient'
+import { TeamLeaderboard } from '@/components/coach/leaderboards'
 
 interface TeamPageProps {
   params: Promise<{
@@ -470,6 +471,11 @@ export default async function TeamDashboardPage({ params }: TeamPageProps) {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Ergometer Leaderboard */}
+      <div className="mt-8">
+        <TeamLeaderboard teamId={teamId} />
       </div>
     </div>
   )
