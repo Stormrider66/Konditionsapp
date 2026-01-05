@@ -30,6 +30,10 @@ import { RescheduleConfirmDialog } from './RescheduleConfirmDialog'
 import { MobileDaySheet } from './MobileDaySheet'
 import { MobileMoveWorkoutSheet } from './MobileMoveWorkoutSheet'
 import { MobileCalendarFAB } from './MobileCalendarFAB'
+import { DayActionMenu, useDayActionMenu, type DayActionType } from './DayActionMenu'
+import { QuickWorkoutDialog } from './QuickWorkoutDialog'
+import { FullWorkoutDialog } from './FullWorkoutDialog'
+import { ScheduleTestDialog } from './ScheduleTestDialog'
 import { useSwipeNavigation, useIsMobile } from './hooks/useSwipeNavigation'
 import { UnifiedCalendarItem } from './types'
 import type { Conflict, ConflictResolution } from '@/lib/calendar/conflict-detection'
@@ -87,6 +91,21 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
   const [showConflictDialog, setShowConflictDialog] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
+  // Day action menu (for coach creating workouts/events on empty days)
+  const dayActionMenu = useDayActionMenu()
+
+  // Quick workout dialog state
+  const [isQuickWorkoutOpen, setIsQuickWorkoutOpen] = useState(false)
+  const [quickWorkoutDate, setQuickWorkoutDate] = useState<Date>(new Date())
+
+  // Full workout dialog state
+  const [isFullWorkoutOpen, setIsFullWorkoutOpen] = useState(false)
+  const [fullWorkoutDate, setFullWorkoutDate] = useState<Date>(new Date())
+
+  // Schedule test dialog state
+  const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false)
+  const [scheduleTestDate, setScheduleTestDate] = useState<Date>(new Date())
+
   // Swipe navigation for mobile
   const { ref: swipeRef, swipeOffset, isSwiping } = useSwipeNavigation({
     onSwipeLeft: () => setCurrentMonth((prev) => addMonths(prev, 1)),
@@ -138,19 +157,56 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
     setSelectedDate(new Date())
   }, [])
 
-  const handleDayClick = useCallback((date: Date) => {
+  const handleDayClick = useCallback((date: Date, event?: React.MouseEvent) => {
     setSelectedDate(date)
     setSelectedItem(null)
+
+    // Check if this day has any items
+    const dayItems = items.filter(item => isSameDay(new Date(item.date), date))
+    const isEmpty = dayItems.length === 0
+
+    // For coach view on empty days, show the action menu
+    if (isCoachView && isEmpty) {
+      dayActionMenu.openMenu(date, event?.currentTarget as HTMLElement)
+      return
+    }
+
     // Open mobile sheet on mobile devices
     if (isMobile) {
       setIsMobileDaySheetOpen(true)
     }
-  }, [isMobile])
+  }, [isMobile, isCoachView, items, dayActionMenu])
 
   const handleItemClick = useCallback((item: UnifiedCalendarItem) => {
     setSelectedItem(item)
     setSelectedDate(new Date(item.date))
   }, [])
+
+  // Handle day action menu selections (coach creating workout/event/test)
+  const handleDayAction = useCallback((actionType: DayActionType, date: Date) => {
+    switch (actionType) {
+      case 'quick-workout':
+        setQuickWorkoutDate(date)
+        setIsQuickWorkoutOpen(true)
+        break
+      case 'full-workout':
+        setFullWorkoutDate(date)
+        setIsFullWorkoutOpen(true)
+        break
+      case 'calendar-event':
+        // Open existing event dialog
+        handleAddEvent(date)
+        break
+      case 'field-test':
+        setScheduleTestDate(date)
+        setIsScheduleTestOpen(true)
+        break
+      case 'note':
+        // Open event dialog for a quick note (user can select type)
+        handleAddEvent(date)
+        break
+    }
+  }, [handleAddEvent])
 
   const handleAddEvent = useCallback((date?: Date) => {
     setEditingEvent(null)
@@ -614,6 +670,53 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             isLoading={isRescheduling}
           />
         )}
+
+        {/* Coach Action Menu and Dialogs */}
+        {isCoachView && dayActionMenu.date && (
+          <DayActionMenu
+            date={dayActionMenu.date}
+            clientId={clientId}
+            isOpen={dayActionMenu.isOpen}
+            onClose={dayActionMenu.closeMenu}
+            onAction={handleDayAction}
+            anchorEl={dayActionMenu.anchorEl}
+          />
+        )}
+
+        {isCoachView && (
+          <QuickWorkoutDialog
+            open={isQuickWorkoutOpen}
+            onOpenChange={setIsQuickWorkoutOpen}
+            clientId={clientId}
+            date={quickWorkoutDate}
+            onCreated={() => {
+              mutate()
+            }}
+          />
+        )}
+
+        {isCoachView && (
+          <FullWorkoutDialog
+            open={isFullWorkoutOpen}
+            onOpenChange={setIsFullWorkoutOpen}
+            clientId={clientId}
+            clientName={clientName}
+            date={fullWorkoutDate}
+            onOpenEventDialog={() => handleAddEvent(fullWorkoutDate)}
+          />
+        )}
+
+        {isCoachView && (
+          <ScheduleTestDialog
+            open={isScheduleTestOpen}
+            onOpenChange={setIsScheduleTestOpen}
+            clientId={clientId}
+            date={scheduleTestDate}
+            onScheduled={() => {
+              mutate()
+            }}
+          />
+        )}
       </div>
     )
   }
@@ -800,6 +903,56 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         event={editingEvent}
         onSaved={handleEventSaved}
       />
+
+      {/* Day Action Menu (for coach creating workout/event on empty days) */}
+      {isCoachView && dayActionMenu.date && (
+        <DayActionMenu
+          date={dayActionMenu.date}
+          clientId={clientId}
+          isOpen={dayActionMenu.isOpen}
+          onClose={dayActionMenu.closeMenu}
+          onAction={handleDayAction}
+          anchorEl={dayActionMenu.anchorEl}
+        />
+      )}
+
+      {/* Quick Workout Dialog */}
+      {isCoachView && (
+        <QuickWorkoutDialog
+          open={isQuickWorkoutOpen}
+          onOpenChange={setIsQuickWorkoutOpen}
+          clientId={clientId}
+          date={quickWorkoutDate}
+          onCreated={() => {
+            mutate() // Refresh calendar
+          }}
+        />
+      )}
+
+      {/* Full Workout Dialog (Studio Selection) */}
+      {isCoachView && (
+        <FullWorkoutDialog
+          open={isFullWorkoutOpen}
+          onOpenChange={setIsFullWorkoutOpen}
+          clientId={clientId}
+          clientName={clientName}
+          date={fullWorkoutDate}
+          onOpenEventDialog={() => handleAddEvent(fullWorkoutDate)}
+        />
+      )}
+
+      {/* Schedule Test Dialog */}
+      {isCoachView && (
+        <ScheduleTestDialog
+          open={isScheduleTestOpen}
+          onOpenChange={setIsScheduleTestOpen}
+          clientId={clientId}
+          date={scheduleTestDate}
+          onScheduled={() => {
+            mutate() // Refresh calendar
+          }}
+        />
+      )}
 
       {/* Conflict Dialog */}
       {rescheduleState && (

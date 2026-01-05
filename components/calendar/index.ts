@@ -16,4 +16,12 @@ export { IllnessProtocolPreview } from './IllnessProtocolPreview'
 export { AltitudeCampPreview } from './AltitudeCampPreview'
 export { TrainingCampPreview } from './TrainingCampPreview'
 export { PostEventMonitor, PostEventMonitorBadge } from './PostEventMonitor'
+
+// Coach calendar action components
+export { DayActionMenu, useDayActionMenu, type DayActionType } from './DayActionMenu'
+export { QuickWorkoutDialog } from './QuickWorkoutDialog'
+export { FullWorkoutDialog } from './FullWorkoutDialog'
+export { ScheduleTestDialog } from './ScheduleTestDialog'
+export { ProgramSelector } from './ProgramSelector'
+
 export * from './types'

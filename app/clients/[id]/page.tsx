@@ -1,7 +1,7 @@
 // app/clients/[id]/page.tsx
 'use client'
 
-import { useEffect, useState, useMemo, Fragment, useCallback } from 'react'
+import { useEffect, useState, useMemo, Fragment, useCallback, Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -16,7 +16,9 @@ import { VBTProgressionWidget, VBTExerciseProgression } from '@/components/athle
 import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidget'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar } from 'lucide-react'
+import { ClientDetailTabs } from '@/components/client/ClientDetailTabs'
+import { UnifiedCalendar } from '@/components/calendar'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2 } from 'lucide-react'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
   Select,
@@ -370,244 +372,253 @@ export default function ClientDetailPage() {
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <MobileNav user={user} />
-
-      <main className="max-w-7xl mx-auto px-4 py-6 lg:py-12">
-        <div className="mb-6">
-          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">{client.name}</h2>
-          <p className="text-gray-600 mt-1 text-sm lg:text-base">Klientdetaljer och testhistorik</p>
-        </div>
-        {/* Klientinformation */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Personuppgifter</h2>
-            <div className="flex items-center gap-2">
-              <Link href={`/clients/${id}/profile`}>
-                <Button variant="default" size="sm">
-                  <UserCircle className="w-4 h-4 mr-2" />
-                  Fullständig profil
-                </Button>
-              </Link>
-              <AIContextButton
-                athleteId={id}
-                athleteName={client.name}
-              />
-              <Link href={`/clients/${id}/edit`}>
-                <Button variant="outline" size="sm">
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Redigera
-                </Button>
-              </Link>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div>
-              <p className="text-sm text-gray-500">Ålder</p>
-              <p className="text-lg font-medium">{calculateAge(client.birthDate)} år</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Kön</p>
-              <p className="text-lg font-medium">
-                {client.gender === 'MALE' ? 'Man' : 'Kvinna'}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Födelsedatum</p>
-              <p className="text-lg font-medium">
-                {format(new Date(client.birthDate), 'PPP', { locale: sv })}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Längd</p>
-              <p className="text-lg font-medium">{client.height} cm</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Vikt</p>
-              <p className="text-lg font-medium">{client.weight} kg</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">BMI</p>
-              <p className="text-lg font-medium">
-                {calculateBMI(client.weight, client.height)}
-              </p>
-            </div>
-            {client.email && (
-              <div>
-                <p className="text-sm text-gray-500">E-post</p>
-                <p className="text-lg font-medium">{client.email}</p>
-              </div>
-            )}
-            {client.phone && (
-              <div>
-                <p className="text-sm text-gray-500">Telefon</p>
-                <p className="text-lg font-medium">{client.phone}</p>
-              </div>
-            )}
-            {(client as any).team && (
-              <div>
-                <p className="text-sm text-gray-500">Lag/Klubb</p>
-                <p className="text-lg font-medium">{(client as any).team.name}</p>
-              </div>
-            )}
-          </div>
-          {client.notes && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-500">Anteckningar</p>
-              <p className="mt-1 text-gray-700">{client.notes}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Sport-Specific Dashboard */}
-        {!sportProfileLoading && sportProfile && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Sportspecifik Data</h2>
-            <SportSpecificAthleteView
-              clientId={id}
-              clientName={client.name}
-              sportProfile={sportProfile}
+  // Overview Tab Content
+  const overviewContent = (
+    <>
+      {/* Klientinformation */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Personuppgifter</h2>
+          <div className="flex items-center gap-2">
+            <Link href={`/clients/${id}/profile`}>
+              <Button variant="default" size="sm">
+                <UserCircle className="w-4 h-4 mr-2" />
+                Fullständig profil
+              </Button>
+            </Link>
+            <AIContextButton
+              athleteId={id}
+              athleteName={client.name}
             />
-          </div>
-        )}
-
-        {/* Elite Pace Zones Dashboard */}
-        {!sportProfileLoading && sportProfile?.primarySport === 'RUNNING' && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <PaceValidationDashboard
-              clientId={id}
-              clientName={client.name}
-            />
-          </div>
-        )}
-
-        {/* Athlete Workout Logs Section - Only show if athlete account exists */}
-        {(client as any).athleteAccount && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h2 className="text-xl font-semibold">Träningsloggar</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Följ upp atlets träning och ge feedback
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Link href={`/coach/athletes/${id}/calendar`}>
-                  <Button variant="outline" size="sm">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Kalender
-                  </Button>
-                </Link>
-                <Link href={`/coach/athletes/${id}/logs`}>
-                  <Button size="sm">Visa alla loggar →</Button>
-                </Link>
-              </div>
-            </div>
-            <div className="text-center py-6 text-gray-500">
-              <p className="mb-2">Se alla träningsloggar för denna atlet</p>
-              <div className="flex justify-center gap-4">
-                <Link
-                  href={`/coach/athletes/${id}/logs`}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Öppna loggöversikt
-                </Link>
-                <Link
-                  href={`/coach/athletes/${id}/calendar`}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
-                >
-                  Öppna kalender
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Training Programs Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Träningsprogram</h2>
-            <Link href="/programs/new">
-              <Button size="sm">+ Nytt program</Button>
+            <Link href={`/clients/${id}/edit`}>
+              <Button variant="outline" size="sm">
+                <Edit2 className="w-4 h-4 mr-2" />
+                Redigera
+              </Button>
             </Link>
           </div>
-
-          {programsLoading ? (
-            <div className="text-gray-500">Laddar program...</div>
-          ) : programs.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p className="mb-2">Inga träningsprogram skapade ännu</p>
-              <Link
-                href="/programs/new"
-                className="text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Skapa första programmet
-              </Link>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div>
+            <p className="text-sm text-gray-500">Ålder</p>
+            <p className="text-lg font-medium">{calculateAge(client.birthDate)} år</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Kön</p>
+            <p className="text-lg font-medium">
+              {client.gender === 'MALE' ? 'Man' : 'Kvinna'}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Födelsedatum</p>
+            <p className="text-lg font-medium">
+              {format(new Date(client.birthDate), 'PPP', { locale: sv })}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Längd</p>
+            <p className="text-lg font-medium">{client.height} cm</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Vikt</p>
+            <p className="text-lg font-medium">{client.weight} kg</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">BMI</p>
+            <p className="text-lg font-medium">
+              {calculateBMI(client.weight, client.height)}
+            </p>
+          </div>
+          {client.email && (
+            <div>
+              <p className="text-sm text-gray-500">E-post</p>
+              <p className="text-lg font-medium">{client.email}</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {programs.map((program: any) => (
-                <Link key={program.id} href={`/coach/programs/${program.id}`}>
-                  <div className="border rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">{program.name}</h3>
-                        <p className="text-sm text-gray-600 mb-2">
-                          {program.goalType === 'marathon' && 'Marathon'}
-                          {program.goalType === 'half_marathon' && 'Halvmarathon'}
-                          {program.goalType === '10k' && '10K'}
-                          {program.goalType === '5k' && '5K'}
-                          {program.goalType === 'fitness' && 'Fitness/Kondition'}
-                          {program.goalType === 'cycling' && 'Cykling'}
-                          {program.goalType === 'skiing' && 'Skidåkning'}
-                          {program.goalType === 'triathlon' && 'Triathlon'}
-                          {program.goalType === 'custom' && 'Anpassad'}
-                        </p>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span>
-                            {format(new Date(program.startDate), 'PPP', { locale: sv })} -{' '}
-                            {format(new Date(program.endDate), 'PPP', { locale: sv })}
-                          </span>
-                          {program._count?.weeks && (
-                            <span className="text-gray-400">
-                              {program._count.weeks} veckor
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                          Visa →
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+          )}
+          {client.phone && (
+            <div>
+              <p className="text-sm text-gray-500">Telefon</p>
+              <p className="text-lg font-medium">{client.phone}</p>
+            </div>
+          )}
+          {(client as any).team && (
+            <div>
+              <p className="text-sm text-gray-500">Lag/Klubb</p>
+              <p className="text-lg font-medium">{(client as any).team.name}</p>
             </div>
           )}
         </div>
-
-        {/* Video Analysis Section */}
-        <ClientVideoAnalyses
-          clientId={id}
-          clientName={client.name}
-          onLoadToAI={handleLoadVideoAnalysisToAI}
-        />
-
-        {/* VBT & Concept2 Integration Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <VBTProgressionWidget clientId={id} />
-          <Concept2SummaryWidget clientId={id} />
-        </div>
-
-        {/* Progression Chart */}
-        {client.tests && client.tests.length >= 2 && (
-          <ProgressionChart tests={client.tests} />
+        {client.notes && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <p className="text-sm text-gray-500">Anteckningar</p>
+            <p className="mt-1 text-gray-700">{client.notes}</p>
+          </div>
         )}
+      </div>
 
-        {/* Testhistorik */}
+      {/* Sport-Specific Dashboard */}
+      {!sportProfileLoading && sportProfile && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Sportspecifik Data</h2>
+          <SportSpecificAthleteView
+            clientId={id}
+            clientName={client.name}
+            sportProfile={sportProfile}
+          />
+        </div>
+      )}
+
+      {/* Elite Pace Zones Dashboard */}
+      {!sportProfileLoading && sportProfile?.primarySport === 'RUNNING' && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <PaceValidationDashboard
+            clientId={id}
+            clientName={client.name}
+          />
+        </div>
+      )}
+
+      {/* Video Analysis Section */}
+      <ClientVideoAnalyses
+        clientId={id}
+        clientName={client.name}
+        onLoadToAI={handleLoadVideoAnalysisToAI}
+      />
+
+      {/* VBT & Concept2 Integration Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <VBTProgressionWidget clientId={id} />
+        <Concept2SummaryWidget clientId={id} />
+      </div>
+
+      {/* Progression Chart */}
+      {client.tests && client.tests.length >= 2 && (
+        <ProgressionChart tests={client.tests} />
+      )}
+    </>
+  )
+
+  // Calendar Tab Content
+  const calendarContent = (
+    <div className="bg-white rounded-lg shadow-md p-4 lg:p-6">
+      <UnifiedCalendar
+        clientId={id}
+        clientName={client.name}
+        isCoachView={true}
+      />
+    </div>
+  )
+
+  // Logs Tab Content
+  const logsContent = (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-xl font-semibold">Träningsloggar</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Följ upp atletens träning och ge feedback
+          </p>
+        </div>
+        <Link href={`/coach/athletes/${id}/logs`}>
+          <Button size="sm">
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Öppna fullständig vy
+          </Button>
+        </Link>
+      </div>
+      {(client as any).athleteAccount ? (
+        <div className="text-center py-12 text-gray-500">
+          <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p className="mb-4">Visa alla träningsloggar och ge feedback till atleten</p>
+          <Link href={`/coach/athletes/${id}/logs`}>
+            <Button variant="outline">
+              Öppna loggöversikt
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="text-center py-12 text-gray-500">
+          <p className="mb-2">Denna klient har inget atletkonto</p>
+          <p className="text-sm">Atleten måste skapa ett konto för att logga träningspass</p>
+        </div>
+      )}
+    </div>
+  )
+
+  // Programs Tab Content
+  const programsContent = (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Träningsprogram</h2>
+        <Link href="/programs/new">
+          <Button size="sm">+ Nytt program</Button>
+        </Link>
+      </div>
+
+      {programsLoading ? (
+        <div className="flex items-center justify-center py-8 text-gray-500">
+          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+          Laddar program...
+        </div>
+      ) : programs.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          <p className="mb-2">Inga träningsprogram skapade ännu</p>
+          <Link
+            href="/programs/new"
+            className="text-blue-600 hover:text-blue-800 font-medium"
+          >
+            Skapa första programmet
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {programs.map((program: any) => (
+            <Link key={program.id} href={`/coach/programs/${program.id}`}>
+              <div className="border rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">{program.name}</h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {program.goalType === 'marathon' && 'Marathon'}
+                      {program.goalType === 'half_marathon' && 'Halvmarathon'}
+                      {program.goalType === '10k' && '10K'}
+                      {program.goalType === '5k' && '5K'}
+                      {program.goalType === 'fitness' && 'Fitness/Kondition'}
+                      {program.goalType === 'cycling' && 'Cykling'}
+                      {program.goalType === 'skiing' && 'Skidåkning'}
+                      {program.goalType === 'triathlon' && 'Triathlon'}
+                      {program.goalType === 'custom' && 'Anpassad'}
+                    </p>
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <span>
+                        {format(new Date(program.startDate), 'PPP', { locale: sv })} -{' '}
+                        {format(new Date(program.endDate), 'PPP', { locale: sv })}
+                      </span>
+                      {program._count?.weeks && (
+                        <span className="text-gray-400">
+                          {program._count.weeks} veckor
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                      Visa →
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  // Tests Tab Content (the large test history section)
+  const testsContent = (
+    <>
+      {/* Testhistorik */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -951,6 +962,31 @@ export default function ClientDetailPage() {
             </div>
           )}
         </div>
+    </>
+  )
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <MobileNav user={user} />
+
+      <main className="max-w-7xl mx-auto px-4 py-6 lg:py-12">
+        <div className="mb-6">
+          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">{client.name}</h2>
+          <p className="text-gray-600 mt-1 text-sm lg:text-base">Klientdetaljer och testhistorik</p>
+        </div>
+
+        <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>}>
+          <ClientDetailTabs
+            clientId={id}
+            children={{
+              overview: overviewContent,
+              calendar: calendarContent,
+              logs: logsContent,
+              programs: programsContent,
+              tests: testsContent,
+            }}
+          />
+        </Suspense>
       </main>
 
       {/* Delete Confirmation Dialog */}
