@@ -27,26 +27,49 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch available models
+  // Fetch available models and saved preference
   useEffect(() => {
-    fetch('/api/ai/models')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.models) {
-          setModels(data.models)
-          if (data.defaultModelId) {
-            setSelectedModelId(data.defaultModelId)
-            setSavedModelId(data.defaultModelId)
+    async function fetchData() {
+      try {
+        // Fetch models and preference in parallel
+        const [modelsRes, prefRes] = await Promise.all([
+          fetch('/api/ai/models'),
+          fetch('/api/ai/models/preference'),
+        ])
+
+        const modelsData = await modelsRes.json()
+        const prefData = await prefRes.json()
+
+        if (modelsData.success && modelsData.models) {
+          setModels(modelsData.models)
+
+          // Priority: saved preference > coach default > first model
+          if (prefData.success && prefData.modelId) {
+            // Verify the saved model is still available
+            const savedModelAvailable = modelsData.models.find(
+              (m: AIModelConfig) => m.id === prefData.modelId
+            )
+            if (savedModelAvailable) {
+              setSelectedModelId(prefData.modelId)
+              setSavedModelId(prefData.modelId)
+            } else if (modelsData.defaultModelId) {
+              setSelectedModelId(modelsData.defaultModelId)
+              setSavedModelId(modelsData.defaultModelId)
+            }
+          } else if (modelsData.defaultModelId) {
+            setSelectedModelId(modelsData.defaultModelId)
+            setSavedModelId(modelsData.defaultModelId)
           }
         }
-      })
-      .catch(err => {
+      } catch (err) {
         console.error('Failed to fetch models:', err)
         setError('Kunde inte hämta AI-modeller')
-      })
-      .finally(() => {
+      } finally {
         setLoading(false)
-      })
+      }
+    }
+
+    fetchData()
   }, [])
 
   // Save model preference

@@ -24,16 +24,58 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get athlete's client ID
+    // Get athlete's account and coach info
     const athleteAccount = await prisma.athleteAccount.findUnique({
       where: { userId: user.id },
-      select: { clientId: true },
+      select: {
+        clientId: true,
+        client: {
+          select: {
+            userId: true, // Coach's user ID
+          },
+        },
+      },
     })
 
     if (!athleteAccount) {
       return NextResponse.json(
         { error: 'Athlete account not found' },
         { status: 404 }
+      )
+    }
+
+    // Validate model is allowed by coach
+    const coachSettings = await prisma.userApiKey.findUnique({
+      where: { userId: athleteAccount.client.userId },
+      select: {
+        allowedAthleteModelIds: true,
+        anthropicKeyValid: true,
+        googleKeyValid: true,
+        openaiKeyValid: true,
+      },
+    })
+
+    // Check if the provider key is valid
+    const providerKeyValid =
+      (model.provider === 'anthropic' && coachSettings?.anthropicKeyValid) ||
+      (model.provider === 'google' && coachSettings?.googleKeyValid) ||
+      (model.provider === 'openai' && coachSettings?.openaiKeyValid)
+
+    if (!providerKeyValid) {
+      return NextResponse.json(
+        { error: 'Model provider not available' },
+        { status: 403 }
+      )
+    }
+
+    // If coach has restricted models, verify this one is allowed
+    if (
+      coachSettings?.allowedAthleteModelIds?.length &&
+      !coachSettings.allowedAthleteModelIds.includes(modelId)
+    ) {
+      return NextResponse.json(
+        { error: 'Model not allowed by coach' },
+        { status: 403 }
       )
     }
 

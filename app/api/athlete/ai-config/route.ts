@@ -1,21 +1,22 @@
 /**
  * Athlete AI Configuration
  *
- * GET /api/athlete/ai-config - Get coach's AI config for athlete use
+ * GET /api/athlete/ai-config - Get AI config for athlete use
  *
- * Athletes use their coach's API keys and default model.
- * This endpoint returns the configuration without exposing actual keys.
+ * Athletes use their coach's API keys but can select their own preferred model.
+ * Priority: Athlete preference > Coach default > First available provider
  */
 
 import { NextResponse } from 'next/server'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { getModelById, getDefaultModel, AI_MODELS } from '@/types/ai-models'
 
 export async function GET() {
   try {
     const user = await requireAthlete()
 
-    // Get athlete's account and linked client -> coach
+    // Get athlete's account with sport profile and linked client -> coach
     const athleteAccount = await prisma.athleteAccount.findUnique({
       where: { userId: user.id },
       include: {
@@ -23,6 +24,11 @@ export async function GET() {
           select: {
             id: true,
             userId: true, // This is the coach's user ID
+            sportProfile: {
+              select: {
+                preferredAIModelId: true,
+              },
+            },
           },
         },
       },
@@ -36,30 +42,17 @@ export async function GET() {
     }
 
     const coachId = athleteAccount.client.userId
+    const athletePreferredModelId = athleteAccount.client.sportProfile?.preferredAIModelId
 
-    // Fetch coach's API keys and default model in parallel
-    const [apiKeys, defaultModel] = await Promise.all([
-      prisma.userApiKey.findUnique({
-        where: { userId: coachId },
-        select: {
-          anthropicKeyValid: true,
-          googleKeyValid: true,
-          openaiKeyValid: true,
-        },
-      }),
-      prisma.aIModel.findFirst({
-        where: {
-          isDefault: true,
-          isActive: true,
-        },
-        select: {
-          id: true,
-          provider: true,
-          modelId: true,
-          displayName: true,
-        },
-      }),
-    ])
+    // Fetch coach's API keys
+    const apiKeys = await prisma.userApiKey.findUnique({
+      where: { userId: coachId },
+      select: {
+        anthropicKeyValid: true,
+        googleKeyValid: true,
+        openaiKeyValid: true,
+      },
+    })
 
     // Check if coach has any valid AI keys
     const hasAIAccess =
@@ -68,30 +61,43 @@ export async function GET() {
       apiKeys?.openaiKeyValid ||
       false
 
-    // Determine which provider to use based on available keys
-    let provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI' = 'GOOGLE'
-    let model = 'gemini-2.5-pro-preview-06-05'
-    let displayName = 'Gemini 2.5 Pro'
+    // Build keys object for model selection
+    const keys = {
+      anthropicKey: apiKeys?.anthropicKeyValid ? 'valid' : null,
+      googleKey: apiKeys?.googleKeyValid ? 'valid' : null,
+      openaiKey: apiKeys?.openaiKeyValid ? 'valid' : null,
+    }
 
-    if (defaultModel) {
-      // Use coach's default model if available
-      provider = defaultModel.provider as 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
-      model = defaultModel.modelId
-      displayName = defaultModel.displayName
-    } else if (apiKeys) {
-      // Fallback to first available provider
-      if (apiKeys.googleKeyValid) {
-        provider = 'GOOGLE'
-        model = 'gemini-2.5-pro-preview-06-05'
-        displayName = 'Gemini 2.5 Pro'
-      } else if (apiKeys.anthropicKeyValid) {
-        provider = 'ANTHROPIC'
-        model = 'claude-sonnet-4-5-20250929'
-        displayName = 'Claude Sonnet 4.5'
-      } else if (apiKeys.openaiKeyValid) {
-        provider = 'OPENAI'
-        model = 'gpt-4o'
-        displayName = 'GPT-4o'
+    // Determine which model to use
+    let provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI' = 'GOOGLE'
+    let model = 'gemini-3-flash-preview'
+    let displayName = 'Gemini 3 Flash'
+
+    // Priority 1: Athlete's preferred model (if valid and available)
+    if (athletePreferredModelId) {
+      const preferredModel = getModelById(athletePreferredModelId)
+      if (preferredModel) {
+        // Check if the provider key is valid
+        const providerKeyValid =
+          (preferredModel.provider === 'anthropic' && apiKeys?.anthropicKeyValid) ||
+          (preferredModel.provider === 'google' && apiKeys?.googleKeyValid) ||
+          (preferredModel.provider === 'openai' && apiKeys?.openaiKeyValid)
+
+        if (providerKeyValid) {
+          provider = preferredModel.provider.toUpperCase() as 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
+          model = preferredModel.modelId
+          displayName = preferredModel.name
+        }
+      }
+    }
+
+    // Priority 2: Default model from AI_MODELS (if no preference or preference invalid)
+    if (!athletePreferredModelId || model === 'gemini-3-flash-preview') {
+      const defaultModel = getDefaultModel(keys)
+      if (defaultModel) {
+        provider = defaultModel.provider.toUpperCase() as 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
+        model = defaultModel.modelId
+        displayName = defaultModel.name
       }
     }
 
