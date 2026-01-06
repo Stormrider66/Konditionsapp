@@ -53,6 +53,23 @@ export async function GET(request: NextRequest) {
     const twentyEightDaysAgo = new Date(now)
     twentyEightDaysAgo.setDate(twentyEightDaysAgo.getDate() - 28)
 
+    // Fetch manual TrainingLoad entries (from workout logs)
+    const manualTrainingLoads = await prisma.trainingLoad.findMany({
+      where: {
+        clientId,
+        date: { gte: twentyEightDaysAgo },
+      },
+      select: {
+        date: true,
+        dailyLoad: true,
+        loadType: true,
+        workoutType: true,
+        distance: true,
+        duration: true,
+      },
+      orderBy: { date: 'desc' },
+    })
+
     // Fetch Strava activities for last 28 days
     const stravaActivities = await prisma.stravaActivity.findMany({
       where: {
@@ -85,6 +102,22 @@ export async function GET(request: NextRequest) {
     // Aggregate TSS by day
     const dailyTSS: Record<string, number> = {}
     const byType: Record<string, { count: number; tss: number; distance: number }> = {}
+
+    // Process manual TrainingLoad entries first
+    for (const load of manualTrainingLoads) {
+      const dateKey = load.date.toISOString().split('T')[0]
+      const tss = load.dailyLoad || 0
+
+      dailyTSS[dateKey] = (dailyTSS[dateKey] || 0) + tss
+
+      const type = load.workoutType || 'MANUAL'
+      if (!byType[type]) {
+        byType[type] = { count: 0, tss: 0, distance: 0 }
+      }
+      byType[type].count++
+      byType[type].tss += tss
+      byType[type].distance += (load.distance || 0) / 1000
+    }
 
     // Process Strava activities
     for (const activity of stravaActivities) {

@@ -6,7 +6,16 @@
  */
 
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
-import { classifyAthlete } from '../benchmarks/benchmark-classifier';
+
+/**
+ * Calculate tier based on percentile within team
+ */
+function getTierFromPercentile(percentile: number): string {
+  if (percentile >= 95) return 'ELITE';
+  if (percentile >= 75) return 'ADVANCED';
+  if (percentile >= 50) return 'INTERMEDIATE';
+  return 'BEGINNER';
+}
 
 export interface LeaderboardEntry {
   rank: number;
@@ -296,17 +305,12 @@ export function calculateLeaderboard(
       }
     }
 
-    // Get tier classification
-    const classification = classifyAthlete(
-      ergometerType,
-      testProtocol,
-      { power: test.avgPower || test.criticalPower || undefined },
-      test.clientGender as 'MALE' | 'FEMALE' | undefined,
-      test.clientWeight || undefined
-    );
-
     // Determine trend
     const trendInfo = determineTrend(test, filteredTests, sortMetric);
+
+    // Calculate percentile and tier based on team ranking
+    const percentile = calculatePercentile(rank, testArray.length);
+    const tier = getTierFromPercentile(percentile);
 
     return {
       rank,
@@ -318,8 +322,8 @@ export function calculateLeaderboard(
       secondaryFormatted,
       testId: test.id,
       testDate: test.testDate,
-      tier: classification?.tier || 'UNKNOWN',
-      percentile: calculatePercentile(rank, testArray.length),
+      tier,
+      percentile,
       previousRank: undefined, // Would need historical data to calculate
       trend: trendInfo.trend,
       improvement: trendInfo.improvement,

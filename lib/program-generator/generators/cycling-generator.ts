@@ -2,6 +2,7 @@
 // Cycling program generator using FTP-based templates
 
 import { Client, CreateTrainingProgramDTO } from '@/types'
+import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { get8WeekFtpBuilder, get12WeekBaseBuilder, getGranFondoPrep, CyclingTemplateWorkout } from '../templates/cycling'
 import { mapCyclingWorkoutToDTO } from '../workout-mapper'
 
@@ -32,12 +33,8 @@ export async function generateCyclingProgram(
   console.log(`  FTP: ${params.ftp || 'Not provided'}`)
   console.log(`  Weekly Hours: ${params.weeklyHours || 8}`)
 
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() + 1)
-  startDate.setHours(0, 0, 0, 0)
-
-  const endDate = new Date(startDate)
-  endDate.setDate(endDate.getDate() + params.durationWeeks * 7)
+  const startDate = getProgramStartDate()
+  const endDate = getProgramEndDate(startDate, params.durationWeeks)
 
   // Select template based on goal
   let templateWeeks

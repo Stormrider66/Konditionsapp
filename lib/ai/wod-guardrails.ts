@@ -125,6 +125,7 @@ export async function checkWODGuardrails(
         reason: usageLimitCheck.reason,
       },
     },
+    guardrailsApplied,
     adjustedIntensity,
     excludedAreas: injuryCheck.excludedAreas,
     blockedReason,

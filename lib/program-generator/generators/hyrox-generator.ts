@@ -2,6 +2,7 @@
 // HYROX program generator (Functional Fitness Racing)
 
 import { Client, CreateTrainingProgramDTO, CreateWorkoutSegmentDTO, PeriodPhase, CreateWorkoutDTO } from '@/types'
+import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { HYROX_BEGINNER_12_WEEK, HYROX_INTERMEDIATE_16_WEEK, HYROXTemplateWeek, HYROXTemplateWorkout } from '../templates/hyrox'
 import { mapHyroxWeekToWorkouts } from '../workout-mapper'
 import { fetchElitePacesServer, validateEliteZones, type EliteZonePaces } from '../elite-pace-integration'
@@ -99,12 +100,8 @@ export async function generateHyroxProgram(
   console.log(`  Division: ${params.hyroxDivision || 'open'}`)
   console.log(`  Gender: ${params.hyroxGender || 'not specified'}`)
 
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() + 1)
-  startDate.setHours(0, 0, 0, 0)
-
-  const endDate = new Date(startDate)
-  endDate.setDate(endDate.getDate() + params.durationWeeks * 7)
+  const startDate = getProgramStartDate()
+  const endDate = getProgramEndDate(startDate, params.durationWeeks)
 
   // ========================================
   // HYROX Station Times Analysis
@@ -378,7 +375,14 @@ export async function generateHyroxProgram(
   // Volume scaling from athlete profile
   const volumeScaleFactor = athleteProfile?.volumeScaleFactor ?? 1.0
   const currentAthleteType = athleteProfile?.athleteType ?? 'BALANCED'
-  const totalWeeks = template.weeks.length
+
+  // Use params.durationWeeks instead of template length to respect user's race date
+  // Slice template weeks if needed, cycling through if durationWeeks > template length
+  const targetWeeks = params.durationWeeks
+  const templateLength = template.weeks.length
+  const totalWeeks = targetWeeks
+
+  console.log(`[HYROX Generator] Duration: ${targetWeeks} weeks (template has ${templateLength} weeks)`)
 
   // Log volume scaling info
   if (athleteProfile) {
@@ -389,10 +393,18 @@ export async function generateHyroxProgram(
     console.log(`  Recommended Weekly km: ${athleteProfile.recommendedWeeklyKm}`)
   }
 
-  const weeks = template.weeks.map((week, index) => {
+  // Create weeks array based on target duration, not template length
+  // If targetWeeks < templateLength: use last N weeks of template (peak/taper)
+  // If targetWeeks >= templateLength: use full template
+  const weeksToUse = targetWeeks <= templateLength
+    ? template.weeks.slice(templateLength - targetWeeks) // Take final weeks for shorter programs
+    : template.weeks
+
+  const weeks = weeksToUse.map((week, index) => {
     const workouts = mapHyroxWeekToWorkouts(week)
     const weekPhase = mapPhase(week.phase)
-    const weekNumber = week.weekNumber
+    // Use index+1 for week number (not template's week number) so it starts from 1
+    const weekNumber = index + 1
 
     // Create days from template days
     const days = week.days.map((day) => {
@@ -439,10 +451,13 @@ export async function generateHyroxProgram(
             // Add distance in km for weekly volume tracking
             distance: scaledDistance ? scaledDistance / 1000 : undefined,
             instructions: w.structure,
-            segments: createRunningSegments(
-              { ...w, runningDistance: scaledDistance, duration: scaledDuration },
-              elitePaces
-            ),
+            segments: w.type === 'station_practice' || w.type === 'hyrox_simulation' || w.type === 'mixed'
+              ? createStationSegments(w, params.hyroxDivision, params.hyroxGender, params.experienceLevel)
+              : createRunningSegments(
+                  { ...w, runningDistance: scaledDistance, duration: scaledDuration },
+                  elitePaces,
+                  params.hyroxDivision
+                ),
           }
         })
 
@@ -638,12 +653,28 @@ function getHyroxFocus(goal: string, weekNum: number, totalWeeks: number): strin
 }
 
 /**
+ * Parse pace string (MM:SS or M:SS) to seconds
+ * Returns the pace in seconds, or the original string if not parseable
+ */
+function parsePaceToSeconds(pace: string): number {
+  if (!pace) return 0
+  const parts = pace.split(':').map(Number)
+  if (parts.some(isNaN) || parts.length !== 2) return 0
+  return parts[0] * 60 + parts[1]
+}
+
+/**
  * Create running segments with pace data based on workout type and intensity
  * Returns empty array for non-running workouts or if no pace data is available
+ *
+ * All running workouts >= 20 min or >= 3km get warmup/cooldown structure.
+ * Pace is stored as numeric seconds for Focus Mode compatibility.
+ * Interval workouts get individual rest segments between reps.
  */
 function createRunningSegments(
   workout: HYROXTemplateWorkout,
-  elitePaces: EliteZonePaces | null
+  elitePaces: EliteZonePaces | null,
+  division?: 'open' | 'pro' | 'doubles'
 ): CreateWorkoutSegmentDTO[] {
   // Skip if not a running workout
   const runningTypes = ['running', 'interval', 'endurance']
@@ -657,10 +688,16 @@ function createRunningSegments(
   }
 
   const segments: CreateWorkoutSegmentDTO[] = []
+  let segmentOrder = 1
 
-  // Determine main workout pace based on intensity
-  const mainPace = getWorkoutPace(workout.intensity, elitePaces)
+  // Determine main workout pace based on intensity (as seconds)
+  const mainPaceStr = getWorkoutPace(workout.intensity, elitePaces)
+  const mainPaceSeconds = parsePaceToSeconds(mainPaceStr)
   const mainZone = getWorkoutZone(workout.intensity)
+
+  // Warmup/cooldown pace (easy pace, slower end)
+  const warmupPaceStr = elitePaces.daniels.easy.minPace
+  const warmupPaceSeconds = parsePaceToSeconds(warmupPaceStr)
 
   // Check if this is an interval workout (has structure with intervals)
   const isIntervalWorkout = workout.structure && (
@@ -672,6 +709,10 @@ function createRunningSegments(
     workout.structure.includes('400m')
   )
 
+  // Check if workout needs warmup/cooldown (>= 20 min or >= 3km)
+  const distanceKm = workout.runningDistance ? workout.runningDistance / 1000 : undefined
+  const needsWarmupCooldown = workout.duration >= 20 || (distanceKm && distanceKm >= 3) || isIntervalWorkout
+
   if (isIntervalWorkout && workout.structure) {
     // Parse interval structure (e.g., "6x1km", "8x400m", "5x1km med 2 min vila")
     const intervalMatch = workout.structure.match(/(\d+)\s*[x×]\s*(\d+)\s*(km|m)/i)
@@ -680,85 +721,203 @@ function createRunningSegments(
       const reps = parseInt(intervalMatch[1])
       const distance = parseInt(intervalMatch[2])
       const unit = intervalMatch[3].toLowerCase()
-      const distanceKm = unit === 'km' ? distance : distance / 1000
+      const intervalDistanceKm = unit === 'km' ? distance : distance / 1000
 
-      // Add warmup segment (10-15 min easy) - use slow end of easy pace
-      const warmupPace = elitePaces.daniels.easy.minPace
+      // Parse rest time from structure (e.g., "med 2 min vila", "90 sek vila")
+      const restMatch = workout.structure.match(/(\d+)\s*(min|sek)/i)
+      let restSeconds = 120 // Default 2 min rest
+      if (restMatch) {
+        const restValue = parseInt(restMatch[1])
+        const restUnit = restMatch[2].toLowerCase()
+        restSeconds = restUnit === 'min' ? restValue * 60 : restValue
+      }
+
+      // Calculate warmup/cooldown distances based on easy pace
+      const warmupDurationMin = 10
+      const cooldownDurationMin = 5
+      const warmupDistanceKm = warmupPaceSeconds > 0
+        ? Math.round((warmupDurationMin / (warmupPaceSeconds / 60)) * 10) / 10
+        : 1.5
+      const cooldownDistanceKm = warmupPaceSeconds > 0
+        ? Math.round((cooldownDurationMin / (warmupPaceSeconds / 60)) * 10) / 10
+        : 0.8
+
+      // Add warmup segment (10 min easy) with distance
       segments.push({
-        order: 1,
+        order: segmentOrder++,
         type: 'warmup',
-        duration: 10,
-        pace: warmupPace,
-        zone: 2, // Zone 2 for warmup (aerobic, not recovery)
-        description: `Uppvärmning @ ${warmupPace}`,
+        duration: warmupDurationMin,
+        distance: warmupDistanceKm,
+        pace: warmupPaceSeconds.toString(),
+        zone: 2,
+        description: `Uppvärmning ${warmupDistanceKm} km @ ${warmupPaceStr}`,
       })
 
-      // For short intervals (400m-1km), use INTERVAL pace regardless of template intensity
-      // This is because HYROX intervals are meant to be run at race-pace effort
-      const isShortInterval = distanceKm <= 1
-      const intervalPace = isShortInterval
-        ? elitePaces.core.interval // Use faster interval pace for 400m-1km
-        : mainPace // Use template intensity for longer intervals
-
-      // Zone 4 for short intervals (VO2max work), zone 3 for longer intervals
+      // For short intervals (400m-1km), use INTERVAL pace
+      const isShortInterval = intervalDistanceKm <= 1
+      const intervalPaceStr = isShortInterval
+        ? elitePaces.core.interval
+        : mainPaceStr
+      const intervalPaceSeconds = parsePaceToSeconds(intervalPaceStr)
       const intervalZone = isShortInterval ? 4 : mainZone
 
+      // Create individual segments for each rep with rest between
+      for (let rep = 1; rep <= reps; rep++) {
+        // Interval segment
+        const partnerNote = division === 'doubles'
+          ? ` (Partner ${rep % 2 === 1 ? 'A' : 'B'})`
+          : ''
+
+        segments.push({
+          order: segmentOrder++,
+          type: 'interval',
+          distance: intervalDistanceKm,
+          pace: intervalPaceSeconds.toString(),
+          zone: intervalZone,
+          description: `Intervall ${rep}/${reps}: ${distance}${unit} @ ${intervalPaceStr}${partnerNote}`,
+        })
+
+        // Rest segment between reps (not after last rep)
+        if (rep < reps) {
+          segments.push({
+            order: segmentOrder++,
+            type: 'rest',
+            duration: Math.round(restSeconds / 60), // Duration in minutes
+            zone: 1,
+            description: `Vila ${restSeconds >= 60 ? Math.round(restSeconds / 60) + ' min' : restSeconds + ' sek'}`,
+          })
+        }
+      }
+
+      // Add cooldown segment (5 min easy) with distance
       segments.push({
-        order: 2,
-        type: 'interval',
-        distance: distanceKm,
-        pace: intervalPace,
-        zone: intervalZone,
-        reps: reps,
-        description: `${reps} × ${distance}${unit} @ ${intervalPace}`,
+        order: segmentOrder++,
+        type: 'cooldown',
+        duration: cooldownDurationMin,
+        distance: cooldownDistanceKm,
+        pace: warmupPaceSeconds.toString(),
+        zone: 2,
+        description: `Nedvarvning ${cooldownDistanceKm} km @ ${warmupPaceStr}`,
+      })
+    } else {
+      // Generic interval structure - still add warmup/cooldown
+      // Calculate distances
+      const warmupDist = warmupPaceSeconds > 0
+        ? Math.round((10 / (warmupPaceSeconds / 60)) * 10) / 10
+        : 1.5
+      const cooldownDist = warmupPaceSeconds > 0
+        ? Math.round((5 / (warmupPaceSeconds / 60)) * 10) / 10
+        : 0.8
+
+      segments.push({
+        order: segmentOrder++,
+        type: 'warmup',
+        duration: 10,
+        distance: warmupDist,
+        pace: warmupPaceSeconds.toString(),
+        zone: 2,
+        description: `Uppvärmning ${warmupDist} km @ ${warmupPaceStr}`,
       })
 
-      // Add cooldown segment (5-10 min easy) - use slow end of easy pace
       segments.push({
-        order: 3,
+        order: segmentOrder++,
+        type: 'work',
+        duration: workout.duration - 15, // Subtract warmup/cooldown time
+        pace: mainPaceSeconds.toString(),
+        zone: mainZone,
+        description: workout.name,
+      })
+
+      segments.push({
+        order: segmentOrder++,
         type: 'cooldown',
         duration: 5,
-        pace: warmupPace,
-        zone: 2, // Zone 2 for cooldown
-        description: `Nedvarvning @ ${warmupPace}`,
-      })
-    } else {
-      // Generic interval structure - create single work segment
-      segments.push({
-        order: 1,
-        type: 'work',
-        duration: workout.duration,
-        pace: mainPace,
-        zone: mainZone,
-        description: `${workout.name} @ ${mainPace}`,
+        distance: cooldownDist,
+        pace: warmupPaceSeconds.toString(),
+        zone: 2,
+        description: `Nedvarvning ${cooldownDist} km @ ${warmupPaceStr}`,
       })
     }
-  } else {
-    // Continuous run (easy, tempo, long run)
-    const distanceKm = workout.runningDistance ? workout.runningDistance / 1000 : undefined
+  } else if (needsWarmupCooldown) {
+    // Continuous run with warmup/cooldown (>= 20 min or >= 3km)
+    const warmupDuration = 10 // 10 min warmup
+    const cooldownDuration = 5 // 5 min cooldown
 
-    // For long runs (>8km), add easy pace range
-    if (distanceKm && distanceKm > 8 && workout.intensity === 'easy') {
-      const easyPaceRange = `${elitePaces.daniels.easy.minPace} - ${elitePaces.daniels.easy.maxPace}`
+    // Calculate warmup/cooldown distances based on easy pace
+    // warmupPaceSeconds is sec/km, so distance = duration(min) / (pace(sec/km) / 60)
+    const warmupDistanceKm = warmupPaceSeconds > 0
+      ? Math.round((warmupDuration / (warmupPaceSeconds / 60)) * 10) / 10
+      : 1.5
+    const cooldownDistanceKm = warmupPaceSeconds > 0
+      ? Math.round((cooldownDuration / (warmupPaceSeconds / 60)) * 10) / 10
+      : 0.8
+
+    // Add warmup with calculated distance
+    segments.push({
+      order: segmentOrder++,
+      type: 'warmup',
+      duration: warmupDuration,
+      distance: warmupDistanceKm,
+      pace: warmupPaceSeconds.toString(),
+      zone: 2,
+      description: `Uppvärmning ${warmupDistanceKm} km @ ${warmupPaceStr}`,
+    })
+
+    // Main work segment - use the FULL template distance (don't subtract warmup/cooldown)
+    // The template distance IS the main workout, warmup/cooldown are ADDITIONAL
+    const mainDuration = distanceKm
+      ? undefined // Use distance instead of duration
+      : Math.max(workout.duration - warmupDuration - cooldownDuration, 10)
+
+    // Use template distance directly for main work
+    const mainDistance = distanceKm
+
+    // For easy/long runs, provide pace range
+    if (workout.intensity === 'easy' && distanceKm && distanceKm > 8) {
+      const easyMinSeconds = parsePaceToSeconds(elitePaces.daniels.easy.minPace)
+
       segments.push({
-        order: 1,
+        order: segmentOrder++,
         type: 'work',
-        distance: distanceKm,
-        pace: easyPaceRange,
+        distance: mainDistance,
+        duration: mainDuration,
+        pace: easyMinSeconds.toString(), // Use slower pace as target
         zone: 1,
-        description: `Långpass ${distanceKm} km`, // Don't include pace in description, it's in the pace field
+        description: `Huvudpass ${mainDistance ? mainDistance.toFixed(1) + ' km' : mainDuration + ' min'} @ ${elitePaces.daniels.easy.minPace}-${elitePaces.daniels.easy.maxPace}`,
       })
     } else {
       segments.push({
-        order: 1,
+        order: segmentOrder++,
         type: 'work',
-        duration: workout.duration,
-        distance: distanceKm,
-        pace: mainPace,
+        distance: mainDistance,
+        duration: mainDuration,
+        pace: mainPaceSeconds.toString(),
         zone: mainZone,
-        description: workout.name, // Just the name, pace is in the pace field
+        description: `Huvudpass ${mainDistance ? mainDistance.toFixed(1) + ' km' : mainDuration + ' min'} @ ${mainPaceStr}`,
       })
     }
+
+    // Add cooldown with calculated distance
+    segments.push({
+      order: segmentOrder++,
+      type: 'cooldown',
+      duration: cooldownDuration,
+      distance: cooldownDistanceKm,
+      pace: warmupPaceSeconds.toString(),
+      zone: 2,
+      description: `Nedvarvning ${cooldownDistanceKm} km @ ${warmupPaceStr}`,
+    })
+  } else {
+    // Short runs (< 20 min and < 3km) - single work segment
+    segments.push({
+      order: segmentOrder++,
+      type: 'work',
+      duration: workout.duration,
+      distance: distanceKm,
+      pace: mainPaceSeconds.toString(),
+      zone: mainZone,
+      description: workout.name,
+    })
   }
 
   return segments
@@ -798,6 +957,371 @@ function getWorkoutZone(intensity: string): number {
     default:
       return 2
   }
+}
+
+// ============================================================================
+// STATION WORKOUT SEGMENTS
+// ============================================================================
+
+/**
+ * HYROX Station Configuration
+ * Contains official distances, reps, weights, and technique cues for each station
+ */
+interface StationConfig {
+  id: string
+  name: string
+  nameSv: string
+  distance?: number        // meters (for SkiErg, Rowing, Sled Push/Pull, etc.)
+  reps?: number           // repetitions (for Wall Balls)
+  weightOpen: {
+    male: number | string
+    female: number | string
+  }
+  weightPro: {
+    male: number | string
+    female: number | string
+  }
+  technique: string
+  techniqueSv: string
+  targetTimeElite: { min: number; max: number }  // seconds
+  targetTimeIntermediate: { min: number; max: number }
+}
+
+const HYROX_STATIONS: StationConfig[] = [
+  {
+    id: 'skierg',
+    name: 'SkiErg',
+    nameSv: 'SkiErg',
+    distance: 1000,
+    weightOpen: { male: 'Damper 6', female: 'Damper 5' },
+    weightPro: { male: 'Damper 7', female: 'Damper 6' },
+    technique: 'Long arm movement, drive from core, hinge at hips',
+    techniqueSv: 'Lång armrörelse, driv från core, höftled',
+    targetTimeElite: { min: 210, max: 225 },
+    targetTimeIntermediate: { min: 255, max: 285 },
+  },
+  {
+    id: 'sled_push',
+    name: 'Sled Push',
+    nameSv: 'Släde Push',
+    distance: 50,
+    weightOpen: { male: 152, female: 102 },
+    weightPro: { male: 202, female: 152 },
+    technique: 'Low body position, short steps, drive through legs',
+    techniqueSv: 'Låg kroppsposition, korta steg, driv genom benen',
+    targetTimeElite: { min: 150, max: 170 },
+    targetTimeIntermediate: { min: 225, max: 270 },
+  },
+  {
+    id: 'sled_pull',
+    name: 'Sled Pull',
+    nameSv: 'Släde Pull',
+    distance: 50,
+    weightOpen: { male: 103, female: 78 },
+    weightPro: { male: 153, female: 103 },
+    technique: 'Hand-over-hand technique, sit back, engage lats',
+    techniqueSv: 'Hand-över-hand teknik, sitt bakåt, aktivera latsen',
+    targetTimeElite: { min: 180, max: 200 },
+    targetTimeIntermediate: { min: 330, max: 390 },
+  },
+  {
+    id: 'burpee_broad_jump',
+    name: 'Burpee Broad Jump',
+    nameSv: 'Burpee Längdhopp',
+    distance: 80,
+    weightOpen: { male: '-', female: '-' },
+    weightPro: { male: '-', female: '-' },
+    technique: 'Efficient jumps, minimize time on ground, steady pace',
+    techniqueSv: 'Effektiva hopp, minimera tid på marken, jämn takt',
+    targetTimeElite: { min: 140, max: 160 },
+    targetTimeIntermediate: { min: 300, max: 360 },
+  },
+  {
+    id: 'rowing',
+    name: 'Rowing',
+    nameSv: 'Rodd',
+    distance: 1000,
+    weightOpen: { male: 'Damper 6', female: 'Damper 5' },
+    weightPro: { male: 'Damper 7', female: 'Damper 6' },
+    technique: 'Drive with legs first, long stroke finish, controlled recovery',
+    techniqueSv: 'Driv med benen först, lång avslutning, kontrollerad återhämtning',
+    targetTimeElite: { min: 210, max: 225 },
+    targetTimeIntermediate: { min: 270, max: 300 },
+  },
+  {
+    id: 'farmers_carry',
+    name: 'Farmers Carry',
+    nameSv: 'Farmers Carry',
+    distance: 200,
+    weightOpen: { male: 24, female: 16 },
+    weightPro: { male: 32, female: 24 },
+    technique: 'Straight back, short quick steps, tight core',
+    techniqueSv: 'Rak rygg, korta snabba steg, spänd core',
+    targetTimeElite: { min: 75, max: 90 },
+    targetTimeIntermediate: { min: 150, max: 180 },
+  },
+  {
+    id: 'sandbag_lunge',
+    name: 'Sandbag Lunges',
+    nameSv: 'Sandsäck Utfall',
+    distance: 100,
+    weightOpen: { male: 20, female: 10 },
+    weightPro: { male: 30, female: 20 },
+    technique: 'Knee to floor, stable core, upright torso',
+    techniqueSv: 'Knä till golv, stabil core, upprätt överkropp',
+    targetTimeElite: { min: 150, max: 180 },
+    targetTimeIntermediate: { min: 300, max: 360 },
+  },
+  {
+    id: 'wall_balls',
+    name: 'Wall Balls',
+    nameSv: 'Wall Balls',
+    reps: 100, // Men Open/Pro get 100, Women get 75
+    weightOpen: { male: 6, female: 4 },
+    weightPro: { male: 9, female: 6 },
+    technique: 'Full squat, high throw, catch and descend in one motion',
+    techniqueSv: 'Full knäböj, högt kast, fånga och sjunk i en rörelse',
+    targetTimeElite: { min: 180, max: 210 },
+    targetTimeIntermediate: { min: 390, max: 480 },
+  },
+]
+
+/**
+ * Create station workout segments with detailed HYROX-specific data
+ * Includes warmup, station work with load/reps/target times, and transitions
+ */
+function createStationSegments(
+  workout: HYROXTemplateWorkout,
+  division?: 'open' | 'pro' | 'doubles',
+  gender?: 'male' | 'female',
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced'
+): CreateWorkoutSegmentDTO[] {
+  const segments: CreateWorkoutSegmentDTO[] = []
+  let segmentOrder = 1
+  const div = division || 'open'
+  const gen = gender || 'male'
+  const level = experienceLevel || 'intermediate'
+
+  // Determine if this is a full simulation or partial station practice
+  const isFullSimulation = workout.type === 'hyrox_simulation' ||
+    workout.name.toLowerCase().includes('simulering') ||
+    workout.name.toLowerCase().includes('simulation')
+
+  // Parse which stations to include from workout structure or description
+  const stationsToInclude = parseStationsFromWorkout(workout)
+
+  // Add warmup segment
+  segments.push({
+    order: segmentOrder++,
+    type: 'warmup',
+    duration: isFullSimulation ? 15 : 10,
+    zone: 2,
+    description: isFullSimulation
+      ? 'Uppvärmning: 5 min rodd/SkiErg, dynamisk stretch, aktivering'
+      : 'Uppvärmning: 5 min lätt cardio, rörlighet',
+  })
+
+  if (isFullSimulation) {
+    // Full HYROX simulation: 8 runs + 8 stations
+    const runDistanceKm = 1 // Standard 1km per run segment
+
+    for (let i = 0; i < 8; i++) {
+      const station = HYROX_STATIONS[i]
+      const runNumber = i + 1
+      const isDoublesPartnerA = div === 'doubles' && runNumber % 2 === 1
+      const isDoublesPartnerB = div === 'doubles' && runNumber % 2 === 0
+
+      // Running segment
+      const partnerRunNote = div === 'doubles'
+        ? ` (Partner ${isDoublesPartnerA ? 'A' : 'B'})`
+        : ''
+
+      segments.push({
+        order: segmentOrder++,
+        type: 'interval',
+        distance: runDistanceKm,
+        zone: 3,
+        description: `Löpning ${runNumber}/8: 1 km${partnerRunNote}`,
+      })
+
+      // Roxzone/Transition segment
+      segments.push({
+        order: segmentOrder++,
+        type: 'rest',
+        duration: 1, // ~45-60 seconds transition
+        zone: 1,
+        description: `Roxzone ${runNumber}: Övergång till ${station.nameSv}`,
+      })
+
+      // Station segment
+      const weight = div === 'pro' ? station.weightPro[gen] : station.weightOpen[gen]
+      const targetTime = level === 'advanced' || level === 'intermediate'
+        ? station.targetTimeIntermediate
+        : station.targetTimeElite
+      const repsForWallBalls = station.id === 'wall_balls'
+        ? (gen === 'female' ? 75 : 100)
+        : undefined
+
+      // Partner alternation for station work in doubles
+      const partnerStationNote = div === 'doubles'
+        ? ` - Partner ${isDoublesPartnerB ? 'A' : 'B'} (byte vid halva)`
+        : ''
+
+      const stationDescription = station.distance
+        ? `${station.nameSv} ${station.distance}m @ ${typeof weight === 'number' ? weight + 'kg' : weight}${partnerStationNote}`
+        : `${station.nameSv} ${repsForWallBalls} reps @ ${weight}kg${partnerStationNote}`
+
+      segments.push({
+        order: segmentOrder++,
+        type: 'work',
+        duration: Math.round(targetTime.max / 60), // Approximate duration in minutes
+        distance: station.distance ? station.distance / 1000 : undefined,
+        reps: repsForWallBalls,
+        zone: 4,
+        description: stationDescription,
+        notes: station.techniqueSv,
+      })
+    }
+  } else {
+    // Partial station practice - use specific stations from workout
+    const selectedStations = stationsToInclude.length > 0
+      ? HYROX_STATIONS.filter(s => stationsToInclude.includes(s.id))
+      : HYROX_STATIONS.slice(0, 4) // Default: first 4 stations
+
+    // Determine number of rounds from workout structure
+    const rounds = parseRoundsFromWorkout(workout)
+
+    for (let round = 1; round <= rounds; round++) {
+      if (rounds > 1) {
+        segments.push({
+          order: segmentOrder++,
+          type: 'work',
+          duration: 0,
+          zone: 3,
+          description: `--- Runda ${round}/${rounds} ---`,
+        })
+      }
+
+      for (const station of selectedStations) {
+        const weight = div === 'pro' ? station.weightPro[gen] : station.weightOpen[gen]
+        const targetTime = level === 'advanced'
+          ? station.targetTimeElite
+          : station.targetTimeIntermediate
+
+        // Scale distance/reps for practice (usually less than full race)
+        const practiceDistance = station.distance ? Math.round(station.distance * 0.5) : undefined
+        const practiceReps = station.reps ? Math.round(station.reps * 0.5) : undefined
+
+        // Partner note for doubles
+        const partnerNote = div === 'doubles'
+          ? ` (Partner ${round % 2 === 1 ? 'A' : 'B'})`
+          : ''
+
+        const description = practiceDistance
+          ? `${station.nameSv} ${practiceDistance}m @ ${typeof weight === 'number' ? weight + 'kg' : weight}${partnerNote}`
+          : `${station.nameSv} ${practiceReps} reps @ ${weight}kg${partnerNote}`
+
+        segments.push({
+          order: segmentOrder++,
+          type: 'work',
+          duration: Math.round((targetTime.max * 0.5) / 60), // Scaled duration
+          distance: practiceDistance ? practiceDistance / 1000 : undefined,
+          reps: practiceReps,
+          zone: 3,
+          description,
+          notes: station.techniqueSv,
+        })
+
+        // Rest between stations (not after last station in round)
+        if (selectedStations.indexOf(station) < selectedStations.length - 1) {
+          segments.push({
+            order: segmentOrder++,
+            type: 'rest',
+            duration: 1,
+            zone: 1,
+            description: 'Vila/övergång mellan stationer',
+          })
+        }
+      }
+
+      // Rest between rounds
+      if (round < rounds) {
+        segments.push({
+          order: segmentOrder++,
+          type: 'rest',
+          duration: 2,
+          zone: 1,
+          description: `Vila mellan rundor: 2 min`,
+        })
+      }
+    }
+  }
+
+  // Add cooldown segment
+  segments.push({
+    order: segmentOrder++,
+    type: 'cooldown',
+    duration: 5,
+    zone: 1,
+    description: 'Nedvarvning: lätt stretch och rörlighet',
+  })
+
+  return segments
+}
+
+/**
+ * Parse station IDs from workout structure/description
+ */
+function parseStationsFromWorkout(workout: HYROXTemplateWorkout): string[] {
+  const text = `${workout.name} ${workout.description || ''} ${workout.structure || ''}`.toLowerCase()
+  const stations: string[] = []
+
+  const stationKeywords: Record<string, string> = {
+    'skierg': 'skierg',
+    'ski erg': 'skierg',
+    'sled push': 'sled_push',
+    'släde push': 'sled_push',
+    'sled pull': 'sled_pull',
+    'släde pull': 'sled_pull',
+    'burpee': 'burpee_broad_jump',
+    'bred hopp': 'burpee_broad_jump',
+    'rowing': 'rowing',
+    'rodd': 'rowing',
+    'farmers carry': 'farmers_carry',
+    'farmer': 'farmers_carry',
+    'sandbag': 'sandbag_lunge',
+    'sandsäck': 'sandbag_lunge',
+    'lunge': 'sandbag_lunge',
+    'utfall': 'sandbag_lunge',
+    'wall ball': 'wall_balls',
+    'wallball': 'wall_balls',
+  }
+
+  for (const [keyword, stationId] of Object.entries(stationKeywords)) {
+    if (text.includes(keyword) && !stations.includes(stationId)) {
+      stations.push(stationId)
+    }
+  }
+
+  return stations
+}
+
+/**
+ * Parse number of rounds from workout structure
+ */
+function parseRoundsFromWorkout(workout: HYROXTemplateWorkout): number {
+  const text = `${workout.structure || ''} ${workout.description || ''}`.toLowerCase()
+
+  // Look for patterns like "3 rundor", "3 rounds", "3x"
+  const roundMatch = text.match(/(\d+)\s*(rundor|rounds|x\s)/i)
+  if (roundMatch) {
+    return parseInt(roundMatch[1])
+  }
+
+  // Default based on duration
+  if (workout.duration >= 60) return 3
+  if (workout.duration >= 40) return 2
+  return 1
 }
 
 // ============================================================================

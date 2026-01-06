@@ -78,14 +78,14 @@ export function RescheduleConfirmDialog({
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3">
-              <p>
+              <div>
                 Vill du flytta <strong>{workoutName}</strong>
                 {workoutType && (
                   <Badge variant="secondary" className="ml-2 text-xs">
                     {workoutType}
                   </Badge>
                 )}
-              </p>
+              </div>
 
               {/* Date visualization */}
               <div className="flex items-center gap-3 py-3 px-4 bg-muted rounded-lg">

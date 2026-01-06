@@ -177,6 +177,7 @@ export interface WODGuardrailResult {
     fatigue: { passed: boolean; reason?: string; modification?: string }
     usageLimit: { passed: boolean; reason?: string }
   }
+  guardrailsApplied: WODGuardrailApplied[]
   adjustedIntensity: AdjustedIntensity
   excludedAreas: string[]  // Body areas to avoid
   blockedReason?: string   // If canGenerate is false

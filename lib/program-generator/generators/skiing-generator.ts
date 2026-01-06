@@ -2,6 +2,7 @@
 // Skiing program generator using pace-based templates
 
 import { Client, Test, CreateTrainingProgramDTO } from '@/types'
+import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { get8WeekThresholdBuilder, get12WeekPrepBuilder, get16WeekVasaloppetPrep, SkiingTemplateWorkout } from '../templates/skiing'
 import { mapSkiingWorkoutToDTO } from '../workout-mapper'
 
@@ -32,12 +33,8 @@ export async function generateSkiingProgram(
   console.log(`  Technique: ${params.technique || 'both'}`)
   console.log(`  Weekly Hours: ${params.weeklyHours || 8}`)
 
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() + 1)
-  startDate.setHours(0, 0, 0, 0)
-
-  const endDate = new Date(startDate)
-  endDate.setDate(endDate.getDate() + params.durationWeeks * 7)
+  const startDate = getProgramStartDate()
+  const endDate = getProgramEndDate(startDate, params.durationWeeks)
 
   // Select template based on goal
   let templateWeeks

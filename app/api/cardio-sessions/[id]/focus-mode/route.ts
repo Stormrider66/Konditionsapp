@@ -48,16 +48,28 @@ const SEGMENT_TYPE_NAMES: Record<string, string> = {
 
 /**
  * Parse pace string to seconds per km
- * e.g., "5:30" -> 330, "4:15" -> 255
+ * Handles both formats:
+ * - MM:SS format: "5:30" -> 330, "4:15" -> 255
+ * - Numeric string: "330" -> 330 (already in seconds)
  */
 function parsePaceToSeconds(pace: string | undefined): number | undefined {
   if (!pace) return undefined
-  const parts = pace.split(':')
-  if (parts.length === 2) {
-    const minutes = parseInt(parts[0])
-    const seconds = parseInt(parts[1])
-    if (!isNaN(minutes) && !isNaN(seconds)) {
-      return minutes * 60 + seconds
+
+  // Check if it's MM:SS format (contains colon)
+  if (pace.includes(':')) {
+    const parts = pace.split(':')
+    if (parts.length === 2) {
+      const minutes = parseInt(parts[0])
+      const seconds = parseInt(parts[1])
+      if (!isNaN(minutes) && !isNaN(seconds)) {
+        return minutes * 60 + seconds
+      }
+    }
+  } else {
+    // Try parsing as numeric string (already in seconds)
+    const numericPace = parseInt(pace)
+    if (!isNaN(numericPace) && numericPace > 0) {
+      return numericPace
     }
   }
   return undefined

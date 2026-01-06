@@ -35,17 +35,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Find all teams the athlete is a member of
+    // Find the team the athlete is a member of
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       include: {
-        teams: {
+        team: {
           include: {
             members: {
               select: {
                 id: true,
-                firstName: true,
-                lastName: true,
+                name: true,
                 gender: true,
                 weight: true,
               },
@@ -55,7 +54,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    if (!client || !client.teams || client.teams.length === 0) {
+    if (!client || !client.team) {
       return NextResponse.json({
         success: true,
         data: {
@@ -64,6 +63,9 @@ export async function GET(request: NextRequest) {
         },
       });
     }
+
+    // Wrap single team in array for consistent processing
+    const teams = [client.team];
 
     // Collect rankings across all teams
     const rankings: Array<{
@@ -84,7 +86,7 @@ export async function GET(request: NextRequest) {
       };
     }> = [];
 
-    for (const team of client.teams) {
+    for (const team of teams) {
       const memberIds = team.members.map((m) => m.id);
 
       // Fetch all ergometer tests for team members
@@ -97,8 +99,7 @@ export async function GET(request: NextRequest) {
           client: {
             select: {
               id: true,
-              firstName: true,
-              lastName: true,
+              name: true,
               gender: true,
               weight: true,
             },
@@ -110,7 +111,7 @@ export async function GET(request: NextRequest) {
       const testResults: AthleteTestResult[] = tests.map((test) => ({
         id: test.id,
         clientId: test.clientId,
-        clientName: `${test.client.firstName} ${test.client.lastName}`,
+        clientName: test.client.name,
         clientWeight: test.client.weight ?? undefined,
         clientGender: test.client.gender ?? undefined,
         ergometerType: test.ergometerType,

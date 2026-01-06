@@ -52,8 +52,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         members: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            name: true,
             gender: true,
             weight: true,
           },
@@ -68,7 +67,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const memberIds = team.members.map((m) => m.id);
+    const memberIds = team.members.map((m: { id: string }) => m.id);
 
     if (memberIds.length === 0) {
       return NextResponse.json({
@@ -96,8 +95,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         client: {
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
+            name: true,
             gender: true,
             weight: true,
           },
@@ -109,7 +107,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const testResults: AthleteTestResult[] = tests.map((test) => ({
       id: test.id,
       clientId: test.clientId,
-      clientName: `${test.client.firstName} ${test.client.lastName}`,
+      clientName: test.client.name,
       clientWeight: test.client.weight ?? undefined,
       clientGender: test.client.gender ?? undefined,
       ergometerType: test.ergometerType,

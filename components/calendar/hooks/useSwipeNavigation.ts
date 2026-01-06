@@ -235,11 +235,14 @@ export function useSwipeNavigation(
 
 /**
  * Hook to detect if the device is touch-capable
+ * Returns false during SSR and initial hydration to prevent hydration mismatch
  */
 export function useIsTouchDevice(): boolean {
   const [isTouch, setIsTouch] = useState(false)
+  const [hasMounted, setHasMounted] = useState(false)
 
   useEffect(() => {
+    setHasMounted(true)
     const checkTouch = () => {
       setIsTouch(
         'ontouchstart' in window ||
@@ -264,16 +267,21 @@ export function useIsTouchDevice(): boolean {
     }
   }, [])
 
+  // Return false until mounted to ensure SSR/client consistency
+  if (!hasMounted) return false
   return isTouch
 }
 
 /**
  * Hook to detect mobile viewport
+ * Returns false during SSR and initial hydration to prevent hydration mismatch
  */
 export function useIsMobile(breakpoint: number = 768): boolean {
   const [isMobile, setIsMobile] = useState(false)
+  const [hasMounted, setHasMounted] = useState(false)
 
   useEffect(() => {
+    setHasMounted(true)
     const checkMobile = () => {
       setIsMobile(window.innerWidth < breakpoint)
     }
@@ -284,5 +292,7 @@ export function useIsMobile(breakpoint: number = 768): boolean {
     return () => window.removeEventListener('resize', checkMobile)
   }, [breakpoint])
 
+  // Return false until mounted to ensure SSR/client consistency
+  if (!hasMounted) return false
   return isMobile
 }

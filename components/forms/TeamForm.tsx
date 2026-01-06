@@ -38,10 +38,10 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
   const [name, setName] = useState(team?.name || '')
   const [description, setDescription] = useState(team?.description || '')
   const [organizationId, setOrganizationId] = useState<string>(
-    (team as Team & { organizationId?: string })?.organizationId || ''
+    (team as Team & { organizationId?: string })?.organizationId || 'none'
   )
   const [sportType, setSportType] = useState<string>(
-    (team as Team & { sportType?: string })?.sportType || ''
+    (team as Team & { sportType?: string })?.sportType || 'none'
   )
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loadingOrgs, setLoadingOrgs] = useState(true)
@@ -91,8 +91,8 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim() || undefined,
-          organizationId: organizationId || undefined,
-          sportType: sportType || undefined,
+          organizationId: organizationId === 'none' ? undefined : organizationId,
+          sportType: sportType === 'none' ? undefined : sportType,
         }),
       })
 
@@ -163,7 +163,7 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
                 <SelectValue placeholder="Välj organisation (valfritt)..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Ingen organisation</SelectItem>
+                <SelectItem value="none">Ingen organisation</SelectItem>
                 {organizations.map((org) => (
                   <SelectItem key={org.id} value={org.id}>
                     {org.name}
@@ -184,7 +184,7 @@ export function TeamForm({ team, onSuccess, onCancel }: TeamFormProps) {
                 <SelectValue placeholder="Välj sport (valfritt)..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Ingen sport vald</SelectItem>
+                <SelectItem value="none">Ingen sport vald</SelectItem>
                 {sportTypeOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}

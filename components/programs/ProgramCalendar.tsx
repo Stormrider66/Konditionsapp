@@ -321,7 +321,12 @@ function DayCard({ day, date }: DayCardProps) {
 
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               {workout.duration && <span>⏱ {workout.duration} min</span>}
-              {workout.distance && <span>📏 {workout.distance} km</span>}
+              {(() => {
+                // Calculate total distance from segments (includes warmup/cooldown)
+                const segmentDistance = workout.segments?.reduce((sum, s) => sum + (s.distance || 0), 0) || 0
+                const displayDistance = segmentDistance > 0 ? segmentDistance : workout.distance
+                return displayDistance ? <span>📏 {displayDistance.toFixed(1)} km</span> : null
+              })()}
             </div>
           </div>
 
@@ -438,9 +443,21 @@ function calculateWeeklyStats(week: WeekWithDays): { totalDistance: number; tota
   week.days.forEach((day) => {
     if (day.workouts && day.workouts.length > 0) {
       day.workouts.forEach((workout) => {
-        if (workout.distance) {
+        // Sum segment distances if available (includes warmup/cooldown)
+        // Otherwise fall back to workout-level distance
+        if (workout.segments && workout.segments.length > 0) {
+          const segmentDistance = workout.segments.reduce((sum, segment) => {
+            return sum + (segment.distance || 0)
+          }, 0)
+          if (segmentDistance > 0) {
+            totalDistance += segmentDistance
+          } else if (workout.distance) {
+            totalDistance += workout.distance
+          }
+        } else if (workout.distance) {
           totalDistance += workout.distance
         }
+
         if (workout.duration) {
           totalDuration += workout.duration
         }
@@ -449,5 +466,4 @@ function calculateWeeklyStats(week: WeekWithDays): { totalDistance: number; tota
   })
 
   return { totalDistance, totalDuration }
-
 }

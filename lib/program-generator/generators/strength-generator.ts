@@ -2,6 +2,7 @@
 // Standalone strength training program generator
 
 import { Client, CreateTrainingProgramDTO } from '@/types'
+import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 
 export interface StrengthProgramParams {
   clientId: string
@@ -26,12 +27,8 @@ export async function generateStrengthProgram(
   console.log(`  Duration: ${params.durationWeeks} weeks`)
   console.log(`  Sessions/week: ${params.sessionsPerWeek}`)
 
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() + 1)
-  startDate.setHours(0, 0, 0, 0)
-
-  const endDate = new Date(startDate)
-  endDate.setDate(endDate.getDate() + params.durationWeeks * 7)
+  const startDate = getProgramStartDate()
+  const endDate = getProgramEndDate(startDate, params.durationWeeks)
 
   const goalLabels: Record<string, string> = {
     'injury-prevention': 'Skadeprevention',

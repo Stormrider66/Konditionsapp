@@ -3,6 +3,7 @@
 
 import { SportType } from '@prisma/client'
 import { Client, Test, CreateTrainingProgramDTO } from '@/types'
+import { getProgramStartDate, getProgramEndDate } from './date-utils'
 import { generateBaseProgram, ProgramGenerationParams } from './index'
 import { generateCyclingProgram, CyclingProgramParams } from './generators/cycling-generator'
 import { generateSkiingProgram, SkiingProgramParams } from './generators/skiing-generator'
@@ -1059,12 +1060,8 @@ function createCustomRunningProgram(
   params: SportProgramParams,
   client: Client
 ): CreateTrainingProgramDTO {
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() + 1)
-  startDate.setHours(0, 0, 0, 0)
-
-  const endDate = new Date(startDate)
-  endDate.setDate(endDate.getDate() + params.durationWeeks * 7)
+  const startDate = getProgramStartDate()
+  const endDate = getProgramEndDate(startDate, params.durationWeeks)
 
   const goalLabels: Record<string, string> = {
     'marathon': 'Marathon',
@@ -3083,12 +3080,8 @@ function generateGeneralFitnessProgram(
   const programDesc = getProgramDescription(fitnessGoal)
   const durationWeeks = fitnessWeeks.length
 
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() + 1)
-  startDate.setHours(0, 0, 0, 0)
-
-  const endDate = new Date(startDate)
-  endDate.setDate(endDate.getDate() + durationWeeks * 7)
+  const startDate = getProgramStartDate()
+  const endDate = getProgramEndDate(startDate, durationWeeks)
 
   return {
     clientId: params.clientId,

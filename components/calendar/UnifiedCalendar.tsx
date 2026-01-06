@@ -182,6 +182,15 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
     setSelectedDate(new Date(item.date))
   }, [])
 
+  // Handle adding calendar events
+  const handleAddEvent = useCallback((date?: Date) => {
+    setEditingEvent(null)
+    if (date) {
+      setSelectedDate(date)
+    }
+    setIsEventDialogOpen(true)
+  }, [])
+
   // Handle day action menu selections (coach creating workout/event/test)
   const handleDayAction = useCallback((actionType: DayActionType, date: Date) => {
     switch (actionType) {
@@ -207,14 +216,6 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         break
     }
   }, [handleAddEvent])
-
-  const handleAddEvent = useCallback((date?: Date) => {
-    setEditingEvent(null)
-    if (date) {
-      setSelectedDate(date)
-    }
-    setIsEventDialogOpen(true)
-  }, [])
 
   const handleEditEvent = useCallback((item: UnifiedCalendarItem) => {
     if (item.type === 'CALENDAR_EVENT') {

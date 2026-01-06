@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { generateBaseProgram, validateProgramParams, ProgramGenerationParams } from '@/lib/program-generator'
 import { generateSportProgram, SportProgramParams, DataSourceType } from '@/lib/program-generator/sport-router'
+import { getProgramStartDate, getProgramEndDate } from '@/lib/program-generator/date-utils'
 import { requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { WorkoutType, WorkoutIntensity, SportType } from '@prisma/client'
@@ -401,16 +402,10 @@ export async function POST(request: NextRequest) {
 
     // Custom programs always create empty structure (regardless of goalType)
     if (isCustomProgram) {
-        // 1. Calculate Start and End Dates
-        // Default to tomorrow if no race date, or back-calculate if needed.
-        // For custom, start tomorrow and create empty structure for manual building
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() + 1); // Start tomorrow
-        startDate.setHours(0, 0, 0, 0);
-
+        // 1. Calculate Start and End Dates using UTC to avoid timezone issues
+        const startDate = getProgramStartDate();
         const durationWeeks = params.durationWeeks;
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + (durationWeeks * 7));
+        const endDate = getProgramEndDate(startDate, durationWeeks);
 
         // Map goal type to display name
         const goalTypeLabels: Record<string, string> = {
@@ -466,12 +461,8 @@ export async function POST(request: NextRequest) {
       const programDesc = getProgramDescription(fitnessParams.fitnessGoal)
       const durationWeeks = fitnessWeeks.length
 
-      const startDate = new Date()
-      startDate.setDate(startDate.getDate() + 1) // Start tomorrow
-      startDate.setHours(0, 0, 0, 0)
-
-      const endDate = new Date(startDate)
-      endDate.setDate(endDate.getDate() + durationWeeks * 7)
+      const startDate = getProgramStartDate()
+      const endDate = getProgramEndDate(startDate, durationWeeks)
 
       programData = {
         name: `${programDesc.titleSv} - ${client.name}`,

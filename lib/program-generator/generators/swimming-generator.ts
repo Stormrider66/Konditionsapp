@@ -2,6 +2,7 @@
 // Swimming program generator using CSS-based zones
 
 import { Client, CreateTrainingProgramDTO } from '@/types'
+import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { get8WeekCssBuilder, get12WeekDistanceProgram, get8WeekSprintProgram, getOpenWaterPrep, SwimmingTemplateWorkout } from '../templates/swimming'
 import { mapSwimmingWorkoutToDTO } from '../workout-mapper'
 
@@ -46,12 +47,8 @@ export async function generateSwimmingProgram(
   console.log(`  Pool: ${params.poolLength || '25'}m`)
   console.log(`  Weekly Distance: ${params.weeklyDistance || 15000}m`)
 
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() + 1)
-  startDate.setHours(0, 0, 0, 0)
-
-  const endDate = new Date(startDate)
-  endDate.setDate(endDate.getDate() + params.durationWeeks * 7)
+  const startDate = getProgramStartDate()
+  const endDate = getProgramEndDate(startDate, params.durationWeeks)
 
   const cssSeconds = params.css ? parseCssToSeconds(params.css) : undefined
 
