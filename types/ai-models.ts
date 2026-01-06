@@ -34,8 +34,8 @@ export const AI_MODELS: AIModelConfig[] = [
     name: 'Gemini 3 Flash',
     provider: 'google',
     modelId: 'gemini-3-flash-preview',
-    description: 'Snabb och kostnadseffektiv. Gratis att använda.',
-    costTier: 'free',
+    description: 'Snabb och kostnadseffektiv. Gratis tier tillgänglig.',
+    costTier: 'low',
     capabilities: {
       reasoning: 'good',
       speed: 'fast',
@@ -48,7 +48,7 @@ export const AI_MODELS: AIModelConfig[] = [
     name: 'Gemini 3 Pro',
     provider: 'google',
     modelId: 'gemini-3-pro-preview',
-    description: 'Googles mest avancerade modell. Utmärkt resonemang.',
+    description: 'Googles bästa modell. Stöd för video och resonemang.',
     costTier: 'medium',
     capabilities: {
       reasoning: 'excellent',
@@ -96,13 +96,13 @@ export const AI_MODELS: AIModelConfig[] = [
       contextWindow: 200000,
     },
   },
-  // OpenAI Models (GPT-5.2)
+  // OpenAI Models (GPT-5)
   {
     id: 'gpt-5-nano',
     name: 'GPT-5 Nano',
     provider: 'openai',
     modelId: 'gpt-5-nano',
-    description: 'Snabbast och billigast. Bra för enkla uppgifter.',
+    description: 'Snabbast och billigast. Bra för enklare uppgifter.',
     costTier: 'low',
     capabilities: {
       reasoning: 'good',
@@ -115,7 +115,7 @@ export const AI_MODELS: AIModelConfig[] = [
     name: 'GPT-5 Mini',
     provider: 'openai',
     modelId: 'gpt-5-mini',
-    description: 'Balanserad prestanda. Bra allroundmodell.',
+    description: 'Balanserad prestanda och kostnad.',
     costTier: 'medium',
     capabilities: {
       reasoning: 'excellent',

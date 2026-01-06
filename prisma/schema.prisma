@@ -2651,6 +2651,9 @@ model SportProfile {
   activeStandardProgram String? // ID of purchased standard program template
   hasCustomProgram    Boolean @default(false)
 
+  // AI preferences
+  preferredAIModelId  String? // Preferred AI model for WOD and assistant (e.g., 'gemini-3-flash')
+
   client              Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

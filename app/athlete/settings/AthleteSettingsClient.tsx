@@ -7,11 +7,12 @@
  * Contains ThemeSelector and other settings.
  */
 
-import { Settings, ChevronLeft } from 'lucide-react'
+import { Settings, ChevronLeft, Bot } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
 import { IntegrationsSettings } from '@/components/athlete/settings/IntegrationsSettings'
+import { AIModelSettings } from '@/components/athlete/settings/AIModelSettings'
 import type { SportProfile } from '@prisma/client'
 
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
@@ -81,6 +82,15 @@ export function AthleteSettingsClient({
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Utseende</h3>
           </div>
           <ThemeSelector variant="glass" />
+        </div>
+
+        {/* AI Model Settings */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-2">
+            <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">AI-modell</h3>
+          </div>
+          <AIModelSettings variant="glass" />
         </div>
 
         {/* Integrations */}
