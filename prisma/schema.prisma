@@ -3017,6 +3017,11 @@ model UserApiKey {
   defaultModelId  String?
   defaultModel    AIModel?     @relation("UserDefaultModel", fields: [defaultModelId], references: [id], onDelete: SetNull)
 
+  // Athlete AI settings (which models athletes can choose from)
+  // Empty array = all available models allowed
+  allowedAthleteModelIds String[]     @default([])
+  athleteDefaultModelId  String?      // Default model for athletes if not selected
+
   user            User         @relation("UserApiKeys", fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt       DateTime     @default(now())

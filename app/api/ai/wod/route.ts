@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateText, type LanguageModel } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createOpenAI } from '@ai-sdk/openai'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { buildWODContext, getWODUsageStats } from '@/lib/ai/wod-context-builder'
@@ -26,14 +27,15 @@ import type {
   WODMetadata,
   WODMode,
 } from '@/types/wod'
-import { WOD_LABELS } from '@/types/wod'
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getModelById, getDefaultModel, AI_MODELS } from '@/types/ai-models'
 
 // Allow up to 30 seconds for AI generation
 export const maxDuration = 30
 
 interface RequestBody extends WODRequest {
   clientId?: string
+  modelId?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -51,6 +53,7 @@ export async function POST(request: NextRequest) {
       equipment = ['none'],
       focusArea,
       clientId: providedClientId,
+      modelId: requestedModelId,
     } = body
 
     // Get athlete's client ID
@@ -77,7 +80,9 @@ export async function POST(request: NextRequest) {
     }
 
     const clientId = providedClientId || athleteAccount.clientId
-    const subscriptionTier = athleteAccount.client.athleteSubscription?.tier || 'FREE'
+
+    // Safety: athleteAccount existence does not guarantee nested relations are populated
+    const subscriptionTier = athleteAccount.client?.athleteSubscription?.tier || 'FREE'
 
     // Build athlete context
     const context = await buildWODContext(clientId)
@@ -118,32 +123,90 @@ export async function POST(request: NextRequest) {
     const prompt = buildWODPrompt(context, wodRequest, guardrails)
 
     // Get API keys - try athlete's coach's keys first, then system keys
-    const coachId = athleteAccount.client.userId
-    let apiKey: string | null = null
-
-    // Try to get coach's API key
-    try {
-      const userKeys = await getDecryptedUserApiKeys(coachId)
-      apiKey = userKeys.anthropicKey || null
-    } catch {
-      // Use environment key as fallback
-      apiKey = process.env.ANTHROPIC_API_KEY || null
+    const coachId = athleteAccount.client?.userId
+    let apiKeys: {
+      anthropicKey: string | null
+      googleKey: string | null
+      openaiKey: string | null
     }
 
-    if (!apiKey) {
+    // Try to get coach's API keys
+    const envApiKeys = {
+      anthropicKey: process.env.ANTHROPIC_API_KEY || null,
+      googleKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY || null,
+      openaiKey: process.env.OPENAI_API_KEY || null,
+    }
+
+    apiKeys = envApiKeys
+
+    if (coachId) {
+      try {
+        apiKeys = await getDecryptedUserApiKeys(coachId)
+      } catch {
+        apiKeys = envApiKeys
+      }
+    }
+
+    // Determine which model to use
+    let selectedModelConfig = requestedModelId ? getModelById(requestedModelId) : null
+
+    // If no model requested or invalid, use default based on available keys
+    if (!selectedModelConfig) {
+      selectedModelConfig = getDefaultModel(apiKeys)
+    }
+
+    // Verify we have the API key for the selected model's provider
+    if (selectedModelConfig) {
+      const providerKey =
+        selectedModelConfig.provider === 'anthropic'
+          ? apiKeys.anthropicKey
+          : selectedModelConfig.provider === 'google'
+          ? apiKeys.googleKey
+          : apiKeys.openaiKey
+
+      if (!providerKey) {
+        // Try to find another model we have keys for
+        selectedModelConfig = getDefaultModel(apiKeys)
+      }
+    }
+
+    if (!selectedModelConfig) {
       return NextResponse.json(
         { error: 'No API key available for AI generation' },
         { status: 500 }
       )
     }
 
-    // Create AI model
-    const anthropic = createAnthropic({ apiKey })
-    const model = anthropic('claude-sonnet-4-20250514')
+    // Create the AI model based on provider
+    let model: LanguageModel
+    const modelName = selectedModelConfig.modelId
+
+    switch (selectedModelConfig.provider) {
+      case 'anthropic': {
+        const anthropic = createAnthropic({ apiKey: apiKeys.anthropicKey! })
+        model = anthropic(selectedModelConfig.modelId) as LanguageModel
+        break
+      }
+      case 'google': {
+        const google = createGoogleGenerativeAI({ apiKey: apiKeys.googleKey! })
+        model = google(selectedModelConfig.modelId) as LanguageModel
+        break
+      }
+      case 'openai': {
+        const openai = createOpenAI({ apiKey: apiKeys.openaiKey! })
+        model = openai(selectedModelConfig.modelId) as LanguageModel
+        break
+      }
+      default:
+        return NextResponse.json(
+          { error: 'Unsupported AI provider' },
+          { status: 500 }
+        )
+    }
 
     // Generate workout
     const { text: responseText, usage } = await generateText({
-      model: model as LanguageModel,
+      model,
       prompt,
       maxOutputTokens: 2000,
     })
@@ -174,13 +237,7 @@ export async function POST(request: NextRequest) {
     )
 
     // Build metadata
-    const guardrailsApplied = Object.entries(guardrails.checks)
-      .filter(([_, check]) => !check.passed && check.reason)
-      .map(([type, check]) => ({
-        type: type.toUpperCase() as 'ACWR_WARNING',
-        description: check.reason || '',
-        modification: 'modification' in check ? check.modification : undefined,
-      }))
+    const guardrailsApplied = guardrails.guardrailsApplied
 
     const metadata: WODMetadata = {
       requestId: crypto.randomUUID(),
@@ -214,7 +271,7 @@ export async function POST(request: NextRequest) {
         primarySport: context.primarySport,
         tokensUsed: (usage?.inputTokens || 0) + (usage?.outputTokens || 0),
         generationTimeMs: Date.now() - startTime,
-        modelUsed: 'claude-sonnet-4-20250514',
+        modelUsed: modelName,
       },
     })
 
@@ -240,8 +297,47 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Check for specific API errors
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+    // Handle credit balance error (Anthropic)
+    if (errorMessage.includes('credit balance') || errorMessage.includes('purchase credits')) {
+      return NextResponse.json(
+        {
+          error: 'API-krediter slut',
+          reason: 'Din coach behöver lägga till krediter till sin Anthropic API-nyckel för att generera WOD.',
+        },
+        { status: 402 }
+      )
+    }
+
+    // Handle Google API quota/billing errors
+    if (errorMessage.includes('quota') || errorMessage.includes('RESOURCE_EXHAUSTED') || errorMessage.includes('billing')) {
+      return NextResponse.json(
+        {
+          error: 'API-kvot överskriden',
+          reason: 'Google API-kvoten är slut eller fakturering saknas. Kontrollera Google Cloud Console.',
+        },
+        { status: 402 }
+      )
+    }
+
+    // Handle invalid API key errors
+    if (errorMessage.includes('API key') || errorMessage.includes('authentication') || errorMessage.includes('UNAUTHENTICATED')) {
+      return NextResponse.json(
+        {
+          error: 'Ogiltig API-nyckel',
+          reason: 'API-nyckeln är ogiltig eller har upphört. Kontrollera inställningarna.',
+        },
+        { status: 401 }
+      )
+    }
+
     return NextResponse.json(
-      { error: 'Failed to generate workout' },
+      {
+        error: 'Failed to generate workout',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     )
   }

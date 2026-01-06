@@ -7,15 +7,20 @@
  * Steps: Mode Selection → Duration → Equipment → Generating → Preview
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { GlassCard } from '@/components/ui/GlassCard'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Zap,
-  Dumbbell,
   Sparkles,
   Coffee,
   PartyPopper,
@@ -24,6 +29,8 @@ import {
   Loader2,
   Timer,
   AlertTriangle,
+  Bot,
+  ChevronDown,
 } from 'lucide-react'
 import type {
   WODMode,
@@ -32,6 +39,8 @@ import type {
   WODResponse,
 } from '@/types/wod'
 import { WOD_LABELS } from '@/types/wod'
+import type { AIModelConfig } from '@/types/ai-models'
+import { COST_TIER_LABELS, COST_TIER_COLORS } from '@/types/ai-models'
 import { cn } from '@/lib/utils'
 
 interface WODGeneratorModalProps {
@@ -79,12 +88,44 @@ export function WODGeneratorModal({
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Model selection state
+  const [availableModels, setAvailableModels] = useState<AIModelConfig[]>([])
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
+  const [showModelSelector, setShowModelSelector] = useState(false)
+  const [loadingModels, setLoadingModels] = useState(false)
+
+  // Fetch available models when modal opens
+  useEffect(() => {
+    if (open && availableModels.length === 0) {
+      setLoadingModels(true)
+      fetch('/api/ai/models')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.models) {
+            setAvailableModels(data.models)
+            if (data.defaultModelId) {
+              setSelectedModelId(data.defaultModelId)
+            } else if (data.models.length > 0) {
+              setSelectedModelId(data.models[0].id)
+            }
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch models:', err)
+        })
+        .finally(() => {
+          setLoadingModels(false)
+        })
+    }
+  }, [open, availableModels.length])
+
   // Reset state when modal closes
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen) {
       setStep('mode')
       setError(null)
       setIsGenerating(false)
+      setShowModelSelector(false)
     }
     onOpenChange(newOpen)
   }, [onOpenChange])
@@ -105,6 +146,9 @@ export function WODGeneratorModal({
     })
   }
 
+  // Get currently selected model info
+  const selectedModel = availableModels.find(m => m.id === selectedModelId)
+
   // Generate WOD
   const generateWOD = async () => {
     setStep('generating')
@@ -112,10 +156,11 @@ export function WODGeneratorModal({
     setError(null)
 
     try {
-      const request: WODRequest = {
+      const request = {
         mode: selectedMode,
         duration,
         equipment: selectedEquipment,
+        modelId: selectedModelId,
       }
 
       const response = await fetch('/api/ai/wod', {
@@ -126,7 +171,10 @@ export function WODGeneratorModal({
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || errorData.reason || 'Failed to generate WOD')
+        const errorMsg = errorData.details
+          ? `${errorData.error}: ${errorData.details}`
+          : errorData.error || errorData.reason || 'Failed to generate WOD'
+        throw new Error(errorMsg)
       }
 
       const data: WODResponse = await response.json()
@@ -310,6 +358,69 @@ export function WODGeneratorModal({
                 )
               })}
             </div>
+
+            {/* AI Model Selector */}
+            {availableModels.length > 1 && (
+              <div className="pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowModelSelector(!showModelSelector)}
+                  className="flex items-center justify-between w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-4 w-4" />
+                    <span>AI-modell: {selectedModel?.name || 'Standard'}</span>
+                    {selectedModel && (
+                      <Badge
+                        variant="outline"
+                        className={cn('text-xs', COST_TIER_COLORS[selectedModel.costTier])}
+                      >
+                        {COST_TIER_LABELS[selectedModel.costTier]}
+                      </Badge>
+                    )}
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 transition-transform',
+                      showModelSelector && 'rotate-180'
+                    )}
+                  />
+                </button>
+
+                {showModelSelector && (
+                  <div className="mt-3 space-y-2">
+                    <Select
+                      value={selectedModelId || undefined}
+                      onValueChange={setSelectedModelId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Välj AI-modell" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableModels.map(model => (
+                          <SelectItem key={model.id} value={model.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{model.name}</span>
+                              <Badge
+                                variant="outline"
+                                className={cn('text-xs', COST_TIER_COLORS[model.costTier])}
+                              >
+                                {COST_TIER_LABELS[model.costTier]}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedModel && (
+                      <p className="text-xs text-muted-foreground">
+                        {selectedModel.description}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -327,6 +438,11 @@ export function WODGeneratorModal({
               <p className="text-sm text-muted-foreground">
                 AI analyserar din profil och skapar ett perfekt anpassat pass
               </p>
+              {selectedModel && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Använder {selectedModel.name}
+                </p>
+              )}
             </div>
           </div>
         )}
