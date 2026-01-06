@@ -346,8 +346,8 @@ export function WODPreviewScreen({
       </div>
 
       {/* Fixed bottom actions */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent">
-        <div className="max-w-2xl mx-auto flex gap-3">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background to-transparent z-[60] pointer-events-auto">
+        <div className="max-w-2xl mx-auto flex gap-3 pointer-events-auto">
           <Button
             variant="outline"
             onClick={onRegenerate}
@@ -357,8 +357,9 @@ export function WODPreviewScreen({
             Generera nytt
           </Button>
           <Button
+            type="button"
             onClick={onStart}
-            className="flex-[2] bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0"
+            className="flex-[2] bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0 cursor-pointer"
           >
             <Play className="h-4 w-4 mr-2" />
             Starta Pass

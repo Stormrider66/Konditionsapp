@@ -17,13 +17,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship } from 'lucide-react'
+import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship, Sparkles } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai'
   name: string
   type: string
   date: string
@@ -42,6 +42,8 @@ interface UnifiedActivity {
   // Concept2 specific
   strokeRate?: number
   equipmentType?: string
+  // AI WOD specific
+  sessionRPE?: number
 }
 
 interface IntegratedRecentActivityProps {
@@ -55,6 +57,7 @@ const SOURCE_CONFIG = {
   strava: { label: 'Strava', color: 'bg-orange-100 text-orange-700', icon: '🏃' },
   garmin: { label: 'Garmin', color: 'bg-blue-100 text-blue-700', icon: '⌚' },
   concept2: { label: 'Concept2', color: 'bg-cyan-100 text-cyan-700', icon: '🚣' },
+  ai: { label: 'AI-Pass', color: 'bg-purple-100 text-purple-700', icon: '✨' },
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -68,7 +71,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 
 export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'default' }: IntegratedRecentActivityProps) {
   const [activities, setActivities] = useState<UnifiedActivity[]>([])
-  const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0, concept2: 0 })
+  const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0, concept2: 0, ai: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -85,7 +88,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
 
         const data = await response.json()
         setActivities(data.activities || [])
-        setCounts(data.counts || { manual: 0, strava: 0, garmin: 0, concept2: 0 })
+        setCounts(data.counts || { manual: 0, strava: 0, garmin: 0, concept2: 0, ai: 0 })
       } catch (err) {
         console.error('Error fetching activities:', err)
         setError('Kunde inte ladda aktiviteter')
@@ -142,7 +145,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
               <Activity className="h-5 w-5 text-orange-600 dark:text-orange-500" />
               Senaste aktiviteter
             </GlassCardTitle>
-            {totalSynced > 0 && (
+            {(totalSynced > 0 || counts.ai > 0) && (
               <div className="flex gap-1">
                 {counts.strava > 0 && (
                   <Badge variant="outline" className="text-xs bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-500/20">
@@ -152,6 +155,11 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
                 {counts.garmin > 0 && (
                   <Badge variant="outline" className="text-xs bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20">
                     {counts.garmin} Garmin
+                  </Badge>
+                )}
+                {counts.ai > 0 && (
+                  <Badge variant="outline" className="text-xs bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20">
+                    {counts.ai} AI
                   </Badge>
                 )}
               </div>
@@ -187,7 +195,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
             <Activity className="h-5 w-5" />
             Senaste aktiviteter
           </CardTitle>
-          {totalSynced > 0 && (
+          {(totalSynced > 0 || counts.ai > 0) && (
             <div className="flex gap-1">
               {counts.strava > 0 && (
                 <Badge variant="outline" className="text-xs bg-orange-50">
@@ -197,6 +205,11 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
               {counts.garmin > 0 && (
                 <Badge variant="outline" className="text-xs bg-blue-50">
                   {counts.garmin} Garmin
+                </Badge>
+              )}
+              {counts.ai > 0 && (
+                <Badge variant="outline" className="text-xs bg-purple-50">
+                  {counts.ai} AI
                 </Badge>
               )}
             </div>
@@ -244,7 +257,11 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
                   locale: sv,
                 })}
               </span>
-              <Badge className={`text-xs px-1.5 py-0 ${activity.source === 'strava' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
+              <Badge className={`text-xs px-1.5 py-0 ${
+                activity.source === 'strava' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400' :
+                activity.source === 'ai' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400' :
+                'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+              }`}>
                 {sourceConfig.icon} {sourceConfig.label}
               </Badge>
             </div>

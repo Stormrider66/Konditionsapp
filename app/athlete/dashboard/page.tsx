@@ -34,6 +34,7 @@ import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel } from '@/components/athlete/dashboard'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
+import { WODHistorySummary } from '@/components/athlete/wod'
 
 export default async function AthleteDashboardPage() {
   const t = await getTranslations('athlete')
@@ -81,7 +82,8 @@ export default async function AthleteDashboardPage() {
     latestMetrics,
     recentLogsWithSetLogs,
     weeklyTrainingLoad,
-    activeInjuries
+    activeInjuries,
+    wodHistory
   ] = await Promise.all([
     // 1. Active Programs
     prisma.trainingProgram.findMany({
@@ -214,6 +216,24 @@ export default async function AthleteDashboardPage() {
       select: {
         painLocation: true,
         painLevel: true,
+      },
+    }),
+
+    // 8. WOD (AI-generated workout) history
+    prisma.aIGeneratedWOD.findMany({
+      where: {
+        clientId: athleteAccount.clientId,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        requestedDuration: true,
+        actualDuration: true,
+        createdAt: true,
+        completedAt: true,
       },
     }),
   ])
@@ -361,6 +381,16 @@ export default async function AthleteDashboardPage() {
   // Get next workout for rest day card
   const nextWorkout = upcomingWorkouts.length > 0 ? upcomingWorkouts[0] : null
 
+  // Calculate WOD stats
+  const startOfWeek = startOfDay(addDays(now, -now.getDay() + 1)) // Monday
+  const wodStats = {
+    thisWeek: wodHistory.filter(w => w.status === 'COMPLETED' && w.completedAt && new Date(w.completedAt) >= startOfWeek).length,
+    totalCompleted: wodHistory.filter(w => w.status === 'COMPLETED').length,
+    totalMinutes: wodHistory
+      .filter(w => w.status === 'COMPLETED')
+      .reduce((sum, w) => sum + (w.actualDuration || w.requestedDuration || 0), 0),
+  }
+
   // Quick links based on sport
   const getQuickLinks = () => {
     const baseLinks = [
@@ -466,6 +496,9 @@ export default async function AthleteDashboardPage() {
         <div className="space-y-6">
           {/* Active Programs */}
           <ActivePrograms programs={activePrograms} variant="glass" />
+
+          {/* WOD History Summary */}
+          <WODHistorySummary recentWods={wodHistory} stats={wodStats} />
 
           {/* Integration Status (Full Card) */}
           <IntegrationStatusWidget clientId={athleteAccount.clientId} variant="glass" />

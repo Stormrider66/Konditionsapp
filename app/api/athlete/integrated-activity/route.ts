@@ -16,7 +16,7 @@ import { createClient } from '@/lib/supabase/server'
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai'
   name: string
   type: string
   date: Date
@@ -38,6 +38,8 @@ interface UnifiedActivity {
   // Concept2 specific
   strokeRate?: number
   equipmentType?: string
+  // AI WOD specific
+  sessionRPE?: number
 }
 
 export async function GET(request: NextRequest) {
@@ -80,7 +82,7 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - days)
 
     // Fetch all data sources in parallel
-    const [manualLogs, stravaActivities, dailyMetrics, concept2Results] = await Promise.all([
+    const [manualLogs, stravaActivities, dailyMetrics, concept2Results, aiWods] = await Promise.all([
       // Manual workout logs - filter by athleteId (the user ID of the athlete)
       athleteId
         ? prisma.workoutLog.findMany({
@@ -126,6 +128,17 @@ export async function GET(request: NextRequest) {
           date: { gte: startDate },
         },
         orderBy: { date: 'desc' },
+        take: limit,
+      }),
+
+      // AI-generated WODs (completed only)
+      prisma.aIGeneratedWOD.findMany({
+        where: {
+          clientId,
+          status: 'COMPLETED',
+          completedAt: { gte: startDate },
+        },
+        orderBy: { completedAt: 'desc' },
         take: limit,
       }),
     ])
@@ -277,6 +290,21 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Process AI-generated WODs
+    for (const wod of aiWods) {
+      activities.push({
+        id: wod.id,
+        source: 'ai',
+        name: wod.title,
+        type: wod.primarySport || 'STRENGTH',
+        date: wod.completedAt || wod.createdAt,
+        duration: wod.actualDuration || wod.requestedDuration || undefined,
+        completed: true,
+        notes: wod.subtitle || undefined,
+        sessionRPE: wod.sessionRPE || undefined,
+      })
+    }
+
     // Sort by date (newest first) and deduplicate
     activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
@@ -303,6 +331,7 @@ export async function GET(request: NextRequest) {
           return sum + (fs?.garminActivities?.length || 0)
         }, 0),
         concept2: concept2Results.length,
+        ai: aiWods.length,
       },
     })
   } catch (error) {

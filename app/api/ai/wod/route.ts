@@ -181,6 +181,13 @@ export async function POST(request: NextRequest) {
     let model: LanguageModel
     const modelName = selectedModelConfig.modelId
 
+    console.log('WOD Generation - Using model:', {
+      requestedModelId,
+      selectedConfigId: selectedModelConfig.id,
+      selectedModelId: selectedModelConfig.modelId,
+      provider: selectedModelConfig.provider,
+    })
+
     switch (selectedModelConfig.provider) {
       case 'anthropic': {
         const anthropic = createAnthropic({ apiKey: apiKeys.anthropicKey! })
@@ -208,16 +215,25 @@ export async function POST(request: NextRequest) {
     const { text: responseText, usage } = await generateText({
       model,
       prompt,
-      maxOutputTokens: 2000,
+      maxOutputTokens: 4000,
     })
 
     // Parse JSON from response
+    console.log('AI Response (first 500 chars):', responseText.substring(0, 500))
+    console.log('AI Response length:', responseText.length)
+
     const workout = parseWorkoutFromResponse(responseText)
 
     if (!workout) {
-      console.error('Failed to parse workout from AI response:', responseText)
+      console.error('Failed to parse workout from AI response')
+      console.error('Full response:', responseText)
       return NextResponse.json(
-        { error: 'Failed to generate valid workout' },
+        {
+          error: 'Failed to generate valid workout',
+          details: process.env.NODE_ENV === 'development'
+            ? `AI returned: ${responseText.substring(0, 200)}...`
+            : undefined
+        },
         { status: 500 }
       )
     }
@@ -351,31 +367,52 @@ export async function POST(request: NextRequest) {
  * Parse workout JSON from AI response
  */
 function parseWorkoutFromResponse(response: string): WODWorkout | null {
+  let jsonStr = response
+
   try {
-    // Try to find JSON in the response
-    const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/)
-    const jsonStr = jsonMatch ? jsonMatch[1] : response
+    // Method 1: Try to extract from markdown code block (greedy match)
+    const jsonBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (jsonBlockMatch && jsonBlockMatch[1]) {
+      jsonStr = jsonBlockMatch[1].trim()
+      console.log('Extracted JSON from markdown block, length:', jsonStr.length)
+    }
+
+    // Method 2: If no code block or still has issues, extract from first { to last }
+    if (!jsonStr.startsWith('{')) {
+      const start = response.indexOf('{')
+      const end = response.lastIndexOf('}')
+      if (start !== -1 && end !== -1 && end > start) {
+        jsonStr = response.slice(start, end + 1)
+        console.log('Extracted JSON by brace matching, length:', jsonStr.length)
+      }
+    }
 
     // Try to parse
-    const parsed = JSON.parse(jsonStr.trim())
+    const parsed = JSON.parse(jsonStr)
 
     // Validate required fields
     if (!parsed.title || !parsed.sections || !Array.isArray(parsed.sections)) {
-      console.error('Missing required fields in parsed workout:', parsed)
+      console.error('Missing required fields in parsed workout:', Object.keys(parsed))
       return null
     }
 
+    console.log('Successfully parsed workout:', parsed.title)
     return parsed as WODWorkout
   } catch (error) {
     console.error('Failed to parse workout JSON:', error)
+    console.error('JSON string attempted (first 300 chars):', jsonStr.substring(0, 300))
 
-    // Try a more aggressive JSON extraction
+    // Last resort: try to find and parse JSON object
     try {
       const start = response.indexOf('{')
       const end = response.lastIndexOf('}')
       if (start !== -1 && end !== -1 && end > start) {
-        const jsonStr = response.slice(start, end + 1)
-        return JSON.parse(jsonStr) as WODWorkout
+        const extracted = response.slice(start, end + 1)
+        const parsed = JSON.parse(extracted)
+        if (parsed.title && parsed.sections) {
+          console.log('Fallback extraction succeeded')
+          return parsed as WODWorkout
+        }
       }
     } catch {
       // Give up
@@ -531,6 +568,18 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
+    // Get WOD for training load calculation
+    const existingWOD = await prisma.aIGeneratedWOD.findFirst({
+      where: {
+        id: wodId,
+        clientId: athleteAccount.clientId,
+      },
+    })
+
+    if (!existingWOD) {
+      return NextResponse.json({ error: 'WOD not found' }, { status: 404 })
+    }
+
     // Update WOD
     const wod = await prisma.aIGeneratedWOD.updateMany({
       where: {
@@ -551,6 +600,57 @@ export async function PATCH(request: NextRequest) {
 
     if (wod.count === 0) {
       return NextResponse.json({ error: 'WOD not found' }, { status: 404 })
+    }
+
+    // Calculate and save training load when WOD is completed
+    if (status === 'COMPLETED') {
+      try {
+        const duration = actualDuration || existingWOD.requestedDuration || 45
+        const rpe = sessionRPE || 6 // Default moderate RPE if not provided
+
+        // Simple RPE-based training load calculation for WOD
+        // Formula: Duration × RPE × 10 (simplified TRIMP-like calculation)
+        const dailyLoad = Math.round(duration * rpe * 0.8)
+
+        // Determine intensity from RPE
+        const intensityMap: Record<number, string> = {
+          1: 'RECOVERY',
+          2: 'RECOVERY',
+          3: 'EASY',
+          4: 'EASY',
+          5: 'MODERATE',
+          6: 'MODERATE',
+          7: 'HARD',
+          8: 'HARD',
+          9: 'VERY_HARD',
+          10: 'VERY_HARD',
+        }
+        const intensity = intensityMap[rpe] || 'MODERATE'
+
+        // Create training load entry
+        await prisma.trainingLoad.create({
+          data: {
+            clientId: athleteAccount.clientId,
+            date: new Date(),
+            dailyLoad,
+            loadType: 'RPE_BASED',
+            workoutType: existingWOD.primarySport || 'STRENGTH',
+            duration,
+            intensity,
+          },
+        })
+
+        console.log('Training load saved for WOD:', {
+          wodId,
+          dailyLoad,
+          duration,
+          rpe,
+          intensity,
+        })
+      } catch (loadError) {
+        console.error('Error saving training load for WOD:', loadError)
+        // Don't fail the WOD completion if training load calculation fails
+      }
     }
 
     return NextResponse.json({ success: true })

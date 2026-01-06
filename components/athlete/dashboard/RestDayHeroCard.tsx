@@ -142,9 +142,17 @@ export function RestDayHeroCard({
   }
 
   const handleStartWOD = () => {
+    console.log('handleStartWOD called')
+    console.log('wodResponse:', wodResponse)
+    console.log('requestId:', wodResponse?.metadata?.requestId)
+
     // Navigate to WOD execution page
-    if (wodResponse) {
-      window.location.href = `/athlete/wod/${wodResponse.metadata.requestId}`
+    if (wodResponse?.metadata?.requestId) {
+      const url = `/athlete/wod/${wodResponse.metadata.requestId}`
+      console.log('Navigating to:', url)
+      window.location.href = url
+    } else {
+      console.error('Missing requestId in wodResponse')
     }
   }
 

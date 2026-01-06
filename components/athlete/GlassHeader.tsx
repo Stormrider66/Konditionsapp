@@ -25,7 +25,8 @@ import {
     FlaskConical,
     Droplet,
     MessageSquare,
-    ClipboardList
+    ClipboardList,
+    Sparkles
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -79,6 +80,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId }: GlassHe
             items: [
                 { href: '/athlete/history', label: 'Historik', icon: TrendingUp },
                 { href: '/athlete/programs', label: 'Program', icon: ClipboardList },
+                { href: '/athlete/wod/history', label: 'AI-Pass', icon: Sparkles },
                 { href: '/athlete/strength', label: 'Styrketräning', icon: Dumbbell },
                 { href: '/athlete/cardio', label: 'Cardio Pass', icon: Heart },
                 { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame },

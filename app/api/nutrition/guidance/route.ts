@@ -58,8 +58,8 @@ export async function GET() {
     const tomorrowStart = addDays(todayStart, 1)
     const tomorrowEnd = addDays(todayEnd, 1)
 
-    // Fetch today's and tomorrow's workouts in parallel
-    const [todaysWorkoutsRaw, tomorrowsWorkoutsRaw, bodyComposition] = await Promise.all([
+    // Fetch today's and tomorrow's workouts in parallel (including AI WODs)
+    const [todaysWorkoutsRaw, tomorrowsWorkoutsRaw, bodyComposition, todaysAiWods] = await Promise.all([
       prisma.workout.findMany({
         where: {
           day: {
@@ -95,6 +95,21 @@ export async function GET() {
         where: { clientId: client.id },
         orderBy: { measurementDate: 'desc' },
       }),
+      // Get today's AI-generated WODs (completed or in progress)
+      prisma.aIGeneratedWOD.findMany({
+        where: {
+          clientId: client.id,
+          OR: [
+            { completedAt: { gte: todayStart, lte: todayEnd } },
+            { startedAt: { gte: todayStart, lte: todayEnd } },
+            {
+              createdAt: { gte: todayStart, lte: todayEnd },
+              status: { in: ['GENERATED', 'STARTED', 'COMPLETED'] }
+            },
+          ],
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
     ])
 
     // Map to WorkoutContext type
@@ -124,6 +139,26 @@ export async function GET() {
 
     const todaysWorkouts = todaysWorkoutsRaw.map((w) => mapToContext(w, true))
     const tomorrowsWorkouts = tomorrowsWorkoutsRaw.map((w) => mapToContext(w, false))
+
+    // Map AI WODs to WorkoutContext and add to today's workouts
+    const aiWodContexts: WorkoutContext[] = todaysAiWods.map((wod) => ({
+      id: wod.id,
+      name: `AI-Pass: ${wod.title}`,
+      type: (wod.primarySport as WorkoutType) || 'STRENGTH',
+      intensity: wod.intensityAdjusted === 'RECOVERY' ? 'RECOVERY' :
+                 wod.intensityAdjusted === 'EASY' ? 'EASY' :
+                 wod.intensityAdjusted === 'HARD' ? 'THRESHOLD' :
+                 'MODERATE' as WorkoutIntensity,
+      duration: wod.actualDuration || wod.requestedDuration,
+      distance: null,
+      scheduledTime: wod.completedAt || wod.startedAt || wod.createdAt,
+      isToday: true,
+      isTomorrow: false,
+      daysUntil: 0,
+    }))
+
+    // Merge AI WODs with program workouts
+    const allTodaysWorkouts = [...todaysWorkouts, ...aiWodContexts]
 
     // Build generator input
     const input: GuidanceGeneratorInput = {
@@ -180,7 +215,7 @@ export async function GET() {
             secondarySports: client.sportProfile.secondarySports || [],
           }
         : null,
-      todaysWorkouts,
+      todaysWorkouts: allTodaysWorkouts,
       tomorrowsWorkouts,
       currentTime: now,
       bodyComposition: bodyComposition
@@ -198,7 +233,9 @@ export async function GET() {
     logger.info('Generated daily nutrition guidance', {
       clientId: client.id,
       isRestDay: guidance.isRestDay,
-      todaysWorkoutsCount: todaysWorkouts.length,
+      todaysWorkoutsCount: allTodaysWorkouts.length,
+      programWorkouts: todaysWorkouts.length,
+      aiWods: aiWodContexts.length,
       tipsCount: guidance.tips.length,
     })
 
