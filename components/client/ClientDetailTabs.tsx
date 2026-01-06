@@ -9,7 +9,7 @@ export type ClientDetailTab = 'overview' | 'calendar' | 'logs' | 'programs' | 't
 
 interface ClientDetailTabsProps {
   clientId: string
-  children: {
+  content: {
     overview: React.ReactNode
     calendar: React.ReactNode
     logs: React.ReactNode
@@ -27,7 +27,7 @@ const TAB_CONFIG: { value: ClientDetailTab; label: string; icon: React.ElementTy
   { value: 'tests', label: 'Tester', icon: TestTube },
 ]
 
-export function ClientDetailTabs({ clientId, children, defaultTab = 'overview' }: ClientDetailTabsProps) {
+export function ClientDetailTabs({ clientId, content, defaultTab = 'overview' }: ClientDetailTabsProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -74,23 +74,23 @@ export function ClientDetailTabs({ clientId, children, defaultTab = 'overview' }
 
       {/* Tab Content */}
       <TabsContent value="overview" className="mt-0">
-        {children.overview}
+        {content.overview}
       </TabsContent>
 
       <TabsContent value="calendar" className="mt-0">
-        {children.calendar}
+        {content.calendar}
       </TabsContent>
 
       <TabsContent value="logs" className="mt-0">
-        {children.logs}
+        {content.logs}
       </TabsContent>
 
       <TabsContent value="programs" className="mt-0">
-        {children.programs}
+        {content.programs}
       </TabsContent>
 
       <TabsContent value="tests" className="mt-0">
-        {children.tests}
+        {content.tests}
       </TabsContent>
     </Tabs>
   )

@@ -978,7 +978,7 @@ export default function ClientDetailPage() {
         <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>}>
           <ClientDetailTabs
             clientId={id}
-            children={{
+            content={{
               overview: overviewContent,
               calendar: calendarContent,
               logs: logsContent,

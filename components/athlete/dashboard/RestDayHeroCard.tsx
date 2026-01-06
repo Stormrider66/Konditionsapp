@@ -9,19 +9,25 @@
  * - Preview of next workout (if available)
  * - Recovery tips based on readiness
  * - Calming color scheme (blues/teals)
+ * - AI WOD (Workout of the Day) generation button
  */
 
 import Link from 'next/link'
-import { Moon, Sunrise, Heart, Battery, Calendar, ChevronRight, Sparkles } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Moon, Sunrise, Heart, Battery, Calendar, ChevronRight, Sparkles, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
-import { useMemo } from 'react'
+import { WODGeneratorModal, WODPreviewScreen } from '@/components/athlete/wod'
+import type { WODResponse } from '@/types/wod'
 
 interface RestDayHeroCardProps {
   nextWorkout: DashboardWorkoutWithContext | null
   readinessScore: number | null
   athleteName?: string
+  wodRemainingCount?: number
+  wodIsUnlimited?: boolean
 }
 
 // Recovery messages based on readiness score
@@ -115,9 +121,55 @@ function formatIntensity(intensity: string): string {
   return intensities[intensity] || intensity
 }
 
-export function RestDayHeroCard({ nextWorkout, readinessScore, athleteName }: RestDayHeroCardProps) {
+export function RestDayHeroCard({
+  nextWorkout,
+  readinessScore,
+  athleteName,
+  wodRemainingCount = 3,
+  wodIsUnlimited = false,
+}: RestDayHeroCardProps) {
   const message = useMemo(() => getRecoveryMessage(readinessScore), [readinessScore])
   const MessageIcon = message.icon
+
+  // WOD state
+  const [showWODModal, setShowWODModal] = useState(false)
+  const [wodResponse, setWodResponse] = useState<WODResponse | null>(null)
+  const [showWODPreview, setShowWODPreview] = useState(false)
+
+  const handleWODGenerated = (response: WODResponse) => {
+    setWodResponse(response)
+    setShowWODPreview(true)
+  }
+
+  const handleStartWOD = () => {
+    // Navigate to WOD execution page
+    if (wodResponse) {
+      window.location.href = `/athlete/wod/${wodResponse.metadata.requestId}`
+    }
+  }
+
+  const handleRegenerateWOD = () => {
+    setShowWODPreview(false)
+    setWodResponse(null)
+    setShowWODModal(true)
+  }
+
+  const handleClosePreview = () => {
+    setShowWODPreview(false)
+    setWodResponse(null)
+  }
+
+  // If showing WOD preview, render full-screen preview
+  if (showWODPreview && wodResponse) {
+    return (
+      <WODPreviewScreen
+        response={wodResponse}
+        onStart={handleStartWOD}
+        onRegenerate={handleRegenerateWOD}
+        onClose={handleClosePreview}
+      />
+    )
+  }
 
   return (
     <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden transition-all">
@@ -156,6 +208,23 @@ export function RestDayHeroCard({ nextWorkout, readinessScore, athleteName }: Re
               <Sparkles className="w-4 h-4 text-cyan-500 dark:text-cyan-400 mt-0.5 flex-shrink-0" />
               <span>{message.tip}</span>
             </p>
+          </div>
+
+          {/* WOD Button */}
+          <div className="mt-4">
+            <Button
+              onClick={() => setShowWODModal(true)}
+              disabled={!wodIsUnlimited && wodRemainingCount <= 0}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white border-0 shadow-lg shadow-orange-500/20"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              Skapa Dagens Pass
+              {!wodIsUnlimited && (
+                <Badge variant="secondary" className="ml-2 bg-white/20 text-white text-xs">
+                  {wodRemainingCount} kvar
+                </Badge>
+              )}
+            </Button>
           </div>
         </div>
 
@@ -221,6 +290,15 @@ export function RestDayHeroCard({ nextWorkout, readinessScore, athleteName }: Re
           </div>
         )}
       </div>
+
+      {/* WOD Generator Modal */}
+      <WODGeneratorModal
+        open={showWODModal}
+        onOpenChange={setShowWODModal}
+        onWODGenerated={handleWODGenerated}
+        remainingWODs={wodRemainingCount}
+        isUnlimited={wodIsUnlimited}
+      />
     </GlassCard>
   )
 }

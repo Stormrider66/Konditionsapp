@@ -456,6 +456,7 @@ model Client {
   aiConversations      AIConversation[]  @relation("AthleteConversations")
   videoAnalyses        VideoAnalysis[]   @relation("AthleteVideoAnalyses")
   bodyCompositions     BodyComposition[] @relation("ClientBodyComposition")
+  aiGeneratedWODs      AIGeneratedWOD[]  @relation("ClientWODs")
 
   // Gemini 3 Pro features
   audioJournals        AudioJournal[]
@@ -2830,6 +2831,68 @@ model AIGeneratedProgram {
   @@index([conversationId])
   @@index([programId])
   @@index([isSaved])
+}
+
+/// WOD (Workout of the Day) generation mode
+enum WODMode {
+  STRUCTURED  // Science-based, periodization-aware
+  CASUAL      // Lower pressure, flexible
+  FUN         // Variety-focused, gamified
+}
+
+/// WOD execution status
+enum WODStatus {
+  GENERATED   // Created but not started
+  STARTED     // In progress
+  COMPLETED   // Finished
+  ABANDONED   // Started but not finished
+}
+
+/// AI-generated Workout of the Day for athletes
+model AIGeneratedWOD {
+  id              String       @id @default(uuid())
+  clientId        String
+  client          Client       @relation("ClientWODs", fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Generation configuration
+  mode            WODMode      @default(STRUCTURED)
+  requestedDuration Int        @default(45)  // Minutes
+  equipment       String[]     @default([])
+  focusArea       String?      // "upper_body", "lower_body", "full_body", "cardio", "recovery"
+
+  // AI-generated content
+  title           String       // Swedish title
+  subtitle        String?      // Motivational tagline
+  description     String?      @db.Text  // What the workout targets
+  workoutJson     Json         // Full workout structure with sections/exercises
+  coachNotes      String?      @db.Text  // AI reasoning for the workout
+
+  // Context at generation time
+  readinessAtGeneration Float?
+  intensityAdjusted     String?  // "recovery", "easy", "moderate", "threshold"
+  guardrailsApplied     String[] @default([])  // E.g., "ACWR_WARNING", "INJURY_MODIFIED"
+  primarySport          String?  // Sport used for generation
+
+  // Execution tracking
+  status          WODStatus    @default(GENERATED)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  actualDuration  Int?         // Actual time taken (minutes)
+  sessionRPE      Int?         // 1-10 perceived effort
+  exerciseLogs    Json?        // Per-exercise completion data
+
+  // Usage & metrics
+  tokensUsed      Int?
+  generationTimeMs Int?
+  modelUsed       String?      // e.g., "claude-sonnet-4-5-20250929"
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([clientId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([mode])
 }
 
 /// Video analysis results (technique analysis using Gemini)
