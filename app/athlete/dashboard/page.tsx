@@ -403,8 +403,17 @@ export default async function AthleteDashboardPage() {
     return baseLinks
   }
 
-  // Hero Card Data
-  const heroWorkout = todaysWorkouts[0] || null
+  // Hero Card Data - prioritize incomplete workouts
+  const sortedTodaysWorkouts = [...todaysWorkouts].sort((a, b) => {
+    const aCompleted = a.logs && a.logs.length > 0 && a.logs[0].completed
+    const bCompleted = b.logs && b.logs.length > 0 && b.logs[0].completed
+    // Incomplete workouts come first
+    if (aCompleted && !bCompleted) return 1
+    if (!aCompleted && bCompleted) return -1
+    return 0
+  })
+  const heroWorkout = sortedTodaysWorkouts[0] || null
+  const remainingTodaysWorkouts = sortedTodaysWorkouts.slice(1)
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
@@ -474,9 +483,9 @@ export default async function AthleteDashboardPage() {
                 Let's show UpcomingWorkouts.
             */}
 
-          {/* Today&apos;s Workouts (If more than 1, show the rest) */}
-          {todaysWorkouts.length > 1 && (
-            <TodaysWorkouts workouts={todaysWorkouts.slice(1)} variant="glass" />
+          {/* Today&apos;s Workouts (If more than 1, show the rest - using sorted list) */}
+          {remainingTodaysWorkouts.length > 0 && (
+            <TodaysWorkouts workouts={remainingTodaysWorkouts} variant="glass" />
           )}
 
           {/* Upcoming Workouts */}

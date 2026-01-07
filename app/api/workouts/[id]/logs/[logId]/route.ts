@@ -60,15 +60,26 @@ export async function PUT(
       data: {
         completed: body.completed,
         completedAt: body.completedAt ? new Date(body.completedAt) : undefined,
+        // Time and distance
         duration: body.duration,
         distance: body.distance,
         avgPace: body.avgPace,
+        // Heart rate
         avgHR: body.avgHR,
         maxHR: body.maxHR,
+        // Cycling-specific power data
+        avgPower: body.avgPower,
+        normalizedPower: body.normalizedPower,
+        maxPower: body.maxPower,
+        avgCadence: body.avgCadence,
+        elevation: body.elevation,
+        tss: body.tss,
+        // Subjective feedback
         perceivedEffort: body.perceivedEffort,
         difficulty: body.difficulty,
         feeling: body.feeling,
         notes: body.notes,
+        // External links
         dataFileUrl: body.dataFileUrl,
         stravaUrl: body.stravaUrl,
         // Coaches can add feedback
