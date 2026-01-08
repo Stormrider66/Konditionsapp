@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAthlete } from '@/lib/auth-utils'
+import { logError } from '@/lib/logger-console'
 
 /**
  * POST /api/workouts/[id]/logs/[logId]/sets
@@ -65,7 +66,7 @@ export async function POST(
       data: setLog,
     })
   } catch (error) {
-    console.error('Error creating set log:', error)
+    logError('Error creating set log:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to create set log' },
       { status: 500 }
@@ -124,7 +125,7 @@ export async function GET(
       data: setLogs,
     })
   } catch (error) {
-    console.error('Error fetching set logs:', error)
+    logError('Error fetching set logs:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch set logs' },
       { status: 500 }

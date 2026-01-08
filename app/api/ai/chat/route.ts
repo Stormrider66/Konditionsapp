@@ -18,6 +18,8 @@ import { buildAthleteSystemPrompt } from '@/lib/ai/athlete-prompts';
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
 import { buildCalendarContext } from '@/lib/ai/calendar-context-builder';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 // Allow longer execution time for AI streaming responses (60 seconds)
 export const maxDuration = 60;
@@ -148,7 +150,7 @@ export async function POST(request: NextRequest) {
         calendarProgramStartDate = program?.startDate;
         calendarProgramEndDate = program?.endDate;
       } catch (error) {
-        console.error('Error fetching training program dates for calendar context:', error);
+        logger.warn('Error fetching training program dates for calendar context', {}, error)
       }
     } else {
       // Coach chat mode (existing flow)
@@ -156,6 +158,13 @@ export async function POST(request: NextRequest) {
       userId = user.id;
       apiKeyUserId = user.id; // Use own API keys
     }
+
+    // Rate limit AI chat per authenticated user (Redis-backed with in-memory fallback)
+    const rateLimited = await rateLimitJsonResponse('ai:chat', userId, {
+      limit: 20,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get API keys (either coach's own or athlete's coach's)
     const apiKeysRow = await prisma.userApiKey.findUnique({
@@ -184,7 +193,7 @@ export async function POST(request: NextRequest) {
         athleteContext = await buildAthleteOwnContext(athleteClientId);
         athleteSystemPrompt = buildAthleteSystemPrompt(athleteContext, athleteName);
       } catch (error) {
-        console.error('Error building athlete context:', error);
+        logger.warn('Error building athlete context', { athleteClientId }, error)
       }
     }
     // Coach chat mode: Use full context with athlete data
@@ -532,7 +541,7 @@ ${prog.goalRace ? `- **Mållopp**: ${prog.goalRace}` : ''}
           calendarContext = calendarData.contextText;
         }
       } catch (error) {
-        console.error('Error building calendar context:', error);
+        logger.warn('Error building calendar context', { athleteClientId: calendarAthleteId }, error)
       }
     }
 
@@ -571,7 +580,7 @@ ${c.content}
 `;
           }
         } catch (error) {
-          console.error('Error fetching document context:', error);
+          logger.warn('Error fetching document context', { documentCount: documentIds.length }, error)
         }
       }
     }
@@ -600,7 +609,7 @@ ${c.content}
             }
           }
         } catch (error) {
-          console.error('Web search error:', error);
+          logger.warn('Web search error', {}, error)
         }
       }
     }
@@ -669,7 +678,7 @@ ${pageContext}
       aiModel = google(geminiModel);
       // Note: Deep Think (thinkingLevel) is passed via providerOptions in streamText
       if (deepThinkEnabled) {
-        console.log(`Using Gemini Deep Think mode (${geminiModel} with thinkingLevel: high)`);
+        logger.info('Using Gemini Deep Think mode', { model: geminiModel })
       }
     } else if (provider === 'OPENAI' && decryptedKeys.openaiKey) {
       const openai = createOpenAI({
@@ -687,18 +696,20 @@ ${pageContext}
     // Convert UIMessage format to CoreMessage format for streamText
     const coreMessages = convertToCoreMessages(messages);
 
-    // Log request details for debugging
-    const firstContent = coreMessages[0]?.content;
-    console.log('AI Chat Request:', {
+    // Log metadata only (do not log message content)
+    logger.debug('AI chat request', {
       provider,
       model,
       isAthleteChat,
       athleteClientId: isAthleteChat ? athleteClientId : undefined,
       deepThinkEnabled: provider === 'GOOGLE' && deepThinkEnabled,
-      hasApiKey: !!decryptedKeys.anthropicKey || !!decryptedKeys.googleKey || !!decryptedKeys.openaiKey,
+      hasApiKey:
+        Boolean(decryptedKeys.anthropicKey || decryptedKeys.googleKey || decryptedKeys.openaiKey),
       messageCount: messages.length,
-      firstMessagePreview: typeof firstContent === 'string' ? firstContent.substring(0, 100) : '[non-text content]',
-    });
+      documentCount: documentIds.length,
+      webSearchEnabled,
+      hasConversationId: Boolean(conversationId),
+    })
 
     // Stream the response
     const result = streamText({
@@ -718,10 +729,14 @@ ${pageContext}
         },
       }),
       onError: (error) => {
-        console.error('Stream error during generation:', error);
+        logger.error('Stream error during generation', {}, error)
       },
       onFinish: async ({ text, usage }) => {
-        console.log('AI response finished:', { textLength: text?.length, usage });
+        logger.debug('AI response finished', {
+          textLength: text?.length,
+          usage,
+          hasConversationId: Boolean(conversationId),
+        })
         // Save to database if we have a conversation
         if (conversationId) {
           try {
@@ -760,7 +775,7 @@ ${pageContext}
               },
             });
           } catch (error) {
-            console.error('Error saving messages:', error);
+            logger.error('Error saving messages', { conversationId }, error)
           }
         }
       },
@@ -770,21 +785,14 @@ ${pageContext}
     try {
       // AI SDK 5: Use toUIMessageStreamResponse for DefaultChatTransport compatibility
       const response = result.toUIMessageStreamResponse();
-      console.log('Stream response created successfully');
+      logger.debug('Stream response created successfully')
       return response;
     } catch (streamError) {
-      console.error('Error creating stream response:', streamError);
+      logger.error('Error creating stream response', {}, streamError)
       throw streamError;
     }
   } catch (error) {
-    console.error('Chat streaming error:', error);
-
-    // Log detailed error info
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
+    logger.error('Chat streaming error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return new Response(

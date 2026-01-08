@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAthlete, canAccessClient } from '@/lib/auth-utils';
+import { logError } from '@/lib/logger-console'
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
       offset,
     });
   } catch (error) {
-    console.error('Error fetching Concept2 workouts:', error);
+    logError('Error fetching Concept2 workouts:', error);
     return NextResponse.json(
       { error: 'Failed to fetch workouts' },
       { status: 500 }

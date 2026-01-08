@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAthlete } from '@/lib/auth-utils'
 import { AssignmentStatus } from '@prisma/client'
+import { logError } from '@/lib/logger-console'
 
 /**
  * GET /api/athlete/strength-sessions
@@ -170,7 +171,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching strength sessions:', error)
+    logError('Error fetching strength sessions:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch strength sessions' },
       { status: 500 }

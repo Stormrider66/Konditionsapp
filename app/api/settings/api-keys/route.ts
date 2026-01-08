@@ -11,6 +11,8 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import OpenAI from 'openai';
 import { encryptIfPresent } from '@/lib/user-api-keys';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 interface ApiKeyStatus {
   provider: string;
@@ -29,6 +31,12 @@ interface SaveKeysRequest {
 export async function GET() {
   try {
     const user = await requireCoach();
+
+    const rateLimited = await rateLimitJsonResponse('settings:api-keys:get', user.id, {
+      limit: 60,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const apiKeys = await prisma.userApiKey.findUnique({
       where: { userId: user.id },
@@ -60,7 +68,7 @@ export async function GET() {
       keys: status,
     });
   } catch (error) {
-    console.error('Get API keys error:', error);
+    logger.error('Get API keys error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -77,6 +85,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+
+    const rateLimited = await rateLimitJsonResponse('settings:api-keys:save', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const body: SaveKeysRequest = await request.json();
     const { anthropicKey, googleKey, openaiKey } = body;
@@ -262,7 +276,7 @@ export async function POST(request: NextRequest) {
       validation: validationResults,
     });
   } catch (error) {
-    console.error('Save API keys error:', error);
+    logger.error('Save API keys error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -280,6 +294,12 @@ export async function DELETE() {
   try {
     const user = await requireCoach();
 
+    const rateLimited = await rateLimitJsonResponse('settings:api-keys:delete', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     await prisma.userApiKey.deleteMany({
       where: { userId: user.id },
     });
@@ -289,7 +309,7 @@ export async function DELETE() {
       message: 'All API keys removed',
     });
   } catch (error) {
-    console.error('Delete API keys error:', error);
+    logger.error('Delete API keys error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

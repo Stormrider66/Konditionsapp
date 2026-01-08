@@ -2,9 +2,10 @@
 // Predictive goals and race time predictions API endpoint
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { generatePredictiveGoals, predictRaceTimes, calculateTrainingReadiness } from '@/lib/ai/advanced-intelligence'
 import { logger } from '@/lib/logger'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 
 /**
  * GET /api/ai/advanced-intelligence/predictions
@@ -12,12 +13,17 @@ import { logger } from '@/lib/logger'
  */
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimited = await rateLimitJsonResponse('ai:advanced:predictions:get', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const { searchParams } = new URL(req.url)
     const clientId = searchParams.get('clientId')
@@ -31,6 +37,12 @@ export async function GET(req: NextRequest) {
         { error: 'clientId är obligatoriskt' },
         { status: 400 }
       )
+    }
+
+    // Prevent IDOR: ensure user can access this clientId
+    const allowed = await canAccessClient(user.id, clientId)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
     const result: Record<string, unknown> = {
@@ -59,7 +71,13 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error('Error generating predictions', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }
@@ -71,12 +89,17 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimited = await rateLimitJsonResponse('ai:advanced:predictions:post', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const body = await req.json()
     const { clientId, targetDistance, goalDate } = body
@@ -86,6 +109,12 @@ export async function POST(req: NextRequest) {
         { error: 'clientId och targetDistance är obligatoriska' },
         { status: 400 }
       )
+    }
+
+    // Prevent IDOR: ensure user can access this clientId
+    const allowed = await canAccessClient(user.id, clientId)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
     const validDistances = ['5K', '10K', 'HALF', 'MARATHON']
@@ -114,7 +143,13 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error('Error generating goal prediction', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }

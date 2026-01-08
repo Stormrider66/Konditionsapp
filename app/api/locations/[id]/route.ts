@@ -11,6 +11,7 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Validation schema for updating a location
 const updateLocationSchema = z.object({
@@ -109,7 +110,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     });
   } catch (error) {
-    console.error('Get location error:', error);
+    logError('Get location error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -186,7 +187,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ location });
   } catch (error) {
-    console.error('Update location error:', error);
+    logError('Update location error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -222,7 +223,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Delete location error:', error);
+    logError('Delete location error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

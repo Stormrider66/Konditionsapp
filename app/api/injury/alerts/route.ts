@@ -189,7 +189,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to fetch injury alerts',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
       },
       { status: 500 }
     )

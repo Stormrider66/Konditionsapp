@@ -15,6 +15,7 @@ import {
   calculateAvailability,
 } from '@/lib/calendar/availability-calculator'
 import { buildCalendarContext, shouldUseCalendarConstraints } from '@/lib/ai/calendar-context-builder'
+import { logError } from '@/lib/logger-console'
 
 /**
  * GET /api/calendar/constraints
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error('Calendar constraints error:', error)
+    logError('Calendar constraints error:', error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

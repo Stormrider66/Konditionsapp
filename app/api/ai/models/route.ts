@@ -11,6 +11,8 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 import {
   getAvailableModels,
   getDefaultModel,
@@ -23,6 +25,12 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimited = await rateLimitJsonResponse('ai:models:list', user.id, {
+      limit: 60,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Check if user is an athlete
     const athleteAccount = await prisma.athleteAccount.findUnique({
@@ -129,7 +137,7 @@ export async function GET() {
       defaultModelId: defaultModel?.id || null,
     })
   } catch (error) {
-    console.error('GET /api/ai/models error:', error)
+    logger.error('GET /api/ai/models error', {}, error)
     return NextResponse.json(
       { error: 'Failed to fetch AI models' },
       { status: 500 }

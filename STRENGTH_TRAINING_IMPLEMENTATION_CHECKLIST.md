@@ -407,7 +407,7 @@
 
 ### Exercise Instructions Modal
 - [ ] Create `components/athlete/strength/ExerciseInstructionsModal.tsx`
-- [ ] Video embed (YouTube/Vimeo)
+- [ ] Video embed (Vimeo/external)
 - [ ] Written instructions
 - [ ] Form cues
 - [ ] Common mistakes section

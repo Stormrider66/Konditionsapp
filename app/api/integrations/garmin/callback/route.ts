@@ -7,6 +7,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { exchangeGarminVerifier } from '@/lib/integrations/garmin/client';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
+import { encryptIntegrationSecret } from '@/lib/integrations/crypto';
+import { logger } from '@/lib/logger'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -27,7 +30,7 @@ export async function GET(request: NextRequest) {
 
   // Handle authorization denial
   if (!oauthToken || !oauthVerifier) {
-    console.error('Missing oauth_token or oauth_verifier in Garmin callback');
+    logger.warn('Missing oauth_token or oauth_verifier in Garmin callback')
     return NextResponse.redirect(
       `${APP_URL}/athlete/settings?error=garmin_invalid_callback`
     );
@@ -43,9 +46,24 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('state');
 
     if (!clientId) {
-      console.error('No client ID found for Garmin callback');
+      logger.warn('No client ID found for Garmin callback')
       return NextResponse.redirect(
         `${APP_URL}/athlete/settings?error=garmin_no_client`
+      );
+    }
+
+    // Verify user is authenticated and allowed to connect integrations for this client
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.redirect(
+        `${APP_URL}/login?redirect=${encodeURIComponent('/athlete/settings')}`
+      );
+    }
+
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.redirect(
+        `${APP_URL}/athlete/settings?error=garmin_forbidden`
       );
     }
 
@@ -66,8 +84,8 @@ export async function GET(request: NextRequest) {
         },
       },
       update: {
-        accessToken,
-        refreshToken: tokenSecret, // Store token secret here
+        accessToken: encryptIntegrationSecret(accessToken)!,
+        refreshToken: encryptIntegrationSecret(tokenSecret), // Store token secret here
         expiresAt: null, // Garmin tokens don't expire
         lastSyncError: null,
         syncEnabled: true,
@@ -75,21 +93,21 @@ export async function GET(request: NextRequest) {
       create: {
         clientId,
         type: 'GARMIN',
-        accessToken,
-        refreshToken: tokenSecret,
+        accessToken: encryptIntegrationSecret(accessToken)!,
+        refreshToken: encryptIntegrationSecret(tokenSecret),
         expiresAt: null,
         syncEnabled: true,
       },
     });
 
-    console.log(`Garmin connected for client ${clientId}`);
+    logger.info('Garmin connected', { clientId })
 
     // Redirect to success page
     return NextResponse.redirect(
       `${APP_URL}/athlete/settings?success=garmin_connected`
     );
   } catch (error) {
-    console.error('Garmin callback error:', error);
+    logger.error('Garmin callback error', {}, error)
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.redirect(

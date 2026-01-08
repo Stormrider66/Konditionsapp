@@ -17,11 +17,21 @@ import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { generateSimpleFocus, type WorkoutFocus } from '@/lib/hero-card'
+import { ModificationBanner } from '@/components/athlete/workouts/ModificationBanner'
 import { useMemo } from 'react'
+
+export interface WorkoutModification {
+  decision: 'PROCEED_NORMAL' | 'REDUCE_INTENSITY' | 'REDUCE_VOLUME' | 'EASY_DAY' | 'REST'
+  reasoning: string[]
+  intensityAdjustment?: number
+  volumeAdjustment?: number
+}
 
 interface HeroWorkoutCardProps {
   workout: DashboardWorkoutWithContext
   athleteName?: string
+  /** Workout modification from injury/readiness system (Gap 4 fix) */
+  modification?: WorkoutModification
 }
 
 // Map category/pillar to image paths
@@ -227,7 +237,7 @@ function formatVolume(volume: number): string {
   return `${Math.round(volume)} kg`
 }
 
-export function HeroWorkoutCard({ workout, athleteName }: HeroWorkoutCardProps) {
+export function HeroWorkoutCard({ workout, athleteName, modification }: HeroWorkoutCardProps) {
   // Generate focus if not already set
   const focus: WorkoutFocus = useMemo(() => {
     if (workout.heroTitle && workout.heroDescription && workout.heroCategory) {
@@ -274,6 +284,11 @@ export function HeroWorkoutCard({ workout, athleteName }: HeroWorkoutCardProps) 
       )}
 
       <div className="p-6 md:p-8 relative z-10 flex flex-col h-full justify-between min-h-[280px] md:min-h-[300px]">
+        {/* Modification Banner (Gap 4 fix) */}
+        {modification && modification.decision !== 'PROCEED_NORMAL' && (
+          <ModificationBanner modification={modification} />
+        )}
+
         <div>
           {/* Category Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 text-orange-700 dark:text-orange-400 text-xs font-bold uppercase tracking-wider mb-4 transition-colors">

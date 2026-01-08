@@ -8,10 +8,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAthlete } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createBillingPortalSession } from '@/lib/payments/stripe';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAthlete();
+
+    const rateLimited = await rateLimitJsonResponse('payments:athlete:portal', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get athlete's client record
     const athleteAccount = await prisma.athleteAccount.findUnique({
@@ -54,7 +62,7 @@ export async function POST(request: NextRequest) {
       portalUrl,
     });
   } catch (error) {
-    console.error('Create portal session error:', error);
+    logger.error('Create portal session error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

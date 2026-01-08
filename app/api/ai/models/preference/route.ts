@@ -9,10 +9,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getModelById } from '@/types/ai-models'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAthlete()
+
+    const rateLimited = await rateLimitJsonResponse('ai:model-preference:set', user.id, {
+      limit: 30,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     const { modelId } = await request.json()
 
     // Validate model exists
@@ -91,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, modelId })
   } catch (error) {
-    console.error('POST /api/ai/models/preference error:', error)
+    logger.error('POST /api/ai/models/preference error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -107,6 +116,12 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const user = await requireAthlete()
+
+    const rateLimited = await rateLimitJsonResponse('ai:model-preference:get', user.id, {
+      limit: 60,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get athlete's client ID
     const athleteAccount = await prisma.athleteAccount.findUnique({
@@ -132,7 +147,7 @@ export async function GET() {
       modelId: sportProfile?.preferredAIModelId || null,
     })
   } catch (error) {
-    console.error('GET /api/ai/models/preference error:', error)
+    logger.error('GET /api/ai/models/preference error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

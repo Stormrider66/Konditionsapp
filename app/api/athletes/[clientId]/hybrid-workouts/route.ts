@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAthlete } from '@/lib/auth-utils'
+import { logError } from '@/lib/logger-console'
 
 /**
  * GET /api/athletes/[clientId]/hybrid-workouts
@@ -94,7 +95,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error fetching athlete hybrid workouts:', error)
+    logError('Error fetching athlete hybrid workouts:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch workouts' },
       { status: 500 }

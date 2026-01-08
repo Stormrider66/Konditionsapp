@@ -1,6 +1,8 @@
 // lib/email/templates.ts
 // Email templates for Star by Thomson
 
+import { escapeHtml, sanitizeAttribute, sanitizeUrl } from '@/lib/sanitize'
+
 export type EmailLocale = 'sv' | 'en';
 
 interface BaseTemplateData {
@@ -15,10 +17,12 @@ interface WelcomeEmailData extends BaseTemplateData {
 
 export function getWelcomeEmailTemplate(data: WelcomeEmailData) {
   const { recipientName, loginUrl, locale = 'sv' } = data;
+  const safeRecipientName = escapeHtml(recipientName)
+  const safeLoginUrl = sanitizeAttribute(sanitizeUrl(loginUrl))
 
   const content = locale === 'sv' ? {
     subject: 'Välkommen till Star by Thomson!',
-    greeting: `Hej ${recipientName},`,
+    greeting: `Hej ${safeRecipientName},`,
     intro: 'Välkommen till Star by Thomson! Ditt konto har skapats och du kan nu börja använda plattformen.',
     features: [
       'Skapa och hantera konditionstester',
@@ -33,7 +37,7 @@ export function getWelcomeEmailTemplate(data: WelcomeEmailData) {
     team: 'Star by Thomson-teamet'
   } : {
     subject: 'Welcome to Star by Thomson!',
-    greeting: `Hi ${recipientName},`,
+    greeting: `Hi ${safeRecipientName},`,
     intro: 'Welcome to Star by Thomson! Your account has been created and you can now start using the platform.',
     features: [
       'Create and manage performance tests',
@@ -67,7 +71,7 @@ export function getWelcomeEmailTemplate(data: WelcomeEmailData) {
         </div>
 
         <div style="text-align: center; margin: 35px 0;">
-          <a href="${loginUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+          <a href="${safeLoginUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
             ${content.ctaText}
           </a>
         </div>
@@ -101,6 +105,9 @@ interface ReferralRewardEmailData extends BaseTemplateData {
 
 export function getReferralRewardEmailTemplate(data: ReferralRewardEmailData) {
   const { recipientName, referredUserName, rewardType, rewardValue, dashboardUrl, locale = 'sv' } = data;
+  const safeRecipientName = escapeHtml(recipientName)
+  const safeReferredUserName = escapeHtml(referredUserName)
+  const safeDashboardUrl = sanitizeAttribute(sanitizeUrl(dashboardUrl))
 
   const getRewardDescription = () => {
     if (locale === 'sv') {
@@ -124,9 +131,9 @@ export function getReferralRewardEmailTemplate(data: ReferralRewardEmailData) {
 
   const content = locale === 'sv' ? {
     subject: `Du har fått en värvningsbelöning!`,
-    greeting: `Hej ${recipientName}!`,
+    greeting: `Hej ${safeRecipientName}!`,
     intro: 'Fantastiska nyheter! Din värvning har slutförts och du har fått en belöning.',
-    referredText: `${referredUserName} har registrerat sig med din värvningskod.`,
+    referredText: `${safeReferredUserName} har registrerat sig med din värvningskod.`,
     rewardTitle: 'Din belöning:',
     reward: getRewardDescription(),
     ctaText: 'Gå till dashboard',
@@ -135,9 +142,9 @@ export function getReferralRewardEmailTemplate(data: ReferralRewardEmailData) {
     team: 'Star by Thomson-teamet'
   } : {
     subject: `You've earned a referral reward!`,
-    greeting: `Hi ${recipientName}!`,
+    greeting: `Hi ${safeRecipientName}!`,
     intro: 'Great news! Your referral has been completed and you\'ve earned a reward.',
-    referredText: `${referredUserName} has signed up using your referral code.`,
+    referredText: `${safeReferredUserName} has signed up using your referral code.`,
     rewardTitle: 'Your reward:',
     reward: getRewardDescription(),
     ctaText: 'Go to dashboard',
@@ -167,7 +174,7 @@ export function getReferralRewardEmailTemplate(data: ReferralRewardEmailData) {
         <p style="color: #555; font-size: 16px; text-align: center;">${content.claimText}</p>
 
         <div style="text-align: center; margin: 35px 0;">
-          <a href="${dashboardUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+          <a href="${safeDashboardUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
             ${content.ctaText}
           </a>
         </div>
@@ -199,10 +206,15 @@ interface SubscriptionEmailData extends BaseTemplateData {
 
 export function getSubscriptionConfirmationEmailTemplate(data: SubscriptionEmailData) {
   const { recipientName, planName, amount, nextBillingDate, dashboardUrl, locale = 'sv' } = data;
+  const safeRecipientName = escapeHtml(recipientName)
+  const safePlanName = escapeHtml(planName)
+  const safeAmount = escapeHtml(amount)
+  const safeNextBillingDate = escapeHtml(nextBillingDate)
+  const safeDashboardUrl = sanitizeAttribute(sanitizeUrl(dashboardUrl))
 
   const content = locale === 'sv' ? {
-    subject: `Bekräftelse på din ${planName}-prenumeration`,
-    greeting: `Hej ${recipientName},`,
+    subject: `Bekräftelse på din ${safePlanName}-prenumeration`,
+    greeting: `Hej ${safeRecipientName},`,
     intro: 'Tack för din prenumeration på Star by Thomson!',
     detailsTitle: 'Prenumerationsdetaljer:',
     plan: 'Plan',
@@ -213,8 +225,8 @@ export function getSubscriptionConfirmationEmailTemplate(data: SubscriptionEmail
     closing: 'Med vänliga hälsningar,',
     team: 'Star by Thomson-teamet'
   } : {
-    subject: `Confirmation of your ${planName} subscription`,
-    greeting: `Hi ${recipientName},`,
+    subject: `Confirmation of your ${safePlanName} subscription`,
+    greeting: `Hi ${safeRecipientName},`,
     intro: 'Thank you for subscribing to Star by Thomson!',
     detailsTitle: 'Subscription details:',
     plan: 'Plan',
@@ -242,21 +254,21 @@ export function getSubscriptionConfirmationEmailTemplate(data: SubscriptionEmail
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="padding: 10px 0; color: #888; border-bottom: 1px solid #eee;">${content.plan}</td>
-              <td style="padding: 10px 0; color: #333; font-weight: bold; text-align: right; border-bottom: 1px solid #eee;">${planName}</td>
+              <td style="padding: 10px 0; color: #333; font-weight: bold; text-align: right; border-bottom: 1px solid #eee;">${safePlanName}</td>
             </tr>
             <tr>
               <td style="padding: 10px 0; color: #888; border-bottom: 1px solid #eee;">${content.amountLabel}</td>
-              <td style="padding: 10px 0; color: #333; font-weight: bold; text-align: right; border-bottom: 1px solid #eee;">${amount}</td>
+              <td style="padding: 10px 0; color: #333; font-weight: bold; text-align: right; border-bottom: 1px solid #eee;">${safeAmount}</td>
             </tr>
             <tr>
               <td style="padding: 10px 0; color: #888;">${content.nextBilling}</td>
-              <td style="padding: 10px 0; color: #333; font-weight: bold; text-align: right;">${nextBillingDate}</td>
+              <td style="padding: 10px 0; color: #333; font-weight: bold; text-align: right;">${safeNextBillingDate}</td>
             </tr>
           </table>
         </div>
 
         <div style="text-align: center; margin: 35px 0;">
-          <a href="${dashboardUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+          <a href="${safeDashboardUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
             ${content.ctaText}
           </a>
         </div>
@@ -289,12 +301,16 @@ interface SubscriptionCancelledEmailData extends BaseTemplateData {
 
 export function getSubscriptionCancelledEmailTemplate(data: SubscriptionCancelledEmailData) {
   const { recipientName, planName, endDate, reactivateUrl, locale = 'sv' } = data;
+  const safeRecipientName = escapeHtml(recipientName)
+  const safePlanName = escapeHtml(planName)
+  const safeEndDate = escapeHtml(endDate)
+  const safeReactivateUrl = sanitizeAttribute(sanitizeUrl(reactivateUrl))
 
   const content = locale === 'sv' ? {
     subject: 'Din prenumeration har avslutats',
-    greeting: `Hej ${recipientName},`,
+    greeting: `Hej ${safeRecipientName},`,
     intro: 'Vi bekräftar att din prenumeration har avslutats.',
-    details: `Din ${planName}-plan kommer att vara aktiv till <strong>${endDate}</strong>. Efter detta datum kommer du att ha begränsad tillgång.`,
+    details: `Din ${safePlanName}-plan kommer att vara aktiv till <strong>${safeEndDate}</strong>. Efter detta datum kommer du att ha begränsad tillgång.`,
     missYou: 'Vi hoppas att du kommer tillbaka! Du kan när som helst återaktivera din prenumeration.',
     ctaText: 'Återaktivera prenumeration',
     feedbackText: 'Har du feedback? Vi skulle uppskatta att höra hur vi kan förbättra oss.',
@@ -302,9 +318,9 @@ export function getSubscriptionCancelledEmailTemplate(data: SubscriptionCancelle
     team: 'Star by Thomson-teamet'
   } : {
     subject: 'Your subscription has been cancelled',
-    greeting: `Hi ${recipientName},`,
+    greeting: `Hi ${safeRecipientName},`,
     intro: 'We confirm that your subscription has been cancelled.',
-    details: `Your ${planName} plan will remain active until <strong>${endDate}</strong>. After this date, you will have limited access.`,
+    details: `Your ${safePlanName} plan will remain active until <strong>${safeEndDate}</strong>. After this date, you will have limited access.`,
     missYou: 'We hope you\'ll come back! You can reactivate your subscription at any time.',
     ctaText: 'Reactivate subscription',
     feedbackText: 'Have feedback? We\'d love to hear how we can improve.',
@@ -330,7 +346,7 @@ export function getSubscriptionCancelledEmailTemplate(data: SubscriptionCancelle
         <p style="color: #555; font-size: 16px;">${content.missYou}</p>
 
         <div style="text-align: center; margin: 35px 0;">
-          <a href="${reactivateUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+          <a href="${safeReactivateUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
             ${content.ctaText}
           </a>
         </div>
@@ -363,12 +379,16 @@ interface PaymentFailedEmailData extends BaseTemplateData {
 
 export function getPaymentFailedEmailTemplate(data: PaymentFailedEmailData) {
   const { recipientName, amount, retryDate, updatePaymentUrl, locale = 'sv' } = data;
+  const safeRecipientName = escapeHtml(recipientName)
+  const safeAmount = escapeHtml(amount)
+  const safeRetryDate = escapeHtml(retryDate)
+  const safeUpdatePaymentUrl = sanitizeAttribute(sanitizeUrl(updatePaymentUrl))
 
   const content = locale === 'sv' ? {
     subject: 'Betalning misslyckades - Åtgärd krävs',
-    greeting: `Hej ${recipientName},`,
+    greeting: `Hej ${safeRecipientName},`,
     intro: 'Vi kunde tyvärr inte genomföra din senaste betalning.',
-    details: `Betalningen på <strong>${amount}</strong> kunde inte genomföras. Vi kommer att försöka igen <strong>${retryDate}</strong>.`,
+    details: `Betalningen på <strong>${safeAmount}</strong> kunde inte genomföras. Vi kommer att försöka igen <strong>${safeRetryDate}</strong>.`,
     action: 'För att undvika avbrott i din tjänst, uppdatera din betalningsmetod så snart som möjligt.',
     ctaText: 'Uppdatera betalningsmetod',
     helpText: 'Har du frågor? Kontakta oss så hjälper vi dig.',
@@ -376,9 +396,9 @@ export function getPaymentFailedEmailTemplate(data: PaymentFailedEmailData) {
     team: 'Star by Thomson-teamet'
   } : {
     subject: 'Payment failed - Action required',
-    greeting: `Hi ${recipientName},`,
+    greeting: `Hi ${safeRecipientName},`,
     intro: 'Unfortunately, we were unable to process your recent payment.',
-    details: `The payment of <strong>${amount}</strong> could not be completed. We will retry on <strong>${retryDate}</strong>.`,
+    details: `The payment of <strong>${safeAmount}</strong> could not be completed. We will retry on <strong>${safeRetryDate}</strong>.`,
     action: 'To avoid any interruption to your service, please update your payment method as soon as possible.',
     ctaText: 'Update payment method',
     helpText: 'Have questions? Contact us and we\'ll help you.',
@@ -404,7 +424,7 @@ export function getPaymentFailedEmailTemplate(data: PaymentFailedEmailData) {
         <p style="color: #555; font-size: 16px;">${content.action}</p>
 
         <div style="text-align: center; margin: 35px 0;">
-          <a href="${updatePaymentUrl}" style="background-color: #dc2626; color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+          <a href="${safeUpdatePaymentUrl}" style="background-color: #dc2626; color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
             ${content.ctaText}
           </a>
         </div>
@@ -437,11 +457,15 @@ interface ReferralInviteEmailData extends BaseTemplateData {
 
 export function getReferralInviteEmailTemplate(data: ReferralInviteEmailData) {
   const { recipientName, referrerName, signupUrl, benefit, locale = 'sv' } = data;
+  const safeRecipientName = escapeHtml(recipientName)
+  const safeReferrerName = escapeHtml(referrerName)
+  const safeBenefit = escapeHtml(benefit)
+  const safeSignupUrl = sanitizeAttribute(sanitizeUrl(signupUrl))
 
   const content = locale === 'sv' ? {
-    subject: `${referrerName} har bjudit in dig till Star by Thomson`,
-    greeting: recipientName ? `Hej ${recipientName},` : 'Hej!',
-    intro: `${referrerName} tycker att du skulle älska Star by Thomson och har bjudit in dig att prova plattformen.`,
+    subject: `${safeReferrerName} har bjudit in dig till Star by Thomson`,
+    greeting: safeRecipientName ? `Hej ${safeRecipientName},` : 'Hej!',
+    intro: `${safeReferrerName} tycker att du skulle älska Star by Thomson och har bjudit in dig att prova plattformen.`,
     benefitTitle: 'Du får:',
     aboutTitle: 'Om Star by Thomson',
     about: 'Star by Thomson är en komplett plattform för prestationstest och träningsplanering. Skapa konditionstester, generera professionella träningsprogram och övervaka idrottare med avancerad analys.',
@@ -449,9 +473,9 @@ export function getReferralInviteEmailTemplate(data: ReferralInviteEmailData) {
     closing: 'Vi ser fram emot att välkomna dig!',
     team: 'Star by Thomson-teamet'
   } : {
-    subject: `${referrerName} has invited you to Star by Thomson`,
-    greeting: recipientName ? `Hi ${recipientName},` : 'Hi!',
-    intro: `${referrerName} thinks you would love Star by Thomson and has invited you to try the platform.`,
+    subject: `${safeReferrerName} has invited you to Star by Thomson`,
+    greeting: safeRecipientName ? `Hi ${safeRecipientName},` : 'Hi!',
+    intro: `${safeReferrerName} thinks you would love Star by Thomson and has invited you to try the platform.`,
     benefitTitle: 'You get:',
     aboutTitle: 'About Star by Thomson',
     about: 'Star by Thomson is a complete platform for performance testing and training planning. Create performance tests, generate professional training programs, and monitor athletes with advanced analytics.',
@@ -473,7 +497,7 @@ export function getReferralInviteEmailTemplate(data: ReferralInviteEmailData) {
 
         <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 20px; border-radius: 12px; margin: 25px 0; text-align: center;">
           <p style="color: white; margin: 0 0 5px 0; font-size: 14px;">${content.benefitTitle}</p>
-          <p style="color: white; margin: 0; font-size: 20px; font-weight: bold;">${benefit}</p>
+          <p style="color: white; margin: 0; font-size: 20px; font-weight: bold;">${safeBenefit}</p>
         </div>
 
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
@@ -482,7 +506,7 @@ export function getReferralInviteEmailTemplate(data: ReferralInviteEmailData) {
         </div>
 
         <div style="text-align: center; margin: 35px 0;">
-          <a href="${signupUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 18px;">
+          <a href="${safeSignupUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 18px;">
             ${content.ctaText}
           </a>
         </div>

@@ -7,10 +7,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { createCoachBillingPortalSession } from '@/lib/payments/coach-stripe';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+
+    const rateLimited = await rateLimitJsonResponse('payments:coach:portal', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Build return URL
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -24,7 +32,7 @@ export async function POST(request: NextRequest) {
       url: portalUrl,
     });
   } catch (error) {
-    console.error('Coach billing portal error:', error);
+    logger.error('Coach billing portal error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

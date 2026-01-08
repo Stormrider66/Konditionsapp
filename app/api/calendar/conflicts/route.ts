@@ -13,6 +13,7 @@ import {
   detectConflictsInRange,
 } from '@/lib/calendar/conflict-detection'
 import { z } from 'zod'
+import { logError } from '@/lib/logger-console'
 
 /**
  * GET /api/calendar/conflicts
@@ -101,7 +102,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error detecting conflicts:', error)
+    logError('Error detecting conflicts:', error)
     return NextResponse.json({ error: 'Failed to detect conflicts' }, { status: 500 })
   }
 }
@@ -209,7 +210,7 @@ export async function POST(request: NextRequest) {
       targetDate: new Date(targetDate).toISOString(),
     })
   } catch (error) {
-    console.error('Error checking conflicts:', error)
+    logError('Error checking conflicts:', error)
     return NextResponse.json({ error: 'Failed to check conflicts' }, { status: 500 })
   }
 }

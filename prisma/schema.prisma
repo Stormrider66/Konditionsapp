@@ -283,8 +283,6 @@ model User {
   receivedMessages  Message[]         @relation("ReceivedMessages")
   athleteAccount    AthleteAccount?
   subscription      Subscription?
-  videoImports      VideoImport[]
-
   // AI Studio relations
   coachDocuments    CoachDocument[]   @relation("CoachDocuments")
   aiConversations   AIConversation[]  @relation("CoachConversations")
@@ -481,6 +479,7 @@ model Client {
   athleteSubscription  AthleteSubscription?
   integrationTokens    IntegrationToken[]
   stravaActivities     StravaActivity[]
+  garminActivities     GarminActivity[]
   concept2Results      Concept2Result[]
 
   // VBT (Velocity-Based Training) relations
@@ -1059,6 +1058,70 @@ model StravaActivity {
   // Detailed data (JSON)
   splitsMetric           Json?           // Kilometer splits
   laps                   Json?           // Lap data
+
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  client                 Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([startDate])
+  @@index([type])
+  @@index([mappedType])
+}
+
+/// Garmin Connect synced activities (Gap 5 fix - normalizes Garmin data like Strava)
+model GarminActivity {
+  id                     String          @id @default(uuid())
+  clientId               String
+  garminActivityId       BigInt          @unique  // Garmin activity ID (can be large)
+
+  // Basic activity info
+  name                   String?
+  type                   String          // Garmin activity type (RUNNING, CYCLING, etc.)
+  startDate              DateTime
+  description            String?         @db.Text
+
+  // Metrics
+  distance               Float?          // meters
+  duration               Int?            // seconds (movingTime equivalent)
+  elapsedTime            Int?            // seconds (total elapsed time)
+  elevationGain          Float?          // meters
+  averageSpeed           Float?          // m/s
+  maxSpeed               Float?          // m/s
+
+  // Heart rate
+  averageHeartrate       Float?
+  maxHeartrate           Float?
+
+  // Cadence
+  averageCadence         Float?
+
+  // Power (cycling)
+  averageWatts           Float?
+  normalizedPower        Float?
+  maxWatts               Float?
+
+  // Garmin-specific scores
+  trainingEffect         Float?          // Garmin Training Effect (0-5 scale)
+  anaerobicEffect        Float?          // Garmin Anaerobic Training Effect
+  calories               Float?
+
+  // Activity flags
+  indoor                 Boolean         @default(false)
+  manual                 Boolean         @default(false)
+
+  // Calculated metrics
+  tss                    Float?          // Training Stress Score
+  trimp                  Float?          // Training Impulse
+
+  // Mapped to our internal types
+  mappedType             String?         // RUNNING, CYCLING, STRENGTH, etc.
+  mappedIntensity        String?         // EASY, MODERATE, HARD
+
+  // Detailed data (JSON)
+  laps                   Json?           // Lap data from Garmin
+  splits                 Json?           // Split data
 
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
@@ -2538,61 +2601,6 @@ model SportPerformance {
   @@index([clientId, eventType])
   @@index([sport, eventDate])
   @@index([clientId, isPR])
-}
-
-// ============================================
-// VIDEO IMPORT MODELS
-// Added: 2025-01-25
-// Purpose: Import exercise videos from YouTube playlists with auto-matching
-// ============================================
-
-model VideoImport {
-  id              String    @id @default(uuid())
-  userId          String    // Coach who initiated the import
-  playlistId      String    // YouTube playlist ID
-  playlistTitle   String?   // YouTube playlist title
-  playlistUrl     String?   // Full YouTube playlist URL
-  status          String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
-  errorMessage    String?   // Error message if failed
-  totalVideos     Int       @default(0)
-  matchedVideos   Int       @default(0)
-  appliedVideos   Int       @default(0)
-  createdAt       DateTime  @default(now())
-  completedAt     DateTime?
-
-  user            User         @relation(fields: [userId], references: [id])
-  matches         VideoMatch[]
-
-  @@index([userId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model VideoMatch {
-  id            String    @id @default(uuid())
-  importId      String
-  videoId       String    // YouTube video ID
-  videoTitle    String    // Original YouTube video title
-  videoUrl      String    // Full YouTube video URL
-  thumbnailUrl  String?   // YouTube thumbnail URL
-  duration      String?   // Video duration (e.g., "2:30")
-
-  exerciseId    String?   // Matched exercise ID (null if unmatched)
-  exerciseName  String?   // Cached exercise name for display
-  matchScore    Float?    // Match confidence 0.0 - 1.0
-  matchMethod   String?   // EXACT, FUZZY, MANUAL
-  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED, APPLIED
-
-  appliedAt     DateTime? // When video was applied to exercise
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  import        VideoImport @relation(fields: [importId], references: [id], onDelete: Cascade)
-
-  @@index([importId])
-  @@index([exerciseId])
-  @@index([status])
-  @@index([matchScore])
 }
 
 // ============================================

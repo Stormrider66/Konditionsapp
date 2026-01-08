@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { parseAIProgram, convertToDbFormat, validateProgramCompleteness } from '@/lib/ai/program-parser';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 type ProgramType = 'MAIN' | 'COMPLEMENTARY';
 type ExistingProgramAction = 'KEEP' | 'DEACTIVATE' | 'REPLACE';
@@ -26,6 +28,12 @@ interface SaveProgramRequest {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+
+    const rateLimited = await rateLimitJsonResponse('ai:save-program', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const body: SaveProgramRequest = await request.json();
     const {
@@ -258,7 +266,7 @@ export async function POST(request: NextRequest) {
           notificationSent = true;
         }
       } catch (notifyError) {
-        console.error('Failed to send notification:', notifyError);
+        logger.warn('Failed to send notification', { clientId }, notifyError)
         // Don't fail the request if notification fails
       }
     }
@@ -273,7 +281,7 @@ export async function POST(request: NextRequest) {
       }`,
     });
   } catch (error) {
-    console.error('Save program error:', error);
+    logger.error('Save program error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json(
@@ -285,7 +293,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to save program',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message:
+          process.env.NODE_ENV === 'production'
+            ? 'Internal server error'
+            : (error instanceof Error ? error.message : 'Unknown error'),
       },
       { status: 500 }
     );

@@ -3,10 +3,12 @@
 // Supports both algorithmic and Gemini 3 Pro Deep Think analysis
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { analyzePeriodization } from '@/lib/ai/advanced-intelligence'
 import { analyzeWithDeepThink } from '@/lib/ai/deep-think-periodization'
 import { logger } from '@/lib/logger'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { canAccessClient, canAccessProgram, getCurrentUser } from '@/lib/auth-utils'
+import { prisma } from '@/lib/prisma'
 
 /**
  * GET /api/ai/advanced-intelligence/periodization
@@ -20,12 +22,17 @@ import { logger } from '@/lib/logger'
  */
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimited = await rateLimitJsonResponse('ai:advanced:periodization', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const { searchParams } = new URL(req.url)
     const clientId = searchParams.get('clientId')
@@ -38,6 +45,27 @@ export async function GET(req: NextRequest) {
         { error: 'clientId är obligatoriskt' },
         { status: 400 }
       )
+    }
+
+    // Prevent IDOR: ensure user can access this clientId
+    const allowed = await canAccessClient(user.id, clientId)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+
+    // If a programId is provided, ensure it's accessible and belongs to the same client
+    if (programId) {
+      const programAllowed = await canAccessProgram(user.id, programId)
+      if (!programAllowed) {
+        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+      }
+      const program = await prisma.trainingProgram.findUnique({
+        where: { id: programId },
+        select: { clientId: true },
+      })
+      if (!program || program.clientId !== clientId) {
+        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+      }
     }
 
     // Use Deep Think for complex AI-powered analysis
@@ -81,7 +109,13 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error('Error analyzing periodization', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }
@@ -93,12 +127,17 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimited = await rateLimitJsonResponse('ai:advanced:periodization:post', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const body = await req.json()
     const { clientId, programId, applyAdjustments } = body
@@ -108,6 +147,27 @@ export async function POST(req: NextRequest) {
         { error: 'clientId är obligatoriskt' },
         { status: 400 }
       )
+    }
+
+    // Prevent IDOR: ensure user can access this clientId
+    const allowed = await canAccessClient(user.id, clientId)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+
+    // If a programId is provided, ensure it's accessible and belongs to the same client
+    if (programId) {
+      const programAllowed = await canAccessProgram(user.id, programId)
+      if (!programAllowed) {
+        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+      }
+      const program = await prisma.trainingProgram.findUnique({
+        where: { id: programId },
+        select: { clientId: true },
+      })
+      if (!program || program.clientId !== clientId) {
+        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+      }
     }
 
     const analysis = await analyzePeriodization(clientId, programId)
@@ -127,7 +187,13 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error('Error processing periodization adjustments', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }

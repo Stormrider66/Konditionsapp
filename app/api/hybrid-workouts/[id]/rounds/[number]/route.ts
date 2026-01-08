@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAthlete } from '@/lib/auth-utils'
 import type { Prisma } from '@prisma/client'
+import { logError } from '@/lib/logger-console'
 
 interface MovementLog {
   movementId: string
@@ -149,7 +150,7 @@ export async function PUT(
       },
     })
   } catch (error) {
-    console.error('Error logging hybrid round:', error)
+    logError('Error logging hybrid round:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to log round' },
       { status: 500 }
@@ -229,7 +230,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error fetching round details:', error)
+    logError('Error fetching round details:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch round' },
       { status: 500 }

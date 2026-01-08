@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { logError } from '@/lib/logger-console'
 
 interface UpdateDocumentRequest {
   name?: string;
@@ -54,7 +55,7 @@ export async function GET(
       document,
     });
   } catch (error) {
-    console.error('Get document error:', error);
+    logError('Get document error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -107,7 +108,7 @@ export async function PUT(
       document,
     });
   } catch (error) {
-    console.error('Update document error:', error);
+    logError('Update document error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -154,7 +155,7 @@ export async function DELETE(
       message: 'Document and all associated chunks deleted',
     });
   } catch (error) {
-    console.error('Delete document error:', error);
+    logError('Delete document error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

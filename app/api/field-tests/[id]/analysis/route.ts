@@ -18,10 +18,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-
-const prisma = new PrismaClient()
 
 interface ThirtyMinTTAnalysis {
   testType: '30_MIN_TT'
@@ -404,6 +404,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth()
     const { id: testId } = await params
 
     // Get field test
@@ -416,6 +417,11 @@ export async function GET(
 
     if (!test) {
       return NextResponse.json({ error: 'Field test not found' }, { status: 404 })
+    }
+
+    const hasAccess = await canAccessClient(user.id, test.clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Analyze based on test type
@@ -444,11 +450,6 @@ export async function GET(
       analysis,
     })
   } catch (error: unknown) {
-    logger.error('Error analyzing field test', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

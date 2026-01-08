@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { HybridFormat, ScalingLevel } from '@prisma/client';
+import { logError } from '@/lib/logger-console'
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(workout);
   } catch (error) {
-    console.error('Error fetching hybrid workout:', error);
+    logError('Error fetching hybrid workout:', error);
     return NextResponse.json(
       { error: 'Failed to fetch hybrid workout' },
       { status: 500 }
@@ -223,7 +224,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(workout);
   } catch (error) {
-    console.error('Error updating hybrid workout:', error);
+    logError('Error updating hybrid workout:', error);
     return NextResponse.json(
       { error: 'Failed to update hybrid workout' },
       { status: 500 }
@@ -257,7 +258,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting hybrid workout:', error);
+    logError('Error deleting hybrid workout:', error);
     return NextResponse.json(
       { error: 'Failed to delete hybrid workout' },
       { status: 500 }

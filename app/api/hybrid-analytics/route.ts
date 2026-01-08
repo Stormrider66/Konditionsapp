@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-utils';
+import { logError } from '@/lib/logger-console'
 
 // GET /api/hybrid-analytics - Get workout analytics
 // Query params: athleteId (optional for coaches), dateFrom, dateTo, workoutId
@@ -117,7 +118,7 @@ export async function GET(request: NextRequest) {
       benchmarkProgress,
     });
   } catch (error) {
-    console.error('Error fetching analytics:', error);
+    logError('Error fetching analytics:', error);
     return NextResponse.json(
       { error: 'Failed to fetch analytics' },
       { status: 500 }

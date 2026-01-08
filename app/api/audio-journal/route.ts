@@ -9,7 +9,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAthlete, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@supabase/supabase-js';
-import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
+import { normalizeStoragePath } from '@/lib/storage/supabase-storage';
+import { createSignedUrl } from '@/lib/storage/supabase-storage-server';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,8 +28,15 @@ export async function POST(request: NextRequest) {
     let user;
     let clientId: string;
 
+    const formData = await request.formData();
+
     try {
       user = await requireAthlete();
+      const rateLimited = await rateLimitJsonResponse('audio-journal:upload', user.id, {
+        limit: 10,
+        windowSeconds: 60,
+      })
+      if (rateLimited) return rateLimited
       // Athlete uploading for themselves
       const athleteAccount = await prisma.athleteAccount.findUnique({
         where: { userId: user.id },
@@ -39,7 +49,11 @@ export async function POST(request: NextRequest) {
     } catch {
       // Try as coach
       user = await requireCoach();
-      const formData = await request.formData();
+      const rateLimited = await rateLimitJsonResponse('audio-journal:upload', user.id, {
+        limit: 10,
+        windowSeconds: 60,
+      })
+      if (rateLimited) return rateLimited
       clientId = formData.get('clientId') as string;
       if (!clientId) {
         return NextResponse.json({ error: 'clientId required for coach uploads' }, { status: 400 });
@@ -54,7 +68,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const formData = await request.formData();
     const audioFile = formData.get('audio') as File;
     const duration = parseInt(formData.get('duration') as string) || 0;
 
@@ -95,7 +108,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('Supabase upload error:', uploadError);
+      logger.error('Audio journal upload: Supabase upload error', {}, uploadError)
       return NextResponse.json(
         { error: 'Failed to upload audio file' },
         { status: 500 }
@@ -124,7 +137,7 @@ export async function POST(request: NextRequest) {
       audioUrl: signedUrl,
     });
   } catch (error) {
-    console.error('Audio journal upload error:', error);
+    logger.error('Audio journal upload error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -140,6 +153,11 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const rateLimited = await rateLimitJsonResponse('audio-journal:list', user.id, {
+      limit: 60,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
 
@@ -187,7 +205,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ journals: signedJournals });
   } catch (error) {
-    console.error('Audio journal list error:', error);
+    logger.error('Audio journal list error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

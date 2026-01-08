@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { searchSimilarChunks, getUserOpenAIKey } from '@/lib/ai/embeddings';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger'
 
 interface ContextRequest {
   query: string;
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Context building error:', error);
+    logger.error('Context building error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -138,7 +139,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to build context',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message:
+          process.env.NODE_ENV === 'production'
+            ? 'Internal server error'
+            : (error instanceof Error ? error.message : 'Unknown error'),
       },
       { status: 500 }
     );

@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import {
   getConcept2AuthUrl,
@@ -15,6 +15,7 @@ import {
   disconnectConcept2,
 } from '@/lib/integrations/concept2';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Schema for POST request
 const initiateAuthSchema = z.object({
@@ -39,6 +40,12 @@ export async function GET(request: NextRequest) {
         { error: 'clientId is required' },
         { status: 400 }
       );
+    }
+
+    // Access control
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Check if connected
@@ -112,7 +119,7 @@ export async function GET(request: NextRequest) {
       latestResult,
     });
   } catch (error) {
-    console.error('Get Concept2 status error:', error);
+    logError('Get Concept2 status error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -148,17 +155,10 @@ export async function POST(request: NextRequest) {
 
     const { clientId } = validationResult.data;
 
-    // Verify client exists
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { id: true },
-    });
-
-    if (!client) {
-      return NextResponse.json(
-        { error: 'Client not found' },
-        { status: 404 }
-      );
+    // Access control (also verifies client existence for this user)
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Check if already connected
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ authUrl });
   } catch (error) {
-    console.error('Initiate Concept2 auth error:', error);
+    logError('Initiate Concept2 auth error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -208,6 +208,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Access control
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Disconnect from Concept2 (token only - keeps results)
     await disconnectConcept2(clientId);
 
@@ -219,7 +225,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Concept2 disconnected. Historical results have been preserved.',
     });
   } catch (error) {
-    console.error('Disconnect Concept2 error:', error);
+    logError('Disconnect Concept2 error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

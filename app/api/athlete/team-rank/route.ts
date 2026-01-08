@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAthlete, canAccessClient } from '@/lib/auth-utils';
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
+import { logError } from '@/lib/logger-console'
 import {
   calculateLeaderboard,
   getAthleteRank,
@@ -180,7 +181,7 @@ export async function GET(request: NextRequest) {
       data: { rankings },
     });
   } catch (error) {
-    console.error('Error fetching team rank:', error);
+    logError('Error fetching team rank:', error);
     return NextResponse.json(
       { error: 'Failed to fetch team rank' },
       { status: 500 }

@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { DocumentType } from '@prisma/client';
+import { logError } from '@/lib/logger-console'
 
 interface CreateDocumentRequest {
   name: string;
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
       count: transformedDocuments.length,
     });
   } catch (error) {
-    console.error('List documents error:', error);
+    logError('List documents error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Create document error:', error);
+    logError('Create document error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

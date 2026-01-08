@@ -5,6 +5,8 @@
  * for athlete subscriptions with support for revenue sharing.
  */
 
+import 'server-only';
+
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { AthleteSubscriptionTier, SubscriptionStatus } from '@prisma/client';

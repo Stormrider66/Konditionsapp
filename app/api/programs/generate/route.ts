@@ -8,6 +8,7 @@ import { getProgramStartDate, getProgramEndDate } from '@/lib/program-generator/
 import { requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { WorkoutType, WorkoutIntensity, SportType } from '@prisma/client'
+import { logDebug, logError } from '@/lib/logger-console'
 import {
   getGeneralFitnessProgram,
   getProgramDescription,
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     // ========================================
     // If `sport` is provided, use the new sport router
     if (body.sport && Object.values(SportType).includes(body.sport as SportType)) {
-      console.log(`[API] Using sport router for sport: ${body.sport}`)
+      logDebug(`[API] Using sport router for sport: ${body.sport}`)
 
       // Fetch client
       const client = await prisma.client.findUnique({
@@ -616,10 +617,10 @@ export async function POST(request: NextRequest) {
     logger.error('Error generating program', {}, error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     const errorStack = error instanceof Error ? error.stack : ''
-    console.error('=== PROGRAM GENERATION ERROR ===')
-    console.error('Error message:', errorMessage)
-    console.error('Error stack:', errorStack)
-    console.error('================================')
+    logError('=== PROGRAM GENERATION ERROR ===')
+    logError('Error message:', errorMessage)
+    logError('Error stack:', errorStack)
+    logError('================================')
     return NextResponse.json(
       {
         success: false,

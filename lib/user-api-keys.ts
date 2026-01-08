@@ -1,3 +1,4 @@
+import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { decryptSecret, encryptSecret } from '@/lib/crypto/secretbox'
 

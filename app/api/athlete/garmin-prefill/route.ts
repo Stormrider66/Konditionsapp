@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { logError } from '@/lib/logger-console'
 
 interface GarminPrefillData {
   available: boolean
@@ -226,7 +227,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(prefillData)
   } catch (error) {
-    console.error('Error fetching Garmin prefill data:', error)
+    logError('Error fetching Garmin prefill data:', error)
     return NextResponse.json({ error: 'Failed to fetch Garmin data' }, { status: 500 })
   }
 }

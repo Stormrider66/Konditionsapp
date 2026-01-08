@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
+import { logError } from '@/lib/logger-console'
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ assignments });
   } catch (error) {
-    console.error('Error fetching assignments:', error);
+    logError('Error fetching assignments:', error);
     return NextResponse.json(
       { error: 'Failed to fetch assignments' },
       { status: 500 }
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ assignments }, { status: 201 });
   } catch (error) {
-    console.error('Error creating assignments:', error);
+    logError('Error creating assignments:', error);
     return NextResponse.json(
       { error: 'Failed to create assignments' },
       { status: 500 }

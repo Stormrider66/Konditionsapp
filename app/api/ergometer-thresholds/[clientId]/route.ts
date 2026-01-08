@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api/utils'
 import { ErgometerType } from '@prisma/client'
+import { logError } from '@/lib/logger-console'
 
 // Query params schema
 const querySchema = z.object({
@@ -135,7 +136,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error fetching ergometer thresholds:', error)
+    logError('Error fetching ergometer thresholds:', error)
     return errorResponse('Failed to fetch ergometer thresholds', 500)
   }
 }

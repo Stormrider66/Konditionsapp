@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { AIProvider } from '@prisma/client'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 
 interface CreateConversationRequest {
   modelUsed: string
@@ -23,6 +25,12 @@ interface CreateConversationRequest {
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach()
+
+    const rateLimited = await rateLimitJsonResponse('ai:conversations:list', user.id, {
+      limit: 60,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'ACTIVE'
@@ -65,7 +73,7 @@ export async function GET(request: NextRequest) {
       conversations,
     })
   } catch (error) {
-    console.error('List conversations error:', error)
+    logger.error('List conversations error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -82,6 +90,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
+
+    const rateLimited = await rateLimitJsonResponse('ai:conversations:create', user.id, {
+      limit: 20,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const body: CreateConversationRequest = await request.json()
     const {
@@ -163,7 +177,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('Create conversation error:', error)
+    logger.error('Create conversation error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

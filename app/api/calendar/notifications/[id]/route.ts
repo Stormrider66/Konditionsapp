@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { logError } from '@/lib/logger-console'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
     })
   } catch (error) {
-    console.error('Error fetching notification:', error)
+    logError('Error fetching notification:', error)
     return NextResponse.json({ error: 'Failed to fetch notification' }, { status: 500 })
   }
 }
@@ -177,7 +178,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       },
     })
   } catch (error) {
-    console.error('Error updating notification:', error)
+    logError('Error updating notification:', error)
     return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 })
   }
 }

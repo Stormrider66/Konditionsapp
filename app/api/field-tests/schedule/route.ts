@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach, canAccessClient } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { logError } from '@/lib/logger-console'
 
 const scheduleTestSchema = z.object({
   clientId: z.string().uuid(),
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
       message: 'Testet har schemalagts',
     })
   } catch (error) {
-    console.error('Error scheduling field test:', error)
+    logError('Error scheduling field test:', error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -153,7 +154,7 @@ export async function GET(request: NextRequest) {
       schedules,
     })
   } catch (error) {
-    console.error('Error fetching scheduled tests:', error)
+    logError('Error fetching scheduled tests:', error)
     return NextResponse.json(
       { success: false, error: 'Kunde inte hämta schemalagda tester' },
       { status: 500 }

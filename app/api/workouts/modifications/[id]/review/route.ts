@@ -105,7 +105,10 @@ export async function PUT(
     return NextResponse.json(
       {
         error: 'Failed to review workout modification',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
       },
       { status: 500 }
     )

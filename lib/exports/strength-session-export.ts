@@ -4,7 +4,7 @@
  * Generates PDF and Excel exports for strength training sessions.
  */
 
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import { jsPDF } from 'jspdf'
 
 export interface StrengthExercise {
@@ -29,8 +29,10 @@ export interface StrengthSessionData {
 /**
  * Generate Excel workbook for a strength session
  */
-export function generateStrengthSessionExcel(data: StrengthSessionData): Blob {
-  const workbook = XLSX.utils.book_new()
+export async function generateStrengthSessionExcel(data: StrengthSessionData): Promise<Blob> {
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'Star by Thomson'
+  workbook.created = new Date()
 
   // Info Sheet
   const infoData: (string | number)[][] = [
@@ -49,9 +51,11 @@ export function generateStrengthSessionExcel(data: StrengthSessionData): Blob {
     ['Uppskattad tid', `${data.exercises.reduce((acc, ex) => acc + (ex.sets * (2 + ex.rest / 60)), 10).toFixed(0)} min`],
   ]
 
-  const infoSheet = XLSX.utils.aoa_to_sheet(infoData)
-  infoSheet['!cols'] = [{ wch: 20 }, { wch: 30 }]
-  XLSX.utils.book_append_sheet(workbook, infoSheet, 'Info')
+  const infoSheet = workbook.addWorksheet('Info')
+  infoSheet.addRows(infoData)
+  infoSheet.columns = [{ width: 20 }, { width: 30 }]
+  infoSheet.getRow(1).font = { bold: true }
+  infoSheet.getColumn(2).alignment = { wrapText: true, vertical: 'top' }
 
   // Exercises Sheet
   const exerciseData: (string | number)[][] = [
@@ -70,20 +74,23 @@ export function generateStrengthSessionExcel(data: StrengthSessionData): Blob {
     ])
   })
 
-  const exerciseSheet = XLSX.utils.aoa_to_sheet(exerciseData)
-  exerciseSheet['!cols'] = [
-    { wch: 5 },   // #
-    { wch: 30 },  // Övning
-    { wch: 8 },   // Set
-    { wch: 10 },  // Reps
-    { wch: 12 },  // Belastning
-    { wch: 10 },  // Vila
-    { wch: 30 },  // Anteckningar
+  const exerciseSheet = workbook.addWorksheet('Övningar')
+  exerciseSheet.addRows(exerciseData)
+  exerciseSheet.columns = [
+    { width: 5 },   // #
+    { width: 30 },  // Övning
+    { width: 8 },   // Set
+    { width: 10 },  // Reps
+    { width: 12 },  // Belastning
+    { width: 10 },  // Vila
+    { width: 30 },  // Anteckningar
   ]
-  XLSX.utils.book_append_sheet(workbook, exerciseSheet, 'Övningar')
+  exerciseSheet.views = [{ state: 'frozen', ySplit: 1 }]
+  exerciseSheet.getRow(1).font = { bold: true }
+  exerciseSheet.getColumn(7).alignment = { wrapText: true, vertical: 'top' }
 
   // Generate buffer
-  const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+  const buffer = await workbook.xlsx.writeBuffer()
   return new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   })
@@ -218,8 +225,8 @@ export function generateStrengthFilename(sessionName: string, extension: string)
 /**
  * Download strength session as Excel
  */
-export function downloadStrengthSessionExcel(data: StrengthSessionData, filename?: string): void {
-  const blob = generateStrengthSessionExcel(data)
+export async function downloadStrengthSessionExcel(data: StrengthSessionData, filename?: string): Promise<void> {
+  const blob = await generateStrengthSessionExcel(data)
   const finalFilename = filename || generateStrengthFilename(data.sessionName, 'xlsx')
   downloadBlob(blob, finalFilename)
 }

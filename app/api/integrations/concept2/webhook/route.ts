@@ -12,6 +12,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createCustomRateLimiter } from '@/lib/rate-limit-redis'
+import { getRequestIp } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 import type {
   Concept2Result,
   Concept2EquipmentType,
@@ -20,7 +23,13 @@ import type {
 
 // Webhook verify token (set in environment)
 const CONCEPT2_WEBHOOK_VERIFY_TOKEN =
-  process.env.CONCEPT2_WEBHOOK_VERIFY_TOKEN || 'konditionstest-concept2-webhook';
+  process.env.CONCEPT2_WEBHOOK_VERIFY_TOKEN;
+
+// Soft rate limit: return 200 (received) if exceeded to avoid retry storms
+const concept2WebhookLimiter = createCustomRateLimiter('webhook:concept2', {
+  limit: 1000,
+  windowSeconds: 60,
+})
 
 // Equipment type mapping
 const EQUIPMENT_TYPE_MAP: Record<Concept2EquipmentType, { type: string; intensity: string }> = {
@@ -154,7 +163,9 @@ export async function GET(request: NextRequest) {
   const verifyToken = searchParams.get('verify_token');
   const challenge = searchParams.get('challenge');
 
-  console.log('Concept2 webhook validation:', { verifyToken, challenge });
+  if (!CONCEPT2_WEBHOOK_VERIFY_TOKEN) {
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+  }
 
   // Verify the token
   if (verifyToken === CONCEPT2_WEBHOOK_VERIFY_TOKEN) {
@@ -182,9 +193,21 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const ip = getRequestIp(request)
+    const rl = await concept2WebhookLimiter.check(ip)
+    if (!rl.success) {
+      return NextResponse.json({ received: true })
+    }
+
     const payload = (await request.json()) as Concept2WebhookPayload;
 
-    console.log('Concept2 webhook event:', JSON.stringify(payload, null, 2));
+    // Avoid logging raw webhook payloads (may contain sensitive personal data)
+    logger.info('Concept2 webhook event received', {
+      type: payload?.data?.type,
+      resultId: payload?.data?.result?.id,
+      resultUserId: payload?.data?.result?.user_id,
+      deletedResultId: payload?.data?.result_id,
+    });
 
     const { type: eventType, result, result_id } = payload.data;
 
@@ -200,7 +223,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!token) {
-        console.log(`No active Concept2 connection for user ${result.user_id}`);
+        logger.info('No active Concept2 connection for user', { userId: result.user_id })
         return NextResponse.json({ received: true });
       }
 
@@ -275,9 +298,9 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        console.log(`Synced Concept2 result ${result.id} for client ${clientId}`);
+        logger.debug('Synced Concept2 result', { clientId, resultId: result.id })
       } catch (error) {
-        console.error(`Failed to sync Concept2 result ${result.id}:`, error);
+        logger.error('Failed to sync Concept2 result', { clientId, resultId: result.id }, error)
       }
     } else if (eventType === 'result-deleted' && result_id) {
       // Delete the result
@@ -287,14 +310,14 @@ export async function POST(request: NextRequest) {
       });
 
       if (deleted.count > 0) {
-        console.log(`Deleted Concept2 result ${result_id}`);
+        logger.debug('Deleted Concept2 result', { resultId: result_id })
       }
     }
 
     // Always return 200 to acknowledge receipt
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Concept2 webhook error:', error);
+    logger.error('Concept2 webhook error', {}, error)
     // Return 200 even on error to prevent retries
     return NextResponse.json({ received: true, error: 'Processing error' });
   }

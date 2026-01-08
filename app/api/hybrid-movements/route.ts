@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { MovementCategory, EquipmentType } from '@prisma/client';
+import { logError } from '@/lib/logger-console'
 
 export async function GET(request: NextRequest) {
   try {
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
       ),
     });
   } catch (error) {
-    console.error('Error fetching hybrid movements:', error);
+    logError('Error fetching hybrid movements:', error);
     return NextResponse.json(
       { error: 'Failed to fetch hybrid movements' },
       { status: 500 }

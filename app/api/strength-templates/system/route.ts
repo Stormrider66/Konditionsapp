@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { logError } from '@/lib/logger-console'
 import {
   STRENGTH_TEMPLATES,
   getTemplatesByCategory,
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
       total: templates.length,
     })
   } catch (error) {
-    console.error('Error fetching system strength templates:', error)
+    logError('Error fetching system strength templates:', error)
     return NextResponse.json(
       { error: 'Failed to fetch templates' },
       { status: 500 }

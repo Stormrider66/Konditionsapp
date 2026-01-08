@@ -11,6 +11,8 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { CalendarEventType, EventImpact } from '@prisma/client'
 import { z } from 'zod'
+import { toPublicExternalCalendarConnection } from '@/lib/calendar/external-calendar-connection'
+import { logError } from '@/lib/logger-console'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
+      where: { id: user.id },
     })
 
     if (!dbUser) {
@@ -89,11 +91,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     return NextResponse.json({
-      ...connection,
+      ...toPublicExternalCalendarConnection(connection),
       eventCount,
     })
   } catch (error) {
-    console.error('Error fetching external calendar connection:', error)
+    logError('Error fetching external calendar connection:', error)
     return NextResponse.json(
       { error: 'Failed to fetch connection' },
       { status: 500 }
@@ -119,7 +121,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
+      where: { id: user.id },
     })
 
     if (!dbUser) {
@@ -172,9 +174,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       data: updateData,
     })
 
-    return NextResponse.json(updatedConnection)
+    return NextResponse.json(toPublicExternalCalendarConnection(updatedConnection))
   } catch (error) {
-    console.error('Error updating external calendar connection:', error)
+    logError('Error updating external calendar connection:', error)
     return NextResponse.json(
       { error: 'Failed to update connection' },
       { status: 500 }
@@ -200,7 +202,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
+      where: { id: user.id },
     })
 
     if (!dbUser) {
@@ -248,7 +250,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       deletedEvents: deletedEvents.count,
     })
   } catch (error) {
-    console.error('Error deleting external calendar connection:', error)
+    logError('Error deleting external calendar connection:', error)
     return NextResponse.json(
       { error: 'Failed to delete connection' },
       { status: 500 }

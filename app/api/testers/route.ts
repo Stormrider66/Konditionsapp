@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Validation schema for creating a tester
 const createTesterSchema = z.object({
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       businessId: businessMember?.businessId || null,
     });
   } catch (error) {
-    console.error('Get testers error:', error);
+    logError('Get testers error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -157,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ tester }, { status: 201 });
   } catch (error) {
-    console.error('Create tester error:', error);
+    logError('Create tester error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

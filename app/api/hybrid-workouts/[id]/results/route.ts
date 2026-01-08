@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { HybridScoreType, ScalingLevel } from '@prisma/client';
+import { logError } from '@/lib/logger-console'
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -28,10 +29,24 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = { workoutId: id };
+    const where: Record<string, unknown> = { workoutId: id }
+
+    // Access control:
+    // - Coaches: only results for their own athletes
+    // - Athletes: only their own results
+    if (user.role === 'COACH' || user.role === 'ADMIN') {
+      where.athlete = { userId: user.id }
+    } else if (user.role === 'ATHLETE') {
+      where.athlete = { athleteAccount: { userId: user.id } }
+    } else {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     if (athleteId) {
-      where.athleteId = athleteId;
+      // Coaches can filter to a specific athlete (still scoped by where.athlete above)
+      if (user.role === 'COACH' || user.role === 'ADMIN') {
+        where.athleteId = athleteId
+      }
     }
 
     const [results, total] = await Promise.all([
@@ -69,7 +84,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       },
     });
   } catch (error) {
-    console.error('Error fetching results:', error);
+    logError('Error fetching results:', error);
     return NextResponse.json(
       { error: 'Failed to fetch results' },
       { status: 500 }
@@ -88,7 +103,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const body = await request.json();
 
     const {
-      athleteId,
       scoreType,
       timeScore,
       roundsCompleted,
@@ -104,6 +118,35 @@ export async function POST(request: NextRequest, context: RouteContext) {
       movementSplits,
       videoUrl,
     } = body;
+
+    // Determine which athlete this result is for
+    let athleteId: string | undefined
+    if (user.role === 'ATHLETE') {
+      const athleteAccount = await prisma.athleteAccount.findUnique({
+        where: { userId: user.id },
+        select: { clientId: true },
+      })
+      athleteId = athleteAccount?.clientId || undefined
+    } else if (user.role === 'COACH' || user.role === 'ADMIN') {
+      athleteId = body?.athleteId
+      if (typeof athleteId !== 'string' || !athleteId) {
+        return NextResponse.json({ error: 'athleteId is required' }, { status: 400 })
+      }
+      // Verify coach can write results for this athlete
+      const hasAccess = await prisma.client.findFirst({
+        where: { id: athleteId, userId: user.id },
+        select: { id: true },
+      })
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+    } else {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    if (!athleteId) {
+      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
+    }
 
     // Validate workout exists
     const workout = await prisma.hybridWorkout.findUnique({
@@ -200,9 +243,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       },
     });
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json(
+      { result, previousBest: previousBest || null },
+      { status: 201 }
+    );
   } catch (error) {
-    console.error('Error creating result:', error);
+    logError('Error creating result:', error);
     return NextResponse.json(
       { error: 'Failed to create result' },
       { status: 500 }

@@ -15,6 +15,7 @@
 import { NextResponse } from 'next/server'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { logError } from '@/lib/logger-console'
 
 interface Suggestion {
   type: string
@@ -284,7 +285,7 @@ export async function GET() {
       },
     })
   } catch (error) {
-    console.error('Error generating AI suggestions:', error)
+    logError('Error generating AI suggestions:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { estimateZonesFromGoal, addHRZones, GoalInput } from '@/lib/calculations/goal-estimation';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Validation schema
 const goalInputSchema = z.object({
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       recommendations: getRecommendations(zones),
     });
   } catch (error) {
-    console.error('Goal zones calculation error:', error);
+    logError('Goal zones calculation error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

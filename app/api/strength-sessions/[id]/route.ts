@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
+import { logError } from '@/lib/logger-console'
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(session);
   } catch (error) {
-    console.error('Error fetching strength session:', error);
+    logError('Error fetching strength session:', error);
     return NextResponse.json(
       { error: 'Failed to fetch strength session' },
       { status: 500 }
@@ -129,7 +130,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(session);
   } catch (error) {
-    console.error('Error updating strength session:', error);
+    logError('Error updating strength session:', error);
     return NextResponse.json(
       { error: 'Failed to update strength session' },
       { status: 500 }
@@ -163,7 +164,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting strength session:', error);
+    logError('Error deleting strength session:', error);
     return NextResponse.json(
       { error: 'Failed to delete strength session' },
       { status: 500 }

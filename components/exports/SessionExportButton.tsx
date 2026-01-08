@@ -59,10 +59,10 @@ export function SessionExportButton({
 
       if (sessionType === 'strength') {
         const { downloadStrengthSessionExcel } = await import('@/lib/exports/strength-session-export')
-        downloadStrengthSessionExcel(exportData)
+        await downloadStrengthSessionExcel(exportData)
       } else {
         const { downloadCardioSessionExcel } = await import('@/lib/exports/cardio-session-export')
-        downloadCardioSessionExcel(exportData)
+        await downloadCardioSessionExcel(exportData)
       }
 
       toast({

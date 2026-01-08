@@ -237,17 +237,176 @@ export function createText(text: string): TextPart {
  * Fetch a URL and convert to base64 for inline data.
  * Useful for videos stored in blob storage.
  */
-export async function fetchAsBase64(url: string): Promise<{ base64: string; mimeType: string }> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status}`);
+export interface FetchAsBase64Options {
+  maxBytes?: number
+  timeoutMs?: number
+}
+
+const DEFAULT_INLINE_MAX_BYTES = 20 * 1024 * 1024 // 20MB
+const DEFAULT_INLINE_TIMEOUT_MS = 15_000
+const MAX_REDIRECTS = 2
+
+function getAllowedInlineDataOrigins(): string[] {
+  const origins: string[] = []
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (supabaseUrl) {
+    try {
+      origins.push(new URL(supabaseUrl).origin)
+    } catch {
+      // ignore
+    }
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString('base64');
-  const mimeType = response.headers.get('content-type') || 'application/octet-stream';
+  const extra = process.env.INLINE_DATA_ALLOWED_ORIGINS
+  if (extra) {
+    for (const raw of extra.split(',').map((s) => s.trim()).filter(Boolean)) {
+      try {
+        origins.push(new URL(raw).origin)
+      } catch {
+        // ignore
+      }
+    }
+  }
 
-  return { base64, mimeType };
+  return Array.from(new Set(origins))
+}
+
+function validateInlineFetchUrl(raw: string, allowedOrigins: string[]): string | null {
+  let u: URL
+  try {
+    u = new URL(raw)
+  } catch {
+    return 'Invalid URL'
+  }
+
+  if (u.username || u.password) return 'URL must not include credentials'
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return 'Only http/https URLs are allowed'
+
+  if (allowedOrigins.length === 0) {
+    return 'No allowed origins configured for inline data fetch'
+  }
+
+  if (!allowedOrigins.includes(u.origin)) {
+    return 'Origin not allowed for inline data fetch'
+  }
+
+  // If it's our Supabase origin, only allow Storage URLs (avoid hitting other Supabase endpoints).
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  let supabaseOrigin: string | null = null
+  if (supabaseUrl) {
+    try {
+      supabaseOrigin = new URL(supabaseUrl).origin
+    } catch {
+      supabaseOrigin = null
+    }
+  }
+
+  if (supabaseOrigin && u.origin === supabaseOrigin) {
+    if (!u.pathname.startsWith('/storage/v1/object/')) {
+      return 'Only Supabase Storage URLs are allowed'
+    }
+  }
+
+  return null
+}
+
+async function readResponseWithLimit(response: Response, maxBytes: number): Promise<Buffer> {
+  const reader = response.body?.getReader()
+  if (!reader) {
+    const ab = await response.arrayBuffer()
+    if (ab.byteLength > maxBytes) throw new Error('MAX_SIZE_EXCEEDED')
+    return Buffer.from(ab)
+  }
+
+  const chunks: Buffer[] = []
+  let total = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    if (!value) continue
+    total += value.byteLength
+    if (total > maxBytes) {
+      try {
+        await reader.cancel()
+      } catch {
+        // ignore
+      }
+      throw new Error('MAX_SIZE_EXCEEDED')
+    }
+    chunks.push(Buffer.from(value))
+  }
+
+  return Buffer.concat(chunks)
+}
+
+export async function fetchAsBase64(
+  url: string,
+  options?: FetchAsBase64Options
+): Promise<{ base64: string; mimeType: string }> {
+  const maxBytes = options?.maxBytes ?? DEFAULT_INLINE_MAX_BYTES
+  const timeoutMs = options?.timeoutMs ?? DEFAULT_INLINE_TIMEOUT_MS
+
+  const allowedOrigins = getAllowedInlineDataOrigins()
+  const validationError = validateInlineFetchUrl(url, allowedOrigins)
+  if (validationError) {
+    throw new Error(`Unsafe URL blocked: ${validationError}`)
+  }
+
+  let currentUrl = url
+  let response: Response | null = null
+
+  for (let i = 0; i <= MAX_REDIRECTS; i++) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      response = await fetch(currentUrl, {
+        redirect: 'manual',
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location')
+      if (!location) break
+
+      const nextUrl = new URL(location, currentUrl).toString()
+      const nextValidationError = validateInlineFetchUrl(nextUrl, allowedOrigins)
+      if (nextValidationError) {
+        throw new Error(`Unsafe redirect blocked: ${nextValidationError}`)
+      }
+
+      currentUrl = nextUrl
+      continue
+    }
+
+    break
+  }
+
+  if (!response) {
+    throw new Error('Failed to fetch inline data: no response')
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch inline data: ${response.status}`)
+  }
+
+  const contentLength = response.headers.get('content-length')
+  if (contentLength) {
+    const size = Number(contentLength)
+    if (Number.isFinite(size) && size > maxBytes) {
+      throw new Error('MAX_SIZE_EXCEEDED')
+    }
+  }
+
+  const buffer = await readResponseWithLimit(response, maxBytes)
+  const base64 = buffer.toString('base64')
+  const mimeType = response.headers.get('content-type') || 'application/octet-stream'
+
+  return { base64, mimeType }
 }
 
 /**

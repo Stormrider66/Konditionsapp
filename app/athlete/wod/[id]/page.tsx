@@ -7,7 +7,7 @@
  * Fetches the saved WOD from the database and shows it in focus mode.
  */
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +30,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
+import { WODCompletionModal } from '@/components/athlete/wod/WODCompletionModal'
 import { cn } from '@/lib/utils'
 import type { WODWorkout, WODSection, WODExercise, WODSectionType } from '@/types/wod'
 
@@ -66,6 +67,7 @@ export default function WODExecutionPage({ params }: PageProps) {
   const [error, setError] = useState<string | null>(null)
   const [workout, setWorkout] = useState<WODWorkout | null>(null)
   const [wodId, setWodId] = useState<string | null>(null)
+  const [estimatedDuration, setEstimatedDuration] = useState(0)
 
   // Exercise navigation state
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -74,6 +76,10 @@ export default function WODExecutionPage({ params }: PageProps) {
   // Rest timer state
   const [isResting, setIsResting] = useState(false)
   const [restTimeLeft, setRestTimeLeft] = useState(0)
+
+  // Completion modal state
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
+  const startTimeRef = useRef<number>(Date.now())
 
   // Flatten exercises for navigation
   const flattenedExercises: FlattenedExercise[] = workout?.sections.flatMap((section, sectionIdx) =>
@@ -108,6 +114,10 @@ export default function WODExecutionPage({ params }: PageProps) {
         console.log('WOD fetched, data.id:', data.id)
         setWorkout(data.workoutJson as WODWorkout)
         setWodId(data.id)
+        setEstimatedDuration(data.requestedDuration || 45)
+
+        // Reset start time when WOD is loaded
+        startTimeRef.current = Date.now()
 
         // Mark WOD as started
         await fetch('/api/ai/wod', {
@@ -191,20 +201,38 @@ export default function WODExecutionPage({ params }: PageProps) {
     router.push('/athlete/dashboard')
   }
 
-  const handleComplete = async () => {
-    console.log('handleComplete called, wodId:', wodId)
+  // Show completion modal instead of completing directly
+  const handleComplete = () => {
+    setShowCompletionModal(true)
+  }
+
+  // Actually complete the WOD with RPE and duration data
+  const handleFinalComplete = async (data: { sessionRPE: number; actualDuration: number }) => {
+    console.log('handleFinalComplete called, wodId:', wodId, 'data:', data)
     if (wodId) {
       try {
+        // Build exercise logs from completed exercises
+        const exerciseLogs = flattenedExercises.map((exercise, index) => ({
+          name: exercise.nameSv || exercise.name,
+          type: exercise.sectionType,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          completed: completedExercises.has(index),
+        }))
+
         const response = await fetch('/api/ai/wod', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             wodId,
             status: 'COMPLETED',
+            sessionRPE: data.sessionRPE,
+            actualDuration: data.actualDuration,
+            exerciseLogs,
           }),
         })
-        const data = await response.json()
-        console.log('PATCH response:', response.status, data)
+        const responseData = await response.json()
+        console.log('PATCH response:', response.status, responseData)
       } catch (err) {
         console.error('Failed to save WOD completion:', err)
       }
@@ -212,6 +240,17 @@ export default function WODExecutionPage({ params }: PageProps) {
       console.warn('No wodId available to save')
     }
     router.push('/athlete/dashboard')
+  }
+
+  // Cancel completion modal
+  const handleCancelCompletion = () => {
+    setShowCompletionModal(false)
+  }
+
+  // Calculate actual duration in minutes
+  const getActualDuration = () => {
+    const elapsedMs = Date.now() - startTimeRef.current
+    return Math.max(1, Math.round(elapsedMs / 60000)) // Minimum 1 minute
   }
 
   const handleRepeat = async () => {
@@ -292,7 +331,21 @@ export default function WODExecutionPage({ params }: PageProps) {
     )
   }
 
-  // All exercises completed
+  // Show completion modal
+  if (showCompletionModal && workout) {
+    return (
+      <WODCompletionModal
+        title={workout.title}
+        totalExercises={totalExercises}
+        estimatedDuration={estimatedDuration}
+        actualDuration={getActualDuration()}
+        onComplete={handleFinalComplete}
+        onCancel={handleCancelCompletion}
+      />
+    )
+  }
+
+  // All exercises completed - show options to finish or repeat
   if (completedExercises.size >= totalExercises && currentIndex >= totalExercises - 1) {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-4">
@@ -362,9 +415,10 @@ export default function WODExecutionPage({ params }: PageProps) {
         {currentExercise?.imageUrls && currentExercise.imageUrls.length > 0 && (
           <div className="relative aspect-video rounded-xl overflow-hidden mb-4 bg-muted">
             <ExerciseImage
-              images={currentExercise.imageUrls}
+              imageUrls={currentExercise.imageUrls}
               alt={currentExercise.nameSv || currentExercise.name}
-              variant="hero"
+              size="full"
+              className="w-full h-full"
             />
           </div>
         )}

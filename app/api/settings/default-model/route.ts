@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { logError } from '@/lib/logger-console'
 
 // GET - Get user's default AI model
 export async function GET() {
@@ -52,7 +53,7 @@ export async function GET() {
       isExplicitlySet: !!userSettings?.defaultModelId,
     });
   } catch (error) {
-    console.error('Get default model error:', error);
+    logError('Get default model error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -138,7 +139,7 @@ export async function PUT(request: NextRequest) {
         : 'Standardmodell återställd',
     });
   } catch (error) {
-    console.error('Set default model error:', error);
+    logError('Set default model error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

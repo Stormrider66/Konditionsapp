@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAthlete } from '@/lib/auth-utils'
 import type { CardioSegmentType } from '@prisma/client'
+import { logError } from '@/lib/logger-console'
 
 interface CardioSegmentData {
   id: string
@@ -187,7 +188,7 @@ export async function PUT(
       },
     })
   } catch (error) {
-    console.error('Error logging cardio segment:', error)
+    logError('Error logging cardio segment:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to log segment' },
       { status: 500 }
@@ -282,7 +283,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error fetching segment details:', error)
+    logError('Error fetching segment details:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch segment' },
       { status: 500 }

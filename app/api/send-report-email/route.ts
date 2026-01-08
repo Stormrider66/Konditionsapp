@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@/lib/supabase/server'
 import { escapeHtml, sanitizeForEmail } from '@/lib/sanitize'
-import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit'
+import { getRequestIp, rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 
@@ -14,11 +14,13 @@ const MAX_PDF_SIZE = 10 * 1024 * 1024
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit: 5 emails per minute per client
-    const rateLimitResult = rateLimitResponse(request, RATE_LIMITS.email)
-    if (rateLimitResult) {
-      return rateLimitResult
-    }
+    // Rate limit: 5 emails per minute per IP (Redis-backed with in-memory fallback)
+    const ip = getRequestIp(request)
+    const rateLimited = await rateLimitJsonResponse('email:send-report', ip, {
+      limit: 5,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const supabase = await createClient()
     const {

@@ -11,8 +11,12 @@
  * - Body composition
  */
 
+import 'server-only'
+
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto'
+import { fetchWithTimeoutAndRetry } from '@/lib/http/fetch'
 
 // Garmin API configuration
 const GARMIN_API_BASE = 'https://apis.garmin.com/wellness-api/rest';
@@ -117,15 +121,15 @@ async function storeRequestToken(clientId: string, token: string, secret: string
       },
     },
     update: {
-      requestToken: token,
-      tokenSecret: secret,
+      requestToken: encryptIntegrationSecret(token)!,
+      tokenSecret: encryptIntegrationSecret(secret)!,
       expiresAt,
     },
     create: {
       clientId,
       provider: 'GARMIN',
-      requestToken: token,
-      tokenSecret: secret,
+      requestToken: encryptIntegrationSecret(token)!,
+      tokenSecret: encryptIntegrationSecret(secret)!,
       expiresAt,
     },
   });
@@ -144,7 +148,14 @@ async function retrieveAndDeleteRequestToken(clientId: string, expectedToken: st
     },
   });
 
-  if (!stored || stored.requestToken !== expectedToken) {
+  if (!stored) {
+    return null;
+  }
+
+  const storedToken = decryptIntegrationSecret(stored.requestToken)
+  const storedSecret = decryptIntegrationSecret(stored.tokenSecret)
+
+  if (!storedToken || !storedSecret || storedToken !== expectedToken) {
     return null;
   }
 
@@ -161,7 +172,7 @@ async function retrieveAndDeleteRequestToken(clientId: string, expectedToken: st
     where: { id: stored.id },
   });
 
-  return { token: stored.requestToken, secret: stored.tokenSecret };
+  return { token: storedToken, secret: storedSecret };
 }
 
 /**
@@ -266,13 +277,17 @@ export async function getGarminRequestToken(clientId: string): Promise<{ authUrl
     .map((key) => `${encodeURIComponent(key)}="${encodeURIComponent(oauthParams[key])}"`)
     .join(', ');
 
-  const response = await fetch(GARMIN_REQUEST_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: authHeader,
-      'Content-Type': 'application/x-www-form-urlencoded',
+  const response = await fetchWithTimeoutAndRetry(
+    GARMIN_REQUEST_TOKEN_URL,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     },
-  });
+    { timeoutMs: 10_000, maxAttempts: 2 }
+  )
 
   if (!response.ok) {
     const error = await response.text();
@@ -343,13 +358,17 @@ export async function exchangeGarminVerifier(
     .map((key) => `${encodeURIComponent(key)}="${encodeURIComponent(oauthParams[key])}"`)
     .join(', ');
 
-  const response = await fetch(GARMIN_ACCESS_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: authHeader,
-      'Content-Type': 'application/x-www-form-urlencoded',
+  const response = await fetchWithTimeoutAndRetry(
+    GARMIN_ACCESS_TOKEN_URL,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: authHeader,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
     },
-  });
+    { timeoutMs: 10_000, maxAttempts: 2 }
+  )
 
   if (!response.ok) {
     const error = await response.text();
@@ -386,12 +405,13 @@ export async function garminApiRequest<T>(
     },
   });
 
-  if (!token || !token.accessToken || !token.refreshToken) {
+  const accessToken = decryptIntegrationSecret(token?.accessToken)
+  const tokenSecret = decryptIntegrationSecret(token?.refreshToken)
+
+  if (!token || !accessToken || !tokenSecret) {
     throw new Error('No valid Garmin access token');
   }
 
-  // In Garmin OAuth 1.0a, refreshToken stores the token secret
-  const tokenSecret = token.refreshToken;
   const url = `${GARMIN_API_BASE}${endpoint}`;
 
   const timestamp = getTimestamp();
@@ -399,7 +419,7 @@ export async function garminApiRequest<T>(
 
   const oauthParams: Record<string, string> = {
     oauth_consumer_key: GARMIN_CONSUMER_KEY,
-    oauth_token: token.accessToken,
+    oauth_token: accessToken,
     oauth_signature_method: 'HMAC-SHA1',
     oauth_timestamp: timestamp,
     oauth_nonce: nonce,
@@ -421,12 +441,16 @@ export async function garminApiRequest<T>(
     .map((key) => `${encodeURIComponent(key)}="${encodeURIComponent(oauthParams[key])}"`)
     .join(', ');
 
-  const response = await fetch(url, {
-    method,
-    headers: {
-      Authorization: authHeader,
+  const response = await fetchWithTimeoutAndRetry(
+    url,
+    {
+      method,
+      headers: {
+        Authorization: authHeader,
+      },
     },
-  });
+    { timeoutMs: 12_000, maxAttempts: 3 }
+  )
 
   if (!response.ok) {
     const error = await response.text();

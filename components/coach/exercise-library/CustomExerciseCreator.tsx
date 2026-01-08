@@ -641,7 +641,7 @@ export function CustomExerciseCreator({
                   <Input
                     value={formData.videoUrl}
                     onChange={(e) => handleChange('videoUrl', e.target.value)}
-                    placeholder="https://youtube.com/watch?v=..."
+                    placeholder="https://vimeo.com/..."
                   />
                 </div>
               </CardContent>

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach, getCurrentUser } from '@/lib/auth-utils';
+import { logError } from '@/lib/logger-console'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       relatedVersions,
     });
   } catch (error) {
-    console.error('Error fetching versions:', error);
+    logError('Error fetching versions:', error);
     return NextResponse.json(
       { error: 'Failed to fetch versions' },
       { status: 500 }
@@ -241,7 +242,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       });
     }
   } catch (error) {
-    console.error('Error creating version:', error);
+    logError('Error creating version:', error);
     return NextResponse.json(
       { error: 'Failed to create version' },
       { status: 500 }

@@ -17,6 +17,7 @@ import {
 } from '@/lib/calendar/availability-calculator'
 import { addDays, format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { logError } from '@/lib/logger-console'
 
 /**
  * GET /api/calendar/my-availability
@@ -144,7 +145,7 @@ export async function GET(request: NextRequest) {
       weeklyBreakdown,
     })
   } catch (error) {
-    console.error('My availability error:', error)
+    logError('My availability error:', error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

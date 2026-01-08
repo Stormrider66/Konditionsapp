@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api/utils'
 import { ErgometerType } from '@prisma/client'
+import { logError } from '@/lib/logger-console'
 
 // Request schema for threshold calculation
 const calculateThresholdSchema = z.object({
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
       201
     )
   } catch (error) {
-    console.error('Error calculating ergometer threshold:', error)
+    logError('Error calculating ergometer threshold:', error)
     return errorResponse('Failed to calculate ergometer threshold', 500)
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import type { Prisma } from '@prisma/client'
+import { logError } from '@/lib/logger-console'
 
 /**
  * GET /api/cardio-templates
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching cardio templates:', error)
+    logError('Error fetching cardio templates:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch templates' },
       { status: 500 }
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
       message: 'Template copied to your library',
     })
   } catch (error) {
-    console.error('Error copying cardio template:', error)
+    logError('Error copying cardio template:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to copy template' },
       { status: 500 }

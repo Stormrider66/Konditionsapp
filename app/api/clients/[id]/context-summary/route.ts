@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { logError } from '@/lib/logger-console'
 
 export async function GET(
   request: NextRequest,
@@ -120,7 +121,7 @@ export async function GET(
 
     return NextResponse.json(summary)
   } catch (error) {
-    console.error('Error fetching context summary:', error)
+    logError('Error fetching context summary:', error)
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

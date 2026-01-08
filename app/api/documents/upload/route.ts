@@ -9,6 +9,8 @@ import { requireCoach } from '@/lib/auth-utils';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { prisma } from '@/lib/prisma';
 import { DocumentType } from '@prisma/client';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 // Next.js 15 App Router route segment config
 export const maxDuration = 60; // Allow up to 60 seconds for upload
@@ -27,9 +29,13 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[Document Upload] Starting upload...');
     const user = await requireCoach();
-    console.log('[Document Upload] User authenticated:', user.id);
+
+    const rateLimited = await rateLimitJsonResponse('documents:upload', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -108,17 +114,14 @@ export async function POST(request: NextRequest) {
     const extension = file.name.split('.').pop() || 'pdf';
     const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const filename = `${user.id}/${timestamp}-${safeFileName}`;
-    console.log('[Document Upload] File validated, filename:', filename, 'size:', file.size);
 
     // Convert file to Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    console.log('[Document Upload] Buffer created, size:', buffer.length);
 
     // Upload to Supabase Storage
     const supabase = createAdminSupabaseClient();
 
-    console.log('[Document Upload] Uploading to Supabase storage bucket "coach-documents"...');
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('coach-documents')
       .upload(filename, buffer, {
@@ -128,7 +131,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('[Document Upload] Supabase upload error:', uploadError);
+      logger.error('Supabase document upload error', { userId: user.id }, uploadError)
 
       // Check for common errors
       if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('not found')) {
@@ -161,8 +164,7 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    console.log('[Document Upload] Upload successful, path:', uploadData.path);
+    logger.info('Document uploaded to storage', { userId: user.id })
 
     // Create document record in database
     const document = await prisma.coachDocument.create({
@@ -177,8 +179,7 @@ export async function POST(request: NextRequest) {
         processingStatus: 'PENDING',
       },
     });
-
-    console.log('[Document Upload] Document record created:', document.id);
+    logger.info('Document record created', { userId: user.id, documentId: document.id })
 
     return NextResponse.json({
       success: true,
@@ -187,14 +188,20 @@ export async function POST(request: NextRequest) {
       message: 'Document uploaded. Use "Generera" to create embeddings.',
     });
   } catch (error) {
-    console.error('[Document Upload] Error:', error);
+    logger.error('Document upload error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to upload document', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Failed to upload document',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     );
   }

@@ -10,10 +10,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { calculateProgression } from '@/lib/training-engine/progression'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessClient, canAccessExercise } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await requireAuth()
     const body = await request.json()
 
     const {
@@ -41,6 +44,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Numeric values must be positive' }, { status: 400 })
     }
 
+    const hasClientAccess = await canAccessClient(user.id, clientId)
+    if (!hasClientAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const hasExerciseAccess = await canAccessExercise(user.id, exerciseId)
+    if (!hasExerciseAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Calculate progression
     const result = await calculateProgression({
       clientId,
@@ -56,8 +69,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result, { status: 200 })
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    logger.error('Error calculating progression', {}, error)
-    return NextResponse.json({ error: errorMessage || 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
   }
 }

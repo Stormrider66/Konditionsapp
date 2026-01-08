@@ -12,9 +12,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getStravaActivity } from '@/lib/integrations/strava/client';
+import { createCustomRateLimiter } from '@/lib/rate-limit-redis'
+import { getRequestIp } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 
 // Webhook verify token (set in environment)
-const STRAVA_WEBHOOK_VERIFY_TOKEN = process.env.STRAVA_WEBHOOK_VERIFY_TOKEN || 'konditionstest-strava-webhook';
+const STRAVA_WEBHOOK_VERIFY_TOKEN = process.env.STRAVA_WEBHOOK_VERIFY_TOKEN;
+
+// Soft rate limit: return 200 (received) if exceeded to avoid retry storms
+const stravaWebhookLimiter = createCustomRateLimiter('webhook:strava', {
+  limit: 1000,
+  windowSeconds: 60,
+})
 
 // Activity type mapping (same as in sync.ts)
 const ACTIVITY_TYPE_MAP: Record<string, { type: string; intensity: string }> = {
@@ -93,7 +102,10 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
-  console.log('Strava webhook validation:', { mode, token, challenge });
+  if (!STRAVA_WEBHOOK_VERIFY_TOKEN) {
+    // Misconfiguration: don't allow validating/creating subscriptions without an explicit secret
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+  }
 
   // Verify the mode and token
   if (mode === 'subscribe' && token === STRAVA_WEBHOOK_VERIFY_TOKEN) {
@@ -116,23 +128,45 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const ip = getRequestIp(request)
+    const rl = await stravaWebhookLimiter.check(ip)
+    if (!rl.success) {
+      return NextResponse.json({ received: true })
+    }
+
     const event = await request.json();
 
-    console.log('Strava webhook event:', JSON.stringify(event, null, 2));
+    // Avoid logging raw webhook payloads (may contain sensitive personal data)
+    const { object_type, aspect_type, owner_id, object_id } = event || {};
+    logger.info('Strava webhook event received', {
+      object_type,
+      aspect_type,
+      owner_id,
+      object_id,
+    })
 
-    const { object_type, aspect_type, owner_id, object_id } = event;
+    // Re-extract after safe logging
+    const { object_type: objectType, aspect_type: aspectType, owner_id: ownerId, object_id: objectId } = event as any;
+
+    // Validate required fields to avoid accidental broad queries/updates
+    if (!objectType || !ownerId) {
+      return NextResponse.json({ received: true })
+    }
+    if (objectType === 'activity' && !objectId) {
+      return NextResponse.json({ received: true })
+    }
 
     // Find the client with this Strava athlete ID
     const token = await prisma.integrationToken.findFirst({
       where: {
         type: 'STRAVA',
-        externalUserId: owner_id.toString(),
+        externalUserId: ownerId.toString(),
         syncEnabled: true,
       },
     });
 
     if (!token) {
-      console.log(`No active Strava connection for athlete ${owner_id}`);
+      logger.info('No active Strava connection for athlete', { ownerId: owner_id })
       // Return 200 to acknowledge receipt (Strava will retry otherwise)
       return NextResponse.json({ received: true });
     }
@@ -140,11 +174,11 @@ export async function POST(request: NextRequest) {
     const clientId = token.clientId;
 
     // Handle different event types
-    if (object_type === 'activity') {
-      if (aspect_type === 'create' || aspect_type === 'update') {
+    if (objectType === 'activity') {
+      if (aspectType === 'create' || aspectType === 'update') {
         // Fetch and sync the activity
         try {
-          const activity = await getStravaActivity(clientId, object_id);
+          const activity = await getStravaActivity(clientId, objectId);
 
           const typeInfo = ACTIVITY_TYPE_MAP[activity.type] || {
             type: 'OTHER',
@@ -164,7 +198,7 @@ export async function POST(request: NextRequest) {
           );
 
           await prisma.stravaActivity.upsert({
-            where: { stravaId: object_id.toString() },
+            where: { stravaId: objectId.toString() },
             update: {
               name: activity.name,
               type: activity.type,
@@ -197,7 +231,7 @@ export async function POST(request: NextRequest) {
             },
             create: {
               clientId,
-              stravaId: object_id.toString(),
+              stravaId: objectId.toString(),
               name: activity.name,
               type: activity.type,
               sportType: activity.sport_type,
@@ -229,23 +263,23 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          console.log(`Synced activity ${object_id} for client ${clientId}`);
+          logger.debug('Synced Strava activity', { clientId, objectId })
         } catch (error) {
-          console.error(`Failed to sync activity ${object_id}:`, error);
+          logger.error('Failed to sync Strava activity', { clientId, objectId }, error)
           // Still return 200 to acknowledge receipt
         }
-      } else if (aspect_type === 'delete') {
+      } else if (aspectType === 'delete') {
         // Delete the activity
         await prisma.stravaActivity.deleteMany({
           where: {
             clientId,
-            stravaId: object_id.toString(),
+            stravaId: objectId.toString(),
           },
         });
-        console.log(`Deleted activity ${object_id} for client ${clientId}`);
+        logger.debug('Deleted Strava activity', { clientId, objectId })
       }
-    } else if (object_type === 'athlete') {
-      if (aspect_type === 'delete' || aspect_type === 'deauthorize') {
+    } else if (objectType === 'athlete') {
+      if (aspectType === 'delete' || aspectType === 'deauthorize') {
         // User revoked access - disable sync
         await prisma.integrationToken.update({
           where: { id: token.id },
@@ -254,14 +288,14 @@ export async function POST(request: NextRequest) {
             lastSyncError: 'User deauthorized the application',
           },
         });
-        console.log(`Disabled sync for client ${clientId} - athlete deauthorized`);
+        logger.info('Disabled Strava sync (athlete deauthorized)', { clientId })
       }
     }
 
     // Always return 200 to acknowledge receipt
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Strava webhook error:', error);
+    logger.error('Strava webhook error', {}, error)
     // Return 200 even on error to prevent retries
     return NextResponse.json({ received: true, error: 'Processing error' });
   }

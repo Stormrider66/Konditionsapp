@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 import {
   createGoogleGenAIClient,
   generateContent,
@@ -8,6 +10,12 @@ import {
   getGeminiModelId,
 } from '@/lib/ai/google-genai-client'
 import { decryptSecret } from '@/lib/crypto/secretbox'
+
+export const maxDuration = 120
+
+const MAX_POSE_PAYLOAD_BYTES = 5 * 1024 * 1024 // 5MB
+const MAX_FRAMES = 5000
+const MAX_LANDMARKS_PER_FRAME = 60
 
 interface JointAngle {
   name: string
@@ -55,6 +63,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const rateLimited = await rateLimitJsonResponse('video:pose-analysis', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
+    const contentLength = request.headers.get('content-length')
+    if (contentLength) {
+      const bytes = Number(contentLength)
+      if (Number.isFinite(bytes) && bytes > MAX_POSE_PAYLOAD_BYTES) {
+        return NextResponse.json(
+          { error: 'Payload too large' },
+          { status: 413 }
+        )
+      }
+    }
+
     // Get user's API key
     const apiKeys = await prisma.userApiKey.findUnique({
       where: { userId: user.id },
@@ -79,6 +104,19 @@ export async function POST(request: NextRequest) {
 
     const body: AnalyzePoseDataRequest = await request.json()
     const { videoType, exerciseName, exerciseNameSv, angles, angleRanges, frames, frameCount, cameraAngle } = body
+
+    if (Array.isArray(frames) && frames.length > MAX_FRAMES) {
+      return NextResponse.json(
+        { error: `Too many frames (max ${MAX_FRAMES})` },
+        { status: 413 }
+      )
+    }
+    if (Array.isArray(frames) && frames.some((f) => Array.isArray(f.landmarks) && f.landmarks.length > MAX_LANDMARKS_PER_FRAME)) {
+      return NextResponse.json(
+        { error: `Too many landmarks per frame (max ${MAX_LANDMARKS_PER_FRAME})` },
+        { status: 413 }
+      )
+    }
 
     if (!angles || angles.length === 0) {
       return NextResponse.json(
@@ -149,8 +187,13 @@ export async function POST(request: NextRequest) {
       cameraAngle: cameraAngle || 'UNKNOWN',
     })
 
-    console.log(`[Pose Data Analysis] Sending to ${modelId} for analysis...`)
-    console.log(`[Pose Data Analysis] Exercise: ${exerciseContext}, Angles: ${totalAngles}, Frames: ${frameCount}`)
+    logger.debug('Pose data analysis: sending to Gemini', {
+      modelId,
+      videoType,
+      angles: totalAngles,
+      frames: frameCount,
+      cameraAngle: cameraAngle || 'UNKNOWN',
+    })
 
     // Send to Gemini with increased token limit for detailed JSON response
     const result = await generateContent(
@@ -160,7 +203,7 @@ export async function POST(request: NextRequest) {
       { maxOutputTokens: 4096 } // Ensure we get complete JSON response
     )
 
-    console.log(`[Pose Data Analysis] Response received, length: ${result.text.length} chars`)
+    logger.debug('Pose data analysis: response received', { length: result.text.length })
 
     // Parse response
     const analysis = parseGeminiResponse(result.text)
@@ -179,7 +222,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[Pose Data Analysis] Error:', error)
+    logger.error('Pose data analysis error', {}, error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Analysis failed' },
       { status: 500 }
@@ -436,8 +479,11 @@ function parseGeminiResponse(response: string): GeminiAnalysis {
       score: parsed.score,
     }
   } catch (error) {
-    console.error('[Pose Data Analysis] Failed to parse JSON:', error)
-    console.error('[Pose Data Analysis] Raw response (first 500 chars):', response.slice(0, 500))
+    logger.warn(
+      'Pose data analysis: failed to parse JSON response',
+      { responseLength: response.length },
+      error
+    )
 
     // Try to extract partial data from truncated JSON
     const interpretationMatch = response.match(/"interpretation"\s*:\s*"([^"]+)"/)

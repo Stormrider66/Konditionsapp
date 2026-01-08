@@ -93,8 +93,8 @@ Från Supabase Dashboard > Project Settings > Database:
 ### 3. Uppdatera .env.local
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbG...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
 DATABASE_URL=postgresql://postgres:[password]@db.xxx.supabase.co:5432/postgres
 ```
 

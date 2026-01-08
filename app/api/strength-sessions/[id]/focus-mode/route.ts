@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAthlete } from '@/lib/auth-utils'
+import { logError } from '@/lib/logger-console'
 
 interface SessionExercise {
   exerciseId: string
@@ -275,7 +276,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error fetching focus mode data:', error)
+    logError('Error fetching focus mode data:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch workout data' },
       { status: 500 }
@@ -350,7 +351,7 @@ export async function PUT(
       data: updated,
     })
   } catch (error) {
-    console.error('Error updating assignment:', error)
+    logError('Error updating assignment:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to update assignment' },
       { status: 500 }

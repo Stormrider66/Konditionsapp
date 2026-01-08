@@ -15,6 +15,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { rateLimitJsonResponse, getRequestIp } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 // Validation schema for athlete signup
 const signupSchema = z.object({
@@ -29,6 +31,14 @@ const signupSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit signup attempts per IP
+    const ip = getRequestIp(request)
+    const rateLimited = await rateLimitJsonResponse('auth:signup-athlete', ip, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     const body = await request.json();
 
     // Validate input
@@ -106,7 +116,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError || !authData.user) {
-      console.error('Supabase auth error:', authError);
+      logger.error('Supabase auth error during athlete signup', {}, authError)
       return NextResponse.json(
         { error: authError?.message || 'Failed to create account' },
         { status: 400 }
@@ -217,7 +227,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Athlete signup error:', error);
+    logger.error('Athlete signup error', {}, error)
 
     return NextResponse.json(
       { error: 'Failed to create account' },

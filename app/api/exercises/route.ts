@@ -26,11 +26,12 @@ function isValidSortField(field: string): field is AllowedSortField {
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAuth()
+    const user = await requireAuth()
     const { searchParams } = new URL(request.url)
 
-    // Pagination with limits (increased max to 500 for full library view)
-    const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') || '50')))
+    // Pagination with limits
+    // Keep a hard cap to prevent accidental heavy queries/DoS.
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')))
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
 
     // Validate sortBy to prevent injection
@@ -47,50 +48,72 @@ export async function GET(request: NextRequest) {
     const equipment = searchParams.get('equipment')
     const intensity = searchParams.get('intensity')
     const isPublic = searchParams.get('isPublic')
-    const userId = searchParams.get('userId')
+    // NOTE: We intentionally do not allow arbitrary coachId/userId filtering here.
+    // The endpoint always scopes results to what the current user can access.
 
-    const where: Prisma.ExerciseWhereInput = {}
+    const accessWhere: Prisma.ExerciseWhereInput = {}
+
+    if (user.role === 'ADMIN') {
+      // no additional restrictions
+    } else if (user.role === 'COACH') {
+      accessWhere.OR = [{ isPublic: true }, { coachId: user.id }]
+    } else if (user.role === 'ATHLETE') {
+      const athleteAccount = await prisma.athleteAccount.findUnique({
+        where: { userId: user.id },
+        select: {
+          client: {
+            select: { userId: true },
+          },
+        },
+      })
+      const coachId = athleteAccount?.client.userId
+      accessWhere.OR = coachId ? [{ isPublic: true }, { coachId }] : [{ isPublic: true }]
+    } else {
+      accessWhere.OR = [{ isPublic: true }]
+    }
+
+    const filtersWhere: Prisma.ExerciseWhereInput = {}
 
     if (category && category !== 'ALL') {
-      where.category = category as any // WorkoutType enum
+      filtersWhere.category = category as any // WorkoutType enum
     }
 
     if (pillar && pillar !== 'ALL') {
-      where.biomechanicalPillar = pillar as any // BiomechanicalPillar enum
+      filtersWhere.biomechanicalPillar = pillar as any // BiomechanicalPillar enum
     }
 
     if (level && level !== 'ALL') {
-      where.progressionLevel = level as any // ProgressionLevel enum
+      filtersWhere.progressionLevel = level as any // ProgressionLevel enum
     }
 
     if (difficulty && difficulty !== 'ALL') {
-      where.difficulty = difficulty
+      filtersWhere.difficulty = difficulty
     }
 
     if (equipment) {
       const equipmentList = equipment.split(',').map((e) => e.trim())
-      where.equipment = { in: equipmentList }
+      filtersWhere.equipment = { in: equipmentList }
     }
 
     if (intensity && intensity !== 'ALL') {
-      where.plyometricIntensity = intensity as Prisma.EnumPlyometricIntensityNullableFilter
+      filtersWhere.plyometricIntensity = intensity as Prisma.EnumPlyometricIntensityNullableFilter
     }
 
     if (isPublic !== null && isPublic !== undefined) {
-      where.isPublic = isPublic === 'true'
-    }
-
-    if (userId) {
-      where.coachId = userId // Exercise.coachId links to User
+      filtersWhere.isPublic = isPublic === 'true'
     }
 
     if (search) {
-      where.OR = [
+      filtersWhere.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { nameSv: { contains: search, mode: 'insensitive' } },
         { nameEn: { contains: search, mode: 'insensitive' } },
         { muscleGroup: { contains: search, mode: 'insensitive' } },
       ]
+    }
+
+    const where: Prisma.ExerciseWhereInput = {
+      AND: [accessWhere, filtersWhere],
     }
 
     const [exercises, totalCount] = await prisma.$transaction([
@@ -127,8 +150,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        await requireAuth()
+        const user = await requireAuth()
         const body = await request.json()
+
+        if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
         
         // Basic validation
         if (!body.name || !body.category || !body.biomechanicalPillar) {
@@ -137,6 +164,12 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             )
         }
+
+        // Coaches can only create private exercises for themselves.
+        // Admins may create system/public exercises.
+        const isPublic = user.role === 'ADMIN' ? Boolean(body.isPublic) : false
+        const coachId =
+          isPublic ? null : (user.role === 'ADMIN' && typeof body.coachId === 'string' ? body.coachId : user.id)
 
         const exercise = await prisma.exercise.create({
             data: {
@@ -154,8 +187,8 @@ export async function POST(request: NextRequest) {
                 videoUrl: body.videoUrl,
                 plyometricIntensity: body.plyometricIntensity,
                 contactsPerRep: body.contactsPerRep,
-                isPublic: body.isPublic || false,
-                coachId: body.userId || body.coachId
+                isPublic,
+                coachId,
             }
         })
         

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { locales, defaultLocale, type Locale } from '@/i18n/config';
+import { logError } from '@/lib/logger-console'
 
 const COOKIE_NAME = 'NEXT_LOCALE';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
       locale,
     });
   } catch (error) {
-    console.error('Failed to set locale:', error);
+    logError('Failed to set locale:', error);
     return NextResponse.json(
       { error: 'Failed to set locale' },
       { status: 500 }
@@ -57,7 +58,7 @@ export async function GET() {
       availableLocales: locales,
     });
   } catch (error) {
-    console.error('Failed to get locale:', error);
+    logError('Failed to get locale:', error);
     return NextResponse.json(
       { locale: defaultLocale, availableLocales: locales },
       { status: 200 }

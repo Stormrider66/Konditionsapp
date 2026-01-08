@@ -10,6 +10,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { generateChartFromQuery, type GenerateChartRequest } from '@/lib/ai/generative-charts';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 interface RequestBody {
   clientId: string;
@@ -22,6 +24,13 @@ interface RequestBody {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+
+    const rateLimited = await rateLimitJsonResponse('ai:generate-chart', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     const body: RequestBody = await request.json();
 
     const { clientId, query, dataContext, startDate, endDate } = body;
@@ -85,7 +94,7 @@ export async function POST(request: NextRequest) {
       generatedAt: result.generatedAt,
     });
   } catch (error) {
-    console.error('Generate chart error:', error);
+    logger.error('Generate chart error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

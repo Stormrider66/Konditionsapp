@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-utils';
+import { logError } from '@/lib/logger-console'
 
 interface RouteContext {
   params: Promise<{ clientId: string }>;
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       stats,
     });
   } catch (error) {
-    console.error('Failed to fetch athlete hybrid results:', error);
+    logError('Failed to fetch athlete hybrid results:', error);
     return NextResponse.json(
       { error: 'Failed to fetch results' },
       { status: 500 }

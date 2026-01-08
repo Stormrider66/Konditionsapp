@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { ErgometerType } from '@prisma/client';
+import { logError } from '@/lib/logger-console'
 import {
   generateRacePacing,
   compareStrategies,
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error generating pacing plan:', error);
+    logError('Error generating pacing plan:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to generate pacing plan' },
       { status: 500 }

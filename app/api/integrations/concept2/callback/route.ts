@@ -8,6 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { exchangeConcept2Code, concept2ApiRequest } from '@/lib/integrations/concept2';
 import type { Concept2User } from '@/lib/integrations/concept2';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
+import { encryptIntegrationSecret } from '@/lib/integrations/crypto';
+import { logger } from '@/lib/logger'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -30,7 +33,10 @@ export async function GET(request: NextRequest) {
 
   // Handle authorization denial
   if (error) {
-    console.error('Concept2 auth denied:', error, errorDescription);
+    logger.info('Concept2 auth denied by user', {
+      error,
+      hasErrorDescription: Boolean(errorDescription),
+    })
     return NextResponse.redirect(
       `${APP_URL}/athlete/settings?error=concept2_denied&message=${encodeURIComponent(errorDescription || error)}`
     );
@@ -38,7 +44,7 @@ export async function GET(request: NextRequest) {
 
   // Validate required params
   if (!code || !state) {
-    console.error('Missing code or state in Concept2 callback');
+    logger.warn('Missing code or state in Concept2 callback')
     return NextResponse.redirect(
       `${APP_URL}/athlete/settings?error=concept2_invalid_callback`
     );
@@ -47,6 +53,21 @@ export async function GET(request: NextRequest) {
   const clientId = state;
 
   try {
+    // Verify user is authenticated and allowed to connect integrations for this client
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.redirect(
+        `${APP_URL}/login?redirect=${encodeURIComponent('/athlete/settings')}`
+      );
+    }
+
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.redirect(
+        `${APP_URL}/athlete/settings?error=concept2_forbidden`
+      );
+    }
+
     // Verify client exists
     const client = await prisma.client.findUnique({
       where: { id: clientId },
@@ -54,7 +75,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!client) {
-      console.error('Client not found:', clientId);
+      logger.warn('Client not found in Concept2 callback', { clientId })
       return NextResponse.redirect(
         `${APP_URL}/athlete/settings?error=concept2_client_not_found`
       );
@@ -75,8 +96,8 @@ export async function GET(request: NextRequest) {
         },
       },
       update: {
-        accessToken: tokenResponse.access_token,
-        refreshToken: tokenResponse.refresh_token,
+        accessToken: encryptIntegrationSecret(tokenResponse.access_token)!,
+        refreshToken: encryptIntegrationSecret(tokenResponse.refresh_token),
         expiresAt,
         scope: 'user:read,results:read',
         lastSyncError: null,
@@ -85,8 +106,8 @@ export async function GET(request: NextRequest) {
       create: {
         clientId,
         type: 'CONCEPT2',
-        accessToken: tokenResponse.access_token,
-        refreshToken: tokenResponse.refresh_token,
+        accessToken: encryptIntegrationSecret(tokenResponse.access_token)!,
+        refreshToken: encryptIntegrationSecret(tokenResponse.refresh_token),
         expiresAt,
         scope: 'user:read,results:read',
         syncEnabled: true,
@@ -127,11 +148,11 @@ export async function GET(request: NextRequest) {
         });
       }
     } catch (userError) {
-      console.warn('Could not fetch Concept2 user info:', userError);
+      logger.warn('Could not fetch Concept2 user info', {}, userError)
       // Continue anyway - sync will work, we just won't have the user ID cached
     }
 
-    console.log(`Concept2 connected for client ${clientId}${userId ? `, user ${userId}` : ''}`);
+    logger.info('Concept2 connected', { clientId, userId: userId || undefined })
 
     // Redirect to success page
     const successUrl = new URL(`${APP_URL}/athlete/settings`);
@@ -141,7 +162,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(successUrl.toString());
   } catch (error) {
-    console.error('Concept2 callback error:', error);
+    logger.error('Concept2 callback error', { clientId }, error)
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.redirect(

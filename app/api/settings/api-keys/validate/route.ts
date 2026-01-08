@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import OpenAI from 'openai';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 interface ValidateKeyRequest {
   provider: 'anthropic' | 'google' | 'openai';
@@ -16,7 +18,14 @@ interface ValidateKeyRequest {
 // POST - Validate a single API key
 export async function POST(request: NextRequest) {
   try {
-    await requireCoach();
+    const user = await requireCoach();
+
+    // Rate limit key validation attempts per user
+    const rateLimited = await rateLimitJsonResponse('settings:api-keys:validate', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const body: ValidateKeyRequest = await request.json();
     const { provider, key } = body;
@@ -132,7 +141,7 @@ export async function POST(request: NextRequest) {
       details,
     });
   } catch (error) {
-    console.error('Validate API key error:', error);
+    logger.error('Validate API key error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

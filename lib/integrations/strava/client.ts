@@ -4,7 +4,12 @@
  * Handles OAuth flow, API requests, and token management for Strava integration.
  */
 
+import 'server-only'
+
 import { prisma } from '@/lib/prisma';
+import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto'
+import { fetchWithTimeoutAndRetry } from '@/lib/http/fetch'
+import { logger } from '@/lib/logger'
 
 // Strava API configuration
 const STRAVA_API_BASE = 'https://www.strava.com/api/v3';
@@ -118,18 +123,22 @@ export function getStravaAuthUrl(clientId: string, state?: string): string {
  * Exchange authorization code for tokens
  */
 export async function exchangeStravaCode(code: string): Promise<StravaTokenResponse> {
-  const response = await fetch(`${STRAVA_OAUTH_BASE}/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const response = await fetchWithTimeoutAndRetry(
+    `${STRAVA_OAUTH_BASE}/token`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: STRAVA_CLIENT_ID,
+        client_secret: STRAVA_CLIENT_SECRET,
+        code,
+        grant_type: 'authorization_code',
+      }),
     },
-    body: JSON.stringify({
-      client_id: STRAVA_CLIENT_ID,
-      client_secret: STRAVA_CLIENT_SECRET,
-      code,
-      grant_type: 'authorization_code',
-    }),
-  });
+    { timeoutMs: 10_000, maxAttempts: 2 }
+  )
 
   if (!response.ok) {
     const error = await response.text();
@@ -143,18 +152,22 @@ export async function exchangeStravaCode(code: string): Promise<StravaTokenRespo
  * Refresh Strava access token
  */
 export async function refreshStravaToken(refreshToken: string): Promise<StravaTokenResponse> {
-  const response = await fetch(`${STRAVA_OAUTH_BASE}/token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const response = await fetchWithTimeoutAndRetry(
+    `${STRAVA_OAUTH_BASE}/token`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: STRAVA_CLIENT_ID,
+        client_secret: STRAVA_CLIENT_SECRET,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }),
     },
-    body: JSON.stringify({
-      client_id: STRAVA_CLIENT_ID,
-      client_secret: STRAVA_CLIENT_SECRET,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-    }),
-  });
+    { timeoutMs: 10_000, maxAttempts: 2 }
+  )
 
   if (!response.ok) {
     const error = await response.text();
@@ -181,36 +194,40 @@ export async function getValidAccessToken(clientId: string): Promise<string | nu
     return null;
   }
 
+  const accessToken = decryptIntegrationSecret(token.accessToken)
+  const refreshToken = decryptIntegrationSecret(token.refreshToken)
+  if (!accessToken) return null
+
   // Check if token is expired (with 5 minute buffer)
   const now = new Date();
   const expiresAt = token.expiresAt ? new Date(token.expiresAt) : null;
 
   if (expiresAt && expiresAt.getTime() - 5 * 60 * 1000 < now.getTime()) {
     // Token is expired or about to expire, refresh it
-    if (!token.refreshToken) {
+    if (!refreshToken) {
       return null;
     }
 
     try {
-      const newTokens = await refreshStravaToken(token.refreshToken);
+      const newTokens = await refreshStravaToken(refreshToken);
 
       await prisma.integrationToken.update({
         where: { id: token.id },
         data: {
-          accessToken: newTokens.access_token,
-          refreshToken: newTokens.refresh_token,
+          accessToken: encryptIntegrationSecret(newTokens.access_token)!,
+          refreshToken: encryptIntegrationSecret(newTokens.refresh_token),
           expiresAt: new Date(newTokens.expires_at * 1000),
         },
       });
 
       return newTokens.access_token;
     } catch (error) {
-      console.error('Failed to refresh Strava token:', error);
+      logger.error('Failed to refresh Strava token', { clientId }, error)
       return null;
     }
   }
 
-  return token.accessToken;
+  return accessToken;
 }
 
 /**
@@ -227,13 +244,17 @@ export async function stravaApiRequest<T>(
     throw new Error('No valid Strava access token');
   }
 
-  const response = await fetch(`${STRAVA_API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${accessToken}`,
+  const response = await fetchWithTimeoutAndRetry(
+    `${STRAVA_API_BASE}${endpoint}`,
+    {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${accessToken}`,
+      },
     },
-  });
+    { timeoutMs: 10_000, maxAttempts: 3 }
+  )
 
   if (!response.ok) {
     const error = await response.text();
@@ -302,19 +323,24 @@ export async function disconnectStrava(clientId: string): Promise<void> {
   });
 
   if (token) {
+    const accessToken = decryptIntegrationSecret(token.accessToken)
     // Revoke token with Strava
     try {
-      await fetch(`${STRAVA_OAUTH_BASE}/deauthorize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      await fetchWithTimeoutAndRetry(
+        `${STRAVA_OAUTH_BASE}/deauthorize`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            access_token: accessToken,
+          }),
         },
-        body: JSON.stringify({
-          access_token: token.accessToken,
-        }),
-      });
+        { timeoutMs: 10_000, maxAttempts: 2 }
+      )
     } catch (error) {
-      console.error('Failed to revoke Strava token:', error);
+      logger.warn('Failed to revoke Strava token', { clientId }, error)
     }
 
     // Delete from database

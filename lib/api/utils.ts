@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodSchema } from 'zod';
 import { getCurrentUser, requireCoach, requireAthlete } from '@/lib/auth-utils';
+import { logger } from '@/lib/logger'
 
 /**
  * Standard API error response
@@ -35,11 +36,15 @@ export function errorResponse(
   status: number = 400,
   details?: unknown
 ): NextResponse<ApiError> {
+  const isProd = process.env.NODE_ENV === 'production'
+  const safeMessage = status >= 500 && isProd ? 'Internal server error' : message
+  const safeDetails = status >= 500 && isProd ? undefined : details
+
   return NextResponse.json(
     {
       error: getErrorType(status),
-      message,
-      details
+      message: safeMessage,
+      details: safeDetails
     },
     { status }
   );
@@ -93,12 +98,13 @@ export async function validateRequest<T>(
     return { success: true, data: validated };
   } catch (error) {
     if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      const issues = (error as any).issues
       return {
         success: false,
         response: errorResponse(
           'Validation failed',
           422,
-          error
+          { issues }
         )
       };
     }
@@ -152,14 +158,15 @@ export async function requireAthleteAuth() {
  * Handle API errors
  */
 export function handleApiError(error: unknown): NextResponse<ApiError> {
-  console.error('API Error:', error);
+  logger.error('API Error', {}, error)
 
   if (error instanceof NextResponse) {
     return error;
   }
 
   if (error instanceof Error) {
-    return errorResponse(error.message, 500);
+    const isProd = process.env.NODE_ENV === 'production'
+    return errorResponse(isProd ? 'Internal server error' : error.message, 500);
   }
 
   return errorResponse('An unexpected error occurred', 500);

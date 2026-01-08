@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAthlete } from '@/lib/auth-utils'
+import { logError } from '@/lib/logger-console'
 
 interface HybridMovementData {
   id: string
@@ -204,7 +205,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error fetching hybrid focus mode data:', error)
+    logError('Error fetching hybrid focus mode data:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch workout data' },
       { status: 500 }
@@ -292,7 +293,7 @@ export async function POST(
       message: 'Focus mode session started',
     })
   } catch (error) {
-    console.error('Error starting hybrid focus mode:', error)
+    logError('Error starting hybrid focus mode:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to start focus mode session' },
       { status: 500 }
@@ -420,7 +421,7 @@ export async function PUT(
       data: updatedLog,
     })
   } catch (error) {
-    console.error('Error updating hybrid focus mode:', error)
+    logError('Error updating hybrid focus mode:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to update session' },
       { status: 500 }

@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 import {
   chunkText,
   storeChunkEmbeddings,
@@ -16,6 +18,9 @@ import {
   processDocument,
   isProcessingError,
 } from '@/lib/ai/document-processor';
+
+// Embedding generation can be slow on larger documents
+export const maxDuration = 300
 
 // POST - Generate embeddings for document
 export async function POST(
@@ -39,6 +44,12 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    const rateLimited = await rateLimitJsonResponse('documents:embed', user.id, {
+      limit: 3,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get document
     const document = await prisma.coachDocument.findFirst({
@@ -95,44 +106,32 @@ export async function POST(
 
     // If no raw content, use document processor for PDF/Excel/etc.
     if (!content) {
-      // Handle data URLs (base64 encoded content)
-      if (document.fileUrl.startsWith('data:')) {
-        try {
-          const base64 = document.fileUrl.split(',')[1];
-          content = decodeURIComponent(escape(atob(base64)));
-        } catch (error) {
-          console.error('Failed to decode data URL:', error);
-        }
-      }
+      const result = await processDocument(
+        document.fileUrl,
+        document.fileType as 'PDF' | 'EXCEL' | 'TEXT' | 'MARKDOWN' | 'VIDEO',
+        metadata?.rawContent && typeof metadata.rawContent === 'string' ? metadata.rawContent : undefined
+      );
 
-      // If still no content, try document processor
-      if (!content && document.fileUrl && !document.fileUrl.startsWith('data:')) {
-        const result = await processDocument(
-          document.fileUrl,
-          document.fileType as 'PDF' | 'EXCEL' | 'TEXT' | 'MARKDOWN' | 'VIDEO'
+      if (isProcessingError(result)) {
+        await prisma.coachDocument.update({
+          where: { id },
+          data: {
+            processingStatus: 'FAILED',
+            processingError: result.error,
+          },
+        });
+
+        return NextResponse.json(
+          {
+            error: result.error,
+            code: result.code,
+            details: result.details,
+          },
+          { status: result.code === 'NOT_IMPLEMENTED' ? 501 : 400 }
         );
-
-        if (isProcessingError(result)) {
-          await prisma.coachDocument.update({
-            where: { id },
-            data: {
-              processingStatus: 'FAILED',
-              processingError: result.error,
-            },
-          });
-
-          return NextResponse.json(
-            {
-              error: result.error,
-              code: result.code,
-              details: result.details,
-            },
-            { status: result.code === 'NOT_IMPLEMENTED' ? 501 : 400 }
-          );
-        }
-
-        content = result.content;
       }
+
+      content = result.content;
 
       // If still no content, return error
       if (!content) {
@@ -146,12 +145,28 @@ export async function POST(
       }
     }
 
+    // Guardrails to prevent runaway cost / time on huge documents
+    const MAX_EMBED_CHARS = 200_000
+    const MAX_CHUNKS = 250
+    const originalLength = content.length
+    let wasTruncated = false
+
+    if (content.length > MAX_EMBED_CHARS) {
+      content = content.slice(0, MAX_EMBED_CHARS)
+      wasTruncated = true
+    }
+
     // Chunk the content
-    const chunks = chunkText(content, {
+    let chunks = chunkText(content, {
       documentId: document.id,
       documentName: document.name,
       fileType: document.fileType,
     });
+
+    if (chunks.length > MAX_CHUNKS) {
+      chunks = chunks.slice(0, MAX_CHUNKS)
+      wasTruncated = true
+    }
 
     if (chunks.length === 0) {
       await prisma.coachDocument.update({
@@ -195,11 +210,11 @@ export async function POST(
       success: true,
       document: updatedDocument,
       chunksCreated: result.chunksStored,
+      truncated: wasTruncated ? { originalChars: originalLength, maxChars: MAX_EMBED_CHARS, maxChunks: MAX_CHUNKS } : undefined,
       message: `Successfully processed document into ${result.chunksStored} chunks with embeddings.`,
     });
   } catch (error) {
-    console.error('[Document Embed] Error:', error);
-    console.error('[Document Embed] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    logger.error('Document embed error', {}, error)
 
     // Try to update status to failed
     const { id } = await params;
@@ -213,17 +228,18 @@ export async function POST(
         },
       });
     } catch (updateError) {
-      console.error('[Document Embed] Failed to update status:', updateError);
+      logger.error('Document embed: failed to update status', { documentId: id }, updateError)
     }
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const isProd = process.env.NODE_ENV === 'production'
     return NextResponse.json(
       {
         error: 'Failed to process document',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: isProd ? 'Internal server error' : (error instanceof Error ? error.message : 'Unknown error'),
         stack: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
       },
       { status: 500 }

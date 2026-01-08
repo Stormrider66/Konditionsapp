@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAthlete } from '@/lib/auth-utils'
+import { logError } from '@/lib/logger-console'
 
 /**
  * GET /api/athletes/[clientId]/cardio-sessions
@@ -54,7 +55,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error fetching athlete cardio sessions:', error)
+    logError('Error fetching athlete cardio sessions:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch sessions' },
       { status: 500 }

@@ -20,10 +20,18 @@ import { prisma } from '@/lib/prisma';
 import { GEMINI_MODELS, getGeminiThinkingOptions } from '@/lib/ai/gemini-config';
 import { LactateMeterOCRSchema } from '@/lib/validations/gemini-schemas';
 import { decryptSecret } from '@/lib/crypto/secretbox';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+
+    const rateLimited = await rateLimitJsonResponse('ai:lactate-ocr', user.id, {
+      limit: 5,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get form data with image
     const formData = await request.formData();
@@ -128,12 +136,13 @@ Typiska laktatvärden:
       ],
     });
 
-    // Log for debugging
-    console.log('Lactate OCR result:', {
-      lactateValue: result.object.reading.lactateValue,
-      confidence: result.object.reading.confidence,
-      brand: result.object.deviceInfo.detectedBrand,
-    });
+    // Debug logging (avoid logging health metrics in production)
+    if (process.env.NODE_ENV !== 'production') {
+      logger.debug('Lactate OCR parsed', {
+        confidence: result.object.reading.confidence,
+        brand: result.object.deviceInfo.detectedBrand,
+      })
+    }
 
     return NextResponse.json({
       success: true,
@@ -141,7 +150,7 @@ Typiska laktatvärden:
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Lactate OCR error:', error);
+    logger.error('Lactate OCR error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -150,7 +159,10 @@ Typiska laktatvärden:
     return NextResponse.json(
       {
         error: 'Kunde inte läsa av laktatmätaren',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
       },
       { status: 500 }
     );

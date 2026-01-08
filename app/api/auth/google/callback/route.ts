@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { encryptIntegrationSecret } from '@/lib/integrations/crypto'
+import { logger } from '@/lib/logger'
 
 interface GoogleTokenResponse {
   access_token: string
@@ -43,7 +45,7 @@ export async function GET(request: NextRequest) {
     const error = searchParams.get('error')
 
     if (error) {
-      console.error('Google OAuth error:', error)
+      logger.info('Google OAuth denied by user', { error })
       return NextResponse.redirect(
         `${baseUrl}/athlete/settings/calendars?error=oauth_denied`
       )
@@ -126,8 +128,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text()
-      console.error('Google token exchange failed:', errorData)
+      logger.error('Google token exchange failed', { status: tokenResponse.status })
       return NextResponse.redirect(
         `${baseUrl}/athlete/settings/calendars?error=token_exchange_failed`
       )
@@ -146,7 +147,7 @@ export async function GET(request: NextRequest) {
     )
 
     if (!calendarsResponse.ok) {
-      console.error('Failed to fetch calendars:', await calendarsResponse.text())
+      logger.error('Failed to fetch Google calendars', { status: calendarsResponse.status })
       return NextResponse.redirect(
         `${baseUrl}/athlete/settings/calendars?error=calendar_fetch_failed`
       )
@@ -167,8 +168,8 @@ export async function GET(request: NextRequest) {
       data: {
         calendarId: primaryCalendar.id,
         calendarName: primaryCalendar.summary || connection.calendarName,
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token,
+        accessToken: encryptIntegrationSecret(tokens.access_token),
+        refreshToken: encryptIntegrationSecret(tokens.refresh_token),
         expiresAt: new Date(Date.now() + tokens.expires_in * 1000),
         syncEnabled: true,
         lastSyncError: null,
@@ -189,10 +190,10 @@ export async function GET(request: NextRequest) {
       )
 
       if (!syncResponse.ok) {
-        console.warn('Initial sync failed:', await syncResponse.text())
+        logger.warn('Initial calendar sync failed', { status: syncResponse.status })
       }
     } catch (syncError) {
-      console.warn('Initial sync error:', syncError)
+      logger.warn('Initial calendar sync error', {}, syncError)
     }
 
     // Redirect to success page
@@ -200,7 +201,7 @@ export async function GET(request: NextRequest) {
       `${baseUrl}/athlete/settings/calendars?success=google_connected&calendar=${encodeURIComponent(primaryCalendar.summary)}`
     )
   } catch (error) {
-    console.error('Google OAuth callback error:', error)
+    logger.error('Google OAuth callback error', {}, error)
     return NextResponse.redirect(
       `${baseUrl}/athlete/settings/calendars?error=internal_error`
     )

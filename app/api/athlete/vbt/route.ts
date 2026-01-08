@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Query schema for GET
 const getQuerySchema = z.object({
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
       offset,
     });
   } catch (error) {
-    console.error('[VBT Sessions] Error:', error);
+    logError('[VBT Sessions] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -203,7 +204,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, deleted: sessionId });
   } catch (error) {
-    console.error('[VBT Delete] Error:', error);
+    logError('[VBT Delete] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { logError } from '@/lib/logger-console'
 import {
   getVBTProgressionData,
   getVBTProgressionSummary,
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
       data: summary,
     });
   } catch (error) {
-    console.error('[VBT Progression] Error:', error);
+    logError('[VBT Progression] Error:', error);
     return NextResponse.json(
       { error: 'Failed to get VBT progression data' },
       { status: 500 }
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
       message: 'Progression updated with VBT data',
     });
   } catch (error) {
-    console.error('[VBT Progression] Error:', error);
+    logError('[VBT Progression] Error:', error);
     return NextResponse.json(
       { error: 'Failed to update progression' },
       { status: 500 }

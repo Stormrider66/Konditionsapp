@@ -308,7 +308,6 @@ This framework provides the "Claude Code" application with a scientifically rigo
 7. SVENSK LÄNGDSKIDÅKNING - Träningsintensitet. https://www.skidor.com/download/18.641724771851535f95012b2e/1671182695341/ssf_traningsintensitet_korr4.pdf
 8. Training Program for the Vasaloppet: Your Guide to Preparing for Sweden's Iconic Ski Race - Racketnow.com. https://racketnow.com/en-gb/pages/inspiration/training-program-vasaloppet-guide-preparing-sweden-iconic-ski-race
 9. Getting the most from your dryland training - Madshus. https://madshus.com/en-us/blog/p/getting-the-most-from-your-dryland-training
-10. Vasaloppsskolan – Teknikträna med stakmaskin (Stakmaskin del 2 av 5) - YouTube. https://www.youtube.com/watch?v=L5WgTXDCtAw
 11. Competitive Cross-Country Skiers Have Longer Time to Exhaustion Than Recreational Cross-Country Skiers During Intermittent Work Intervals - Human Kinetics Journals. https://journals.humankinetics.com/view/journals/ijspp/18/11/article-p1246.xml
 12. Fall Dryland Training Tips! - Endurance Adventures. https://www.enduradv.com/2023/10/20/fall-dryland-training-tips/
 13. Träningspass på stakmaskin – fem exempel - Wickström Coaching. https://wickstromcoaching.com/2019/10/13/traningspass-pa-stakmaskin-fem-exempel/
@@ -321,7 +320,6 @@ This framework provides the "Claude Code" application with a scientifically rigo
 20. Intensitetszoner - SVENSK SIMIDROTT. https://svensksimidrott.se/download/18.8c3297718388dc7085dcc03/1666185246560/intensitetszoner%20Antonio%20Lutula.pdf
 21. 10 essential pool swim drills for triathletes - 220 Triathlon. https://www.220triathlon.com/training/swim-training/10-essential-pool-swim-drills-for-triathletes
 22. 12 Swim Drills for All Triathletes - The Empowered Athlete. https://triathlontraining-coach.com/12-swim-drills-for-all-triathletes/
-23. The Only Swim Drills Triathletes Actually Need - YouTube. https://www.youtube.com/watch?v=eO8W1pWRJ1E
 24. Kravanalys simning junior till senior - SVENSK SIMIDROTT. https://svensksimidrott.se/download/18.449699b418c43025a4077273/1702300715236/Kravanalys%20simning%20junior%20till%20senior_Del%201.pdf
 25. HYROX Weights by Division & Workout Station - 2024/25 Season - The Fitness Experiment. https://fitnessexperiment.co/hyrox/weights/
 26. The Complete Guide to HYROX Divisions: Weights, Records, and more. https://hellohyrox.com/2025/01/03/the-complete-guide-to-hyrox-divisions-weights-records-and-more/

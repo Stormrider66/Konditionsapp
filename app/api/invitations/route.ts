@@ -10,6 +10,7 @@ import { requireCoach, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { logError } from '@/lib/logger-console'
 
 // Validation schema for creating an invitation
 const createInvitationSchema = z.object({
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error('Get invitations error:', error);
+    logError('Get invitations error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -206,7 +207,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Create invitation error:', error);
+    logError('Create invitation error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

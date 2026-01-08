@@ -722,18 +722,6 @@ Get skeletal landmarks.
 ### `POST /api/video-analysis/analyze-pose-data`
 Analyze raw pose data.
 
-### `POST /api/video-imports`
-Import video.
-
-### `GET /api/video-imports/[id]`
-Get import.
-
-### `POST /api/video-imports/[id]/matches`
-Find exercise matches.
-
-### `POST /api/video-imports/[id]/apply`
-Apply matches.
-
 ---
 
 ## Settings Endpoints

@@ -335,6 +335,8 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
       if (onSuccess) {
         onSuccess()
       } else {
+        // Gap 7: Refresh to revalidate dashboard data before redirect
+        router.refresh()
         // Redirect to athlete dashboard after a short delay to show success feedback
         setTimeout(() => {
           router.push('/athlete/dashboard')
@@ -408,6 +410,8 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
     if (onSuccess) {
       onSuccess()
     } else {
+      // Gap 7: Refresh to revalidate dashboard data before redirect
+      router.refresh()
       // Redirect to athlete dashboard after a short delay to show success feedback
       setTimeout(() => {
         router.push('/athlete')

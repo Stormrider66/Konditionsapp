@@ -316,12 +316,63 @@ function unescapeValue(value: string): string {
  * Fetch and parse an iCal URL
  */
 export async function fetchAndParseICalUrl(url: string): Promise<ICalParseResult> {
+  const MAX_ICAL_BYTES = 2 * 1024 * 1024 // 2MB
+  const TIMEOUT_MS = 10_000
+  const MAX_REDIRECTS = 3
+
+  const errorResult = (message: string): ICalParseResult => ({
+    success: false,
+    events: [],
+    errors: [message],
+  })
+
   try {
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'text/calendar',
-      },
-    })
+    const initialUrl = normalizeWebcalUrl(url)
+    const validationError = validateExternalFetchUrl(initialUrl)
+    if (validationError) {
+      return errorResult(validationError)
+    }
+
+    // Fetch with manual redirects so we can validate each redirect target (SSRF mitigation)
+    let currentUrl = initialUrl
+    let response: Response | null = null
+
+    for (let i = 0; i <= MAX_REDIRECTS; i++) {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS)
+      try {
+        response = await fetch(currentUrl, {
+          headers: {
+            Accept: 'text/calendar',
+          },
+          redirect: 'manual',
+          signal: controller.signal,
+        })
+      } finally {
+        clearTimeout(timeout)
+      }
+
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location')
+        if (!location) break
+
+        const nextUrl = normalizeWebcalUrl(new URL(location, currentUrl).toString())
+        const nextValidationError = validateExternalFetchUrl(nextUrl)
+        if (nextValidationError) {
+          return errorResult(`Unsafe redirect blocked: ${nextValidationError}`)
+        }
+
+        currentUrl = nextUrl
+        continue
+      }
+
+      // Non-redirect response
+      break
+    }
+
+    if (!response) {
+      return errorResult('Failed to fetch calendar: no response')
+    }
 
     if (!response.ok) {
       return {
@@ -331,7 +382,19 @@ export async function fetchAndParseICalUrl(url: string): Promise<ICalParseResult
       }
     }
 
+    const contentLength = response.headers.get('content-length')
+    if (contentLength) {
+      const size = Number(contentLength)
+      if (Number.isFinite(size) && size > MAX_ICAL_BYTES) {
+        return errorResult('Calendar file too large')
+      }
+    }
+
     const content = await response.text()
+    const bytes = new TextEncoder().encode(content).length
+    if (bytes > MAX_ICAL_BYTES) {
+      return errorResult('Calendar file too large')
+    }
     return parseICalString(content)
   } catch (err) {
     return {
@@ -340,6 +403,88 @@ export async function fetchAndParseICalUrl(url: string): Promise<ICalParseResult
       errors: [`Network error: ${err instanceof Error ? err.message : 'Unknown error'}`],
     }
   }
+}
+
+function normalizeWebcalUrl(raw: string): string {
+  const trimmed = raw.trim()
+  if (trimmed.toLowerCase().startsWith('webcal://')) {
+    // Many iCal subscription links use "webcal://", which is effectively HTTPS.
+    return `https://${trimmed.slice('webcal://'.length)}`
+  }
+  return trimmed
+}
+
+/**
+ * Basic URL validation for server-side fetches (SSRF mitigation).
+ * This is not perfect, but blocks the highest-risk targets (localhost/private IPs).
+ */
+function validateExternalFetchUrl(raw: string): string | null {
+  let u: URL
+  try {
+    u = new URL(raw)
+  } catch {
+    return 'Invalid calendar URL'
+  }
+
+  if (u.username || u.password) {
+    return 'Calendar URL must not include credentials'
+  }
+
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+    return 'Only http/https calendar URLs are allowed'
+  }
+
+  const hostname = u.hostname.toLowerCase()
+
+  if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
+    return 'Localhost calendar URLs are not allowed'
+  }
+
+  if (hostname.endsWith('.local')) {
+    return 'Local network calendar URLs are not allowed'
+  }
+
+  if (isPrivateIpLiteral(hostname)) {
+    return 'Private network calendar URLs are not allowed'
+  }
+
+  return null
+}
+
+function isPrivateIpLiteral(hostname: string): boolean {
+  // IPv6 literal
+  if (hostname.includes(':')) {
+    const h = hostname
+    if (h === '::' || h === '::1') return true
+    if (h.startsWith('fe80:')) return true // link-local
+    if (h.startsWith('fc') || h.startsWith('fd')) return true // unique local
+    return false
+  }
+
+  // IPv4 literal
+  const parts = hostname.split('.')
+  if (parts.length !== 4) return false
+  const nums = parts.map((p) => (p.match(/^\d+$/) ? Number(p) : NaN))
+  if (nums.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false
+
+  const [a, b] = nums
+
+  // 0.0.0.0/8
+  if (a === 0) return true
+  // 10.0.0.0/8
+  if (a === 10) return true
+  // 127.0.0.0/8
+  if (a === 127) return true
+  // 169.254.0.0/16 (link-local, incl. cloud metadata 169.254.169.254)
+  if (a === 169 && b === 254) return true
+  // 172.16.0.0/12
+  if (a === 172 && b >= 16 && b <= 31) return true
+  // 192.168.0.0/16
+  if (a === 192 && b === 168) return true
+  // 100.64.0.0/10 (carrier-grade NAT)
+  if (a === 100 && b >= 64 && b <= 127) return true
+
+  return false
 }
 
 /**

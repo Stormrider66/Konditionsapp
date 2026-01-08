@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
+import { logError } from '@/lib/logger-console'
 
 /**
  * Generate a cryptographically secure random token
@@ -87,7 +88,7 @@ export async function POST(
       isExisting: false,
     });
   } catch (error) {
-    console.error('Generate public link error:', error);
+    logError('Generate public link error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -137,7 +138,7 @@ export async function DELETE(
       message: 'Public link revoked',
     });
   } catch (error) {
-    console.error('Revoke public link error:', error);
+    logError('Revoke public link error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -195,7 +196,7 @@ export async function GET(
       isExpired,
     });
   } catch (error) {
-    console.error('Get public link error:', error);
+    logError('Get public link error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

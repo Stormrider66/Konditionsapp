@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { logError } from '@/lib/logger-console'
 
 export interface UnifiedCalendarItem {
   id: string
@@ -364,7 +365,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching unified calendar:', error)
+    logError('Error fetching unified calendar:', error)
     return NextResponse.json(
       { error: 'Failed to fetch unified calendar' },
       { status: 500 }

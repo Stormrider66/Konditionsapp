@@ -6,6 +6,10 @@
  * - Strava synced activities (StravaActivity)
  * - Garmin synced activities (DailyMetrics.factorScores)
  * - Concept2 synced results (Concept2Result)
+ * - AI-generated WODs (AIGeneratedWOD)
+ *
+ * Uses smart deduplication to prevent showing the same activity
+ * multiple times when synced from different sources.
  *
  * Returns unified format for dashboard display.
  */
@@ -13,6 +17,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
+import {
+  deduplicateActivities,
+  normalizeStravaActivity,
+  normalizeGarminActivity,
+  normalizeConcept2Activity,
+  normalizeWorkoutLog,
+  normalizeAIWod,
+  type NormalizedActivity,
+  type ActivitySource,
+} from '@/lib/training/activity-deduplication'
 
 interface UnifiedActivity {
   id: string
@@ -82,7 +97,7 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - days)
 
     // Fetch all data sources in parallel
-    const [manualLogs, stravaActivities, dailyMetrics, concept2Results, aiWods] = await Promise.all([
+    const [manualLogs, stravaActivities, garminActivities, concept2Results, aiWods] = await Promise.all([
       // Manual workout logs - filter by athleteId (the user ID of the athlete)
       athleteId
         ? prisma.workoutLog.findMany({
@@ -108,17 +123,14 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
 
-      // Garmin activities (stored in DailyMetrics.factorScores)
-      prisma.dailyMetrics.findMany({
+      // Garmin activities from GarminActivity model (Gap 5 fix)
+      prisma.garminActivity.findMany({
         where: {
           clientId,
-          date: { gte: startDate },
+          startDate: { gte: startDate },
         },
-        select: {
-          date: true,
-          factorScores: true,
-        },
-        orderBy: { date: 'desc' },
+        orderBy: { startDate: 'desc' },
+        take: limit,
       }),
 
       // Concept2 results
@@ -201,43 +213,44 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Process Garmin activities
-    for (const metric of dailyMetrics) {
-      const factorScores = metric.factorScores as {
-        garminActivities?: Array<{
-          activityId?: number
-          type?: string
-          mappedType?: string
-          duration?: number
-          distance?: number
-          avgHR?: number
-          maxHR?: number
-          calories?: number
-          tss?: number
-        }>
-      } | null
+    // Process Garmin activities from GarminActivity model (Gap 5 fix)
+    for (const activity of garminActivities) {
+      const durationMin = activity.duration ? Math.round(activity.duration / 60) : undefined
+      const distanceKm = activity.distance ? activity.distance / 1000 : undefined
 
-      const garminActivities = factorScores?.garminActivities || []
-
-      for (const activity of garminActivities) {
-        const durationMin = activity.duration ? Math.round(activity.duration / 60) : undefined
-        const distanceKm = activity.distance ? activity.distance / 1000 : undefined
-
-        activities.push({
-          id: `garmin-${activity.activityId}-${metric.date.toISOString()}`,
-          source: 'garmin',
-          name: activity.type || 'Garmin Activity',
-          type: activity.mappedType || activity.type || 'OTHER',
-          date: metric.date,
-          duration: durationMin,
-          distance: distanceKm,
-          avgHR: activity.avgHR,
-          maxHR: activity.maxHR,
-          calories: activity.calories,
-          tss: activity.tss,
-          garminId: activity.activityId,
-        })
+      // Calculate pace for running
+      let pace: string | undefined
+      if (activity.type?.toLowerCase().includes('running') && activity.averageSpeed && activity.averageSpeed > 0) {
+        const paceMinPerKm = 1000 / (activity.averageSpeed * 60)
+        const paceMin = Math.floor(paceMinPerKm)
+        const paceSec = Math.round((paceMinPerKm - paceMin) * 60)
+        pace = `${paceMin}:${paceSec.toString().padStart(2, '0')}`
       }
+
+      // Calculate speed for cycling
+      let speed: number | undefined
+      if (activity.type?.toLowerCase().includes('cycling') && activity.averageSpeed) {
+        speed = activity.averageSpeed * 3.6 // m/s to km/h
+      }
+
+      activities.push({
+        id: activity.id,
+        source: 'garmin',
+        name: activity.name || activity.type || 'Garmin Activity',
+        type: activity.mappedType || activity.type || 'OTHER',
+        date: activity.startDate,
+        duration: durationMin,
+        distance: distanceKm,
+        avgHR: activity.averageHeartrate || undefined,
+        maxHR: activity.maxHeartrate || undefined,
+        calories: activity.calories || undefined,
+        tss: activity.tss || undefined,
+        trimp: activity.trimp || undefined,
+        pace,
+        speed,
+        elevationGain: activity.elevationGain || undefined,
+        garminId: Number(activity.garminActivityId),
+      })
     }
 
     // Process Concept2 results
@@ -305,20 +318,42 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Sort by date (newest first) and deduplicate
+    // Sort by date (newest first)
     activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-    // Remove potential duplicates (same activity from different sources)
-    const seen = new Set<string>()
-    const deduplicated = activities.filter(activity => {
-      const key = `${activity.date.toISOString().split('T')[0]}-${activity.type}-${activity.duration || 0}`
-      if (seen.has(key) && activity.source === 'manual') {
-        // Prefer synced activities over manual if similar
-        return false
-      }
-      seen.add(key)
-      return true
-    })
+    // Create normalized activities for deduplication
+    const normalizedActivities: NormalizedActivity[] = activities.map(activity => ({
+      id: activity.id,
+      source: activity.source as ActivitySource,
+      date: new Date(activity.date),
+      startTime: new Date(activity.date),
+      duration: (activity.duration || 0) * 60, // Convert to seconds
+      type: activity.type,
+      distance: activity.distance ? activity.distance * 1000 : undefined, // Convert km to meters
+      tss: activity.tss,
+      trimp: activity.trimp,
+      avgHR: activity.avgHR,
+    }))
+
+    // Deduplicate using smart matching algorithm
+    const { deduplicated: deduplicatedNormalized, duplicatesRemoved, matchedPairs } = deduplicateActivities(
+      normalizedActivities,
+      { debug: process.env.NODE_ENV === 'development' }
+    )
+
+    // Get IDs of kept activities
+    const keptIds = new Set(deduplicatedNormalized.map(a => a.id))
+
+    // Filter original activities to only kept ones
+    const deduplicated = activities.filter(a => keptIds.has(a.id))
+
+    // Log deduplication results in development
+    if (process.env.NODE_ENV === 'development' && duplicatesRemoved > 0) {
+      logger.debug('Integrated activity deduplication', {
+        duplicatesRemoved,
+        matchedPairsCount: matchedPairs.length,
+      })
+    }
 
     return NextResponse.json({
       success: true,
@@ -326,16 +361,18 @@ export async function GET(request: NextRequest) {
       counts: {
         manual: manualLogs.length,
         strava: stravaActivities.length,
-        garmin: dailyMetrics.reduce((sum, m) => {
-          const fs = m.factorScores as { garminActivities?: unknown[] } | null
-          return sum + (fs?.garminActivities?.length || 0)
-        }, 0),
+        garmin: garminActivities.length,
         concept2: concept2Results.length,
         ai: aiWods.length,
       },
+      deduplication: {
+        totalBeforeDedup: activities.length,
+        duplicatesRemoved,
+        totalAfterDedup: deduplicated.length,
+      },
     })
   } catch (error) {
-    console.error('Error fetching integrated activities:', error)
+    logger.error('Error fetching integrated activities', {}, error)
     return NextResponse.json({ error: 'Failed to fetch activities' }, { status: 500 })
   }
 }

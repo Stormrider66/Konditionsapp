@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import {
   isGarminConfigured,
@@ -16,6 +16,7 @@ import {
   disconnectGarmin,
 } from '@/lib/integrations/garmin/client';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Schema for POST request
 const initiateAuthSchema = z.object({
@@ -48,6 +49,12 @@ export async function GET(request: NextRequest) {
         { error: 'clientId is required' },
         { status: 400 }
       );
+    }
+
+    // Access control
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Check if connected
@@ -93,7 +100,7 @@ export async function GET(request: NextRequest) {
       metricsCount,
     });
   } catch (error) {
-    console.error('Get Garmin status error:', error);
+    logError('Get Garmin status error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -137,6 +144,12 @@ export async function POST(request: NextRequest) {
 
     const { clientId } = validationResult.data;
 
+    // Access control
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Check if already connected
     const isConnected = await hasGarminConnection(clientId);
     if (isConnected) {
@@ -151,7 +164,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ authUrl });
   } catch (error) {
-    console.error('Initiate Garmin auth error:', error);
+    logError('Initiate Garmin auth error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -184,12 +197,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Access control
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Disconnect from Garmin
     await disconnectGarmin(clientId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Disconnect Garmin error:', error);
+    logError('Disconnect Garmin error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

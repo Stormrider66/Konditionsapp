@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import {
   syncStravaActivities,
@@ -14,6 +14,7 @@ import {
   getTrainingLoadFromStrava,
 } from '@/lib/integrations/strava/sync';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Schema for POST request
 const syncRequestSchema = z.object({
@@ -63,6 +64,12 @@ export async function GET(request: NextRequest) {
 
     const { clientId, startDate, endDate, type, limit, loadDays } = validationResult.data;
 
+    // Access control
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Check if connected
     const token = await prisma.integrationToken.findUnique({
       where: {
@@ -104,7 +111,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Get Strava activities error:', error);
+    logError('Get Strava activities error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -138,6 +145,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { clientId, daysBack, forceResync } = validationResult.data;
+
+    // Access control
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     // Check if connected
     const token = await prisma.integrationToken.findUnique({
@@ -186,7 +199,7 @@ export async function POST(request: NextRequest) {
       errors: result.errors,
     });
   } catch (error) {
-    console.error('Sync Strava activities error:', error);
+    logError('Sync Strava activities error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

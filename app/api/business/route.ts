@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Validation schema for creating a business
 const createBusinessSchema = z.object({
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Get business error:', error);
+    logError('Get business error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -193,7 +194,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ business }, { status: 201 });
   } catch (error) {
-    console.error('Create business error:', error);
+    logError('Create business error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

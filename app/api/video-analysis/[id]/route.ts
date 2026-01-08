@@ -9,7 +9,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
-import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
+import { normalizeStoragePath } from '@/lib/storage/supabase-storage';
+import { createSignedUrl } from '@/lib/storage/supabase-storage-server';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function GET(
   request: NextRequest,
@@ -18,6 +21,12 @@ export async function GET(
   try {
     const user = await requireCoach();
     const { id } = await params;
+
+    const rateLimited = await rateLimitJsonResponse('video:analysis:get', user.id, {
+      limit: 120,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const analysis = await prisma.videoAnalysis.findFirst({
       where: { id, coachId: user.id },
@@ -59,7 +68,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Get analysis error:', error);
+    logger.error('Get analysis error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -80,6 +89,12 @@ export async function DELETE(
     const user = await requireCoach();
     const { id } = await params;
 
+    const rateLimited = await rateLimitJsonResponse('video:analysis:delete', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     const analysis = await prisma.videoAnalysis.findFirst({
       where: { id, coachId: user.id },
     });
@@ -96,11 +111,13 @@ export async function DELETE(
       try {
         const admin = createAdminSupabaseClient()
         const path = normalizeStoragePath('video-analysis', analysis.videoUrl)
-        if (path) {
+        if (path && path.startsWith(`${user.id}/`)) {
           await admin.storage.from('video-analysis').remove([path])
+        } else if (path) {
+          logger.warn('Skipping storage deletion: unexpected path prefix', { id, path })
         }
       } catch (storageError) {
-        console.error('Storage deletion error:', storageError);
+        logger.warn('Storage deletion error', { id }, storageError)
         // Continue with database deletion even if storage fails
       }
     }
@@ -115,7 +132,7 @@ export async function DELETE(
       message: 'Analysis deleted',
     });
   } catch (error) {
-    console.error('Delete analysis error:', error);
+    logger.error('Delete analysis error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

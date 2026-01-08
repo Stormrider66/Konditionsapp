@@ -5,7 +5,7 @@
  * Creates two sheets: Weekly Overview and All Workouts.
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import type { ParsedProgram, ParsedPhase, ParsedWorkout } from '@/lib/ai/program-parser';
 
 // Day names in Swedish
@@ -96,7 +96,7 @@ function formatSegments(workout: ParsedWorkout): string {
 function generateWeeklyOverviewSheet(
   program: ParsedProgram,
   startDate?: Date
-): XLSX.WorkSheet {
+): { rows: (string | number)[][]; colWidths: number[] } {
   const data: (string | number)[][] = [];
 
   // Header row
@@ -131,22 +131,10 @@ function generateWeeklyOverviewSheet(
     }
   }
 
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
-
-  // Set column widths
-  worksheet['!cols'] = [
-    { wch: 10 }, // Vecka
-    { wch: 15 }, // Fas
-    { wch: 18 }, // Måndag
-    { wch: 18 }, // Tisdag
-    { wch: 18 }, // Onsdag
-    { wch: 18 }, // Torsdag
-    { wch: 18 }, // Fredag
-    { wch: 18 }, // Lördag
-    { wch: 18 }, // Söndag
-  ];
-
-  return worksheet;
+  return {
+    rows: data,
+    colWidths: [10, 15, 18, 18, 18, 18, 18, 18, 18],
+  };
 }
 
 /**
@@ -155,7 +143,7 @@ function generateWeeklyOverviewSheet(
 function generateWorkoutsListSheet(
   program: ParsedProgram,
   startDate?: Date
-): XLSX.WorkSheet {
+): { rows: (string | number)[][]; colWidths: number[] } {
   const data: (string | number)[][] = [];
 
   // Header row
@@ -214,23 +202,10 @@ function generateWorkoutsListSheet(
     }
   }
 
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
-
-  // Set column widths
-  worksheet['!cols'] = [
-    { wch: 8 },  // Vecka
-    { wch: 10 }, // Dag
-    { wch: 12 }, // Datum
-    { wch: 20 }, // Pass
-    { wch: 12 }, // Typ
-    { wch: 12 }, // Längd
-    { wch: 12 }, // Intensitet
-    { wch: 35 }, // Beskrivning
-    { wch: 20 }, // Tempo/Zoner
-    { wch: 40 }, // Segment
-  ];
-
-  return worksheet;
+  return {
+    rows: data,
+    colWidths: [8, 10, 12, 20, 12, 12, 12, 35, 20, 40],
+  };
 }
 
 /**
@@ -240,7 +215,7 @@ function generateInfoSheet(
   program: ParsedProgram,
   athleteName?: string,
   coachName?: string
-): XLSX.WorkSheet {
+): { rows: (string | number)[][]; colWidths: number[] } {
   const data: (string | number)[][] = [
     ['TRÄNINGSPROGRAM'],
     [''],
@@ -270,36 +245,54 @@ function generateInfoSheet(
     data.push(['']);
   }
 
-  const worksheet = XLSX.utils.aoa_to_sheet(data);
-
-  worksheet['!cols'] = [
-    { wch: 20 },
-    { wch: 50 },
-  ];
-
-  return worksheet;
+  return {
+    rows: data,
+    colWidths: [20, 50],
+  };
 }
 
 /**
  * Generate complete Excel workbook for a program
  */
-export function generateProgramExcel(exportData: ProgramExportData): Blob {
+export async function generateProgramExcel(exportData: ProgramExportData): Promise<Blob> {
   const { program, athleteName, coachName, startDate } = exportData;
 
-  const workbook = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Star by Thomson';
+  workbook.created = new Date();
 
   // Add sheets
-  const infoSheet = generateInfoSheet(program, athleteName, coachName);
-  XLSX.utils.book_append_sheet(workbook, infoSheet, 'Info');
+  const info = generateInfoSheet(program, athleteName, coachName);
+  const infoSheet = workbook.addWorksheet('Info');
+  infoSheet.addRows(info.rows);
+  infoSheet.columns = info.colWidths.map((width) => ({ width }));
+  infoSheet.getRow(1).font = { bold: true };
+  infoSheet.getColumn(2).alignment = { wrapText: true, vertical: 'top' };
 
-  const weeklySheet = generateWeeklyOverviewSheet(program, startDate);
-  XLSX.utils.book_append_sheet(workbook, weeklySheet, 'Veckoöversikt');
+  const weekly = generateWeeklyOverviewSheet(program, startDate);
+  const weeklySheet = workbook.addWorksheet('Veckoöversikt');
+  weeklySheet.addRows(weekly.rows);
+  weeklySheet.columns = weekly.colWidths.map((width) => ({ width }));
+  weeklySheet.views = [{ state: 'frozen', ySplit: 1 }];
+  weeklySheet.getRow(1).font = { bold: true };
+  weeklySheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      cell.alignment = { wrapText: true, vertical: 'top' };
+    });
+  });
 
-  const workoutsSheet = generateWorkoutsListSheet(program, startDate);
-  XLSX.utils.book_append_sheet(workbook, workoutsSheet, 'Alla pass');
+  const workouts = generateWorkoutsListSheet(program, startDate);
+  const workoutsSheet = workbook.addWorksheet('Alla pass');
+  workoutsSheet.addRows(workouts.rows);
+  workoutsSheet.columns = workouts.colWidths.map((width) => ({ width }));
+  workoutsSheet.views = [{ state: 'frozen', ySplit: 1 }];
+  workoutsSheet.getRow(1).font = { bold: true };
+  // Description + segments columns tend to be long
+  workoutsSheet.getColumn(8).alignment = { wrapText: true, vertical: 'top' };
+  workoutsSheet.getColumn(10).alignment = { wrapText: true, vertical: 'top' };
 
   // Generate buffer
-  const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const buffer = await workbook.xlsx.writeBuffer();
 
   return new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -327,8 +320,9 @@ function generateFilename(programName: string, extension: string): string {
 export function downloadProgramExcel(
   exportData: ProgramExportData,
   filename?: string
-): void {
-  const blob = generateProgramExcel(exportData);
+): Promise<void> {
+  return (async () => {
+    const blob = await generateProgramExcel(exportData);
   const finalFilename = filename || generateFilename(exportData.program.name, 'xlsx');
 
   // Create download link
@@ -340,4 +334,5 @@ export function downloadProgramExcel(
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+  })()
 }

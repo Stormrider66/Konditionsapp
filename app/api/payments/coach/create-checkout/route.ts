@@ -9,6 +9,8 @@ import { requireCoach } from '@/lib/auth-utils';
 import { createCoachCheckoutSession, CoachBillingCycle } from '@/lib/payments/coach-stripe';
 import { SubscriptionTier } from '@prisma/client';
 import { z } from 'zod';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 const checkoutSchema = z.object({
   tier: z.enum(['BASIC', 'PRO', 'ENTERPRISE']),
@@ -18,6 +20,12 @@ const checkoutSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+
+    const rateLimited = await rateLimitJsonResponse('payments:coach:create-checkout', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const body = await request.json();
     const { tier, cycle } = checkoutSchema.parse(body);
@@ -41,7 +49,7 @@ export async function POST(request: NextRequest) {
       url: checkoutUrl,
     });
   } catch (error) {
-    console.error('Coach create checkout error:', error);
+    logger.error('Coach create checkout error', {}, error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

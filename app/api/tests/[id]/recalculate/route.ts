@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { performAllCalculations, ManualThresholdOverrides } from '@/lib/calculations'
 import type { Test, Client } from '@/types'
+import { logDebug } from '@/lib/logger-console'
 
 type RouteParams = {
   params: Promise<{
@@ -62,9 +63,9 @@ export async function POST(
       )
     }
 
-    console.log('=== FORCE RECALCULATE ===')
-    console.log('Test ID:', id)
-    console.log('Test stages:', test.testStages.length)
+    logDebug('=== FORCE RECALCULATE ===')
+    logDebug('Test ID:', id)
+    logDebug('Test stages:', test.testStages.length)
 
     // Prepare test with manual overrides
     const testWithOverrides = {
@@ -87,12 +88,12 @@ export async function POST(
       )
     }
 
-    console.log('New calculations:')
-    console.log('  vo2max:', calculations.vo2max)
-    console.log('  maxHR:', calculations.maxHR)
-    console.log('  maxLactate:', calculations.maxLactate)
-    console.log('  aerobicThreshold:', JSON.stringify(calculations.aerobicThreshold))
-    console.log('  anaerobicThreshold:', JSON.stringify(calculations.anaerobicThreshold))
+    logDebug('New calculations:')
+    logDebug('  vo2max:', calculations.vo2max)
+    logDebug('  maxHR:', calculations.maxHR)
+    logDebug('  maxLactate:', calculations.maxLactate)
+    logDebug('  aerobicThreshold:', JSON.stringify(calculations.aerobicThreshold))
+    logDebug('  anaerobicThreshold:', JSON.stringify(calculations.anaerobicThreshold))
 
     // Update the test with fresh calculations
     const updatedTest = await prisma.test.update({
@@ -107,7 +108,7 @@ export async function POST(
       },
     })
 
-    console.log('✅ Test updated successfully')
+    logDebug('✅ Test updated successfully')
     logger.info('Force recalculated test thresholds', { testId: id })
 
     return NextResponse.json({

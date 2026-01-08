@@ -306,6 +306,54 @@ export async function canAccessClient(
 }
 
 /**
+ * Check if current user can access an exercise
+ *
+ * - Public exercises are accessible to everyone
+ * - Coaches can access exercises they created
+ * - Athletes can access exercises created by their coach (plus public)
+ * - Admins can access everything
+ */
+export async function canAccessExercise(
+  userId: string,
+  exerciseId: string
+): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      athleteAccount: {
+        include: {
+          client: {
+            select: { userId: true },
+          },
+        },
+      },
+    },
+  })
+
+  if (!user) return false
+  if (user.role === 'ADMIN') return true
+
+  const exercise = await prisma.exercise.findUnique({
+    where: { id: exerciseId },
+    select: { isPublic: true, coachId: true },
+  })
+
+  if (!exercise) return false
+  if (exercise.isPublic) return true
+
+  if (user.role === 'COACH') {
+    return exercise.coachId === userId
+  }
+
+  if (user.role === 'ATHLETE') {
+    const coachId = user.athleteAccount?.client.userId
+    return Boolean(coachId && exercise.coachId === coachId)
+  }
+
+  return false
+}
+
+/**
  * Get client ID for an athlete user
  * Returns null if user is not an athlete or has no client linked
  */

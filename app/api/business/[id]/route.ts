@@ -11,6 +11,7 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Validation schema for updating a business
 const updateBusinessSchema = z.object({
@@ -110,7 +111,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       userRole: membership.role,
     });
   } catch (error) {
-    console.error('Get business error:', error);
+    logError('Get business error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -168,7 +169,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ business });
   } catch (error) {
-    console.error('Update business error:', error);
+    logError('Update business error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -210,7 +211,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Delete business error:', error);
+    logError('Delete business error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

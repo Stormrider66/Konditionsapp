@@ -10,6 +10,7 @@ import { Calendar, CheckCircle2, Clock, MapPin } from 'lucide-react'
 import { formatPace } from '@/lib/utils'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
+import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
 
 interface TodaysWorkoutsProps {
   workouts: DashboardWorkoutWithContext[]
@@ -147,14 +148,17 @@ function WorkoutCard({ workout, theme, variant = 'default' }: { workout: Dashboa
           </div>
         </div>
 
-        {/* Instructions */}
-        {workout.instructions && (
-          <p className="text-xs sm:text-sm line-clamp-3 text-slate-300">
-            {workout.instructions}
-          </p>
+        {/* Instructions - formatted beautifully */}
+        {workout.instructions && !workout.segments?.length && (
+          <FormattedWorkoutInstructions
+            instructions={workout.instructions}
+            variant="expanded"
+            maxItems={3}
+            className="text-slate-300"
+          />
         )}
 
-        {/* Segments */}
+        {/* Segments - shown if available (takes priority over instructions) */}
         {workout.segments && workout.segments.length > 0 && (
           <div className="space-y-1">
             {workout.segments.map((segment) => (
@@ -254,16 +258,16 @@ function WorkoutCard({ workout, theme, variant = 'default' }: { workout: Dashboa
         </div>
       </div>
 
-      {workout.instructions && (
-        <p
-          className="text-xs sm:text-sm line-clamp-3"
-          style={{ color: theme.colors.textSecondary }}
-        >
-          {workout.instructions}
-        </p>
+      {/* Instructions - formatted beautifully */}
+      {workout.instructions && !workout.segments?.length && (
+        <FormattedWorkoutInstructions
+          instructions={workout.instructions}
+          variant="expanded"
+          maxItems={3}
+        />
       )}
 
-      {/* Workout segments preview */}
+      {/* Workout segments preview - shown if available (takes priority) */}
       {workout.segments && workout.segments.length > 0 && (
         <div className="space-y-1">
           {workout.segments.map((segment) => (

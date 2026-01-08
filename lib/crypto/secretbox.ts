@@ -1,3 +1,4 @@
+import 'server-only'
 /**
  * secretbox.ts
  *
@@ -69,6 +70,8 @@ export function decryptSecret(ciphertext: string): string {
   const plaintext = Buffer.concat([decipher.update(data), decipher.final()])
   return plaintext.toString('utf8')
 }
+
+
 
 
 

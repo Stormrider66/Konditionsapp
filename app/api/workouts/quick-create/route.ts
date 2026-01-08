@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach, canAccessClient } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { logError } from '@/lib/logger-console'
 
 const quickCreateSchema = z.object({
   clientId: z.string().uuid(),
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
       message: 'Passet har skapats',
     })
   } catch (error) {
-    console.error('Error creating quick workout:', error)
+    logError('Error creating quick workout:', error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

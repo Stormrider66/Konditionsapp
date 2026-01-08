@@ -6,6 +6,7 @@ import { requireCoach, hasReachedAthleteLimit, canAccessClient } from '@/lib/aut
 import { CreateAthleteAccountDTO } from '@/types'
 import { logger } from '@/lib/logger'
 import { Resend } from 'resend'
+import { escapeHtml, sanitizeAttribute, sanitizeUrl } from '@/lib/sanitize'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -158,6 +159,12 @@ export async function POST(request: NextRequest) {
     // Send welcome email with temporary password
     if (resend) {
       try {
+        const safeClientName = escapeHtml(client.name)
+        const safeEmail = escapeHtml(email)
+        const safePassword = escapeHtml(password)
+        const loginUrlRaw = `${process.env.NEXT_PUBLIC_APP_URL || 'https://konditionstest.se'}/login`
+        const safeLoginUrl = sanitizeAttribute(sanitizeUrl(loginUrlRaw))
+
         await resend.emails.send({
           from: 'Konditionstest <noreply@konditionstest.se>',
           to: email,
@@ -165,14 +172,14 @@ export async function POST(request: NextRequest) {
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h1 style="color: #1a1a1a;">Välkommen till Konditionstest!</h1>
-              <p>Hej ${client.name},</p>
+              <p>Hej ${safeClientName},</p>
               <p>Din tränare har skapat ett atletkonto åt dig. Nu kan du logga in och se dina träningsprogram, logga pass och följa din utveckling.</p>
               <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0 0 10px 0;"><strong>E-post:</strong> ${email}</p>
-                <p style="margin: 0;"><strong>Temporärt lösenord:</strong> ${password}</p>
+                <p style="margin: 0 0 10px 0;"><strong>E-post:</strong> ${safeEmail}</p>
+                <p style="margin: 0;"><strong>Temporärt lösenord:</strong> ${safePassword}</p>
               </div>
               <p style="color: #666;">Vi rekommenderar att du ändrar ditt lösenord efter första inloggningen.</p>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://konditionstest.se'}/login"
+              <a href="${safeLoginUrl}"
                  style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 10px;">
                 Logga in
               </a>

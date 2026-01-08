@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessProgram } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 export async function POST(
@@ -9,9 +10,17 @@ export async function POST(
 ) {
   try {
     const user = await requireAuth()
+    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const params = await context.params
     const { id: programId, dayId } = params
+
+    const hasAccess = await canAccessProgram(user.id, programId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const body = await request.json()
     const { type, date } = body

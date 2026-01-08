@@ -10,6 +10,8 @@ import { prisma } from '@/lib/prisma'
 import { searchSimilarChunks, getUserOpenAIKey } from '@/lib/ai/embeddings'
 import Anthropic from '@anthropic-ai/sdk'
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 
 interface SendMessageRequest {
   content: string
@@ -24,6 +26,13 @@ export async function POST(
 ) {
   try {
     const user = await requireCoach()
+
+    const rateLimited = await rateLimitJsonResponse('ai:conversations:message', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     const { id: conversationId } = await params
 
     const body: SendMessageRequest = await request.json()
@@ -119,7 +128,7 @@ export async function POST(
             .join('\n\n---\n\n')
         }
       } catch (error) {
-        console.error('Error fetching document context:', error)
+        logger.warn('Error fetching document context', {}, error)
       }
     }
 
@@ -189,7 +198,7 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
         inputTokens = response.usage.input_tokens
         outputTokens = response.usage.output_tokens
       } catch (error) {
-        console.error('Anthropic API error:', error)
+      logger.error('Anthropic API error', {}, error)
         throw new Error(
           `AI API error: ${error instanceof Error ? error.message : 'Unknown error'}`
         )
@@ -233,7 +242,7 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
         inputTokens = data.usageMetadata?.promptTokenCount || 0
         outputTokens = data.usageMetadata?.candidatesTokenCount || 0
       } catch (error) {
-        console.error('Google API error:', error)
+      logger.error('Google API error', {}, error)
         throw new Error(
           `AI API error: ${error instanceof Error ? error.message : 'Unknown error'}`
         )
@@ -294,7 +303,7 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
       },
     })
   } catch (error) {
-    console.error('Send message error:', error)
+    logger.error('Send message error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -303,7 +312,10 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
     return NextResponse.json(
       {
         error: 'Failed to send message',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message:
+          process.env.NODE_ENV === 'production'
+            ? 'Internal server error'
+            : (error instanceof Error ? error.message : 'Unknown error'),
       },
       { status: 500 }
     )

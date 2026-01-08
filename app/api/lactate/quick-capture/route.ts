@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-utils';
+import { logError } from '@/lib/logger-console'
 
 const quickCaptureSchema = z.object({
   clientId: z.string().min(1),
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Quick lactate capture error:', error);
+    logError('Quick lactate capture error:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -148,7 +149,7 @@ export async function GET(request: NextRequest) {
       data: formattedReadings,
     });
   } catch (error) {
-    console.error('Get quick captures error:', error);
+    logError('Get quick captures error:', error);
     return NextResponse.json(
       { error: 'Kunde inte hämta laktatvärden' },
       { status: 500 }

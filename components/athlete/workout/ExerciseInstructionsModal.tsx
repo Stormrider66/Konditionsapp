@@ -5,7 +5,7 @@
  * Comprehensive exercise guide modal showing:
  * - Exercise name (Swedish and English)
  * - Detailed step-by-step instructions
- * - Embedded video (YouTube/Vimeo)
+ * - Embedded video (Vimeo)
  * - Target muscles
  * - Coaching cues
  * - Common mistakes
@@ -148,14 +148,6 @@ export function ExerciseInstructionsModal({
   // Get video embed URL
   const getVideoEmbedUrl = (url: string | null) => {
     if (!url) return null
-
-    // YouTube
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      const videoId = url.includes('youtu.be')
-        ? url.split('youtu.be/')[1]
-        : url.split('v=')[1]?.split('&')[0]
-      return `https://www.youtube.com/embed/${videoId}`
-    }
 
     // Vimeo
     if (url.includes('vimeo.com')) {

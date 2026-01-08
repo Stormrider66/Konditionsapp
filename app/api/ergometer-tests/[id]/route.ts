@@ -20,6 +20,7 @@ import {
   calculateFatigueIndex,
   analyzeHRPowerCoupling,
 } from '@/lib/training-engine/ergometer'
+import { logError } from '@/lib/logger-console'
 import type {
   Interval4x4RawData,
   CP3MinRawData,
@@ -97,7 +98,7 @@ export async function GET(
       progression,
     })
   } catch (error) {
-    console.error('Error fetching ergometer test:', error)
+    logError('Error fetching ergometer test:', error)
     return errorResponse('Failed to fetch ergometer test', 500)
   }
 }
@@ -132,7 +133,7 @@ export async function DELETE(
 
     return successResponse({ message: 'Test deleted successfully' })
   } catch (error) {
-    console.error('Error deleting ergometer test:', error)
+    logError('Error deleting ergometer test:', error)
     return errorResponse('Failed to delete ergometer test', 500)
   }
 }

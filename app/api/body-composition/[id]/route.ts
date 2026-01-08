@@ -29,8 +29,16 @@ export async function GET(
 
     const { id } = await params
 
-    const measurement = await prisma.bodyComposition.findUnique({
-      where: { id },
+    const measurement = await prisma.bodyComposition.findFirst({
+      where: {
+        id,
+        client: {
+          OR: [
+            { userId: user.id }, // coach
+            { athleteAccount: { userId: user.id } }, // athlete
+          ],
+        },
+      },
       include: {
         client: {
           select: {
@@ -51,7 +59,13 @@ export async function GET(
   } catch (error) {
     logger.error('Error fetching body composition', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }
@@ -77,8 +91,16 @@ export async function PUT(
     const body = await req.json()
 
     // Check if measurement exists
-    const existing = await prisma.bodyComposition.findUnique({
-      where: { id },
+    const existing = await prisma.bodyComposition.findFirst({
+      where: {
+        id,
+        client: {
+          OR: [
+            { userId: user.id }, // coach
+            { athleteAccount: { userId: user.id } }, // athlete
+          ],
+        },
+      },
       include: {
         client: {
           select: {
@@ -181,7 +203,13 @@ export async function PUT(
   } catch (error) {
     logger.error('Error updating body composition', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }
@@ -206,8 +234,16 @@ export async function DELETE(
     const { id } = await params
 
     // Check if measurement exists
-    const existing = await prisma.bodyComposition.findUnique({
-      where: { id },
+    const existing = await prisma.bodyComposition.findFirst({
+      where: {
+        id,
+        client: {
+          OR: [
+            { userId: user.id }, // coach
+            { athleteAccount: { userId: user.id } }, // athlete
+          ],
+        },
+      },
     })
 
     if (!existing) {
@@ -222,7 +258,13 @@ export async function DELETE(
   } catch (error) {
     logger.error('Error deleting body composition', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }

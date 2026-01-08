@@ -26,6 +26,7 @@ import {
   paceToWatts,
   wattsToPace,
 } from '@/lib/training-engine/ergometer'
+import { logError } from '@/lib/logger-console'
 import type {
   Interval4x4RawData,
   CP3MinRawData,
@@ -341,7 +342,7 @@ export async function POST(request: NextRequest) {
       201
     )
   } catch (error) {
-    console.error('Error creating ergometer test:', error)
+    logError('Error creating ergometer test:', error)
     return errorResponse('Failed to create ergometer test', 500)
   }
 }
@@ -410,7 +411,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error listing ergometer tests:', error)
+    logError('Error listing ergometer tests:', error)
     return errorResponse('Failed to list ergometer tests', 500)
   }
 }
@@ -676,7 +677,7 @@ async function analyzeTest(
       }
     }
   } catch (error) {
-    console.error('Analysis error:', error)
+    logError('Analysis error:', error)
     result.valid = false
     result.errors.push(error instanceof Error ? error.message : 'Analysis failed')
   }

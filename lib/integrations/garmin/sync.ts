@@ -9,6 +9,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import {
   getGarminDailySummaries,
   getGarminActivities,
@@ -212,8 +213,8 @@ async function syncDailySummary(clientId: string, summary: GarminDailySummary): 
 }
 
 /**
- * Sync activity (similar to Strava activities)
- * Stores detailed activity data in factorScores JSON field
+ * Sync activity to dedicated GarminActivity model (Gap 5 fix)
+ * Previously stored in factorScores JSON, now normalized like StravaActivity
  */
 async function syncActivity(clientId: string, activity: GarminActivity): Promise<void> {
   // Map Garmin activity types to our internal types
@@ -232,60 +233,100 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
     CROSS_COUNTRY_SKIING: 'SKIING',
     RESORT_SKIING: 'SKIING',
     BACKCOUNTRY_SKIING: 'SKIING',
+    HIIT: 'STRENGTH',
+    PILATES: 'RECOVERY',
+    ELLIPTICAL: 'CROSS_TRAINING',
+    STAIR_CLIMBING: 'CROSS_TRAINING',
+    ROWING: 'CROSS_TRAINING',
   };
 
   const mappedType = typeMap[activity.activityType] || 'OTHER';
 
+  // Map intensity based on HR or pace
+  let mappedIntensity = 'MODERATE';
+  if (activity.averageHeartRateInBeatsPerMinute) {
+    const hrRatio = activity.averageHeartRateInBeatsPerMinute / 185; // Estimate max HR
+    if (hrRatio < 0.65) mappedIntensity = 'EASY';
+    else if (hrRatio < 0.80) mappedIntensity = 'MODERATE';
+    else if (hrRatio < 0.90) mappedIntensity = 'HARD';
+    else mappedIntensity = 'MAX';
+  }
+
   // Calculate TSS estimate
   const tss = calculateGarminTSS(activity);
 
-  // We store Garmin activities in DailyMetrics factorScores field
-  const date = new Date(activity.startTimeInSeconds * 1000);
-  date.setHours(0, 0, 0, 0);
+  // Convert timestamp to Date
+  const startDate = new Date(activity.startTimeInSeconds * 1000);
 
-  // Update daily metrics with activity data
-  const existingMetrics = await prisma.dailyMetrics.findUnique({
+  // Check if indoor activity
+  const isIndoor = activity.activityType?.includes('INDOOR') ||
+                   activity.activityType?.includes('TREADMILL') ||
+                   activity.activityType?.includes('TRAINER');
+
+  // Upsert to GarminActivity model
+  // Note: Using only fields available in GarminActivity interface from client.ts
+  await prisma.garminActivity.upsert({
     where: {
-      clientId_date: {
-        clientId,
-        date,
-      },
-    },
-  });
-
-  const activityData = {
-    activityId: activity.activityId,
-    type: activity.activityType,
-    mappedType,
-    duration: activity.activityDurationInSeconds,
-    distance: activity.distanceInMeters,
-    avgHR: activity.averageHeartRateInBeatsPerMinute,
-    maxHR: activity.maxHeartRateInBeatsPerMinute,
-    avgSpeed: activity.averageSpeedInMetersPerSecond,
-    calories: activity.activeKilocalories,
-    tss,
-  };
-
-  // Append to activities array in factorScores
-  const factorScores = (existingMetrics?.factorScores as Record<string, unknown>) || {};
-  const garminActivities = (factorScores.garminActivities as object[]) || [];
-  garminActivities.push(activityData);
-
-  await prisma.dailyMetrics.upsert({
-    where: {
-      clientId_date: {
-        clientId,
-        date,
-      },
+      garminActivityId: BigInt(activity.activityId),
     },
     update: {
-      factorScores: { ...factorScores, garminActivities },
+      name: null, // activityName not in interface
+      type: activity.activityType,
+      startDate,
+      distance: activity.distanceInMeters || null,
+      duration: activity.activityDurationInSeconds || null,
+      elapsedTime: null, // Not in interface
+      elevationGain: null, // Not in interface
+      averageSpeed: activity.averageSpeedInMetersPerSecond || null,
+      maxSpeed: activity.maxSpeedInMetersPerSecond || null,
+      averageHeartrate: activity.averageHeartRateInBeatsPerMinute || null,
+      maxHeartrate: activity.maxHeartRateInBeatsPerMinute || null,
+      averageCadence: activity.averageCadenceInRoundsPerMinute || null,
+      averageWatts: activity.averagePowerInWatts || null,
+      normalizedPower: activity.normalizedPowerInWatts || null,
+      maxWatts: null, // Not in interface
+      trainingEffect: null, // Not in interface
+      anaerobicEffect: null, // Not in interface
+      calories: activity.activeKilocalories || null,
+      indoor: isIndoor,
+      manual: false, // Not in interface
+      tss,
+      trimp: null,
+      mappedType,
+      mappedIntensity,
+      laps: Prisma.JsonNull, // Not in interface
+      splits: Prisma.JsonNull, // Not in interface
       updatedAt: new Date(),
     },
     create: {
       clientId,
-      date,
-      factorScores: { garminActivities: [activityData] },
+      garminActivityId: BigInt(activity.activityId),
+      name: null,
+      type: activity.activityType,
+      startDate,
+      distance: activity.distanceInMeters || null,
+      duration: activity.activityDurationInSeconds || null,
+      elapsedTime: null,
+      elevationGain: null,
+      averageSpeed: activity.averageSpeedInMetersPerSecond || null,
+      maxSpeed: activity.maxSpeedInMetersPerSecond || null,
+      averageHeartrate: activity.averageHeartRateInBeatsPerMinute || null,
+      maxHeartrate: activity.maxHeartRateInBeatsPerMinute || null,
+      averageCadence: activity.averageCadenceInRoundsPerMinute || null,
+      averageWatts: activity.averagePowerInWatts || null,
+      normalizedPower: activity.normalizedPowerInWatts || null,
+      maxWatts: null,
+      trainingEffect: null,
+      anaerobicEffect: null,
+      calories: activity.activeKilocalories || null,
+      indoor: isIndoor,
+      manual: false,
+      tss,
+      trimp: null,
+      mappedType,
+      mappedIntensity,
+      laps: Prisma.JsonNull,
+      splits: Prisma.JsonNull,
     },
   });
 }
@@ -497,7 +538,7 @@ export async function getGarminReadinessData(
 
 /**
  * Get training load summary from Garmin data
- * Reads activities from factorScores.garminActivities
+ * Now queries GarminActivity model directly (Gap 5 fix)
  */
 export async function getGarminTrainingLoad(
   clientId: string,
@@ -513,13 +554,17 @@ export async function getGarminTrainingLoad(
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
 
-  const metrics = await prisma.dailyMetrics.findMany({
+  // Query GarminActivity model directly
+  const activities = await prisma.garminActivity.findMany({
     where: {
       clientId,
-      date: { gte: startDate },
+      startDate: { gte: startDate },
     },
     select: {
-      factorScores: true,
+      mappedType: true,
+      distance: true,
+      duration: true,
+      tss: true,
     },
   });
 
@@ -527,35 +572,22 @@ export async function getGarminTrainingLoad(
   let totalTSS = 0;
   let totalDistance = 0;
   let totalDuration = 0;
-  let activityCount = 0;
 
-  for (const metric of metrics) {
-    const factorScores = metric.factorScores as { garminActivities?: Array<{
-      mappedType?: string;
-      distance?: number;
-      duration?: number;
-      tss?: number;
-    }> } | null;
+  for (const activity of activities) {
+    const type = activity.mappedType || 'OTHER';
 
-    const activities = factorScores?.garminActivities || [];
-
-    for (const activity of activities) {
-      const type = activity.mappedType || 'OTHER';
-
-      if (!byType[type]) {
-        byType[type] = { count: 0, distance: 0, duration: 0, tss: 0 };
-      }
-
-      byType[type].count++;
-      byType[type].distance += activity.distance || 0;
-      byType[type].duration += activity.duration || 0;
-      byType[type].tss += activity.tss || 0;
-
-      totalTSS += activity.tss || 0;
-      totalDistance += activity.distance || 0;
-      totalDuration += activity.duration || 0;
-      activityCount++;
+    if (!byType[type]) {
+      byType[type] = { count: 0, distance: 0, duration: 0, tss: 0 };
     }
+
+    byType[type].count++;
+    byType[type].distance += activity.distance || 0;
+    byType[type].duration += activity.duration || 0;
+    byType[type].tss += activity.tss || 0;
+
+    totalTSS += activity.tss || 0;
+    totalDistance += activity.distance || 0;
+    totalDuration += activity.duration || 0;
   }
 
   return {
@@ -563,7 +595,7 @@ export async function getGarminTrainingLoad(
     avgDailyTSS: days > 0 ? Math.round(totalTSS / days) : 0,
     totalDistance,
     totalDuration,
-    activityCount,
+    activityCount: activities.length,
     byType,
   };
 }

@@ -28,6 +28,7 @@ import {
   Brain,
 } from 'lucide-react'
 import Link from 'next/link'
+import { escapeHtml } from '@/lib/sanitize'
 
 interface VideoAnalysis {
   id: string
@@ -131,7 +132,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Videoanalys - ${clientName}</title>
+        <title>Videoanalys - ${escapeHtml(clientName)}</title>
         <style>
           body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
           h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
@@ -160,7 +161,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
         <div class="header">
           <div>
             <h1>Videoanalys Rapport</h1>
-            <p style="color: #6b7280;">${clientName} - ${format(new Date(analysis.createdAt), 'PPP', { locale: sv })}</p>
+            <p style="color: #6b7280;">${escapeHtml(clientName)} - ${format(new Date(analysis.createdAt), 'PPP', { locale: sv })}</p>
           </div>
           ${analysis.formScore !== null ? `
           <div style="text-align: center;">
@@ -173,11 +174,11 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
         <div class="meta">
           <div class="meta-item">
             <label>Analystyp</label>
-            <p>${typeInfo.label}</p>
+            <p>${escapeHtml(typeInfo.label)}</p>
           </div>
           <div class="meta-item">
             <label>Övning</label>
-            <p>${analysis.exercise?.nameSv || analysis.exercise?.name || 'Ej angiven'}</p>
+            <p>${escapeHtml(analysis.exercise?.nameSv || analysis.exercise?.name || 'Ej angiven')}</p>
           </div>
           <div class="meta-item">
             <label>Datum</label>
@@ -185,17 +186,17 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
           </div>
           <div class="meta-item">
             <label>Status</label>
-            <p>${analysis.status === 'COMPLETED' ? 'Klar' : analysis.status}</p>
+            <p>${escapeHtml(analysis.status === 'COMPLETED' ? 'Klar' : analysis.status)}</p>
           </div>
         </div>
 
         ${issues.length > 0 ? `
         <h2>Identifierade problem (${issues.length})</h2>
         ${issues.map(issue => `
-          <div class="issue ${issue.severity}">
-            <div class="issue-title">${issue.issue}</div>
-            <div class="issue-desc">${issue.description}</div>
-            ${issue.timestamp ? `<div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">Tidpunkt: ${issue.timestamp}</div>` : ''}
+          <div class="issue ${issue.severity === 'HIGH' || issue.severity === 'MEDIUM' || issue.severity === 'LOW' ? issue.severity : 'LOW'}">
+            <div class="issue-title">${escapeHtml(issue.issue)}</div>
+            <div class="issue-desc">${escapeHtml(issue.description)}</div>
+            ${issue.timestamp ? `<div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">Tidpunkt: ${escapeHtml(issue.timestamp)}</div>` : ''}
           </div>
         `).join('')}
         ` : ''}
@@ -206,9 +207,9 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
           <div class="recommendation">
             <div class="rec-title">
               <span class="rec-priority">Prioritet ${rec.priority}</span>
-              ${rec.recommendation}
+              ${escapeHtml(rec.recommendation)}
             </div>
-            <div class="rec-desc">${rec.explanation}</div>
+            <div class="rec-desc">${escapeHtml(rec.explanation)}</div>
           </div>
         `).join('')}
         ` : ''}

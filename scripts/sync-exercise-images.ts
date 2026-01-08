@@ -28,6 +28,29 @@ function normalizeForFile(name: string): string {
     .replace(/^-/, '')
 }
 
+// Prisma stores imageUrls as Json?; make sure we only treat it as string[] when it's actually an array.
+function coerceStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null
+  // Filter out non-strings (defensive against bad legacy data)
+  return value.filter((v): v is string => typeof v === 'string')
+}
+
+function isSameStringArray(a: string[] | null, b: string[]): boolean {
+  if (!a) return false
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false
+  }
+  return true
+}
+
+function addUsedImageNames(used: Set<string>, imageUrls: string[]) {
+  for (const img of imageUrls) {
+    const name = img.replace(/.*\//, '').replace(/-\d+\.png$/, '')
+    used.add(name)
+  }
+}
+
 // Get all image files from the images directory
 function getAllImages(): { path: string; name: string; category: string }[] {
   const images: { path: string; name: string; category: string }[] = []
@@ -77,7 +100,7 @@ const EXPLICIT_MAPPINGS: Record<string, string[]> = {
   'Bred hopp (max)': ['bred-hopp-max'],
   'Bulgarisk utfallsböj': ['bulgarisk-utfallsboj'],
   'Utfallssteg': ['utfallssteg', 'lunge'],
-  'Bakåtlunges': ['bakatlunges', 'reverse-lunge'],
+  'Bakåtlunges': ['bakatlunges', 'reverse-lunge', 'lunge'],
   'Step-Ups (låg)': ['step-up'],
   'Step-Ups (hög)': ['step-ups-hog'],
   'Step-Ups med knädrive': ['step-ups-med-knadrive'],
@@ -205,7 +228,6 @@ const EXPLICIT_MAPPINGS: Record<string, string[]> = {
   'Swim': ['swimming'],
   'Ski Erg (Calories)': ['skierg'],
   'Ski Erg (Meters)': ['skierg'],
-  'Bakåtlunges': ['lunge'],
   'DB Squat': ['db-squat'],
   'Pike Push-Up': ['pike-push-up'],
   'Push Press': ['push-press'],
@@ -343,10 +365,16 @@ async function main() {
   let skipped = 0
   let noImage = 0
   const unmatchedExercises: string[] = []
-  const matchedExercises: { name: string; images: string[] }[] = []
+  const usedImageNames = new Set<string>()
 
   for (const exercise of exercises) {
     const images = findImagesForExercise(exercise, allImages)
+    const currentImagesRaw = coerceStringArray(exercise.imageUrls)
+
+    // Bug 2 fix: unused-image detection must include images from *all* exercises,
+    // including those skipped in this run (already up-to-date) and even those
+    // where our matching found nothing but the DB still has images.
+    addUsedImageNames(usedImageNames, images.length > 0 ? images : (currentImagesRaw || []))
 
     if (images.length === 0) {
       unmatchedExercises.push(exercise.name)
@@ -355,20 +383,20 @@ async function main() {
     }
 
     // Check if update is needed
-    const currentImages = exercise.imageUrls as string[] | null
-    const needsUpdate = !currentImages ||
-                        JSON.stringify(currentImages.sort()) !== JSON.stringify(images)
+    // Bug 1 fix: imageUrls is Json?; don't assume it's string[].
+    const currentSorted = currentImagesRaw ? [...currentImagesRaw].sort() : null
+    const desiredSorted = [...images].sort()
+    const needsUpdate = !isSameStringArray(currentSorted, desiredSorted)
 
     if (needsUpdate) {
       await prisma.exercise.update({
         where: { id: exercise.id },
         data: {
-          imageUrls: images,
+          imageUrls: desiredSorted,
           primaryImageIndex: 0
         }
       })
       console.log(`✅ Updated: ${exercise.name} (${images.length} image${images.length > 1 ? 's' : ''})`)
-      matchedExercises.push({ name: exercise.name, images })
       updated++
     } else {
       skipped++
@@ -390,15 +418,7 @@ async function main() {
     unmatchedExercises.slice(0, 20).forEach(name => console.log(`   - ${name}`))
   }
 
-  // Show unused images
-  const usedImageNames = new Set<string>()
-  matchedExercises.forEach(ex => {
-    ex.images.forEach(img => {
-      const name = img.replace(/.*\//, '').replace(/-\d+\.png$/, '')
-      usedImageNames.add(name)
-    })
-  })
-
+  // Show unused images (based on all exercises with images, not just updated ones)
   const unusedImages = allImages.filter(img => !usedImageNames.has(img.name))
   if (unusedImages.length > 0) {
     console.log(`\n📷 ${unusedImages.length} unused images in public/images/:`)

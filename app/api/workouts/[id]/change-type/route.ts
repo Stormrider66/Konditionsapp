@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { requireCoachAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessWorkout } from '@/lib/auth-utils'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth()
+    const user = await requireCoachAuth()
     const { id } = await params
     const body = await request.json()
     const { newType } = body
@@ -16,25 +17,8 @@ export async function POST(
       return NextResponse.json({ error: 'newType is required' }, { status: 400 })
     }
 
-    // Verify workout exists
-    const existingWorkout = await prisma.workout.findUnique({
-      where: { id },
-      include: {
-        day: {
-          include: {
-            week: {
-              include: {
-                program: {
-                  select: { coachId: true }
-                }
-              }
-            }
-          }
-        }
-      }
-    })
-
-    if (!existingWorkout) {
+    const hasAccess = await canAccessWorkout(user.id, id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
     }
 

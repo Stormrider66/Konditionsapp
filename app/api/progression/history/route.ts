@@ -10,10 +10,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getProgressionHistory, getWeeklyProgressionSummary } from '@/lib/training-engine/progression'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessClient, canAccessExercise } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await requireAuth()
     const searchParams = request.nextUrl.searchParams
     const clientId = searchParams.get('clientId')
     const exerciseId = searchParams.get('exerciseId')
@@ -21,6 +24,10 @@ export async function GET(request: NextRequest) {
 
     // If no exerciseId provided, return weekly summary
     if (clientId && !exerciseId) {
+      const hasClientAccess = await canAccessClient(user.id, clientId)
+      if (!hasClientAccess) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
       const summary = await getWeeklyProgressionSummary(clientId)
       return NextResponse.json(summary, { status: 200 })
     }
@@ -33,15 +40,21 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const hasClientAccess = await canAccessClient(user.id, clientId)
+    if (!hasClientAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const hasExerciseAccess = await canAccessExercise(user.id, exerciseId)
+    if (!hasExerciseAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Get history
     const result = await getProgressionHistory(clientId, exerciseId, limit)
 
     return NextResponse.json(result, { status: 200 })
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    const clientId = request.nextUrl.searchParams.get('clientId')
-    const exerciseId = request.nextUrl.searchParams.get('exerciseId')
-    logger.error('Error fetching progression history', { clientId, exerciseId }, error)
-    return NextResponse.json({ error: errorMessage || 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
   }
 }

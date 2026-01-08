@@ -16,10 +16,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-
-const prisma = new PrismaClient()
 
 interface FieldTestPoint {
   id: string
@@ -69,7 +69,13 @@ export async function GET(
   { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
+    const user = await requireAuth()
     const { clientId } = await params
+
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     // Get all field tests for this client
     const fieldTests = await prisma.fieldTest.findMany({
@@ -316,11 +322,6 @@ export async function GET(
       },
     })
   } catch (error: unknown) {
-    logger.error('Error fetching field test progression', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

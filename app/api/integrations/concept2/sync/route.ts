@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import {
   syncConcept2Results,
@@ -15,6 +15,7 @@ import {
 } from '@/lib/integrations/concept2';
 import type { Concept2EquipmentType } from '@/lib/integrations/concept2';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Valid equipment types
 const equipmentTypes = [
@@ -73,6 +74,12 @@ export async function GET(request: NextRequest) {
 
     const { clientId, startDate, endDate, type, mappedType, limit, loadDays } = validationResult.data;
 
+    // Access control
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Check if connected
     const token = await prisma.integrationToken.findUnique({
       where: {
@@ -115,7 +122,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Get Concept2 results error:', error);
+    logError('Get Concept2 results error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -150,6 +157,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { clientId, daysBack, forceResync, type } = validationResult.data;
+
+    // Access control
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     // Check if connected
     const token = await prisma.integrationToken.findUnique({
@@ -189,7 +202,7 @@ export async function POST(request: NextRequest) {
       errors: result.errors,
     });
   } catch (error) {
-    console.error('Sync Concept2 results error:', error);
+    logError('Sync Concept2 results error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

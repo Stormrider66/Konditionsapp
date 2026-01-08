@@ -1,0 +1,80 @@
+import 'server-only'
+
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
+import { EXERCISE_IMAGES_BUCKET } from '@/lib/storage/supabase-storage'
+
+export async function createSignedUrl(bucket: string, path: string, expiresInSeconds = 60 * 10) {
+  const admin = createAdminSupabaseClient()
+  const { data, error } = await admin.storage.from(bucket).createSignedUrl(path, expiresInSeconds)
+  if (error || !data?.signedUrl) {
+    throw error || new Error('Failed to create signed URL')
+  }
+  return data.signedUrl
+}
+
+export async function downloadAsBase64(
+  bucket: string,
+  path: string,
+  options?: { maxBytes?: number }
+): Promise<{ base64: string; mimeType?: string }> {
+  const admin = createAdminSupabaseClient()
+  const { data, error } = await admin.storage.from(bucket).download(path)
+  if (error || !data) {
+    throw error || new Error('Failed to download object')
+  }
+
+  const maxBytes = options?.maxBytes
+  if (maxBytes && typeof (data as any).size === 'number' && (data as any).size > maxBytes) {
+    throw new Error('FILE_TOO_LARGE')
+  }
+  const arrayBuffer = await data.arrayBuffer()
+  if (maxBytes && arrayBuffer.byteLength > maxBytes) {
+    throw new Error('FILE_TOO_LARGE')
+  }
+  const base64 = Buffer.from(arrayBuffer).toString('base64')
+  const mimeType = data.type || undefined
+  return { base64, mimeType }
+}
+
+/**
+ * Upload an exercise image to Supabase Storage
+ * @param file - File or Buffer to upload
+ * @param path - Storage path (e.g., "system/posterior-chain/squat-1.webp")
+ * @param contentType - MIME type (default: image/webp)
+ * @returns The storage path
+ */
+export async function uploadExerciseImage(
+  file: File | Buffer,
+  path: string,
+  contentType: string = 'image/webp'
+): Promise<string> {
+  const admin = createAdminSupabaseClient()
+  const { data, error } = await admin.storage
+    .from(EXERCISE_IMAGES_BUCKET)
+    .upload(path, file, {
+      contentType,
+      upsert: true,
+    })
+
+  if (error) {
+    throw error
+  }
+  return data.path
+}
+
+/**
+ * Delete an exercise image from Supabase Storage
+ * @param path - Storage path to delete
+ */
+export async function deleteExerciseImage(path: string): Promise<void> {
+  const admin = createAdminSupabaseClient()
+  const { error } = await admin.storage
+    .from(EXERCISE_IMAGES_BUCKET)
+    .remove([path])
+
+  if (error) {
+    throw error
+  }
+}
+
+

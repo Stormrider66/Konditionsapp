@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { SportType } from '@prisma/client'
+import { logError } from '@/lib/logger-console'
 
 // Validation schema for creating sport performance
 const createSportPerformanceSchema = z.object({
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: performances })
   } catch (error) {
-    console.error('Error fetching sport performances:', error)
+    logError('Error fetching sport performances:', error)
     return NextResponse.json({ error: 'Failed to fetch performances' }, { status: 500 })
   }
 }
@@ -205,7 +206,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: performance })
   } catch (error) {
-    console.error('Error creating sport performance:', error)
+    logError('Error creating sport performance:', error)
     return NextResponse.json({ error: 'Failed to create performance' }, { status: 500 })
   }
 }

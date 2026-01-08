@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { logError } from '@/lib/logger-console'
 import {
   calculateLoadVelocityProfile,
   VELOCITY_ZONES,
@@ -240,7 +241,7 @@ export async function GET(
       velocityZones: VELOCITY_ZONES,
     });
   } catch (error) {
-    console.error('[VBT Session Detail] Error:', error);
+    logError('[VBT Session Detail] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

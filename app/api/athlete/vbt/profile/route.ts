@@ -10,6 +10,7 @@ import { getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateLoadVelocityProfile, getExerciseMVT } from '@/lib/integrations/vbt';
+import { logError } from '@/lib/logger-console'
 
 // GET query schema
 const getQuerySchema = z.object({
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ profiles: formattedProfiles });
   } catch (error) {
-    console.error('[VBT Profile GET] Error:', error);
+    logError('[VBT Profile GET] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -288,7 +289,7 @@ export async function POST(request: NextRequest) {
         : undefined,
     });
   } catch (error) {
-    console.error('[VBT Profile POST] Error:', error);
+    logError('[VBT Profile POST] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

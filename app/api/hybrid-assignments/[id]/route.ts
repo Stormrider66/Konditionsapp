@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach, getCurrentUser } from '@/lib/auth-utils';
+import { logError } from '@/lib/logger-console'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ assignment });
   } catch (error) {
-    console.error('Error fetching assignment:', error);
+    logError('Error fetching assignment:', error);
     return NextResponse.json(
       { error: 'Failed to fetch assignment' },
       { status: 500 }
@@ -141,7 +142,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ assignment: updated });
   } catch (error) {
-    console.error('Error updating assignment:', error);
+    logError('Error updating assignment:', error);
     return NextResponse.json(
       { error: 'Failed to update assignment' },
       { status: 500 }
@@ -169,7 +170,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ message: 'Assignment deleted' });
   } catch (error) {
-    console.error('Error deleting assignment:', error);
+    logError('Error deleting assignment:', error);
     return NextResponse.json(
       { error: 'Failed to delete assignment' },
       { status: 500 }

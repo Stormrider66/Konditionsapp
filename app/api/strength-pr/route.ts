@@ -109,7 +109,13 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error('Error creating strength PR', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }

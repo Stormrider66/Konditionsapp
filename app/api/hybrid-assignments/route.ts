@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach, requireAthlete, getCurrentUser } from '@/lib/auth-utils';
+import { logError } from '@/lib/logger-console'
 
 // GET /api/hybrid-assignments - Get assignments
 // Query params: athleteId, workoutId, status, dateFrom, dateTo
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ assignments });
   } catch (error) {
-    console.error('Error fetching assignments:', error);
+    logError('Error fetching assignments:', error);
     return NextResponse.json(
       { error: 'Failed to fetch assignments' },
       { status: 500 }
@@ -164,7 +165,7 @@ export async function POST(request: NextRequest) {
       assignments,
     });
   } catch (error) {
-    console.error('Error creating assignments:', error);
+    logError('Error creating assignments:', error);
     return NextResponse.json(
       { error: 'Failed to create assignments' },
       { status: 500 }

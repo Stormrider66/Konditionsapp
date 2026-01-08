@@ -10,6 +10,8 @@ import { prisma } from '@/lib/prisma';
 import { createCheckoutSession, BillingCycle } from '@/lib/payments/stripe';
 import { AthleteSubscriptionTier } from '@prisma/client';
 import { z } from 'zod';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 
 const checkoutSchema = z.object({
   tier: z.enum(['STANDARD', 'PRO']),
@@ -20,6 +22,12 @@ const checkoutSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAthlete();
+
+    const rateLimited = await rateLimitJsonResponse('payments:athlete:create-checkout', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get athlete's client record
     const athleteAccount = await prisma.athleteAccount.findUnique({
@@ -63,7 +71,7 @@ export async function POST(request: NextRequest) {
       checkoutUrl,
     });
   } catch (error) {
-    console.error('Create checkout error:', error);
+    logger.error('Create checkout error', {}, error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

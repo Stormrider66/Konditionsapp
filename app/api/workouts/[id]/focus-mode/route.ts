@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAthlete } from '@/lib/auth-utils'
+import { logError } from '@/lib/logger-console'
 
 interface FocusModeExercise {
   id: string
@@ -260,7 +261,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error fetching workout focus mode data:', error)
+    logError('Error fetching workout focus mode data:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch workout data' },
       { status: 500 }

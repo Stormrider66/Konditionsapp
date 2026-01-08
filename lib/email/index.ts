@@ -1,6 +1,8 @@
 // lib/email/index.ts
 // Centralized email service for Star by Thomson
 
+import 'server-only';
+
 import { Resend } from 'resend';
 import { logger } from '@/lib/logger';
 import {

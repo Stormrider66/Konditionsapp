@@ -9,12 +9,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
+import { toPublicExternalCalendarConnection } from '@/lib/calendar/external-calendar-connection'
 import {
   fetchAndParseICalUrl,
   detectCalendarType,
   convertToCalendarEvents,
 } from '@/lib/calendar/ical-parser'
 import { CalendarEventType, EventImpact } from '@prisma/client'
+import { logError } from '@/lib/logger-console'
 
 const createConnectionSchema = z.object({
   clientId: z.string().uuid(),
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
+      where: { id: user.id },
     })
 
     if (!dbUser) {
@@ -203,15 +205,18 @@ export async function POST(request: NextRequest) {
         importedCount++
       }
 
-      return NextResponse.json({
-        connection,
-        imported: importedCount,
-        calendarInfo: {
-          name: parseResult.calendarName,
-          timezone: parseResult.timezone,
-          eventCount: parseResult.events.length,
+      return NextResponse.json(
+        {
+          connection: toPublicExternalCalendarConnection(connection),
+          imported: importedCount,
+          calendarInfo: {
+            name: parseResult.calendarName,
+            timezone: parseResult.timezone,
+            eventCount: parseResult.events.length,
+          },
         },
-      }, { status: 201 })
+        { status: 201 }
+      )
     }
 
     // For OAuth-based providers (Google, Outlook), create connection placeholder
@@ -233,16 +238,19 @@ export async function POST(request: NextRequest) {
       // Return OAuth URL for the provider
       const oauthUrl = getOAuthUrl(data.provider, connection.id)
 
-      return NextResponse.json({
-        connection,
-        oauthRequired: true,
-        oauthUrl,
-      }, { status: 201 })
+      return NextResponse.json(
+        {
+          connection: toPublicExternalCalendarConnection(connection),
+          oauthRequired: true,
+          oauthUrl,
+        },
+        { status: 201 }
+      )
     }
 
     return NextResponse.json({ error: 'Invalid provider' }, { status: 400 })
   } catch (error) {
-    console.error('Error creating external calendar connection:', error)
+    logError('Error creating external calendar connection:', error)
     return NextResponse.json(
       { error: 'Failed to create connection' },
       { status: 500 }
@@ -266,7 +274,7 @@ export async function GET(request: NextRequest) {
     }
 
     const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
+      where: { id: user.id },
     })
 
     if (!dbUser) {
@@ -317,7 +325,7 @@ export async function GET(request: NextRequest) {
         })
 
         return {
-          ...conn,
+          ...toPublicExternalCalendarConnection(conn),
           eventCount,
         }
       })
@@ -325,7 +333,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(connectionsWithCounts)
   } catch (error) {
-    console.error('Error fetching external calendar connections:', error)
+    logError('Error fetching external calendar connections:', error)
     return NextResponse.json(
       { error: 'Failed to fetch connections' },
       { status: 500 }

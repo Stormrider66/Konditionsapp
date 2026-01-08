@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import {
   getStravaAuthUrl,
@@ -15,6 +15,7 @@ import {
   disconnectStrava,
 } from '@/lib/integrations/strava/client';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Schema for POST request
 const initiateAuthSchema = z.object({
@@ -39,6 +40,12 @@ export async function GET(request: NextRequest) {
         { error: 'clientId is required' },
         { status: 400 }
       );
+    }
+
+    // Access control: ensure the authenticated user can access this client
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Check if connected
@@ -99,7 +106,7 @@ export async function GET(request: NextRequest) {
       latestActivity,
     });
   } catch (error) {
-    console.error('Get Strava status error:', error);
+    logError('Get Strava status error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -134,6 +141,12 @@ export async function POST(request: NextRequest) {
 
     const { clientId } = validationResult.data;
 
+    // Access control: ensure the authenticated user can access this client
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Check if already connected
     const isConnected = await hasStravaConnection(clientId);
     if (isConnected) {
@@ -148,7 +161,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ authUrl });
   } catch (error) {
-    console.error('Initiate Strava auth error:', error);
+    logError('Initiate Strava auth error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -181,6 +194,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Access control: ensure the authenticated user can access this client
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Disconnect from Strava
     await disconnectStrava(clientId);
 
@@ -191,7 +210,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Disconnect Strava error:', error);
+    logError('Disconnect Strava error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

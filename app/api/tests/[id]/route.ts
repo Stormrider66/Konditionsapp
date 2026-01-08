@@ -70,10 +70,6 @@ export async function GET(
         // Auto-save calculated values to database if they differ from stored values
         // This ensures profile page always shows fresh calculations
         if (fullCalculations) {
-          console.log('=== AUTO-SAVE DEBUG ===')
-          console.log('Stored anaerobicThreshold:', JSON.stringify(test.anaerobicThreshold))
-          console.log('Calculated anaerobicThreshold:', JSON.stringify(fullCalculations.anaerobicThreshold))
-
           const needsUpdate =
             test.vo2max !== fullCalculations.vo2max ||
             test.maxHR !== fullCalculations.maxHR ||
@@ -81,10 +77,7 @@ export async function GET(
             JSON.stringify(test.aerobicThreshold) !== JSON.stringify(fullCalculations.aerobicThreshold) ||
             JSON.stringify(test.anaerobicThreshold) !== JSON.stringify(fullCalculations.anaerobicThreshold)
 
-          console.log('Needs update:', needsUpdate)
-
           if (needsUpdate) {
-            console.log('Updating test with new thresholds...')
             await prisma.test.update({
               where: { id },
               data: {
@@ -96,10 +89,7 @@ export async function GET(
                 trainingZones: fullCalculations.trainingZones as any,
               },
             })
-            console.log('✅ Auto-saved fresh calculations to database')
             logger.info('Auto-saved fresh calculations to database', { testId: id })
-          } else {
-            console.log('No update needed - values match')
           }
         }
       } catch (calcError) {

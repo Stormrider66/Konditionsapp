@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { ErgometerType } from '@prisma/client';
+import { logError } from '@/lib/logger-console'
 import {
   predictPowerForDuration,
   predictTimeForDistance,
@@ -203,7 +204,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error generating prediction:', error);
+    logError('Error generating prediction:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to generate prediction' },
       { status: 500 }

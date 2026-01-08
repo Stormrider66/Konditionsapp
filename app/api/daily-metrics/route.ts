@@ -21,6 +21,11 @@ import {
   type RHRMeasurement,
   type WellnessResponses,
 } from '@/lib/training-engine/monitoring'
+import {
+  calculateSyncedStrengthFatigue,
+  blendStrengthFatigue,
+  type SyncedStrengthFatigue,
+} from '@/lib/training-engine/monitoring/synced-strength-fatigue'
 import { logger } from '@/lib/logger'
 
 /**
@@ -241,11 +246,10 @@ export async function POST(request: NextRequest) {
         motivationToTrain: scaleTo5(invertScale(injuryPain)) as 1 | 2 | 3 | 4 | 5, // Invert: 1 (no pain) → 10 → 5 (high motivation)
       }
 
-      logger.debug('Wellness calculation', {
-        clientId,
-        original: { sleepQuality, sleepHours, energyLevel, muscleSoreness, stress, mood, injuryPain },
-        converted: wellnessResponses
-      })
+      // Avoid logging raw wellness inputs (health-related data) even in production debug.
+      if (process.env.NODE_ENV !== 'production') {
+        logger.debug('Wellness calculation completed', { clientId })
+      }
 
       wellnessScoreData = calculateWellnessScore(wellnessResponses)
       calculatedWellnessScore = wellnessScoreData.totalScore
@@ -256,6 +260,24 @@ export async function POST(request: NextRequest) {
         rawScore: wellnessScoreData.rawScore,
         status: wellnessScoreData.status
       })
+    }
+
+    // ==================
+    // Synced Strength Fatigue (Gap 3 fix)
+    // ==================
+    let syncedStrengthFatigue: SyncedStrengthFatigue | null = null
+    try {
+      syncedStrengthFatigue = await calculateSyncedStrengthFatigue(clientId, prisma)
+      if (process.env.NODE_ENV !== 'production') {
+        logger.debug('Synced strength fatigue calculated', {
+          clientId,
+          score: syncedStrengthFatigue.score,
+          volume: syncedStrengthFatigue.strengthVolume7d,
+          sessions: syncedStrengthFatigue.strengthSessions7d,
+        })
+      }
+    } catch (error) {
+      logger.warn('Error calculating synced strength fatigue', { clientId }, error)
     }
 
     // ==================
@@ -530,6 +552,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Blend objective and subjective muscle fatigue if both available
+    let blendedMuscularFatigue: number | null = null
+    if (syncedStrengthFatigue && muscleSoreness !== null) {
+      // Note: muscleSoreness is already inverted (11 - value) in the form
+      // So higher = less soreness = more fresh (same direction as objectiveFatigue)
+      blendedMuscularFatigue = blendStrengthFatigue(
+        syncedStrengthFatigue.score,
+        muscleSoreness
+      )
+    }
+
     return NextResponse.json({
       success: true,
       dailyMetrics,
@@ -538,6 +571,18 @@ export async function POST(request: NextRequest) {
         rhr: rhrAssessment,
         wellness: wellnessScoreData,
         readiness: readinessScoreData,
+        // Synced strength fatigue data (Gap 3)
+        strengthFatigue: syncedStrengthFatigue
+          ? {
+              objectiveScore: syncedStrengthFatigue.score,
+              blendedScore: blendedMuscularFatigue,
+              volume7d: syncedStrengthFatigue.strengthVolume7d,
+              sessions7d: syncedStrengthFatigue.strengthSessions7d,
+              daysSinceLastStrength: syncedStrengthFatigue.daysSinceLastStrength,
+              warning: syncedStrengthFatigue.warning,
+              sources: syncedStrengthFatigue.sources,
+            }
+          : null,
       },
       injuryResponse: injuryTriggered
         ? {

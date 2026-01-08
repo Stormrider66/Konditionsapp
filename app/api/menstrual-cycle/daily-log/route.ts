@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAthlete, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { logError } from '@/lib/logger-console'
 
 /**
  * Calculate phase based on cycle day
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Daily log GET error:', error);
+    logError('Daily log GET error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -263,7 +264,7 @@ export async function POST(request: NextRequest) {
         : null,
     });
   } catch (error) {
-    console.error('Daily log POST error:', error);
+    logError('Daily log POST error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

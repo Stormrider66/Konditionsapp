@@ -27,6 +27,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createCustomRateLimiter } from '@/lib/rate-limit-redis'
+import { getRequestIp } from '@/lib/api/rate-limit'
+import { decryptIntegrationSecret } from '@/lib/integrations/crypto'
+import { logger } from '@/lib/logger'
 import {
   GarminDailySummary,
   GarminActivity,
@@ -35,7 +39,13 @@ import {
 } from '@/lib/integrations/garmin/client';
 
 // Webhook verify token (set in environment)
-const GARMIN_WEBHOOK_VERIFY_TOKEN = process.env.GARMIN_WEBHOOK_VERIFY_TOKEN || 'konditionstest-garmin-webhook';
+const GARMIN_WEBHOOK_VERIFY_TOKEN = process.env.GARMIN_WEBHOOK_VERIFY_TOKEN;
+
+// Soft rate limit: return 200 (received) if exceeded to avoid retry storms
+const garminWebhookLimiter = createCustomRateLimiter('webhook:garmin', {
+  limit: 1000,
+  windowSeconds: 60,
+})
 
 // Map Garmin activity types to internal types
 const ACTIVITY_TYPE_MAP: Record<string, { type: string; intensity: string }> = {
@@ -97,7 +107,9 @@ export async function GET(request: NextRequest) {
   const verifyToken = searchParams.get('verify_token');
   const challenge = searchParams.get('challenge');
 
-  console.log('Garmin webhook validation:', { verifyToken, challenge });
+  if (!GARMIN_WEBHOOK_VERIFY_TOKEN) {
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+  }
 
   // Verify the token
   if (verifyToken === GARMIN_WEBHOOK_VERIFY_TOKEN) {
@@ -128,9 +140,22 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const ip = getRequestIp(request)
+    const rl = await garminWebhookLimiter.check(ip)
+    if (!rl.success) {
+      return NextResponse.json({ received: true })
+    }
+
     const payload = await request.json();
 
-    console.log('Garmin webhook event:', JSON.stringify(payload, null, 2));
+    // Avoid logging raw webhook payloads (may contain sensitive personal data)
+    logger.info('Garmin webhook event received', {
+      hasDailies: Array.isArray(payload?.dailies),
+      hasActivities: Array.isArray(payload?.activities),
+      hasSleeps: Array.isArray(payload?.sleeps),
+      hasHrv: Array.isArray(payload?.hrv),
+      hasDeregistrations: Array.isArray(payload?.deregistrations),
+    });
 
     // Process each data type
     const results = {
@@ -198,12 +223,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('Garmin webhook processing results:', results);
+    logger.info('Garmin webhook processing results', {
+      dailies: results.dailies,
+      activities: results.activities,
+      sleeps: results.sleeps,
+      hrv: results.hrv,
+      deregistrations: results.deregistrations,
+      errorCount: results.errors.length,
+    })
 
     // Always return 200 to acknowledge receipt
     return NextResponse.json({ received: true, ...results });
   } catch (error) {
-    console.error('Garmin webhook error:', error);
+    logger.error('Garmin webhook error', {}, error)
     // Return 200 even on error to prevent retries
     return NextResponse.json({ received: true, error: 'Processing error' });
   }
@@ -213,16 +245,22 @@ export async function POST(request: NextRequest) {
  * Handle user deregistration (revoked access)
  */
 async function handleDeregistration(dereg: { userId?: string; userAccessToken?: string }) {
-  // Find token by external user ID or access token
-  const token = await prisma.integrationToken.findFirst({
-    where: {
-      type: 'GARMIN',
-      OR: [
-        { externalUserId: dereg.userId },
-        { accessToken: dereg.userAccessToken },
-      ],
-    },
-  });
+  // Find token by external user ID (preferred) or by access token (fallback).
+  // Note: access tokens are stored encrypted at rest, so direct equality won't work.
+  let token: { id: string; clientId: string } | null =
+    dereg.userId
+      ? await prisma.integrationToken.findFirst({
+          where: {
+            type: 'GARMIN',
+            externalUserId: dereg.userId,
+          },
+          select: { id: true, clientId: true },
+        })
+      : null
+
+  if (!token && dereg.userAccessToken) {
+    token = await findGarminTokenByAccessToken(dereg.userAccessToken)
+  }
 
   if (token) {
     await prisma.integrationToken.update({
@@ -232,7 +270,7 @@ async function handleDeregistration(dereg: { userId?: string; userAccessToken?: 
         lastSyncError: 'User deauthorized the application via Garmin',
       },
     });
-    console.log(`Disabled sync for client ${token.clientId} - Garmin user deregistered`);
+    logger.info('Disabled Garmin sync (user deregistered)', { clientId: token.clientId })
   }
 }
 
@@ -242,7 +280,7 @@ async function handleDeregistration(dereg: { userId?: string; userAccessToken?: 
 async function processDailySummary(summary: GarminDailySummary & { userId?: string; userAccessToken?: string }) {
   const clientId = await findClientId(summary.userId, summary.userAccessToken);
   if (!clientId) {
-    console.log('No client found for Garmin daily summary');
+    logger.warn('No client found for Garmin daily summary')
     return;
   }
 
@@ -305,7 +343,7 @@ async function processDailySummary(summary: GarminDailySummary & { userId?: stri
     },
   });
 
-  console.log(`Synced daily summary for client ${clientId} on ${summary.calendarDate}`);
+  logger.debug('Synced Garmin daily summary', { clientId, date: summary.calendarDate })
 }
 
 /**
@@ -314,7 +352,7 @@ async function processDailySummary(summary: GarminDailySummary & { userId?: stri
 async function processActivity(activity: GarminActivity & { userId?: string; userAccessToken?: string }) {
   const clientId = await findClientId(activity.userId, activity.userAccessToken);
   if (!clientId) {
-    console.log('No client found for Garmin activity');
+    logger.warn('No client found for Garmin activity')
     return;
   }
 
@@ -390,7 +428,7 @@ async function processActivity(activity: GarminActivity & { userId?: string; use
     },
   });
 
-  console.log(`Synced activity ${activity.activityId} for client ${clientId}`);
+  logger.debug('Synced Garmin activity', { clientId, activityId: activity.activityId })
 }
 
 /**
@@ -399,7 +437,7 @@ async function processActivity(activity: GarminActivity & { userId?: string; use
 async function processSleepData(sleep: GarminSleepData & { userId?: string; userAccessToken?: string }) {
   const clientId = await findClientId(sleep.userId, sleep.userAccessToken);
   if (!clientId) {
-    console.log('No client found for Garmin sleep data');
+    logger.warn('No client found for Garmin sleep data')
     return;
   }
 
@@ -452,7 +490,7 @@ async function processSleepData(sleep: GarminSleepData & { userId?: string; user
     },
   });
 
-  console.log(`Synced sleep data for client ${clientId} on ${sleep.calendarDate}`);
+  logger.debug('Synced Garmin sleep data', { clientId, date: sleep.calendarDate })
 }
 
 /**
@@ -461,7 +499,7 @@ async function processSleepData(sleep: GarminSleepData & { userId?: string; user
 async function processHRVData(hrv: GarminHRVData & { userId?: string; userAccessToken?: string }) {
   const clientId = await findClientId(hrv.userId, hrv.userAccessToken);
   if (!clientId) {
-    console.log('No client found for Garmin HRV data');
+    logger.warn('No client found for Garmin HRV data')
     return;
   }
 
@@ -511,7 +549,7 @@ async function processHRVData(hrv: GarminHRVData & { userId?: string; userAccess
     },
   });
 
-  console.log(`Synced HRV data for client ${clientId} on ${hrv.calendarDate}`);
+  logger.debug('Synced Garmin HRV data', { clientId, date: hrv.calendarDate })
 }
 
 /**
@@ -522,16 +560,43 @@ async function findClientId(userId?: string, userAccessToken?: string): Promise<
     return null;
   }
 
-  const token = await prisma.integrationToken.findFirst({
-    where: {
-      type: 'GARMIN',
-      syncEnabled: true,
-      OR: [
-        ...(userId ? [{ externalUserId: userId }] : []),
-        ...(userAccessToken ? [{ accessToken: userAccessToken }] : []),
-      ],
-    },
-  });
+  if (userId) {
+    const token = await prisma.integrationToken.findFirst({
+      where: {
+        type: 'GARMIN',
+        syncEnabled: true,
+        externalUserId: userId,
+      },
+      select: { clientId: true },
+    })
+    if (token?.clientId) return token.clientId
+  }
 
-  return token?.clientId || null;
+  if (userAccessToken) {
+    const token = await findGarminTokenByAccessToken(userAccessToken)
+    return token?.clientId ?? null
+  }
+
+  return null
+}
+
+async function findGarminTokenByAccessToken(
+  userAccessToken: string
+): Promise<{ id: string; clientId: string } | null> {
+  // Fallback only: Garmin sometimes sends `userAccessToken` on webhook payloads.
+  // Since we encrypt tokens at rest, we match by decrypting candidate rows.
+  const candidates = await prisma.integrationToken.findMany({
+    where: { type: 'GARMIN', syncEnabled: true },
+    select: { id: true, clientId: true, accessToken: true },
+    take: 500,
+  })
+
+  for (const c of candidates) {
+    const decrypted = decryptIntegrationSecret(c.accessToken)
+    if (decrypted && decrypted === userAccessToken) {
+      return { id: c.id, clientId: c.clientId }
+    }
+  }
+
+  return null
 }

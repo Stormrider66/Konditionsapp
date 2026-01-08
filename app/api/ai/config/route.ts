@@ -10,6 +10,8 @@
 
 import { NextResponse } from 'next/server'
 import { getUserAIConfig } from '@/lib/ai/user-ai-config'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
@@ -21,6 +23,12 @@ export async function GET() {
         { status: 401 }
       )
     }
+
+    const rateLimited = await rateLimitJsonResponse('ai:config', config.userId, {
+      limit: 60,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Format response for FloatingAIChat compatibility
     const keys = [
@@ -52,7 +60,7 @@ export async function GET() {
       isAthlete: config.isAthlete,
     })
   } catch (error) {
-    console.error('Get AI config error:', error)
+    logger.error('Get AI config error', {}, error)
 
     return NextResponse.json(
       { error: 'Failed to get AI configuration', success: false },

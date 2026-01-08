@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 import {
   compressSkeletalData,
   decompressSkeletalData,
@@ -59,6 +61,12 @@ const updateSchema = z.object({
   aiPoseAnalysis: aiPoseAnalysisSchema.nullable(), // Allow null when no AI analysis was run
 });
 
+export const maxDuration = 60
+
+const MAX_LANDMARKS_PAYLOAD_BYTES = 10 * 1024 * 1024 // 10MB
+const MAX_FRAMES = 10_000
+const MAX_LANDMARKS_PER_FRAME = 60
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -67,18 +75,37 @@ export async function PATCH(
     const user = await requireCoach();
     const { id } = await params;
 
+    const rateLimited = await rateLimitJsonResponse('video:landmarks:patch', user.id, {
+      limit: 20,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
+    const contentLength = request.headers.get('content-length')
+    if (contentLength) {
+      const bytes = Number(contentLength)
+      if (Number.isFinite(bytes) && bytes > MAX_LANDMARKS_PAYLOAD_BYTES) {
+        return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+      }
+    }
+
     const body = await request.json();
 
-    // Debug logging
-    console.log('[landmarks API] Received request body keys:', Object.keys(body));
-    console.log('[landmarks API] aiPoseAnalysis received:', body.aiPoseAnalysis !== null && body.aiPoseAnalysis !== undefined);
-    if (body.aiPoseAnalysis) {
-      console.log('[landmarks API] aiPoseAnalysis score:', body.aiPoseAnalysis.score);
+    if (process.env.NODE_ENV !== 'production') {
+      logger.debug('Landmarks PATCH received', {
+        keys: typeof body === 'object' && body ? Object.keys(body as any) : [],
+        hasAiPoseAnalysis: !!(body as any)?.aiPoseAnalysis,
+      })
     }
 
     const { frames, summary, aiPoseAnalysis } = updateSchema.parse(body);
 
-    console.log('[landmarks API] After Zod parse - aiPoseAnalysis:', aiPoseAnalysis !== null && aiPoseAnalysis !== undefined);
+    if (frames.length > MAX_FRAMES) {
+      return NextResponse.json({ error: `Too many frames (max ${MAX_FRAMES})` }, { status: 413 })
+    }
+    if (frames.some((f) => f.landmarks.length > MAX_LANDMARKS_PER_FRAME)) {
+      return NextResponse.json({ error: `Too many landmarks per frame (max ${MAX_LANDMARKS_PER_FRAME})` }, { status: 413 })
+    }
 
     // Verify ownership
     const analysis = await prisma.videoAnalysis.findFirst({
@@ -133,9 +160,7 @@ export async function PATCH(
         : `--- Pose Analysis ---\n${summary}`;
     }
 
-    console.log('[landmarks API] Building AI analysis text, aiPoseAnalysis exists:', !!aiPoseAnalysis);
     if (aiPoseAnalysis) {
-      console.log('[landmarks API] Adding Gemini analysis to aiAnalysisText with score:', aiPoseAnalysis.score);
       // Format the AI pose analysis as structured text
       const aiPoseText = [
         '\n\n--- Gemini AI Pose Analysis ---',
@@ -173,10 +198,6 @@ export async function PATCH(
     }
 
     // Update analysis with landmarks and AI analysis
-    console.log('[landmarks API] Saving to database:');
-    console.log('[landmarks API] - Will update aiAnalysis text:', aiAnalysisText.length > 0);
-    console.log('[landmarks API] - Will update formScore:', aiPoseAnalysis?.score);
-    console.log('[landmarks API] - Will set status to COMPLETED:', !!aiPoseAnalysis);
     // Prisma typings can be stale (e.g. after schema changes). Build update payload as `any`
     // so this endpoint keeps working even if editor types haven't refreshed yet.
     const updateData: any = {
@@ -210,7 +231,7 @@ export async function PATCH(
       ...(aiPoseAnalysis ? { aiPoseAnalysis } : {}),
     });
   } catch (error) {
-    console.error('Save landmarks error:', error);
+    logger.error('Save landmarks error', {}, error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -331,7 +352,7 @@ export async function GET(
       { status: 500 }
     );
   } catch (error) {
-    console.error('Get landmarks error:', error);
+    logger.error('Get landmarks error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

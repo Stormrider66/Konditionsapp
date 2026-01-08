@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { getConcept2Results, getConcept2Result } from './client';
+import { logger } from '@/lib/logger'
 import type {
   Concept2Result,
   Concept2EquipmentType,
@@ -247,7 +248,7 @@ export async function syncConcept2Results(
             detailedResult = await getConcept2Result(clientId, c2Result.id);
           } catch {
             // Use basic result if detailed fetch fails
-            console.warn(`Could not fetch details for result ${c2Result.id}`);
+            logger.warn('Could not fetch Concept2 result details; using basic result', { clientId, resultId: c2Result.id })
           }
         }
 

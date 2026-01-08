@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getModelById, getDefaultModel, AI_MODELS } from '@/types/ai-models'
+import { logError } from '@/lib/logger-console'
 
 export async function GET() {
   try {
@@ -110,7 +111,7 @@ export async function GET() {
       clientId: athleteAccount.client.id,
     })
   } catch (error) {
-    console.error('Get athlete AI config error:', error)
+    logError('Get athlete AI config error:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

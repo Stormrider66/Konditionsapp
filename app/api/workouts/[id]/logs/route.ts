@@ -1,7 +1,7 @@
 // app/api/workouts/[id]/logs/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth-utils'
+import { canAccessWorkout, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 /**
@@ -26,6 +26,17 @@ export async function POST(
     }
 
     const { id } = await params
+
+    const hasAccess = await canAccessWorkout(user.id, id)
+    if (!hasAccess) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Obehörig åtkomst till detta träningspass',
+        },
+        { status: 403 }
+      )
+    }
 
     // Only athletes can log workouts
     if (user.role !== 'ATHLETE') {
@@ -129,6 +140,17 @@ export async function GET(
     }
 
     const { id } = await params
+
+    const hasAccess = await canAccessWorkout(user.id, id)
+    if (!hasAccess) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Obehörig åtkomst till detta träningspass',
+        },
+        { status: 403 }
+      )
+    }
 
     const logs = await prisma.workoutLog.findMany({
       where: {

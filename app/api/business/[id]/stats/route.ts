@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { logError } from '@/lib/logger-console'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -308,7 +309,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       recentTests,
     });
   } catch (error) {
-    console.error('Get business stats error:', error);
+    logError('Get business stats error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

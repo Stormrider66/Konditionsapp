@@ -4,7 +4,7 @@
  * Generates PDF and Excel exports for cardio/running sessions.
  */
 
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import { jsPDF } from 'jspdf'
 
 export type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
@@ -56,8 +56,10 @@ const INTENSITY_LABELS: Record<string, string> = {
 /**
  * Generate Excel workbook for a cardio session
  */
-export function generateCardioSessionExcel(data: CardioSessionData): Blob {
-  const workbook = XLSX.utils.book_new()
+export async function generateCardioSessionExcel(data: CardioSessionData): Promise<Blob> {
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'Star by Thomson'
+  workbook.created = new Date()
 
   // Calculate totals
   const totalDuration = data.segments.reduce((acc, s) => acc + (s.duration || 0), 0)
@@ -84,9 +86,11 @@ export function generateCardioSessionExcel(data: CardioSessionData): Blob {
     ['Snittzon', `Z${avgZone}`],
   ]
 
-  const infoSheet = XLSX.utils.aoa_to_sheet(infoData)
-  infoSheet['!cols'] = [{ wch: 20 }, { wch: 30 }]
-  XLSX.utils.book_append_sheet(workbook, infoSheet, 'Info')
+  const infoSheet = workbook.addWorksheet('Info')
+  infoSheet.addRows(infoData)
+  infoSheet.columns = [{ width: 20 }, { width: 30 }]
+  infoSheet.getRow(1).font = { bold: true }
+  infoSheet.getColumn(2).alignment = { wrapText: true, vertical: 'top' }
 
   // Segments Sheet
   const segmentData: (string | number)[][] = [
@@ -108,23 +112,26 @@ export function generateCardioSessionExcel(data: CardioSessionData): Blob {
     ])
   })
 
-  const segmentSheet = XLSX.utils.aoa_to_sheet(segmentData)
-  segmentSheet['!cols'] = [
-    { wch: 5 },   // #
-    { wch: 15 },  // Typ
-    { wch: 10 },  // Tid
-    { wch: 12 },  // Distans
-    { wch: 10 },  // Tempo
-    { wch: 12 },  // Puls
-    { wch: 6 },   // Zon
-    { wch: 12 },  // Upprepningar
-    { wch: 10 },  // Vila
-    { wch: 25 },  // Anteckningar
+  const segmentSheet = workbook.addWorksheet('Segment')
+  segmentSheet.addRows(segmentData)
+  segmentSheet.columns = [
+    { width: 5 },   // #
+    { width: 15 },  // Typ
+    { width: 10 },  // Tid
+    { width: 12 },  // Distans
+    { width: 10 },  // Tempo
+    { width: 12 },  // Puls
+    { width: 6 },   // Zon
+    { width: 12 },  // Upprepningar
+    { width: 10 },  // Vila
+    { width: 25 },  // Anteckningar
   ]
-  XLSX.utils.book_append_sheet(workbook, segmentSheet, 'Segment')
+  segmentSheet.views = [{ state: 'frozen', ySplit: 1 }]
+  segmentSheet.getRow(1).font = { bold: true }
+  segmentSheet.getColumn(10).alignment = { wrapText: true, vertical: 'top' }
 
   // Generate buffer
-  const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+  const buffer = await workbook.xlsx.writeBuffer()
   return new Blob([buffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   })
@@ -324,8 +331,8 @@ export function generateCardioFilename(sessionName: string, extension: string): 
 /**
  * Download cardio session as Excel
  */
-export function downloadCardioSessionExcel(data: CardioSessionData, filename?: string): void {
-  const blob = generateCardioSessionExcel(data)
+export async function downloadCardioSessionExcel(data: CardioSessionData, filename?: string): Promise<void> {
+  const blob = await generateCardioSessionExcel(data)
   const finalFilename = filename || generateCardioFilename(data.sessionName, 'xlsx')
   downloadBlob(blob, finalFilename)
 }

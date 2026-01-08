@@ -210,7 +210,7 @@ export function ExerciseCreator({ onClose }: { onClose?: () => void }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="videoUrl">Video URL (YouTube/Vimeo)</Label>
+              <Label htmlFor="videoUrl">Video URL (optional)</Label>
               <Input 
                 id="videoUrl" 
                 placeholder="https://..." 

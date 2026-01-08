@@ -7,6 +7,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { exchangeStravaCode } from '@/lib/integrations/strava/client';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
+import { encryptIntegrationSecret } from '@/lib/integrations/crypto';
+import { logger } from '@/lib/logger'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
@@ -29,7 +32,7 @@ export async function GET(request: NextRequest) {
 
   // Handle authorization denial
   if (error) {
-    console.error('Strava auth denied:', error);
+    logger.info('Strava auth denied by user', { error })
     return NextResponse.redirect(
       `${APP_URL}/athlete/settings?error=strava_denied&message=${encodeURIComponent(error)}`
     );
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
 
   // Validate required params
   if (!code || !state) {
-    console.error('Missing code or state in Strava callback');
+    logger.warn('Missing code or state in Strava callback')
     return NextResponse.redirect(
       `${APP_URL}/athlete/settings?error=strava_invalid_callback`
     );
@@ -46,6 +49,21 @@ export async function GET(request: NextRequest) {
   const clientId = state;
 
   try {
+    // Verify user is authenticated and allowed to connect integrations for this client
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.redirect(
+        `${APP_URL}/login?redirect=${encodeURIComponent('/athlete/settings')}`
+      );
+    }
+
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.redirect(
+        `${APP_URL}/athlete/settings?error=strava_forbidden`
+      );
+    }
+
     // Verify client exists
     const client = await prisma.client.findUnique({
       where: { id: clientId },
@@ -53,7 +71,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!client) {
-      console.error('Client not found:', clientId);
+      logger.warn('Client not found in Strava callback', { clientId })
       return NextResponse.redirect(
         `${APP_URL}/athlete/settings?error=strava_client_not_found`
       );
@@ -71,8 +89,8 @@ export async function GET(request: NextRequest) {
         },
       },
       update: {
-        accessToken: tokenResponse.access_token,
-        refreshToken: tokenResponse.refresh_token,
+        accessToken: encryptIntegrationSecret(tokenResponse.access_token)!,
+        refreshToken: encryptIntegrationSecret(tokenResponse.refresh_token),
         expiresAt: new Date(tokenResponse.expires_at * 1000),
         externalUserId: tokenResponse.athlete.id.toString(),
         scope: scope || 'read,activity:read_all,profile:read_all',
@@ -82,8 +100,8 @@ export async function GET(request: NextRequest) {
       create: {
         clientId,
         type: 'STRAVA',
-        accessToken: tokenResponse.access_token,
-        refreshToken: tokenResponse.refresh_token,
+        accessToken: encryptIntegrationSecret(tokenResponse.access_token)!,
+        refreshToken: encryptIntegrationSecret(tokenResponse.refresh_token),
         expiresAt: new Date(tokenResponse.expires_at * 1000),
         externalUserId: tokenResponse.athlete.id.toString(),
         scope: scope || 'read,activity:read_all,profile:read_all',
@@ -91,14 +109,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    console.log(`Strava connected for client ${clientId}, athlete ${tokenResponse.athlete.id}`);
+    logger.info('Strava connected', { clientId, athleteId: tokenResponse.athlete.id })
 
     // Redirect to success page
     return NextResponse.redirect(
       `${APP_URL}/athlete/settings?success=strava_connected&athleteId=${tokenResponse.athlete.id}`
     );
   } catch (error) {
-    console.error('Strava callback error:', error);
+    logger.error('Strava callback error', { clientId }, error)
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.redirect(

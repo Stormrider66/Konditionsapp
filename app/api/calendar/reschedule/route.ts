@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/server'
 import { detectWorkoutConflicts } from '@/lib/calendar/conflict-detection'
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
 import { z } from 'zod'
+import { logError } from '@/lib/logger-console'
 
 const rescheduleSchema = z.object({
   workoutId: z.string().uuid(),
@@ -195,7 +196,7 @@ export async function POST(request: NextRequest) {
       message: `Passet har flyttats till ${formatDateSwedish(targetDate)}`,
     })
   } catch (error) {
-    console.error('Error rescheduling workout:', error)
+    logError('Error rescheduling workout:', error)
     return NextResponse.json({ error: 'Failed to reschedule workout' }, { status: 500 })
   }
 }

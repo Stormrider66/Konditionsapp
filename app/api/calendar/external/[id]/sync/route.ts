@@ -8,10 +8,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { CalendarEventType, EventImpact } from '@prisma/client'
+import { logger } from '@/lib/logger'
 import {
   fetchAndParseICalUrl,
   convertToCalendarEvents,
 } from '@/lib/calendar/ical-parser'
+import { decryptIntegrationSecret } from '@/lib/integrations/crypto'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       { status: 400 }
     )
   } catch (error) {
-    console.error('Error syncing external calendar:', error)
+    logger.error('Error syncing external calendar', {}, error)
     return NextResponse.json(
       { error: 'Failed to sync calendar' },
       { status: 500 }
@@ -261,9 +263,43 @@ async function syncGoogleCalendar(
   },
   userId: string
 ) {
+  // Tokens are stored encrypted at rest; decrypt for use
+  let accessToken: string | null
+  let refreshToken: string | null
+  try {
+    accessToken = decryptIntegrationSecret(connection.accessToken)
+    refreshToken = decryptIntegrationSecret(connection.refreshToken)
+  } catch (e) {
+    await prisma.externalCalendarConnection.update({
+      where: { id: connection.id },
+      data: {
+        lastSyncError:
+          e instanceof Error
+            ? e.message
+            : 'Failed to decrypt calendar tokens. Ensure API_KEY_ENCRYPTION_KEY is configured, then reconnect your calendar.',
+        syncEnabled: false,
+      },
+    })
+    return NextResponse.json(
+      { error: 'Calendar tokens could not be decrypted. Please reconnect your Google Calendar.' },
+      { status: 500 }
+    )
+  }
+
+  if (!accessToken) {
+    await prisma.externalCalendarConnection.update({
+      where: { id: connection.id },
+      data: { lastSyncError: 'Missing access token', syncEnabled: false },
+    })
+    return NextResponse.json(
+      { error: 'Missing access token. Please reconnect your Google Calendar.' },
+      { status: 401 }
+    )
+  }
+
   // Check if token needs refresh
   if (connection.expiresAt && connection.expiresAt < new Date()) {
-    if (!connection.refreshToken) {
+    if (!refreshToken) {
       await prisma.externalCalendarConnection.update({
         where: { id: connection.id },
         data: {
@@ -313,6 +349,38 @@ async function syncOutlookCalendar(
   },
   userId: string
 ) {
+  // Tokens are stored encrypted at rest; decrypt for use
+  let accessToken: string | null
+  try {
+    accessToken = decryptIntegrationSecret(connection.accessToken)
+  } catch (e) {
+    await prisma.externalCalendarConnection.update({
+      where: { id: connection.id },
+      data: {
+        lastSyncError:
+          e instanceof Error
+            ? e.message
+            : 'Failed to decrypt calendar tokens. Ensure API_KEY_ENCRYPTION_KEY is configured, then reconnect your calendar.',
+        syncEnabled: false,
+      },
+    })
+    return NextResponse.json(
+      { error: 'Calendar tokens could not be decrypted. Please reconnect your Outlook Calendar.' },
+      { status: 500 }
+    )
+  }
+
+  if (!accessToken) {
+    await prisma.externalCalendarConnection.update({
+      where: { id: connection.id },
+      data: { lastSyncError: 'Missing access token', syncEnabled: false },
+    })
+    return NextResponse.json(
+      { error: 'Missing access token. Please reconnect your Outlook Calendar.' },
+      { status: 401 }
+    )
+  }
+
   // TODO: Implement Outlook Calendar API fetch
   // Use the Microsoft Graph API to fetch events
   // https://learn.microsoft.com/en-us/graph/api/calendar-list-events

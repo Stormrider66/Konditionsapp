@@ -6,11 +6,23 @@
  * - ACWR (Acute:Chronic Workload Ratio)
  * - Activity breakdown by type
  * - Load trend analysis
+ *
+ * Uses deduplication to prevent double-counting when same activity
+ * is synced from multiple sources (e.g., Strava + Garmin).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { logger } from '@/lib/logger'
+import {
+  deduplicateActivities,
+  normalizeStravaActivity,
+  normalizeGarminActivity,
+  aggregateTSSByDay,
+  aggregateByType,
+  type NormalizedActivity,
+} from '@/lib/training/activity-deduplication'
 
 export async function GET(request: NextRequest) {
   try {
@@ -87,23 +99,74 @@ export async function GET(request: NextRequest) {
       orderBy: { startDate: 'desc' },
     })
 
-    // Fetch Garmin activities from DailyMetrics
-    const dailyMetrics = await prisma.dailyMetrics.findMany({
+    // Fetch Garmin activities from GarminActivity model (Gap 5 fix)
+    const garminActivities = await prisma.garminActivity.findMany({
       where: {
         clientId,
-        date: { gte: twentyEightDaysAgo },
+        startDate: { gte: twentyEightDaysAgo },
       },
       select: {
-        date: true,
-        factorScores: true,
+        id: true,
+        startDate: true,
+        duration: true,
+        distance: true,
+        mappedType: true,
+        tss: true,
+        trimp: true,
       },
+      orderBy: { startDate: 'desc' },
     })
 
-    // Aggregate TSS by day
-    const dailyTSS: Record<string, number> = {}
-    const byType: Record<string, { count: number; tss: number; distance: number }> = {}
+    // Normalize all activities to unified format for deduplication
+    const allActivities: NormalizedActivity[] = []
 
-    // Process manual TrainingLoad entries first
+    // Add Strava activities (priority 4)
+    for (const activity of stravaActivities) {
+      allActivities.push(
+        normalizeStravaActivity({
+          id: activity.startDate.toISOString() + '-strava', // Unique ID
+          startDate: activity.startDate,
+          movingTime: activity.movingTime,
+          distance: activity.distance,
+          mappedType: activity.mappedType,
+          tss: activity.tss,
+          trimp: activity.trimp,
+        })
+      )
+    }
+
+    // Add Garmin activities (priority 3) - now from GarminActivity model
+    for (const activity of garminActivities) {
+      allActivities.push(
+        normalizeGarminActivity({
+          activityId: activity.id,
+          tss: activity.tss || undefined,
+          duration: activity.duration || undefined,
+          mappedType: activity.mappedType || undefined,
+          distance: activity.distance || undefined,
+          startTimeSeconds: Math.floor(activity.startDate.getTime() / 1000),
+        }, activity.startDate)
+      )
+    }
+
+    // Deduplicate activities from multiple sources
+    const { deduplicated, duplicatesRemoved } = deduplicateActivities(allActivities, {
+      debug: process.env.NODE_ENV === 'development',
+    })
+
+    // Log deduplication results in development
+    if (process.env.NODE_ENV === 'development' && duplicatesRemoved > 0) {
+      logger.debug('Training load deduplication', { clientId, duplicatesRemoved })
+    }
+
+    // Aggregate TSS by day from deduplicated activities
+    const dailyTSS = aggregateTSSByDay(deduplicated)
+
+    // Aggregate by type from deduplicated activities
+    const byType = aggregateByType(deduplicated)
+
+    // Also add manual TrainingLoad entries (these are separate from synced activities)
+    // Manual entries are typically from coach-assigned workouts, not duplicates
     for (const load of manualTrainingLoads) {
       const dateKey = load.date.toISOString().split('T')[0]
       const tss = load.dailyLoad || 0
@@ -117,55 +180,6 @@ export async function GET(request: NextRequest) {
       byType[type].count++
       byType[type].tss += tss
       byType[type].distance += (load.distance || 0) / 1000
-    }
-
-    // Process Strava activities
-    for (const activity of stravaActivities) {
-      const dateKey = activity.startDate.toISOString().split('T')[0]
-      const tss = activity.tss || estimateTSS(activity.movingTime || 0)
-
-      dailyTSS[dateKey] = (dailyTSS[dateKey] || 0) + tss
-
-      const type = activity.mappedType || 'OTHER'
-      if (!byType[type]) {
-        byType[type] = { count: 0, tss: 0, distance: 0 }
-      }
-      byType[type].count++
-      byType[type].tss += tss
-      byType[type].distance += (activity.distance || 0) / 1000
-    }
-
-    // Process Garmin activities
-    for (const metric of dailyMetrics) {
-      const factorScores = metric.factorScores as {
-        garminActivities?: Array<{
-          tss?: number
-          duration?: number
-          mappedType?: string
-          distance?: number
-        }>
-      } | null
-
-      const garminActivities = factorScores?.garminActivities || []
-      const dateKey = metric.date.toISOString().split('T')[0]
-
-      for (const activity of garminActivities) {
-        const tss = activity.tss || estimateTSS(activity.duration || 0)
-
-        // Avoid double counting if also in Strava
-        if (!dailyTSS[dateKey]) {
-          dailyTSS[dateKey] = 0
-        }
-        dailyTSS[dateKey] += tss
-
-        const type = activity.mappedType || 'OTHER'
-        if (!byType[type]) {
-          byType[type] = { count: 0, tss: 0, distance: 0 }
-        }
-        byType[type].count++
-        byType[type].tss += tss
-        byType[type].distance += (activity.distance || 0) / 1000
-      }
     }
 
     // Calculate acute load (7 days) and chronic load (28 days)
@@ -223,9 +237,19 @@ export async function GET(request: NextRequest) {
       byType,
       trend,
       riskLevel,
+      // Deduplication info for debugging/transparency
+      deduplication: {
+        totalActivities: allActivities.length + manualTrainingLoads.length,
+        duplicatesRemoved,
+        sources: {
+          strava: stravaActivities.length,
+          garmin: allActivities.length - stravaActivities.length,
+          manual: manualTrainingLoads.length,
+        },
+      },
     })
   } catch (error) {
-    console.error('Error calculating training load:', error)
+    logger.error('Error calculating training load', {}, error)
     return NextResponse.json({ error: 'Failed to calculate training load' }, { status: 500 })
   }
 }

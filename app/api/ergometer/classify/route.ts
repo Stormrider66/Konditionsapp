@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { ErgometerType, ErgometerTestProtocol, SportType } from '@prisma/client';
 import { classifyPerformance, BenchmarkInput } from '@/lib/training-engine/ergometer/benchmarks';
+import { logError } from '@/lib/logger-console'
 
 const classifySchema = z.object({
   ergometerType: z.nativeEnum(ErgometerType),
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('Error classifying performance:', error);
+    logError('Error classifying performance:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to classify performance' },
       { status: 500 }
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
       count: benchmarks.length,
     });
   } catch (error) {
-    console.error('Error fetching benchmarks:', error);
+    logError('Error fetching benchmarks:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch benchmarks' },
       { status: 500 }

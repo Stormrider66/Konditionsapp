@@ -9,6 +9,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 
 interface RequestBody {
   wodId: string
@@ -17,6 +20,13 @@ interface RequestBody {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAthlete()
+
+    const rateLimited = await rateLimitJsonResponse('ai:wod:repeat', user.id, {
+      limit: 20,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     const body: RequestBody = await request.json()
     const { wodId } = body
 
@@ -65,7 +75,7 @@ export async function POST(request: NextRequest) {
         title: originalWOD.title,
         subtitle: originalWOD.subtitle,
         description: originalWOD.description,
-        workoutJson: originalWOD.workoutJson,
+        workoutJson: originalWOD.workoutJson as Prisma.InputJsonValue ?? Prisma.JsonNull,
         coachNotes: originalWOD.coachNotes,
         readinessAtGeneration: null, // Will be different this time
         intensityAdjusted: null,
@@ -85,7 +95,7 @@ export async function POST(request: NextRequest) {
       message: 'WOD duplicated successfully',
     })
   } catch (error) {
-    console.error('WOD repeat error:', error)
+    logger.error('WOD repeat error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

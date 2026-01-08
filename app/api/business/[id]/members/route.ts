@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Validation schema for inviting a member
 const inviteMemberSchema = z.object({
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       currentUserRole: membership.role,
     });
   } catch (error) {
-    console.error('Get business members error:', error);
+    logError('Get business members error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -195,7 +196,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Invite member error:', error);
+    logError('Invite member error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -286,7 +287,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Remove member error:', error);
+    logError('Remove member error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

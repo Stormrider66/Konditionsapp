@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api/utils'
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client'
+import { logError } from '@/lib/logger-console'
 
 // Query params schema
 const querySchema = z.object({
@@ -119,7 +120,7 @@ export async function GET(
       summary,
     })
   } catch (error) {
-    console.error('Error fetching progression data:', error)
+    logError('Error fetching progression data:', error)
     return errorResponse('Failed to fetch progression data', 500)
   }
 }

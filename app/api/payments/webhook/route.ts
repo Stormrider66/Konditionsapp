@@ -5,19 +5,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import { handleStripeWebhook, verifyWebhookSignature } from '@/lib/payments/stripe';
 import { handleCoachStripeWebhook } from '@/lib/payments/coach-stripe';
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
     // Get raw body for signature verification
     const body = await request.text();
-    const headersList = await headers();
-    const signature = headersList.get('stripe-signature');
+    const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
-      console.error('Missing stripe-signature header');
       return NextResponse.json(
         { error: 'Missing signature' },
         { status: 400 }
@@ -29,7 +27,6 @@ export async function POST(request: NextRequest) {
     try {
       event = verifyWebhookSignature(body, signature);
     } catch (err) {
-      console.error('Webhook signature verification failed:', err);
       return NextResponse.json(
         { error: 'Invalid signature' },
         { status: 400 }
@@ -40,7 +37,7 @@ export async function POST(request: NextRequest) {
     const coachResult = await handleCoachStripeWebhook(event);
 
     if (coachResult.handled) {
-      console.log(`Coach webhook ${event.type}:`, coachResult.message);
+      logger.info('Coach Stripe webhook handled', { eventType: event.type, message: coachResult.message })
       return NextResponse.json({
         received: true,
         handled: true,
@@ -51,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Fall back to athlete webhook handler
     const athleteResult = await handleStripeWebhook(event);
 
-    console.log(`Athlete webhook ${event.type}:`, athleteResult.message);
+    logger.info('Athlete Stripe webhook handled', { eventType: event.type, message: athleteResult.message })
 
     return NextResponse.json({
       received: true,
@@ -59,17 +56,10 @@ export async function POST(request: NextRequest) {
       message: athleteResult.message,
     });
   } catch (error) {
-    console.error('Webhook error:', error);
+    logger.error('Stripe webhook error', {}, error)
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }
     );
   }
 }
-
-// Disable body parsing for webhook (we need raw body for signature)
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};

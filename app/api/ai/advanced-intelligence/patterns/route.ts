@@ -2,9 +2,10 @@
 // Training pattern recognition API endpoint
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { analyzeTrainingPatterns } from '@/lib/ai/advanced-intelligence'
 import { logger } from '@/lib/logger'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 
 /**
  * GET /api/ai/advanced-intelligence/patterns
@@ -12,12 +13,17 @@ import { logger } from '@/lib/logger'
  */
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimited = await rateLimitJsonResponse('ai:advanced:patterns', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const { searchParams } = new URL(req.url)
     const clientId = searchParams.get('clientId')
@@ -28,6 +34,12 @@ export async function GET(req: NextRequest) {
         { error: 'clientId är obligatoriskt' },
         { status: 400 }
       )
+    }
+
+    // Prevent IDOR: ensure user can access this clientId
+    const allowed = await canAccessClient(user.id, clientId)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
     const patterns = await analyzeTrainingPatterns(clientId, weeks)
@@ -42,7 +54,13 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error('Error analyzing training patterns', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }

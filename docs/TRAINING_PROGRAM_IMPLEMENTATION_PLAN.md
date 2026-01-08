@@ -213,7 +213,7 @@ model Exercise {
 
   description String?  @db.Text
   instructions String? @db.Text
-  videoUrl    String?  // YouTube/Vimeo link
+  videoUrl    String?  // Video link (optional)
   equipment   String?  // "Barbell, Rack", "Box", "None"
 
   difficulty  String?  // "Beginner", "Intermediate", "Advanced"
@@ -671,7 +671,7 @@ Populate database with ~50 standard exercises:
 
 Each with:
 - Clear instructions
-- Video links (YouTube)
+- Video links (external)
 - Equipment needed
 - Difficulty level
 - Sets/reps recommendations

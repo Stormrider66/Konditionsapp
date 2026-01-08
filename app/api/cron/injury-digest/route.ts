@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { Resend } from 'resend'
 import { logger } from '@/lib/logger'
+import { sanitizeForEmail } from '@/lib/sanitize'
 
 const prisma = new PrismaClient()
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -60,6 +61,8 @@ interface DigestData {
 }
 
 function generateEmailHTML(data: DigestData): string {
+  const s = (value: unknown) => sanitizeForEmail(value == null ? '' : String(value))
+
   const hasAnyAlerts =
     data.pendingModifications > 0 ||
     data.activeInjuries > 0 ||
@@ -71,7 +74,7 @@ function generateEmailHTML(data: DigestData): string {
       <html>
         <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #10b981;">✅ Inga åtgärder krävs idag</h2>
-          <p>Hej ${data.coachName},</p>
+          <p>Hej ${s(data.coachName)},</p>
           <p>Alla dina atleter ser bra ut! Inga skador, modifieringar eller riskvarningar att hantera.</p>
           <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
             Detta meddelande skickades automatiskt av konditionstest-appen.
@@ -86,7 +89,7 @@ function generateEmailHTML(data: DigestData): string {
       <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
         <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <h1 style="color: #1f2937; margin-top: 0;">Daglig skade- & träningsrapport</h1>
-          <p style="color: #6b7280;">Hej ${data.coachName},</p>
+          <p style="color: #6b7280;">Hej ${s(data.coachName)},</p>
           <p style="color: #6b7280;">Här är din dagliga sammanfattning av atleter som behöver din uppmärksamhet:</p>
 
           <!-- Summary Cards -->
@@ -145,12 +148,12 @@ function generateEmailHTML(data: DigestData): string {
               .map(
                 (mod) => `
               <div style="background-color: #fffbeb; padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 3px solid #f59e0b;">
-                <div style="font-weight: bold; color: #92400e;">${mod.athleteName}</div>
+                <div style="font-weight: bold; color: #92400e;">${s(mod.athleteName)}</div>
                 <div style="font-size: 14px; color: #78350f; margin-top: 5px;">
-                  ${mod.workoutDate} • ${mod.originalType} → ${mod.modifiedType}
+                  ${s(mod.workoutDate)} • ${s(mod.originalType)} → ${s(mod.modifiedType)}
                 </div>
                 <div style="font-size: 13px; color: #a16207; margin-top: 5px; font-style: italic;">
-                  Anledning: ${mod.reason}
+                  Anledning: ${s(mod.reason)}
                 </div>
               </div>
             `
@@ -176,9 +179,9 @@ function generateEmailHTML(data: DigestData): string {
               .map(
                 (injury) => `
               <div style="background-color: #fef2f2; padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 3px solid #ef4444;">
-                <div style="font-weight: bold; color: #991b1b;">${injury.athleteName}</div>
+                <div style="font-weight: bold; color: #991b1b;">${s(injury.athleteName)}</div>
                 <div style="font-size: 14px; color: #7f1d1d; margin-top: 5px;">
-                  ${injury.injuryType} • Smärta: ${injury.painLevel}/10 • Fas ${injury.currentPhase}/5
+                  ${s(injury.injuryType)} • Smärta: ${injury.painLevel}/10 • Fas ${injury.currentPhase}/5
                 </div>
                 <div style="font-size: 13px; color: #b91c1c; margin-top: 5px;">
                   Aktiv i ${injury.daysActive} dagar
@@ -207,9 +210,9 @@ function generateEmailHTML(data: DigestData): string {
               .map(
                 (risk) => `
               <div style="background-color: #fff7ed; padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 3px solid #f97316;">
-                <div style="font-weight: bold; color: #9a3412;">${risk.athleteName}</div>
+                <div style="font-weight: bold; color: #9a3412;">${s(risk.athleteName)}</div>
                 <div style="font-size: 14px; color: #7c2d12; margin-top: 5px;">
-                  ACWR: ${risk.acwr.toFixed(2)} • Zon: ${risk.zone}
+                  ACWR: ${risk.acwr.toFixed(2)} • Zon: ${s(risk.zone)}
                 </div>
               </div>
             `
@@ -235,7 +238,7 @@ function generateEmailHTML(data: DigestData): string {
               .map(
                 (readiness) => `
               <div style="background-color: #eff6ff; padding: 15px; margin: 10px 0; border-radius: 6px; border-left: 3px solid #3b82f6;">
-                <div style="font-weight: bold; color: #1e40af;">${readiness.athleteName}</div>
+                <div style="font-weight: bold; color: #1e40af;">${s(readiness.athleteName)}</div>
                 <div style="font-size: 14px; color: #1e3a8a; margin-top: 5px;">
                   ${readiness.consecutiveDays} dagar i rad • Senaste poäng: ${readiness.latestScore}
                 </div>

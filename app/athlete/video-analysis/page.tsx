@@ -5,7 +5,8 @@ import { ArrowLeft, Video } from 'lucide-react'
 
 import { requireAthlete, getAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { createSignedUrl, normalizeStoragePath, isHttpUrl } from '@/lib/storage/supabase-storage'
+import { normalizeStoragePath, isHttpUrl } from '@/lib/storage/supabase-storage'
+import { createSignedUrl } from '@/lib/storage/supabase-storage-server'
 
 import { AthleteVideoUploader } from '@/components/athlete/video/AthleteVideoUploader'
 import { VideoAnalysisDetailCard, AIPoseAnalysis } from '@/components/athlete/video/VideoAnalysisDetailCard'

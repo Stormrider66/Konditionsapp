@@ -34,7 +34,6 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { parseAIProgram, extractProgramMetadata, type ParsedProgram } from '@/lib/ai/program-parser'
-import { downloadProgramExcel } from '@/lib/exports/program-excel-export'
 import { generateProgramPDFFromElement, downloadProgramPDF, generateProgramPDFFilename } from '@/lib/exports/program-pdf-export'
 import { ProgramPDFContent } from '@/components/exports/ProgramPDFContent'
 
@@ -149,10 +148,11 @@ export function ProgramPreview({
     }
   }
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     setExporting('excel')
     try {
-      downloadProgramExcel({
+      const { downloadProgramExcel } = await import('@/lib/exports/program-excel-export')
+      await downloadProgramExcel({
         program,
         athleteName: athleteName || undefined,
         coachName: coachName || undefined,

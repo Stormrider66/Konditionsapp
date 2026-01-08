@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { downloadProgramExcel } from '@/lib/exports/program-excel-export'
 import {
   generateProgramPDFFromElement,
   downloadProgramPDF,
@@ -49,10 +48,11 @@ export function ProgramExportButton({
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null)
   const pdfContentRef = useRef<HTMLDivElement>(null)
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     setExporting('excel')
     try {
-      downloadProgramExcel({
+      const { downloadProgramExcel } = await import('@/lib/exports/program-excel-export')
+      await downloadProgramExcel({
         program,
         athleteName,
         coachName,

@@ -10,6 +10,7 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 // Validation schema for creating a location
 const createLocationSchema = z.object({
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
       businessId: businessMember.businessId,
     });
   } catch (error) {
-    console.error('Get locations error:', error);
+    logError('Get locations error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ location }, { status: 201 });
   } catch (error) {
-    console.error('Create location error:', error);
+    logError('Create location error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -14,6 +14,7 @@ import { generateObject } from 'ai';
 import { CycleInsightsSchema } from '@/lib/validations/gemini-schemas';
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
 import { decryptSecret } from '@/lib/crypto/secretbox';
+import { logError } from '@/lib/logger-console'
 
 export async function GET(
   request: NextRequest,
@@ -138,7 +139,7 @@ export async function GET(
 
         aiInsights = result.object;
       } catch (error) {
-        console.error('AI insights generation error:', error);
+        logError('AI insights generation error:', error);
         // Continue without AI insights
       }
     }
@@ -177,7 +178,7 @@ export async function GET(
       trainingRecommendations: aiInsights?.trainingRecommendations || getDefaultRecommendations(currentPhaseInfo?.phase),
     });
   } catch (error) {
-    console.error('Cycle insights error:', error);
+    logError('Cycle insights error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -24,6 +24,7 @@ import { Slider } from '@/components/ui/slider'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, Waves } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
 
 // Extended schema with cycling fields
 const formSchema = z.object({
@@ -267,8 +268,9 @@ export function WorkoutLoggingForm({
         description: 'Din träningslogg har sparats.',
       })
 
-      router.push(`/athlete/dashboard`)
+      // Gap 7: Refresh to revalidate dashboard data before navigation
       router.refresh()
+      router.push(`/athlete/dashboard`)
     } catch (error: any) {
       console.error('Error saving workout log:', error)
       toast({
@@ -306,7 +308,11 @@ export function WorkoutLoggingForm({
                 <Badge variant="outline">{formatIntensity(workout.intensity)}</Badge>
               </div>
               {workout.instructions && (
-                <p className="text-sm text-muted-foreground">{workout.instructions}</p>
+                <FormattedWorkoutInstructions
+                  instructions={workout.instructions}
+                  variant="expanded"
+                  maxItems={5}
+                />
               )}
             </div>
 

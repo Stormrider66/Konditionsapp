@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { logError } from '@/lib/logger-console'
 
 /**
  * GET /api/calendar/notifications
@@ -162,7 +163,7 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error fetching notifications:', error)
+    logError('Error fetching notifications:', error)
     return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 })
   }
 }
@@ -258,7 +259,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   } catch (error) {
-    console.error('Error marking notifications as read:', error)
+    logError('Error marking notifications as read:', error)
     return NextResponse.json({ error: 'Failed to update notifications' }, { status: 500 })
   }
 }

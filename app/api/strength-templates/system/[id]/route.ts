@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getTemplateById } from '@/lib/training-engine/templates/strength-templates'
+import { logError } from '@/lib/logger-console'
 
 export async function GET(
   request: NextRequest,
@@ -27,7 +28,7 @@ export async function GET(
       data: template,
     })
   } catch (error) {
-    console.error('Error fetching system template:', error)
+    logError('Error fetching system template:', error)
     return NextResponse.json(
       { error: 'Failed to fetch template' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAthlete } from '@/lib/auth-utils'
+import { logError } from '@/lib/logger-console'
 
 // Epley formula for 1RM estimation
 function calculateEstimated1RM(weight: number, reps: number): number {
@@ -151,7 +152,7 @@ export async function POST(
       },
     })
   } catch (error) {
-    console.error('Error logging set:', error)
+    logError('Error logging set:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to log set' },
       { status: 500 }
@@ -237,7 +238,7 @@ export async function GET(
       },
     })
   } catch (error) {
-    console.error('Error fetching set logs:', error)
+    logError('Error fetching set logs:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch set logs' },
       { status: 500 }
@@ -304,7 +305,7 @@ export async function DELETE(
       message: 'Set log deleted',
     })
   } catch (error) {
-    console.error('Error deleting set log:', error)
+    logError('Error deleting set log:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to delete set log' },
       { status: 500 }

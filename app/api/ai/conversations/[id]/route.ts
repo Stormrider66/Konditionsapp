@@ -9,6 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 
 // GET - Get conversation with messages
 export async function GET(
@@ -17,6 +19,13 @@ export async function GET(
 ) {
   try {
     const user = await requireCoach()
+
+    const rateLimited = await rateLimitJsonResponse('ai:conversations:get', user.id, {
+      limit: 60,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     const { id } = await params
 
     const conversation = await prisma.aIConversation.findFirst({
@@ -51,7 +60,7 @@ export async function GET(
       messages: conversation.messages,
     })
   } catch (error) {
-    console.error('Get conversation error:', error)
+    logger.error('Get conversation error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -71,6 +80,13 @@ export async function PUT(
 ) {
   try {
     const user = await requireCoach()
+
+    const rateLimited = await rateLimitJsonResponse('ai:conversations:update', user.id, {
+      limit: 30,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     const { id } = await params
 
     const body = await request.json()
@@ -104,7 +120,7 @@ export async function PUT(
       conversation,
     })
   } catch (error) {
-    console.error('Update conversation error:', error)
+    logger.error('Update conversation error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -124,6 +140,13 @@ export async function DELETE(
 ) {
   try {
     const user = await requireCoach()
+
+    const rateLimited = await rateLimitJsonResponse('ai:conversations:delete', user.id, {
+      limit: 20,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     const { id } = await params
 
     // Verify ownership
@@ -151,7 +174,7 @@ export async function DELETE(
       message: 'Conversation deleted',
     })
   } catch (error) {
-    console.error('Delete conversation error:', error)
+    logger.error('Delete conversation error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

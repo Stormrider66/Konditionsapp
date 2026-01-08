@@ -24,8 +24,16 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const raceResult = await prisma.raceResult.findUnique({
-      where: { id },
+    const raceResult = await prisma.raceResult.findFirst({
+      where: {
+        id,
+        client: {
+          OR: [
+            { userId: user.id }, // coach
+            { athleteAccount: { userId: user.id } }, // athlete
+          ],
+        },
+      },
       include: {
         client: {
           select: {
@@ -55,7 +63,13 @@ export async function GET(
   } catch (error) {
     logger.error('Error fetching race result', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }
@@ -81,8 +95,16 @@ export async function PUT(
     const body = await req.json()
 
     // Get existing race result
-    const existingResult = await prisma.raceResult.findUnique({
-      where: { id },
+    const existingResult = await prisma.raceResult.findFirst({
+      where: {
+        id,
+        client: {
+          OR: [
+            { userId: user.id }, // coach
+            { athleteAccount: { userId: user.id } }, // athlete
+          ],
+        },
+      },
       include: {
         client: true,
       },
@@ -164,7 +186,13 @@ export async function PUT(
   } catch (error) {
     logger.error('Error updating race result', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }
@@ -188,8 +216,16 @@ export async function DELETE(
     }
 
     // Check if race exists
-    const raceResult = await prisma.raceResult.findUnique({
-      where: { id },
+    const raceResult = await prisma.raceResult.findFirst({
+      where: {
+        id,
+        client: {
+          OR: [
+            { userId: user.id }, // coach
+            { athleteAccount: { userId: user.id } }, // athlete
+          ],
+        },
+      },
     })
 
     if (!raceResult) {
@@ -216,7 +252,13 @@ export async function DELETE(
   } catch (error) {
     logger.error('Error deleting race result', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }

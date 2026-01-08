@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import type { VBTDeviceType } from '@prisma/client';
+import { logError } from '@/lib/logger-console'
 import {
   parseVBTCSV,
   enrichMeasurements,
@@ -208,7 +209,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       warnings: warnings.length > 0 ? warnings : undefined,
     });
   } catch (error) {
-    console.error('[VBT Upload] Error:', error);
+    logError('[VBT Upload] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

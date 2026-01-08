@@ -2,14 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { getClientZones } from '@/lib/api/zones'
+import { canAccessWorkout } from '@/lib/auth-utils'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth()
+    const user = await requireAuth()
     const { id } = await params
+
+    const hasAccess = await canAccessWorkout(user.id, id)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const workout = await prisma.workout.findUnique({
       where: { id },
@@ -60,11 +66,16 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth()
+    const user = await requireAuth()
     const { id } = await params
     const body = await request.json()
     
     const { name, intensity, segments, type } = body
+
+    const hasAccess = await canAccessWorkout(user.id, id)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     // Verify workout exists
     const existingWorkout = await prisma.workout.findUnique({

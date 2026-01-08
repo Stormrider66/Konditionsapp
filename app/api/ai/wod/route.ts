@@ -29,6 +29,8 @@ import type {
 } from '@/types/wod'
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
 import { getModelById, getDefaultModel, AI_MODELS } from '@/types/ai-models'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 
 // Allow up to 30 seconds for AI generation
 export const maxDuration = 30
@@ -44,6 +46,12 @@ export async function POST(request: NextRequest) {
   try {
     // Authenticate athlete
     const user = await requireAthlete()
+
+    const rateLimited = await rateLimitJsonResponse('ai:wod:generate', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get request body
     const body: RequestBody = await request.json()
@@ -181,9 +189,8 @@ export async function POST(request: NextRequest) {
     let model: LanguageModel
     const modelName = selectedModelConfig.modelId
 
-    console.log('WOD Generation - Using model:', {
-      requestedModelId,
-      selectedConfigId: selectedModelConfig.id,
+    logger.debug('WOD generation model selected', {
+      requestedModelId: requestedModelId || undefined,
       selectedModelId: selectedModelConfig.modelId,
       provider: selectedModelConfig.provider,
     })
@@ -218,15 +225,21 @@ export async function POST(request: NextRequest) {
       maxOutputTokens: 4000,
     })
 
-    // Parse JSON from response
-    console.log('AI Response (first 500 chars):', responseText.substring(0, 500))
-    console.log('AI Response length:', responseText.length)
+    // Parse JSON from response (avoid logging the raw response)
+    logger.debug('WOD AI response received', {
+      provider: selectedModelConfig.provider,
+      modelId: selectedModelConfig.modelId,
+      responseLength: responseText.length,
+    })
 
     const workout = parseWorkoutFromResponse(responseText)
 
     if (!workout) {
-      console.error('Failed to parse workout from AI response')
-      console.error('Full response:', responseText)
+      logger.warn('Failed to parse WOD from AI response', {
+        provider: selectedModelConfig.provider,
+        modelId: selectedModelConfig.modelId,
+        responseLength: responseText.length,
+      })
       return NextResponse.json(
         {
           error: 'Failed to generate valid workout',
@@ -307,7 +320,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error('WOD generation error:', error)
+    logger.error('WOD generation error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -374,7 +387,7 @@ function parseWorkoutFromResponse(response: string): WODWorkout | null {
     const jsonBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/)
     if (jsonBlockMatch && jsonBlockMatch[1]) {
       jsonStr = jsonBlockMatch[1].trim()
-      console.log('Extracted JSON from markdown block, length:', jsonStr.length)
+      logger.debug('WOD parse: extracted JSON from markdown block', { jsonLength: jsonStr.length })
     }
 
     // Method 2: If no code block or still has issues, extract from first { to last }
@@ -383,7 +396,7 @@ function parseWorkoutFromResponse(response: string): WODWorkout | null {
       const end = response.lastIndexOf('}')
       if (start !== -1 && end !== -1 && end > start) {
         jsonStr = response.slice(start, end + 1)
-        console.log('Extracted JSON by brace matching, length:', jsonStr.length)
+        logger.debug('WOD parse: extracted JSON by brace matching', { jsonLength: jsonStr.length })
       }
     }
 
@@ -392,15 +405,14 @@ function parseWorkoutFromResponse(response: string): WODWorkout | null {
 
     // Validate required fields
     if (!parsed.title || !parsed.sections || !Array.isArray(parsed.sections)) {
-      console.error('Missing required fields in parsed workout:', Object.keys(parsed))
+      logger.warn('WOD parse: missing required fields', { keys: Object.keys(parsed || {}) })
       return null
     }
 
-    console.log('Successfully parsed workout:', parsed.title)
+    logger.debug('WOD parse: success', { title: parsed.title })
     return parsed as WODWorkout
   } catch (error) {
-    console.error('Failed to parse workout JSON:', error)
-    console.error('JSON string attempted (first 300 chars):', jsonStr.substring(0, 300))
+    logger.warn('WOD parse: failed to parse workout JSON', { jsonLength: jsonStr?.length }, error)
 
     // Last resort: try to find and parse JSON object
     try {
@@ -410,7 +422,7 @@ function parseWorkoutFromResponse(response: string): WODWorkout | null {
         const extracted = response.slice(start, end + 1)
         const parsed = JSON.parse(extracted)
         if (parsed.title && parsed.sections) {
-          console.log('Fallback extraction succeeded')
+          logger.debug('WOD parse: fallback extraction succeeded')
           return parsed as WODWorkout
         }
       }
@@ -532,7 +544,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(wods)
     }
   } catch (error) {
-    console.error('GET WOD error:', error)
+    logger.error('GET WOD error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -640,7 +652,10 @@ export async function PATCH(request: NextRequest) {
           },
         })
 
-        console.log('Training load saved for WOD:', {
+        // Note: WODs appear in activity history via AIGeneratedWOD query in integrated-activity route
+        // No need for WorkoutLog - workoutId is required and WODs don't have a Workout record
+
+        logger.debug('Training load saved for WOD', {
           wodId,
           dailyLoad,
           duration,
@@ -648,14 +663,14 @@ export async function PATCH(request: NextRequest) {
           intensity,
         })
       } catch (loadError) {
-        console.error('Error saving training load for WOD:', loadError)
+        logger.warn('Error saving training load for WOD', { wodId }, loadError)
         // Don't fail the WOD completion if training load calculation fails
       }
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('PATCH WOD error:', error)
+    logger.error('PATCH WOD error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

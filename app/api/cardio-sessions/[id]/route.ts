@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
+import { logError } from '@/lib/logger-console'
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(session);
   } catch (error) {
-    console.error('Error fetching cardio session:', error);
+    logError('Error fetching cardio session:', error);
     return NextResponse.json(
       { error: 'Failed to fetch cardio session' },
       { status: 500 }
@@ -144,7 +145,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json(session);
   } catch (error) {
-    console.error('Error updating cardio session:', error);
+    logError('Error updating cardio session:', error);
     return NextResponse.json(
       { error: 'Failed to update cardio session' },
       { status: 500 }
@@ -178,7 +179,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting cardio session:', error);
+    logError('Error deleting cardio session:', error);
     return NextResponse.json(
       { error: 'Failed to delete cardio session' },
       { status: 500 }

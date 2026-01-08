@@ -14,6 +14,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import {
   createGoogleGenAIClient,
   generateContent,
@@ -36,7 +38,8 @@ const VIDEO_FPS = {
   DEFAULT: 1,             // Default FPS
 } as const;
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
-import { isHttpUrl, downloadAsBase64 as downloadFromStorage } from '@/lib/storage/supabase-storage';
+import { isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
+import { downloadAsBase64 as downloadFromStorage } from '@/lib/storage/supabase-storage-server';
 import {
   buildSkiingPrompt,
   isSkiingVideoType,
@@ -55,22 +58,28 @@ import {
 import { parseHyroxAnalysisResponse } from '@/lib/validations/hyrox-analysis';
 
 const VIDEO_BUCKET = 'video-analysis';
+const MAX_VIDEO_BYTES = 20 * 1024 * 1024 // 20MB (Gemini inline_data practical limit)
 
 /**
  * Fetch video as base64 from either a full URL or Supabase storage path.
  */
 async function getVideoAsBase64(videoUrl: string): Promise<{ base64: string; mimeType: string }> {
-  if (isHttpUrl(videoUrl)) {
-    // Full URL - fetch directly
-    return fetchAsBase64(videoUrl);
+  // Prefer converting URLs to storage paths so we always download via Supabase Storage (no SSRF).
+  const path = normalizeStoragePath(VIDEO_BUCKET, videoUrl)
+  if (path) {
+    const result = await downloadFromStorage(VIDEO_BUCKET, path, { maxBytes: MAX_VIDEO_BYTES });
+    return {
+      base64: result.base64,
+      mimeType: result.mimeType || 'video/mp4',
+    };
   }
 
-  // Supabase storage path - download from storage
-  const result = await downloadFromStorage(VIDEO_BUCKET, videoUrl);
-  return {
-    base64: result.base64,
-    mimeType: result.mimeType || 'video/mp4',
-  };
+  if (isHttpUrl(videoUrl)) {
+    // Full URL - fetch directly (restricted by fetchAsBase64 allowlist)
+    return fetchAsBase64(videoUrl, { maxBytes: MAX_VIDEO_BYTES });
+  }
+
+  throw new Error('Invalid video URL')
 }
 
 interface AnalysisResult {
@@ -91,6 +100,9 @@ interface AnalysisResult {
   areasForImprovement: string[];
 }
 
+// Video analysis can take a while (Gemini)
+export const maxDuration = 300
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -98,6 +110,12 @@ export async function POST(
   try {
     const user = await requireCoach();
     const { id } = await params;
+
+    const rateLimited = await rateLimitJsonResponse('video:analysis:run', user.id, {
+      limit: 3,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get the analysis record
     const analysis = await prisma.videoAnalysis.findFirst({
@@ -155,10 +173,10 @@ export async function POST(
       let modelId: string;
       if (apiKeys.defaultModel?.provider === 'GOOGLE' && apiKeys.defaultModel?.modelId) {
         modelId = apiKeys.defaultModel.modelId;
-        console.log('[Video Analysis] Using user-selected Gemini model:', modelId);
+        logger.debug('Video analysis: using user-selected Gemini model', { modelId });
       } else {
         modelId = getGeminiModelId('video');
-        console.log('[Video Analysis] User has non-Google model selected, using default:', modelId);
+        logger.debug('Video analysis: using default Gemini model', { modelId });
       }
 
       // Use different analysis approach based on video type
@@ -186,7 +204,7 @@ export async function POST(
       const fps = analysis.videoType === 'STRENGTH' ? VIDEO_FPS.STRENGTH : VIDEO_FPS.DEFAULT;
       const videoMetadata: VideoMetadata = { fps };
 
-      console.log(`[Video Analysis] Analyzing ${analysis.videoType} video with ${fps} FPS`);
+      logger.debug('Video analysis: starting', { videoType: analysis.videoType, fps });
 
       // Call Gemini with video and metadata for proper frame sampling
       const result = await generateContent(client, modelId, [
@@ -221,7 +239,7 @@ export async function POST(
         result: analysisResult,
       });
     } catch (aiError) {
-      console.error('AI analysis error:', aiError);
+      logger.error('AI analysis error', { id }, aiError)
 
       // Update status to failed
       await prisma.videoAnalysis.update({
@@ -232,13 +250,20 @@ export async function POST(
         },
       });
 
+      const isProd = process.env.NODE_ENV === 'production'
       return NextResponse.json(
-        { error: 'AI analysis failed', details: aiError instanceof Error ? aiError.message : 'Unknown error' },
+        {
+          error: 'AI analysis failed',
+          details:
+            isProd
+              ? undefined
+              : (aiError instanceof Error ? aiError.message : 'Unknown error'),
+        },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Video analysis error:', error);
+    logger.error('Video analysis error', { id: (await params).id }, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -480,7 +505,7 @@ async function analyzeSkiingTechnique(
   const fps = getSkiingFPS(videoType);
   const videoMetadata: VideoMetadata = { fps };
 
-  console.log(`[Video Analysis] Analyzing ${videoType} skiing video with ${fps} FPS`);
+  logger.debug('Video analysis: skiing technique starting', { videoType, fps });
 
   // Call Gemini with video
   const result = await generateContent(client, modelId, [
@@ -492,7 +517,7 @@ async function analyzeSkiingTechnique(
   const parsedAnalysis = parseSkiingAnalysisResponse(videoType, result.text);
 
   if (!parsedAnalysis) {
-    console.error('[Skiing Analysis] Failed to parse AI response');
+    logger.warn('[Skiing Analysis] Failed to parse AI response');
     // Still save the raw response
     await prisma.videoAnalysis.update({
       where: { id },
@@ -720,7 +745,11 @@ async function analyzeHyroxStation(
   const fps = getHyroxFPS();
   const videoMetadata: VideoMetadata = { fps };
 
-  console.log(`[Video Analysis] Analyzing HYROX ${HYROX_STATION_LABELS[stationType]} with ${fps} FPS`);
+  logger.debug('Video analysis: HYROX station starting', {
+    stationType,
+    stationLabel: HYROX_STATION_LABELS[stationType],
+    fps,
+  });
 
   // Call Gemini with video
   const result = await generateContent(client, modelId, [
@@ -1006,7 +1035,7 @@ SVARA I FÖLJANDE JSON-FORMAT:
       fps: VIDEO_FPS.RUNNING_GAIT, // 5 FPS for detailed motion capture
     };
 
-    console.log(`[Video Analysis] Analyzing running gait video with ${videoMetadata.fps} FPS`);
+    logger.debug(`Video analysis: running gait @ ${videoMetadata.fps} FPS`);
 
     // Generate analysis with video metadata for proper frame sampling
     const result = await generateContent(client, modelId, [
@@ -1017,12 +1046,13 @@ SVARA I FÖLJANDE JSON-FORMAT:
     // Parse the structured response
     let gaitResult;
     try {
-      console.log('[Video Analysis] Raw AI response length:', result.text.length);
-      console.log('[Video Analysis] Raw AI response (first 500 chars):', result.text.substring(0, 500));
+      if (process.env.NODE_ENV !== 'production') {
+        logger.debug('Video analysis raw AI response received', { length: result.text.length })
+      }
 
       const jsonMatch = result.text.match(/```json\s*([\s\S]*?)\s*```/);
       if (jsonMatch) {
-        console.log('[Video Analysis] Found JSON block, parsing...');
+        logger.debug('Video analysis: found JSON block, parsing');
         gaitResult = JSON.parse(jsonMatch[1]);
       } else {
         // Try to find JSON without code blocks
@@ -1030,17 +1060,20 @@ SVARA I FÖLJANDE JSON-FORMAT:
         const jsonEndIndex = result.text.lastIndexOf('}');
         if (jsonStartIndex !== -1 && jsonEndIndex !== -1 && jsonEndIndex > jsonStartIndex) {
           const jsonStr = result.text.substring(jsonStartIndex, jsonEndIndex + 1);
-          console.log('[Video Analysis] Attempting to parse raw JSON from response...');
+          logger.debug('Video analysis: attempting to parse raw JSON from response');
           gaitResult = JSON.parse(jsonStr);
         } else {
           gaitResult = JSON.parse(result.text);
         }
       }
-      console.log('[Video Analysis] Successfully parsed gait analysis');
+      logger.debug('Video analysis: successfully parsed gait analysis');
     } catch (parseError) {
       // Fallback to basic parsing
-      console.error('[Video Analysis] JSON parse error:', parseError);
-      console.log('[Video Analysis] Full response that failed to parse:', result.text);
+      logger.warn(
+        'Video analysis: JSON parse error (falling back)',
+        { responseLength: result.text.length },
+        parseError
+      )
       gaitResult = {
         biometrics: {
           estimatedCadence: 170,
@@ -1185,7 +1218,7 @@ SVARA I FÖLJANDE JSON-FORMAT:
       gaitAnalysis: gaitResult,
     });
   } catch (error) {
-    console.error('Running gait analysis error:', error);
+    logger.error('Running gait analysis error', { id }, error);
 
     // Update status to failed
     await prisma.videoAnalysis.update({
@@ -1197,7 +1230,13 @@ SVARA I FÖLJANDE JSON-FORMAT:
     });
 
     return NextResponse.json(
-      { error: 'Running gait analysis failed', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Running gait analysis failed',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     );
   }

@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { CalendarEventType, CalendarEventStatus, EventImpact, AltitudeAdaptationPhase } from '@prisma/client'
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
+import { logError } from '@/lib/logger-console'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(event)
   } catch (error) {
-    console.error('Error fetching calendar event:', error)
+    logError('Error fetching calendar event:', error)
     return NextResponse.json(
       { error: 'Failed to fetch calendar event' },
       { status: 500 }
@@ -278,7 +279,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json(updatedEvent)
   } catch (error) {
-    console.error('Error updating calendar event:', error)
+    logError('Error updating calendar event:', error)
     return NextResponse.json(
       { error: 'Failed to update calendar event' },
       { status: 500 }
@@ -370,7 +371,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting calendar event:', error)
+    logError('Error deleting calendar event:', error)
     return NextResponse.json(
       { error: 'Failed to delete calendar event' },
       { status: 500 }

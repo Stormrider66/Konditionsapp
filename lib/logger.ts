@@ -41,6 +41,103 @@ const MIN_LOG_LEVEL: LogLevel =
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 
+const REDACTED = '[REDACTED]'
+const MAX_LOG_STRING = 2000
+const MAX_REDACTION_DEPTH = 6
+
+const SENSITIVE_KEY_RE = /^(authorization|cookie|set-cookie|x-api-key|api-?key|password|pass|pwd|secret|token|access_?token|refresh_?token|id_?token|privatekey|service_?role|supabase_?service_?role_?key)$/i
+const SENSITIVE_KEY_INCLUDES_RE = /(authorization|cookie|api-?key|password|secret|token|privatekey|service_?role)/i
+
+function truncateString(value: string, maxLen: number = MAX_LOG_STRING): string {
+  if (value.length <= maxLen) return value
+  return `${value.slice(0, maxLen)}…[truncated ${value.length - maxLen} chars]`
+}
+
+function stripUrlQuery(value: string): string {
+  try {
+    const u = new URL(value)
+    // Keep origin + pathname only (queries often contain signatures/tokens)
+    return `${u.origin}${u.pathname}`
+  } catch {
+    return value
+  }
+}
+
+function redactString(value: string): string {
+  let v = value
+
+  // Avoid logging giant blobs / base64 / prompts
+  v = truncateString(v)
+
+  // Strip query strings from URLs (e.g., signed URLs)
+  if (v.startsWith('http://') || v.startsWith('https://')) {
+    v = stripUrlQuery(v)
+  }
+
+  // Redact Bearer tokens
+  v = v.replace(/Bearer\s+[A-Za-z0-9._~-]+/gi, `Bearer ${REDACTED}`)
+
+  // Redact common secret formats
+  v = v.replace(/\b(sk-(?:proj-)?[A-Za-z0-9_-]{10,})\b/g, REDACTED) // OpenAI
+  v = v.replace(/\b(sk-ant-[A-Za-z0-9_-]{10,})\b/g, REDACTED) // Anthropic
+  v = v.replace(/\b(whsec_[A-Za-z0-9]{10,})\b/g, REDACTED) // Stripe webhook
+  v = v.replace(/\b(sk_(?:live|test)_[A-Za-z0-9]{10,})\b/g, REDACTED) // Stripe secret
+
+  // Redact JWT-ish tokens
+  v = v.replace(
+    /\b([A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})\b/g,
+    REDACTED
+  )
+
+  return v
+}
+
+function isSensitiveKey(key: string): boolean {
+  const k = key.toLowerCase()
+  if (SENSITIVE_KEY_RE.test(k)) return true
+  // catch "openaiKey", "accessToken", etc.
+  if (k.endsWith('token') || k.endsWith('secret') || k.endsWith('key')) return true
+  return SENSITIVE_KEY_INCLUDES_RE.test(k)
+}
+
+function redactValue(value: unknown, depth: number, seen: WeakSet<object>): unknown {
+  if (value == null) return value
+  if (typeof value === 'string') return redactString(value)
+  if (typeof value === 'number' || typeof value === 'boolean') return value
+  if (value instanceof Date) return value.toISOString()
+  if (value instanceof Error) {
+    return {
+      name: value.name,
+      message: redactString(value.message),
+      stack: IS_PRODUCTION ? undefined : redactString(value.stack || ''),
+    }
+  }
+
+  if (typeof value !== 'object') return String(value)
+  if (seen.has(value as object)) return '[Circular]'
+  if (depth >= MAX_REDACTION_DEPTH) return '[MaxDepth]'
+  seen.add(value as object)
+
+  if (Array.isArray(value)) {
+    return value.map((v) => redactValue(v, depth + 1, seen))
+  }
+
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (isSensitiveKey(k)) {
+      out[k] = REDACTED
+      continue
+    }
+    out[k] = redactValue(v, depth + 1, seen)
+  }
+  return out
+}
+
+function redactContext(context?: LogContext): LogContext | undefined {
+  if (!context) return undefined
+  return redactValue(context, 0, new WeakSet()) as LogContext
+}
+
 /**
  * Serialize an error object for logging
  */
@@ -48,20 +145,20 @@ function serializeError(error: unknown): LogEntry['error'] | undefined {
   if (error instanceof Error) {
     return {
       name: error.name,
-      message: error.message,
-      stack: IS_PRODUCTION ? undefined : error.stack,
+      message: redactString(error.message),
+      stack: IS_PRODUCTION ? undefined : redactString(error.stack || ''),
     }
   }
   if (typeof error === 'string') {
     return {
       name: 'Error',
-      message: error,
+      message: redactString(error),
     }
   }
   if (error !== null && error !== undefined) {
     return {
       name: 'UnknownError',
-      message: String(error),
+      message: redactString(String(error)),
     }
   }
   return undefined
@@ -125,9 +222,9 @@ function log(
 
   const entry: LogEntry = {
     level,
-    message,
+    message: redactString(message),
     timestamp: new Date().toISOString(),
-    context,
+    context: redactContext(context),
     error: serializeError(error),
   }
 

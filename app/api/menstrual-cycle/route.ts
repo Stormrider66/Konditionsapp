@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAthlete, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { logError } from '@/lib/logger-console'
 
 // Phase duration defaults (in days)
 const PHASE_DURATIONS = {
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest) {
       recentLogs: currentCycle.dailyLogs,
     });
   } catch (error) {
-    console.error('Menstrual cycle GET error:', error);
+    logError('Menstrual cycle GET error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -277,7 +278,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
-    console.error('Menstrual cycle POST error:', error);
+    logError('Menstrual cycle POST error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

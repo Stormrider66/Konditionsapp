@@ -5,6 +5,8 @@
  * for coach subscriptions (separate from athlete subscriptions).
  */
 
+import 'server-only';
+
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { SubscriptionTier, SubscriptionStatus } from '@prisma/client';

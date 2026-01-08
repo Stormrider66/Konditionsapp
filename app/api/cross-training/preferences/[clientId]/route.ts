@@ -15,10 +15,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-
-const prisma = new PrismaClient()
 
 type Modality = 'DWR' | 'XC_SKIING' | 'ALTERG' | 'AIR_BIKE' | 'CYCLING' | 'ROWING' | 'ELLIPTICAL' | 'SWIMMING'
 
@@ -51,7 +51,17 @@ export async function GET(
   { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
+    const user = await requireAuth()
+    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { clientId } = await params
+
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     // Get athlete profile with cross-training preferences
     const profile = await prisma.athleteProfile.findUnique({
@@ -79,11 +89,7 @@ export async function GET(
       isDefault: !preferences,
     })
   } catch (error: unknown) {
-    logger.error('Error fetching cross-training preferences', {}, error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
 
@@ -92,11 +98,25 @@ export async function POST(
   { params }: { params: Promise<{ clientId: string }> }
 ) {
   try {
+    const user = await requireAuth()
+    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { clientId } = await params
     const body = await request.json()
 
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Validate the preferences structure
-    const { preferences } = body as { preferences: Partial<ModalityPreferences> }
+    // Support both shapes:
+    // - { preferences: {...} } (API-style)
+    // - { ... } (client sends the preferences object directly)
+    const preferences =
+      body && typeof body === 'object' && 'preferences' in body ? (body as any).preferences : body
 
     if (!preferences) {
       return NextResponse.json(
@@ -162,10 +182,6 @@ export async function POST(
       isDefault: false,
     })
   } catch (error: unknown) {
-    logger.error('Error updating cross-training preferences', {}, error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }

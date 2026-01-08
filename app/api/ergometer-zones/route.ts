@@ -19,6 +19,7 @@ import {
   calculateZonesFromMAP,
 } from '@/lib/training-engine/ergometer'
 import type { ZoneCalculationInput, ErgometerZoneResult } from '@/lib/training-engine/ergometer'
+import { logError } from '@/lib/logger-console'
 
 // Request schema for zone calculation
 const calculateZonesSchema = z.object({
@@ -212,7 +213,7 @@ export async function POST(request: NextRequest) {
       201
     )
   } catch (error) {
-    console.error('Error calculating ergometer zones:', error)
+    logError('Error calculating ergometer zones:', error)
     return errorResponse('Failed to calculate ergometer zones', 500)
   }
 }

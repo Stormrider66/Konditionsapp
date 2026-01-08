@@ -9,10 +9,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { createSignedUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
+import { normalizeStoragePath } from '@/lib/storage/supabase-storage';
+import { createSignedUrl } from '@/lib/storage/supabase-storage-server';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
 
 const createAnalysisSchema = z.object({
-  videoUrl: z.string().url(),
+  // Accept either a Supabase storage path or a Supabase Storage URL (signed/public).
+  videoUrl: z.string().min(1),
   videoType: z.enum([
     'STRENGTH',
     'RUNNING_GAIT',
@@ -32,8 +36,31 @@ const createAnalysisSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const rateLimited = await rateLimitJsonResponse('video:analysis:create', user.id, {
+      limit: 10,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
     const body = await request.json();
     const validated = createAnalysisSchema.parse(body);
+
+    // Normalize and validate storage path. We only allow Supabase Storage URLs/paths.
+    const storagePath = normalizeStoragePath('video-analysis', validated.videoUrl)
+    if (!storagePath) {
+      return NextResponse.json(
+        { error: 'Invalid video URL. Please upload the video to Supabase Storage.' },
+        { status: 400 }
+      )
+    }
+
+    // Enforce per-coach namespace to prevent cross-tenant reads in private buckets.
+    if (!storagePath.startsWith(`${user.id}/`)) {
+      return NextResponse.json(
+        { error: 'Invalid video path' },
+        { status: 403 }
+      )
+    }
 
     // Verify athlete belongs to coach if provided
     if (validated.athleteId) {
@@ -67,7 +94,7 @@ export async function POST(request: NextRequest) {
         coachId: user.id,
         athleteId: validated.athleteId,
         exerciseId: validated.exerciseId,
-        videoUrl: validated.videoUrl,
+        videoUrl: storagePath,
         videoType: validated.videoType,
         hyroxStation: validated.hyroxStation,
         duration: validated.duration,
@@ -85,7 +112,7 @@ export async function POST(request: NextRequest) {
       analysis,
     });
   } catch (error) {
-    console.error('Video analysis creation error:', error);
+    logger.error('Video analysis creation error', {}, error)
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -108,6 +135,11 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach();
+    const rateLimited = await rateLimitJsonResponse('video:analysis:list', user.id, {
+      limit: 60,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
     const { searchParams } = new URL(request.url);
 
     const athleteId = searchParams.get('athleteId');
@@ -153,7 +185,7 @@ export async function GET(request: NextRequest) {
       analyses: signedAnalyses,
     });
   } catch (error) {
-    console.error('Video analysis list error:', error);
+    logger.error('Video analysis list error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -14,6 +14,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getProgressionPath } from '@/lib/training-engine/generators/exercise-selector'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessExercise } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 export async function GET(
@@ -21,19 +23,18 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth()
     const { id: exerciseId } = await params
+
+    const hasAccess = await canAccessExercise(user.id, exerciseId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const progressionPath = await getProgressionPath(exerciseId)
 
     return NextResponse.json(progressionPath, { status: 200 })
   } catch (error: unknown) {
-    logger.error('Error fetching progression path', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-
-    if (errorMessage === 'Exercise not found') {
-      return NextResponse.json({ error: 'Exercise not found' }, { status: 404 })
-    }
-
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
   }
 }

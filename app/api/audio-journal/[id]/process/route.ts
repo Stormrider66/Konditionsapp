@@ -20,7 +20,12 @@ import {
 } from '@/lib/ai/google-genai-client';
 import type { AudioExtractionResult } from '@/lib/validations/gemini-schemas';
 import { decryptSecret } from '@/lib/crypto/secretbox';
-import { downloadAsBase64, isHttpUrl } from '@/lib/storage/supabase-storage';
+import { isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
+import { downloadAsBase64 } from '@/lib/storage/supabase-storage-server';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { logger } from '@/lib/logger'
+
+export const maxDuration = 300
 
 export async function POST(
   request: NextRequest,
@@ -39,6 +44,12 @@ export async function POST(
       user = await requireCoach();
       isCoach = true;
     }
+
+    const rateLimited = await rateLimitJsonResponse('audio-journal:process', user.id, {
+      limit: 5,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get the audio journal record
     const audioJournal = await prisma.audioJournal.findUnique({
@@ -162,9 +173,15 @@ VIKTIGT: Om atleten INTE nämner något (t.ex. sömn), lämna det fältet som nu
 Gissa inte värden som inte nämndes.`;
 
       // Fetch audio and convert to base64 (supports both legacy public URLs and storage paths)
-      const fetched = isHttpUrl(audioJournal.audioUrl)
-        ? await fetchAsBase64(audioJournal.audioUrl)
-        : await downloadAsBase64('audio-journals', audioJournal.audioUrl)
+      const MAX_AUDIO_BYTES = 15 * 1024 * 1024 // 15MB (inline_data practical limit)
+      const path = normalizeStoragePath('audio-journals', audioJournal.audioUrl)
+      const fetched = path
+        ? await downloadAsBase64('audio-journals', path, { maxBytes: MAX_AUDIO_BYTES })
+        : (isHttpUrl(audioJournal.audioUrl)
+            ? await fetchAsBase64(audioJournal.audioUrl, { maxBytes: MAX_AUDIO_BYTES })
+            : (() => {
+                throw new Error('Invalid audio URL')
+              })())
 
       const base64 = fetched.base64
       const mimeType = audioJournal.mimeType || fetched.mimeType || 'audio/mpeg'
@@ -276,7 +293,7 @@ Gissa inte värden som inte nämndes.`;
         processingTimeMs: processingTime,
       });
     } catch (aiError) {
-      console.error('AI processing error:', aiError);
+      logger.error('Audio journal AI processing error', { id }, aiError)
 
       // Update status to failed
       await prisma.audioJournal.update({
@@ -287,13 +304,20 @@ Gissa inte värden som inte nämndes.`;
         },
       });
 
+      const isProd = process.env.NODE_ENV === 'production'
       return NextResponse.json(
-        { error: 'AI processing failed', details: aiError instanceof Error ? aiError.message : 'Unknown error' },
+        {
+          error: 'AI processing failed',
+          details:
+            isProd
+              ? undefined
+              : (aiError instanceof Error ? aiError.message : 'Unknown error'),
+        },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('Audio journal processing error:', error);
+    logger.error('Audio journal processing error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -15,6 +15,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getProgressionHistory } from '@/lib/training-engine/progression'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessClient, canAccessExercise } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 export async function GET(
@@ -22,16 +24,25 @@ export async function GET(
   { params }: { params: Promise<{ id: string; exerciseId: string }> }
 ) {
   try {
+    const user = await requireAuth()
     const { id: clientId, exerciseId } = await params
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '20')
+
+    const hasClientAccess = await canAccessClient(user.id, clientId)
+    if (!hasClientAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const hasExerciseAccess = await canAccessExercise(user.id, exerciseId)
+    if (!hasExerciseAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const history = await getProgressionHistory(clientId, exerciseId, limit)
 
     return NextResponse.json(history, { status: 200 })
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    logger.error('Error fetching progression history', {}, error)
-    return NextResponse.json({ error: errorMessage || 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
   }
 }

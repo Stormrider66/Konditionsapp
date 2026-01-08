@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { decryptSecret } from '@/lib/crypto/secretbox'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import {
   buildNutritionContext,
   generateNutritionPlan,
@@ -26,6 +27,12 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimited = await rateLimitJsonResponse('ai:nutrition-plan', user.id, {
+      limit: 5,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     const body = await req.json()
 
@@ -85,6 +92,37 @@ export async function POST(req: NextRequest) {
       orderBy: { measurementDate: 'desc' },
     })
 
+    // Query last 7 days of DailyMetrics for wellness data (Gap 6 fix)
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+    const recentMetrics = await prisma.dailyMetrics.findMany({
+      where: {
+        clientId,
+        date: { gte: sevenDaysAgo },
+      },
+      select: {
+        sleepQuality: true,
+        sleepHours: true,
+        stress: true,
+        readinessScore: true,
+        energyLevel: true,
+        mood: true,
+      },
+      orderBy: { date: 'desc' },
+    })
+
+    // Calculate wellness averages - map energyLevel to energy for the function
+    const mappedMetrics = recentMetrics.map(m => ({
+      sleepQuality: m.sleepQuality,
+      sleepHours: m.sleepHours,
+      stress: m.stress,
+      readinessScore: m.readinessScore,
+      energy: m.energyLevel,
+      mood: m.mood,
+    }))
+    const wellnessData = calculateWellnessAverages(mappedMetrics)
+
     // Calculate age
     const ageYears = Math.floor(
       (new Date().getTime() - new Date(clientData.birthDate).getTime()) /
@@ -118,6 +156,7 @@ export async function POST(req: NextRequest) {
       preferences,
       activityLevel,
       sport: clientData.sport,
+      wellnessData, // Gap 6: Include wellness data
     })
 
     // Call Claude API
@@ -170,7 +209,13 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error('Error generating nutrition plan', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Internal server error',
+        details:
+          process.env.NODE_ENV === 'production'
+            ? undefined
+            : (error instanceof Error ? error.message : 'Unknown error'),
+      },
       { status: 500 }
     )
   }
@@ -195,8 +240,9 @@ function buildNutritionPrompt(params: {
   }
   activityLevel: string
   sport?: string
+  wellnessData?: WellnessAverages // Gap 6: Wellness data integration
 }): string {
-  const { clientName, context, goal, targetWeight, basePlan, preferences, activityLevel, sport } = params
+  const { clientName, context, goal, targetWeight, basePlan, preferences, activityLevel, sport, wellnessData } = params
 
   let prompt = `Du är en erfaren näringsfysiolog och kostrådgivare som arbetar med idrottare och motionärer i Sverige.
 
@@ -224,6 +270,34 @@ ${sport ? `- Sport/Aktivitet: ${sport}` : ''}
     if (preferences.dairyFree) prompt += '\n- Laktosfri'
     if (preferences.allergies?.length) prompt += `\n- Allergier: ${preferences.allergies.join(', ')}`
     if (preferences.dislikes?.length) prompt += `\n- Ogillar: ${preferences.dislikes.join(', ')}`
+  }
+
+  // Gap 6: Add wellness data to prompt if available
+  if (wellnessData && wellnessData.daysOfData > 0) {
+    prompt += '\n\n## Återhämtningsstatus (senaste 7 dagarna)'
+    prompt += `\n- Sömntimmar (genomsnitt): ${wellnessData.avgSleepHours.toFixed(1)}h`
+    prompt += `\n- Sömnkvalitet: ${wellnessData.avgSleepQuality.toFixed(1)}/10`
+    prompt += `\n- Stressnivå: ${wellnessData.avgStress.toFixed(1)}/10`
+    if (wellnessData.avgReadiness > 0) {
+      prompt += `\n- Beredskap: ${wellnessData.avgReadiness.toFixed(0)}/100`
+    }
+    if (wellnessData.avgEnergy > 0) {
+      prompt += `\n- Energinivå: ${wellnessData.avgEnergy.toFixed(1)}/10`
+    }
+
+    // Add wellness-aware recommendations
+    if (wellnessData.avgSleepHours < 7) {
+      prompt += '\n\n⚠️ **OBS: Låg sömntid** - Inkludera kostråd som stödjer bättre sömn (magnesiumrika livsmedel, trypsofanrika kolhydrater på kvällen, undvika koffein sent)'
+    }
+    if (wellnessData.avgStress > 7) {
+      prompt += '\n\n⚠️ **OBS: Hög stressnivå** - Inkludera antioxidantrika livsmedel, adaptogena örter (ashwagandha-te), omega-3-rika livsmedel för att stödja återhämtning'
+    }
+    if (wellnessData.avgSleepQuality < 5) {
+      prompt += '\n\n⚠️ **OBS: Låg sömnkvalitet** - Undvik tunga måltider sent, rekommendera kamomillte och melatoninfrämjande livsmedel (körsbär, nötter)'
+    }
+    if (wellnessData.avgEnergy > 0 && wellnessData.avgEnergy < 5) {
+      prompt += '\n\n⚠️ **OBS: Låg energi** - Fokusera på stabilt blodsockersvar, komplexa kolhydrater, järnrika livsmedel och regelbundna måltider'
+    }
   }
 
   prompt += `
@@ -332,5 +406,88 @@ function parseAINutritionPlan(aiContent: string): {
   return {
     rawText: aiContent,
     sections: sections.length > 0 ? sections : [{ title: 'Näringsplan', content: aiContent }],
+  }
+}
+
+/**
+ * Gap 6: Wellness data types and calculation
+ */
+interface WellnessAverages {
+  avgSleepHours: number
+  avgSleepQuality: number
+  avgStress: number
+  avgReadiness: number
+  avgEnergy: number
+  avgMood: number
+  daysOfData: number
+}
+
+/**
+ * Calculate wellness averages from recent daily metrics
+ */
+function calculateWellnessAverages(
+  metrics: Array<{
+    sleepQuality: number | null
+    sleepHours: number | null
+    stress: number | null
+    readinessScore: number | null
+    energy: number | null
+    mood: number | null
+  }>
+): WellnessAverages {
+  if (!metrics || metrics.length === 0) {
+    return {
+      avgSleepHours: 0,
+      avgSleepQuality: 0,
+      avgStress: 0,
+      avgReadiness: 0,
+      avgEnergy: 0,
+      avgMood: 0,
+      daysOfData: 0,
+    }
+  }
+
+  let sleepHoursSum = 0, sleepHoursCount = 0
+  let sleepQualitySum = 0, sleepQualityCount = 0
+  let stressSum = 0, stressCount = 0
+  let readinessSum = 0, readinessCount = 0
+  let energySum = 0, energyCount = 0
+  let moodSum = 0, moodCount = 0
+
+  for (const m of metrics) {
+    if (m.sleepHours !== null) {
+      sleepHoursSum += m.sleepHours
+      sleepHoursCount++
+    }
+    if (m.sleepQuality !== null) {
+      sleepQualitySum += m.sleepQuality
+      sleepQualityCount++
+    }
+    if (m.stress !== null) {
+      stressSum += m.stress
+      stressCount++
+    }
+    if (m.readinessScore !== null) {
+      readinessSum += m.readinessScore
+      readinessCount++
+    }
+    if (m.energy !== null) {
+      energySum += m.energy
+      energyCount++
+    }
+    if (m.mood !== null) {
+      moodSum += m.mood
+      moodCount++
+    }
+  }
+
+  return {
+    avgSleepHours: sleepHoursCount > 0 ? sleepHoursSum / sleepHoursCount : 0,
+    avgSleepQuality: sleepQualityCount > 0 ? sleepQualitySum / sleepQualityCount : 0,
+    avgStress: stressCount > 0 ? stressSum / stressCount : 0,
+    avgReadiness: readinessCount > 0 ? readinessSum / readinessCount : 0,
+    avgEnergy: energyCount > 0 ? energySum / energyCount : 0,
+    avgMood: moodCount > 0 ? moodSum / moodCount : 0,
+    daysOfData: metrics.length,
   }
 }

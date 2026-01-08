@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAthlete, canAccessClient } from '@/lib/auth-utils';
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
+import { logError } from '@/lib/logger-console'
 
 // Map Concept2 equipment type to ErgometerType
 function mapEquipmentType(type: string): ErgometerType {
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest) {
       message: 'Workout imported successfully',
     });
   } catch (error) {
-    console.error('Error importing Concept2 workout:', error);
+    logError('Error importing Concept2 workout:', error);
     return NextResponse.json(
       { error: 'Failed to import workout' },
       { status: 500 }

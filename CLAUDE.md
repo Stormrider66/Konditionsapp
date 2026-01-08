@@ -915,6 +915,32 @@ model AIModel { ... }            // Dynamic model configuration
 
 ---
 
+## Athlete Dashboard Data Flow
+
+The athlete dashboard uses parallel Prisma queries to fetch data from multiple sources. All data connections have been audited and fixed for 100% accuracy.
+
+**Dashboard Cards → Data Sources**:
+
+| Card | Primary Data Source | Key Files |
+|------|---------------------|-----------|
+| Hero Workout | `Workout` + `WorkoutLog` | `HeroWorkoutCard.tsx` |
+| Readiness Panel | `DailyMetrics` + `TrainingLoad` + Synced Strength | `ReadinessPanel.tsx` |
+| Training Load | `TrainingLoad` + `StravaActivity` + `GarminActivity` + `Concept2Result` | `TrainingLoadWidget.tsx` |
+| Recent Activity | All sources (deduplicated) | `IntegratedRecentActivity.tsx` |
+| WOD History | `AIGeneratedWOD` (COMPLETED) | `WODHistorySummary.tsx` |
+
+**Key Utilities**:
+
+- **Activity Deduplication** (`lib/training/activity-deduplication.ts`): Prevents double-counting when same workout is synced via multiple sources (Strava + Garmin). Priority: concept2 > strava > garmin > ai > manual.
+
+- **Synced Strength Fatigue** (`lib/training-engine/monitoring/synced-strength-fatigue.ts`): Calculates objective muscular fatigue from synced strength activities, blended with subjective soreness (40/60 weight).
+
+- **GarminActivity Model**: Garmin activities are now normalized to a dedicated database model (like StravaActivity), enabling proper queries and deduplication.
+
+**Full documentation**: See `docs/ATHLETE_DASHBOARD_CONNECTIONS.md` for complete data flow diagrams and implementation details.
+
+---
+
 ## Known Issues & Considerations
 
 - **Lactate curve validation**: Not enforced - users can input decreasing lactate values
@@ -930,6 +956,7 @@ model AIModel { ... }            // Dynamic model configuration
 - `docs/API_REFERENCE.md` - Complete API documentation (all 52 endpoints)
 - `docs/database/` - Database documentation with auto-generated ER diagram
 - `docs/training-engine/` - Elite training engine documentation (36+ markdown files)
+- `docs/ATHLETE_DASHBOARD_CONNECTIONS.md` - Dashboard data flow and gap tracking
 - `STRENGTH_TRAINING_IMPLEMENTATION_CHECKLIST.md` - Strength training implementation
 - `docs/TRAINING_PROGRAM_IMPLEMENTATION_PLAN.md` - Training program roadmap
 - `prisma/schema.prisma` - Complete database schema

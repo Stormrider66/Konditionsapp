@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAthlete } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { logger } from '@/lib/logger'
 import {
   checkAIAccess,
   checkVideoAccess,
@@ -19,6 +21,12 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAthlete();
+
+    const rateLimited = await rateLimitJsonResponse('payments:athlete:subscription', user.id, {
+      limit: 60,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get athlete's client record
     const athleteAccount = await prisma.athleteAccount.findUnique({
@@ -144,7 +152,7 @@ export async function GET(request: NextRequest) {
       availableUpgrades,
     });
   } catch (error) {
-    console.error('Get subscription error:', error);
+    logger.error('Get subscription error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

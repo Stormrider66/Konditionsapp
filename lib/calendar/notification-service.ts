@@ -4,6 +4,8 @@
  * Handles sending email notifications for calendar changes
  */
 
+import 'server-only'
+
 import { Resend } from 'resend'
 import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'

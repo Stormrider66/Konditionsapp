@@ -13,6 +13,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getExerciseAlternatives } from '@/lib/training-engine/generators/exercise-selector'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessExercise } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 export async function GET(
@@ -20,9 +22,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth()
     const { id: exerciseId } = await params
     const searchParams = request.nextUrl.searchParams
     const samePillar = searchParams.get('samePillar') === 'true'
+
+    const hasAccess = await canAccessExercise(user.id, exerciseId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
 
     const alternatives = await getExerciseAlternatives(exerciseId, samePillar)
 
@@ -36,8 +44,6 @@ export async function GET(
       { status: 200 }
     )
   } catch (error: unknown) {
-    logger.error('Error fetching alternatives', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
   }
 }

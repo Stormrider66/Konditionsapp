@@ -9,10 +9,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { canAccessExercise } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-
-const prisma = new PrismaClient()
 
 /**
  * GET - Get single exercise by ID
@@ -22,6 +22,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth()
     const { id: exerciseId } = await params
 
     const exercise = await prisma.exercise.findUnique({
@@ -39,11 +40,14 @@ export async function GET(
       return NextResponse.json({ error: 'Exercise not found' }, { status: 404 })
     }
 
+    const hasAccess = await canAccessExercise(user.id, exerciseId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     return NextResponse.json(exercise, { status: 200 })
   } catch (error: unknown) {
-    logger.error('Error fetching exercise', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
@@ -55,6 +59,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth()
+    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { id: exerciseId } = await params
     const body = await request.json()
 
@@ -85,9 +94,20 @@ export async function PUT(
       return NextResponse.json({ error: 'Exercise not found' }, { status: 404 })
     }
 
-    // For public exercises, only allow updating videoUrl (for video import feature)
-    // Other fields cannot be modified on public library exercises
+    const hasAccess = await canAccessExercise(user.id, exerciseId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    // For public exercises, only admins may update videoUrl
     if (existingExercise.isPublic) {
+      if (user.role !== 'ADMIN') {
+        return NextResponse.json(
+          { error: 'Cannot modify public library exercises' },
+          { status: 403 }
+        )
+      }
+
       const allowedPublicFields = ['videoUrl']
       const attemptedFields = Object.keys(body).filter(key => body[key] !== undefined)
       const disallowedFields = attemptedFields.filter(field => !allowedPublicFields.includes(field))
@@ -111,6 +131,11 @@ export async function PUT(
       })
 
       return NextResponse.json(updated, { status: 200 })
+    }
+
+    // Only the owning coach (or admin) can update custom exercises
+    if (user.role !== 'ADMIN' && existingExercise.coachId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Update exercise (custom exercises can update all fields)
@@ -137,9 +162,7 @@ export async function PUT(
 
     return NextResponse.json(updated, { status: 200 })
   } catch (error: unknown) {
-    logger.error('Error updating exercise', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
@@ -151,6 +174,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth()
+    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { id: exerciseId } = await params
 
     // Check if exercise exists
@@ -170,12 +198,22 @@ export async function DELETE(
       return NextResponse.json({ error: 'Exercise not found' }, { status: 404 })
     }
 
+    const hasAccess = await canAccessExercise(user.id, exerciseId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     // Only allow deleting custom exercises (not public library)
     if (existingExercise.isPublic) {
       return NextResponse.json(
         { error: 'Cannot delete public library exercises' },
         { status: 403 }
       )
+    }
+
+    // Only the owning coach (or admin) can delete custom exercises
+    if (user.role !== 'ADMIN' && existingExercise.coachId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Check if exercise is in use
@@ -207,8 +245,6 @@ export async function DELETE(
       { status: 200 }
     )
   } catch (error: unknown) {
-    logger.error('Error deleting exercise', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return handleApiError(error)
   }
 }

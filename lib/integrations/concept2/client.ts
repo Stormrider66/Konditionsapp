@@ -5,7 +5,12 @@
  * Supports RowErg, SkiErg, BikeErg, and other Concept2 equipment.
  */
 
+import 'server-only'
+
 import { prisma } from '@/lib/prisma';
+import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto'
+import { fetchWithTimeoutAndRetry } from '@/lib/http/fetch'
+import { logger } from '@/lib/logger'
 import type {
   Concept2TokenResponse,
   Concept2User,
@@ -53,20 +58,24 @@ export function getConcept2AuthUrl(clientId: string, state?: string): string {
  * Exchange authorization code for tokens
  */
 export async function exchangeConcept2Code(code: string): Promise<Concept2TokenResponse> {
-  const response = await fetch(`${CONCEPT2_OAUTH_BASE}/access_token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+  const response = await fetchWithTimeoutAndRetry(
+    `${CONCEPT2_OAUTH_BASE}/access_token`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: CONCEPT2_CLIENT_ID,
+        client_secret: CONCEPT2_CLIENT_SECRET,
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: CONCEPT2_REDIRECT_URI,
+        scope: CONCEPT2_SCOPES,
+      }).toString(),
     },
-    body: new URLSearchParams({
-      client_id: CONCEPT2_CLIENT_ID,
-      client_secret: CONCEPT2_CLIENT_SECRET,
-      code,
-      grant_type: 'authorization_code',
-      redirect_uri: CONCEPT2_REDIRECT_URI,
-      scope: CONCEPT2_SCOPES,
-    }).toString(),
-  });
+    { timeoutMs: 10_000, maxAttempts: 2 }
+  )
 
   if (!response.ok) {
     const error = await response.text();
@@ -80,19 +89,23 @@ export async function exchangeConcept2Code(code: string): Promise<Concept2TokenR
  * Refresh Concept2 access token
  */
 export async function refreshConcept2Token(refreshToken: string): Promise<Concept2TokenResponse> {
-  const response = await fetch(`${CONCEPT2_OAUTH_BASE}/access_token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
+  const response = await fetchWithTimeoutAndRetry(
+    `${CONCEPT2_OAUTH_BASE}/access_token`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: CONCEPT2_CLIENT_ID,
+        client_secret: CONCEPT2_CLIENT_SECRET,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+        scope: CONCEPT2_SCOPES,
+      }).toString(),
     },
-    body: new URLSearchParams({
-      client_id: CONCEPT2_CLIENT_ID,
-      client_secret: CONCEPT2_CLIENT_SECRET,
-      refresh_token: refreshToken,
-      grant_type: 'refresh_token',
-      scope: CONCEPT2_SCOPES,
-    }).toString(),
-  });
+    { timeoutMs: 10_000, maxAttempts: 2 }
+  )
 
   if (!response.ok) {
     const error = await response.text();
@@ -119,18 +132,22 @@ export async function getValidAccessToken(clientId: string): Promise<string | nu
     return null;
   }
 
+  const accessToken = decryptIntegrationSecret(token.accessToken)
+  const refreshToken = decryptIntegrationSecret(token.refreshToken)
+  if (!accessToken) return null
+
   // Check if token is expired (with 5 minute buffer)
   const now = new Date();
   const expiresAt = token.expiresAt ? new Date(token.expiresAt) : null;
 
   if (expiresAt && expiresAt.getTime() - 5 * 60 * 1000 < now.getTime()) {
     // Token is expired or about to expire, refresh it
-    if (!token.refreshToken) {
+    if (!refreshToken) {
       return null;
     }
 
     try {
-      const newTokens = await refreshConcept2Token(token.refreshToken);
+      const newTokens = await refreshConcept2Token(refreshToken);
 
       // Calculate new expiration time
       const newExpiresAt = new Date(Date.now() + newTokens.expires_in * 1000);
@@ -138,20 +155,20 @@ export async function getValidAccessToken(clientId: string): Promise<string | nu
       await prisma.integrationToken.update({
         where: { id: token.id },
         data: {
-          accessToken: newTokens.access_token,
-          refreshToken: newTokens.refresh_token,
+          accessToken: encryptIntegrationSecret(newTokens.access_token)!,
+          refreshToken: encryptIntegrationSecret(newTokens.refresh_token),
           expiresAt: newExpiresAt,
         },
       });
 
       return newTokens.access_token;
     } catch (error) {
-      console.error('Failed to refresh Concept2 token:', error);
+      logger.error('Failed to refresh Concept2 token', { clientId }, error)
       return null;
     }
   }
 
-  return token.accessToken;
+  return accessToken;
 }
 
 /**
@@ -168,14 +185,18 @@ export async function concept2ApiRequest<T>(
     throw new Error('No valid Concept2 access token');
   }
 
-  const response = await fetch(`${CONCEPT2_API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${accessToken}`,
-      Accept: 'application/json',
+  const response = await fetchWithTimeoutAndRetry(
+    `${CONCEPT2_API_BASE}${endpoint}`,
+    {
+      ...options,
+      headers: {
+        ...options.headers,
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+      },
     },
-  });
+    { timeoutMs: 10_000, maxAttempts: 3 }
+  )
 
   if (!response.ok) {
     const error = await response.text();
@@ -308,7 +329,7 @@ export async function disconnectConcept2(clientId: string): Promise<void> {
 
     // We intentionally DO NOT delete concept2Results here
     // Historical data is preserved as per user requirement
-    console.log(`Concept2 integration disconnected for client ${clientId}. Results preserved.`);
+    logger.info('Concept2 integration disconnected (results preserved)', { clientId })
   }
 }
 

@@ -12,10 +12,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { canAccessProgram, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-
-const prisma = new PrismaClient()
 
 /**
  * PUT - Edit program, day, workout, or segments
@@ -25,7 +24,20 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { id: programId } = await params
+    const hasAccess = await canAccessProgram(user.id, programId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const editType = searchParams.get('type') // 'day', 'workout', 'reorder', 'segments'
 
@@ -36,17 +48,16 @@ export async function PUT(
       case 'day':
         return await editDay(programId, body)
       case 'workout':
-        return await editWorkout(body)
+        return await editWorkout(programId, body)
       case 'reorder':
-        return await reorderWorkouts(body)
+        return await reorderWorkouts(programId, body)
       case 'segments':
-        return await editSegments(body)
+        return await editSegments(programId, body)
       default:
         return await editProgramMetadata(programId, body)
     }
   } catch (error: unknown) {
     logger.error('Error editing program', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -59,7 +70,20 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const { id: programId } = await params
+    const hasAccess = await canAccessProgram(user.id, programId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const addType = searchParams.get('type') // 'workout'
 
@@ -72,7 +96,6 @@ export async function POST(
     return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 })
   } catch (error: unknown) {
     logger.error('Error adding to program', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -85,7 +108,20 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await params // Consume params even if not used directly
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { id: programId } = await params
+    const hasAccess = await canAccessProgram(user.id, programId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const workoutId = searchParams.get('workoutId')
 
@@ -93,10 +129,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'workoutId required' }, { status: 400 })
     }
 
-    return await removeWorkout(workoutId)
+    return await removeWorkout(programId, workoutId)
   } catch (error: unknown) {
     logger.error('Error removing workout', {}, error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -129,6 +164,19 @@ async function editDay(programId: string, body: any) {
     return NextResponse.json({ error: 'weekId and dayId required' }, { status: 400 })
   }
 
+  // Ensure the day belongs to the target program
+  const day = await prisma.trainingDay.findFirst({
+    where: {
+      id: dayId,
+      weekId,
+      week: { programId },
+    },
+    select: { id: true },
+  })
+  if (!day) {
+    return NextResponse.json({ error: 'Day not found' }, { status: 404 })
+  }
+
   const updated = await prisma.trainingDay.update({
     where: { id: dayId },
     data: {
@@ -147,6 +195,15 @@ async function addWorkout(programId: string, body: any) {
 
   if (!dayId || !type) {
     return NextResponse.json({ error: 'dayId and type required' }, { status: 400 })
+  }
+
+  // Ensure the day belongs to the target program
+  const day = await prisma.trainingDay.findFirst({
+    where: { id: dayId, week: { programId } },
+    select: { id: true },
+  })
+  if (!day) {
+    return NextResponse.json({ error: 'Day not found' }, { status: 404 })
   }
 
   // Get current workout count for this day (for ordering)
@@ -196,11 +253,20 @@ async function addWorkout(programId: string, body: any) {
 /**
  * Edit existing workout
  */
-async function editWorkout(body: any) {
+async function editWorkout(programId: string, body: any) {
   const { workoutId, type, intensity, duration, description } = body
 
   if (!workoutId) {
     return NextResponse.json({ error: 'workoutId required' }, { status: 400 })
+  }
+
+  // Ensure the workout belongs to the target program
+  const workout = await prisma.workout.findFirst({
+    where: { id: workoutId, day: { week: { programId } } },
+    select: { id: true },
+  })
+  if (!workout) {
+    return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
   }
 
   const updated = await prisma.workout.update({
@@ -226,7 +292,15 @@ async function editWorkout(body: any) {
 /**
  * Remove workout from day
  */
-async function removeWorkout(workoutId: string) {
+async function removeWorkout(programId: string, workoutId: string) {
+  const workout = await prisma.workout.findFirst({
+    where: { id: workoutId, day: { week: { programId } } },
+    select: { id: true },
+  })
+  if (!workout) {
+    return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+  }
+
   // Delete workout (cascade will delete segments)
   await prisma.workout.delete({
     where: { id: workoutId },
@@ -238,11 +312,28 @@ async function removeWorkout(workoutId: string) {
 /**
  * Reorder workouts within a day
  */
-async function reorderWorkouts(body: any) {
+async function reorderWorkouts(programId: string, body: any) {
   const { workoutOrders } = body // Array of {workoutId, newOrder}
 
   if (!workoutOrders || !Array.isArray(workoutOrders)) {
     return NextResponse.json({ error: 'workoutOrders array required' }, { status: 400 })
+  }
+
+  const workoutIds = workoutOrders
+    .map((item: { workoutId?: string }) => item.workoutId)
+    .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
+
+  if (workoutIds.length !== workoutOrders.length) {
+    return NextResponse.json({ error: 'Invalid workoutOrders' }, { status: 400 })
+  }
+
+  // Ensure all workouts belong to the target program
+  const workouts = await prisma.workout.findMany({
+    where: { id: { in: workoutIds }, day: { week: { programId } } },
+    select: { id: true },
+  })
+  if (workouts.length !== workoutIds.length) {
+    return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
   }
 
   // Update all workout orders in transaction
@@ -261,11 +352,20 @@ async function reorderWorkouts(body: any) {
 /**
  * Edit workout segments (exercises)
  */
-async function editSegments(body: any) {
+async function editSegments(programId: string, body: any) {
   const { workoutId, segments } = body
 
   if (!workoutId || !segments) {
     return NextResponse.json({ error: 'workoutId and segments required' }, { status: 400 })
+  }
+
+  // Ensure the workout belongs to the target program
+  const workout = await prisma.workout.findFirst({
+    where: { id: workoutId, day: { week: { programId } } },
+    select: { id: true },
+  })
+  if (!workout) {
+    return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
   }
 
   // Delete existing segments and create new ones (simpler than update)

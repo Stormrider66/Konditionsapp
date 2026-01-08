@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { logError } from '@/lib/logger-console'
 
 interface RouteParams {
   params: Promise<{ code: string }>;
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ invitation: publicInfo });
   } catch (error) {
-    console.error('Get invitation error:', error);
+    logError('Get invitation error:', error);
 
     return NextResponse.json(
       { error: 'Failed to fetch invitation' },
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         );
     }
   } catch (error) {
-    console.error('Use invitation error:', error);
+    logError('Use invitation error:', error);
 
     return NextResponse.json(
       { error: 'Failed to use invitation' },
@@ -274,7 +275,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Delete invitation error:', error);
+    logError('Delete invitation error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
