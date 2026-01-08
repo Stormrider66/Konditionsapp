@@ -1,798 +1,663 @@
 # API Reference
 
-Complete documentation for all 126 API endpoints in the Konditionstest Training Platform.
+Complete documentation for all API endpoints in the Konditionstest Training Platform.
 
 **Base URL**: `http://localhost:3000` (development) or your production domain
-
-**Authentication**: All endpoints require Supabase Auth. Include JWT in Authorization header.
-
-**Response Format**: All endpoints return JSON with `{ success: boolean, data?: any, error?: string }`
+**Auth**: All endpoints require Supabase Auth JWT in Authorization header
+**Response**: JSON with `{ success: boolean, data?: any, error?: string }`
 
 ---
 
 ## Table of Contents
 
-1. [AI & Chat](#ai--chat-endpoints) (14 endpoints)
-2. [Client Management](#client-management-endpoints) (8 endpoints)
-3. [Testing & Calculations](#testing--calculations-endpoints) (10 endpoints)
-4. [Field Tests](#field-tests-endpoints) (3 endpoints)
-5. [Training Programs](#training-programs-endpoints) (7 endpoints)
-6. [Workouts](#workouts-endpoints) (10 endpoints)
-7. [Exercise Library](#exercise-library-endpoints) (6 endpoints)
-8. [Strength Training](#strength-training-endpoints) (9 endpoints)
-9. [Hybrid/HYROX](#hybridhyrox-endpoints) (10 endpoints)
-10. [Race Results](#race-results-endpoints) (5 endpoints)
-11. [Monitoring & Readiness](#monitoring--readiness-endpoints) (4 endpoints)
-12. [Injury Management](#injury-management-endpoints) (4 endpoints)
-13. [Cross-Training](#cross-training-endpoints) (4 endpoints)
-14. [Messaging](#messaging-endpoints) (5 endpoints)
-15. [Documents & Knowledge](#documents--knowledge-endpoints) (6 endpoints)
-16. [Body Composition](#body-composition-endpoints) (4 endpoints)
-17. [Sport Profile](#sport-profile-endpoints) (3 endpoints)
-18. [Norwegian Method](#norwegian-method-endpoints) (2 endpoints)
-19. [Video Analysis](#video-analysis-endpoints) (10 endpoints)
-20. [Settings & API Keys](#settings-endpoints) (5 endpoints)
-21. [System & Admin](#system--admin-endpoints) (10 endpoints)
+1. [AI & Chat](#ai--chat) (20 routes)
+2. [Athlete Portal](#athlete-portal) (18 routes)
+3. [Integrations](#integrations) (12 routes)
+4. [Ergometer Testing](#ergometer-testing) (10 routes)
+5. [Calendar & Events](#calendar--events) (12 routes)
+6. [Clients](#clients) (7 routes)
+7. [Tests & Calculations](#tests--calculations) (11 routes)
+8. [Training Programs](#training-programs) (6 routes)
+9. [Workouts](#workouts) (11 routes)
+10. [Strength Training](#strength-training) (14 routes)
+11. [Cardio Sessions](#cardio-sessions) (6 routes)
+12. [Hybrid/HYROX](#hybridhyrox) (10 routes)
+13. [Exercise Library](#exercise-library) (4 routes)
+14. [Field Tests](#field-tests) (4 routes)
+15. [Race Results](#race-results) (2 routes)
+16. [Monitoring & Readiness](#monitoring--readiness) (3 routes)
+17. [Injury Management](#injury-management) (4 routes)
+18. [Cross-Training](#cross-training) (4 routes)
+19. [Messaging](#messaging) (2 routes)
+20. [Documents & Knowledge](#documents--knowledge) (6 routes)
+21. [Body Composition](#body-composition) (2 routes)
+22. [Sport Profile](#sport-profile) (2 routes)
+23. [Norwegian Method](#norwegian-method) (2 routes)
+24. [Video Analysis](#video-analysis) (6 routes)
+25. [Nutrition](#nutrition) (4 routes)
+26. [Menstrual Cycle](#menstrual-cycle) (3 routes)
+27. [Audio Journal](#audio-journal) (2 routes)
+28. [Business & Locations](#business--locations) (7 routes)
+29. [Organizations](#organizations) (2 routes)
+30. [Teams](#teams) (5 routes)
+31. [Payments & Subscriptions](#payments--subscriptions) (6 routes)
+32. [Referrals](#referrals) (5 routes)
+33. [Settings](#settings) (3 routes)
+34. [Auth](#auth) (2 routes)
+35. [System & Admin](#system--admin) (11 routes)
+
+**Total: 232 route files**
 
 ---
 
-## AI & Chat Endpoints
+## AI & Chat
 
-### `POST /api/ai/chat`
-Stream AI responses with multi-model support (Claude Opus 4.5, Gemini 2.5 Pro).
+### Core Chat
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/ai/chat` | Stream AI responses (Claude/Gemini) with context |
+| GET | `/api/ai/conversations` | List conversations |
+| POST | `/api/ai/conversations` | Create conversation |
+| GET | `/api/ai/conversations/[id]` | Get conversation with messages |
+| PUT | `/api/ai/conversations/[id]` | Update conversation |
+| DELETE | `/api/ai/conversations/[id]` | Delete conversation |
+| POST | `/api/ai/conversations/[id]/message` | Send message |
 
-**Body:**
-```json
-{
-  "conversationId": "string (optional)",
-  "messages": [{ "role": "user|assistant", "content": "string" }],
-  "model": "claude-opus-4-5-20251101 | gemini-2.5-pro",
-  "provider": "ANTHROPIC | GOOGLE",
-  "athleteId": "string (optional)",
-  "documentIds": ["string"],
-  "webSearchEnabled": true,
-  "pageContext": {}
-}
-```
+### AI Generation
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/ai/save-program` | Save AI-generated program to DB |
+| POST | `/api/ai/nutrition-plan` | Generate nutrition recommendations |
+| POST | `/api/ai/generate-chart` | Generate dynamic charts |
+| POST | `/api/ai/lactate-ocr` | Extract lactate values from images |
+| GET/PUT | `/api/ai/config` | AI configuration |
+| GET | `/api/ai/models` | List available models |
+| GET/PUT | `/api/ai/models/preference` | Model preference |
 
-### `GET /api/ai/conversations`
-List AI conversations for authenticated user.
+### AI WOD (Workout of the Day)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/ai/wod` | Generate readiness-aware daily workout |
+| POST | `/api/ai/wod/repeat` | Regenerate WOD variation |
 
-### `POST /api/ai/conversations`
-Create new AI conversation.
-
-### `GET /api/ai/conversations/[id]`
-Get conversation with messages.
-
-### `PUT /api/ai/conversations/[id]`
-Update conversation metadata.
-
-### `DELETE /api/ai/conversations/[id]`
-Delete conversation.
-
-### `POST /api/ai/conversations/[id]/message`
-Send message to existing conversation.
-
-### `POST /api/ai/save-program`
-Parse and save AI-generated training program to database.
-
-### `POST /api/ai/nutrition-plan`
-Generate nutrition recommendations based on athlete data.
-
-### `POST /api/ai/generate-chart`
-Generate dynamic training/performance charts.
-
-### `POST /api/ai/lactate-ocr`
-Extract lactate values from test report images via OCR.
-
-### `GET /api/ai/models`
-List available AI models.
-
-### `POST /api/ai/advanced-intelligence/patterns`
-Analyze training patterns from historical data.
-
-### `POST /api/ai/advanced-intelligence/predictions`
-Predict performance goals and race times.
-
-### `POST /api/ai/advanced-intelligence/injury-risk`
-Calculate injury risk from training load.
-
-### `POST /api/ai/advanced-intelligence/periodization`
-Auto-adjust periodization based on response.
-
-### `POST /api/ai/advanced-intelligence/coach-style`
-Extract coaching style preferences.
+### Advanced Intelligence
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/ai/advanced-intelligence/patterns` | Analyze training patterns |
+| POST | `/api/ai/advanced-intelligence/predictions` | Predict performance/race times |
+| POST | `/api/ai/advanced-intelligence/injury-risk` | Calculate injury risk |
+| POST | `/api/ai/advanced-intelligence/periodization` | Auto-adjust periodization |
+| POST | `/api/ai/advanced-intelligence/coach-style` | Extract coaching style |
 
 ---
 
-## Client Management Endpoints
+## Athlete Portal
 
-### `GET /api/clients`
-List all clients for authenticated coach.
+### Profile & Data
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/athlete/me` | Get current athlete profile |
+| GET | `/api/athlete/coach` | Get assigned coach info |
+| GET | `/api/athlete/training-load` | Get training load data |
+| GET | `/api/athlete/team-rank` | Get team ranking |
+| GET | `/api/athlete/integrated-activity` | Get unified activity feed |
+| GET | `/api/athlete/garmin-prefill` | Prefill from Garmin data |
+| GET/PUT | `/api/athlete/ai-config` | Athlete AI settings |
+| GET | `/api/athlete/ai-suggestions` | Get AI suggestions |
 
-### `POST /api/clients`
-Create new client.
+### Concept2
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/athlete/concept2/import` | Import Concept2 workouts |
+| GET | `/api/athlete/concept2/workouts` | List Concept2 workouts |
 
-**Body:**
-```json
-{
-  "name": "string",
-  "email": "string",
-  "phone": "string",
-  "gender": "MALE | FEMALE",
-  "birthDate": "ISO date",
-  "height": 180,
-  "weight": 75,
-  "notes": "string",
-  "teamId": "string"
-}
-```
+### VBT (Velocity-Based Training)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/athlete/vbt` | List VBT sessions |
+| POST | `/api/athlete/vbt/upload` | Upload VBT session data |
+| GET | `/api/athlete/vbt/[sessionId]` | Get VBT session details |
+| GET | `/api/athlete/vbt/profile` | Get load-velocity profile |
+| GET | `/api/athlete/vbt/progression` | Get VBT progression |
 
-### `GET /api/clients/[id]`
-Get client details with tests and programs.
+### Strength Sessions (Athlete)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/athlete/strength-sessions` | List assigned strength sessions |
+| POST | `/api/athlete/strength-sessions/self-assign` | Self-assign template |
 
-### `PUT /api/clients/[id]`
-Update client information.
+### Athlete-Specific Data
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/athletes/[clientId]/cardio-sessions` | Athlete's cardio sessions |
+| GET | `/api/athletes/[clientId]/hybrid-workouts` | Athlete's hybrid workouts |
+| GET | `/api/athletes/[clientId]/hybrid-results` | Athlete's hybrid results |
 
-### `DELETE /api/clients/[id]`
-Delete client (cascades to all data).
-
-### `GET /api/clients/[id]/context-summary`
-Get comprehensive client context for AI features.
-
-### `GET /api/clients/[id]/paces`
-Calculate elite training paces using hierarchical source system.
-
-**Response:**
-```json
-{
-  "marathonPace": { "pace": "4:30", "kmh": 13.3 },
-  "thresholdPace": { "pace": "4:10", "kmh": 14.4 },
-  "zones": {
-    "daniels": { "easy": {}, "marathon": {}, "threshold": {}, "interval": {}, "repetition": {} },
-    "canova": { "fundamental": {}, "progressive": {}, "marathon": {}, "specific": {}, "threshold": {}, "fiveK": {}, "oneK": {} },
-    "norwegian": { "green": {}, "threshold": {}, "red": {} }
-  },
-  "primarySource": "VDOT | LACTATE | HR | PROFILE",
-  "confidence": "VERY_HIGH | HIGH | MEDIUM | LOW"
-}
-```
-
-### `GET /api/clients/[id]/progression/[exerciseId]`
-Get exercise progression tracking.
+### Athlete Accounts
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/athlete-accounts` | Manage athlete accounts |
 
 ---
 
-## Testing & Calculations Endpoints
+## Integrations
 
-### `GET /api/tests`
-List tests. Query: `?clientId=string`
+### Strava
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/integrations/strava` | Get Strava connection status |
+| GET | `/api/integrations/strava/callback` | OAuth callback |
+| POST | `/api/integrations/strava/sync` | Sync Strava activities |
+| POST | `/api/integrations/strava/webhook` | Strava webhook handler |
 
-### `POST /api/tests`
-Create physiological test.
+### Garmin
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/integrations/garmin` | Get Garmin connection status |
+| GET | `/api/integrations/garmin/callback` | OAuth callback |
+| POST | `/api/integrations/garmin/sync` | Sync Garmin activities |
+| POST | `/api/integrations/garmin/webhook` | Garmin webhook handler |
 
-**Body:**
-```json
-{
-  "clientId": "string",
-  "testDate": "ISO date",
-  "testType": "RUNNING | CYCLING | SKIING",
-  "stages": [{
-    "sequence": 1,
-    "speed": 10.0,
-    "heartRate": 140,
-    "lactate": 1.2,
-    "vo2": 35.5
-  }]
-}
-```
-
-### `GET /api/tests/[id]`
-Get test with stages and calculations.
-
-### `PUT /api/tests/[id]`
-Update test.
-
-### `DELETE /api/tests/[id]`
-Delete test (cascades to stages, report).
-
-### `POST /api/calculations/thresholds`
-Calculate lactate thresholds using D-max method.
-
-**Response:**
-```json
-{
-  "aerobicThreshold": { "speed": 12.5, "heartRate": 145, "lactate": 2.0 },
-  "anaerobicThreshold": { "speed": 15.0, "heartRate": 172, "lactate": 4.0 },
-  "dmaxResult": { "intensity": 14.2, "lactate": 3.2, "rSquared": 0.98 }
-}
-```
-
-### `POST /api/calculations/zones`
-Calculate training zones from thresholds.
-
-### `POST /api/calculations/vdot`
-Calculate VDOT from race performance.
-
-**Body:**
-```json
-{
-  "distance": 10000,
-  "timeMinutes": 45.0,
-  "age": 35,
-  "gender": "MALE"
-}
-```
-
-### `POST /api/calculations/environmental`
-Apply WBGT, altitude, wind corrections.
-
-### `GET /api/templates`
-List test templates.
+### Concept2
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/integrations/concept2` | Get Concept2 connection status |
+| GET | `/api/integrations/concept2/callback` | OAuth callback |
+| POST | `/api/integrations/concept2/sync` | Sync Concept2 results |
+| POST | `/api/integrations/concept2/webhook` | Concept2 webhook handler |
 
 ---
 
-## Field Tests Endpoints
+## Ergometer Testing
 
-### `POST /api/field-tests`
-Submit field test (30-min TT, HR drift, Critical Velocity).
+### Tests
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/ergometer-tests` | List/create ergometer tests |
+| GET/PUT/DELETE | `/api/ergometer-tests/[id]` | CRUD single test |
+| GET | `/api/ergometer-tests/progression/[clientId]` | Test progression history |
 
-**Body:**
-```json
-{
-  "clientId": "string",
-  "testType": "THIRTY_MIN_TT | HR_DRIFT | CRITICAL_VELOCITY | RACE_BASED",
-  "testDate": "ISO date",
-  "distance": 10000,
-  "duration": 1800,
-  "avgHeartRate": 175,
-  "maxHeartRate": 185
-}
-```
+### Thresholds & Zones
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/ergometer-thresholds` | List/create thresholds |
+| GET | `/api/ergometer-thresholds/[clientId]` | Client's thresholds |
+| GET/POST | `/api/ergometer-zones` | List/create zones |
+| GET | `/api/ergometer-zones/[clientId]` | Client's zones |
 
-### `GET /api/field-tests/[id]/analysis`
-Get detailed field test analysis.
-
-### `GET /api/field-tests/progression/[clientId]`
-Get field test progression history.
-
----
-
-## Training Programs Endpoints
-
-### `GET /api/programs`
-List programs. Query: `?clientId=string`
-
-### `POST /api/programs`
-Create training program.
-
-### `GET /api/programs/[id]`
-Get program with weeks, days, workouts.
-
-### `PUT /api/programs/[id]/edit`
-Update program structure.
-
-### `POST /api/programs/[id]/days/[dayId]/add-workout`
-Add workout to training day.
-
-### `GET /api/programs/[id]/zones`
-Get training zones for program.
-
-### `POST /api/programs/generate`
-Auto-generate training program.
-
-**Body:**
-```json
-{
-  "clientId": "string",
-  "goalType": "marathon | half_marathon | 10k | 5k",
-  "methodology": "POLARIZED | NORWEGIAN | CANOVA | PYRAMIDAL",
-  "raceDate": "ISO date",
-  "startDate": "ISO date",
-  "sessionsPerWeek": 5,
-  "includeStrength": true
-}
-```
+### Analysis
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/ergometer/classify` | Classify athlete level |
+| POST | `/api/ergometer/pacing` | Get pacing recommendations |
+| POST | `/api/ergometer/predict` | Predict performance |
 
 ---
 
-## Workouts Endpoints
+## Calendar & Events
 
-### `GET /api/workouts/[id]`
-Get workout with segments.
+### Calendar Events
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/calendar-events` | List/create events (races, camps, illness, etc.) |
+| GET/PUT/DELETE | `/api/calendar-events/[id]` | CRUD single event |
 
-### `PUT /api/workouts/[id]`
-Update workout.
+### Calendar Management
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/calendar/unified` | Get unified calendar view |
+| GET | `/api/calendar/conflicts` | Detect scheduling conflicts |
+| GET/POST | `/api/calendar/constraints` | Training constraints |
+| GET | `/api/calendar/my-availability` | Get availability |
+| POST | `/api/calendar/reschedule` | Reschedule workouts |
 
-### `POST /api/workouts/[id]/log`
-Log completed workout.
+### External Calendar
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/calendar/external` | External calendar connections |
+| GET/PUT/DELETE | `/api/calendar/external/[id]` | Manage connection |
+| POST | `/api/calendar/external/[id]/sync` | Sync external calendar |
 
-**Body:**
-```json
-{
-  "completedAt": "ISO date",
-  "duration": 60,
-  "exerciseLogs": [{
-    "exerciseId": "string",
-    "sets": [{ "reps": 10, "weight": 50, "rpe": 7 }]
-  }],
-  "painLevel": 0,
-  "notes": "string"
-}
-```
-
-### `GET /api/workouts/[id]/logs`
-Get workout log history.
-
-### `PUT /api/workouts/[id]/logs/[logId]`
-Update workout log.
-
-### `POST /api/workouts/[id]/change-type`
-Change workout type.
-
-### `POST /api/workouts/create`
-Create standalone workout.
-
-### `POST /api/workouts/modify`
-Modify workout based on readiness.
-
-### `GET /api/workouts/modifications`
-List pending modifications.
-
-### `PUT /api/workouts/modifications/[id]/review`
-Coach review of modification.
+### Notifications
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/calendar/notifications` | Calendar notifications |
+| PUT | `/api/calendar/notifications/[id]` | Mark as read |
 
 ---
 
-## Exercise Library Endpoints
+## Clients
 
-### `GET /api/exercises`
-List 84-exercise library with filtering.
-
-**Query:**
-- `search`: text search
-- `pillar`: POSTERIOR_CHAIN | KNEE_DOMINANCE | UNILATERAL | FOOT_ANKLE | CORE | UPPER_BODY
-- `level`: LEVEL_1 | LEVEL_2 | LEVEL_3
-- `difficulty`: BEGINNER | INTERMEDIATE | ADVANCED
-- `limit`, `offset`: pagination
-
-### `POST /api/exercises`
-Create custom exercise.
-
-### `GET /api/exercises/[id]`
-Get exercise details.
-
-### `PUT /api/exercises/[id]`
-Update exercise.
-
-### `GET /api/exercises/[id]/alternatives`
-Get exercises from same pillar.
-
-### `GET /api/exercises/[id]/progression-path`
-Get easier/harder variations.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/clients` | List/create clients |
+| GET/PUT/DELETE | `/api/clients/[id]` | CRUD single client |
+| GET | `/api/clients/[id]/context-summary` | AI context summary |
+| GET | `/api/clients/[id]/paces` | Elite training paces (VDOT/Lactate/HR) |
+| GET | `/api/clients/[id]/programs` | Client's programs |
+| GET/POST | `/api/clients/[id]/progression/[exerciseId]` | Exercise progression |
 
 ---
 
-## Strength Training Endpoints
+## Tests & Calculations
 
-### `GET /api/strength-sessions`
-List strength sessions.
+### Physiological Tests
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/tests` | List/create tests |
+| GET/PUT/DELETE | `/api/tests/[id]` | CRUD single test |
+| POST | `/api/tests/[id]/recalculate` | Recalculate results |
 
-### `POST /api/strength-sessions`
-Create strength session.
+### Templates
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/templates` | List/create test templates |
+| GET/PUT/DELETE | `/api/templates/[id]` | CRUD single template |
 
-### `GET /api/strength-sessions/[id]`
-Get session details.
-
-### `PUT /api/strength-sessions/[id]`
-Update session.
-
-### `POST /api/strength-sessions/[id]/assign`
-Assign to client.
-
-### `GET /api/strength-templates`
-List pre-built templates.
-
-### `POST /api/strength-pr`
-Log personal record.
-
-### `GET /api/progression/history`
-Get progression history.
-
-### `POST /api/progression/calculate`
-Calculate 1RM and progression (Epley/Brzycki, 2-for-2 rule).
+### Calculations
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/calculations/thresholds` | Calculate lactate thresholds (D-max) |
+| POST | `/api/calculations/zones` | Calculate training zones |
+| POST | `/api/calculations/vdot` | Calculate VDOT from race |
+| POST | `/api/calculations/goal-zones` | Goal-based zone calculation |
+| POST | `/api/calculations/environmental` | WBGT, altitude, wind corrections |
 
 ---
 
-## Hybrid/HYROX Endpoints
+## Training Programs
 
-### `GET /api/hybrid-workouts`
-List hybrid workouts.
-
-**Query:**
-- `format`: AMRAP | FOR_TIME | EMOM | TABATA | CHIPPER | HYROX_SIM
-- `scalingLevel`: RX | SCALED | FOUNDATIONS
-- `benchmarkOnly`: boolean
-- `search`: text
-
-### `POST /api/hybrid-workouts`
-Create hybrid workout.
-
-### `GET /api/hybrid-workouts/[id]`
-Get workout details.
-
-### `PUT /api/hybrid-workouts/[id]`
-Update workout.
-
-### `POST /api/hybrid-workouts/[id]/results`
-Submit workout results.
-
-### `GET /api/hybrid-workouts/[id]/versions`
-Get version history.
-
-### `GET /api/hybrid-movements`
-List HYROX stations/movements.
-
-### `POST /api/hybrid-assignments`
-Assign workout to athlete.
-
-### `GET /api/hybrid-assignments/[id]`
-Get assignment.
-
-### `POST /api/hybrid-analytics`
-Analyze performance by station.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/programs` | List/create programs |
+| GET/PUT/DELETE | `/api/programs/[id]` | CRUD single program |
+| PUT | `/api/programs/[id]/edit` | Edit program structure |
+| GET | `/api/programs/[id]/zones` | Get program zones |
+| POST | `/api/programs/[id]/days/[dayId]/add-workout` | Add workout to day |
+| POST | `/api/programs/generate` | Auto-generate program |
 
 ---
 
-## Race Results Endpoints
+## Workouts
 
-### `GET /api/race-results`
-List race results. Query: `?clientId=string`
+### CRUD
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/PUT/DELETE | `/api/workouts/[id]` | CRUD single workout |
+| POST | `/api/workouts/create` | Create standalone workout |
+| POST | `/api/workouts/quick-create` | Quick create workout |
 
-### `POST /api/race-results`
-Create race with auto-VDOT.
+### Logging
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/workouts/[id]/logs` | List/create workout logs |
+| GET/PUT/DELETE | `/api/workouts/[id]/logs/[logId]` | CRUD single log |
+| POST | `/api/workouts/[id]/logs/[logId]/sets` | Add sets to log |
 
-**Body:**
-```json
-{
-  "clientId": "string",
-  "raceName": "Stockholm Marathon",
-  "raceDate": "ISO date",
-  "distance": 42195,
-  "timeMinutes": 210,
-  "temperature": 18,
-  "conditions": "Good"
-}
-```
-
-### `GET /api/race-results/[id]`
-Get race details.
-
-### `PUT /api/race-results/[id]`
-Update race.
-
-### `DELETE /api/race-results/[id]`
-Delete race.
+### Modifications
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/workouts/[id]/change-type` | Change workout type |
+| GET/POST | `/api/workouts/[id]/focus-mode` | Focus mode for workout |
+| POST | `/api/workouts/modify` | Modify based on readiness |
+| GET | `/api/workouts/modifications` | List pending modifications |
+| PUT | `/api/workouts/modifications/[id]/review` | Coach review |
 
 ---
 
-## Monitoring & Readiness Endpoints
+## Strength Training
 
-### `POST /api/daily-metrics`
-Save daily check-in.
+### Sessions
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/strength-sessions` | List/create sessions |
+| GET/PUT/DELETE | `/api/strength-sessions/[id]` | CRUD single session |
+| POST | `/api/strength-sessions/[id]/assign` | Assign to client |
+| GET/POST | `/api/strength-sessions/[id]/sets` | Manage sets |
+| GET/POST | `/api/strength-sessions/[id]/focus-mode` | Focus mode |
+| POST | `/api/strength-sessions/generate` | Generate session |
 
-**Body:**
-```json
-{
-  "clientId": "string",
-  "date": "ISO date",
-  "hrvRMSSD": 65,
-  "restingHR": 52,
-  "sleepQuality": 8,
-  "sleepHours": 7.5,
-  "muscleSoreness": 3,
-  "energyLevel": 7,
-  "mood": 8,
-  "stress": 4,
-  "injuryPain": 0
-}
-```
+### Templates
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/strength-templates` | List/create templates |
+| GET | `/api/strength-templates/system` | System templates |
+| GET | `/api/strength-templates/system/[id]` | Get system template |
 
-### `GET /api/daily-metrics`
-Get historical metrics. Query: `?clientId=string&days=30`
-
-### `GET /api/readiness`
-Calculate readiness score.
-
-**Response:**
-```json
-{
-  "readinessScore": 78,
-  "trend": "IMPROVING | STABLE | DECLINING",
-  "recommendation": "PROCEED | REDUCE | EASY | REST"
-}
-```
-
-### `POST /api/training-load/warnings`
-Get ACWR-based warnings.
+### Progression
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/strength-pr` | Log personal record |
+| GET | `/api/progression/history` | Progression history |
+| POST | `/api/progression/calculate` | Calculate 1RM (Epley/Brzycki) |
 
 ---
 
-## Injury Management Endpoints
+## Cardio Sessions
 
-### `POST /api/injury/assess`
-University of Delaware pain assessment.
-
-**Body:**
-```json
-{
-  "athleteId": "string",
-  "injuryType": "ACHILLES | PLANTAR_FASCIA | ITB | PATELLA | HAMSTRING | CALF | SHIN | HIP | ANKLE",
-  "painLevel": 6,
-  "painTiming": "DURING | AFTER | NEXT_DAY",
-  "symptomDuration": 7,
-  "currentACWR": 1.2
-}
-```
-
-### `POST /api/injury/process-checkin`
-Process injury from daily check-in.
-
-### `GET /api/injury/alerts`
-Get injury alerts.
-
-### `PUT /api/injury/alerts/[id]/resolve`
-Resolve alert.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/cardio-sessions` | List/create sessions |
+| GET/PUT/DELETE | `/api/cardio-sessions/[id]` | CRUD single session |
+| POST | `/api/cardio-sessions/[id]/assign` | Assign to client |
+| GET/POST | `/api/cardio-sessions/[id]/focus-mode` | Focus mode |
+| PUT | `/api/cardio-sessions/[id]/segments/[index]` | Update segment |
+| GET | `/api/cardio-templates` | List cardio templates |
 
 ---
 
-## Cross-Training Endpoints
+## Hybrid/HYROX
 
-### `POST /api/cross-training/convert`
-Convert workout with TSS equivalency.
+### Workouts
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/hybrid-workouts` | List/create (AMRAP, EMOM, FOR_TIME, etc.) |
+| GET/PUT/DELETE | `/api/hybrid-workouts/[id]` | CRUD single workout |
+| POST | `/api/hybrid-workouts/[id]/results` | Submit results |
+| GET | `/api/hybrid-workouts/[id]/versions` | Version history |
+| GET/POST | `/api/hybrid-workouts/[id]/focus-mode` | Focus mode |
+| PUT | `/api/hybrid-workouts/[id]/rounds/[number]` | Update round |
 
-**Modalities:** DWR (98%), Cycling (75%), Swimming (45%), Elliptical (65%), AlterG (variable), Rowing (70%)
-
-### `GET /api/cross-training/substitutions/[clientId]`
-Get cross-training alternatives.
-
-### `GET /api/cross-training/preferences/[clientId]`
-Get modality preferences.
-
-### `GET /api/cross-training/fitness-projection/[clientId]`
-Project fitness from cross-training.
-
----
-
-## Messaging Endpoints
-
-### `GET /api/messages`
-List messages. Query: `?filter=inbox|sent&conversationWith=clientId`
-
-### `POST /api/messages`
-Send message.
-
-**Body:**
-```json
-{
-  "receiverId": "string",
-  "content": "string",
-  "workoutId": "string (optional)"
-}
-```
-
-### `GET /api/messages/[id]`
-Get message.
-
-### `PUT /api/messages/[id]`
-Mark as read.
-
-### `DELETE /api/messages/[id]`
-Delete message.
+### Assignments & Analysis
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/hybrid-assignments` | List/create assignments |
+| GET/PUT/DELETE | `/api/hybrid-assignments/[id]` | CRUD single assignment |
+| GET | `/api/hybrid-movements` | List HYROX stations/movements |
+| POST | `/api/hybrid-analytics` | Analyze performance by station |
 
 ---
 
-## Documents & Knowledge Endpoints
+## Exercise Library
 
-### `GET /api/documents`
-List documents. Query: `?fileType=PDF|EXCEL|VIDEO`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/exercises` | List/create (84 exercises, filterable) |
+| GET/PUT/DELETE | `/api/exercises/[id]` | CRUD single exercise |
+| GET | `/api/exercises/[id]/alternatives` | Same-pillar alternatives |
+| GET | `/api/exercises/[id]/progression-path` | Easier/harder variations |
 
-### `POST /api/documents/upload`
-Upload file (max 50MB).
-
-### `GET /api/documents/[id]`
-Get document.
-
-### `DELETE /api/documents/[id]`
-Delete document.
-
-### `POST /api/documents/[id]/embed`
-Generate embeddings for RAG.
-
-### `POST /api/knowledge/search`
-Semantic search in documents.
-
-**Body:**
-```json
-{
-  "query": "string",
-  "documentIds": ["string"],
-  "matchThreshold": 0.7
-}
-```
+**Query params**: `search`, `pillar`, `level`, `difficulty`, `limit`, `offset`
 
 ---
 
-## Body Composition Endpoints
+## Field Tests
 
-### `GET /api/body-composition`
-List records. Query: `?clientId=string`
-
-### `POST /api/body-composition`
-Record bioimpedance.
-
-**Body:**
-```json
-{
-  "clientId": "string",
-  "measurementDate": "ISO date",
-  "weightKg": 75,
-  "bodyFatPercent": 12,
-  "muscleMassKg": 35,
-  "visceralFat": 8,
-  "waterPercent": 55,
-  "bmrKcal": 1800
-}
-```
-
-### `GET /api/body-composition/[id]`
-Get measurement.
-
-### `PUT /api/body-composition/[id]`
-Update measurement.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/field-tests` | List/create (30-min TT, HR drift, CV) |
+| GET | `/api/field-tests/[id]/analysis` | Detailed analysis |
+| GET | `/api/field-tests/progression/[clientId]` | Progression history |
+| POST | `/api/field-tests/schedule` | Schedule field test |
 
 ---
 
-## Sport Profile Endpoints
+## Race Results
 
-### `GET /api/sport-profile/[clientId]`
-Get sport profile.
-
-### `PUT /api/sport-profile/[clientId]`
-Update sport settings.
-
-**Body:**
-```json
-{
-  "primarySport": "RUNNING | CYCLING | SWIMMING | TRIATHLON | HYROX | SKIING | GENERAL_FITNESS",
-  "secondarySports": ["CYCLING"],
-  "runningSettings": { "vdot": 50, "weeklyKm": 60 },
-  "cyclingSettings": { "ftp": 280 },
-  "swimmingSettings": { "css": "1:45" },
-  "onboardingCompleted": true
-}
-```
-
-### `POST /api/sport-profile`
-Create new sport profile.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/race-results` | List/create with auto-VDOT |
+| GET/PUT/DELETE | `/api/race-results/[id]` | CRUD single race |
 
 ---
 
-## Norwegian Method Endpoints
+## Monitoring & Readiness
 
-### `GET /api/norwegian-singles/eligibility/[clientId]`
-Check 5 prerequisites for Norwegian Method.
-
-**Response:**
-```json
-{
-  "eligible": true,
-  "prerequisites": {
-    "trainingAge": { "met": true, "value": 3, "required": 2 },
-    "baseVolume": { "met": true, "value": 70, "required": 60 },
-    "recentLactateTest": { "met": true },
-    "lactateMeter": { "met": true },
-    "coachSupervision": { "met": true }
-  }
-}
-```
-
-### `POST /api/norwegian-singles/generate`
-Generate Norwegian double-threshold workouts.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/daily-metrics` | Daily check-in data (HRV, sleep, soreness) |
+| GET | `/api/readiness` | Calculate readiness score |
+| POST | `/api/training-load/warnings` | ACWR-based warnings |
 
 ---
 
-## Video Analysis Endpoints
+## Injury Management
 
-### `POST /api/video-analysis/upload`
-Upload video (max 100MB).
-
-### `GET /api/video-analysis`
-List analyses.
-
-### `GET /api/video-analysis/[id]`
-Get analysis.
-
-### `POST /api/video-analysis/[id]/analyze`
-Analyze with Gemini + MediaPipe.
-
-### `GET /api/video-analysis/[id]/landmarks`
-Get skeletal landmarks.
-
-### `POST /api/video-analysis/analyze-pose-data`
-Analyze raw pose data.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/injury/assess` | Delaware pain assessment |
+| POST | `/api/injury/process-checkin` | Process injury from check-in |
+| GET | `/api/injury/alerts` | Get injury alerts |
+| PUT | `/api/injury/alerts/[id]/resolve` | Resolve alert |
 
 ---
 
-## Settings Endpoints
+## Cross-Training
 
-### `GET /api/settings/api-keys`
-Get API key status (not keys).
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/cross-training/convert` | Convert workout (TSS equivalency) |
+| GET | `/api/cross-training/substitutions/[clientId]` | Get alternatives |
+| GET | `/api/cross-training/preferences/[clientId]` | Modality preferences |
+| GET | `/api/cross-training/fitness-projection/[clientId]` | Project fitness |
 
-### `POST /api/settings/api-keys`
-Save encrypted BYOK keys.
-
-### `POST /api/settings/api-keys/validate`
-Validate API key.
-
-### `GET /api/settings/default-model`
-Get default AI model.
-
-### `PUT /api/settings/default-model`
-Set default model.
+**Modalities**: DWR (98%), Cycling (75%), Swimming (45%), Elliptical (65%), AlterG, Rowing (70%)
 
 ---
 
-## System & Admin Endpoints
+## Messaging
 
-### `GET /api/users/me`
-Get current user.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/messages` | List/send messages |
+| GET/PUT/DELETE | `/api/messages/[id]` | CRUD single message |
 
-### `GET /api/users`
-List users (admin).
+---
 
-### `POST /api/users`
-Create user.
+## Documents & Knowledge
 
-### `GET /api/teams`
-List teams.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/documents` | List/create documents |
+| POST | `/api/documents/upload` | Upload file (max 50MB) |
+| GET/DELETE | `/api/documents/[id]` | Get/delete document |
+| POST | `/api/documents/[id]/embed` | Generate embeddings |
+| POST | `/api/knowledge/search` | Semantic search |
+| POST | `/api/knowledge/context` | Build RAG context |
 
-### `POST /api/teams`
-Create team.
+---
 
-### `GET /api/teams/[id]`
-Get team.
+## Body Composition
 
-### `PUT /api/teams/[id]`
-Update team.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/body-composition` | List/create bioimpedance records |
+| GET/PUT/DELETE | `/api/body-composition/[id]` | CRUD single record |
 
-### `DELETE /api/teams/[id]`
-Delete team.
+---
 
-### `POST /api/send-report-email`
-Email test report.
+## Sport Profile
 
-### `POST /api/system-validation`
-Multi-system validation cascade (Injury -> Readiness -> Field Tests -> Norwegian -> Program -> Workouts).
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/sport-profile` | Create sport profile |
+| GET/PUT | `/api/sport-profile/[clientId]` | Get/update profile |
 
-### `POST /api/cron/calculate-acwr`
-Calculate ACWR for all athletes (cron).
+**Sports**: RUNNING, CYCLING, SWIMMING, TRIATHLON, HYROX, SKIING, GENERAL_FITNESS
 
-### `POST /api/cron/injury-digest`
-Send injury digest emails (cron).
+---
+
+## Norwegian Method
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/norwegian-singles/eligibility/[clientId]` | Check 5 prerequisites |
+| POST | `/api/norwegian-singles/generate` | Generate double-threshold workouts |
+
+---
+
+## Video Analysis
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/video-analysis` | List/create analyses |
+| POST | `/api/video-analysis/upload` | Upload video (max 100MB) |
+| GET/DELETE | `/api/video-analysis/[id]` | Get/delete analysis |
+| POST | `/api/video-analysis/[id]/analyze` | Analyze with Gemini + MediaPipe |
+| GET | `/api/video-analysis/[id]/landmarks` | Get skeletal landmarks |
+| POST | `/api/video-analysis/analyze-pose-data` | Analyze raw pose data |
+
+**Analysis types**: Running gait, Skiing technique, HYROX station
+
+---
+
+## Nutrition
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/nutrition/preferences` | Dietary preferences |
+| GET/POST | `/api/nutrition/goals` | Macro goals |
+| GET | `/api/nutrition/guidance` | Nutrition guidance |
+| GET | `/api/nutrition/tip` | Daily tip |
+
+---
+
+## Menstrual Cycle
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/menstrual-cycle` | Cycle tracking |
+| POST | `/api/menstrual-cycle/daily-log` | Daily log |
+| GET | `/api/menstrual-cycle/insights/[clientId]` | Training insights by phase |
+
+---
+
+## Audio Journal
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/audio-journal` | List/create voice logs |
+| POST | `/api/audio-journal/[id]/process` | Process audio |
+
+---
+
+## Business & Locations
+
+### Business
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/business` | List/create businesses |
+| GET/PUT/DELETE | `/api/business/[id]` | CRUD single business |
+| GET/POST | `/api/business/[id]/members` | Manage members |
+| GET | `/api/business/[id]/stats` | Business statistics |
+
+### Locations
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/locations` | List/create locations |
+| GET/PUT/DELETE | `/api/locations/[id]` | CRUD single location |
+| GET | `/api/locations/[id]/stats` | Location statistics |
+
+---
+
+## Organizations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/organizations` | List/create organizations |
+| GET/PUT/DELETE | `/api/organizations/[id]` | CRUD single org |
+
+---
+
+## Teams
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/teams` | List/create teams |
+| GET/PUT/DELETE | `/api/teams/[id]` | CRUD single team |
+| GET | `/api/teams/[id]/dashboard` | Team dashboard |
+| GET | `/api/teams/[id]/leaderboard` | Team leaderboard |
+| POST | `/api/teams/[id]/assign-workout` | Assign workout to team |
+
+---
+
+## Payments & Subscriptions
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/payments/create-checkout` | Create Stripe checkout (athlete) |
+| POST | `/api/payments/coach/create-checkout` | Create Stripe checkout (coach) |
+| POST | `/api/payments/portal` | Stripe customer portal (athlete) |
+| POST | `/api/payments/coach/portal` | Stripe customer portal (coach) |
+| GET | `/api/payments/subscription` | Get subscription status |
+| POST | `/api/payments/webhook` | Stripe webhook handler |
+
+**Tiers**: FREE, STANDARD, PREMIUM, ENTERPRISE
+
+---
+
+## Referrals
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/referrals` | List/create referrals |
+| GET/POST | `/api/referrals/code` | Get/create referral code |
+| POST | `/api/referrals/validate` | Validate referral code |
+| POST | `/api/referrals/apply` | Apply referral code |
+| GET | `/api/referrals/rewards` | Get referral rewards |
+
+---
+
+## Settings
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/settings/api-keys` | BYOK API keys (encrypted) |
+| POST | `/api/settings/api-keys/validate` | Validate API key |
+| GET/PUT | `/api/settings/default-model` | Default AI model |
+
+---
+
+## Auth
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/auth/google/callback` | Google OAuth callback |
+| POST | `/api/auth/signup-athlete` | Athlete signup |
+
+---
+
+## System & Admin
+
+### Users
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users/me` | Current user |
+| GET/POST | `/api/users` | List/create users (admin) |
+
+### Testers
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET/POST | `/api/testers` | List/create testers |
+| GET/PUT/DELETE | `/api/testers/[id]` | CRUD single tester |
+| GET | `/api/testers/[id]/stats` | Tester statistics |
+
+### System
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/system-validation` | Multi-system validation cascade |
+| GET | `/api/analytics` | System analytics |
+| GET | `/api/admin/stats` | Admin statistics |
+| GET | `/api/admin/users` | Admin user management |
+| POST | `/api/send-report-email` | Email test report |
+| POST | `/api/reports/[testId]/share` | Share report |
+| GET | `/api/locale` | Get locale |
+| POST | `/api/lactate/quick-capture` | Quick lactate capture |
+| POST | `/api/invitations` | Create invitation |
+| GET | `/api/invitations/[code]` | Get invitation |
+
+### Cron Jobs
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/cron/calculate-acwr` | Nightly ACWR calculation |
+| POST | `/api/cron/injury-digest` | Injury digest emails |
 
 ---
 
 ## Error Responses
 
-All endpoints return consistent errors:
-
 ```json
-{
-  "success": false,
-  "error": "Error message",
-  "code": "ERROR_CODE"
-}
+{ "success": false, "error": "Error message", "code": "ERROR_CODE" }
 ```
 
 | Status | Description |
@@ -807,17 +672,10 @@ All endpoints return consistent errors:
 
 ## Rate Limiting
 
-- Calculation endpoints: 60/min
 - AI endpoints: 20/min
+- Calculation endpoints: 60/min
 - Standard: 100/min
 
 ---
 
-## Changelog
-
-- **2024-12-21**: Updated to 126 endpoints (AI Studio, Hybrid, Video Analysis, Multi-Sport)
-- **2024-11-22**: Initial 52 endpoints
-
----
-
-*Total Endpoints: 126 | Last Updated: December 2024*
+*Total: 232 route files | Last Updated: January 2026*
