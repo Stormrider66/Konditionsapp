@@ -1,6 +1,13 @@
 // lib/validations/schemas.ts
 import { z } from 'zod'
 
+// Helper to convert NaN to undefined for optional number fields
+const optionalNumber = (min: number, max: number) =>
+  z.preprocess(
+    (val) => (typeof val === 'number' && isNaN(val) ? undefined : val),
+    z.number().min(min).max(max).optional()
+  )
+
 // Klient-validering
 export const clientSchema = z.object({
   name: z.string().min(2, 'Namnet måste vara minst 2 tecken').max(100),
@@ -25,12 +32,12 @@ export const testStageSchema = z.object({
   duration: z.number().min(0.1).max(60),
   heartRate: z.number().min(40).max(250),
   lactate: z.number().min(0).max(30),
-  vo2: z.number().min(10).max(100).optional(),
-  speed: z.number().min(0).max(30).optional(),
-  incline: z.number().min(0).max(20).optional(),
-  power: z.number().min(0).max(1000).optional(),
-  cadence: z.number().min(0).max(200).optional(),
-  pace: z.number().min(2).max(20).optional(),
+  vo2: optionalNumber(10, 100),
+  speed: optionalNumber(0, 30),
+  incline: optionalNumber(0, 20),
+  power: optionalNumber(0, 1000),
+  cadence: optionalNumber(0, 200),
+  pace: optionalNumber(2, 20),
 })
 
 // Test-validering
