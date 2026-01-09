@@ -13,6 +13,7 @@
 
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
+import { NextResponse } from 'next/server'
 import { RateLimitConfig, RateLimitResult, RATE_LIMITS } from './rate-limit'
 
 // Lazy initialization to avoid errors when Redis is not configured
@@ -160,6 +161,47 @@ export async function rateLimitResponseRedis(
         status: 429,
         headers: {
           'Content-Type': 'application/json',
+          'X-RateLimit-Limit': String(result.limit),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(Math.ceil(result.resetTime / 1000)),
+          'Retry-After': String(Math.max(retryAfter, 1)),
+        },
+      }
+    )
+  }
+
+  return null
+}
+
+/**
+ * Rate limit helper that returns NextResponse for API routes
+ * Uses a key prefix + userId as the identifier
+ *
+ * @param keyPrefix - Prefix for the rate limit key (e.g., 'ai:research:start')
+ * @param userId - User ID to include in the identifier
+ * @param config - Rate limit configuration (limit and windowSeconds)
+ * @returns NextResponse if rate limited, or null if allowed
+ */
+export async function rateLimitJsonResponse(
+  keyPrefix: string,
+  userId: string,
+  config: { limit: number; windowSeconds: number }
+): Promise<NextResponse | null> {
+  const identifier = `${keyPrefix}:${userId}`
+  const result = await checkRateLimitRedis(identifier, config)
+
+  if (!result.success) {
+    const retryAfter = Math.ceil((result.resetTime - Date.now()) / 1000)
+
+    return NextResponse.json(
+      {
+        error: 'RATE_LIMIT_EXCEEDED',
+        message: 'Too many requests. Please try again later.',
+        retryAfter: Math.max(retryAfter, 1),
+      },
+      {
+        status: 429,
+        headers: {
           'X-RateLimit-Limit': String(result.limit),
           'X-RateLimit-Remaining': '0',
           'X-RateLimit-Reset': String(Math.ceil(result.resetTime / 1000)),

@@ -18,6 +18,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { useToast } from '@/hooks/use-toast'
 import {
   Bot,
@@ -37,6 +43,8 @@ import {
   ArrowLeft,
   Wand2,
   BrainCircuit,
+  FlaskConical,
+  DollarSign,
 } from 'lucide-react'
 import {
   getProgramContext,
@@ -49,6 +57,11 @@ import { GlobalModelDisplay } from './GlobalModelDisplay'
 import { ChatMessage } from './ChatMessage'
 import { CostEstimate, SessionCostSummary } from './CostEstimate'
 import { PublishProgramDialog } from './PublishProgramDialog'
+import { DeepResearchPanel } from './DeepResearchPanel'
+import { ResearchResultViewer } from './ResearchResultViewer'
+import { ResearchHistory } from './ResearchHistory'
+import { ShareResearchDialog } from './ShareResearchDialog'
+import { AIBudgetSettings } from './AIBudgetSettings'
 import { parseAIProgram } from '@/lib/ai/program-parser'
 import type { AIProvider } from '@prisma/client'
 
@@ -142,6 +155,28 @@ export function AIStudioClient({
   const [publishContent, setPublishContent] = useState<string>('')
   const [hasExistingProgram, setHasExistingProgram] = useState(false)
   const [existingProgramName, setExistingProgramName] = useState<string | undefined>()
+
+  // Deep Research state
+  const [researchPanelOpen, setResearchPanelOpen] = useState(false)
+  const [researchResultOpen, setResearchResultOpen] = useState(false)
+  const [researchHistoryOpen, setResearchHistoryOpen] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [budgetSettingsOpen, setBudgetSettingsOpen] = useState(false)
+  const [viewingResearchSession, setViewingResearchSession] = useState<{
+    id: string
+    provider: string
+    query: string
+    status: string
+    report: string | null
+    sources?: Array<{ url: string; title: string; excerpt?: string }>
+    completedAt?: string
+    tokensUsed?: number
+    estimatedCost?: number
+    searchQueries?: number
+    sourcesAnalyzed?: number
+    savedDocumentId?: string | null
+  } | null>(null)
+  const [shareSessionId, setShareSessionId] = useState<string | null>(null)
 
   // Manual input state (AI SDK 5 no longer manages input state)
   const [input, setInput] = useState('')
@@ -404,6 +439,80 @@ export function AIStudioClient({
 
   const selectedAthleteData = clients.find((c) => c.id === selectedAthlete)
 
+  // Handle research completion
+  const handleResearchComplete = async (report: string, sessionId: string) => {
+    // Fetch full session details
+    try {
+      const response = await fetch(`/api/ai/deep-research/${sessionId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setViewingResearchSession({
+          id: data.id,
+          provider: data.provider,
+          query: data.query,
+          status: data.status,
+          report: data.report,
+          sources: data.sources,
+          completedAt: data.completedAt,
+          tokensUsed: data.tokensUsed,
+          estimatedCost: data.estimatedCost,
+          searchQueries: data.searchQueries,
+          sourcesAnalyzed: data.sourcesAnalyzed,
+          savedDocumentId: data.savedDocument?.id,
+        })
+        setResearchPanelOpen(false)
+        setResearchResultOpen(true)
+      }
+    } catch (err) {
+      console.error('Failed to fetch research session:', err)
+    }
+  }
+
+  // Handle viewing a research session from history
+  const handleViewResearchSession = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/ai/deep-research/${sessionId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setViewingResearchSession({
+          id: data.id,
+          provider: data.provider,
+          query: data.query,
+          status: data.status,
+          report: data.report,
+          sources: data.sources,
+          completedAt: data.completedAt,
+          tokensUsed: data.tokensUsed,
+          estimatedCost: data.estimatedCost,
+          searchQueries: data.searchQueries,
+          sourcesAnalyzed: data.sourcesAnalyzed,
+          savedDocumentId: data.savedDocument?.id,
+        })
+        setResearchHistoryOpen(false)
+        setResearchResultOpen(true)
+      }
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load research session.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Handle using research report in chat
+  const handleUseResearchInChat = (report: string) => {
+    const contextMessage = `Based on the following research report, please help me apply this knowledge:\n\n---\n${report}\n---\n\n`
+    setInput(contextMessage)
+    setResearchResultOpen(false)
+  }
+
+  // Handle opening share dialog
+  const handleShareResearch = (sessionId: string) => {
+    setShareSessionId(sessionId)
+    setShareDialogOpen(true)
+  }
+
   // Show API key warning if not configured
   if (!hasApiKeys) {
     return (
@@ -573,6 +682,36 @@ export function AIStudioClient({
               </TooltipProvider>
             )}
             <GlobalModelDisplay model={defaultModel} />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setBudgetSettingsOpen(true)}
+                  >
+                    <DollarSign className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>AI Budget Settings</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setResearchHistoryOpen(true)}
+            >
+              <History className="h-4 w-4 mr-1" />
+              Research
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setResearchPanelOpen(true)}
+            >
+              <FlaskConical className="h-4 w-4 mr-1" />
+              Deep Research
+            </Button>
             <Button variant="outline" size="sm" onClick={startNewChat}>
               <Plus className="h-4 w-4 mr-1" />
               Ny chatt
@@ -845,6 +984,67 @@ export function AIStudioClient({
           }}
         />
       )}
+
+      {/* Deep Research Panel */}
+      <DeepResearchPanel
+        open={researchPanelOpen}
+        onOpenChange={setResearchPanelOpen}
+        clients={clients}
+        documents={documents}
+        selectedAthleteId={selectedAthlete}
+        selectedDocumentIds={selectedDocuments}
+        apiKeyStatus={apiKeyStatus}
+        onComplete={handleResearchComplete}
+      />
+
+      {/* Research Result Viewer */}
+      <ResearchResultViewer
+        open={researchResultOpen}
+        onOpenChange={setResearchResultOpen}
+        session={viewingResearchSession}
+        onUseInChat={handleUseResearchInChat}
+        onShare={(sessionId) => handleShareResearch(sessionId)}
+      />
+
+      {/* Research History Sheet */}
+      <Sheet open={researchHistoryOpen} onOpenChange={setResearchHistoryOpen}>
+        <SheetContent className="w-[500px] sm:max-w-[500px]">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Research History
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            <ResearchHistory
+              onViewSession={handleViewResearchSession}
+              onShareSession={handleShareResearch}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Share Research Dialog */}
+      <ShareResearchDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        sessionId={shareSessionId}
+        clients={clients}
+        linkedAthleteId={selectedAthlete}
+        onShareComplete={() => {
+          setShareDialogOpen(false)
+          toast({
+            title: 'Research shared',
+            description: 'The research has been shared with the selected athletes.',
+          })
+        }}
+      />
+
+      {/* AI Budget Settings */}
+      <AIBudgetSettings
+        open={budgetSettingsOpen}
+        onOpenChange={setBudgetSettingsOpen}
+      />
     </div>
   )
 }

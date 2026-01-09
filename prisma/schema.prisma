@@ -316,6 +316,11 @@ model User {
   referredBy              Referral[]              @relation("ReferredUser")  // How this user was referred
   referralRewards         ReferralReward[]        // Rewards received
 
+  // Deep Research System relations
+  deepResearchSessions    DeepResearchSession[]   @relation("CoachResearchSessions")
+  aiUsageBudget           AIUsageBudget?          @relation("UserAIBudget")
+  aiUsageLogs             AIUsageLog[]            @relation("UserAIUsageLogs")
+
   @@index([email])
   @@index([role])
 }
@@ -495,6 +500,10 @@ model Client {
   ergometerThresholds      ErgometerThreshold[]    @relation("ClientErgometerThresholds")
   ergometerZones           ErgometerZone[]         @relation("ClientErgometerZones")
   externalCalendarConnections ExternalCalendarConnection[]
+
+  // Deep Research System relations
+  deepResearchSessions     DeepResearchSession[]   @relation("AthleteResearchSessions")
+  sharedResearchAccess     SharedResearchAccess[]  @relation("SharedResearchAccess")
 
   @@index([userId])
   @@index([teamId])
@@ -2691,6 +2700,7 @@ enum DocumentType {
   MARKDOWN
   VIDEO
   TEXT
+  RESEARCH_REPORT  // AI Deep Research generated reports
 }
 
 /// Coach document library for RAG knowledge base
@@ -2717,6 +2727,9 @@ model CoachDocument {
 
   coach           User         @relation("CoachDocuments", fields: [coachId], references: [id], onDelete: Cascade)
   chunks          KnowledgeChunk[]
+
+  // Deep Research - link if this document was created from research
+  researchSession DeepResearchSession?  @relation("ResearchDocument")
 
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -4674,4 +4687,184 @@ model ErgometerBenchmark {
   @@unique([ergometerType, testProtocol, sport, gender, tier])
   @@index([ergometerType, gender, tier])
   @@index([sport, gender])
+}
+
+// ============================================
+// DEEP RESEARCH SYSTEM
+// Added: 2026-01
+// Purpose: AI-powered autonomous research with budget management
+// ============================================
+
+/// Provider for deep research operations
+enum DeepResearchProvider {
+  GEMINI          // Gemini Deep Research (Interactions API)
+  OPENAI_QUICK    // GPT-5 Mini + web_search
+  OPENAI_STANDARD // GPT-5.2 Thinking + web_search
+  OPENAI_DEEP     // o4-mini-deep-research
+  OPENAI_EXPERT   // o3-deep-research
+  LANGCHAIN       // LangChain open_deep_research (future)
+}
+
+/// Status for deep research sessions
+enum DeepResearchStatus {
+  PENDING     // Created, not started
+  RUNNING     // Research in progress
+  COMPLETED   // Research finished successfully
+  FAILED      // Research failed
+  CANCELLED   // User cancelled
+  TIMEOUT     // Exceeded max duration
+}
+
+/// Deep Research sessions
+model DeepResearchSession {
+  id                  String              @id @default(uuid())
+  coachId             String
+  athleteId           String?             // Optional - for athlete-specific research
+
+  // Configuration
+  provider            DeepResearchProvider
+  query               String              @db.Text
+  systemPrompt        String?             @db.Text
+  contextDocuments    String[]            @default([])  // CoachDocument IDs
+  athleteContext      Json?               // Snapshot of athlete data at research time
+
+  // Progress tracking
+  status              DeepResearchStatus  @default(PENDING)
+  startedAt           DateTime?
+  completedAt         DateTime?
+  progressPercent     Int?                // 0-100
+  progressMessage     String?             // Human-readable status
+  currentStep         String?             // "searching", "analyzing", "synthesizing"
+
+  // External tracking (provider-specific)
+  externalJobId       String?             // Gemini interaction ID or OpenAI response ID
+
+  // Results
+  report              String?             @db.Text  // Final markdown report
+  sources             Json?               // Array of source citations
+  reasoning           String?             @db.Text  // Chain of thought (if available)
+
+  // Document integration
+  savedDocumentId     String?             @unique   // Link to CoachDocument if saved
+  savedDocument       CoachDocument?      @relation("ResearchDocument", fields: [savedDocumentId], references: [id], onDelete: SetNull)
+
+  // Athlete sharing
+  sharedWithAthletes  String[]            @default([])  // Client IDs with access
+  isPublicToAthlete   Boolean             @default(false)  // Share with linked athlete automatically
+
+  // Usage & costs
+  tokensUsed          Int?
+  estimatedCost       Float?              // USD
+  searchQueries       Int?                // Number of web searches performed
+  sourcesAnalyzed     Int?                // Number of sources analyzed
+
+  // Error handling
+  errorMessage        String?
+  errorCode           String?
+  retryCount          Int                 @default(0)
+
+  // Relationships
+  coach               User                @relation("CoachResearchSessions", fields: [coachId], references: [id], onDelete: Cascade)
+  athlete             Client?             @relation("AthleteResearchSessions", fields: [athleteId], references: [id], onDelete: SetNull)
+  progressUpdates     DeepResearchProgress[]
+  sharedAccess        SharedResearchAccess[]
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([status])
+  @@index([provider])
+  @@index([externalJobId])
+  @@index([createdAt])
+}
+
+/// Progress updates for deep research (for SSE streaming)
+model DeepResearchProgress {
+  id          String   @id @default(uuid())
+  sessionId   String
+
+  timestamp   DateTime @default(now())
+  step        String   // "initializing", "searching", "reading", "analyzing", "synthesizing"
+  message     String   // Human-readable progress message
+  percent     Int?     // 0-100
+  metadata    Json?    // Additional step-specific data
+
+  session     DeepResearchSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([timestamp])
+}
+
+/// Shared research access for athletes
+model SharedResearchAccess {
+  id          String   @id @default(uuid())
+  sessionId   String
+  clientId    String
+  sharedAt    DateTime @default(now())
+  notified    Boolean  @default(false)  // Email notification sent
+
+  session     DeepResearchSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  client      Client              @relation("SharedResearchAccess", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, clientId])
+  @@index([clientId])
+  @@index([sharedAt])
+}
+
+/// AI usage budget management per coach
+model AIUsageBudget {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+
+  // Monthly limits (in USD)
+  monthlyBudget   Float?   // null = unlimited
+
+  // Current period tracking
+  periodStart     DateTime @default(now())
+  periodSpent     Float    @default(0)
+
+  // Alerts
+  alertThreshold  Float    @default(0.8)  // Alert at 80% of budget
+  alertSent       Boolean  @default(false)
+
+  // Category-specific limits (optional granularity)
+  researchBudget  Float?   // Specific limit for deep research
+  chatBudget      Float?   // Specific limit for AI chat
+
+  user            User     @relation("UserAIBudget", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([periodStart])
+}
+
+/// AI usage logging for cost tracking
+model AIUsageLog {
+  id                  String   @id @default(uuid())
+  userId              String
+
+  category            String   // "research", "chat", "embedding"
+  provider            String   // "GEMINI", "OPENAI", "ANTHROPIC"
+  model               String   // Specific model used
+
+  inputTokens         Int
+  outputTokens        Int
+  estimatedCost       Float    // USD
+
+  // Link to source (optional)
+  researchSessionId   String?
+  conversationId      String?
+
+  user                User     @relation("UserAIUsageLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt           DateTime @default(now())
+
+  @@index([userId])
+  @@index([category])
+  @@index([provider])
+  @@index([createdAt])
 }

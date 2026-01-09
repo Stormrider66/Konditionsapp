@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/poll-research",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/reset-budgets",
+      "schedule": "0 0 1 * *"
+    },
+    {
+      "path": "/api/cron/calculate-acwr",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/injury-digest",
+      "schedule": "0 7 * * 1"
+    }
+  ]
+}
