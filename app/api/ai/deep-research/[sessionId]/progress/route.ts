@@ -111,6 +111,7 @@ export async function GET(
   const encoder = new TextEncoder()
   let lastProgressId: string | null = null
   let isStreamClosed = false
+  let pollInterval: ReturnType<typeof setInterval> | null = null
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -124,9 +125,9 @@ export async function GET(
       controller.enqueue(encoder.encode(`data: ${JSON.stringify(initialEvent)}\n\n`))
 
       // Poll for updates
-      const pollInterval = setInterval(async () => {
+      pollInterval = setInterval(async () => {
         if (isStreamClosed) {
-          clearInterval(pollInterval)
+          if (pollInterval) clearInterval(pollInterval)
           return
         }
 
@@ -146,7 +147,7 @@ export async function GET(
           })
 
           if (!currentSession) {
-            clearInterval(pollInterval)
+            if (pollInterval) clearInterval(pollInterval)
             const errorEvent: ProgressEvent = {
               type: 'error',
               sessionId,
@@ -159,12 +160,13 @@ export async function GET(
           }
 
           // Check for new progress updates
+          // Use secondary sort by id to ensure deterministic ordering when timestamps match
           const latestProgress = await prisma.deepResearchProgress.findFirst({
             where: {
               sessionId,
               ...(lastProgressId ? { id: { not: lastProgressId } } : {}),
             },
-            orderBy: { timestamp: 'desc' },
+            orderBy: [{ timestamp: 'desc' }, { id: 'desc' }],
           })
 
           // Send progress update if there's new progress
@@ -186,7 +188,7 @@ export async function GET(
 
           // Check if research is complete
           if (currentSession.status === 'COMPLETED') {
-            clearInterval(pollInterval)
+            if (pollInterval) clearInterval(pollInterval)
 
             const completeEvent: ProgressEvent = {
               type: 'complete',
@@ -206,7 +208,7 @@ export async function GET(
 
           // Check if research failed
           if (['FAILED', 'CANCELLED', 'TIMEOUT'].includes(currentSession.status)) {
-            clearInterval(pollInterval)
+            if (pollInterval) clearInterval(pollInterval)
 
             const errorEvent: ProgressEvent = {
               type: 'error',
@@ -239,13 +241,21 @@ export async function GET(
       // Handle client disconnect
       request.signal.addEventListener('abort', () => {
         isStreamClosed = true
-        clearInterval(pollInterval)
+        if (pollInterval) {
+          clearInterval(pollInterval)
+          pollInterval = null
+        }
         controller.close()
       })
     },
 
     cancel() {
       isStreamClosed = true
+      // Clear interval directly to prevent resource leak on early cancellation
+      if (pollInterval) {
+        clearInterval(pollInterval)
+        pollInterval = null
+      }
     },
   })
 
