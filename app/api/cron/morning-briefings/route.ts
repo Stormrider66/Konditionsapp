@@ -117,8 +117,8 @@ function getHourInTimezone(timezone: string): number {
     const hourStr = formatter.format(now)
     return parseInt(hourStr, 10)
   } catch {
-    // Fallback to Europe/Stockholm if timezone is invalid
-    return getHourInTimezone('Europe/Stockholm')
+    // Fallback to UTC hour if timezone is invalid
+    return new Date().getUTCHours()
   }
 }
 
