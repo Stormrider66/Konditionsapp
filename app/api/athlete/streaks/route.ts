@@ -102,8 +102,8 @@ export async function GET() {
     // Get motivation message
     const motivation = getMotivationMessage(currentStreak, personalBest)
 
-    // Check if at or above personal record
-    const isNewRecord = currentStreak > 0 && currentStreak >= personalBest
+    // Check if beating personal record (strictly greater, not just matching)
+    const isNewRecord = currentStreak > 0 && currentStreak > personalBest
 
     const response: StreakResponse = {
       success: true,
