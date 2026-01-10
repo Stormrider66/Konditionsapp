@@ -6,6 +6,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/poll-program-generation",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/reset-budgets",
       "schedule": "0 0 1 * *"
     },
