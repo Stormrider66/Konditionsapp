@@ -33,6 +33,7 @@ import {
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget } from '@/components/athlete/dashboard'
+import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 import { WODHistorySummary } from '@/components/athlete/wod'
 import { MorningBriefingCard } from '@/components/athlete/MorningBriefingCard'
@@ -535,6 +536,9 @@ export default async function AthleteDashboardPage() {
         <div className="space-y-6">
           {/* Accountability Streak Widget */}
           <AccountabilityStreakWidget />
+
+          {/* Injury Prevention Widget */}
+          <InjuryPreventionWidget />
 
           {/* Active Programs */}
           <ActivePrograms programs={activePrograms} variant="glass" />
