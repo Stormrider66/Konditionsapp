@@ -35,6 +35,11 @@ import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel } from '@/components/athlete/dashboard'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 import { WODHistorySummary } from '@/components/athlete/wod'
+import { MorningBriefingCard } from '@/components/athlete/MorningBriefingCard'
+import { PreWorkoutNudgeCard } from '@/components/athlete/PreWorkoutNudgeCard'
+import { PatternAlertCard } from '@/components/athlete/PatternAlertCard'
+import { PostWorkoutCheckCard } from '@/components/athlete/PostWorkoutCheckCard'
+import { MilestoneCelebrationCard } from '@/components/athlete/MilestoneCelebrationCard'
 
 export default async function AthleteDashboardPage() {
   const t = await getTranslations('athlete')
@@ -436,6 +441,31 @@ export default async function AthleteDashboardPage() {
             <Zap className="w-4 h-4 mr-2" /> {heroWorkout ? 'Start Session' : 'Find Workout'}
           </Button>
         </Link>
+      </div>
+
+      {/* Milestone Celebrations */}
+      <div className="mb-6">
+        <MilestoneCelebrationCard />
+      </div>
+
+      {/* Morning Briefing Card */}
+      <div className="mb-6">
+        <MorningBriefingCard />
+      </div>
+
+      {/* Pre-Workout Nudges */}
+      <div className="mb-6">
+        <PreWorkoutNudgeCard />
+      </div>
+
+      {/* Pattern Alerts */}
+      <div className="mb-6">
+        <PatternAlertCard />
+      </div>
+
+      {/* Post-Workout Check-ins */}
+      <div className="mb-6">
+        <PostWorkoutCheckCard />
       </div>
 
       {/* AI Suggestions Banner (Moved to top to avoid layout overlap) */}

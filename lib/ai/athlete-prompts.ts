@@ -6,13 +6,25 @@
  */
 
 /**
+ * Memory context for personalized AI interactions
+ */
+export interface MemoryContext {
+  /** Formatted memory content for the system prompt */
+  memoryContent?: string
+  /** Recent conversation summary */
+  summaryContent?: string
+}
+
+/**
  * Build the system prompt for athlete AI chat
  * @param athleteContext - The compiled context from buildAthleteOwnContext()
  * @param athleteName - The athlete's name for personalization
+ * @param memoryContext - Optional memory context for personalization
  */
 export function buildAthleteSystemPrompt(
   athleteContext: string,
-  athleteName?: string
+  athleteName?: string,
+  memoryContext?: MemoryContext
 ): string {
   const greeting = athleteName ? `Du hjälper ${athleteName}` : 'Du hjälper en atlet'
 
@@ -52,7 +64,8 @@ export function buildAthleteSystemPrompt(
 ## ATLETENS DATA
 
 ${athleteContext}
-
+${memoryContext?.memoryContent ? `\n${memoryContext.memoryContent}` : ''}
+${memoryContext?.summaryContent ? `\n## SAMMANFATTNING AV SENASTE KONVERSATIONER\n\n${memoryContext.summaryContent}\n` : ''}
 ## SVARSINSTRUKTIONER
 
 När du svarar:

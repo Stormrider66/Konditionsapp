@@ -14,8 +14,9 @@ import { prisma } from '@/lib/prisma';
 import { searchSimilarChunks } from '@/lib/ai/embeddings';
 import { buildSportSpecificContext, type AthleteData } from '@/lib/ai/sport-context-builder';
 import { buildAthleteOwnContext } from '@/lib/ai/athlete-context-builder';
-import { buildAthleteSystemPrompt } from '@/lib/ai/athlete-prompts';
+import { buildAthleteSystemPrompt, MemoryContext } from '@/lib/ai/athlete-prompts';
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
+import { extractMemoriesFromConversation, saveMemories } from '@/lib/ai/memory-extractor';
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
 import { buildCalendarContext } from '@/lib/ai/calendar-context-builder';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
@@ -53,6 +54,8 @@ interface ChatRequest {
   isAthleteChat?: boolean;
   /** Client ID for athlete chat (athlete's own client record) */
   clientId?: string;
+  /** Memory context for personalized AI interactions */
+  memoryContext?: MemoryContext;
 }
 
 /**
@@ -96,6 +99,7 @@ export async function POST(request: NextRequest) {
       pageContext = '',
       isAthleteChat = false,
       clientId,
+      memoryContext,
     } = body;
 
     // Different authentication flow for athlete vs coach
@@ -191,7 +195,7 @@ export async function POST(request: NextRequest) {
     if (isAthleteChat && athleteClientId) {
       try {
         athleteContext = await buildAthleteOwnContext(athleteClientId);
-        athleteSystemPrompt = buildAthleteSystemPrompt(athleteContext, athleteName);
+        athleteSystemPrompt = buildAthleteSystemPrompt(athleteContext, athleteName, memoryContext);
       } catch (error) {
         logger.warn('Error building athlete context', { athleteClientId }, error)
       }
@@ -776,6 +780,39 @@ ${pageContext}
             });
           } catch (error) {
             logger.error('Error saving messages', { conversationId }, error)
+          }
+        }
+
+        // Extract memories from athlete conversations (fire-and-forget)
+        if (isAthleteChat && athleteClientId && text) {
+          const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+          if (lastUserMessage) {
+            // Run memory extraction in background without blocking
+            (async () => {
+              try {
+                const apiKeys = await getDecryptedUserApiKeys(apiKeyUserId);
+                if (apiKeys.anthropicKey) {
+                  const conversationForMemory = [
+                    { role: 'user' as const, content: getMessageContent(lastUserMessage) },
+                    { role: 'assistant' as const, content: text },
+                  ];
+                  const extractedMemories = await extractMemoriesFromConversation(
+                    conversationForMemory,
+                    apiKeys.anthropicKey
+                  );
+                  if (extractedMemories.length > 0) {
+                    const savedCount = await saveMemories(athleteClientId, extractedMemories);
+                    logger.debug('Memories extracted from conversation', {
+                      clientId: athleteClientId,
+                      extracted: extractedMemories.length,
+                      saved: savedCount,
+                    });
+                  }
+                }
+              } catch (memoryError) {
+                logger.warn('Memory extraction failed (non-blocking)', { clientId: athleteClientId }, memoryError);
+              }
+            })();
           }
         }
       },

@@ -20,7 +20,8 @@ import {
 } from 'lucide-react'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
 import { cn } from '@/lib/utils'
-import { ATHLETE_QUICK_PROMPTS } from '@/lib/ai/athlete-prompts'
+import { ATHLETE_QUICK_PROMPTS, MemoryContext } from '@/lib/ai/athlete-prompts'
+import { MemoryIndicator } from './MemoryIndicator'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -47,6 +48,7 @@ export function AthleteFloatingChat({
   const [hasAIAccess, setHasAIAccess] = useState<boolean | null>(null)
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null)
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
+  const [memoryContext, setMemoryContext] = useState<MemoryContext | null>(null)
 
   // Fetch AI config from coach
   useEffect(() => {
@@ -145,6 +147,7 @@ export function AthleteFloatingChat({
         provider: modelConfig?.provider,
         isAthleteChat: true, // This triggers athlete mode
         clientId,
+        memoryContext: memoryContext || undefined,
       },
     })
   }
@@ -296,6 +299,10 @@ export function AthleteFloatingChat({
           {getProviderBadge()}
         </div>
         <div className="flex items-center gap-1">
+          <MemoryIndicator
+            clientId={clientId}
+            onMemoryContextReady={setMemoryContext}
+          />
           <Button
             variant="ghost"
             size="icon"
@@ -354,7 +361,7 @@ export function AthleteFloatingChat({
           </div>
         ) : (
           <div className="space-y-4">
-            {messages.map((message) => {
+            {messages.map((message, index) => {
               // AI SDK 5: Extract text from message parts
               const textContent = message.parts
                 ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
@@ -362,7 +369,7 @@ export function AthleteFloatingChat({
                 .join('') || ''
               return (
                 <ChatMessage
-                  key={message.id}
+                  key={`${message.id}-${index}`}
                   message={{
                     id: message.id,
                     role: message.role as 'user' | 'assistant' | 'system',

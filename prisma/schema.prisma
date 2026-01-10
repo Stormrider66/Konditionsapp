@@ -220,10 +220,10 @@ enum ProgressionStatus {
 }
 
 enum StrengthPhase {
-  ANATOMICAL_ADAPTATION  // 4-6 weeks, 2-3×12-20 @ 40-60%
-  MAXIMUM_STRENGTH       // 6-8 weeks, 3-5×3-6 @ 80-95%
-  POWER                  // 3-4 weeks, 3-5×4-6 @ 30-60% max velocity
-  MAINTENANCE            // Variable, 2×3-5 @ 80-85%
+  ANATOMICAL_ADAPTATION  // 4-6 weeks, 2-3Ã—12-20 @ 40-60%
+  MAXIMUM_STRENGTH       // 6-8 weeks, 3-5Ã—3-6 @ 80-95%
+  POWER                  // 3-4 weeks, 3-5Ã—4-6 @ 30-60% max velocity
+  MAINTENANCE            // Variable, 2Ã—3-5 @ 80-85%
   TAPER                  // 1-2 weeks, 41-60% volume reduction
 }
 
@@ -257,7 +257,7 @@ enum ErgometerTestProtocol {
   CP_MULTI_TRIAL        // Multiple trials (3-min + 12-min) for CP model
 
   // Interval Tests
-  INTERVAL_4X4          // 4×4min with 3min rest - custom threshold test
+  INTERVAL_4X4          // 4Ã—4min with 3min rest - custom threshold test
 }
 
 model User {
@@ -330,11 +330,11 @@ model User {
 
 // ==================== TEAM SPORTS SYSTEM ====================
 
-/// Organization groups multiple teams (e.g., "IFK Göteborg" with U19, U21, Senior)
+/// Organization groups multiple teams (e.g., "IFK GÃ¶teborg" with U19, U21, Senior)
 model Organization {
   id          String     @id @default(uuid())
   userId      String     // Coach who owns the organization
-  name        String     // e.g., "IFK Göteborg"
+  name        String     // e.g., "IFK GÃ¶teborg"
   description String?
   sportType   SportType? // Primary sport for this organization
 
@@ -508,6 +508,15 @@ model Client {
   deepResearchSessions     DeepResearchSession[]   @relation("AthleteResearchSessions")
   sharedResearchAccess     SharedResearchAccess[]  @relation("SharedResearchAccess")
 
+  // Conversational Memory System relations
+  conversationMemories     ConversationMemory[]    @relation("ClientMemories")
+  conversationSummaries    ConversationSummary[]   @relation("ClientConversationSummaries")
+
+  // Proactive AI System relations
+  aiBriefings              AIBriefing[]            @relation("ClientBriefings")
+  aiNotifications          AINotification[]        @relation("ClientAINotifications")
+  aiNotificationPrefs      AINotificationPreferences? @relation("ClientAINotificationPrefs")
+
   @@index([userId])
   @@index([teamId])
   @@index([name])
@@ -524,7 +533,7 @@ model Test {
   status     TestStatus @default(DRAFT)
 
   // Test metadata (legacy string fields - prefer relations below)
-  location    String?     // Piteå, Skellefteå, etc. (LEGACY - use locationId)
+  location    String?     // PiteÃ¥, SkellefteÃ¥, etc. (LEGACY - use locationId)
   testLeader  String?     // Name of test leader (LEGACY - use testerId)
   inclineUnit InclineUnit @default(PERCENT) // For running tests: % or degrees
 
@@ -543,12 +552,12 @@ model Test {
   // Post-test measurements (to capture peak lactate, 1-5 min after test)
   postTestMeasurements Json?  // Array of {timeMin: number, lactate: number, heartRate?: number}
 
-  // Beräknade värden
+  // BerÃ¤knade vÃ¤rden
   maxHR      Int?
   maxLactate Float?
   vo2max     Float?
 
-  // Tröskelvärden
+  // TrÃ¶skelvÃ¤rden
   aerobicThreshold    Json?  // {hr: number, value: number, unit: string}
   anaerobicThreshold  Json?  // {hr: number, value: number, unit: string}
 
@@ -558,7 +567,7 @@ model Test {
   manualLT2Lactate    Float?  // Manual LT2 lactate value (mmol/L)
   manualLT2Intensity  Float?  // Manual LT2 intensity (speed/power/pace)
 
-  // Träningszoner
+  // TrÃ¤ningszoner
   trainingZones Json?  // Array av zoner
 
   // Anteckningar
@@ -594,13 +603,13 @@ model TestStage {
   testId   String
   sequence Int    // Ordning i testet
 
-  // Gemensamma fält
+  // Gemensamma fÃ¤lt
   duration    Float  // minuter
   heartRate   Int    // slag/min
   lactate     Float  // mmol/L
   vo2         Float? // ml/kg/min
 
-  // Löpspecifika
+  // LÃ¶pspecifika
   speed       Float? // km/h
   incline     Float? // procent
 
@@ -608,12 +617,12 @@ model TestStage {
   power       Float? // watt
   cadence     Int?   // rpm
 
-  // Skidåkning (Cross-country skiing)
+  // SkidÃ¥kning (Cross-country skiing)
   pace        Float? // min/km
 
-  // Beräknade värden
-  economy     Float? // ml/kg/km för löpning
-  wattsPerKg  Float? // watt/kg för cykling
+  // BerÃ¤knade vÃ¤rden
+  economy     Float? // ml/kg/km fÃ¶r lÃ¶pning
+  wattsPerKg  Float? // watt/kg fÃ¶r cykling
 
   createdAt DateTime @default(now())
 
@@ -1671,7 +1680,7 @@ model ThresholdCalculation {
 
   // D-max specific data
   polynomialCoeffs Json?    // {a: number, b: number, c: number, d: number}
-  r2               Float?   // Goodness of fit (require ≥0.90 for high confidence)
+  r2               Float?   // Goodness of fit (require â‰¥0.90 for high confidence)
   dmaxIntensity    Float?   // Intensity at D-max point
   dmaxLactate      Float?   // Lactate at D-max point
   dmaxHr           Float?   // Heart rate at D-max point
@@ -2366,7 +2375,7 @@ model StrengthTrainingSession {
   rpe             Int?      // Overall session RPE
 
   // Load progression
-  strengthLoad    Float?    // Volume load (sets × reps × weight)
+  strengthLoad    Float?    // Volume load (sets Ã— reps Ã— weight)
   plyometricLoad  Float?
 
   // Integration with running
@@ -2548,7 +2557,7 @@ model SportPerformance {
   // Core fields
   sport            SportType // CYCLING, SWIMMING, TRIATHLON, HYROX, SKIING
   eventType        String    // Sport-specific: "FTP_TEST", "CSS_TEST", "HYROX_RACE", etc.
-  eventName        String?   // "Vätternrundan", "SM 50m", etc.
+  eventName        String?   // "VÃ¤tternrundan", "SM 50m", etc.
   eventDate        DateTime
 
   // Primary result (time-based events)
@@ -3454,7 +3463,7 @@ enum HybridFormat {
   AMRAP          // As Many Rounds As Possible
   FOR_TIME       // Complete work as fast as possible
   EMOM           // Every Minute On the Minute
-  TABATA         // 20s work / 10s rest × 8
+  TABATA         // 20s work / 10s rest Ã— 8
   CHIPPER        // Long sequence of movements done once
   LADDER         // Ascending/descending rep scheme
   INTERVALS      // Work/rest intervals with movements
@@ -4315,7 +4324,7 @@ model LoadVelocityProfile {
   // Linear regression coefficients (velocity = slope * load + intercept)
   slope           Float?   // Negative value (velocity decreases with load)
   intercept       Float?   // y-intercept (theoretical 0-load velocity)
-  rSquared        Float?   // R² goodness of fit
+  rSquared        Float?   // RÂ² goodness of fit
 
   // Calculated 1RM at different velocity thresholds
   e1RM_0_3        Float?   // e1RM at 0.3 m/s (strength-speed)
@@ -4330,7 +4339,7 @@ model LoadVelocityProfile {
   maxLoad         Float?   // Maximum load in profile
   loadRange       Float?   // % of 1RM range covered
   dataPointCount  Int      @default(0)
-  isValid         Boolean  @default(false) // Enough data points and good R²
+  isValid         Boolean  @default(false) // Enough data points and good RÂ²
 
   // When this profile was last updated
   lastMeasurementAt DateTime?
@@ -4537,11 +4546,11 @@ model ErgometerFieldTest {
   maxHR           Float?                  // bpm
   hrAtEnd         Float?                  // bpm (threshold estimation)
 
-  // Interval Test Data (4×4min etc)
+  // Interval Test Data (4Ã—4min etc)
   intervalData    Json?                   // Array of { avgPower, avgHR, duration }
 
   // Model Quality & Confidence
-  r2              Float?                  // R² for CP model fit (0-1)
+  r2              Float?                  // RÂ² for CP model fit (0-1)
   confidence      String?                 // VERY_HIGH, HIGH, MEDIUM, LOW
   modelFit        String?                 // EXCELLENT, GOOD, FAIR, POOR
 
@@ -4619,7 +4628,7 @@ model ErgometerZone {
   // Zone definition (1-6 standard, 1-7 for detailed)
   zone            Int             // 1-6 (or 1-7)
   name            String          // Recovery, Endurance, Tempo, Threshold, VO2max, Anaerobic
-  nameSwedish     String          // Återhämtning, Uthållighet, Tempo, Tröskel, VO2max, Anaerob
+  nameSwedish     String          // Ã…terhÃ¤mtning, UthÃ¥llighet, Tempo, TrÃ¶skel, VO2max, Anaerob
 
   // Power targets
   powerMin        Float           // Watts (lower bound)
@@ -4960,4 +4969,179 @@ model ProgramGenerationProgress {
 
   @@index([sessionId])
   @@index([timestamp])
+}
+
+// ==================== CONVERSATIONAL MEMORY SYSTEM ====================
+// Purpose: AI remembers important facts from conversations with athletes
+// Enables personalized, relationship-building AI interactions
+
+/// Individual memory items extracted from conversations
+model ConversationMemory {
+  id              String      @id @default(uuid())
+  clientId        String
+
+  // Memory content
+  memoryType      String      // INJURY_MENTION, GOAL_STATEMENT, PREFERENCE, LIFE_EVENT, etc.
+  category        String?     // Sub-category: "injury", "goal", "preference", "life_event"
+  content         String      @db.Text // "Mentioned knee discomfort after long runs"
+  context         String?     @db.Text // Additional context if needed
+
+  // Importance and lifecycle
+  importance      Int         @default(3) // 1-5 for retrieval priority
+  extractedAt     DateTime    @default(now())
+  expiresAt       DateTime?   // Some memories fade (e.g., temporary injury)
+
+  // Source tracking
+  sourceMessageId String?     // Link to original AI message if available
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  client          Client      @relation("ClientMemories", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, memoryType])
+  @@index([clientId, importance])
+  @@index([clientId, expiresAt])
+}
+
+/// Weekly conversation summaries for context
+model ConversationSummary {
+  id              String      @id @default(uuid())
+  clientId        String
+
+  // Time period
+  weekStart       DateTime    @db.Date // Monday of the week
+  weekEnd         DateTime    @db.Date // Sunday of the week
+
+  // AI-generated content
+  summary         String      @db.Text // Summary of week's conversations
+  keyTopics       String[]    @default([]) // ["recovery", "nutrition", "race prep"]
+  sentiment       String?     // "positive", "neutral", "concerned", "frustrated"
+
+  // Extracted highlights
+  highlights      String[]    @default([]) // Key achievements or positive moments
+  concerns        String[]    @default([]) // Issues raised by athlete
+
+  // Metadata
+  messageCount    Int         @default(0) // Number of messages summarized
+
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  client          Client      @relation("ClientConversationSummaries", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, weekStart])
+  @@index([clientId, weekStart])
+}
+
+/// AI-generated daily briefings for athletes
+model AIBriefing {
+  id              String      @id @default(uuid())
+  clientId        String
+
+  // Briefing content
+  briefingType    String      @default("MORNING") // MORNING, PRE_WORKOUT, POST_WORKOUT, WEEKLY_RECAP
+  title           String      // "God morgon Henrik!"
+  content         String      @db.Text // Full briefing text
+  highlights      String[]    @default([]) // Key points as bullet items
+
+  // Structured data for UI
+  readinessScore  Float?      // Today's readiness if available
+  todaysWorkout   String?     // Brief workout summary
+  alerts          Json?       // { type: "warning" | "info", message: string }[]
+  quickActions    Json?       // { label: string, action: string }[]
+
+  // Delivery
+  scheduledFor    DateTime    // When to show the briefing
+  deliveredAt     DateTime?   // When actually shown to user
+  readAt          DateTime?   // When user engaged with it
+  dismissedAt     DateTime?   // When user dismissed
+
+  // Generation metadata
+  modelUsed       String?     // AI model used for generation
+  generatedAt     DateTime    @default(now())
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  client          Client      @relation("ClientBriefings", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, scheduledFor])
+  @@index([clientId, briefingType, scheduledFor])
+  @@index([clientId, readAt])
+}
+
+/// Proactive AI notifications and nudges
+model AINotification {
+  id              String      @id @default(uuid())
+  clientId        String
+
+  // Notification type and priority
+  notificationType String     // PRE_WORKOUT, PATTERN_ALERT, MILESTONE, RECOVERY_CHECK, WEATHER_ALERT
+  priority        String      @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+
+  // Content
+  title           String
+  message         String      @db.Text
+  icon            String?     // Emoji or icon name
+  actionUrl       String?     // Deep link if applicable
+  actionLabel     String?     // "Se detaljer", "Chatta med AI"
+
+  // Context data
+  contextData     Json?       // Additional data for the notification
+
+  // Trigger info
+  triggeredBy     String?     // "cron", "event", "pattern_detection"
+  triggerReason   String?     // Human-readable explanation
+
+  // Delivery status
+  scheduledFor    DateTime?   // For scheduled notifications
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  dismissedAt     DateTime?
+  actionTakenAt   DateTime?   // If user clicked action
+
+  // Expiry
+  expiresAt       DateTime?   // Auto-dismiss after this time
+
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  client          Client      @relation("ClientAINotifications", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([clientId, notificationType])
+  @@index([clientId, readAt])
+  @@index([clientId, expiresAt])
+}
+
+/// AI notification preferences per athlete
+model AINotificationPreferences {
+  id                      String      @id @default(uuid())
+  clientId                String      @unique
+
+  // Feature toggles
+  morningBriefingEnabled  Boolean     @default(true)
+  preWorkoutNudgeEnabled  Boolean     @default(true)
+  postWorkoutCheckEnabled Boolean     @default(true)
+  patternAlertsEnabled    Boolean     @default(true)
+  milestoneAlertsEnabled  Boolean     @default(true)
+  weatherAlertsEnabled    Boolean     @default(false)
+
+  // Timing preferences
+  morningBriefingTime     String      @default("07:00") // HH:mm format
+  preWorkoutLeadTime      Int         @default(120) // Minutes before workout
+  timezone                String      @default("Europe/Stockholm")
+
+  // Communication style
+  verbosityLevel          String      @default("NORMAL") // BRIEF, NORMAL, DETAILED
+  motivationStyle         String      @default("BALANCED") // SUPPORTIVE, BALANCED, DIRECT
+
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+
+  // Relations
+  client                  Client      @relation("ClientAINotificationPrefs", fields: [clientId], references: [id], onDelete: Cascade)
 }
