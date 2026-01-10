@@ -106,20 +106,78 @@ export async function POST(request: NextRequest) {
 /**
  * Get the current hour in a specific timezone (DST-aware)
  */
-function getHourInTimezone(timezone: string): number {
-  try {
-    const now = new Date()
+function getHourInTimezone(timezone: string | null | undefined): number {
+  const now = new Date()
+  const requestedTimezone = timezone || 'Europe/Stockholm'
+
+  const getHourWithIntl = (tz: string): number => {
     const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      hour: 'numeric',
-      hour12: false,
+      timeZone: tz,
+      hour: '2-digit',
+      hourCycle: 'h23',
     })
-    const hourStr = formatter.format(now)
-    return parseInt(hourStr, 10)
-  } catch {
-    // Fallback to UTC hour if timezone is invalid
-    return new Date().getUTCHours()
+
+    const hourStr = formatter.formatToParts(now).find((p) => p.type === 'hour')?.value
+    const hour = hourStr ? parseInt(hourStr, 10) : Number.NaN
+
+    if (!Number.isFinite(hour)) {
+      throw new Error(`Failed to parse hour for timezone: ${tz}`)
+    }
+
+    return hour
   }
+
+  try {
+    return getHourWithIntl(requestedTimezone)
+  } catch (error) {
+    // Retry with a known-good default timezone if the supplied one is invalid.
+    if (requestedTimezone !== 'Europe/Stockholm') {
+      try {
+        return getHourWithIntl('Europe/Stockholm')
+      } catch (stockholmError) {
+        logger.warn(
+          'Failed to compute hour via Intl timeZone; falling back to Stockholm DST algorithm',
+          { timezone: requestedTimezone },
+          stockholmError
+        )
+        return getStockholmHourFallback(now)
+      }
+    }
+
+    logger.warn(
+      'Failed to compute Europe/Stockholm hour via Intl timeZone; falling back to Stockholm DST algorithm',
+      { timezone: requestedTimezone },
+      error
+    )
+    return getStockholmHourFallback(now)
+  }
+}
+
+/**
+ * Fallback when Intl timeZone support is unavailable.
+ * Sweden follows EU DST rules: UTC+1 (CET) in winter, UTC+2 (CEST) in summer.
+ */
+function getStockholmHourFallback(now: Date): number {
+  const year = now.getUTCFullYear()
+
+  // DST starts: last Sunday in March at 01:00 UTC
+  const dstStart = getLastSundayOfMonthUTC(year, 2)
+  dstStart.setUTCHours(1, 0, 0, 0)
+
+  // DST ends: last Sunday in October at 01:00 UTC
+  const dstEnd = getLastSundayOfMonthUTC(year, 9)
+  dstEnd.setUTCHours(1, 0, 0, 0)
+
+  const isDst = now.getTime() >= dstStart.getTime() && now.getTime() < dstEnd.getTime()
+  const stockholmOffsetHours = isDst ? 2 : 1
+
+  return (now.getUTCHours() + stockholmOffsetHours) % 24
+}
+
+function getLastSundayOfMonthUTC(year: number, monthIndex: number): Date {
+  const lastDayOfMonth = new Date(Date.UTC(year, monthIndex + 1, 0))
+  const lastSundayDate = lastDayOfMonth.getUTCDate() - lastDayOfMonth.getUTCDay()
+  return new Date(Date.UTC(year, monthIndex, lastSundayDate))
 }
 
 /**
