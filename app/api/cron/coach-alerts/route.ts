@@ -276,15 +276,15 @@ async function checkMissedWorkouts(
   // Check strength session assignments
   const missedStrength = await prisma.strengthSessionAssignment.findMany({
     where: {
-      clientId,
+      athleteId: clientId,
       status: 'PENDING',
-      scheduledDate: {
+      assignedDate: {
         gte: threeDaysAgo,
         lt: now,
       },
     },
     include: {
-      strengthSession: {
+      session: {
         select: { name: true },
       },
     },
@@ -294,15 +294,15 @@ async function checkMissedWorkouts(
   // Check cardio session assignments
   const missedCardio = await prisma.cardioSessionAssignment.findMany({
     where: {
-      clientId,
+      athleteId: clientId,
       status: 'PENDING',
-      scheduledDate: {
+      assignedDate: {
         gte: threeDaysAgo,
         lt: now,
       },
     },
     include: {
-      cardioSession: {
+      session: {
         select: { name: true },
       },
     },
@@ -314,8 +314,8 @@ async function checkMissedWorkouts(
   if (totalMissed === 0) return alerts
 
   const workoutNames = [
-    ...missedStrength.map((w) => w.strengthSession.name),
-    ...missedCardio.map((w) => w.cardioSession.name),
+    ...missedStrength.map((w) => w.session.name),
+    ...missedCardio.map((w) => w.session.name),
   ].slice(0, 3)
 
   const severity: Severity = totalMissed >= 4 ? 'HIGH' : totalMissed >= 2 ? 'MEDIUM' : 'LOW'
