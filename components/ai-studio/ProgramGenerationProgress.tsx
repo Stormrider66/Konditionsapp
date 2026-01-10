@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -57,17 +57,39 @@ export function ProgramGenerationProgress({
     completedPhases: [],
   })
   const [isConnected, setIsConnected] = useState(false)
-  const [retryCount, setRetryCount] = useState(0)
 
-  // Connect to SSE
+  // Use refs to avoid dependency cycle in SSE connection
+  const retryCountRef = useRef(0)
+  const eventSourceRef = useRef<EventSource | null>(null)
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Store callbacks in refs to avoid recreating connect function
+  const onCompleteRef = useRef(onComplete)
+  const onErrorRef = useRef(onError)
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+    onErrorRef.current = onError
+  }, [onComplete, onError])
+
+  // Connect to SSE - stable function that doesn't depend on retryCount
   const connect = useCallback(() => {
+    // Clean up any existing connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close()
+    }
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current)
+      retryTimeoutRef.current = null
+    }
+
     const eventSource = new EventSource(
       `/api/ai/generate-program/${sessionId}/progress`
     )
+    eventSourceRef.current = eventSource
 
     eventSource.onopen = () => {
       setIsConnected(true)
-      setRetryCount(0)
+      retryCountRef.current = 0
     }
 
     eventSource.onmessage = (event) => {
@@ -76,9 +98,11 @@ export function ProgramGenerationProgress({
 
         setProgress((prev) => {
           const completedPhases = [...prev.completedPhases]
+          // When we start generating phase N (currentPhase=N), phase N-1 is complete
+          // Store as 1-indexed to match display logic (phaseNum = i + 1)
           if (
             data.type === 'phase' &&
-            data.currentPhase > 0 &&
+            data.currentPhase > 1 &&
             !completedPhases.includes(data.currentPhase - 1)
           ) {
             completedPhases.push(data.currentPhase - 1)
@@ -99,13 +123,15 @@ export function ProgramGenerationProgress({
         // Handle completion
         if (data.type === 'complete' && data.program) {
           eventSource.close()
-          onComplete(data.program)
+          eventSourceRef.current = null
+          onCompleteRef.current(data.program)
         }
 
         // Handle error
         if (data.type === 'error' && data.error) {
           eventSource.close()
-          onError?.(data.error)
+          eventSourceRef.current = null
+          onErrorRef.current?.(data.error)
         }
       } catch (err) {
         console.error('Error parsing SSE event:', err)
@@ -115,24 +141,32 @@ export function ProgramGenerationProgress({
     eventSource.onerror = () => {
       setIsConnected(false)
       eventSource.close()
+      eventSourceRef.current = null
 
-      // Retry connection up to 3 times
-      if (retryCount < 3) {
-        setTimeout(() => {
-          setRetryCount((c) => c + 1)
+      // Retry connection up to 3 times with exponential backoff
+      if (retryCountRef.current < 3) {
+        const delay = 2000 * (retryCountRef.current + 1)
+        retryCountRef.current += 1
+        retryTimeoutRef.current = setTimeout(() => {
           connect()
-        }, 2000 * (retryCount + 1))
+        }, delay)
       }
     }
-
-    return () => {
-      eventSource.close()
-    }
-  }, [sessionId, onComplete, onError, retryCount])
+  }, [sessionId]) // Only depends on sessionId, not on callbacks or retryCount
 
   useEffect(() => {
-    const cleanup = connect()
-    return cleanup
+    connect()
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+        retryTimeoutRef.current = null
+      }
+    }
   }, [connect])
 
   // Get status icon
