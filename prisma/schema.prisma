@@ -520,6 +520,10 @@ model Client {
   // Coach-AI Collaboration relations
   coachAlerts              CoachAlert[]            @relation("ClientCoachAlerts")
 
+  // Accountability tracking
+  bestCheckInStreak        Int?                    @default(0)
+  bestStreakAchievedAt     DateTime?
+
   @@index([userId])
   @@index([teamId])
   @@index([name])

@@ -32,7 +32,7 @@ import {
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
-import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel } from '@/components/athlete/dashboard'
+import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget } from '@/components/athlete/dashboard'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 import { WODHistorySummary } from '@/components/athlete/wod'
 import { MorningBriefingCard } from '@/components/athlete/MorningBriefingCard'
@@ -533,6 +533,9 @@ export default async function AthleteDashboardPage() {
 
         {/* Right Column (1/3) */}
         <div className="space-y-6">
+          {/* Accountability Streak Widget */}
+          <AccountabilityStreakWidget />
+
           {/* Active Programs */}
           <ActivePrograms programs={activePrograms} variant="glass" />
 

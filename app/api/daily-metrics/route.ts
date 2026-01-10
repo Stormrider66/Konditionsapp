@@ -563,6 +563,83 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ==========================================
+    // Streak Processing & Milestone Celebrations
+    // ==========================================
+    try {
+      // Get all metrics for streak calculation
+      const allMetrics = await prisma.dailyMetrics.findMany({
+        where: { clientId },
+        orderBy: { date: 'desc' },
+        select: { date: true },
+        take: 400, // Enough for a year+
+      })
+
+      // Calculate current streak
+      const currentStreak = calculateStreakFromMetrics(allMetrics)
+
+      // Get client's current best streak
+      const clientData = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { bestCheckInStreak: true },
+      })
+
+      const previousBest = clientData?.bestCheckInStreak || 0
+
+      // Update personal best if beaten
+      if (currentStreak > previousBest) {
+        await prisma.client.update({
+          where: { id: clientId },
+          data: {
+            bestCheckInStreak: currentStreak,
+            bestStreakAchievedAt: new Date(),
+          },
+        })
+        logger.info('New personal best streak!', { clientId, currentStreak, previousBest })
+      }
+
+      // Check for milestone and create notification
+      const STREAK_MILESTONES = [7, 14, 21, 30, 60, 90, 180, 365]
+      if (STREAK_MILESTONES.includes(currentStreak)) {
+        const milestoneLabels: Record<number, { label: string; level: string }> = {
+          7: { label: 'En vecka stark!', level: 'BRONZE' },
+          14: { label: 'Två veckor!', level: 'BRONZE' },
+          21: { label: 'Tre veckor - vana bildas!', level: 'SILVER' },
+          30: { label: 'En hel månad!', level: 'SILVER' },
+          60: { label: 'Två månader!', level: 'GOLD' },
+          90: { label: 'Kvartalet är ditt!', level: 'GOLD' },
+          180: { label: 'Halvåret avklarat!', level: 'PLATINUM' },
+          365: { label: 'Ett helt år - legendär!', level: 'PLATINUM' },
+        }
+
+        const milestone = milestoneLabels[currentStreak]
+
+        // Create milestone notification
+        await prisma.aINotification.create({
+          data: {
+            clientId,
+            notificationType: 'MILESTONE',
+            title: `🔥 ${currentStreak} dagars streak!`,
+            message: milestone.label,
+            priority: 'MEDIUM',
+            contextData: {
+              milestoneType: 'CONSISTENCY_STREAK',
+              celebrationLevel: milestone.level,
+              value: currentStreak,
+              unit: 'dagar',
+              previousBest: previousBest > 0 ? previousBest : null,
+            },
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          },
+        })
+
+        logger.info('Streak milestone notification created', { clientId, currentStreak, level: milestone.level })
+      }
+    } catch (error) {
+      logger.error('Error processing streak', { clientId }, error)
+      // Don't fail check-in if streak processing fails
+    }
+
     return NextResponse.json({
       success: true,
       dailyMetrics,
@@ -761,4 +838,34 @@ function createFallbackRHRBaseline(measurement: RHRMeasurement): RHRBaseline {
       highlyElevated: measurement.heartRate + 8,
     },
   }
+}
+
+/**
+ * Calculate consecutive days with check-ins starting from today
+ */
+function calculateStreakFromMetrics(metrics: Array<{ date: Date }>): number {
+  if (metrics.length === 0) return 0
+
+  // Sort by date descending
+  const sorted = [...metrics].sort((a, b) => b.date.getTime() - a.date.getTime())
+
+  let streak = 0
+  let expectedDate = new Date()
+  expectedDate.setHours(0, 0, 0, 0)
+
+  for (const metric of sorted) {
+    const metricDate = new Date(metric.date)
+    metricDate.setHours(0, 0, 0, 0)
+
+    if (metricDate.getTime() === expectedDate.getTime()) {
+      streak++
+      // Move to previous day
+      expectedDate.setDate(expectedDate.getDate() - 1)
+    } else {
+      // Streak broken
+      break
+    }
+  }
+
+  return streak
 }
