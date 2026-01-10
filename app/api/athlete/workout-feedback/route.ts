@@ -67,12 +67,13 @@ export async function POST(request: Request) {
     }
 
     // Update notification with feedback
+    const existingContext = (notification.contextData as object) || {}
     const updatedNotification = await prisma.aINotification.update({
       where: { id: feedback.notificationId },
       data: {
         actionTakenAt: new Date(),
         contextData: {
-          ...(notification.contextData as object),
+          ...existingContext,
           feedback: {
             overallFeeling: feedback.overallFeeling,
             energyLevel: feedback.energyLevel,

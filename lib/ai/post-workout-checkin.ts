@@ -387,12 +387,13 @@ export async function savePostWorkoutFeedback(
     if (!notification) return false
 
     // Mark notification as action taken
+    const existingContext = (notification.contextData as object) || {}
     await prisma.aINotification.update({
       where: { id: notificationId },
       data: {
         actionTakenAt: new Date(),
         contextData: {
-          ...(notification.contextData as object),
+          ...existingContext,
           feedback: {
             overallFeeling: feedback.overallFeeling,
             energyLevel: feedback.energyLevel,

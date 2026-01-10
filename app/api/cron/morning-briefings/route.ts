@@ -34,16 +34,11 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Get current hour in different timezones
-    const now = new Date()
-    const currentHourUTC = now.getUTCHours()
-
     // Find athletes who should receive briefings now
-    // Based on their timezone and preferred briefing time
-    const athletesForBriefing = await findAthletesForBriefing(currentHourUTC)
+    // Based on their timezone and preferred briefing time (DST-aware)
+    const athletesForBriefing = await findAthletesForBriefing()
 
     logger.info('Morning briefings cron started', {
-      currentHourUTC,
       athletesToProcess: athletesForBriefing.length,
     })
 
@@ -109,20 +104,30 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * Get the current hour in a specific timezone (DST-aware)
+ */
+function getHourInTimezone(timezone: string): number {
+  try {
+    const now = new Date()
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      hour12: false,
+    })
+    const hourStr = formatter.format(now)
+    return parseInt(hourStr, 10)
+  } catch {
+    // Fallback to Europe/Stockholm if timezone is invalid
+    return getHourInTimezone('Europe/Stockholm')
+  }
+}
+
+/**
  * Find athletes who should receive morning briefings at the current hour
  */
-async function findAthletesForBriefing(currentHourUTC: number): Promise<
+async function findAthletesForBriefing(): Promise<
   { clientId: string; coachUserId: string }[]
 > {
-  // Common timezone offsets for Sweden/Europe
-  const timezoneOffsets: Record<string, number> = {
-    'Europe/Stockholm': 1, // UTC+1 (winter) or UTC+2 (summer)
-    'Europe/London': 0,
-    'Europe/Paris': 1,
-    'America/New_York': -5,
-    'America/Los_Angeles': -8,
-  }
-
   // Get athletes with notification preferences who want morning briefings
   const preferences = await prisma.aINotificationPreferences.findMany({
     where: {
@@ -160,10 +165,7 @@ async function findAthletesForBriefing(currentHourUTC: number): Promise<
   // Check athletes with preferences
   for (const pref of preferences) {
     const briefingHour = parseInt(pref.morningBriefingTime.split(':')[0], 10)
-    const offset = timezoneOffsets[pref.timezone] ?? 1 // Default to Stockholm
-
-    // Calculate what hour it is in the athlete's timezone
-    const localHour = (currentHourUTC + offset + 24) % 24
+    const localHour = getHourInTimezone(pref.timezone)
 
     if (localHour === briefingHour) {
       result.push({
@@ -175,8 +177,7 @@ async function findAthletesForBriefing(currentHourUTC: number): Promise<
 
   // Check athletes without preferences (default: 07:00 Stockholm time)
   const defaultBriefingHour = 7
-  const stockholmOffset = 1 // Simplified - should account for DST
-  const stockholmHour = (currentHourUTC + stockholmOffset + 24) % 24
+  const stockholmHour = getHourInTimezone('Europe/Stockholm')
 
   if (stockholmHour === defaultBriefingHour) {
     for (const client of clientsWithoutPrefs) {

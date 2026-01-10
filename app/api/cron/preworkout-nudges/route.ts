@@ -39,19 +39,17 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Find all athletes with pre-workout nudges enabled
-    const athletePreferences = await prisma.aINotificationPreferences.findMany({
-      where: {
-        preWorkoutNudgeEnabled: true,
-      },
+    // Fetch ALL notification preferences to properly check opt-out
+    const allPreferences = await prisma.aINotificationPreferences.findMany({
       select: {
         clientId: true,
+        preWorkoutNudgeEnabled: true,
         preWorkoutLeadTime: true, // Minutes before workout
       },
     })
 
-    // Also include athletes without preferences (use defaults)
-    const athletesWithPrefs = new Set(athletePreferences.map((p) => p.clientId))
+    // Build a map for quick lookup
+    const prefsMap = new Map(allPreferences.map((p) => [p.clientId, p]))
 
     // Get all athletes with accounts who might have workouts
     const allAthletes = await prisma.client.findMany({
@@ -69,15 +67,15 @@ export async function GET(request: Request) {
       results.processed++
 
       try {
-        // Get lead time preference (default 120 minutes = 2 hours)
-        const prefs = athletePreferences.find((p) => p.clientId === athlete.id)
+        const prefs = prefsMap.get(athlete.id)
 
         // Skip if athlete has explicitly disabled nudges
-        if (athletesWithPrefs.has(athlete.id) && !prefs) {
+        if (prefs && !prefs.preWorkoutNudgeEnabled) {
           results.skipped++
           continue
         }
 
+        // Use preference lead time, or default 120 minutes (2 hours)
         const leadTime = prefs?.preWorkoutLeadTime ?? 120
 
         // Find upcoming workouts within the lead time window
