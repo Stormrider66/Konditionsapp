@@ -27,6 +27,7 @@ import {
 import { format, subDays } from 'date-fns'
 import { sv, enUS } from 'date-fns/locale'
 import { getTranslations, getLocale } from '@/i18n/server'
+import { CoachAIAssistantPanel } from '@/components/coach/CoachAIAssistantPanel'
 
 export default async function CoachDashboardPage() {
   const t = await getTranslations('coach')
@@ -315,6 +316,9 @@ export default async function CoachDashboardPage() {
 
         {/* Right Column - Summary & Alerts */}
         <div className="space-y-6">
+          {/* AI Assistant Panel */}
+          <CoachAIAssistantPanel />
+
           {/* Weekly Summary */}
           <Card>
             <CardHeader className="pb-3">
