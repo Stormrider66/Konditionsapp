@@ -28,6 +28,7 @@ import {
   FileText,
   Copy,
   Download,
+  Printer,
   Save,
   Share2,
   MessageSquare,
@@ -129,6 +130,90 @@ export function ResearchResultViewer({
       title: 'Exported',
       description: 'Report downloaded as markdown file.',
     })
+  }
+
+  // Print report
+  const printReport = () => {
+    if (!session.report) return
+
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      toast({
+        title: 'Error',
+        description: 'Could not open print window. Please check popup settings.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Convert markdown to basic HTML for printing
+    const htmlContent = session.report
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/^\* (.*$)/gim, '<li>$1</li>')
+      .replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
+      .replace(/\n/g, '<br/>')
+      .replace(/<br\/><li>/g, '<li>')
+      .replace(/<\/li><br\/>/g, '</li>')
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Research Report - ${session.query.substring(0, 50)}...</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 40px 20px;
+              line-height: 1.6;
+              color: #333;
+            }
+            h1 { font-size: 24px; margin-top: 24px; margin-bottom: 12px; color: #111; }
+            h2 { font-size: 20px; margin-top: 20px; margin-bottom: 10px; color: #222; }
+            h3 { font-size: 16px; margin-top: 16px; margin-bottom: 8px; color: #333; }
+            li { margin-bottom: 4px; }
+            .header {
+              border-bottom: 2px solid #333;
+              padding-bottom: 16px;
+              margin-bottom: 24px;
+            }
+            .query {
+              color: #666;
+              font-style: italic;
+              margin-bottom: 8px;
+            }
+            .meta {
+              font-size: 12px;
+              color: #888;
+            }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Research Report</h1>
+            <p class="query">${session.query}</p>
+            <p class="meta">
+              ${formatProvider(session.provider)} |
+              ${session.completedAt ? new Date(session.completedAt).toLocaleDateString() : 'N/A'}
+              ${session.sources?.length ? ` | ${session.sources.length} sources` : ''}
+            </p>
+          </div>
+          <div class="content">
+            ${htmlContent}
+          </div>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.print()
   }
 
   // Save to documents
@@ -341,6 +426,17 @@ export function ResearchResultViewer({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Export as Markdown</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={printReport}>
+                  <Printer className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Print Report</TooltipContent>
             </Tooltip>
           </TooltipProvider>
 

@@ -10,17 +10,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Check, Brain, Sparkles, Zap, Bot, AlertCircle } from 'lucide-react';
+import { Loader2, Check, Brain, Sparkles, Zap, Bot, AlertCircle, FileText, DollarSign } from 'lucide-react';
 import type { AIProvider } from '@prisma/client';
+import { formatTokenCount, estimateWeeksFromTokens } from '@/types/ai-models';
 
 interface AIModel {
   id: string;
   provider: AIProvider;
   modelId: string;
-  displayName: string;
+  displayName?: string;
+  name: string;
   description: string | null;
-  capabilities: string[];
-  isDefault: boolean;
+  capabilities: {
+    reasoning: string;
+    speed: string;
+    contextWindow: number;
+    maxOutputTokens: number;
+  };
+  pricing: {
+    input: number;
+    output: number;
+  };
+  recommended?: boolean;
+  bestForLongOutput?: boolean;
 }
 
 interface ApiKeyStatus {
@@ -181,7 +193,7 @@ export function DefaultModelSelector() {
                 {defaultModel && (
                   <div className="flex items-center gap-2">
                     {getProviderIcon(defaultModel.provider)}
-                    <span>{defaultModel.displayName}</span>
+                    <span>{defaultModel.displayName || defaultModel.name}</span>
                     <span className="text-xs text-muted-foreground">
                       ({getProviderLabel(defaultModel.provider)})
                     </span>
@@ -189,31 +201,49 @@ export function DefaultModelSelector() {
                 )}
               </SelectValue>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-w-[500px]">
               {availableModels.length > 0 && (
                 <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                   Tillgängliga modeller
                 </div>
               )}
               {availableModels.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  <div className="flex items-center gap-2">
+                <SelectItem key={model.id} value={model.id} className="py-3">
+                  <div className="flex items-start gap-2">
                     {getProviderIcon(model.provider)}
-                    <div className="flex flex-col">
-                      <div className="flex items-center gap-2">
-                        <span>{model.displayName}</span>
-                        {model.isDefault && (
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{model.displayName || model.name}</span>
+                        {model.recommended && (
                           <Badge variant="secondary" className="text-xs py-0">
                             Rekommenderad
                           </Badge>
                         )}
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {getProviderLabel(model.provider)}
-                        {model.capabilities.length > 0 && (
-                          <> - {model.capabilities.slice(0, 2).join(', ')}</>
+                        {model.bestForLongOutput && (
+                          <Badge variant="outline" className="text-xs py-0 border-green-500 text-green-600">
+                            <FileText className="h-3 w-3 mr-1" />
+                            Långa program
+                          </Badge>
                         )}
-                      </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          {formatTokenCount(model.capabilities.maxOutputTokens)} output
+                          <span className="text-muted-foreground/70">
+                            (~{estimateWeeksFromTokens(model.capabilities.maxOutputTokens)} veckor)
+                          </span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          ${model.pricing.output}/1M
+                        </span>
+                      </div>
+                      {model.description && (
+                        <span className="text-xs text-muted-foreground/80">
+                          {model.description}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </SelectItem>
@@ -225,11 +255,15 @@ export function DefaultModelSelector() {
                     Ej tillgängliga (saknar API-nyckel)
                   </div>
                   {unavailableModels.map((model) => (
-                    <SelectItem key={model.id} value={model.id} disabled>
-                      <div className="flex items-center gap-2 opacity-50">
+                    <SelectItem key={model.id} value={model.id} disabled className="py-3">
+                      <div className="flex items-start gap-2 opacity-50">
                         <AlertCircle className="h-4 w-4 text-amber-500" />
-                        <div className="flex flex-col">
-                          <span>{model.displayName}</span>
+                        <div className="flex flex-col gap-1">
+                          <span>{model.displayName || model.name}</span>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span>{formatTokenCount(model.capabilities.maxOutputTokens)} output</span>
+                            <span>${model.pricing.output}/1M</span>
+                          </div>
                           <span className="text-xs text-muted-foreground">
                             {getProviderLabel(model.provider)} - API-nyckel saknas
                           </span>
@@ -263,6 +297,53 @@ export function DefaultModelSelector() {
           )}
 
           {error && <p className="text-sm text-red-500">{error}</p>}
+
+          {/* Model details for selected model */}
+          {defaultModel && (
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Vald modell: {defaultModel.displayName || defaultModel.name}</span>
+                {defaultModel.bestForLongOutput && (
+                  <Badge variant="outline" className="border-green-500 text-green-600">
+                    Bra för långa program
+                  </Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Max output:</span>{' '}
+                  <span className="font-medium">{formatTokenCount(defaultModel.capabilities.maxOutputTokens)} tokens</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Uppskattad kapacitet:</span>{' '}
+                  <span className="font-medium">~{estimateWeeksFromTokens(defaultModel.capabilities.maxOutputTokens)} veckors program</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Input-pris:</span>{' '}
+                  <span className="font-medium">${defaultModel.pricing.input}/1M tokens</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Output-pris:</span>{' '}
+                  <span className="font-medium">${defaultModel.pricing.output}/1M tokens</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Long program recommendation */}
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+              Tips för långa träningsprogram
+            </p>
+            <p className="text-xs text-blue-800 dark:text-blue-200 mb-2">
+              För att generera 6-9 månaders program, välj en modell med hög output-kapacitet:
+            </p>
+            <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+              <li>• <strong>GPT-5.2</strong> - 128K output (~32 veckor) - Bäst för längre program</li>
+              <li>• <strong>Gemini 3 Pro / Claude</strong> - 64K output (~16 veckor) - Bra balans</li>
+              <li>• <strong>Haiku / Nano</strong> - 8-16K output (~2-4 veckor) - Snabbt för korta program</li>
+            </ul>
+          </div>
 
           <p className="text-xs text-muted-foreground">
             Denna modell används automatiskt i AI Studio, programgenerering, och andra AI-funktioner

@@ -19,8 +19,16 @@ export interface AIModelConfig {
     reasoning: 'basic' | 'good' | 'excellent'
     speed: 'slow' | 'medium' | 'fast'
     contextWindow: number
+    maxOutputTokens: number
+  }
+  /** Price per 1M tokens in USD */
+  pricing: {
+    input: number
+    output: number
   }
   recommended?: boolean
+  /** Best for long-form generation (programs, reports) */
+  bestForLongOutput?: boolean
 }
 
 /**
@@ -39,7 +47,12 @@ export const AI_MODELS: AIModelConfig[] = [
     capabilities: {
       reasoning: 'good',
       speed: 'fast',
-      contextWindow: 1000000,
+      contextWindow: 1048576,
+      maxOutputTokens: 65536,
+    },
+    pricing: {
+      input: 0.5,   // $0.50 per 1M tokens
+      output: 3.0,  // $3.00 per 1M tokens
     },
     recommended: true,
   },
@@ -48,13 +61,19 @@ export const AI_MODELS: AIModelConfig[] = [
     name: 'Gemini 3 Pro',
     provider: 'google',
     modelId: 'gemini-3-pro-preview',
-    description: 'Googles bästa modell. Stöd för video och resonemang.',
+    description: 'Googles bästa modell. 64K output för långa program.',
     costTier: 'medium',
     capabilities: {
       reasoning: 'excellent',
       speed: 'medium',
-      contextWindow: 1000000,
+      contextWindow: 1048576,
+      maxOutputTokens: 65536,
     },
+    pricing: {
+      input: 2.0,   // $2.00 per 1M tokens
+      output: 12.0, // $12.00 per 1M tokens
+    },
+    bestForLongOutput: true,
   },
   // Anthropic Models (Claude 4.5)
   {
@@ -68,6 +87,11 @@ export const AI_MODELS: AIModelConfig[] = [
       reasoning: 'good',
       speed: 'fast',
       contextWindow: 200000,
+      maxOutputTokens: 8192,
+    },
+    pricing: {
+      input: 1.0,  // $1.00 per 1M tokens
+      output: 5.0, // $5.00 per 1M tokens
     },
   },
   {
@@ -81,20 +105,32 @@ export const AI_MODELS: AIModelConfig[] = [
       reasoning: 'excellent',
       speed: 'medium',
       contextWindow: 200000,
+      maxOutputTokens: 64000,
     },
+    pricing: {
+      input: 3.0,   // $3.00 per 1M tokens
+      output: 15.0, // $15.00 per 1M tokens
+    },
+    bestForLongOutput: true,
   },
   {
     id: 'claude-opus',
     name: 'Claude Opus 4.5',
     provider: 'anthropic',
     modelId: 'claude-opus-4-5-20251101',
-    description: 'Anthropics mest kraftfulla modell. Premium kvalitet.',
+    description: 'Anthropics mest kraftfulla. 64K output för långa program.',
     costTier: 'high',
     capabilities: {
       reasoning: 'excellent',
       speed: 'slow',
       contextWindow: 200000,
+      maxOutputTokens: 64000,
     },
+    pricing: {
+      input: 5.0,   // $5.00 per 1M tokens
+      output: 25.0, // $25.00 per 1M tokens
+    },
+    bestForLongOutput: true,
   },
   // OpenAI Models (GPT-5)
   {
@@ -108,6 +144,11 @@ export const AI_MODELS: AIModelConfig[] = [
       reasoning: 'good',
       speed: 'fast',
       contextWindow: 128000,
+      maxOutputTokens: 16384,
+    },
+    pricing: {
+      input: 0.5,  // $0.50 per 1M tokens
+      output: 2.0, // $2.00 per 1M tokens
     },
   },
   {
@@ -121,6 +162,11 @@ export const AI_MODELS: AIModelConfig[] = [
       reasoning: 'excellent',
       speed: 'medium',
       contextWindow: 128000,
+      maxOutputTokens: 32768,
+    },
+    pricing: {
+      input: 1.5,  // $1.50 per 1M tokens
+      output: 6.0, // $6.00 per 1M tokens
     },
   },
   {
@@ -128,13 +174,19 @@ export const AI_MODELS: AIModelConfig[] = [
     name: 'GPT-5.2',
     provider: 'openai',
     modelId: 'gpt-5.2',
-    description: 'OpenAIs flaggskeppsmodell. Bäst för kodning och agenter.',
+    description: 'OpenAIs flaggskepp. 128K output - bäst för långa program!',
     costTier: 'high',
     capabilities: {
       reasoning: 'excellent',
       speed: 'medium',
-      contextWindow: 200000,
+      contextWindow: 400000,
+      maxOutputTokens: 128000,
     },
+    pricing: {
+      input: 1.75,  // $1.75 per 1M tokens
+      output: 14.0, // $14.00 per 1M tokens
+    },
+    bestForLongOutput: true,
   },
 ]
 
@@ -192,4 +244,50 @@ export const COST_TIER_COLORS: Record<CostTier, string> = {
   low: 'bg-blue-500/20 text-blue-600 border-blue-500/30',
   medium: 'bg-orange-500/20 text-orange-600 border-orange-500/30',
   high: 'bg-purple-500/20 text-purple-600 border-purple-500/30',
+}
+
+/**
+ * Format token count for display (e.g., 128000 -> "128K")
+ */
+export function formatTokenCount(tokens: number): string {
+  if (tokens >= 1000000) {
+    return `${(tokens / 1000000).toFixed(tokens % 1000000 === 0 ? 0 : 1)}M`
+  }
+  if (tokens >= 1000) {
+    return `${(tokens / 1000).toFixed(tokens % 1000 === 0 ? 0 : 1)}K`
+  }
+  return tokens.toString()
+}
+
+/**
+ * Estimate weeks of training program that can be generated
+ * Assumes ~4000 tokens per week of detailed program
+ */
+export function estimateWeeksFromTokens(maxOutputTokens: number): number {
+  return Math.floor(maxOutputTokens / 4000)
+}
+
+/**
+ * Get models sorted by output capacity (best for long programs first)
+ */
+export function getModelsForLongOutput(keys: {
+  anthropicKey?: string | null
+  googleKey?: string | null
+  openaiKey?: string | null
+}): AIModelConfig[] {
+  return getAvailableModels(keys)
+    .filter(m => m.capabilities.maxOutputTokens >= 32000)
+    .sort((a, b) => b.capabilities.maxOutputTokens - a.capabilities.maxOutputTokens)
+}
+
+/**
+ * Get the best model for generating long programs
+ */
+export function getBestModelForLongOutput(keys: {
+  anthropicKey?: string | null
+  googleKey?: string | null
+  openaiKey?: string | null
+}): AIModelConfig | undefined {
+  const models = getModelsForLongOutput(keys)
+  return models[0]
 }

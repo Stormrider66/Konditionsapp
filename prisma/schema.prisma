@@ -321,6 +321,9 @@ model User {
   aiUsageBudget           AIUsageBudget?          @relation("UserAIBudget")
   aiUsageLogs             AIUsageLog[]            @relation("UserAIUsageLogs")
 
+  // Multi-part program generation sessions
+  programGenerationSessions ProgramGenerationSession[] @relation("CoachProgramGenSessions")
+
   @@index([email])
   @@index([role])
 }
@@ -2792,6 +2795,7 @@ model AIConversation {
   athlete         Client?      @relation("AthleteConversations", fields: [athleteId], references: [id], onDelete: SetNull)
   messages        AIMessage[]
   generatedPrograms AIGeneratedProgram[]
+  programGenerationSessions ProgramGenerationSession[]
 
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -4867,4 +4871,93 @@ model AIUsageLog {
   @@index([category])
   @@index([provider])
   @@index([createdAt])
+}
+
+// ==================== MULTI-PART PROGRAM GENERATION ====================
+
+/// Status for multi-part program generation sessions
+enum ProgramGenerationStatus {
+  PENDING             // Created, not started
+  GENERATING_OUTLINE  // Creating program structure
+  GENERATING_PHASE    // Generating a phase
+  MERGING             // Merging all phases
+  COMPLETED           // Generation finished successfully
+  FAILED              // Generation failed
+}
+
+/// Multi-part program generation sessions
+/// Splits long programs (>8 weeks) into phases and generates each sequentially
+model ProgramGenerationSession {
+  id                  String                    @id @default(uuid())
+  coachId             String
+  conversationId      String?
+
+  // Request configuration
+  query               String                    @db.Text  // Original request/prompt
+  totalWeeks          Int                       // Target program length
+  sport               String                    // Primary sport
+  methodology         String?                   // POLARIZED, NORWEGIAN, etc.
+  athleteContext      Json?                     // Snapshot of athlete data
+  athleteId           String?                   // Target athlete (optional)
+
+  // Progress tracking
+  status              ProgramGenerationStatus   @default(PENDING)
+  currentPhase        Int                       @default(0)
+  totalPhases         Int                       @default(1)
+  progressPercent     Int                       @default(0)  // 0-100
+  progressMessage     String?                   // Human-readable status
+
+  // Generation results (phases stored as they complete)
+  programOutline      Json?                     // Initial outline with phase structure
+  phases              Json[]                    @default([])  // Completed phases
+  mergedProgram       Json?                     // Final merged program
+
+  // AI model configuration
+  modelUsed           String?                   // Model used for generation
+  provider            String?                   // ANTHROPIC, GOOGLE, OPENAI
+
+  // Timing
+  startedAt           DateTime?
+  completedAt         DateTime?
+
+  // Error handling & retries
+  errorMessage        String?
+  errorCode           String?
+  retryCount          Int                       @default(0)
+  lastRetryAt         DateTime?
+
+  // Usage tracking
+  totalTokensUsed     Int                       @default(0)
+  estimatedCost       Float                     @default(0)
+
+  // Relationships
+  coach               User                      @relation("CoachProgramGenSessions", fields: [coachId], references: [id], onDelete: Cascade)
+  conversation        AIConversation?           @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  progressUpdates     ProgramGenerationProgress[]
+
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  @@index([coachId])
+  @@index([conversationId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// Progress updates for program generation (for SSE streaming)
+model ProgramGenerationProgress {
+  id          String   @id @default(uuid())
+  sessionId   String
+
+  timestamp   DateTime @default(now())
+  step        String   // "outline", "phase_1", "phase_2", "merging", etc.
+  message     String   // Human-readable progress message
+  percent     Int?     // 0-100
+  phaseNumber Int?     // Which phase (1, 2, 3...)
+  metadata    Json?    // Additional step-specific data (e.g., phase preview)
+
+  session     ProgramGenerationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([timestamp])
 }

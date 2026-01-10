@@ -45,6 +45,7 @@ import {
   BrainCircuit,
   FlaskConical,
   DollarSign,
+  Layers,
 } from 'lucide-react'
 import {
   getProgramContext,
@@ -62,8 +63,10 @@ import { ResearchResultViewer } from './ResearchResultViewer'
 import { ResearchHistory } from './ResearchHistory'
 import { ShareResearchDialog } from './ShareResearchDialog'
 import { AIBudgetSettings } from './AIBudgetSettings'
+import { ProgramGenerationProgress } from './ProgramGenerationProgress'
 import { parseAIProgram } from '@/lib/ai/program-parser'
 import type { AIProvider } from '@prisma/client'
+import type { MergedProgram } from '@/lib/ai/program-generator'
 
 interface Client {
   id: string
@@ -177,6 +180,11 @@ export function AIStudioClient({
     savedDocumentId?: string | null
   } | null>(null)
   const [shareSessionId, setShareSessionId] = useState<string | null>(null)
+
+  // Multi-part program generation state (for long programs > 8 weeks)
+  const [multiPartSessionId, setMultiPartSessionId] = useState<string | null>(null)
+  const [multiPartGenerating, setMultiPartGenerating] = useState(false)
+  const [multiPartProgram, setMultiPartProgram] = useState<MergedProgram | null>(null)
 
   // Manual input state (AI SDK 5 no longer manages input state)
   const [input, setInput] = useState('')
@@ -298,7 +306,15 @@ export function AIStudioClient({
       return
     }
 
-    // Create conversation if needed
+    const durationWeeks = programContext.wizardData.durationWeeks || 8
+
+    // For long programs (> 8 weeks), use multi-part generation
+    if (durationWeeks > 8) {
+      await startMultiPartGeneration()
+      return
+    }
+
+    // For shorter programs, use normal chat
     if (!currentConversationId) {
       const convId = await createConversation()
       if (!convId) return
@@ -306,6 +322,99 @@ export function AIStudioClient({
 
     const prompt = buildProgramPrompt(programContext)
     sendMessage({ text: prompt }, { body: getCurrentBodyParams() })
+  }
+
+  // Start multi-part program generation for long programs
+  async function startMultiPartGeneration() {
+    if (!programContext || !defaultModel) return
+
+    try {
+      setMultiPartGenerating(true)
+
+      const response = await fetch('/api/ai/generate-program', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: currentConversationId,
+          programContext: {
+            sport: programContext.wizardData.sport,
+            totalWeeks: programContext.wizardData.durationWeeks,
+            sessionsPerWeek: programContext.wizardData.sessionsPerWeek,
+            goal: programContext.wizardData.goal,
+            targetTime: programContext.wizardData.targetTime,
+            methodology: programContext.wizardData.methodology,
+            includeStrength: programContext.wizardData.includeStrength,
+            strengthSessionsPerWeek: programContext.wizardData.strengthSessionsPerWeek,
+            athleteName: programContext.wizardData.clientName,
+            athleteId: programContext.wizardData.clientId,
+            // Include athlete data if available
+            athlete: programContext.athlete,
+            recentTests: programContext.recentTests,
+            raceResults: programContext.raceResults,
+            injuries: programContext.injuries,
+          },
+          totalWeeks: programContext.wizardData.durationWeeks,
+          sport: programContext.wizardData.sport,
+          provider: defaultModel.provider,
+          modelId: defaultModel.modelId,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to start program generation')
+      }
+
+      setMultiPartSessionId(data.sessionId)
+
+      toast({
+        title: 'Startar programgenerering',
+        description: `Genererar ${data.totalPhases} faser. Uppskattad tid: ${data.estimatedMinutes} minuter.`,
+      })
+    } catch (error) {
+      setMultiPartGenerating(false)
+      toast({
+        title: 'Kunde inte starta generering',
+        description: error instanceof Error ? error.message : 'Okänt fel',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Handle multi-part generation completion
+  function handleMultiPartComplete(program: MergedProgram) {
+    setMultiPartProgram(program)
+    setMultiPartGenerating(false)
+    setMultiPartSessionId(null)
+
+    toast({
+      title: 'Program klart!',
+      description: `${program.name} - ${program.totalWeeks} veckor, ${program.phases.length} faser`,
+    })
+
+    // Format program for publish dialog
+    const formattedProgram = formatMergedProgramForPublish(program)
+    setPublishContent(formattedProgram)
+    setPublishDialogOpen(true)
+  }
+
+  // Handle multi-part generation error
+  function handleMultiPartError(error: string) {
+    setMultiPartGenerating(false)
+    setMultiPartSessionId(null)
+
+    toast({
+      title: 'Generering misslyckades',
+      description: error,
+      variant: 'destructive',
+    })
+  }
+
+  // Cancel multi-part generation
+  function handleMultiPartCancel() {
+    setMultiPartGenerating(false)
+    setMultiPartSessionId(null)
   }
 
   // Handle "Back to wizard" button
@@ -721,7 +830,17 @@ export function AIStudioClient({
 
         {/* Messages Area */}
         <ScrollArea className="flex-1 p-4">
-          {messages.length === 0 ? (
+          {/* Multi-part Program Generation Progress */}
+          {multiPartGenerating && multiPartSessionId ? (
+            <div className="h-full flex items-center justify-center">
+              <ProgramGenerationProgress
+                sessionId={multiPartSessionId}
+                onComplete={handleMultiPartComplete}
+                onError={handleMultiPartError}
+                onCancel={handleMultiPartCancel}
+              />
+            </div>
+          ) : messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center px-4">
               {/* Program Mode Welcome */}
               {programMode && programContext ? (
@@ -732,6 +851,18 @@ export function AIStudioClient({
                     All information från programguiden har laddats in. Välj dokument i sidopanelen
                     för att ge AI extra kontext, och klicka sedan på knappen nedan för att starta.
                   </p>
+
+                  {/* Long program indicator */}
+                  {programContext.wizardData.durationWeeks > 8 && (
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 max-w-lg w-full mb-4">
+                      <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                        <Layers className="h-4 w-4" />
+                        <span>
+                          <strong>Långt program:</strong> {programContext.wizardData.durationWeeks} veckor genereras i flera faser för bästa kvalitet.
+                        </span>
+                      </p>
+                    </div>
+                  )}
 
                   {/* Context Summary */}
                   <div className="bg-muted/50 rounded-lg p-4 max-w-lg w-full mb-6 text-left">
@@ -759,13 +890,17 @@ export function AIStudioClient({
                       size="lg"
                       className="w-full"
                       onClick={handleStartWithContext}
+                      disabled={multiPartGenerating}
                     >
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Starta programskapande med all kontext
+                      {programContext.wizardData.durationWeeks > 8
+                        ? 'Starta flerfas-generering'
+                        : 'Starta programskapande med all kontext'}
                     </Button>
                     <p className="text-xs text-muted-foreground">
-                      Tips: Välj relevanta dokument i sidopanelen för att inkludera träningsmetodik,
-                      fysiologisk kunskap, eller tidigare programmallar.
+                      {programContext.wizardData.durationWeeks > 8
+                        ? 'AI:n genererar programmet fas för fas med kontext mellan varje del.'
+                        : 'Tips: Välj relevanta dokument i sidopanelen för att inkludera träningsmetodik, fysiologisk kunskap, eller tidigare programmallar.'}
                     </p>
                   </div>
                 </>
@@ -1084,4 +1219,72 @@ function getGoalLabel(goal: string): string {
     custom: 'Anpassat',
   }
   return labels[goal] || goal
+}
+
+// Format merged program for publish dialog
+function formatMergedProgramForPublish(program: MergedProgram): string {
+  const lines: string[] = []
+
+  lines.push(`# ${program.name}`)
+  lines.push('')
+  lines.push(program.description)
+  lines.push('')
+  lines.push(`**Längd:** ${program.totalWeeks} veckor`)
+  lines.push(`**Faser:** ${program.phases.length}`)
+  if (program.methodology) {
+    lines.push(`**Metodik:** ${program.methodology}`)
+  }
+  lines.push('')
+
+  // Day name mapping
+  const dayNames: Record<string, string> = {
+    monday: 'Måndag',
+    tuesday: 'Tisdag',
+    wednesday: 'Onsdag',
+    thursday: 'Torsdag',
+    friday: 'Fredag',
+    saturday: 'Lördag',
+    sunday: 'Söndag',
+  }
+
+  // Add each phase
+  for (const phase of program.phases) {
+    lines.push(`## ${phase.name}`)
+    lines.push(`Veckor: ${phase.weeks}`)
+    lines.push(`Fokus: ${phase.focus}`)
+    lines.push('')
+
+    // Add weekly template
+    if (phase.weeklyTemplate) {
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
+      for (const dayKey of days) {
+        const workout = phase.weeklyTemplate[dayKey]
+        if (workout) {
+          lines.push(`### ${dayNames[dayKey]}`)
+          lines.push(`**${workout.name || workout.type}** (${workout.type})`)
+          if (workout.duration) {
+            lines.push(`Längd: ${workout.duration} min`)
+          }
+          if (workout.intensity) {
+            lines.push(`Intensitet: ${workout.intensity}`)
+          }
+          if (workout.description) {
+            lines.push(workout.description)
+          }
+          if (workout.segments && workout.segments.length > 0) {
+            lines.push('Segment:')
+            for (const seg of workout.segments) {
+              const segDuration = seg.duration ? `${seg.duration} min` : seg.distance ? `${seg.distance}m` : ''
+              const segIntensity = seg.zone ? `Zon ${seg.zone}` : seg.pace || ''
+              lines.push(`- ${seg.type}: ${segDuration} @ ${segIntensity}`)
+            }
+          }
+          lines.push('')
+        }
+      }
+    }
+    lines.push('')
+  }
+
+  return lines.join('\n')
 }
