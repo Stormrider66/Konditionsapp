@@ -78,7 +78,7 @@ export async function findRecentlyCompletedWorkouts(
       completedAt: { gte: cutoffTime },
     },
     include: {
-      session: { select: { name: true, sessionType: true } },
+      session: { select: { name: true, sport: true } },
       athlete: { select: { id: true, userId: true } },
     },
   })
@@ -89,7 +89,7 @@ export async function findRecentlyCompletedWorkouts(
         id: assignment.id,
         type: 'cardio',
         name: assignment.session.name,
-        workoutType: assignment.session.sessionType ?? 'CARDIO',
+        workoutType: assignment.session.sport ?? 'CARDIO',
         completedAt: assignment.completedAt,
         duration: assignment.actualDuration ? Math.floor(assignment.actualDuration / 60) : undefined,
         athleteId: assignment.athleteId,
@@ -105,7 +105,7 @@ export async function findRecentlyCompletedWorkouts(
       completedAt: { gte: cutoffTime },
     },
     include: {
-      workout: { select: { name: true, workoutType: true } },
+      workout: { select: { name: true, format: true } },
       athlete: { select: { id: true, userId: true } },
     },
   })
@@ -116,7 +116,7 @@ export async function findRecentlyCompletedWorkouts(
         id: assignment.id,
         type: 'hybrid',
         name: assignment.workout.name,
-        workoutType: assignment.workout.workoutType ?? 'HYBRID',
+        workoutType: assignment.workout.format ?? 'HYBRID',
         completedAt: assignment.completedAt,
         athleteId: assignment.athleteId,
         coachUserId: assignment.athlete.userId,

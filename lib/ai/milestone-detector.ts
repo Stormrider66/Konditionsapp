@@ -132,7 +132,7 @@ async function checkForPersonalRecords(clientId: string): Promise<DetectedMilest
   const exercisePRs = new Map<string, { weight: number; reps: number; exerciseName: string }>()
 
   for (const log of recentSetLogs) {
-    if (!log.weight || !log.reps) continue
+    if (!log.weight || !log.repsCompleted) continue
 
     const key = log.exerciseId
     const existing = exercisePRs.get(key)
@@ -140,7 +140,7 @@ async function checkForPersonalRecords(clientId: string): Promise<DetectedMilest
     if (!existing || log.weight > existing.weight) {
       exercisePRs.set(key, {
         weight: log.weight,
-        reps: log.reps,
+        reps: log.repsCompleted,
         exerciseName: log.exercise?.name || 'Unknown',
       })
     }
@@ -157,7 +157,7 @@ async function checkForPersonalRecords(clientId: string): Promise<DetectedMilest
             lt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Before last 24 hours
           },
         },
-        weight: { not: null },
+        weight: { gt: 0 }, // Only consider non-zero weights
       },
       orderBy: { weight: 'desc' },
       select: { weight: true },

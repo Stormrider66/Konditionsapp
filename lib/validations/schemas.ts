@@ -3,10 +3,11 @@ import { z } from 'zod'
 
 // Helper to convert NaN to undefined for optional number fields
 const optionalNumber = (min: number, max: number) =>
-  z.preprocess(
-    (val) => (typeof val === 'number' && isNaN(val) ? undefined : val),
-    z.number().min(min).max(max).optional()
-  )
+  z
+    .union([z.number().min(min).max(max), z.nan(), z.undefined()])
+    .transform((val): number | undefined =>
+      typeof val === 'number' && !isNaN(val) ? val : undefined
+    )
 
 // Klient-validering
 export const clientSchema = z.object({

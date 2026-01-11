@@ -229,9 +229,9 @@ export function AthleteAttentionCard({
           )}
 
           {/* Pain mention quote */}
-          {alert.alertType === 'PAIN_MENTION' && context.memoryContent && (
+          {alert.alertType === 'PAIN_MENTION' && typeof context.memoryContent === 'string' && (
             <div className="bg-muted/50 rounded p-2 my-2 text-xs italic">
-              &ldquo;{context.memoryContent as string}&rdquo;
+              &ldquo;{context.memoryContent}&rdquo;
             </div>
           )}
 

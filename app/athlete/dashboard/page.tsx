@@ -42,6 +42,7 @@ import { PatternAlertCard } from '@/components/athlete/PatternAlertCard'
 import { PostWorkoutCheckCard } from '@/components/athlete/PostWorkoutCheckCard'
 import { MilestoneCelebrationCard } from '@/components/athlete/MilestoneCelebrationCard'
 import { MentalPrepCard } from '@/components/athlete/MentalPrepCard'
+import { NutritionTimingCard } from '@/components/athlete/NutritionTimingCard'
 
 export default async function AthleteDashboardPage() {
   const t = await getTranslations('athlete')
@@ -468,6 +469,11 @@ export default async function AthleteDashboardPage() {
       {/* Mental Prep (Pre-Competition) */}
       <div className="mb-6">
         <MentalPrepCard />
+      </div>
+
+      {/* Nutrition Timing */}
+      <div className="mb-6">
+        <NutritionTimingCard />
       </div>
 
       {/* Post-Workout Check-ins */}

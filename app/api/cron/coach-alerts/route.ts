@@ -15,6 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
 
 // Allow longer execution time for batch processing
@@ -479,7 +480,7 @@ async function createAlertIfNotExists(alert: AlertData): Promise<boolean> {
       severity: alert.severity,
       title: alert.title,
       message: alert.message,
-      contextData: alert.contextData,
+      contextData: alert.contextData as Prisma.InputJsonValue,
       sourceId: alert.sourceId,
       expiresAt: alert.expiresAt,
     },

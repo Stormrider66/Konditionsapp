@@ -85,17 +85,18 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
       },
       calendarEvents: {
         where: {
-          startTime: {
+          startDate: {
             gte: today,
             lt: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000), // Next 7 days
           },
         },
-        orderBy: { startTime: 'asc' },
+        orderBy: { startDate: 'asc' },
         take: 3,
         select: {
           title: true,
+          startDate: true,
           startTime: true,
-          eventType: true,
+          type: true,
         },
       },
     },
@@ -137,8 +138,8 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
     recentMemories: client.conversationMemories.map((m) => m.content),
     upcomingEvents: client.calendarEvents.map((e) => ({
       name: e.title,
-      date: e.startTime,
-      type: e.eventType,
+      date: e.startDate,
+      type: e.type,
     })),
   }
 }
@@ -148,49 +149,37 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
  */
 async function getTodaysWorkout(clientId: string): Promise<BriefingContext['todaysWorkout'] | null> {
   const today = new Date()
-  const dayOfWeek = today.getDay() // 0 = Sunday, 1 = Monday, etc.
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000)
 
-  // Find active program
-  const program = await prisma.trainingProgram.findFirst({
+  // Find today's workout from active program using the date field
+  const todayDay = await prisma.trainingDay.findFirst({
     where: {
-      clientId,
-      isActive: true,
-      startDate: { lte: today },
-      endDate: { gte: today },
+      date: {
+        gte: todayStart,
+        lt: todayEnd,
+      },
+      week: {
+        program: {
+          clientId,
+          isActive: true,
+        },
+      },
     },
     select: {
-      weeks: {
-        where: {
-          weekNumber: {
-            // Calculate current week number
-            equals: Math.ceil(
-              (today.getTime() - new Date().setHours(0, 0, 0, 0)) / (7 * 24 * 60 * 60 * 1000)
-            ) + 1,
-          },
-        },
+      workouts: {
         take: 1,
         select: {
-          days: {
-            where: { dayOfWeek },
-            take: 1,
-            select: {
-              workouts: {
-                take: 1,
-                select: {
-                  name: true,
-                  type: true,
-                  duration: true,
-                  description: true,
-                },
-              },
-            },
-          },
+          name: true,
+          type: true,
+          duration: true,
+          description: true,
         },
       },
     },
   })
 
-  const workout = program?.weeks[0]?.days[0]?.workouts[0]
+  const workout = todayDay?.workouts[0]
   if (!workout) return null
 
   return {

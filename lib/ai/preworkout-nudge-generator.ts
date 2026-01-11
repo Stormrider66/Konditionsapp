@@ -72,7 +72,7 @@ export async function findUpcomingWorkouts(
           name: true,
           description: true,
           estimatedDuration: true,
-          difficulty: true,
+          phase: true,
         },
       },
     },
@@ -91,7 +91,7 @@ export async function findUpcomingWorkouts(
         workoutType: 'STRENGTH',
         scheduledFor,
         duration: assignment.session.estimatedDuration ?? undefined,
-        intensity: assignment.session.difficulty ?? undefined,
+        intensity: assignment.session.phase ?? undefined,
         description: assignment.session.description ?? undefined,
       })
     }
@@ -113,7 +113,7 @@ export async function findUpcomingWorkouts(
           name: true,
           description: true,
           totalDuration: true,
-          sessionType: true,
+          sport: true,
         },
       },
     },
@@ -128,9 +128,9 @@ export async function findUpcomingWorkouts(
         id: assignment.id,
         type: 'cardio',
         name: assignment.session.name,
-        workoutType: assignment.session.sessionType ?? 'CARDIO',
+        workoutType: assignment.session.sport ?? 'CARDIO',
         scheduledFor,
-        duration: assignment.session.totalDuration ?? undefined,
+        duration: assignment.session.totalDuration ? Math.floor(assignment.session.totalDuration / 60) : undefined,
         description: assignment.session.description ?? undefined,
       })
     }
@@ -151,9 +151,8 @@ export async function findUpcomingWorkouts(
         select: {
           name: true,
           description: true,
-          estimatedDuration: true,
-          difficulty: true,
-          workoutType: true,
+          timeCap: true,
+          format: true,
         },
       },
     },
@@ -168,10 +167,9 @@ export async function findUpcomingWorkouts(
         id: assignment.id,
         type: 'hybrid',
         name: assignment.workout.name,
-        workoutType: assignment.workout.workoutType ?? 'HYBRID',
+        workoutType: assignment.workout.format ?? 'HYBRID',
         scheduledFor,
-        duration: assignment.workout.estimatedDuration ?? undefined,
-        intensity: assignment.workout.difficulty ?? undefined,
+        duration: assignment.workout.timeCap ? Math.floor(assignment.workout.timeCap / 60) : undefined,
         description: assignment.workout.description ?? undefined,
       })
     }
@@ -214,7 +212,7 @@ export async function findUpcomingWorkouts(
         scheduledFor,
         duration: workout.duration ?? undefined,
         intensity: workout.intensity ?? undefined,
-        description: workout.notes ?? undefined,
+        description: workout.description ?? undefined,
       })
     }
   }
