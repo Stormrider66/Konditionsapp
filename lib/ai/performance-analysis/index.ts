@@ -20,3 +20,6 @@ export {
   buildComparisonContext,
   buildTrendContext,
 } from './context-builder'
+
+// Internal helper for training correlation (also used by training-correlator)
+export { buildTrainingContext } from './context-builder'

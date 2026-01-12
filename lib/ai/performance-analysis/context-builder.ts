@@ -12,8 +12,8 @@ import {
   AthleteProfileForAnalysis,
   PerformanceAnalysisContext,
 } from './types'
-import { calculateEconomy } from '@/lib/calculations/economy'
-import { generateLactateCurveInterpretation, classifyAthleteType } from '@/lib/calculations/interpretations'
+import { calculateRunningEconomy } from '@/lib/calculations/economy'
+import { generateLactateCurveInterpretation } from '@/lib/calculations/interpretations'
 
 /**
  * Build complete context for AI analysis of a test
@@ -35,17 +35,14 @@ export async function buildAnalysisContext(
         include: {
           user: { select: { id: true, name: true } },
           sportProfile: true,
-          athleteAccount: {
-            include: {
-              dailyReadiness: {
-                orderBy: { date: 'desc' },
-                take: 7,
-              },
-            },
+          athleteAccount: true,
+          dailyCheckIns: {
+            orderBy: { date: 'desc' },
+            take: 7,
           },
         },
       },
-      stages: {
+      testStages: {
         orderBy: { sequence: 'asc' },
       },
     },
@@ -98,7 +95,7 @@ async function buildTestData(test: {
   maxLactate: number | null
   aerobicThreshold: unknown
   anaerobicThreshold: unknown
-  stages: Array<{
+  testStages: Array<{
     sequence: number
     duration: number
     heartRate: number | null
@@ -136,9 +133,9 @@ async function buildTestData(test: {
   // Calculate economy data for running tests
   const economyData: Array<{ speed: number; vo2: number; economy: number }> = []
   if (test.testType === 'RUNNING') {
-    for (const stage of test.stages) {
+    for (const stage of test.testStages) {
       if (stage.speed && stage.vo2) {
-        const economy = calculateEconomy(stage.vo2, stage.speed)
+        const economy = calculateRunningEconomy(stage.vo2, stage.speed)
         if (economy) {
           economyData.push({
             speed: stage.speed,
@@ -152,8 +149,8 @@ async function buildTestData(test: {
 
   // Build cycling data
   let cyclingData: { ftp: number; wattsPerKg: number; maxPower: number } | undefined
-  if (test.testType === 'CYCLING' && test.stages.length > 0) {
-    const maxPower = Math.max(...test.stages.filter(s => s.power).map(s => s.power!))
+  if (test.testType === 'CYCLING' && test.testStages.length > 0) {
+    const maxPower = Math.max(...test.testStages.filter(s => s.power).map(s => s.power!))
     const atPower = anaerobicThreshold?.power
     if (atPower && test.client.weight) {
       cyclingData = {
@@ -174,7 +171,7 @@ async function buildTestData(test: {
 
   // Classify lactate curve and athlete type
   // Create stages in the format expected by generateLactateCurveInterpretation
-  const stagesForCurve = test.stages.map(s => ({
+  const stagesForCurve = test.testStages.map(s => ({
     id: '',
     testId: test.id,
     sequence: s.sequence,
@@ -192,12 +189,17 @@ async function buildTestData(test: {
   )
   const lactateCurveType = lactateCurveInfo.curveType
 
-  // Get athlete type based on thresholds
+  // Get athlete type based on lactate curve and thresholds
   let athleteType: 'UTHALLIGHET' | 'SNABBHET' | 'ALLROUND' | undefined
-  if (aerobicThreshold && anaerobicThreshold && test.maxHR) {
-    const lt1Percent = (aerobicThreshold.hr ?? 0) / test.maxHR * 100
-    const lt2Percent = (anaerobicThreshold.hr ?? 0) / test.maxHR * 100
-    athleteType = classifyAthleteType(lt1Percent, lt2Percent)
+  if (lactateCurveType) {
+    // Simple classification based on lactate curve
+    if (lactateCurveType === 'FLAT') {
+      athleteType = 'UTHALLIGHET'
+    } else if (lactateCurveType === 'STEEP') {
+      athleteType = 'SNABBHET'
+    } else {
+      athleteType = 'ALLROUND'
+    }
   }
 
   return {
@@ -221,7 +223,7 @@ async function buildTestData(test: {
     } : null,
     economyData,
     cyclingData,
-    stages: test.stages.map(s => ({
+    stages: test.testStages.map(s => ({
       sequence: s.sequence,
       duration: s.duration,
       heartRate: s.heartRate ?? 0,
@@ -253,7 +255,7 @@ async function fetchPreviousTests(
     },
     include: {
       client: { select: { weight: true } },
-      stages: { orderBy: { sequence: 'asc' } },
+      testStages: { orderBy: { sequence: 'asc' } },
     },
     orderBy: { testDate: 'desc' },
     take: limit,
@@ -269,7 +271,7 @@ async function fetchPreviousTests(
 /**
  * Build training context from workout data
  */
-async function buildTrainingContext(
+export async function buildTrainingContext(
   clientId: string,
   testDate: Date,
   weeks: number
@@ -278,39 +280,57 @@ async function buildTrainingContext(
   const periodStart = new Date(testDate)
   periodStart.setDate(periodStart.getDate() - weeks * 7)
 
-  // Fetch workouts in the period
-  const workouts = await prisma.workoutSession.findMany({
-    where: {
-      clientId,
-      date: {
-        gte: periodStart,
-        lt: periodEnd,
+  // Fetch activities from Strava and Garmin
+  const [stravaActivities, garminActivities] = await Promise.all([
+    prisma.stravaActivity.findMany({
+      where: {
+        clientId,
+        startDate: {
+          gte: periodStart,
+          lt: periodEnd,
+        },
       },
-      status: 'COMPLETED',
-    },
-    include: {
-      workout: true,
-    },
-  })
+    }),
+    prisma.garminActivity.findMany({
+      where: {
+        clientId,
+        startDate: {
+          gte: periodStart,
+          lt: periodEnd,
+        },
+      },
+    }),
+  ])
 
-  if (workouts.length === 0) return null
+  // Combine activities
+  const allActivities = [
+    ...stravaActivities.map((a) => ({
+      type: a.type || 'Unknown',
+      distance: (a.distance ?? 0) / 1000, // Convert meters to km
+      duration: (a.movingTime ?? 0) / 60, // Convert seconds to minutes
+      avgHR: a.averageHeartrate ?? null,
+      date: a.startDate,
+    })),
+    ...garminActivities.map((a) => ({
+      type: a.type || 'Unknown',
+      distance: (a.distance ?? 0) / 1000, // Convert meters to km
+      duration: (a.duration ?? 0) / 60, // Convert seconds to minutes
+      avgHR: a.averageHeartrate ?? null,
+      date: a.startDate,
+    })),
+  ]
+
+  if (allActivities.length === 0) return null
 
   // Calculate volume metrics
-  const totalSessions = workouts.length
-  const totalDistanceKm = workouts.reduce((sum, w) => sum + (w.distance ?? 0), 0)
-  const totalDurationHours = workouts.reduce((sum, w) => sum + (w.duration ?? 0), 0) / 60
+  const totalSessions = allActivities.length
+  const totalDistanceKm = allActivities.reduce((sum, a) => sum + a.distance, 0)
+  const totalDurationHours = allActivities.reduce((sum, a) => sum + a.duration, 0) / 60
 
   // Calculate weekly averages
   const avgWeeklyDistance = totalDistanceKm / weeks
 
-  // Calculate TSS if available
-  const tssValues = workouts.filter(w => w.tss !== null).map(w => w.tss!)
-  const avgWeeklyTSS = tssValues.length > 0
-    ? tssValues.reduce((a, b) => a + b, 0) / weeks
-    : 0
-
-  // Calculate zone distribution (simplified - would need more detailed data)
-  // This is a placeholder - actual implementation depends on workout data structure
+  // Zone distribution (placeholder - would need HR zone data)
   const zoneDistribution = {
     zone1Percent: 0,
     zone2Percent: 0,
@@ -319,7 +339,7 @@ async function buildTrainingContext(
     zone5Percent: 0,
   }
 
-  // Count training types based on workout category/type
+  // Count training types based on activity type
   const trainingTypeDistribution = {
     easyRuns: 0,
     longRuns: 0,
@@ -328,29 +348,27 @@ async function buildTrainingContext(
     recovery: 0,
   }
 
-  for (const session of workouts) {
-    const workout = session.workout
-    if (!workout) continue
-
-    // Categorize based on workout type
-    const type = workout.type?.toUpperCase() ?? ''
-    if (type.includes('EASY') || type.includes('RECOVERY')) {
-      trainingTypeDistribution.easyRuns++
-    } else if (type.includes('LONG')) {
-      trainingTypeDistribution.longRuns++
-    } else if (type.includes('TEMPO') || type.includes('THRESHOLD')) {
-      trainingTypeDistribution.tempoRuns++
-    } else if (type.includes('INTERVAL') || type.includes('VO2')) {
-      trainingTypeDistribution.intervals++
+  for (const activity of allActivities) {
+    const type = activity.type.toUpperCase()
+    // Categorize by distance and type (simplified heuristic)
+    if (type.includes('RUN') || type.includes('RUNNING')) {
+      if (activity.distance > 15) {
+        trainingTypeDistribution.longRuns++
+      } else if (activity.distance < 5) {
+        trainingTypeDistribution.recovery++
+      } else {
+        trainingTypeDistribution.easyRuns++
+      }
     } else {
-      trainingTypeDistribution.recovery++
+      trainingTypeDistribution.easyRuns++ // Default category
     }
   }
 
   // Fetch strength sessions
-  const strengthSessions = await prisma.strengthWorkoutResult.count({
+  const strengthSessions = await prisma.strengthSessionAssignment.count({
     where: {
-      clientId,
+      athleteId: clientId,
+      status: 'COMPLETED',
       completedAt: {
         gte: periodStart,
         lt: periodEnd,
@@ -358,10 +376,10 @@ async function buildTrainingContext(
     },
   })
 
-  // Fetch readiness data
-  const readinessData = await prisma.dailyReadiness.findMany({
+  // Fetch readiness data from DailyCheckIn
+  const readinessData = await prisma.dailyCheckIn.findMany({
     where: {
-      athleteAccount: { clientId },
+      clientId,
       date: {
         gte: periodStart,
         lt: periodEnd,
@@ -370,19 +388,19 @@ async function buildTrainingContext(
   })
 
   const avgReadiness = readinessData.length > 0
-    ? readinessData.reduce((sum, r) => sum + (r.overallReadiness ?? 5), 0) / readinessData.length
-    : 5
+    ? readinessData.reduce((sum, r) => sum + (r.readinessScore ?? 50), 0) / readinessData.length
+    : 50
 
   const avgSleepHours = readinessData.length > 0
-    ? readinessData.reduce((sum, r) => sum + (r.sleepDuration ?? 7), 0) / readinessData.length
+    ? readinessData.reduce((sum, r) => sum + (r.sleepHours ?? 7), 0) / readinessData.length
     : 7
 
   const avgSleepQuality = readinessData.length > 0
-    ? readinessData.reduce((sum, r) => sum + (r.sleepQuality ?? 3), 0) / readinessData.length
-    : 3
+    ? readinessData.reduce((sum, r) => sum + (r.sleepQuality ?? 5), 0) / readinessData.length
+    : 5
 
-  // Fetch ACWR data
-  const acwrData = await prisma.aCWRHistory.findMany({
+  // Fetch ACWR data from TrainingLoad
+  const trainingLoads = await prisma.trainingLoad.findMany({
     where: {
       clientId,
       date: {
@@ -392,35 +410,27 @@ async function buildTrainingContext(
     },
   })
 
-  const avgACWR = acwrData.length > 0
-    ? acwrData.reduce((sum, a) => sum + a.acwr, 0) / acwrData.length
+  const acwrValues = trainingLoads.filter((t) => t.acwr !== null).map((t) => t.acwr!)
+  const avgACWR = acwrValues.length > 0
+    ? acwrValues.reduce((sum, a) => sum + a, 0) / acwrValues.length
     : 1
 
-  const peakACWR = acwrData.length > 0
-    ? Math.max(...acwrData.map(a => a.acwr))
-    : 1
+  const peakACWR = acwrValues.length > 0 ? Math.max(...acwrValues) : 1
 
-  const daysInDangerZone = acwrData.filter(a => a.acwr > 1.5).length
+  const daysInDangerZone = trainingLoads.filter(
+    (t) => t.acwrZone === 'DANGER' || t.acwrZone === 'CRITICAL'
+  ).length
 
-  // Calculate completion rate (simplified)
-  const plannedWorkouts = await prisma.workoutSession.count({
-    where: {
-      clientId,
-      date: {
-        gte: periodStart,
-        lt: periodEnd,
-      },
-    },
-  })
-
-  const completionRate = plannedWorkouts > 0
-    ? (totalSessions / plannedWorkouts) * 100
-    : 100
+  // Estimate completion rate based on activities vs expected
+  const expectedWeeklyWorkouts = 5 // Assume ~5 workouts per week
+  const expectedWorkouts = weeks * expectedWeeklyWorkouts
+  const completionRate = Math.min(100, (totalSessions / expectedWorkouts) * 100)
 
   // Calculate longest training streak
-  const sortedDates = workouts
-    .map(w => w.date.toISOString().split('T')[0])
+  const sortedDates = allActivities
+    .map((a) => a.date.toISOString().split('T')[0])
     .sort()
+    .filter((date, idx, arr) => arr.indexOf(date) === idx) // Remove duplicates
 
   let longestStreak = 0
   let currentStreak = 1
@@ -438,6 +448,12 @@ async function buildTrainingContext(
     }
   }
   longestStreak = Math.max(longestStreak, currentStreak)
+
+  // Calculate average weekly TSS from TrainingLoad
+  const tssValues = trainingLoads.filter((t) => t.dailyLoad !== null).map((t) => t.dailyLoad)
+  const avgWeeklyTSS = tssValues.length > 0
+    ? tssValues.reduce((a, b) => a + b, 0) / weeks
+    : 0
 
   return {
     periodStart: periodStart.toISOString(),
@@ -478,10 +494,10 @@ function buildAthleteProfile(client: {
   } | null
   athleteAccount: {
     id: string
-    dailyReadiness: Array<{
-      overallReadiness: number | null
-    }>
   } | null
+  dailyCheckIns?: Array<{
+    readinessScore: number | null
+  }>
   user: { id: string; name: string | null } | null
 }): AthleteProfileForAnalysis {
   const now = new Date()
@@ -489,7 +505,7 @@ function buildAthleteProfile(client: {
     ? Math.floor((now.getTime() - client.birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
     : 30 // default if unknown
 
-  const recentReadiness = client.athleteAccount?.dailyReadiness?.[0]?.overallReadiness ?? null
+  const recentReadiness = client.dailyCheckIns?.[0]?.readinessScore ?? null
 
   return {
     id: client.id,
@@ -523,15 +539,15 @@ async function fetchRaceResults(
     select: {
       raceDate: true,
       distance: true,
-      time: true,
+      timeFormatted: true,
       vdot: true,
     },
   })
 
-  return races.map(r => ({
+  return races.map((r) => ({
     date: r.raceDate.toISOString(),
     distance: r.distance,
-    time: r.time,
+    time: r.timeFormatted ?? '',
     vdot: r.vdot,
   }))
 }
@@ -557,21 +573,17 @@ export async function buildComparisonContext(
           include: {
             user: { select: { id: true, name: true } },
             sportProfile: true,
-            athleteAccount: {
-              include: {
-                dailyReadiness: { orderBy: { date: 'desc' }, take: 7 },
-              },
-            },
+            dailyCheckIns: { orderBy: { date: 'desc' }, take: 7 },
           },
         },
-        stages: { orderBy: { sequence: 'asc' } },
+        testStages: { orderBy: { sequence: 'asc' } },
       },
     }),
     prisma.test.findUnique({
       where: { id: previousTestId },
       include: {
         client: { select: { weight: true } },
-        stages: { orderBy: { sequence: 'asc' } },
+        testStages: { orderBy: { sequence: 'asc' } },
       },
     }),
   ])
@@ -629,14 +641,10 @@ export async function buildTrendContext(
         include: {
           user: { select: { id: true, name: true } },
           sportProfile: true,
-          athleteAccount: {
-            include: {
-              dailyReadiness: { orderBy: { date: 'desc' }, take: 7 },
-            },
-          },
+          dailyCheckIns: { orderBy: { date: 'desc' }, take: 7 },
         },
       },
-      stages: { orderBy: { sequence: 'asc' } },
+      testStages: { orderBy: { sequence: 'asc' } },
     },
     orderBy: { testDate: 'asc' },
   })
