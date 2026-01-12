@@ -10,9 +10,12 @@
 
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 import {
   getGarminDailySummaries,
   getGarminActivities,
+  getGarminActivityDetails,
+  extractGarminHRZoneSeconds,
   getGarminSleepData,
   getGarminHRVData,
   GarminDailySummary,
@@ -24,6 +27,7 @@ import {
 interface SyncResult {
   dailySummaries: number;
   activities: number;
+  hrZonesFetched: number;
   sleepRecords: number;
   hrvRecords: number;
   errors: string[];
@@ -53,6 +57,7 @@ export async function syncGarminData(
   const result: SyncResult = {
     dailySummaries: 0,
     activities: 0,
+    hrZonesFetched: 0,
     sleepRecords: 0,
     hrvRecords: 0,
     errors: [],
@@ -97,8 +102,13 @@ export async function syncGarminData(
       try {
         const activities = await getGarminActivities(clientId, startDate, endDate);
         for (const activity of activities) {
-          await syncActivity(clientId, activity);
+          const hrZoneFetched = await syncActivity(clientId, activity);
           result.activities++;
+          if (hrZoneFetched) {
+            result.hrZonesFetched++;
+          }
+          // Rate limiting for Garmin API
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
       } catch (error) {
         result.errors.push(`Activities: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -215,8 +225,10 @@ async function syncDailySummary(clientId: string, summary: GarminDailySummary): 
 /**
  * Sync activity to dedicated GarminActivity model (Gap 5 fix)
  * Previously stored in factorScores JSON, now normalized like StravaActivity
+ *
+ * @returns true if HR zone data was successfully fetched
  */
-async function syncActivity(clientId: string, activity: GarminActivity): Promise<void> {
+async function syncActivity(clientId: string, activity: GarminActivity): Promise<boolean> {
   // Map Garmin activity types to our internal types
   const typeMap: Record<string, string> = {
     RUNNING: 'RUNNING',
@@ -329,6 +341,38 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
       splits: Prisma.JsonNull,
     },
   });
+
+  // Try to fetch detailed activity data for HR zones
+  let hrZoneFetched = false;
+  if (activity.averageHeartRateInBeatsPerMinute) {
+    try {
+      const details = await getGarminActivityDetails(clientId, activity.activityId);
+      const hrZoneSeconds = extractGarminHRZoneSeconds(details);
+
+      if (hrZoneSeconds) {
+        await prisma.garminActivity.update({
+          where: { garminActivityId: BigInt(activity.activityId) },
+          data: {
+            hrZoneSeconds: hrZoneSeconds,
+          },
+        });
+        hrZoneFetched = true;
+        logger.info('Fetched HR zones for Garmin activity', {
+          clientId,
+          activityId: activity.activityId,
+          zones: hrZoneSeconds,
+        });
+      }
+    } catch (error) {
+      // Activity details might not be available, that's ok
+      logger.warn('Could not fetch Garmin activity details', {
+        clientId,
+        activityId: activity.activityId,
+      }, error);
+    }
+  }
+
+  return hrZoneFetched;
 }
 
 /**

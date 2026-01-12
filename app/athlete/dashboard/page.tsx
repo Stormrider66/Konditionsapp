@@ -43,6 +43,10 @@ import { PostWorkoutCheckCard } from '@/components/athlete/PostWorkoutCheckCard'
 import { MilestoneCelebrationCard } from '@/components/athlete/MilestoneCelebrationCard'
 import { MentalPrepCard } from '@/components/athlete/MentalPrepCard'
 import { NutritionTimingCard } from '@/components/athlete/NutritionTimingCard'
+import { WeeklyTrainingSummaryCard } from '@/components/athlete/WeeklyTrainingSummaryCard'
+import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
+import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary'
+import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
 
 export default async function AthleteDashboardPage() {
   const t = await getTranslations('athlete')
@@ -537,6 +541,12 @@ export default async function AthleteDashboardPage() {
           {/* Training Load Widget (TSS from integrations) */}
           <TrainingLoadWidget clientId={athleteAccount.clientId} variant="glass" />
 
+          {/* Training Trend Chart */}
+          <TrainingTrendChart clientId={athleteAccount.clientId} variant="glass" weeks={12} />
+
+          {/* Zone Distribution Chart */}
+          <ZoneDistributionChart clientId={athleteAccount.clientId} variant="glass" />
+
           {/* Nutrition Dashboard */}
           <NutritionDashboard clientId={athleteAccount.clientId} />
 
@@ -546,6 +556,12 @@ export default async function AthleteDashboardPage() {
 
         {/* Right Column (1/3) */}
         <div className="space-y-6">
+          {/* Weekly Training Summary */}
+          <WeeklyTrainingSummaryCard clientId={athleteAccount.clientId} variant="glass" />
+
+          {/* Weekly Zone Summary */}
+          <WeeklyZoneSummary clientId={athleteAccount.clientId} variant="glass" />
+
           {/* Accountability Streak Widget */}
           <AccountabilityStreakWidget />
 

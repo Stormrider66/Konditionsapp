@@ -365,3 +365,141 @@ export async function hasStravaConnection(clientId: string): Promise<boolean> {
 
   return token !== null;
 }
+
+/**
+ * Strava Stream Types
+ */
+export interface StravaStream {
+  type: string;
+  data: number[];
+  series_type: string;
+  original_size: number;
+  resolution: string;
+}
+
+export interface StravaStreamResponse {
+  heartrate?: StravaStream;
+  time?: StravaStream;
+  distance?: StravaStream;
+  altitude?: StravaStream;
+  velocity_smooth?: StravaStream;
+  cadence?: StravaStream;
+  watts?: StravaStream;
+  temp?: StravaStream;
+  moving?: StravaStream;
+  grade_smooth?: StravaStream;
+}
+
+/**
+ * Get activity streams (HR, time, etc.)
+ *
+ * Fetches second-by-second data streams for an activity.
+ * Used for detailed zone distribution calculation.
+ *
+ * Rate limits: 100 requests/15min, 1000/day
+ *
+ * @param clientId - Client ID
+ * @param activityId - Strava activity ID
+ * @param keys - Stream types to fetch (default: heartrate, time)
+ * @returns Stream data including HR samples
+ */
+export async function getStravaActivityStreams(
+  clientId: string,
+  activityId: number | string,
+  keys: string[] = ['heartrate', 'time']
+): Promise<StravaStreamResponse | null> {
+  try {
+    const keysParam = keys.join(',');
+    const response = await stravaApiRequest<StravaStream[]>(
+      clientId,
+      `/activities/${activityId}/streams?keys=${keysParam}&key_by_type=true`
+    );
+
+    // Strava returns an array, but with key_by_type=true it's keyed by type
+    // Handle both response formats
+    if (Array.isArray(response)) {
+      const result: StravaStreamResponse = {};
+      for (const stream of response) {
+        if (stream.type === 'heartrate') {
+          result.heartrate = stream;
+        } else if (stream.type === 'time') {
+          result.time = stream;
+        } else if (stream.type === 'distance') {
+          result.distance = stream;
+        } else if (stream.type === 'altitude') {
+          result.altitude = stream;
+        } else if (stream.type === 'velocity_smooth') {
+          result.velocity_smooth = stream;
+        } else if (stream.type === 'cadence') {
+          result.cadence = stream;
+        } else if (stream.type === 'watts') {
+          result.watts = stream;
+        } else if (stream.type === 'temp') {
+          result.temp = stream;
+        } else if (stream.type === 'moving') {
+          result.moving = stream;
+        } else if (stream.type === 'grade_smooth') {
+          result.grade_smooth = stream;
+        }
+      }
+      return result;
+    }
+
+    return response as unknown as StravaStreamResponse;
+  } catch (error) {
+    logger.warn('Failed to fetch Strava activity streams', { clientId, activityId }, error);
+    return null;
+  }
+}
+
+/**
+ * Extract HR samples from Strava stream response
+ *
+ * Returns second-by-second HR values, interpolating if needed
+ * to ensure one sample per second.
+ *
+ * @param streams - Strava stream response
+ * @returns Array of HR values (one per second) or null if no HR data
+ */
+export function extractHRSamplesFromStreams(
+  streams: StravaStreamResponse | null
+): number[] | null {
+  if (!streams?.heartrate?.data || streams.heartrate.data.length === 0) {
+    return null;
+  }
+
+  const hrData = streams.heartrate.data;
+  const timeData = streams.time?.data;
+
+  // If no time data, assume 1 sample per second
+  if (!timeData || timeData.length !== hrData.length) {
+    return hrData;
+  }
+
+  // Interpolate to get one sample per second
+  const result: number[] = [];
+  let prevTime = 0;
+  let prevHR = hrData[0];
+
+  for (let i = 0; i < timeData.length; i++) {
+    const currentTime = timeData[i];
+    const currentHR = hrData[i];
+
+    // Fill in any gaps with interpolated values
+    while (prevTime < currentTime) {
+      if (i > 0) {
+        // Linear interpolation between previous and current
+        const progress = (prevTime - timeData[i - 1]) / (currentTime - timeData[i - 1]);
+        const interpolatedHR = Math.round(prevHR + (currentHR - prevHR) * progress);
+        result.push(interpolatedHR);
+      } else {
+        result.push(currentHR);
+      }
+      prevTime++;
+    }
+
+    prevHR = currentHR;
+  }
+
+  return result;
+}

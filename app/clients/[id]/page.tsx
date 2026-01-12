@@ -14,6 +14,9 @@ import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 import { ClientVideoAnalyses } from '@/components/coach/video-analysis/ClientVideoAnalyses'
 import { VBTProgressionWidget, VBTExerciseProgression } from '@/components/athlete/VBTProgressionWidget'
 import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidget'
+import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
+import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary'
+import { YearlyTrainingOverview } from '@/components/athlete/YearlyTrainingOverview'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
 import { ClientDetailTabs } from '@/components/client/ClientDetailTabs'
@@ -489,6 +492,26 @@ export default function ClientDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <VBTProgressionWidget clientId={id} />
         <Concept2SummaryWidget clientId={id} />
+      </div>
+
+      {/* Training Zone Analysis Section */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Pulszonanalys</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Weekly Zone Summary */}
+          <div className="lg:col-span-1">
+            <WeeklyZoneSummary clientId={id} />
+          </div>
+          {/* Zone Distribution Chart */}
+          <div className="lg:col-span-2">
+            <ZoneDistributionChart clientId={id} />
+          </div>
+        </div>
+      </div>
+
+      {/* Yearly Training Overview */}
+      <div className="mb-6">
+        <YearlyTrainingOverview clientId={id} />
       </div>
 
       {/* Progression Chart */}

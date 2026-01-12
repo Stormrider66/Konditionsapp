@@ -324,6 +324,9 @@ model User {
   // Multi-part program generation sessions
   programGenerationSessions ProgramGenerationSession[] @relation("CoachProgramGenSessions")
 
+  // Live HR Streaming System relations
+  liveHRSessions            LiveHRSession[]            @relation("CoachLiveHRSessions")
+
   @@index([email])
   @@index([role])
 }
@@ -369,6 +372,9 @@ model Team {
 
   // Team workout broadcasts
   workoutBroadcasts TeamWorkoutBroadcast[]
+
+  // Live HR Streaming System
+  liveHRSessions    LiveHRSession[]
 
   @@index([userId])
   @@index([name])
@@ -523,6 +529,14 @@ model Client {
   // Accountability tracking
   bestCheckInStreak        Int?                    @default(0)
   bestStreakAchievedAt     DateTime?
+
+  // Training Summary System relations
+  weeklyTrainingSummaries  WeeklyTrainingSummary[]   @relation("ClientWeeklySummaries")
+  monthlyTrainingSummaries MonthlyTrainingSummary[]  @relation("ClientMonthlySummaries")
+  yearlySummaries          YearlySummary[]           @relation("ClientYearlySummaries")
+
+  // Live HR Streaming System relations
+  liveHRParticipations     LiveHRParticipant[]
 
   @@index([userId])
   @@index([teamId])
@@ -1087,10 +1101,15 @@ model StravaActivity {
   splitsMetric           Json?           // Kilometer splits
   laps                   Json?           // Lap data
 
+  // HR Stream data for zone tracking
+  hrStream               Json?           // Second-by-second HR data: number[]
+  hrStreamFetched        Boolean         @default(false)
+
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
 
   client                 Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  zoneDistribution       ActivityHRZoneDistribution?
 
   @@index([clientId])
   @@index([startDate])
@@ -1151,10 +1170,14 @@ model GarminActivity {
   laps                   Json?           // Lap data from Garmin
   splits                 Json?           // Split data
 
+  // HR Zone data from Garmin activity details
+  hrZoneSeconds          Json?           // { zone1: 120, zone2: 300, ... }
+
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
 
   client                 Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  zoneDistribution       ActivityHRZoneDistribution?
 
   @@index([clientId])
   @@index([startDate])
@@ -1984,6 +2007,212 @@ model TrainingLoad {
   @@index([clientId, date])
   @@index([clientId, acwrZone]) // Filter by ACWR risk zone
   @@index([clientId, injuryRisk]) // Filter by injury risk level
+}
+
+// ============================================
+// TRAINING SUMMARIES (Weekly & Monthly Aggregation)
+// ============================================
+
+/// Weekly aggregated training data for efficient trend analysis
+model WeeklyTrainingSummary {
+  id                    String   @id @default(uuid())
+  clientId              String
+  client                Client   @relation("ClientWeeklySummaries", fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Week identification
+  weekStart             DateTime @db.Date // Monday of the week
+  weekEnd               DateTime @db.Date // Sunday of the week
+  weekNumber            Int      // ISO week number (1-53)
+  year                  Int
+
+  // Volume metrics
+  totalTSS              Float    @default(0)
+  totalDistance         Float    @default(0)  // km
+  totalDuration         Int      @default(0)  // minutes
+  totalCalories         Int?
+
+  // Workout counts
+  workoutCount          Int      @default(0)
+  plannedWorkoutCount   Int?     // From program
+  completedWorkoutCount Int?     // Actual completed
+  compliancePercent     Float?   // completed/planned * 100
+
+  // Breakdown by type (JSON maps)
+  workoutsByType        Json     @default("{}") // { "RUNNING": 3, "STRENGTH": 2 }
+  tssByType             Json     @default("{}") // { "RUNNING": 450, "STRENGTH": 120 }
+  distanceByType        Json     @default("{}") // { "RUNNING": 42.5, "CYCLING": 80 }
+  durationByType        Json     @default("{}") // { "RUNNING": 240, "STRENGTH": 90 }
+
+  // Intensity distribution (for 80/20 tracking)
+  easyMinutes           Int      @default(0)   // Zone 1-2
+  moderateMinutes       Int      @default(0)   // Zone 3
+  hardMinutes           Int      @default(0)   // Zone 4-5
+  polarizationRatio     Float?   // easy% vs hard% (target: 80/20)
+
+  // 5-Zone HR distribution (more granular than easy/moderate/hard)
+  zone1Minutes          Int      @default(0)   // Recovery zone
+  zone2Minutes          Int      @default(0)   // Aerobic base zone
+  zone3Minutes          Int      @default(0)   // Tempo zone
+  zone4Minutes          Int      @default(0)   // Threshold zone
+  zone5Minutes          Int      @default(0)   // VO2max zone
+
+  // Load management
+  avgDailyTSS           Float?
+  peakDailyTSS          Float?
+  acwrAtWeekEnd         Float?   // ACWR snapshot at end of week
+  acwrZone              String?  // OPTIMAL, CAUTION, DANGER
+
+  // Readiness & wellness (weekly averages)
+  avgReadiness          Float?
+  avgSleepHours         Float?
+  avgSleepQuality       Float?
+  avgFatigue            Float?
+  avgSoreness           Float?
+
+  // Strength training (if applicable)
+  strengthSets          Int?
+  strengthVolume        Float?   // Total tonnage (sets * reps * weight)
+
+  // Data sources (for transparency)
+  stravaActivities      Int      @default(0)
+  garminActivities      Int      @default(0)
+  manualActivities      Int      @default(0)
+  programWorkouts       Int      @default(0)
+
+  // Timestamps
+  calculatedAt          DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([clientId, weekStart])
+  @@index([clientId, year])
+  @@index([weekStart])
+}
+
+/// Monthly aggregated training data for long-term trend analysis
+model MonthlyTrainingSummary {
+  id                    String   @id @default(uuid())
+  clientId              String
+  client                Client   @relation("ClientMonthlySummaries", fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Month identification
+  month                 Int      // 1-12
+  year                  Int
+  monthStart            DateTime @db.Date
+  monthEnd              DateTime @db.Date
+
+  // Aggregated totals
+  totalTSS              Float    @default(0)
+  totalDistance         Float    @default(0)  // km
+  totalDuration         Int      @default(0)  // minutes
+  totalCalories         Int?
+  workoutCount          Int      @default(0)
+
+  // Weekly averages
+  avgWeeklyTSS          Float?
+  avgWeeklyDistance     Float?
+  avgWeeklyDuration     Float?
+  avgWeeklyWorkouts     Float?
+
+  // Breakdown by type
+  workoutsByType        Json     @default("{}")
+  tssByType             Json     @default("{}")
+
+  // Intensity distribution
+  avgPolarizationRatio  Float?
+  totalEasyMinutes      Int      @default(0)
+  totalHardMinutes      Int      @default(0)
+
+  // Load progression
+  avgACWR               Float?
+  peakACWR              Float?
+  daysInDangerZone      Int      @default(0)
+
+  // Compliance
+  avgCompliancePercent  Float?
+
+  // Readiness trends
+  avgReadiness          Float?
+  readinessTrend        String?  // IMPROVING, STABLE, DECLINING
+
+  // Comparison to previous month
+  tssChangePercent      Float?
+  distanceChangePercent Float?
+
+  // Timestamps
+  calculatedAt          DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([clientId, month, year])
+  @@index([clientId, year])
+}
+
+/// HR Zone distribution per activity (from Strava streams or Garmin zones)
+model ActivityHRZoneDistribution {
+  id                  String   @id @default(uuid())
+
+  // Link to source activity (one or the other, not both)
+  stravaActivityId    String?  @unique
+  garminActivityId    String?  @unique
+
+  // Zone time distribution (seconds in each zone)
+  zone1Seconds        Int      @default(0)  // Recovery zone
+  zone2Seconds        Int      @default(0)  // Aerobic base
+  zone3Seconds        Int      @default(0)  // Tempo
+  zone4Seconds        Int      @default(0)  // Threshold
+  zone5Seconds        Int      @default(0)  // VO2max
+
+  // Total tracked time (should equal sum of zones)
+  totalTrackedSeconds Int      @default(0)
+
+  // Source metadata
+  zoneSource          String   // 'STRAVA_STREAM' | 'GARMIN_ZONES' | 'ESTIMATED'
+  zoneConfig          Json     // Snapshot of zone thresholds used: { zone1: {hrMin, hrMax}, ... }
+  calculatedAt        DateTime @default(now())
+
+  // Relations
+  stravaActivity      StravaActivity?  @relation(fields: [stravaActivityId], references: [id], onDelete: Cascade)
+  garminActivity      GarminActivity?  @relation(fields: [garminActivityId], references: [id], onDelete: Cascade)
+}
+
+/// Yearly aggregated training summary for annual tracking
+model YearlySummary {
+  id                      String   @id @default(uuid())
+  clientId                String
+  client                  Client   @relation("ClientYearlySummaries", fields: [clientId], references: [id], onDelete: Cascade)
+
+  year                    Int
+
+  // Volume totals
+  totalTSS                Float    @default(0)
+  totalDistance           Float    @default(0)  // km
+  totalDuration           Int      @default(0)  // minutes
+  totalCalories           Int?
+  workoutCount            Int      @default(0)
+
+  // 5-Zone distribution (minutes)
+  zone1Minutes            Int      @default(0)
+  zone2Minutes            Int      @default(0)
+  zone3Minutes            Int      @default(0)
+  zone4Minutes            Int      @default(0)
+  zone5Minutes            Int      @default(0)
+
+  // Monthly breakdown for charts (JSON arrays)
+  monthlyHours            Json     @default("[]")  // [jan, feb, ..., dec] in hours
+  monthlyZoneDistribution Json     @default("[]")  // [{z1, z2, z3, z4, z5}, ...] per month
+
+  // Breakdown by type
+  workoutsByType          Json     @default("{}")
+  hoursByType             Json     @default("{}")  // { "RUNNING": 450, "CYCLING": 200 }
+
+  // Polarization metrics
+  avgPolarizationRatio    Float?   // Average (zone1+zone2) / total %
+
+  // Timestamps
+  calculatedAt            DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([clientId, year])
+  @@index([clientId])
 }
 
 // ============================================
@@ -5190,4 +5419,60 @@ model CoachAlert {
   @@index([clientId])
   @@index([alertType])
   @@index([severity])
+}
+
+// ==================== LIVE HR STREAMING SYSTEM ====================
+
+/// Live HR monitoring session - coach creates to start monitoring athletes in real-time
+model LiveHRSession {
+  id            String   @id @default(uuid())
+  coachId       String
+  coach         User     @relation("CoachLiveHRSessions", fields: [coachId], references: [id])
+
+  name          String?  // Optional session name
+  teamId        String?  // Optional: monitor a team
+  team          Team?    @relation(fields: [teamId], references: [id])
+
+  status        String   @default("ACTIVE") // ACTIVE, PAUSED, ENDED
+  startedAt     DateTime @default(now())
+  endedAt       DateTime?
+
+  participants  LiveHRParticipant[]
+
+  @@index([coachId])
+  @@index([teamId])
+  @@index([status])
+}
+
+/// Athletes participating in a live HR monitoring session
+model LiveHRParticipant {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     LiveHRSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      Client   @relation(fields: [clientId], references: [id])
+
+  joinedAt    DateTime @default(now())
+  lastReading DateTime?
+
+  readings    LiveHRReading[]
+
+  @@unique([sessionId, clientId])
+  @@index([sessionId])
+  @@index([clientId])
+}
+
+/// Individual HR readings pushed by athletes during live sessions
+model LiveHRReading {
+  id            String   @id @default(uuid())
+  participantId String
+  participant   LiveHRParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  heartRate     Int      // BPM
+  timestamp     DateTime @default(now())
+
+  zone          Int?     // 1-5 calculated from athlete's zones
+  deviceId      String?  // Future: identify source device
+
+  @@index([participantId, timestamp])
 }

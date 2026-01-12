@@ -6,9 +6,12 @@
  */
 
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import {
   getStravaActivities,
   getStravaActivity,
+  getStravaActivityStreams,
+  extractHRSamplesFromStreams,
   StravaActivity,
 } from './client';
 
@@ -95,6 +98,7 @@ function calculateTRIMP(activity: StravaActivity): number {
 interface SyncResult {
   synced: number;
   skipped: number;
+  hrStreamsFetched: number;
   errors: string[];
 }
 
@@ -106,11 +110,12 @@ export async function syncStravaActivities(
   options: {
     daysBack?: number;
     forceResync?: boolean;
+    fetchHRStreams?: boolean;
   } = {}
 ): Promise<SyncResult> {
-  const { daysBack = 30, forceResync = false } = options;
+  const { daysBack = 30, forceResync = false, fetchHRStreams = true } = options;
 
-  const result: SyncResult = { synced: 0, skipped: 0, errors: [] };
+  const result: SyncResult = { synced: 0, skipped: 0, hrStreamsFetched: 0, errors: [] };
 
   try {
     // Get last sync timestamp
@@ -237,6 +242,42 @@ export async function syncStravaActivities(
 
         result.synced++;
 
+        // Fetch HR stream if activity has HR data and streams enabled
+        if (fetchHRStreams && detailedActivity.average_heartrate) {
+          try {
+            const streams = await getStravaActivityStreams(clientId, activity.id, ['heartrate', 'time']);
+            const hrSamples = extractHRSamplesFromStreams(streams);
+
+            if (hrSamples && hrSamples.length > 0) {
+              await prisma.stravaActivity.update({
+                where: { stravaId: activity.id.toString() },
+                data: {
+                  hrStream: hrSamples,
+                  hrStreamFetched: true,
+                },
+              });
+              result.hrStreamsFetched++;
+              logger.info('Fetched HR stream for Strava activity', {
+                clientId,
+                activityId: activity.id,
+                samples: hrSamples.length,
+              });
+            } else {
+              // Mark as fetched but no data
+              await prisma.stravaActivity.update({
+                where: { stravaId: activity.id.toString() },
+                data: { hrStreamFetched: true },
+              });
+            }
+
+            // Additional rate limiting for stream requests
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          } catch (streamError) {
+            logger.warn('Failed to fetch HR stream', { clientId, activityId: activity.id }, streamError);
+            // Don't fail the sync for stream errors
+          }
+        }
+
         // Rate limiting - Strava allows 100 requests per 15 minutes
         await new Promise((resolve) => setTimeout(resolve, 1000));
       } catch (error) {
@@ -281,6 +322,78 @@ export async function getSyncedActivities(
     orderBy: { startDate: 'desc' },
     take: limit,
   });
+}
+
+/**
+ * Backfill HR streams for existing Strava activities
+ *
+ * Use this to fetch HR streams for activities that were synced
+ * before the HR stream feature was added.
+ *
+ * @param clientId - Client ID
+ * @param limit - Max activities to process (to respect rate limits)
+ * @returns Number of streams fetched
+ */
+export async function backfillStravaHRStreams(
+  clientId: string,
+  limit: number = 50
+): Promise<{ fetched: number; skipped: number; errors: string[] }> {
+  const result = { fetched: 0, skipped: 0, errors: [] as string[] };
+
+  // Find activities with HR data but no stream fetched yet
+  const activities = await prisma.stravaActivity.findMany({
+    where: {
+      clientId,
+      hrStreamFetched: false,
+      averageHeartrate: { not: null },
+    },
+    orderBy: { startDate: 'desc' },
+    take: limit,
+    select: {
+      id: true,
+      stravaId: true,
+      name: true,
+    },
+  });
+
+  logger.info('Backfilling HR streams', { clientId, count: activities.length });
+
+  for (const activity of activities) {
+    try {
+      const streams = await getStravaActivityStreams(clientId, activity.stravaId, ['heartrate', 'time']);
+      const hrSamples = extractHRSamplesFromStreams(streams);
+
+      if (hrSamples && hrSamples.length > 0) {
+        await prisma.stravaActivity.update({
+          where: { id: activity.id },
+          data: {
+            hrStream: hrSamples,
+            hrStreamFetched: true,
+          },
+        });
+        result.fetched++;
+      } else {
+        // Mark as fetched but no data available
+        await prisma.stravaActivity.update({
+          where: { id: activity.id },
+          data: { hrStreamFetched: true },
+        });
+        result.skipped++;
+      }
+
+      // Rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    } catch (error) {
+      result.errors.push(`${activity.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Mark as fetched to avoid retrying failed ones indefinitely
+      await prisma.stravaActivity.update({
+        where: { id: activity.id },
+        data: { hrStreamFetched: true },
+      }).catch(() => {});
+    }
+  }
+
+  return result;
 }
 
 /**

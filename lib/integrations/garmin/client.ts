@@ -104,6 +104,57 @@ export interface GarminHRVData {
   status?: 'LOW' | 'UNBALANCED' | 'BALANCED' | 'HIGH';
 }
 
+/**
+ * Garmin Activity Details - More detailed activity data
+ * including samples and HR zone information
+ */
+export interface GarminActivityDetails {
+  activityId: number;
+  summary: {
+    activityId: number;
+    activityType: string;
+    startTimeInSeconds: number;
+    durationInSeconds: number;
+    distanceInMeters: number;
+    averageHeartRateInBeatsPerMinute?: number;
+    maxHeartRateInBeatsPerMinute?: number;
+    averageSpeedInMetersPerSecond?: number;
+    activeKilocalories?: number;
+    averagePowerInWatts?: number;
+    normalizedPowerInWatts?: number;
+  };
+  // HR zone time breakdown (if available)
+  heartRateZones?: {
+    zone1TimeInSeconds?: number;
+    zone2TimeInSeconds?: number;
+    zone3TimeInSeconds?: number;
+    zone4TimeInSeconds?: number;
+    zone5TimeInSeconds?: number;
+    totalTimeInZonesInSeconds?: number;
+  };
+  // Sample data (if available)
+  samples?: Array<{
+    recordingTime: number;
+    heartRate?: number;
+    speed?: number;
+    power?: number;
+    cadence?: number;
+    altitude?: number;
+  }>;
+}
+
+/**
+ * HR zone seconds from Garmin (standardized format)
+ */
+export interface GarminHRZoneSeconds {
+  zone1: number;
+  zone2: number;
+  zone3: number;
+  zone4: number;
+  zone5: number;
+  [key: string]: number; // Index signature for JSON compatibility
+}
+
 // OAuth 1.0a request tokens are now stored in database (OAuthRequestToken model)
 // This enables production-ready multi-instance deployments
 
@@ -526,6 +577,96 @@ export async function getGarminHRVData(
     clientId,
     `/hrv?uploadStartTimeInSeconds=${uploadStartTimeInSeconds}&uploadEndTimeInSeconds=${uploadEndTimeInSeconds}`
   );
+}
+
+/**
+ * Get detailed activity information including HR zones and samples
+ *
+ * @param clientId - Client ID
+ * @param activityId - Garmin activity ID
+ * @returns Activity details with zone breakdown if available
+ */
+export async function getGarminActivityDetails(
+  clientId: string,
+  activityId: number | string
+): Promise<GarminActivityDetails | null> {
+  try {
+    return await garminApiRequest<GarminActivityDetails>(
+      clientId,
+      `/activityDetails?activityId=${activityId}`
+    );
+  } catch (error) {
+    // Activity details endpoint might not be available for all activities
+    console.warn(`Failed to get Garmin activity details for ${activityId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Extract HR zone seconds from Garmin activity details
+ *
+ * Returns zone breakdown if available from Garmin's native zone calculation,
+ * otherwise returns null (caller should fall back to estimation).
+ *
+ * @param details - Garmin activity details
+ * @returns Zone seconds object or null
+ */
+export function extractGarminHRZoneSeconds(
+  details: GarminActivityDetails | null
+): GarminHRZoneSeconds | null {
+  if (!details?.heartRateZones) {
+    return null;
+  }
+
+  const zones = details.heartRateZones;
+
+  // Check if we have any zone data
+  const hasZoneData =
+    zones.zone1TimeInSeconds !== undefined ||
+    zones.zone2TimeInSeconds !== undefined ||
+    zones.zone3TimeInSeconds !== undefined ||
+    zones.zone4TimeInSeconds !== undefined ||
+    zones.zone5TimeInSeconds !== undefined;
+
+  if (!hasZoneData) {
+    return null;
+  }
+
+  return {
+    zone1: zones.zone1TimeInSeconds ?? 0,
+    zone2: zones.zone2TimeInSeconds ?? 0,
+    zone3: zones.zone3TimeInSeconds ?? 0,
+    zone4: zones.zone4TimeInSeconds ?? 0,
+    zone5: zones.zone5TimeInSeconds ?? 0,
+  };
+}
+
+/**
+ * Extract HR samples from Garmin activity details
+ *
+ * Similar to Strava streams, returns second-by-second HR values
+ * for accurate zone distribution calculation.
+ *
+ * @param details - Garmin activity details
+ * @returns Array of HR values or null
+ */
+export function extractGarminHRSamples(
+  details: GarminActivityDetails | null
+): number[] | null {
+  if (!details?.samples || details.samples.length === 0) {
+    return null;
+  }
+
+  // Filter samples with HR data and extract values
+  const hrSamples = details.samples
+    .filter(s => s.heartRate !== undefined && s.heartRate > 0)
+    .map(s => s.heartRate as number);
+
+  if (hrSamples.length === 0) {
+    return null;
+  }
+
+  return hrSamples;
 }
 
 /**

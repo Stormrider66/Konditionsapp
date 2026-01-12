@@ -11,6 +11,9 @@ import { MonitoringHeader } from '@/components/coach/monitoring/MonitoringHeader
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { prisma } from '@/lib/prisma';
+import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart';
+import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary';
+import { YearlyTrainingOverview } from '@/components/athlete/YearlyTrainingOverview';
 
 interface MonitoringPageProps {
   searchParams: Promise<{
@@ -61,9 +64,25 @@ export default async function MonitoringPage({ searchParams }: MonitoringPagePro
           />
 
           {selectedAthleteId && (
-            <Suspense fallback={<MonitoringSkeleton />}>
-              <MonitoringCharts athleteId={selectedAthleteId} />
-            </Suspense>
+            <>
+              <Suspense fallback={<MonitoringSkeleton />}>
+                <MonitoringCharts athleteId={selectedAthleteId} />
+              </Suspense>
+
+              {/* Training Zone Analysis */}
+              <div className="mt-8">
+                <h2 className="text-2xl font-bold mb-4">Pulszonfördelning</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                  <div className="lg:col-span-1">
+                    <WeeklyZoneSummary clientId={selectedAthleteId} />
+                  </div>
+                  <div className="lg:col-span-2">
+                    <ZoneDistributionChart clientId={selectedAthleteId} />
+                  </div>
+                </div>
+                <YearlyTrainingOverview clientId={selectedAthleteId} />
+              </div>
+            </>
           )}
         </>
       )}

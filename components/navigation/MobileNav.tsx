@@ -114,6 +114,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
         { href: '/coach/ergometer-tests', label: 'Ergometertester', icon: Gauge },
         { href: '/coach/video-analysis', label: 'Videoanalys', icon: Video },
         { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
+        { href: '/coach/live-hr', label: 'Live HR', icon: Heart },
       ],
     },
     more: {
@@ -146,6 +147,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: '/coach/ergometer-tests', label: 'Ergometertester', icon: Gauge },
     { href: '/coach/video-analysis', label: 'Videoanalys', icon: Video },
     { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
+    { href: '/coach/live-hr', label: 'Live HR', icon: Heart },
     { href: '/coach/analytics', label: 'Analys', icon: BarChart3 },
     { href: '/teams', label: 'Lag', icon: Users2 },
     { href: '/coach/organizations', label: 'Organisationer', icon: Building2 },
