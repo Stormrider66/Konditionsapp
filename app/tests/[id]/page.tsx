@@ -10,6 +10,7 @@ import { ShareReportButton } from '@/components/reports/ShareReportButton'
 import { Button } from '@/components/ui/button'
 import { Home, User, Printer, ArrowLeft, Edit2, RefreshCw } from 'lucide-react'
 import type { Test, Client, TestCalculations, Threshold, TrainingZone } from '@/types'
+import { AnalyzeTestButton } from '@/components/ai/performance-analysis'
 
 export default function TestDetailPage() {
   const params = useParams()
@@ -198,6 +199,10 @@ export default function TestDetailPage() {
             testId={test.id}
             hasExistingLink={!!test.publicToken}
             existingToken={test.publicToken || undefined}
+          />
+          <AnalyzeTestButton
+            testId={test.id}
+            clientId={client.id}
           />
         </div>
 
