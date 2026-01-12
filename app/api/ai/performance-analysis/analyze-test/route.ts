@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
       includePredictions,
       includeRecommendations,
       trainingLookbackWeeks,
+      userId: user.id,
     })
 
     if (!result) {

@@ -2,9 +2,9 @@
  * Test Comparator Service
  *
  * AI-powered comparison between two physiological tests.
+ * Uses Google Gemini for AI analysis with user-configured API keys.
  */
 
-import Anthropic from '@anthropic-ai/sdk'
 import { logger } from '@/lib/logger'
 import { buildComparisonContext } from './context-builder'
 import { generateTestComparisonPrompt, PERFORMANCE_ANALYSIS_SYSTEM_PROMPT } from './prompts'
@@ -16,11 +16,18 @@ import {
   TrainingRecommendation,
   TestDataForAnalysis,
 } from './types'
-
-const anthropic = new Anthropic()
+import {
+  createGoogleGenAIClient,
+  generateContent,
+  createText,
+} from '@/lib/ai/google-genai-client'
+import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
+import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
 
 interface CompareTestsOptions {
   includeTrainingCorrelation?: boolean
+  /** User ID to get API keys from settings */
+  userId?: string
 }
 
 /**
@@ -31,7 +38,7 @@ export async function compareTests(
   previousTestId: string,
   options: CompareTestsOptions = {}
 ): Promise<TestComparisonResult | null> {
-  const { includeTrainingCorrelation = true } = options
+  const { includeTrainingCorrelation = true, userId } = options
 
   try {
     // Build comparison context
@@ -57,35 +64,46 @@ export async function compareTests(
       context.athlete
     )
 
-    // Call Claude
+    // Get API key from user settings or fall back to environment variable
+    let apiKey: string | null = null
+
+    if (userId) {
+      const decryptedKeys = await getDecryptedUserApiKeys(userId)
+      apiKey = decryptedKeys.googleKey
+    }
+
+    // Fall back to environment variable
+    if (!apiKey) {
+      apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || null
+    }
+
+    if (!apiKey) {
+      throw new Error('No Google AI API key configured. Please add your API key in Settings.')
+    }
+
+    const client = createGoogleGenAIClient(apiKey)
+    const model = GEMINI_MODELS.FLASH
+
+    // Call Gemini
     const startTime = Date.now()
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      system: PERFORMANCE_ANALYSIS_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    })
+    const fullPrompt = `${PERFORMANCE_ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}`
+    const response = await generateContent(
+      client,
+      model,
+      [createText(fullPrompt)],
+      { maxOutputTokens: 4000, temperature: 0.7 }
+    )
 
     const duration = Date.now() - startTime
     logger.info('Test comparison completed', {
       currentTestId,
       previousTestId,
       duration,
-      model: 'claude-sonnet-4-20250514',
+      model,
     })
 
     // Parse response
-    const content = response.content[0]
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type')
-    }
-
-    const parsed = parseComparisonResponse(content.text)
+    const parsed = parseComparisonResponse(response.text)
 
     // Calculate days between tests
     const daysBetween = Math.floor(
@@ -126,8 +144,8 @@ export async function compareTests(
       correlationAnalysis: includeTrainingCorrelation && parsed.correlationAnalysis
         ? parsed.correlationAnalysis
         : undefined,
-      tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
-      modelUsed: 'claude-sonnet-4-20250514',
+      tokensUsed: (response.usage?.inputTokens ?? 0) + (response.usage?.outputTokens ?? 0),
+      modelUsed: model,
     }
 
     return result

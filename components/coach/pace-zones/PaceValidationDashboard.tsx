@@ -99,14 +99,14 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Training Zones - {clientName}</h2>
-          <p className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground flex items-center gap-1">
             Primary Source: <Badge variant="outline">{primarySource}</Badge>
             {secondarySource && (
               <span className="ml-2">
                 Secondary: <Badge variant="outline">{secondarySource}</Badge>
               </span>
             )}
-          </p>
+          </div>
         </div>
         <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline" size="sm">
           <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -154,7 +154,7 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
           <div className="grid grid-cols-4 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Level</p>
-              <p className="text-2xl font-bold">
+              <div className="text-2xl font-bold mt-1">
                 <Badge variant={
                   athleteClassification.level === 'ELITE' ? 'default' :
                   athleteClassification.level === 'ADVANCED' ? 'secondary' :
@@ -162,7 +162,7 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
                 }>
                   {athleteClassification.level}
                 </Badge>
-              </p>
+              </div>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Metabolic Type</p>

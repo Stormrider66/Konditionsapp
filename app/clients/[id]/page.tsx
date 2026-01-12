@@ -11,6 +11,7 @@ import { ProgressionChart } from '@/components/charts/ProgressionChart'
 import { SportSpecificAthleteView } from '@/components/coach/sport-views'
 import { PaceValidationDashboard } from '@/components/coach/pace-zones/PaceValidationDashboard'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
+import { AnalyzeTestButton } from '@/components/ai/performance-analysis'
 import { ClientVideoAnalyses } from '@/components/coach/video-analysis/ClientVideoAnalyses'
 import { VBTProgressionWidget, VBTExerciseProgression } from '@/components/athlete/VBTProgressionWidget'
 import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidget'
@@ -813,12 +814,14 @@ export default function ClientDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {sortedAndFilteredTests.map((test) => {
+                  {sortedAndFilteredTests.map((test, index) => {
                     const aerobicThreshold = test.aerobicThreshold as any
                     const anaerobicThreshold = test.anaerobicThreshold as any
 
                     const isExpanded = expandedTestId === test.id
                     const trainingZones = test.trainingZones as TrainingZone[] | null
+                    // Get previous test for comparison (tests sorted desc by date, so index+1 is earlier)
+                    const previousTest = sortedAndFilteredTests[index + 1]
 
                     return (
                       <Fragment key={test.id}>
@@ -866,13 +869,19 @@ export default function ClientDetailPage() {
                             {anaerobicThreshold?.heartRate ? `${anaerobicThreshold.heartRate} bpm` : '-'}
                           </td>
                           <td className="px-4 py-3 text-sm text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-end gap-3">
+                            <div className="flex items-center justify-end gap-2">
                               <Link
                                 href={`/tests/${test.id}`}
                                 className="text-blue-600 hover:text-blue-800 font-medium"
                               >
                                 Visa
                               </Link>
+                              <AnalyzeTestButton
+                                testId={test.id}
+                                clientId={id}
+                                previousTestId={previousTest?.id}
+                                className="h-8 text-xs"
+                              />
                               <Link
                                 href={`/tests/${test.id}/edit`}
                                 className="text-blue-600 hover:text-blue-800"

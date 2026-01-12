@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
     const startTime = Date.now()
     const result = await compareTests(currentTestId, previousTestId, {
       includeTrainingCorrelation,
+      userId: user.id,
     })
 
     if (!result) {

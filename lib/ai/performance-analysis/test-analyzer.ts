@@ -2,7 +2,7 @@
  * Test Analyzer Service
  *
  * AI-powered analysis of individual physiological tests.
- * Uses Google Gemini for AI analysis.
+ * Uses Google Gemini for AI analysis with user-configured API keys.
  */
 
 import { logger } from '@/lib/logger'
@@ -20,11 +20,14 @@ import {
   createText,
 } from '@/lib/ai/google-genai-client'
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
+import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
 
 interface AnalyzeTestOptions {
   includePredictions?: boolean
   includeRecommendations?: boolean
   trainingLookbackWeeks?: number
+  /** User ID to get API keys from settings */
+  userId?: string
 }
 
 /**
@@ -38,6 +41,7 @@ export async function analyzeTest(
     includePredictions = true,
     includeRecommendations = true,
     trainingLookbackWeeks = 12,
+    userId,
   } = options
 
   try {
@@ -63,10 +67,21 @@ export async function analyzeTest(
       context.athlete
     )
 
-    // Call Gemini
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+    // Get API key from user settings or fall back to environment variable
+    let apiKey: string | null = null
+
+    if (userId) {
+      const decryptedKeys = await getDecryptedUserApiKeys(userId)
+      apiKey = decryptedKeys.googleKey
+    }
+
+    // Fall back to environment variable
     if (!apiKey) {
-      throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY or GEMINI_API_KEY environment variable')
+      apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || null
+    }
+
+    if (!apiKey) {
+      throw new Error('No Google AI API key configured. Please add your API key in Settings.')
     }
 
     const client = createGoogleGenAIClient(apiKey)

@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     // Perform trend analysis
     const startTime = Date.now()
-    const result = await analyzeTrends(clientId, { months, metrics })
+    const result = await analyzeTrends(clientId, { months, metrics, userId: user.id })
 
     if (!result) {
       return NextResponse.json(
