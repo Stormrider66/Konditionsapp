@@ -14,6 +14,7 @@ import {
   TrainingContextForAnalysis,
   KeyFinding,
   TrainingRecommendation,
+  PerformancePrediction,
 } from './types'
 
 const anthropic = new Anthropic()
@@ -319,7 +320,7 @@ function parseCorrelationResponse(text: string): {
   keyFindings: KeyFinding[]
   strengths: string[]
   developmentAreas: string[]
-  predictions: { type: string; title: string; prediction: string; confidence: number; basis: string; timeframe?: string }[]
+  predictions: PerformancePrediction[]
   recommendations: TrainingRecommendation[]
   correlations: TrainingCorrelationResult['correlations']
   effectivenessInsights?: TrainingCorrelationResult['effectivenessInsights']
@@ -342,7 +343,7 @@ function parseCorrelationJson(jsonStr: string): {
   keyFindings: KeyFinding[]
   strengths: string[]
   developmentAreas: string[]
-  predictions: { type: string; title: string; prediction: string; confidence: number; basis: string; timeframe?: string }[]
+  predictions: PerformancePrediction[]
   recommendations: TrainingRecommendation[]
   correlations: TrainingCorrelationResult['correlations']
   effectivenessInsights?: TrainingCorrelationResult['effectivenessInsights']
@@ -436,11 +437,14 @@ function validateKeyFindings(findings: unknown[]): KeyFinding[] {
     }))
 }
 
-function validatePredictions(predictions: unknown[]): { type: string; title: string; prediction: string; confidence: number; basis: string; timeframe?: string }[] {
+function validatePredictions(predictions: unknown[]): PerformancePrediction[] {
+  const validTypes = ['RACE_TIME', 'THRESHOLD', 'VO2MAX', 'FITNESS_PEAK'] as const
   return predictions
     .filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null)
     .map((p) => ({
-      type: String(p.type ?? 'FITNESS_PEAK'),
+      type: validTypes.includes(p.type as typeof validTypes[number])
+        ? (p.type as PerformancePrediction['type'])
+        : 'FITNESS_PEAK',
       title: String(p.title ?? ''),
       prediction: String(p.prediction ?? ''),
       confidence: typeof p.confidence === 'number' ? Math.min(1, Math.max(0, p.confidence)) : 0.5,

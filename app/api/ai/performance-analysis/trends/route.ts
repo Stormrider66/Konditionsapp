@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const client = await prisma.client.findFirst({
       where: {
         id: clientId,
-        coachId: user.id,
+        userId: user.id,
       },
       select: { id: true, name: true },
     })

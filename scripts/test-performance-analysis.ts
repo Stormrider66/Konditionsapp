@@ -32,9 +32,10 @@ async function main() {
     console.log(`   - Athlete: ${context.athlete.name}`)
     console.log('')
 
-    // Test 2: Run AI analysis (requires ANTHROPIC_API_KEY)
-    if (process.env.ANTHROPIC_API_KEY) {
-      console.log('2. Running AI analysis...')
+    // Test 2: Run AI analysis (requires GOOGLE_GENERATIVE_AI_API_KEY or GEMINI_API_KEY)
+    const geminiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+    if (geminiKey) {
+      console.log('2. Running AI analysis with Gemini...')
       const result = await analyzeTest(TEST_ID, {
         includePredictions: true,
         includeRecommendations: true,
@@ -42,6 +43,7 @@ async function main() {
 
       if (result) {
         console.log('   ✓ Analysis completed')
+        console.log(`   - Model: ${result.modelUsed}`)
         console.log(`   - Confidence: ${result.confidence}`)
         console.log(`   - Data quality: ${result.dataQuality}`)
         console.log(`   - Key findings: ${result.keyFindings.length}`)
@@ -55,7 +57,7 @@ async function main() {
         console.log('   ✗ Analysis returned null')
       }
     } else {
-      console.log('2. Skipping AI analysis (no ANTHROPIC_API_KEY)')
+      console.log('2. Skipping AI analysis (no GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY)')
     }
 
     console.log('\n✓ All tests passed!')

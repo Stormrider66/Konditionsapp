@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const client = await prisma.client.findFirst({
       where: {
         id: clientId,
-        coachId: user.id,
+        userId: user.id,
       },
       select: { id: true, name: true },
     })
@@ -51,14 +51,19 @@ export async function POST(req: NextRequest) {
     // Check test and workout count
     const since = new Date(Date.now() - lookbackMonths * 30 * 24 * 60 * 60 * 1000)
 
-    const [testCount, workoutCount] = await Promise.all([
+    const [testCount, stravaCount, garminCount] = await Promise.all([
       prisma.test.count({
         where: { clientId, testDate: { gte: since } },
       }),
-      prisma.workoutSession.count({
-        where: { clientId, date: { gte: since }, status: 'COMPLETED' },
+      prisma.stravaActivity.count({
+        where: { clientId, startDate: { gte: since } },
+      }),
+      prisma.garminActivity.count({
+        where: { clientId, startDate: { gte: since } },
       }),
     ])
+
+    const workoutCount = stravaCount + garminCount
 
     if (testCount < 3) {
       return NextResponse.json(

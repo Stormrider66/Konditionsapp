@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const test = await prisma.test.findFirst({
       where: {
         id: testId,
-        client: { coachId: user.id },
+        client: { userId: user.id },
       },
       select: { id: true, clientId: true },
     })
@@ -91,11 +91,11 @@ export async function POST(req: NextRequest) {
       data: {
         userId: user.id,
         category: 'performance_analysis',
-        provider: 'ANTHROPIC',
-        model: result.modelUsed ?? 'claude-sonnet-4-20250514',
+        provider: 'GOOGLE',
+        model: result.modelUsed ?? 'gemini-3-flash-preview',
         inputTokens: Math.floor((result.tokensUsed ?? 0) * 0.7), // Approximate split
         outputTokens: Math.floor((result.tokensUsed ?? 0) * 0.3),
-        estimatedCost: (result.tokensUsed ?? 0) * 0.000003, // Approximate cost
+        estimatedCost: (result.tokensUsed ?? 0) * 0.000002, // Gemini pricing
       },
     })
 

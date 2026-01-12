@@ -2,9 +2,9 @@
  * Test Analyzer Service
  *
  * AI-powered analysis of individual physiological tests.
+ * Uses Google Gemini for AI analysis.
  */
 
-import Anthropic from '@anthropic-ai/sdk'
 import { logger } from '@/lib/logger'
 import { buildAnalysisContext } from './context-builder'
 import { generateTestAnalysisPrompt, PERFORMANCE_ANALYSIS_SYSTEM_PROMPT } from './prompts'
@@ -14,8 +14,12 @@ import {
   PerformancePrediction,
   TrainingRecommendation,
 } from './types'
-
-const anthropic = new Anthropic()
+import {
+  createGoogleGenAIClient,
+  generateContent,
+  createText,
+} from '@/lib/ai/google-genai-client'
+import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
 
 interface AnalyzeTestOptions {
   includePredictions?: boolean
@@ -59,30 +63,29 @@ export async function analyzeTest(
       context.athlete
     )
 
-    // Call Claude
-    const startTime = Date.now()
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      system: PERFORMANCE_ANALYSIS_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    })
-
-    const duration = Date.now() - startTime
-    logger.info('Test analysis completed', { testId, duration, model: 'claude-sonnet-4-20250514' })
-
-    // Parse response
-    const content = response.content[0]
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type')
+    // Call Gemini
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY or GEMINI_API_KEY environment variable')
     }
 
-    const parsed = parseAnalysisResponse(content.text)
+    const client = createGoogleGenAIClient(apiKey)
+    const model = GEMINI_MODELS.FLASH // Use Gemini 3 Flash for fast analysis
+
+    const startTime = Date.now()
+    const fullPrompt = `${PERFORMANCE_ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}`
+    const response = await generateContent(
+      client,
+      model,
+      [createText(fullPrompt)],
+      { maxOutputTokens: 4000, temperature: 0.7 }
+    )
+
+    const duration = Date.now() - startTime
+    logger.info('Test analysis completed', { testId, duration, model })
+
+    // Parse response
+    const parsed = parseAnalysisResponse(response.text)
 
     // Apply options
     if (!includePredictions) {
@@ -93,6 +96,7 @@ export async function analyzeTest(
     }
 
     // Build result
+    const tokensUsed = (response.usage?.inputTokens ?? 0) + (response.usage?.outputTokens ?? 0)
     const result: PerformanceAnalysisResult = {
       analysisType: 'TEST_ANALYSIS',
       generatedAt: new Date().toISOString(),
@@ -105,8 +109,8 @@ export async function analyzeTest(
       developmentAreas: parsed.developmentAreas,
       predictions: parsed.predictions,
       recommendations: parsed.recommendations,
-      tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
-      modelUsed: 'claude-sonnet-4-20250514',
+      tokensUsed,
+      modelUsed: model,
     }
 
     return result

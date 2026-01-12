@@ -250,7 +250,7 @@ async function fetchPreviousTests(
   const tests = await prisma.test.findMany({
     where: {
       clientId,
-      testType,
+      testType: testType as 'RUNNING' | 'CYCLING' | 'SKIING',
       testDate: { lt: beforeDate },
     },
     include: {
@@ -487,10 +487,8 @@ function buildAthleteProfile(client: {
   birthDate: Date | null
   gender: string | null
   sportProfile: {
-    sport: string
-    experienceYears: number | null
-    weeklyTrainingHours: number | null
-    primaryGoal: string | null
+    primarySport: string
+    currentGoal?: string | null
   } | null
   athleteAccount: {
     id: string
@@ -512,10 +510,10 @@ function buildAthleteProfile(client: {
     name: client.name,
     age,
     gender: (client.gender as 'MALE' | 'FEMALE') ?? 'MALE',
-    sport: client.sportProfile?.sport ?? 'Running',
-    experienceYears: client.sportProfile?.experienceYears ?? 0,
-    weeklyTrainingHours: client.sportProfile?.weeklyTrainingHours ?? 0,
-    primaryGoal: client.sportProfile?.primaryGoal ?? null,
+    sport: client.sportProfile?.primarySport ?? 'Running',
+    experienceYears: 0, // Not tracked in SportProfile
+    weeklyTrainingHours: 0, // Not tracked in SportProfile
+    primaryGoal: client.sportProfile?.currentGoal ?? null,
     targetRaces: [], // Would need to fetch from calendar events
     trainingAgeMonths: 0, // Would need to calculate from first workout
     totalTestsCompleted: 0, // Will be set later if needed
@@ -573,6 +571,7 @@ export async function buildComparisonContext(
           include: {
             user: { select: { id: true, name: true } },
             sportProfile: true,
+            athleteAccount: { select: { id: true } },
             dailyCheckIns: { orderBy: { date: 'desc' }, take: 7 },
           },
         },
@@ -641,6 +640,7 @@ export async function buildTrendContext(
         include: {
           user: { select: { id: true, name: true } },
           sportProfile: true,
+          athleteAccount: { select: { id: true } },
           dailyCheckIns: { orderBy: { date: 'desc' }, take: 7 },
         },
       },

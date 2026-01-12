@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const tests = await prisma.test.findMany({
       where: {
         id: { in: [currentTestId, previousTestId] },
-        client: { coachId: user.id },
+        client: { userId: user.id },
       },
       select: { id: true, clientId: true, testType: true },
     })
