@@ -89,12 +89,12 @@ export function CreateSessionDialog({ teams, onCreate }: CreateSessionDialogProp
           {teams.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="team">Lägg till lag (valfritt)</Label>
-              <Select value={teamId} onValueChange={setTeamId}>
+              <Select value={teamId || '__none__'} onValueChange={(v) => setTeamId(v === '__none__' ? '' : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Välj lag att övervaka" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Inget lag</SelectItem>
+                  <SelectItem value="__none__">Inget lag</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
