@@ -40,3 +40,4 @@ playwright-report/
 prisma/dev.db
 prisma/dev.db-journal
 nul
+tmpclaude-*
