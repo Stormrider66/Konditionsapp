@@ -337,6 +337,45 @@ BIOMECHANISK BALANS:
 - Upper Body (Push/Pull)`
   },
 
+  FUNCTIONAL_FITNESS: {
+    systemContext: `Du skapar funktionell fitness-program med fokus på CrossFit-liknande träning.
+
+NYCKELPRINCIPER FÖR FUNKTIONELL FITNESS:
+- Konstant varierat, funktionellt, utfört med hög intensitet
+- Blandning av gymnastik, olympiska lyft och metabolisk kondition
+- Periodisering av skills och styrka
+- Balans mellan push/pull, övre/underkropp
+- Teknik före belastning, särskilt i olympiska lyft
+- Benchmark-workouts för att mäta framsteg`,
+    zoneGuidance: `TRÄNINGSFOKUS:
+- Styrka: Grundläggande lyft (squat, deadlift, press)
+- Olympiska lyft: Clean, snatch, jerk
+- Gymnastik: Pull-ups, muscle-ups, HSPU, T2B
+- Metabolisk kondition: WODs, intervaller
+- Skills: Double-unders, rope climbs, handstands
+
+INTENSITET:
+- Styrkepass: 70-90% 1RM, 3-5 reps
+- WODs: Skalad för att hålla hög intensitet
+- Skills: Tekniskt fokus, inte tidspressad`,
+    sessionTypes: [
+      'WOD (For Time, AMRAP, EMOM)',
+      'Styrkepass (Back Squat, Deadlift, Press)',
+      'Olympiska lyftpass (Clean, Snatch, Jerk)',
+      'Gymnastik-skills (Pull-ups, HSPU, Muscle-ups)',
+      'Metabolisk kondition (Assault Bike, Row, SkiErg)',
+      'Benchmark (Fran, Grace, Murph)',
+      'Active Recovery (Mobilitet, lätt cardio)'
+    ],
+    periodizationNotes: `PERIODISERING FUNKTIONELL FITNESS:
+- Vecka 1-4: Grundteknik, volymuppbyggnad
+- Vecka 5-8: Progressiv styrkeökning, skill-utveckling
+- Vecka 9-12: Intensifiering, test av benchmarks
+- Deload var 4-5 vecka
+- Skills: Öva dagligen innan WOD
+- Olympiska lyft: Teknikfokus 2-3x/vecka`
+  },
+
   TEAM_FOOTBALL: {
     systemContext: `Du skapar träningsprogram för fotbollsspelare.
 
@@ -465,6 +504,134 @@ NYCKELPRINCIPER FÖR INNEBANDY:
 - Säsong: Matchanpassad träning
 - Matchvecka: Minska volym mot match
 - Återhämtning: Vila och underhåll`
+  },
+
+  TEAM_BASKETBALL: {
+    systemContext: `Du skapar träningsprogram för basketspelare.
+
+NYCKELPRINCIPER FÖR BASKET:
+- Explosiv vertikal hopp- och sprintkraft
+- Snabba riktningsändringar och sidorörelse
+- Aerob och anaerob uthållighet
+- Handkoordination och skotteknik
+- Förebyggande av fotleds- och knäskador`,
+    zoneGuidance: `INTENSITETSZONER BASKET:
+- Återhämtning: <70% maxHR, lätt aktivitet
+- Aerob bas: 70-80% maxHR, grundkondition
+- Tempo: 80-88% maxHR, spelövningar
+- Hög intensitet: 88-95% maxHR, intensiva drills
+- Max: >95% maxHR, sprinter och hopp`,
+    sessionTypes: [
+      'Spelträning (5v5, 3v3)',
+      'Skottträning (olika positioner)',
+      'Agility och sidorörelse',
+      'Vertikalt hoppträning (plyometrics)',
+      'Styrketräning (ben, core)',
+      'Konditionsintervaller (suicides, court sprints)',
+      'Återhämtning (stretching, foam rolling)'
+    ],
+    periodizationNotes: `PERIODISERING BASKET:
+- Off-season: Styrka, explosivitet, teknik
+- Pre-season: Spelformsuppbyggnad
+- In-season: Matchfokus, underhåll
+- Matchvecka: Reducera volym mot match
+- Playoff: Hög intensitet, optimal återhämtning`
+  },
+
+  TEAM_VOLLEYBALL: {
+    systemContext: `Du skapar träningsprogram för volleybollspelare.
+
+NYCKELPRINCIPER FÖR VOLLEYBOLL:
+- Explosiv vertikalkraft för hopp och block
+- Snabb reaktionsförmåga
+- Axel- och skulderstyrka för slag
+- Landningsteknik för knäskydd
+- Sidorörelse och footwork`,
+    zoneGuidance: `INTENSITETSZONER VOLLEYBOLL:
+- Återhämtning: <70% maxHR, lätt aktivitet
+- Aerob bas: 70-80% maxHR, allmän kondition
+- Tempo: 80-88% maxHR, tekniska övningar
+- Hög intensitet: 88-95% maxHR, intensiva drills
+- Max: >95% maxHR, explosiva hopp och slag`,
+    sessionTypes: [
+      'Spelträning (6v6, rotation)',
+      'Serve- och mottagningsträning',
+      'Blockträning och nätspel',
+      'Plyometrisk hoppträning',
+      'Styrketräning (axlar, ben, core)',
+      'Agility och reaktionsövningar',
+      'Återhämtning (stretching, axelrörlighet)'
+    ],
+    periodizationNotes: `PERIODISERING VOLLEYBOLL:
+- Off-season: Grundstyrka, explosivitet
+- Pre-season: Teknisk finslipning, spelform
+- In-season: Matchförberedelse, underhåll
+- Matchvecka: Taktik, lätt aktivering
+- Återhämtning: Vila efter intensiva perioder`
+  },
+
+  TENNIS: {
+    systemContext: `Du skapar träningsprogram för tennisspelare.
+
+NYCKELPRINCIPER FÖR TENNIS:
+- Explosiv rörelse och snabba riktningsändringar
+- Axel- och armbågsprevention
+- Core-stabilitet för rotation
+- Aerob och anaerob uthållighet
+- Mental uthållighet för långa matcher`,
+    zoneGuidance: `INTENSITETSZONER TENNIS:
+- Återhämtning: <70% maxHR, lätt aktivitet
+- Aerob bas: 70-80% maxHR, grundkondition
+- Tempo: 80-88% maxHR, rallys och drills
+- Hög intensitet: 88-95% maxHR, intensiva poäng
+- Max: >95% maxHR, explosiva sprinter`,
+    sessionTypes: [
+      'Teknisk träning (slag, serve)',
+      'Matchträning och taktik',
+      'Footwork och rörelseövningar',
+      'Intervallträning (on-court drills)',
+      'Styrketräning (rotationsövningar)',
+      'Konditionsträning (löpning, cykling)',
+      'Återhämtning (stretching, axelrörlighet)'
+    ],
+    periodizationNotes: `PERIODISERING TENNIS:
+- Off-season: Styrka, konditionsbas, teknikutveckling
+- Pre-season: Tävlingsförberedelse, matchhärdning
+- In-season: Matchperiodisering, underhåll
+- Mellan turneringar: Återhämtning och specifik träning
+- Taper: Reducera volym inför viktiga turneringar`
+  },
+
+  PADEL: {
+    systemContext: `Du skapar träningsprogram för padelspelare.
+
+NYCKELPRINCIPER FÖR PADEL:
+- Explosiva sidorörelser och riktningsändringar
+- Reaktionssnabbhet och anticipation
+- Axel- och armbågsprevention
+- Uthållighet för långa matcher
+- Väggspel och positionering`,
+    zoneGuidance: `INTENSITETSZONER PADEL:
+- Återhämtning: <70% maxHR, lätt aktivitet
+- Aerob bas: 70-80% maxHR, grundkondition
+- Tempo: 80-88% maxHR, rallys och poängspel
+- Hög intensitet: 88-95% maxHR, intensiva byten
+- Max: >95% maxHR, explosiva reaktioner`,
+    sessionTypes: [
+      'Teknisk träning (slag, volleys, väggspel)',
+      'Matchträning och taktik',
+      'Footwork och sidorörelse',
+      'Reaktionsträning',
+      'Styrketräning (core, ben, axlar)',
+      'Konditionsintervaller',
+      'Återhämtning (stretching, mobilitet)'
+    ],
+    periodizationNotes: `PERIODISERING PADEL:
+- Off-season: Styrka, rörlighet, teknikutveckling
+- Pre-season: Spelformsuppbyggnad, matchhärdning
+- In-season: Matchfokus, underhållsträning
+- Mellan turneringar: Återhämtning och specifik träning
+- Viktiga turneringar: Taper och mental förberedelse`
   }
 };
 

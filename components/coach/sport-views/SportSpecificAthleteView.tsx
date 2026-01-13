@@ -6,9 +6,18 @@ import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { HYROXAthleteView } from './HYROXAthleteView'
 import { CyclingAthleteView } from './CyclingAthleteView'
 import { GeneralFitnessAthleteView } from './GeneralFitnessAthleteView'
+import { FunctionalFitnessAthleteView } from './FunctionalFitnessAthleteView'
 import { TriathlonAthleteView } from './TriathlonAthleteView'
 import { SkiingAthleteView } from './SkiingAthleteView'
 import { SwimmingAthleteView } from './SwimmingAthleteView'
+import { HockeyAthleteView } from './HockeyAthleteView'
+import { FootballAthleteView } from './FootballAthleteView'
+import { HandballAthleteView } from './HandballAthleteView'
+import { FloorballAthleteView } from './FloorballAthleteView'
+import { BasketballAthleteView } from './BasketballAthleteView'
+import { VolleyballAthleteView } from './VolleyballAthleteView'
+import { TennisAthleteView } from './TennisAthleteView'
+import { PadelAthleteView } from './PadelAthleteView'
 
 const SPORT_DISPLAY: Record<string, { icon: string; label: string }> = {
   RUNNING: { icon: '🏃', label: 'Löpning' },
@@ -17,7 +26,17 @@ const SPORT_DISPLAY: Record<string, { icon: string; label: string }> = {
   TRIATHLON: { icon: '🏊', label: 'Triathlon' },
   HYROX: { icon: '💪', label: 'HYROX' },
   GENERAL_FITNESS: { icon: '🏋️', label: 'Allmän Fitness' },
+  FUNCTIONAL_FITNESS: { icon: '🔥', label: 'Funktionell Fitness' },
   SWIMMING: { icon: '🏊‍♂️', label: 'Simning' },
+  STRENGTH: { icon: '🏋️', label: 'Styrketräning' },
+  TEAM_ICE_HOCKEY: { icon: '🏒', label: 'Ishockey' },
+  TEAM_FOOTBALL: { icon: '⚽', label: 'Fotboll' },
+  TEAM_HANDBALL: { icon: '🤾', label: 'Handboll' },
+  TEAM_FLOORBALL: { icon: '🏑', label: 'Innebandy' },
+  TEAM_BASKETBALL: { icon: '🏀', label: 'Basket' },
+  TEAM_VOLLEYBALL: { icon: '🏐', label: 'Volleyboll' },
+  TENNIS: { icon: '🎾', label: 'Tennis' },
+  PADEL: { icon: '🎾', label: 'Padel' },
 }
 
 interface SportProfile {
@@ -30,6 +49,15 @@ interface SportProfile {
   triathlonSettings?: Record<string, unknown>
   hyroxSettings?: Record<string, unknown>
   generalFitnessSettings?: Record<string, unknown>
+  functionalFitnessSettings?: Record<string, unknown>
+  hockeySettings?: Record<string, unknown>
+  footballSettings?: Record<string, unknown>
+  handballSettings?: Record<string, unknown>
+  floorballSettings?: Record<string, unknown>
+  basketballSettings?: Record<string, unknown>
+  volleyballSettings?: Record<string, unknown>
+  tennisSettings?: Record<string, unknown>
+  padelSettings?: Record<string, unknown>
 }
 
 interface SportSpecificAthleteViewProps {
@@ -91,6 +119,14 @@ export function SportSpecificAthleteView({
             settings={sportProfile.generalFitnessSettings}
           />
         )
+      case 'FUNCTIONAL_FITNESS':
+        return (
+          <FunctionalFitnessAthleteView
+            clientId={clientId}
+            clientName={clientName}
+            settings={sportProfile.functionalFitnessSettings}
+          />
+        )
       case 'TRIATHLON':
         return (
           <TriathlonAthleteView
@@ -113,6 +149,70 @@ export function SportSpecificAthleteView({
             clientId={clientId}
             clientName={clientName}
             settings={sportProfile.swimmingSettings}
+          />
+        )
+      case 'TEAM_ICE_HOCKEY':
+        return (
+          <HockeyAthleteView
+            clientId={clientId}
+            clientName={clientName}
+            settings={sportProfile.hockeySettings}
+          />
+        )
+      case 'TEAM_FOOTBALL':
+        return (
+          <FootballAthleteView
+            clientId={clientId}
+            clientName={clientName}
+            settings={sportProfile.footballSettings}
+          />
+        )
+      case 'TEAM_HANDBALL':
+        return (
+          <HandballAthleteView
+            clientId={clientId}
+            clientName={clientName}
+            settings={sportProfile.handballSettings}
+          />
+        )
+      case 'TEAM_FLOORBALL':
+        return (
+          <FloorballAthleteView
+            clientId={clientId}
+            clientName={clientName}
+            settings={sportProfile.floorballSettings}
+          />
+        )
+      case 'TEAM_BASKETBALL':
+        return (
+          <BasketballAthleteView
+            clientId={clientId}
+            clientName={clientName}
+            settings={sportProfile.basketballSettings}
+          />
+        )
+      case 'TEAM_VOLLEYBALL':
+        return (
+          <VolleyballAthleteView
+            clientId={clientId}
+            clientName={clientName}
+            settings={sportProfile.volleyballSettings}
+          />
+        )
+      case 'TENNIS':
+        return (
+          <TennisAthleteView
+            clientId={clientId}
+            clientName={clientName}
+            settings={sportProfile.tennisSettings}
+          />
+        )
+      case 'PADEL':
+        return (
+          <PadelAthleteView
+            clientId={clientId}
+            clientName={clientName}
+            settings={sportProfile.padelSettings}
           />
         )
       case 'RUNNING':

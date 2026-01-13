@@ -405,11 +405,16 @@ function buildSportProfileContext(sportProfile: {
     HYROX: 'HYROX',
     SKIING: 'Längdskidor',
     GENERAL_FITNESS: 'Allmän fitness',
+    FUNCTIONAL_FITNESS: 'Funktionell fitness',
     STRENGTH: 'Styrketräning',
     TEAM_FOOTBALL: 'Fotboll',
     TEAM_ICE_HOCKEY: 'Ishockey',
     TEAM_HANDBALL: 'Handboll',
     TEAM_FLOORBALL: 'Innebandy',
+    TEAM_BASKETBALL: 'Basket',
+    TEAM_VOLLEYBALL: 'Volleyboll',
+    TENNIS: 'Tennis',
+    PADEL: 'Padel',
   }
 
   context += `- **Primär idrott**: ${sportNames[sportProfile.primarySport]}\n`

@@ -19,6 +19,15 @@ import { SwimmingDashboard } from '@/components/athlete/SwimmingDashboard'
 import { TriathlonDashboard } from '@/components/athlete/TriathlonDashboard'
 import { HYROXDashboard } from '@/components/athlete/HYROXDashboard'
 import { GeneralFitnessDashboard } from '@/components/athlete/GeneralFitnessDashboard'
+import { FunctionalFitnessDashboard } from '@/components/athlete/FunctionalFitnessDashboard'
+import { HockeyDashboard } from '@/components/athlete/HockeyDashboard'
+import { FootballDashboard } from '@/components/athlete/FootballDashboard'
+import { HandballDashboard } from '@/components/athlete/HandballDashboard'
+import { FloorballDashboard } from '@/components/athlete/FloorballDashboard'
+import { BasketballDashboard } from '@/components/athlete/BasketballDashboard'
+import { VolleyballDashboard } from '@/components/athlete/VolleyballDashboard'
+import { TennisDashboard } from '@/components/athlete/TennisDashboard'
+import { PadelDashboard } from '@/components/athlete/PadelDashboard'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import {
@@ -72,13 +81,72 @@ export default async function AthleteDashboardPage() {
   // Get sport profile for sport-aware dashboard
   const sportProfile = athleteAccount.client.sportProfile
   const primarySport = sportProfile?.primarySport
-  const isCyclist = primarySport === 'CYCLING'
-  const isSkier = primarySport === 'SKIING'
-  const isSwimmer = primarySport === 'SWIMMING'
-  const isTriathlete = primarySport === 'TRIATHLON'
-  const isHyroxAthlete = primarySport === 'HYROX'
-  const isGeneralFitnessAthlete = primarySport === 'GENERAL_FITNESS'
-  const isRunner = !isCyclist && !isSkier && !isSwimmer && !isTriathlete && !isHyroxAthlete && !isGeneralFitnessAthlete
+
+  // Helper function to render sport-specific dashboard
+  const clientName = athleteAccount.client.name
+  const renderSportDashboard = () => {
+    if (!sportProfile) return null
+
+    switch (primarySport) {
+      case 'CYCLING':
+        return (
+          <CyclingDashboard
+            cyclingSettings={sportProfile.cyclingSettings as any}
+            experience={sportProfile.cyclingExperience}
+            clientName={clientName}
+          />
+        )
+      case 'SKIING':
+        return (
+          <SkiingDashboard
+            skiingSettings={sportProfile.skiingSettings as any}
+            experience={sportProfile.runningExperience}
+            clientName={clientName}
+          />
+        )
+      case 'SWIMMING':
+        return (
+          <SwimmingDashboard
+            swimmingSettings={sportProfile.swimmingSettings as any}
+            experience={sportProfile.swimmingExperience}
+            clientName={clientName}
+          />
+        )
+      case 'TRIATHLON':
+        return (
+          <TriathlonDashboard
+            triathlonSettings={sportProfile.triathlonSettings as any}
+            experience={sportProfile.runningExperience}
+            clientName={clientName}
+          />
+        )
+      case 'HYROX':
+        return <HYROXDashboard settings={sportProfile.hyroxSettings as any} />
+      case 'GENERAL_FITNESS':
+        return <GeneralFitnessDashboard settings={sportProfile.generalFitnessSettings as any} />
+      case 'FUNCTIONAL_FITNESS':
+        return <FunctionalFitnessDashboard settings={sportProfile.functionalFitnessSettings as any} />
+      case 'TEAM_ICE_HOCKEY':
+        return <HockeyDashboard settings={sportProfile.hockeySettings as any} />
+      case 'TEAM_FOOTBALL':
+        return <FootballDashboard settings={sportProfile.footballSettings as any} />
+      case 'TEAM_HANDBALL':
+        return <HandballDashboard settings={sportProfile.handballSettings as any} />
+      case 'TEAM_FLOORBALL':
+        return <FloorballDashboard settings={sportProfile.floorballSettings as any} />
+      case 'TEAM_BASKETBALL':
+        return <BasketballDashboard settings={sportProfile.basketballSettings as any} />
+      case 'TEAM_VOLLEYBALL':
+        return <VolleyballDashboard settings={sportProfile.volleyballSettings as any} />
+      case 'TENNIS':
+        return <TennisDashboard settings={sportProfile.tennisSettings as any} />
+      case 'PADEL':
+        return <PadelDashboard settings={sportProfile.padelSettings as any} />
+      case 'RUNNING':
+      default:
+        return null // Running uses default dashboard widgets
+    }
+  }
 
   const now = new Date()
   const todayStart = startOfDay(now)
@@ -489,6 +557,13 @@ export default async function AthleteDashboardPage() {
       <div className="mb-8">
         <AISuggestionsBanner />
       </div>
+
+      {/* Sport-Specific Dashboard (rendered based on primary sport) */}
+      {renderSportDashboard() && (
+        <div className="mb-8">
+          {renderSportDashboard()}
+        </div>
+      )}
 
       {/* Main Grid - Hero Card + Readiness Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

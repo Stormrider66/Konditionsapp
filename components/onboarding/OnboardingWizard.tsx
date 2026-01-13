@@ -18,6 +18,15 @@ import { SwimmingOnboarding, DEFAULT_SWIMMING_SETTINGS, type SwimmingSettings } 
 import { TriathlonOnboarding, DEFAULT_TRIATHLON_SETTINGS, type TriathlonSettings } from './TriathlonOnboarding'
 import { HYROXOnboarding, DEFAULT_HYROX_SETTINGS, type HYROXSettings } from './HYROXOnboarding'
 import { GeneralFitnessOnboarding, DEFAULT_GENERAL_FITNESS_SETTINGS, type GeneralFitnessSettings } from './GeneralFitnessOnboarding'
+import { FunctionalFitnessOnboarding, DEFAULT_FUNCTIONAL_FITNESS_SETTINGS, type FunctionalFitnessSettings } from './FunctionalFitnessOnboarding'
+import { HockeyOnboarding, DEFAULT_HOCKEY_SETTINGS, type HockeySettings } from './HockeyOnboarding'
+import { FootballOnboarding, DEFAULT_FOOTBALL_SETTINGS, type FootballSettings } from './FootballOnboarding'
+import { HandballOnboarding, DEFAULT_HANDBALL_SETTINGS, type HandballSettings } from './HandballOnboarding'
+import { FloorballOnboarding, DEFAULT_FLOORBALL_SETTINGS, type FloorballSettings } from './FloorballOnboarding'
+import { BasketballOnboarding, DEFAULT_BASKETBALL_SETTINGS, type BasketballSettings } from './BasketballOnboarding'
+import { VolleyballOnboarding, DEFAULT_VOLLEYBALL_SETTINGS, type VolleyballSettings } from './VolleyballOnboarding'
+import { TennisOnboarding, DEFAULT_TENNIS_SETTINGS, type TennisSettings } from './TennisOnboarding'
+import { PadelOnboarding, DEFAULT_PADEL_SETTINGS, type PadelSettings } from './PadelOnboarding'
 import { SportType } from '@prisma/client'
 import { useToast } from '@/hooks/use-toast'
 
@@ -73,6 +82,15 @@ interface OnboardingData {
   triathlonSettings: TriathlonSettings
   hyroxSettings: HYROXSettings
   generalFitnessSettings: GeneralFitnessSettings
+  functionalFitnessSettings: FunctionalFitnessSettings
+  hockeySettings: HockeySettings
+  footballSettings: FootballSettings
+  handballSettings: HandballSettings
+  floorballSettings: FloorballSettings
+  basketballSettings: BasketballSettings
+  volleyballSettings: VolleyballSettings
+  tennisSettings: TennisSettings
+  padelSettings: PadelSettings
 }
 
 // Step definitions for different sports
@@ -151,6 +169,78 @@ const GENERAL_FITNESS_STEP: StepDefinition = {
   descriptionSv: 'Konfigurera dina träningsmål, preferenser och träningsstil.',
 }
 
+const FUNCTIONAL_FITNESS_STEP: StepDefinition = {
+  id: 'sport_specific',
+  titleEn: 'Functional Fitness Setup',
+  titleSv: 'Funktionell fitness-inställningar',
+  descriptionEn: 'Configure your benchmarks, gymnastics skills, and training preferences.',
+  descriptionSv: 'Konfigurera dina benchmarks, gymnastik-skills och träningspreferenser.',
+}
+
+const HOCKEY_STEP: StepDefinition = {
+  id: 'sport_specific',
+  titleEn: 'Ice Hockey Setup',
+  titleSv: 'Ishockeyinställningar',
+  descriptionEn: 'Configure your position, team info, and training preferences.',
+  descriptionSv: 'Konfigurera din position, laginformation och träningspreferenser.',
+}
+
+const FOOTBALL_STEP: StepDefinition = {
+  id: 'sport_specific',
+  titleEn: 'Football Setup',
+  titleSv: 'Fotbollsinställningar',
+  descriptionEn: 'Configure your position, team info, and physical benchmarks.',
+  descriptionSv: 'Konfigurera din position, laginformation och fysiska tester.',
+}
+
+const HANDBALL_STEP: StepDefinition = {
+  id: 'sport_specific',
+  titleEn: 'Handball Setup',
+  titleSv: 'Handbollsinställningar',
+  descriptionEn: 'Configure your position, team info, and training preferences.',
+  descriptionSv: 'Konfigurera din position, laginformation och träningspreferenser.',
+}
+
+const FLOORBALL_STEP: StepDefinition = {
+  id: 'sport_specific',
+  titleEn: 'Floorball Setup',
+  titleSv: 'Innebandyinställningar',
+  descriptionEn: 'Configure your position, team info, and training preferences.',
+  descriptionSv: 'Konfigurera din position, laginformation och träningspreferenser.',
+}
+
+const BASKETBALL_STEP: StepDefinition = {
+  id: 'sport_specific',
+  titleEn: 'Basketball Setup',
+  titleSv: 'Basketinställningar',
+  descriptionEn: 'Configure your position, team info, and physical benchmarks.',
+  descriptionSv: 'Konfigurera din position, laginformation och fysiska tester.',
+}
+
+const VOLLEYBALL_STEP: StepDefinition = {
+  id: 'sport_specific',
+  titleEn: 'Volleyball Setup',
+  titleSv: 'Volleybollinställningar',
+  descriptionEn: 'Configure your position, team info, and physical benchmarks.',
+  descriptionSv: 'Konfigurera din position, laginformation och fysiska tester.',
+}
+
+const TENNIS_STEP: StepDefinition = {
+  id: 'sport_specific',
+  titleEn: 'Tennis Setup',
+  titleSv: 'Tennisinställningar',
+  descriptionEn: 'Configure your play style, benchmarks, and training preferences.',
+  descriptionSv: 'Konfigurera din spelstil, fysiska tester och träningspreferenser.',
+}
+
+const PADEL_STEP: StepDefinition = {
+  id: 'sport_specific',
+  titleEn: 'Padel Setup',
+  titleSv: 'Padelinställningar',
+  descriptionEn: 'Configure your position, partner info, and physical benchmarks.',
+  descriptionSv: 'Konfigurera din position, partnerinformation och fysiska tester.',
+}
+
 const COMMON_STEPS: StepDefinition[] = [
   {
     id: 'availability',
@@ -203,25 +293,68 @@ export function OnboardingWizard({
     triathlonSettings: DEFAULT_TRIATHLON_SETTINGS,
     hyroxSettings: DEFAULT_HYROX_SETTINGS,
     generalFitnessSettings: DEFAULT_GENERAL_FITNESS_SETTINGS,
+    functionalFitnessSettings: DEFAULT_FUNCTIONAL_FITNESS_SETTINGS,
+    hockeySettings: DEFAULT_HOCKEY_SETTINGS,
+    footballSettings: DEFAULT_FOOTBALL_SETTINGS,
+    handballSettings: DEFAULT_HANDBALL_SETTINGS,
+    floorballSettings: DEFAULT_FLOORBALL_SETTINGS,
+    basketballSettings: DEFAULT_BASKETBALL_SETTINGS,
+    volleyballSettings: DEFAULT_VOLLEYBALL_SETTINGS,
+    tennisSettings: DEFAULT_TENNIS_SETTINGS,
+    padelSettings: DEFAULT_PADEL_SETTINGS,
   })
 
   // Compute steps based on selected sport
   const steps = useMemo(() => {
     const allSteps = [...BASE_STEPS]
 
-    // Add sport-specific step for cycling, skiing, or swimming
-    if (data.primarySport === 'CYCLING') {
-      allSteps.push(CYCLING_STEP)
-    } else if (data.primarySport === 'SKIING') {
-      allSteps.push(SKIING_STEP)
-    } else if (data.primarySport === 'SWIMMING') {
-      allSteps.push(SWIMMING_STEP)
-    } else if (data.primarySport === 'TRIATHLON') {
-      allSteps.push(TRIATHLON_STEP)
-    } else if (data.primarySport === 'HYROX') {
-      allSteps.push(HYROX_STEP)
-    } else if (data.primarySport === 'GENERAL_FITNESS') {
-      allSteps.push(GENERAL_FITNESS_STEP)
+    // Add sport-specific step based on selected sport
+    switch (data.primarySport) {
+      case 'CYCLING':
+        allSteps.push(CYCLING_STEP)
+        break
+      case 'SKIING':
+        allSteps.push(SKIING_STEP)
+        break
+      case 'SWIMMING':
+        allSteps.push(SWIMMING_STEP)
+        break
+      case 'TRIATHLON':
+        allSteps.push(TRIATHLON_STEP)
+        break
+      case 'HYROX':
+        allSteps.push(HYROX_STEP)
+        break
+      case 'GENERAL_FITNESS':
+        allSteps.push(GENERAL_FITNESS_STEP)
+        break
+      case 'FUNCTIONAL_FITNESS':
+        allSteps.push(FUNCTIONAL_FITNESS_STEP)
+        break
+      case 'TEAM_ICE_HOCKEY':
+        allSteps.push(HOCKEY_STEP)
+        break
+      case 'TEAM_FOOTBALL':
+        allSteps.push(FOOTBALL_STEP)
+        break
+      case 'TEAM_HANDBALL':
+        allSteps.push(HANDBALL_STEP)
+        break
+      case 'TEAM_FLOORBALL':
+        allSteps.push(FLOORBALL_STEP)
+        break
+      case 'TEAM_BASKETBALL':
+        allSteps.push(BASKETBALL_STEP)
+        break
+      case 'TEAM_VOLLEYBALL':
+        allSteps.push(VOLLEYBALL_STEP)
+        break
+      case 'TENNIS':
+        allSteps.push(TENNIS_STEP)
+        break
+      case 'PADEL':
+        allSteps.push(PADEL_STEP)
+        break
     }
 
     // Add common steps
@@ -267,6 +400,36 @@ export function OnboardingWizard({
         // General Fitness requires primary goal and fitness level (already have valid defaults)
         if (data.primarySport === 'GENERAL_FITNESS') {
           return !!data.generalFitnessSettings.primaryGoal && !!data.generalFitnessSettings.fitnessLevel
+        }
+        // Functional Fitness requires experience level (already have valid defaults)
+        if (data.primarySport === 'FUNCTIONAL_FITNESS') {
+          return !!data.functionalFitnessSettings.experienceLevel
+        }
+        // Team sports - require position
+        if (data.primarySport === 'TEAM_ICE_HOCKEY') {
+          return !!data.hockeySettings.position
+        }
+        if (data.primarySport === 'TEAM_FOOTBALL') {
+          return !!data.footballSettings.position
+        }
+        if (data.primarySport === 'TEAM_HANDBALL') {
+          return !!data.handballSettings.position
+        }
+        if (data.primarySport === 'TEAM_FLOORBALL') {
+          return !!data.floorballSettings.position
+        }
+        if (data.primarySport === 'TEAM_BASKETBALL') {
+          return !!data.basketballSettings.position
+        }
+        if (data.primarySport === 'TEAM_VOLLEYBALL') {
+          return !!data.volleyballSettings.position
+        }
+        // Racket sports - require position/play style
+        if (data.primarySport === 'TENNIS') {
+          return !!data.tennisSettings.playStyle
+        }
+        if (data.primarySport === 'PADEL') {
+          return !!data.padelSettings.position
         }
         return true
       case 'availability':
@@ -327,6 +490,33 @@ export function OnboardingWizard({
       }
       if (data.primarySport === 'GENERAL_FITNESS') {
         requestBody.generalFitnessSettings = data.generalFitnessSettings
+      }
+      if (data.primarySport === 'FUNCTIONAL_FITNESS') {
+        requestBody.functionalFitnessSettings = data.functionalFitnessSettings
+      }
+      if (data.primarySport === 'TEAM_ICE_HOCKEY') {
+        requestBody.hockeySettings = data.hockeySettings
+      }
+      if (data.primarySport === 'TEAM_FOOTBALL') {
+        requestBody.footballSettings = data.footballSettings
+      }
+      if (data.primarySport === 'TEAM_HANDBALL') {
+        requestBody.handballSettings = data.handballSettings
+      }
+      if (data.primarySport === 'TEAM_FLOORBALL') {
+        requestBody.floorballSettings = data.floorballSettings
+      }
+      if (data.primarySport === 'TEAM_BASKETBALL') {
+        requestBody.basketballSettings = data.basketballSettings
+      }
+      if (data.primarySport === 'TEAM_VOLLEYBALL') {
+        requestBody.volleyballSettings = data.volleyballSettings
+      }
+      if (data.primarySport === 'TENNIS') {
+        requestBody.tennisSettings = data.tennisSettings
+      }
+      if (data.primarySport === 'PADEL') {
+        requestBody.padelSettings = data.padelSettings
       }
 
       const response = await fetch(`/api/sport-profile/${clientId}`, {
@@ -410,6 +600,33 @@ export function OnboardingWizard({
                   }
                   if (sport !== 'GENERAL_FITNESS') {
                     updateData({ generalFitnessSettings: DEFAULT_GENERAL_FITNESS_SETTINGS })
+                  }
+                  if (sport !== 'FUNCTIONAL_FITNESS') {
+                    updateData({ functionalFitnessSettings: DEFAULT_FUNCTIONAL_FITNESS_SETTINGS })
+                  }
+                  if (sport !== 'TEAM_ICE_HOCKEY') {
+                    updateData({ hockeySettings: DEFAULT_HOCKEY_SETTINGS })
+                  }
+                  if (sport !== 'TEAM_FOOTBALL') {
+                    updateData({ footballSettings: DEFAULT_FOOTBALL_SETTINGS })
+                  }
+                  if (sport !== 'TEAM_HANDBALL') {
+                    updateData({ handballSettings: DEFAULT_HANDBALL_SETTINGS })
+                  }
+                  if (sport !== 'TEAM_FLOORBALL') {
+                    updateData({ floorballSettings: DEFAULT_FLOORBALL_SETTINGS })
+                  }
+                  if (sport !== 'TEAM_BASKETBALL') {
+                    updateData({ basketballSettings: DEFAULT_BASKETBALL_SETTINGS })
+                  }
+                  if (sport !== 'TEAM_VOLLEYBALL') {
+                    updateData({ volleyballSettings: DEFAULT_VOLLEYBALL_SETTINGS })
+                  }
+                  if (sport !== 'TENNIS') {
+                    updateData({ tennisSettings: DEFAULT_TENNIS_SETTINGS })
+                  }
+                  if (sport !== 'PADEL') {
+                    updateData({ padelSettings: DEFAULT_PADEL_SETTINGS })
                   }
                 }}
                 locale={locale}
@@ -511,6 +728,78 @@ export function OnboardingWizard({
             <GeneralFitnessOnboarding
               settings={data.generalFitnessSettings}
               onUpdate={(settings) => updateData({ generalFitnessSettings: settings })}
+            />
+          )}
+
+          {/* Step: Sport-Specific Settings (Functional Fitness) */}
+          {currentStep.id === 'sport_specific' && data.primarySport === 'FUNCTIONAL_FITNESS' && (
+            <FunctionalFitnessOnboarding
+              settings={data.functionalFitnessSettings}
+              onUpdate={(settings) => updateData({ functionalFitnessSettings: settings })}
+            />
+          )}
+
+          {/* Step: Sport-Specific Settings (Ice Hockey) */}
+          {currentStep.id === 'sport_specific' && data.primarySport === 'TEAM_ICE_HOCKEY' && (
+            <HockeyOnboarding
+              settings={data.hockeySettings}
+              onUpdate={(settings) => updateData({ hockeySettings: settings })}
+            />
+          )}
+
+          {/* Step: Sport-Specific Settings (Football) */}
+          {currentStep.id === 'sport_specific' && data.primarySport === 'TEAM_FOOTBALL' && (
+            <FootballOnboarding
+              settings={data.footballSettings}
+              onUpdate={(settings) => updateData({ footballSettings: settings })}
+            />
+          )}
+
+          {/* Step: Sport-Specific Settings (Handball) */}
+          {currentStep.id === 'sport_specific' && data.primarySport === 'TEAM_HANDBALL' && (
+            <HandballOnboarding
+              settings={data.handballSettings}
+              onUpdate={(settings) => updateData({ handballSettings: settings })}
+            />
+          )}
+
+          {/* Step: Sport-Specific Settings (Floorball) */}
+          {currentStep.id === 'sport_specific' && data.primarySport === 'TEAM_FLOORBALL' && (
+            <FloorballOnboarding
+              settings={data.floorballSettings}
+              onUpdate={(settings) => updateData({ floorballSettings: settings })}
+            />
+          )}
+
+          {/* Step: Sport-Specific Settings (Basketball) */}
+          {currentStep.id === 'sport_specific' && data.primarySport === 'TEAM_BASKETBALL' && (
+            <BasketballOnboarding
+              settings={data.basketballSettings}
+              onUpdate={(settings) => updateData({ basketballSettings: settings })}
+            />
+          )}
+
+          {/* Step: Sport-Specific Settings (Volleyball) */}
+          {currentStep.id === 'sport_specific' && data.primarySport === 'TEAM_VOLLEYBALL' && (
+            <VolleyballOnboarding
+              settings={data.volleyballSettings}
+              onUpdate={(settings) => updateData({ volleyballSettings: settings })}
+            />
+          )}
+
+          {/* Step: Sport-Specific Settings (Tennis) */}
+          {currentStep.id === 'sport_specific' && data.primarySport === 'TENNIS' && (
+            <TennisOnboarding
+              settings={data.tennisSettings}
+              onUpdate={(settings) => updateData({ tennisSettings: settings })}
+            />
+          )}
+
+          {/* Step: Sport-Specific Settings (Padel) */}
+          {currentStep.id === 'sport_specific' && data.primarySport === 'PADEL' && (
+            <PadelOnboarding
+              settings={data.padelSettings}
+              onUpdate={(settings) => updateData({ padelSettings: settings })}
             />
           )}
 

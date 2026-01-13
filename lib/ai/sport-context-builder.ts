@@ -148,10 +148,14 @@ interface SportProfile {
   hyroxSettings: HyroxSettings | null;
   skiingSettings: SkiingSettings | null;
   generalFitnessSettings: GeneralFitnessSettings | null;
+  functionalFitnessSettings: FunctionalFitnessSettings | null;
+  hockeySettings: HockeySettings | null;
+  footballSettings: FootballSettings | null;
   runningExperience: string | null;
   cyclingExperience: string | null;
   swimmingExperience: string | null;
   strengthExperience: string | null;
+  functionalFitnessExperience: string | null;
 }
 
 interface RunningSettings {
@@ -226,6 +230,68 @@ interface GeneralFitnessSettings {
   limitations?: string[];
   targetWeight?: number;
   currentBodyFat?: number;
+}
+
+interface FunctionalFitnessSettings {
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced' | 'competitor';
+  yearsTraining?: number;
+  primaryFocus?: 'general' | 'strength' | 'endurance' | 'gymnastics' | 'competition';
+  gymType?: 'commercial' | 'functional_box' | 'home' | 'garage';
+  equipmentAvailable?: string[];
+  benchmarks?: {
+    fran?: number | null;
+    grace?: number | null;
+    diane?: number | null;
+    helen?: number | null;
+    murph?: number | null;
+    cleanAndJerk1RM?: number | null;
+    snatch1RM?: number | null;
+    backSquat1RM?: number | null;
+    deadlift1RM?: number | null;
+    strictPress1RM?: number | null;
+    frontSquat1RM?: number | null;
+    maxPullUps?: number | null;
+    maxMuscleUps?: number | null;
+    maxHSPU?: number | null;
+    maxDoubleUnders?: number | null;
+  };
+  gymnasticsSkills?: {
+    pullUps?: string;
+    handstandPushUps?: string;
+    toeToBar?: string;
+    doubleUnders?: string;
+    ropeClimbs?: string;
+    ringDips?: string;
+    handstandWalk?: string;
+  };
+  olympicLiftingLevel?: 'none' | 'learning' | 'competent' | 'proficient';
+  preferredWODDuration?: number;
+  weeklyTrainingDays?: number;
+  competitionInterest?: boolean;
+}
+
+interface HockeySettings {
+  position?: 'center' | 'wing' | 'defense' | 'goalie';
+  teamName?: string;
+  leagueLevel?: 'recreational' | 'junior' | 'division_3' | 'division_2' | 'division_1' | 'shl' | 'hockeyallsvenskan' | 'hockeyettan';
+  seasonPhase?: 'off_season' | 'pre_season' | 'in_season' | 'playoffs';
+  averageIceTimeMinutes?: number;
+  shiftsPerGame?: number;
+  playStyle?: 'offensive' | 'defensive' | 'two_way' | 'physical' | 'skill';
+  strengthFocus?: string[];
+  weaknesses?: string[];
+  injuryHistory?: string[];
+  yearsPlaying?: number;
+}
+
+interface FootballSettings {
+  position?: 'goalkeeper' | 'defender' | 'midfielder' | 'forward';
+  teamName?: string;
+  leagueLevel?: 'recreational' | 'division_4' | 'division_3' | 'division_2' | 'division_1' | 'superettan' | 'allsvenskan';
+  avgMatchDistanceKm?: number;
+  avgSprintDistanceKm?: number;
+  gpsProvider?: string;
+  playStyle?: 'possession' | 'counter' | 'pressing' | 'physical';
 }
 
 interface TestData {
@@ -880,6 +946,379 @@ function buildGeneralFitnessContext(athlete: AthleteData): string {
 }
 
 /**
+ * Build Functional Fitness-specific context
+ */
+function buildFunctionalFitnessContext(athlete: AthleteData): string {
+  const sp = athlete.sportProfile;
+  const settings = sp?.functionalFitnessSettings as FunctionalFitnessSettings | null;
+
+  let context = `\n## FUNKTIONELL FITNESS DATA\n`;
+
+  // Experience and focus
+  if (settings?.experienceLevel) {
+    const experienceLabels: Record<string, string> = {
+      beginner: 'Nybörjare (<1 år)',
+      intermediate: 'Medel (1-3 år)',
+      advanced: 'Avancerad (3+ år)',
+      competitor: 'Tävlande',
+    };
+    context += `- **Erfarenhetsnivå**: ${experienceLabels[settings.experienceLevel] || settings.experienceLevel}\n`;
+  }
+
+  if (settings?.yearsTraining) {
+    context += `- **År av träning**: ${settings.yearsTraining} år\n`;
+  }
+
+  if (settings?.primaryFocus) {
+    const focusLabels: Record<string, string> = {
+      general: 'Allmän fitness',
+      strength: 'Styrka',
+      endurance: 'Uthållighet',
+      gymnastics: 'Gymnastik',
+      competition: 'Tävling',
+    };
+    context += `- **Primärt fokus**: ${focusLabels[settings.primaryFocus] || settings.primaryFocus}\n`;
+  }
+
+  if (settings?.weeklyTrainingDays) {
+    context += `- **Träningsdagar/vecka**: ${settings.weeklyTrainingDays}\n`;
+  }
+
+  if (settings?.preferredWODDuration) {
+    context += `- **Föredragen WOD-längd**: ~${settings.preferredWODDuration} min\n`;
+  }
+
+  if (settings?.competitionInterest) {
+    context += `- **Tävlingsintresse**: Ja\n`;
+  }
+
+  // Benchmark workouts
+  if (settings?.benchmarks) {
+    const bm = settings.benchmarks;
+    const hasBenchmarks = bm.fran || bm.grace || bm.diane || bm.helen || bm.murph;
+
+    if (hasBenchmarks) {
+      context += `\n### Benchmark Workouts\n`;
+      context += `| Workout | Tid | Beskrivning |\n`;
+      context += `|---------|-----|-------------|\n`;
+      if (bm.fran) context += `| Fran | ${formatSecondsToTime(bm.fran)} | 21-15-9 Thrusters + Pull-ups |\n`;
+      if (bm.grace) context += `| Grace | ${formatSecondsToTime(bm.grace)} | 30 Clean & Jerks |\n`;
+      if (bm.diane) context += `| Diane | ${formatSecondsToTime(bm.diane)} | 21-15-9 Deadlifts + HSPU |\n`;
+      if (bm.helen) context += `| Helen | ${formatSecondsToTime(bm.helen)} | 3R: 400m + KB + Pull-ups |\n`;
+      if (bm.murph) context += `| Murph | ${formatSecondsToTime(bm.murph)} | 1mi + 100/200/300 + 1mi |\n`;
+    }
+
+    // Strength PRs
+    const hasStrength = bm.backSquat1RM || bm.frontSquat1RM || bm.deadlift1RM ||
+                        bm.strictPress1RM || bm.cleanAndJerk1RM || bm.snatch1RM;
+
+    if (hasStrength) {
+      context += `\n### Styrka (1RM)\n`;
+      context += `| Lyft | Vikt (kg) |\n`;
+      context += `|------|----------|\n`;
+      if (bm.backSquat1RM) context += `| Back Squat | ${bm.backSquat1RM} |\n`;
+      if (bm.frontSquat1RM) context += `| Front Squat | ${bm.frontSquat1RM} |\n`;
+      if (bm.deadlift1RM) context += `| Deadlift | ${bm.deadlift1RM} |\n`;
+      if (bm.strictPress1RM) context += `| Strict Press | ${bm.strictPress1RM} |\n`;
+      if (bm.cleanAndJerk1RM) context += `| Clean & Jerk | ${bm.cleanAndJerk1RM} |\n`;
+      if (bm.snatch1RM) context += `| Snatch | ${bm.snatch1RM} |\n`;
+    }
+
+    // Gymnastics maxes
+    const hasGymnastics = bm.maxPullUps || bm.maxMuscleUps || bm.maxHSPU || bm.maxDoubleUnders;
+    if (hasGymnastics) {
+      context += `\n### Gymnastik (max reps)\n`;
+      if (bm.maxPullUps) context += `- **Pull-ups**: ${bm.maxPullUps}\n`;
+      if (bm.maxMuscleUps) context += `- **Muscle-ups**: ${bm.maxMuscleUps}\n`;
+      if (bm.maxHSPU) context += `- **HSPU**: ${bm.maxHSPU}\n`;
+      if (bm.maxDoubleUnders) context += `- **Double-unders (unbroken)**: ${bm.maxDoubleUnders}\n`;
+    }
+  }
+
+  // Gymnastics skills
+  if (settings?.gymnasticsSkills) {
+    const skills = settings.gymnasticsSkills;
+    context += `\n### Gymnastik-skills nivå\n`;
+
+    const skillLabels: Record<string, Record<string, string>> = {
+      pullUps: {
+        none: 'Inga', banded: 'Band', strict: 'Strikta',
+        kipping: 'Kipping', butterfly: 'Butterfly', muscle_up: 'Muscle-ups'
+      },
+      handstandPushUps: {
+        none: 'Inga', pike: 'Pike', box: 'Box',
+        wall: 'Wall', strict: 'Strikta', kipping: 'Kipping', freestanding: 'Fristående'
+      },
+      toeToBar: {
+        none: 'Inga', hanging_knee: 'Hanging knee', kipping: 'Kipping', strict: 'Strikta'
+      },
+      doubleUnders: {
+        none: 'Inga', learning: 'Lär sig', consistent: 'Konsekvent', unbroken_50: '50+ unbroken'
+      },
+      ropeClimbs: {
+        none: 'Inga', with_legs: 'Med bengrep', legless: 'Legless'
+      }
+    };
+
+    if (skills.pullUps) context += `- **Pull-ups**: ${skillLabels.pullUps[skills.pullUps] || skills.pullUps}\n`;
+    if (skills.handstandPushUps) context += `- **HSPU**: ${skillLabels.handstandPushUps[skills.handstandPushUps] || skills.handstandPushUps}\n`;
+    if (skills.toeToBar) context += `- **Toes to Bar**: ${skillLabels.toeToBar[skills.toeToBar] || skills.toeToBar}\n`;
+    if (skills.doubleUnders) context += `- **Double-unders**: ${skillLabels.doubleUnders[skills.doubleUnders] || skills.doubleUnders}\n`;
+    if (skills.ropeClimbs) context += `- **Rope Climbs**: ${skillLabels.ropeClimbs[skills.ropeClimbs] || skills.ropeClimbs}\n`;
+  }
+
+  // Olympic lifting level
+  if (settings?.olympicLiftingLevel) {
+    const olympicLabels: Record<string, string> = {
+      none: 'Ingen erfarenhet',
+      learning: 'Lär sig',
+      competent: 'Kompetent',
+      proficient: 'Mycket duktig',
+    };
+    context += `\n### Olympiska lyft\n`;
+    context += `- **Nivå**: ${olympicLabels[settings.olympicLiftingLevel] || settings.olympicLiftingLevel}\n`;
+  }
+
+  // Gym and equipment
+  if (settings?.gymType) {
+    const gymLabels: Record<string, string> = {
+      commercial: 'Vanligt gym',
+      functional_box: 'Funktionell box',
+      home: 'Hemmagym',
+      garage: 'Garage gym',
+    };
+    context += `\n### Träningsmiljö\n`;
+    context += `- **Gymtyp**: ${gymLabels[settings.gymType] || settings.gymType}\n`;
+  }
+
+  if (settings?.equipmentAvailable && settings.equipmentAvailable.length > 0) {
+    context += `- **Tillgänglig utrustning**: ${settings.equipmentAvailable.join(', ')}\n`;
+  }
+
+  return context;
+}
+
+/**
+ * Build Ice Hockey-specific context
+ */
+function buildHockeyContext(athlete: AthleteData): string {
+  const sp = athlete.sportProfile;
+  const settings = sp?.hockeySettings as HockeySettings | null;
+
+  let context = `\n## ISHOCKEYSPECIFIK DATA\n`;
+
+  // Team and position
+  if (settings?.teamName) {
+    context += `- **Lag**: ${settings.teamName}\n`;
+  }
+  if (settings?.position) {
+    const positionLabels: Record<string, string> = {
+      center: 'Center',
+      wing: 'Forward (Wing)',
+      defense: 'Back',
+      goalie: 'Målvakt',
+    };
+    context += `- **Position**: ${positionLabels[settings.position] || settings.position}\n`;
+  }
+  if (settings?.leagueLevel) {
+    const leagueLabels: Record<string, string> = {
+      recreational: 'Motionshockey',
+      junior: 'Junior',
+      division_3: 'Division 3',
+      division_2: 'Division 2',
+      division_1: 'Division 1',
+      hockeyettan: 'Hockeyettan',
+      hockeyallsvenskan: 'Hockeyallsvenskan',
+      shl: 'SHL',
+    };
+    context += `- **Liga**: ${leagueLabels[settings.leagueLevel] || settings.leagueLevel}\n`;
+  }
+  if (settings?.yearsPlaying) {
+    context += `- **År aktiv**: ${settings.yearsPlaying} år\n`;
+  }
+
+  // Season phase
+  if (settings?.seasonPhase) {
+    const phaseLabels: Record<string, string> = {
+      off_season: 'Off-season (sommarträning)',
+      pre_season: 'Försäsong',
+      in_season: 'Säsong',
+      playoffs: 'Slutspel',
+    };
+    context += `- **Säsongsfas**: ${phaseLabels[settings.seasonPhase] || settings.seasonPhase}\n`;
+  }
+
+  // Ice time and shifts
+  if (settings?.averageIceTimeMinutes || settings?.shiftsPerGame) {
+    context += `\n### Istid & Byten\n`;
+    if (settings?.averageIceTimeMinutes) {
+      context += `- **Genomsnittlig istid**: ${settings.averageIceTimeMinutes} min/match\n`;
+      // Calculate approximate shift length
+      if (settings?.shiftsPerGame) {
+        const avgShiftLength = Math.round((settings.averageIceTimeMinutes * 60) / settings.shiftsPerGame);
+        context += `- **Byten per match**: ${settings.shiftsPerGame}\n`;
+        context += `- **Genomsnittlig byteslängd**: ${avgShiftLength} sekunder\n`;
+      }
+    }
+  }
+
+  // Play style
+  if (settings?.playStyle) {
+    const styleLabels: Record<string, string> = {
+      offensive: 'Offensiv - poängproducent',
+      defensive: 'Defensiv - pålitlig i egen zon',
+      two_way: 'Tvåvägsspelare - balanserad',
+      physical: 'Fysisk - kroppsspel',
+      skill: 'Teknisk - puckhantering',
+    };
+    context += `\n### Spelstil\n`;
+    context += `- **Typ**: ${styleLabels[settings.playStyle] || settings.playStyle}\n`;
+  }
+
+  // Strengths and weaknesses
+  if (settings?.strengthFocus && settings.strengthFocus.length > 0) {
+    context += `\n### Styrkor\n`;
+    for (const strength of settings.strengthFocus) {
+      context += `- ${strength}\n`;
+    }
+  }
+  if (settings?.weaknesses && settings.weaknesses.length > 0) {
+    context += `\n### Utvecklingsområden\n`;
+    for (const weakness of settings.weaknesses) {
+      context += `- ${weakness}\n`;
+    }
+  }
+
+  // Injury history
+  if (settings?.injuryHistory && settings.injuryHistory.length > 0) {
+    context += `\n### Skadehistorik (att ta hänsyn till)\n`;
+    for (const injury of settings.injuryHistory) {
+      context += `- ${injury}\n`;
+    }
+  }
+
+  // Position-specific training recommendations
+  context += `\n### Positionsspecifika träningsrekommendationer\n`;
+  if (settings?.position === 'goalie') {
+    context += `- **Fokus**: Reaktionsförmåga, flexibilitet, mental fokus\n`;
+    context += `- **Styrka**: Core-stabilitet, explosiv kraft i benen\n`;
+    context += `- **Kondition**: Intervalltolerans för korta intensiva moment\n`;
+    context += `- **Skadeförebyggande**: Höftflexibilitet, knästabilitet\n`;
+  } else if (settings?.position === 'defense') {
+    context += `- **Fokus**: Baklängesåkning, positionering, fysisk styrka\n`;
+    context += `- **Styrka**: Överkroppsstyrka för dueller, benstyrka för åkning\n`;
+    context += `- **Kondition**: Uthållighet för längre byten, återhämtningsförmåga\n`;
+    context += `- **Skadeförebyggande**: Höft, ljumske, axlar\n`;
+  } else {
+    context += `- **Fokus**: Acceleration, skott, offensiv kreativitet\n`;
+    context += `- **Styrka**: Explosiv kraft, skottstyrka\n`;
+    context += `- **Kondition**: Sprint-uthållighet, snabb återhämtning\n`;
+    context += `- **Skadeförebyggande**: Hamstrings, ljumske\n`;
+  }
+
+  // Season-specific training notes
+  if (settings?.seasonPhase) {
+    context += `\n### Säsongsanpassad träning\n`;
+    switch (settings.seasonPhase) {
+      case 'off_season':
+        context += `- **Prioritet**: Bygg aerob bas, maxstyrka, åtgärda skador\n`;
+        context += `- **Volym**: Hög (4-6 pass/vecka utöver is)\n`;
+        context += `- **Intensitet**: Medel-hög, progressiv\n`;
+        context += `- **Fokus**: Styrkelyft, löpning/cykling, rörlighet\n`;
+        break;
+      case 'pre_season':
+        context += `- **Prioritet**: Sport-specifik kondition, explosivitet\n`;
+        context += `- **Volym**: Medel-hög (3-4 pass/vecka utöver is)\n`;
+        context += `- **Intensitet**: Hög, bytessimulering\n`;
+        context += `- **Fokus**: Intervaller, plyometrics, teknik på is\n`;
+        break;
+      case 'in_season':
+        context += `- **Prioritet**: Underhåll styrka, optimal återhämtning\n`;
+        context += `- **Volym**: Låg-medel (1-2 styrkepass/vecka)\n`;
+        context += `- **Intensitet**: Måttlig, undvik överbelastning\n`;
+        context += `- **Fokus**: Matchförberedelse, skadeförebyggande\n`;
+        break;
+      case 'playoffs':
+        context += `- **Prioritet**: Maximal återhämtning, mental skärpa\n`;
+        context += `- **Volym**: Minimal off-ice träning\n`;
+        context += `- **Intensitet**: Aktivering endast\n`;
+        context += `- **Fokus**: Vila, nutrition, mental förberedelse\n`;
+        break;
+    }
+  }
+
+  return context;
+}
+
+/**
+ * Build Football-specific context
+ */
+function buildFootballContext(athlete: AthleteData): string {
+  const sp = athlete.sportProfile;
+  const settings = sp?.footballSettings as FootballSettings | null;
+
+  let context = `\n## FOTBOLLSSPECIFIK DATA\n`;
+
+  if (settings?.teamName) {
+    context += `- **Lag**: ${settings.teamName}\n`;
+  }
+  if (settings?.position) {
+    const positionLabels: Record<string, string> = {
+      goalkeeper: 'Målvakt',
+      defender: 'Försvarare',
+      midfielder: 'Mittfältare',
+      forward: 'Anfallare',
+    };
+    context += `- **Position**: ${positionLabels[settings.position] || settings.position}\n`;
+  }
+  if (settings?.leagueLevel) {
+    const leagueLabels: Record<string, string> = {
+      recreational: 'Motion/Korpen',
+      division_4: 'Division 4',
+      division_3: 'Division 3',
+      division_2: 'Division 2',
+      division_1: 'Division 1',
+      superettan: 'Superettan',
+      allsvenskan: 'Allsvenskan',
+    };
+    context += `- **Liga**: ${leagueLabels[settings.leagueLevel] || settings.leagueLevel}\n`;
+  }
+
+  // GPS data if available
+  if (settings?.avgMatchDistanceKm) {
+    context += `\n### Matchstatistik (GPS)\n`;
+    context += `- **Genomsnittlig matchdistans**: ${settings.avgMatchDistanceKm} km\n`;
+    if (settings?.avgSprintDistanceKm) {
+      context += `- **Sprintdistans/match**: ${settings.avgSprintDistanceKm} km\n`;
+    }
+    if (settings?.gpsProvider) {
+      context += `- **GPS-system**: ${settings.gpsProvider}\n`;
+    }
+  }
+
+  if (settings?.playStyle) {
+    const styleLabels: Record<string, string> = {
+      possession: 'Bollinnehav - passingsspel',
+      counter: 'Kontring - snabba omställningar',
+      pressing: 'Högt press - aggressiv',
+      physical: 'Fysisk - duellstark',
+    };
+    context += `- **Lagstil**: ${styleLabels[settings.playStyle] || settings.playStyle}\n`;
+  }
+
+  return context;
+}
+
+/**
+ * Format seconds to mm:ss
+ */
+function formatSecondsToTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+/**
  * Translate activity level to Swedish
  */
 function translateActivityLevel(level: ActivityLevel): string {
@@ -1253,12 +1692,25 @@ export function buildSportSpecificContext(athlete: AthleteData): string {
     case 'GENERAL_FITNESS':
       context += buildGeneralFitnessContext(athlete);
       break;
+    case 'FUNCTIONAL_FITNESS':
+      context += buildFunctionalFitnessContext(athlete);
+      break;
     case 'STRENGTH':
       // Strength uses general fitness context + strength experience
       context += buildGeneralFitnessContext(athlete);
       if (athlete.sportProfile?.strengthExperience) {
         context += `\n- **Styrketräningserfarenhet**: ${athlete.sportProfile.strengthExperience}\n`;
       }
+      break;
+    case 'TEAM_ICE_HOCKEY':
+      context += buildHockeyContext(athlete);
+      break;
+    case 'TEAM_FOOTBALL':
+      context += buildFootballContext(athlete);
+      break;
+    case 'TEAM_HANDBALL':
+    case 'TEAM_FLOORBALL':
+      // Use generic team sport info for now
       break;
   }
 
@@ -1383,6 +1835,15 @@ export function buildTierAwareContext(
       case 'GENERAL_FITNESS':
         context += buildGeneralFitnessContext(athlete);
         break;
+      case 'FUNCTIONAL_FITNESS':
+        context += buildFunctionalFitnessContext(athlete);
+        break;
+      case 'TEAM_ICE_HOCKEY':
+        context += buildHockeyContext(athlete);
+        break;
+      case 'TEAM_FOOTBALL':
+        context += buildFootballContext(athlete);
+        break;
     }
   }
 
@@ -1476,7 +1937,12 @@ function buildBasicProfileContext(athlete: AthleteData): string {
       HYROX: 'HYROX',
       SKIING: 'Längdskidåkning',
       GENERAL_FITNESS: 'Allmän fitness',
+      FUNCTIONAL_FITNESS: 'Funktionell fitness',
       STRENGTH: 'Styrketräning',
+      TEAM_ICE_HOCKEY: 'Ishockey',
+      TEAM_FOOTBALL: 'Fotboll',
+      TEAM_HANDBALL: 'Handboll',
+      TEAM_FLOORBALL: 'Innebandy',
     };
     context += `- **Primär sport**: ${sportNames[athlete.sportProfile.primarySport] || athlete.sportProfile.primarySport}\n`;
   }

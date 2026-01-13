@@ -27,12 +27,17 @@ export const SPORT_ICONS: Record<SportType, string> = {
   TRIATHLON: '🏊',
   HYROX: '💪',
   GENERAL_FITNESS: '🏋️',
+  FUNCTIONAL_FITNESS: '🔥',
   SWIMMING: '🏊‍♂️',
   STRENGTH: '🏋️',
   TEAM_FOOTBALL: '⚽',
   TEAM_ICE_HOCKEY: '🏒',
   TEAM_HANDBALL: '🤾',
   TEAM_FLOORBALL: '🏑',
+  TEAM_BASKETBALL: '🏀',
+  TEAM_VOLLEYBALL: '🏐',
+  TENNIS: '🎾',
+  PADEL: '🎾',
 }
 
 // Sport labels for display
@@ -43,12 +48,17 @@ export const SPORT_LABELS: Record<SportType, { en: string; sv: string }> = {
   TRIATHLON: { en: 'Triathlon', sv: 'Triathlon' },
   HYROX: { en: 'HYROX', sv: 'HYROX' },
   GENERAL_FITNESS: { en: 'General Fitness', sv: 'Allmän Fitness' },
+  FUNCTIONAL_FITNESS: { en: 'Functional Fitness', sv: 'Funktionell Fitness' },
   SWIMMING: { en: 'Swimming', sv: 'Simning' },
   STRENGTH: { en: 'Strength Training', sv: 'Styrketräning' },
   TEAM_FOOTBALL: { en: 'Football', sv: 'Fotboll' },
   TEAM_ICE_HOCKEY: { en: 'Ice Hockey', sv: 'Ishockey' },
   TEAM_HANDBALL: { en: 'Handball', sv: 'Handboll' },
   TEAM_FLOORBALL: { en: 'Floorball', sv: 'Innebandy' },
+  TEAM_BASKETBALL: { en: 'Basketball', sv: 'Basket' },
+  TEAM_VOLLEYBALL: { en: 'Volleyball', sv: 'Volleyboll' },
+  TENNIS: { en: 'Tennis', sv: 'Tennis' },
+  PADEL: { en: 'Padel', sv: 'Padel' },
 }
 
 export function useSportProfile(clientId?: string): UseSportProfileResult {

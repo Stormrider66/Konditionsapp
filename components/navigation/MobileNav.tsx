@@ -33,12 +33,17 @@ const SPORT_DISPLAY: Record<SportType, { icon: string; label: string; labelSv: s
   TRIATHLON: { icon: '🏊', label: 'Triathlon', labelSv: 'Triathlon' },
   HYROX: { icon: '💪', label: 'HYROX', labelSv: 'HYROX' },
   GENERAL_FITNESS: { icon: '🏋️', label: 'General Fitness', labelSv: 'Allmän Fitness' },
+  FUNCTIONAL_FITNESS: { icon: '🔥', label: 'Functional Fitness', labelSv: 'Funktionell Fitness' },
   SWIMMING: { icon: '🏊‍♂️', label: 'Swimming', labelSv: 'Simning' },
   STRENGTH: { icon: '🏋️', label: 'Strength Training', labelSv: 'Styrketräning' },
   TEAM_FOOTBALL: { icon: '⚽', label: 'Football', labelSv: 'Fotboll' },
   TEAM_ICE_HOCKEY: { icon: '🏒', label: 'Ice Hockey', labelSv: 'Ishockey' },
   TEAM_HANDBALL: { icon: '🤾', label: 'Handball', labelSv: 'Handboll' },
   TEAM_FLOORBALL: { icon: '🏑', label: 'Floorball', labelSv: 'Innebandy' },
+  TEAM_BASKETBALL: { icon: '🏀', label: 'Basketball', labelSv: 'Basket' },
+  TEAM_VOLLEYBALL: { icon: '🏐', label: 'Volleyball', labelSv: 'Volleyboll' },
+  TENNIS: { icon: '🎾', label: 'Tennis', labelSv: 'Tennis' },
+  PADEL: { icon: '🎾', label: 'Padel', labelSv: 'Padel' },
 }
 
 interface SportProfile {
