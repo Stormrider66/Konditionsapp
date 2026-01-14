@@ -11,13 +11,15 @@ import { formatPace } from '@/lib/utils'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
+import { OptimizeWorkoutButton } from './OptimizeWorkoutButton'
 
 interface TodaysWorkoutsProps {
   workouts: DashboardWorkoutWithContext[]
   variant?: 'default' | 'glass'
+  clientId?: string
 }
 
-export function TodaysWorkouts({ workouts, variant = 'default' }: TodaysWorkoutsProps) {
+export function TodaysWorkouts({ workouts, variant = 'default', clientId }: TodaysWorkoutsProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -87,7 +89,7 @@ export function TodaysWorkouts({ workouts, variant = 'default' }: TodaysWorkouts
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
           {workouts.map((workout) => (
-            <WorkoutCard key={workout.id} workout={workout} theme={theme} variant="glass" />
+            <WorkoutCard key={workout.id} workout={workout} theme={theme} variant="glass" clientId={clientId} />
           ))}
         </GlassCardContent>
       </GlassCard>
@@ -112,14 +114,14 @@ export function TodaysWorkouts({ workouts, variant = 'default' }: TodaysWorkouts
       </CardHeader>
       <CardContent className="space-y-4">
         {workouts.map((workout) => (
-          <WorkoutCard key={workout.id} workout={workout} theme={theme} />
+          <WorkoutCard key={workout.id} workout={workout} theme={theme} clientId={clientId} />
         ))}
       </CardContent>
     </Card>
   )
 }
 
-function WorkoutCard({ workout, theme, variant = 'default' }: { workout: DashboardWorkoutWithContext; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass' }) {
+function WorkoutCard({ workout, theme, variant = 'default', clientId }: { workout: DashboardWorkoutWithContext; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', clientId?: string }) {
   const isCompleted = workout.logs && workout.logs.length > 0 && workout.logs[0].completed
 
   if (variant === 'glass') {
@@ -212,11 +214,23 @@ function WorkoutCard({ workout, theme, variant = 'default' }: { workout: Dashboa
             </Link>
           </div>
         ) : (
-          <Link href={`/athlete/workouts/${workout.id}/log`}>
-            <Button className="w-full min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border-0">
-              Logga pass
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link href={`/athlete/workouts/${workout.id}/log`} className="flex-1">
+              <Button className="w-full min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border-0">
+                Logga pass
+              </Button>
+            </Link>
+            {clientId && (
+              <OptimizeWorkoutButton
+                workoutId={workout.id}
+                clientId={clientId}
+                workoutType={workout.type}
+                plannedIntensity={workout.intensity}
+                variant="compact"
+                className="border-white/10 text-white hover:bg-white/10"
+              />
+            )}
+          </div>
         )}
       </div>
     )
@@ -335,17 +349,28 @@ function WorkoutCard({ workout, theme, variant = 'default' }: { workout: Dashboa
           </Link>
         </div>
       ) : (
-        <Link href={`/athlete/workouts/${workout.id}/log`}>
-          <Button
-            className="w-full min-h-[44px]"
-            style={{
-              backgroundColor: theme.colors.accent,
-              color: theme.colors.accentText,
-            }}
-          >
-            Logga pass
-          </Button>
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Link href={`/athlete/workouts/${workout.id}/log`} className="flex-1">
+            <Button
+              className="w-full min-h-[44px]"
+              style={{
+                backgroundColor: theme.colors.accent,
+                color: theme.colors.accentText,
+              }}
+            >
+              Logga pass
+            </Button>
+          </Link>
+          {clientId && (
+            <OptimizeWorkoutButton
+              workoutId={workout.id}
+              clientId={clientId}
+              workoutType={workout.type}
+              plannedIntensity={workout.intensity}
+              variant="compact"
+            />
+          )}
+        </div>
       )}
     </div>
   )

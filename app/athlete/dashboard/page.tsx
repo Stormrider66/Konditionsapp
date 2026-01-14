@@ -45,6 +45,7 @@ import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget } from '@/components/athlete/dashboard'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
+import { RacePredictionWidget } from '@/components/athlete/RacePredictionWidget'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 import { WODHistorySummary } from '@/components/athlete/wod'
 import { MorningBriefingCard } from '@/components/athlete/MorningBriefingCard'
@@ -620,7 +621,7 @@ export default async function AthleteDashboardPage() {
 
           {/* Today&apos;s Workouts (If more than 1, show the rest - using sorted list) */}
           {remainingTodaysWorkouts.length > 0 && (
-            <TodaysWorkouts workouts={remainingTodaysWorkouts} variant="glass" />
+            <TodaysWorkouts workouts={remainingTodaysWorkouts} variant="glass" clientId={athleteAccount.clientId} />
           )}
 
           {/* Upcoming Workouts */}
@@ -655,6 +656,9 @@ export default async function AthleteDashboardPage() {
 
           {/* Injury Prevention Widget */}
           <InjuryPreventionWidget />
+
+          {/* Race Predictions Widget */}
+          <RacePredictionWidget clientId={athleteAccount.clientId} />
 
           {/* Active Programs */}
           <ActivePrograms programs={activePrograms} variant="glass" />
