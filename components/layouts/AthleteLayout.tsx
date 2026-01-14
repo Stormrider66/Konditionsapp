@@ -132,6 +132,7 @@ function ThemedContent({
           athleteName={athleteInfo?.clientName}
           clientName={athleteInfo?.clientName}
           clientId={athleteInfo?.clientId}
+          sportProfile={athleteInfo?.sportProfile}
         />
       )}
 

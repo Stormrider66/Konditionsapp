@@ -1,10 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Clock, Target, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Clock, Target, TrendingUp, TrendingDown, AlertCircle, Calculator, Play } from 'lucide-react'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
+import { SportTestHistory } from '@/components/tests/shared'
 
 interface HYROXSettings {
   raceCategory?: string
@@ -68,11 +73,69 @@ function formatRunTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+// Race simulation constants
+const ROXZONE_ESTIMATE = 15 // Average roxzone transition time in seconds
+
 export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthleteViewProps) {
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
 
   const hyroxSettings = settings as HYROXSettings | undefined
+
+  // Race simulation state
+  const [showSimulation, setShowSimulation] = useState(false)
+  const [simulationPace, setSimulationPace] = useState<string>('')
+  const [simulationResult, setSimulationResult] = useState<{
+    totalTime: number
+    runTime: number
+    stationTime: number
+    roxzoneTime: number
+    pace: number
+  } | null>(null)
+
+  // Calculate race simulation based on profile data
+  const calculateSimulation = () => {
+    if (!hyroxSettings) return
+
+    // Parse pace input (format: "5:30" or just seconds)
+    let paceSeconds = 0
+    if (simulationPace.includes(':')) {
+      const [mins, secs] = simulationPace.split(':').map(Number)
+      paceSeconds = mins * 60 + (secs || 0)
+    } else if (simulationPace) {
+      paceSeconds = Number(simulationPace)
+    } else if (hyroxSettings.fiveKmTime) {
+      // Use 5K time to estimate pace (add 10% for HYROX fatigue)
+      paceSeconds = Math.round((hyroxSettings.fiveKmTime / 5) * 1.1)
+    } else {
+      paceSeconds = 330 // Default 5:30/km
+    }
+
+    // Calculate total station time from profile
+    const stationTimes = [
+      hyroxSettings.skiErgTime || 0,
+      hyroxSettings.sledPushTime || 0,
+      hyroxSettings.sledPullTime || 0,
+      hyroxSettings.burpeeBroadJumpTime || 0,
+      hyroxSettings.rowingTime || 0,
+      hyroxSettings.farmersCarryTime || 0,
+      hyroxSettings.sandbagLungeTime || 0,
+      hyroxSettings.wallBallTime || 0,
+    ]
+
+    const stationTime = stationTimes.reduce((sum, t) => sum + t, 0)
+    const runTime = paceSeconds * 8 // 8 x 1km runs
+    const roxzoneTime = ROXZONE_ESTIMATE * 16 // 16 transitions
+    const totalTime = stationTime + runTime + roxzoneTime
+
+    setSimulationResult({
+      totalTime,
+      runTime,
+      stationTime,
+      roxzoneTime,
+      pace: paceSeconds,
+    })
+  }
 
   if (!hyroxSettings) {
     return (
@@ -302,6 +365,151 @@ export function HYROXAthleteView({ clientId, clientName, settings }: HYROXAthlet
           </div>
         </CardContent>
       </Card>
+
+      {/* Race Simulation */}
+      <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
+                <Calculator className="h-4 w-4" />
+                Race Simulation
+              </CardTitle>
+              <CardDescription style={{ color: theme.colors.textMuted }}>
+                Beräkna din uppskattade sluttid
+              </CardDescription>
+            </div>
+            <Button
+              variant={showSimulation ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setShowSimulation(!showSimulation)}
+            >
+              {showSimulation ? 'Dölj' : 'Simulera'}
+            </Button>
+          </div>
+        </CardHeader>
+        {showSimulation && (
+          <CardContent className="space-y-4">
+            {/* Check if we have enough station data */}
+            {stationsWithData.length === 0 ? (
+              <div className="text-center py-4" style={{ color: theme.colors.textMuted }}>
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Inga stationstider registrerade.</p>
+                <p className="text-xs">Lägg till dina stationstider för att kunna simulera.</p>
+              </div>
+            ) : (
+              <>
+                {/* Pace Input */}
+                <div className="space-y-2">
+                  <Label style={{ color: theme.colors.textPrimary }}>
+                    Löptempo (min:sek/km)
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder={hyroxSettings.fiveKmTime
+                        ? `${formatTime(Math.round((hyroxSettings.fiveKmTime / 5) * 1.1))} (baserat på 5K)`
+                        : '5:30'}
+                      value={simulationPace}
+                      onChange={(e) => setSimulationPace(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button onClick={calculateSimulation}>
+                      <Play className="h-4 w-4 mr-1" />
+                      Beräkna
+                    </Button>
+                  </div>
+                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>
+                    Lämna tomt för att använda uppskattning från din 5K-tid
+                  </p>
+                </div>
+
+                {/* Simulation Result */}
+                {simulationResult && (
+                  <div
+                    className="p-4 rounded-lg space-y-3"
+                    style={{
+                      backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.1)' : '#f0fdf4',
+                      borderColor: theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.3)' : '#bbf7d0',
+                      border: '1px solid'
+                    }}
+                  >
+                    <div className="text-center">
+                      <p className="text-sm" style={{ color: theme.colors.textMuted }}>
+                        Uppskattad sluttid
+                      </p>
+                      <p className="text-3xl font-bold text-green-600">
+                        {Math.floor(simulationResult.totalTime / 3600)}:{formatTime(simulationResult.totalTime % 3600)}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                      <div
+                        className="p-2 rounded"
+                        style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+                      >
+                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>Löpning</p>
+                        <p className="font-semibold" style={{ color: theme.colors.textPrimary }}>
+                          {formatTime(simulationResult.runTime)}
+                        </p>
+                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>
+                          @ {formatTime(simulationResult.pace)}/km
+                        </p>
+                      </div>
+                      <div
+                        className="p-2 rounded"
+                        style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+                      >
+                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>Stationer</p>
+                        <p className="font-semibold" style={{ color: theme.colors.textPrimary }}>
+                          {formatTime(simulationResult.stationTime)}
+                        </p>
+                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>
+                          {stationsWithData.length}/8 inmatade
+                        </p>
+                      </div>
+                      <div
+                        className="p-2 rounded"
+                        style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+                      >
+                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>Roxzoner</p>
+                        <p className="font-semibold" style={{ color: theme.colors.textPrimary }}>
+                          {formatTime(simulationResult.roxzoneTime)}
+                        </p>
+                        <p className="text-xs" style={{ color: theme.colors.textMuted }}>
+                          16 × {ROXZONE_ESTIMATE}s
+                        </p>
+                      </div>
+                    </div>
+
+                    {stationsWithData.length < 8 && (
+                      <p className="text-xs text-center text-orange-600">
+                        ⚠️ {8 - stationsWithData.length} station(er) saknar data - resultatet är en uppskattning
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
+      {/* Test History */}
+      <SportTestHistory
+        clientId={clientId}
+        sport="HYROX"
+        title="Testhistorik - HYROX"
+        protocolLabels={{
+          HYROX_SKIERG_1K: 'SkiErg 1K',
+          HYROX_ROW_1K: 'Row 1K',
+          HYROX_SLED_PUSH: 'Sled Push',
+          HYROX_SLED_PULL: 'Sled Pull',
+          HYROX_BURPEE_BROAD_JUMP: 'Burpee Broad Jump',
+          HYROX_FARMERS_CARRY: 'Farmers Carry',
+          HYROX_SANDBAG_LUNGE: 'Sandbag Lunge',
+          HYROX_WALL_BALLS: 'Wall Balls',
+        }}
+      />
     </div>
   )
 }

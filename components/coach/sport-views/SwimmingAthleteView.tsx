@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Waves, Timer, Calendar, Target } from 'lucide-react'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
+import { SportTestHistory } from '@/components/tests/shared'
 
 interface SwimmingSettings {
   strokeTypes?: string[]
@@ -265,6 +266,18 @@ export function SwimmingAthleteView({ clientId, clientName, settings }: Swimming
           </CardContent>
         </Card>
       )}
+
+      {/* Test History */}
+      <SportTestHistory
+        clientId={clientId}
+        sport="SWIMMING"
+        title="Testhistorik - Simning"
+        protocolLabels={{
+          CSS_TEST: 'CSS Test',
+          TIME_TRIAL_100M: '100m TT',
+          TIME_TRIAL_400M: '400m TT',
+        }}
+      />
     </div>
   )
 }

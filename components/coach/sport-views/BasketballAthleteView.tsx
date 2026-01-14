@@ -23,6 +23,7 @@ import {
   getPositionRecommendations,
   type BasketballPosition,
 } from '@/lib/training-engine/basketball'
+import { SportTestHistory } from '@/components/tests/shared'
 
 interface BasketballSettings {
   position: BasketballPosition
@@ -114,6 +115,7 @@ const INJURY_LABELS: Record<string, string> = {
 }
 
 export function BasketballAthleteView({
+  clientId,
   clientName,
   settings: rawSettings,
 }: BasketballAthleteViewProps) {
@@ -575,6 +577,19 @@ export function BasketballAthleteView({
           </div>
         </CardContent>
       </Card>
+
+      {/* Test History */}
+      <SportTestHistory
+        clientId={clientId}
+        sport="TEAM_BASKETBALL"
+        title="Testhistorik - Basket"
+        protocolLabels={{
+          YOYO_IR1: 'Yo-Yo IR1',
+          VERTICAL_JUMP_CMJ: 'CMJ',
+          LANE_AGILITY: 'Lane Agility',
+          SPRINT_20M: '20m Sprint',
+        }}
+      />
     </div>
   )
 }

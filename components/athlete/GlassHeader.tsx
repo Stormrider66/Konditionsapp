@@ -45,15 +45,23 @@ import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
 import { Badge } from '@/components/ui/badge'
+import { SportSwitcher } from './SportSwitcher'
+import { SportType } from '@prisma/client'
+
+interface SportProfile {
+    primarySport: SportType
+    secondarySports: SportType[]
+}
 
 interface GlassHeaderProps {
     user: any
     athleteName: string | undefined
     clientName?: string
     clientId?: string
+    sportProfile?: SportProfile | null
 }
 
-export function GlassHeader({ user, athleteName, clientName, clientId }: GlassHeaderProps) {
+export function GlassHeader({ user, athleteName, clientName, clientId, sportProfile }: GlassHeaderProps) {
     const pathname = usePathname()
     const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
@@ -114,15 +122,25 @@ export function GlassHeader({ user, athleteName, clientName, clientId }: GlassHe
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
 
                 {/* Logo Area */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
                     <Link href="/athlete/dashboard" className="flex items-center gap-2 group">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(249,115,22,0.5)] group-hover:shadow-[0_0_20px_rgba(249,115,22,0.8)] transition-all">
                             K
                         </div>
-                        <span className="font-bold text-lg tracking-tight text-white">
+                        <span className="font-bold text-lg tracking-tight text-white hidden sm:inline">
                             Konditionstest<span className="text-orange-500">.se</span>
                         </span>
                     </Link>
+
+                    {/* Sport Switcher */}
+                    {sportProfile && sportProfile.secondarySports.length > 0 && (
+                        <div className="hidden md:block border-l border-white/10 pl-4">
+                            <SportSwitcher
+                                primarySport={sportProfile.primarySport}
+                                secondarySports={sportProfile.secondarySports}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Desktop Navigation */}
@@ -268,6 +286,17 @@ export function GlassHeader({ user, athleteName, clientName, clientId }: GlassHe
                                         <NotificationBell clientId={clientId} />
                                     </div>
                                 </div>
+
+                                {/* Mobile Sport Switcher */}
+                                {sportProfile && sportProfile.secondarySports.length > 0 && (
+                                    <div className="px-4">
+                                        <SportSwitcher
+                                            primarySport={sportProfile.primarySport}
+                                            secondarySports={sportProfile.secondarySports}
+                                            className="w-full justify-start bg-white/5 hover:bg-white/10"
+                                        />
+                                    </div>
+                                )}
 
                                 {/* Mobile Nav Items */}
                                 <div className="flex flex-col gap-1">

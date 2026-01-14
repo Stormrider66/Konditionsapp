@@ -1,7 +1,9 @@
 // app/athlete/dashboard/page.tsx
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { SportType } from '@prisma/client'
 import { addDays, startOfDay, endOfDay, subDays, format } from 'date-fns'
 import Link from 'next/link'
 import { getTranslations } from '@/i18n/server'
@@ -80,7 +82,18 @@ export default async function AthleteDashboardPage() {
 
   // Get sport profile for sport-aware dashboard
   const sportProfile = athleteAccount.client.sportProfile
-  const primarySport = sportProfile?.primarySport
+
+  // Check for active sport cookie (for sport switching)
+  const cookieStore = await cookies()
+  const activeSportCookie = cookieStore.get('activeSport')?.value as SportType | undefined
+
+  // Determine which sport to use: cookie value if valid, otherwise primarySport
+  const availableSports = sportProfile
+    ? [sportProfile.primarySport, ...(sportProfile.secondarySports || [])]
+    : []
+  const primarySport = activeSportCookie && availableSports.includes(activeSportCookie)
+    ? activeSportCookie
+    : sportProfile?.primarySport
 
   // Helper function to render sport-specific dashboard
   const clientName = athleteAccount.client.name

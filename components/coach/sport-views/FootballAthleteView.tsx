@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { FootballSettings } from '@/components/onboarding/FootballOnboarding'
+import { SportTestHistory } from '@/components/tests/shared'
 
 interface FootballAthleteViewProps {
   clientId: string
@@ -551,6 +552,25 @@ export function FootballAthleteView({ clientId, clientName, settings }: Football
           </div>
         </CardContent>
       </Card>
+
+      {/* Test History */}
+      <SportTestHistory
+        clientId={clientId}
+        sport="TEAM_FOOTBALL"
+        title="Testhistorik - Fotboll"
+        protocolLabels={{
+          YOYO_IR1: 'Yo-Yo IR1',
+          SPRINT_10M: '10m Sprint',
+          SPRINT_30M: '30m Sprint',
+          VERTICAL_JUMP_CMJ: 'CMJ',
+        }}
+        benchmarks={{
+          YOYO_IR1: { value: positionBenchmarks.yoyoIR1 },
+          SPRINT_10M: { value: positionBenchmarks.sprint10m, lowerIsBetter: true },
+          SPRINT_30M: { value: positionBenchmarks.sprint30m, lowerIsBetter: true },
+          VERTICAL_JUMP_CMJ: { value: positionBenchmarks.cmj },
+        }}
+      />
     </div>
   )
 }

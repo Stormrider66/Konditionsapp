@@ -23,6 +23,7 @@ import {
   getPartnerSynergyTips,
   type PadelPosition,
 } from '@/lib/training-engine/padel'
+import { SportTestHistory } from '@/components/tests/shared'
 
 interface PadelSettings {
   position: PadelPosition
@@ -109,6 +110,7 @@ const INJURY_LABELS: Record<string, string> = {
 }
 
 export function PadelAthleteView({
+  clientId,
   clientName,
   settings: rawSettings,
 }: PadelAthleteViewProps) {
@@ -606,6 +608,19 @@ export function PadelAthleteView({
           </div>
         </CardContent>
       </Card>
+
+      {/* Test History */}
+      <SportTestHistory
+        clientId={clientId}
+        sport="PADEL"
+        title="Testhistorik - Padel"
+        protocolLabels={{
+          SERVE_SPEED: 'Serve hastighet',
+          T_TEST: 'T-Test',
+          VERTICAL_JUMP_CMJ: 'CMJ',
+          PRO_AGILITY_5_10_5: '5-10-5 Lateral',
+        }}
+      />
     </div>
   )
 }

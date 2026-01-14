@@ -13,7 +13,7 @@ import { CreateTestFormData } from '@/lib/validations/schemas'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Printer, User, Home, Droplet, Scale, Zap, Timer, Dumbbell } from 'lucide-react'
+import { ArrowLeft, Printer, User, Home, Droplet, Scale, Zap, Timer, Dumbbell, Shuffle, Waves, Activity, Flame } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -27,14 +27,27 @@ import { MobileNav } from '@/components/navigation/MobileNav'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 
-type TestCategory = 'lactate' | 'body-composition' | 'power' | 'speed' | 'strength'
+// Sport test form imports
+import { PowerTestForm } from '@/components/tests/power'
+import { SpeedTestForm } from '@/components/tests/speed'
+import { AgilityTestForm } from '@/components/tests/agility'
+import { StrengthTestForm } from '@/components/tests/strength'
+import { SwimmingCSSTestForm } from '@/components/tests/swimming'
+import { YoYoTestForm } from '@/components/tests/endurance'
+import { HYROXStationTestForm, HYROXRaceSimulationForm } from '@/components/tests/hyrox'
+
+type TestCategory = 'lactate' | 'body-composition' | 'power' | 'speed' | 'agility' | 'strength' | 'swimming' | 'endurance' | 'hyrox'
 
 const TEST_CATEGORIES = [
   { value: 'lactate', label: 'Laktattest', icon: Droplet, available: true },
   { value: 'body-composition', label: 'Kroppssammansättning', icon: Scale, available: true },
-  { value: 'power', label: 'Powertest', icon: Zap, available: false },
-  { value: 'speed', label: 'Hastighetstest', icon: Timer, available: false },
-  { value: 'strength', label: 'Styrketest', icon: Dumbbell, available: false },
+  { value: 'power', label: 'Krafttest', icon: Zap, available: true },
+  { value: 'speed', label: 'Hastighet', icon: Timer, available: true },
+  { value: 'agility', label: 'Agility', icon: Shuffle, available: true },
+  { value: 'strength', label: 'Styrka', icon: Dumbbell, available: true },
+  { value: 'swimming', label: 'Simning', icon: Waves, available: true },
+  { value: 'endurance', label: 'Uthållighet', icon: Activity, available: true },
+  { value: 'hyrox', label: 'HYROX', icon: Flame, available: true },
 ] as const
 
 export default function TestPage() {
@@ -261,7 +274,7 @@ export default function TestPage() {
             <div>
               <h1 className="text-2xl font-bold mb-4">Nytt Test</h1>
               <Tabs value={testCategory} onValueChange={(v) => setTestCategory(v as TestCategory)}>
-                <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 h-auto gap-1">
                   {TEST_CATEGORIES.map((category) => {
                     const Icon = category.icon
                     return (
@@ -269,14 +282,11 @@ export default function TestPage() {
                         key={category.value}
                         value={category.value}
                         disabled={!category.available}
-                        className="flex items-center gap-2 py-3 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                        className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 py-2 px-2 text-xs sm:text-sm data-[state=active]:bg-blue-600 data-[state=active]:text-white"
                       >
                         <Icon className="w-4 h-4" />
-                        <span className="hidden sm:inline">{category.label}</span>
-                        <span className="sm:hidden">{category.label.split(' ')[0]}</span>
-                        {!category.available && (
-                          <span className="text-xs opacity-60">(Kommer)</span>
-                        )}
+                        <span className="hidden lg:inline">{category.label}</span>
+                        <span className="lg:hidden text-[10px] sm:text-xs">{category.label.split(' ')[0].slice(0, 6)}</span>
                       </TabsTrigger>
                     )
                   })}
@@ -396,43 +406,108 @@ export default function TestPage() {
                   )}
                 </TabsContent>
 
-                {/* Power Test Content (Coming Soon) */}
+                {/* Power Test Content */}
                 <TabsContent value="power" className="mt-6">
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <Zap className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Powertest kommer snart</h3>
-                      <p className="text-muted-foreground">
-                        FTP-test, kritisk power och andra kraftbaserade tester.
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <PowerTestForm
+                    clients={clients.map(c => ({
+                      id: c.id,
+                      name: c.name,
+                      weight: c.weight || 70,
+                      gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
+                    }))}
+                  />
                 </TabsContent>
 
-                {/* Speed Test Content (Coming Soon) */}
+                {/* Speed Test Content */}
                 <TabsContent value="speed" className="mt-6">
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <Timer className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Hastighetstest kommer snart</h3>
-                      <p className="text-muted-foreground">
-                        Sprint, acceleration och hastighetstester.
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <SpeedTestForm
+                    clients={clients.map(c => ({
+                      id: c.id,
+                      name: c.name,
+                      weight: c.weight || 70,
+                      gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
+                    }))}
+                  />
                 </TabsContent>
 
-                {/* Strength Test Content (Coming Soon) */}
+                {/* Agility Test Content */}
+                <TabsContent value="agility" className="mt-6">
+                  <AgilityTestForm
+                    clients={clients.map(c => ({
+                      id: c.id,
+                      name: c.name,
+                      weight: c.weight || 70,
+                      gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
+                    }))}
+                  />
+                </TabsContent>
+
+                {/* Strength Test Content */}
                 <TabsContent value="strength" className="mt-6">
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <Dumbbell className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Styrketest kommer snart</h3>
-                      <p className="text-muted-foreground">
-                        1RM-tester, isometrisk styrka och funktionella tester.
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <StrengthTestForm
+                    clients={clients.map(c => ({
+                      id: c.id,
+                      name: c.name,
+                      weight: c.weight || 70,
+                      gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
+                    }))}
+                  />
+                </TabsContent>
+
+                {/* Swimming Test Content */}
+                <TabsContent value="swimming" className="mt-6">
+                  <SwimmingCSSTestForm
+                    clients={clients.map(c => ({
+                      id: c.id,
+                      name: c.name,
+                      weight: c.weight || 70,
+                      gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
+                    }))}
+                  />
+                </TabsContent>
+
+                {/* Endurance Test Content */}
+                <TabsContent value="endurance" className="mt-6">
+                  <YoYoTestForm
+                    clients={clients.map(c => ({
+                      id: c.id,
+                      name: c.name,
+                      weight: c.weight || 70,
+                      gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
+                    }))}
+                  />
+                </TabsContent>
+
+                {/* HYROX Test Content */}
+                <TabsContent value="hyrox" className="mt-6">
+                  <Tabs defaultValue="station" className="space-y-4">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="station">Stationstest</TabsTrigger>
+                      <TabsTrigger value="simulation">Race Simulation</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="station">
+                      <HYROXStationTestForm
+                        clients={clients.map(c => ({
+                          id: c.id,
+                          name: c.name,
+                          weight: c.weight || 70,
+                          gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
+                        }))}
+                      />
+                    </TabsContent>
+
+                    <TabsContent value="simulation">
+                      <HYROXRaceSimulationForm
+                        clients={clients.map(c => ({
+                          id: c.id,
+                          name: c.name,
+                          weight: c.weight || 70,
+                          gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
+                        }))}
+                      />
+                    </TabsContent>
+                  </Tabs>
                 </TabsContent>
               </Tabs>
             </div>

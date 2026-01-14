@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
+import { SportTestHistory } from '@/components/tests/shared'
 
 interface HockeyAthleteViewProps {
   clientId: string
@@ -369,6 +370,19 @@ export function HockeyAthleteView({ clientId, clientName, settings }: HockeyAthl
           </div>
         </CardContent>
       </Card>
+
+      {/* Test History */}
+      <SportTestHistory
+        clientId={clientId}
+        sport="TEAM_ICE_HOCKEY"
+        title="Testhistorik - Ishockey"
+        protocolLabels={{
+          YOYO_IR1: 'Yo-Yo IR1',
+          SPRINT_30M: '30m Sprint',
+          PRO_AGILITY_5_10_5: '5-10-5 Agility',
+          VERTICAL_JUMP_CMJ: 'CMJ',
+        }}
+      />
     </div>
   )
 }

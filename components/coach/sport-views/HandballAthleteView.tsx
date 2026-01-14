@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { SportTestHistory } from '@/components/tests/shared'
 import { Badge } from '@/components/ui/badge'
 import {
   Trophy,
@@ -607,6 +608,25 @@ export function HandballAthleteView({ clientId, clientName, settings }: Handball
           </div>
         </CardContent>
       </Card>
+
+      {/* Test History */}
+      <SportTestHistory
+        clientId={clientId}
+        sport="TEAM_HANDBALL"
+        title="Testhistorik - Handboll"
+        protocolLabels={{
+          YOYO_IR1: 'Yo-Yo IR1',
+          SPRINT_10M: '10m Sprint',
+          VERTICAL_JUMP_CMJ: 'CMJ',
+          MEDICINE_BALL_THROW: 'Medicinboll',
+        }}
+        benchmarks={{
+          YOYO_IR1: { value: positionBenchmarks.yoyoIR1 },
+          SPRINT_10M: { value: positionBenchmarks.sprint10m, lowerIsBetter: true },
+          VERTICAL_JUMP_CMJ: { value: positionBenchmarks.cmj },
+          MEDICINE_BALL_THROW: { value: positionBenchmarks.medicineBall },
+        }}
+      />
     </div>
   )
 }

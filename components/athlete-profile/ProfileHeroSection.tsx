@@ -1,16 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Edit2, Activity, Zap, Heart, Timer, Trophy } from 'lucide-react'
+import { Edit2, Activity, Zap, Heart, Timer, Trophy, RefreshCw } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
+import { ChangeSportDialog } from '@/components/athlete/ChangeSportDialog'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 import { calculateAge, getSportDisplayName } from '@/lib/athlete-profile/data-fetcher'
+import { SportType } from '@prisma/client'
 
 interface ProfileHeroSectionProps {
   data: AthleteProfileData
@@ -29,11 +32,15 @@ import { cn } from '@/lib/utils'
 
 export function ProfileHeroSection({ data, viewMode, variant = 'default' }: ProfileHeroSectionProps) {
   const isGlass = variant === 'glass'
+  const isAthlete = viewMode === 'athlete'
   const client = data.identity.client!
   const sportProfile = data.identity.sportProfile
   const athleteProfile = data.identity.athleteProfile
   const latestTest = data.physiology.tests[0]
   const latestRace = data.performance.raceResults[0]
+
+  // State for change sport dialog
+  const [showChangeSportDialog, setShowChangeSportDialog] = useState(false)
 
   // Calculate key metrics
   const age = calculateAge(client.birthDate)
@@ -88,9 +95,25 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
 
               {/* Sport Badges */}
               {sportProfile?.primarySport && (
-                <Badge className={cn("rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest border-0 transition-colors", sportBadgeColor)}>
-                  {getSportDisplayName(sportProfile.primarySport)}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className={cn("rounded-xl h-7 px-3 text-[10px] font-black uppercase tracking-widest border-0 transition-colors", sportBadgeColor)}>
+                    {getSportDisplayName(sportProfile.primarySport)}
+                  </Badge>
+                  {isAthlete && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowChangeSportDialog(true)}
+                      className={cn(
+                        "h-7 px-2 text-[10px] font-medium gap-1",
+                        isGlass ? "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white" : "text-gray-500 hover:text-gray-900"
+                      )}
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                      Byt
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -220,6 +243,16 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
           </div>
         )}
       </CardContent>
+
+      {/* Change Sport Dialog */}
+      {isAthlete && sportProfile && (
+        <ChangeSportDialog
+          open={showChangeSportDialog}
+          onOpenChange={setShowChangeSportDialog}
+          clientId={client.id}
+          currentSport={sportProfile.primarySport as SportType}
+        />
+      )}
     </CardWrapper>
   )
 }

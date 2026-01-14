@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Edit2, Save, X } from 'lucide-react'
+import { Loader2, Edit2, Save, X, RefreshCw } from 'lucide-react'
+import { ChangeSportDialog } from './ChangeSportDialog'
+import { SportType } from '@prisma/client'
 
 // Import onboarding components for reuse
 import { CyclingOnboarding, DEFAULT_CYCLING_SETTINGS, type CyclingSettings } from '@/components/onboarding/CyclingOnboarding'
@@ -24,7 +26,16 @@ const SPORT_DISPLAY: Record<string, { icon: string; label: string }> = {
   TRIATHLON: { icon: '🏊', label: 'Triathlon' },
   HYROX: { icon: '💪', label: 'HYROX' },
   GENERAL_FITNESS: { icon: '🏋️', label: 'Allmän Fitness' },
+  FUNCTIONAL_FITNESS: { icon: '🔥', label: 'Funktionell Fitness' },
   SWIMMING: { icon: '🏊‍♂️', label: 'Simning' },
+  TEAM_ICE_HOCKEY: { icon: '🏒', label: 'Ishockey' },
+  TEAM_FOOTBALL: { icon: '⚽', label: 'Fotboll' },
+  TEAM_HANDBALL: { icon: '🤾', label: 'Handboll' },
+  TEAM_FLOORBALL: { icon: '🏑', label: 'Innebandy' },
+  TEAM_BASKETBALL: { icon: '🏀', label: 'Basket' },
+  TEAM_VOLLEYBALL: { icon: '🏐', label: 'Volleyboll' },
+  TENNIS: { icon: '🎾', label: 'Tennis' },
+  PADEL: { icon: '🎾', label: 'Padel' },
 }
 
 const EXPERIENCE_LABELS: Record<string, string> = {
@@ -69,6 +80,7 @@ export function AthleteProfileEditor({
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showChangeSportDialog, setShowChangeSportDialog] = useState(false)
 
   // Sport-specific settings states
   const [cyclingSettings, setCyclingSettings] = useState<CyclingSettings>(
@@ -311,13 +323,23 @@ export function AthleteProfileEditor({
               {/* Primary Sport Display */}
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Huvudsport</p>
-                <div className="flex items-center gap-2">
-                  {sportDisplay && (
-                    <>
-                      <span className="text-2xl">{sportDisplay.icon}</span>
-                      <span className="font-medium">{sportDisplay.label}</span>
-                    </>
-                  )}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {sportDisplay && (
+                      <>
+                        <span className="text-2xl">{sportDisplay.icon}</span>
+                        <span className="font-medium">{sportDisplay.label}</span>
+                      </>
+                    )}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowChangeSportDialog(true)}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Byt sport
+                  </Button>
                 </div>
               </div>
 
@@ -394,6 +416,16 @@ export function AthleteProfileEditor({
           )}
         </CardContent>
       </Card>
+
+      {/* Change Sport Dialog */}
+      {sportProfile && (
+        <ChangeSportDialog
+          open={showChangeSportDialog}
+          onOpenChange={setShowChangeSportDialog}
+          clientId={clientId}
+          currentSport={sportProfile.primarySport as SportType}
+        />
+      )}
     </div>
   )
 }

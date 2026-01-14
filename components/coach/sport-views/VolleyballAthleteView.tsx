@@ -22,6 +22,7 @@ import {
   getPositionRecommendations,
   type VolleyballPosition,
 } from '@/lib/training-engine/volleyball'
+import { SportTestHistory } from '@/components/tests/shared'
 
 interface VolleyballSettings {
   position: VolleyballPosition
@@ -113,6 +114,7 @@ const INJURY_LABELS: Record<string, string> = {
 }
 
 export function VolleyballAthleteView({
+  clientId,
   clientName,
   settings: rawSettings,
 }: VolleyballAthleteViewProps) {
@@ -573,6 +575,18 @@ export function VolleyballAthleteView({
           </div>
         </CardContent>
       </Card>
+
+      {/* Test History */}
+      <SportTestHistory
+        clientId={clientId}
+        sport="TEAM_VOLLEYBALL"
+        title="Testhistorik - Volleyboll"
+        protocolLabels={{
+          SPIKE_JUMP: 'Spike Jump',
+          VERTICAL_JUMP_CMJ: 'CMJ / Block Jump',
+          T_TEST: 'T-Test',
+        }}
+      />
     </div>
   )
 }

@@ -23,6 +23,7 @@ import {
   getSurfaceConsiderations,
   type TennisPlayStyle,
 } from '@/lib/training-engine/tennis'
+import { SportTestHistory } from '@/components/tests/shared'
 
 interface TennisSettings {
   playStyle: TennisPlayStyle
@@ -131,6 +132,7 @@ const BACKHAND_LABELS: Record<string, string> = {
 }
 
 export function TennisAthleteView({
+  clientId,
   clientName,
   settings: rawSettings,
 }: TennisAthleteViewProps) {
@@ -621,6 +623,19 @@ export function TennisAthleteView({
           </div>
         </CardContent>
       </Card>
+
+      {/* Test History */}
+      <SportTestHistory
+        clientId={clientId}
+        sport="TENNIS"
+        title="Testhistorik - Tennis"
+        protocolLabels={{
+          SERVE_SPEED: 'Serve hastighet',
+          PRO_AGILITY_5_10_5: '5-10-5 Agility',
+          SPRINT_20M: '20m Sprint',
+          YOYO_IR1: 'Yo-Yo IR1',
+        }}
+      />
     </div>
   )
 }

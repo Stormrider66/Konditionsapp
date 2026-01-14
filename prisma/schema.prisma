@@ -284,6 +284,79 @@ enum ErgometerTestProtocol {
   INTERVAL_4X4 // 4Ã—4min with 3min rest - custom threshold test
 }
 
+// ==================== SPORT-SPECIFIC TESTING SYSTEM ====================
+
+enum SportTestCategory {
+  POWER           // Jump tests, peak power, force plate tests
+  SPEED           // Sprint tests (5m, 10m, 20m, 40m)
+  AGILITY         // Change of direction tests (T-test, 5-10-5, Illinois)
+  STRENGTH        // 1RM tests, isometric tests
+  ENDURANCE_FIELD // Yo-Yo IR, Beep test, Cooper test, CSS
+  SPORT_SPECIFIC  // Sport-specific tests (serve speed, spike jump, etc.)
+}
+
+enum SportTestProtocol {
+  // Power Tests
+  VERTICAL_JUMP_CMJ       // Counter-movement jump
+  VERTICAL_JUMP_SJ        // Squat jump (no arm swing)
+  VERTICAL_JUMP_DJ        // Drop jump (reactive strength)
+  STANDING_LONG_JUMP      // Broad jump / horizontal power
+  SPIKE_JUMP              // Volleyball spike approach jump
+  BLOCK_JUMP              // Volleyball block jump
+  MEDICINE_BALL_THROW     // Rotational/overhead power (handball)
+
+  // Speed Tests
+  SPRINT_5M               // 5m acceleration
+  SPRINT_10M              // 10m sprint
+  SPRINT_20M              // 20m sprint
+  SPRINT_30M              // 30m sprint
+  SPRINT_40M              // 40m maximal speed
+  FLYING_10M              // Flying 10m (max velocity)
+  RSA_6X30M               // Repeated Sprint Ability (6x30m)
+
+  // Agility Tests
+  T_TEST                  // T-test agility
+  ILLINOIS_AGILITY        // Illinois agility run
+  PRO_AGILITY_5_10_5      // 5-10-5 pro agility shuttle
+  LANE_AGILITY            // Basketball lane agility
+  ARROWHEAD_AGILITY       // Multi-directional agility
+
+  // Endurance Field Tests
+  YOYO_IR1                // Yo-Yo Intermittent Recovery Level 1
+  YOYO_IR2                // Yo-Yo Intermittent Recovery Level 2
+  BEEP_TEST               // Multi-stage fitness test (Beep/Bleep)
+  COOPER_TEST             // 12-minute run test
+  TIME_TRIAL_5K           // 5K running time trial
+  TIME_TRIAL_10K          // 10K running time trial
+
+  // Strength Tests
+  BENCH_PRESS_1RM         // Bench press max
+  SQUAT_1RM               // Back squat max
+  DEADLIFT_1RM            // Deadlift max
+  LEG_PRESS_1RM           // Leg press max
+  OVERHEAD_PRESS_1RM      // Overhead press max
+
+  // Swimming Tests
+  CSS_TEST                // Critical Swim Speed (400m + 200m)
+  SWOLF_TEST              // Stroke efficiency (strokes + time)
+  SWIM_TIME_TRIAL_100M    // 100m swim time trial
+  SWIM_TIME_TRIAL_400M    // 400m swim time trial
+
+  // HYROX Station Tests
+  HYROX_SKIERG_1K         // SkiErg 1km
+  HYROX_ROW_1K            // Rowing 1km
+  HYROX_SLED_PUSH         // Sled push 50m
+  HYROX_SLED_PULL         // Sled pull 50m
+  HYROX_BURPEE_BROAD_JUMP // 80m burpee broad jumps
+  HYROX_FARMERS_CARRY     // 200m farmers carry
+  HYROX_SANDBAG_LUNGE     // 100m sandbag lunges
+  HYROX_WALL_BALLS        // 75-100 wall balls
+
+  // Sport-Specific Tests
+  SERVE_SPEED             // Tennis/Padel serve speed (km/h)
+  SHOT_SPEED              // Hockey shot speed
+}
+
 model User {
   id       String   @id @default(uuid())
   email    String   @unique
@@ -350,6 +423,9 @@ model User {
 
   // Live HR Streaming System relations
   liveHRSessions LiveHRSession[] @relation("CoachLiveHRSessions")
+
+  // Sport-Specific Testing System relations
+  sportTests SportTest[] @relation("UserSportTests")
 
   @@index([email])
   @@index([role])
@@ -570,6 +646,9 @@ model Client {
 
   // Team Sports Match Schedule relations
   matchSchedule ExternalMatchSchedule[]
+
+  // Sport-Specific Testing System relations
+  sportTests SportTest[] @relation("ClientSportTests")
 
   @@index([userId])
   @@index([teamId])
@@ -5676,4 +5755,112 @@ model ExternalMatchSchedule {
   @@unique([clientId, externalMatchId, externalSource])
   @@index([clientId, scheduledDate])
   @@index([externalSource])
+}
+
+// ==================== SPORT-SPECIFIC TEST RESULTS ====================
+
+/// Unified model for all sport-specific physical tests (power, speed, agility, strength, etc.)
+model SportTest {
+  id       String   @id @default(uuid())
+  clientId String
+  userId   String
+  testDate DateTime
+
+  // Test categorization
+  category SportTestCategory
+  protocol SportTestProtocol
+  sport    SportType? // Optional sport context for benchmarking
+
+  // Environmental conditions (JSON: temperature, humidity, surface, wind, etc.)
+  conditions Json?
+
+  // Raw test data (protocol-specific JSON structure)
+  rawData Json
+
+  // Primary result (main metric for this test type)
+  primaryResult Float? // e.g., jump height (cm), sprint time (s), weight (kg)
+  primaryUnit   String? // cm, s, kg, m/s, W, km/h, etc.
+
+  // Secondary result (if applicable)
+  secondaryResult Float? // e.g., contact time for DJ, reps for estimated 1RM
+  secondaryUnit   String?
+
+  // Power-specific derived metrics
+  peakPower     Float? // Peak power in Watts
+  avgPower      Float? // Average power in Watts
+  relativePower Float? // Power per kg (W/kg)
+
+  // Speed-specific derived metrics
+  splits       Json? // Array of split times for sprint tests
+  acceleration Float? // Acceleration in m/s²
+  maxVelocity  Float? // Maximum velocity in m/s
+
+  // Endurance-specific derived metrics
+  estimatedVO2max Float? // Estimated VO2max from Yo-Yo/Beep test
+  distance        Float? // Total distance covered (m)
+  level           Float? // Yo-Yo/Beep test level achieved
+
+  // Benchmarking results
+  benchmarkTier String? // ELITE, ADVANCED, INTERMEDIATE, BEGINNER
+  percentile    Float? // 0-100 percentile ranking
+  positionRank  String? // Position-specific ranking (for team sports)
+
+  // Validation
+  valid    Boolean @default(true)
+  warnings Json? // Array of warning messages
+  notes    String? // Tester notes
+
+  // Attempt tracking (for tests with multiple attempts)
+  attemptNumber Int? // Which attempt this was (1, 2, 3...)
+  bestAttempt   Boolean @default(false) // Is this the best attempt?
+
+  // Link to existing ergometer test if applicable
+  ergometerTestId String? @unique
+
+  // Relations
+  client Client @relation("ClientSportTests", fields: [clientId], references: [id], onDelete: Cascade)
+  user   User   @relation("UserSportTests", fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, testDate])
+  @@index([category, protocol])
+  @@index([sport, category])
+  @@index([clientId, protocol])
+  @@index([benchmarkTier])
+}
+
+/// Benchmark reference data for sport-specific tests
+model SportTestBenchmark {
+  id       String            @id @default(uuid())
+  protocol SportTestProtocol
+  sport    SportType? // NULL = general benchmark, otherwise sport-specific
+  gender   String // MALE, FEMALE
+
+  // Position-specific benchmarks (for team sports)
+  position String? // GK, DEF, MID, FWD, WING, BACK, CENTER, etc.
+
+  // Age group (optional)
+  ageGroupMin Int? // Minimum age for this benchmark
+  ageGroupMax Int? // Maximum age for this benchmark
+
+  // Tier classification
+  tier String // ELITE, ADVANCED, INTERMEDIATE, BEGINNER
+
+  // Benchmark thresholds
+  valueMin Float? // Lower bound for this tier
+  valueMax Float? // Upper bound for this tier
+  unit     String // cm, s, kg, W, W/kg, m, level, etc.
+
+  // Descriptive information
+  description        String? // English description
+  descriptionSwedish String? // Swedish description
+  source             String? // Reference source (research paper, organization)
+
+  createdAt DateTime @default(now())
+
+  @@unique([protocol, sport, gender, position, tier, ageGroupMin])
+  @@index([protocol, gender, tier])
+  @@index([sport, protocol])
 }

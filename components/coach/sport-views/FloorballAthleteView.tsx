@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { SportTestHistory } from '@/components/tests/shared'
 import {
   Trophy,
   Timer,
@@ -575,6 +576,27 @@ export function FloorballAthleteView({ clientId, clientName, settings }: Floorba
           </div>
         </CardContent>
       </Card>
+
+      {/* Test History */}
+      <SportTestHistory
+        clientId={clientId}
+        sport="TEAM_FLOORBALL"
+        title="Testhistorik - Innebandy"
+        protocolLabels={{
+          YOYO_IR1: 'Yo-Yo IR1',
+          SPRINT_20M: '20m Sprint',
+          AGILITY_5_10_5: '5-10-5 Agility',
+          PRO_AGILITY_5_10_5: '5-10-5 Agility',
+          STANDING_LONG_JUMP: 'Längdhopp',
+        }}
+        benchmarks={{
+          YOYO_IR1: { value: positionBenchmarks.yoyoIR1 },
+          SPRINT_20M: { value: positionBenchmarks.sprint20m, lowerIsBetter: true },
+          AGILITY_5_10_5: { value: positionBenchmarks.agility, lowerIsBetter: true },
+          PRO_AGILITY_5_10_5: { value: positionBenchmarks.agility, lowerIsBetter: true },
+          STANDING_LONG_JUMP: { value: positionBenchmarks.longJump },
+        }}
+      />
     </div>
   )
 }
