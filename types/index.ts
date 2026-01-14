@@ -12,7 +12,7 @@ export type PeriodPhase = 'BASE' | 'BUILD' | 'PEAK' | 'TAPER' | 'RECOVERY' | 'TR
 export type SubscriptionTier = 'FREE' | 'BASIC' | 'PRO' | 'ENTERPRISE'
 export type SubscriptionStatus = 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'TRIAL'
 
-// Multi-sport types (including team sports)
+// Multi-sport types (including team sports and racket sports)
 export type SportType =
   | 'RUNNING'
   | 'CYCLING'
@@ -21,19 +21,36 @@ export type SportType =
   | 'TRIATHLON'
   | 'HYROX'
   | 'GENERAL_FITNESS'
+  | 'FUNCTIONAL_FITNESS'
   | 'STRENGTH'
   // Team Sports
   | 'TEAM_FOOTBALL'
   | 'TEAM_ICE_HOCKEY'
   | 'TEAM_HANDBALL'
   | 'TEAM_FLOORBALL'
+  | 'TEAM_BASKETBALL'
+  | 'TEAM_VOLLEYBALL'
+  // Racket Sports
+  | 'TENNIS'
+  | 'PADEL'
 
 export const TEAM_SPORT_TYPES = [
   'TEAM_FOOTBALL',
   'TEAM_ICE_HOCKEY',
   'TEAM_HANDBALL',
   'TEAM_FLOORBALL',
+  'TEAM_BASKETBALL',
+  'TEAM_VOLLEYBALL',
 ] as const
+
+export const RACKET_SPORT_TYPES = [
+  'TENNIS',
+  'PADEL',
+] as const
+
+export function isRacketSport(sport: SportType): boolean {
+  return RACKET_SPORT_TYPES.includes(sport as typeof RACKET_SPORT_TYPES[number])
+}
 
 export function isTeamSport(sport: SportType): boolean {
   return sport.startsWith('TEAM_')

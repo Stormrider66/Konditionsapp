@@ -9,7 +9,7 @@
 2. **Training Programs** - Year-round endurance programs with athlete portals
 3. **Elite Training Engine** - Monitoring, field tests, methodologies (Polarized, Norwegian, Canova)
 4. **Strength Training** - Periodized programs with 84-exercise library, auto-progression
-5. **Multi-Sport** - 7 sports (Running, Cycling, Swimming, Triathlon, HYROX, Skiing, General Fitness)
+5. **Multi-Sport** - 17 sports (endurance, team sports, racket sports)
 6. **AI Studio** - AI-powered program creation with document RAG
 7. **External Integrations** - Strava, Garmin, Concept2, VBT devices
 8. **Ergometer Testing** - 11+ protocols (4×4, CP tests, 2K TT, MAP ramp, etc.)
@@ -42,7 +42,7 @@ app/           → Next.js App Router (api/, coach/, athlete/, clients/, test/)
 components/    → UI (coach/, athlete/, forms/, charts/, reports/, ui/, ai-studio/, hybrid-studio/)
 lib/           → Core logic (calculations/, training-engine/, program-generator/, integrations/, ai/)
 types/         → TypeScript types (index.ts)
-prisma/        → Schema (96 models), seed-exercises.ts
+prisma/        → Schema (122 models), seed-exercises.ts
 docs/          → Documentation (training-engine/, database/, API_REFERENCE.md)
 ```
 
@@ -168,11 +168,11 @@ node scripts/chrome-debug.js navigate <url> # Navigate
 
 | Topic | Location |
 |-------|----------|
-| API endpoints (236 routes) | `docs/API_REFERENCE.md` |
+| API endpoints (287 routes) | `docs/API_REFERENCE.md` |
 | Database ER diagram | `docs/database/erd.svg` |
 | Training engine | `docs/training-engine/` |
 | Athlete dashboard data flow | `docs/ATHLETE_DASHBOARD_CONNECTIONS.md` |
-| Complete database schema | `prisma/schema.prisma` (96 models) |
+| Complete database schema | `prisma/schema.prisma` (122 models) |
 | TypeScript types | `types/index.ts` |
 
 ## Known Issues

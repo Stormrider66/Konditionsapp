@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Dialog,
@@ -13,16 +13,19 @@ import {
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { SportSelector, SPORT_OPTIONS } from '@/components/onboarding/SportSelector'
+import { SportSelector, MultiSportSelector, SPORT_OPTIONS } from '@/components/onboarding/SportSelector'
 import { SportType } from '@prisma/client'
-import { Loader2, ArrowRight, AlertTriangle } from 'lucide-react'
+import { Loader2, ArrowRight, AlertTriangle, Plus, X } from 'lucide-react'
 
 interface ChangeSportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   clientId: string
   currentSport: SportType
+  currentSecondarySports?: SportType[]
 }
 
 export function ChangeSportDialog({
@@ -30,20 +33,40 @@ export function ChangeSportDialog({
   onOpenChange,
   clientId,
   currentSport,
+  currentSecondarySports = [],
 }: ChangeSportDialogProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const [selectedSport, setSelectedSport] = useState<SportType>(currentSport)
+  const [selectedPrimarySport, setSelectedPrimarySport] = useState<SportType>(currentSport)
+  const [selectedSecondarySports, setSelectedSecondarySports] = useState<SportType[]>(currentSecondarySports)
   const [resetOnboarding, setResetOnboarding] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [activeTab, setActiveTab] = useState<'primary' | 'secondary'>('primary')
   const [step, setStep] = useState<'select' | 'confirm'>('select')
 
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (open) {
+      setSelectedPrimarySport(currentSport)
+      setSelectedSecondarySports(currentSecondarySports)
+      setStep('select')
+      setActiveTab('primary')
+      setResetOnboarding(true)
+    }
+  }, [open, currentSport, currentSecondarySports])
+
   const currentSportInfo = SPORT_OPTIONS.find(s => s.value === currentSport)
-  const newSportInfo = SPORT_OPTIONS.find(s => s.value === selectedSport)
-  const hasChanged = selectedSport !== currentSport
+  const newSportInfo = SPORT_OPTIONS.find(s => s.value === selectedPrimarySport)
+
+  const primaryChanged = selectedPrimarySport !== currentSport
+  const secondaryChanged = JSON.stringify([...selectedSecondarySports].sort()) !== JSON.stringify([...currentSecondarySports].sort())
+  const hasChanges = primaryChanged || secondaryChanged
+
+  // Filter out primary sport from secondary options
+  const filteredSecondarySports = selectedSecondarySports.filter(s => s !== selectedPrimarySport)
 
   const handleContinue = () => {
-    if (!hasChanged) {
+    if (!hasChanges) {
       onOpenChange(false)
       return
     }
@@ -55,7 +78,7 @@ export function ChangeSportDialog({
   }
 
   const handleConfirm = async () => {
-    if (!hasChanged) {
+    if (!hasChanges) {
       onOpenChange(false)
       return
     }
@@ -63,13 +86,14 @@ export function ChangeSportDialog({
     setIsSaving(true)
     try {
       const requestBody: Record<string, unknown> = {
-        primarySport: selectedSport,
+        primarySport: selectedPrimarySport,
+        secondarySports: filteredSecondarySports,
       }
 
-      // If resetting onboarding, also reset the onboarding status
-      if (resetOnboarding) {
+      // If resetting onboarding (only when primary sport changed)
+      if (resetOnboarding && primaryChanged) {
         requestBody.onboardingCompleted = false
-        requestBody.onboardingStep = 1 // Skip sport selection step (already done)
+        requestBody.onboardingStep = 1
       }
 
       const response = await fetch(`/api/sport-profile/${clientId}`, {
@@ -83,17 +107,27 @@ export function ChangeSportDialog({
         throw new Error(error.error || 'Failed to update sport')
       }
 
-      toast({
-        title: 'Sport bytt!',
-        description: resetOnboarding
+      // Build success message
+      let message = ''
+      if (primaryChanged && secondaryChanged) {
+        message = `Huvudsport ändrad till ${newSportInfo?.labelSv} och sekundära sporter uppdaterade.`
+      } else if (primaryChanged) {
+        message = resetOnboarding
           ? `Du har nu bytt till ${newSportInfo?.labelSv}. Slutför onboarding för att konfigurera dina nya inställningar.`
-          : `Du har nu bytt till ${newSportInfo?.labelSv}.`,
+          : `Du har nu bytt till ${newSportInfo?.labelSv}.`
+      } else {
+        message = 'Dina sekundära sporter har uppdaterats.'
+      }
+
+      toast({
+        title: 'Sporter uppdaterade!',
+        description: message,
       })
 
       onOpenChange(false)
 
-      // Navigate to onboarding if reset, otherwise refresh
-      if (resetOnboarding) {
+      // Navigate to onboarding if reset and primary changed, otherwise refresh
+      if (resetOnboarding && primaryChanged) {
         router.push('/athlete/onboarding')
       } else {
         router.refresh()
@@ -102,7 +136,7 @@ export function ChangeSportDialog({
       console.error('Error changing sport:', error)
       toast({
         title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte byta sport. Försök igen.',
+        description: error instanceof Error ? error.message : 'Kunde inte uppdatera sporter. Försök igen.',
         variant: 'destructive',
       })
     } finally {
@@ -112,9 +146,15 @@ export function ChangeSportDialog({
 
   const handleClose = () => {
     setStep('select')
-    setSelectedSport(currentSport)
+    setSelectedPrimarySport(currentSport)
+    setSelectedSecondarySports(currentSecondarySports)
     setResetOnboarding(true)
     onOpenChange(false)
+  }
+
+  const handleSecondaryChange = (sports: SportType[]) => {
+    // Filter out primary sport if accidentally selected
+    setSelectedSecondarySports(sports.filter(s => s !== selectedPrimarySport))
   }
 
   return (
@@ -123,84 +163,183 @@ export function ChangeSportDialog({
         {step === 'select' ? (
           <>
             <DialogHeader>
-              <DialogTitle>Byt huvudsport</DialogTitle>
+              <DialogTitle>Hantera sporter</DialogTitle>
               <DialogDescription>
-                Din nuvarande sport är <strong>{currentSportInfo?.labelSv}</strong>.
-                Välj en ny sport nedan för att byta din träningsinriktning.
+                Ändra din huvudsport eller lägg till sekundära sporter för att kunna växla mellan olika träningsvyer.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-4">
-              <SportSelector
-                value={selectedSport}
-                onChange={setSelectedSport}
-                locale="sv"
-                showFeatures={true}
-              />
-            </div>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'primary' | 'secondary')} className="mt-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="primary" className="gap-2">
+                  Huvudsport
+                  {primaryChanged && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">Ändrad</Badge>}
+                </TabsTrigger>
+                <TabsTrigger value="secondary" className="gap-2">
+                  Sekundära sporter
+                  {secondaryChanged && <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">Ändrad</Badge>}
+                </TabsTrigger>
+              </TabsList>
 
-            <DialogFooter>
+              <TabsContent value="primary" className="mt-4">
+                <div className="mb-4 p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Din huvudsport avgör vilken dashboard och träningsvy du ser som standard.
+                  </p>
+                </div>
+                <SportSelector
+                  value={selectedPrimarySport}
+                  onChange={setSelectedPrimarySport}
+                  locale="sv"
+                  showFeatures={false}
+                />
+              </TabsContent>
+
+              <TabsContent value="secondary" className="mt-4">
+                <div className="mb-4 p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Sekundära sporter låter dig snabbt växla mellan olika träningsvyer utan att byta huvudsport.
+                    Du kan välja upp till 2 sekundära sporter.
+                  </p>
+                </div>
+
+                {/* Current selections */}
+                {filteredSecondarySports.length > 0 && (
+                  <div className="mb-4">
+                    <Label className="text-sm text-muted-foreground mb-2 block">Valda sekundära sporter:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {filteredSecondarySports.map(sport => {
+                        const info = SPORT_OPTIONS.find(s => s.value === sport)
+                        return (
+                          <Badge key={sport} variant="secondary" className="gap-1 pr-1">
+                            <span>{info?.icon}</span>
+                            <span>{info?.labelSv}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 ml-1 hover:bg-destructive/20"
+                              onClick={() => setSelectedSecondarySports(prev => prev.filter(s => s !== sport))}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <MultiSportSelector
+                  value={filteredSecondarySports}
+                  onChange={handleSecondaryChange}
+                  locale="sv"
+                  maxSelections={2}
+                  excludeSports={[selectedPrimarySport]}
+                />
+              </TabsContent>
+            </Tabs>
+
+            <DialogFooter className="mt-6">
               <Button variant="outline" onClick={handleClose}>
                 Avbryt
               </Button>
-              <Button onClick={handleContinue} disabled={!hasChanged}>
-                Fortsätt
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button onClick={handleContinue} disabled={!hasChanges}>
+                {hasChanges ? (
+                  <>
+                    Fortsätt
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                ) : (
+                  'Inga ändringar'
+                )}
               </Button>
             </DialogFooter>
           </>
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Bekräfta sportbyte</DialogTitle>
+              <DialogTitle>Bekräfta ändringar</DialogTitle>
               <DialogDescription>
-                Du är på väg att byta från {currentSportInfo?.labelSv} till {newSportInfo?.labelSv}.
+                Granska dina ändringar innan du sparar.
               </DialogDescription>
             </DialogHeader>
 
             <div className="py-6 space-y-6">
-              {/* Visual sport change */}
-              <div className="flex items-center justify-center gap-4 p-4 bg-muted rounded-lg">
-                <div className="text-center">
-                  <span className="text-4xl block mb-2">{currentSportInfo?.icon}</span>
-                  <span className="text-sm text-muted-foreground">{currentSportInfo?.labelSv}</span>
+              {/* Primary sport change */}
+              {primaryChanged && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Huvudsport</Label>
+                  <div className="flex items-center justify-center gap-4 p-4 bg-muted rounded-lg">
+                    <div className="text-center">
+                      <span className="text-4xl block mb-2">{currentSportInfo?.icon}</span>
+                      <span className="text-sm text-muted-foreground">{currentSportInfo?.labelSv}</span>
+                    </div>
+                    <ArrowRight className="h-8 w-8 text-muted-foreground" />
+                    <div className="text-center">
+                      <span className="text-4xl block mb-2">{newSportInfo?.icon}</span>
+                      <span className="text-sm font-medium">{newSportInfo?.labelSv}</span>
+                    </div>
+                  </div>
                 </div>
-                <ArrowRight className="h-8 w-8 text-muted-foreground" />
-                <div className="text-center">
-                  <span className="text-4xl block mb-2">{newSportInfo?.icon}</span>
-                  <span className="text-sm font-medium">{newSportInfo?.labelSv}</span>
-                </div>
-              </div>
+              )}
 
-              {/* Warning */}
-              <div className="flex gap-3 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-amber-800 dark:text-amber-200">Vad händer när du byter sport?</p>
-                  <ul className="mt-2 space-y-1 text-amber-700 dark:text-amber-300">
-                    <li>• Din dashboard och träningsvyer anpassas till den nya sporten</li>
-                    <li>• Dina tidigare sportinställningar sparas om du vill byta tillbaka</li>
-                    <li>• Aktiva träningsprogram kan behöva uppdateras</li>
-                  </ul>
+              {/* Secondary sports change */}
+              {secondaryChanged && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Sekundära sporter</Label>
+                  <div className="p-4 bg-muted rounded-lg">
+                    {filteredSecondarySports.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center">Inga sekundära sporter valda</p>
+                    ) : (
+                      <div className="flex flex-wrap justify-center gap-3">
+                        {filteredSecondarySports.map(sport => {
+                          const info = SPORT_OPTIONS.find(s => s.value === sport)
+                          return (
+                            <div key={sport} className="text-center">
+                              <span className="text-3xl block mb-1">{info?.icon}</span>
+                              <span className="text-xs text-muted-foreground">{info?.labelSv}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Re-onboarding option */}
-              <div className="flex items-start space-x-3 p-4 border rounded-lg">
-                <Checkbox
-                  id="reset-onboarding"
-                  checked={resetOnboarding}
-                  onCheckedChange={(checked) => setResetOnboarding(checked as boolean)}
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="reset-onboarding" className="font-medium cursor-pointer">
-                    Kör onboarding för nya sporten (rekommenderas)
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Konfigurera sportspecifika inställningar som tröskelvärden, mål och utrustning för {newSportInfo?.labelSv}.
-                  </p>
+              {/* Warning for primary sport change */}
+              {primaryChanged && (
+                <div className="flex gap-3 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-amber-800 dark:text-amber-200">Vad händer när du byter huvudsport?</p>
+                    <ul className="mt-2 space-y-1 text-amber-700 dark:text-amber-300">
+                      <li>• Din dashboard och träningsvyer anpassas till den nya sporten</li>
+                      <li>• Dina tidigare sportinställningar sparas om du vill byta tillbaka</li>
+                      <li>• Aktiva träningsprogram kan behöva uppdateras</li>
+                    </ul>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Re-onboarding option (only for primary sport change) */}
+              {primaryChanged && (
+                <div className="flex items-start space-x-3 p-4 border rounded-lg">
+                  <Checkbox
+                    id="reset-onboarding"
+                    checked={resetOnboarding}
+                    onCheckedChange={(checked) => setResetOnboarding(checked as boolean)}
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="reset-onboarding" className="font-medium cursor-pointer">
+                      Kör onboarding för nya sporten (rekommenderas)
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Konfigurera sportspecifika inställningar som tröskelvärden, mål och utrustning för {newSportInfo?.labelSv}.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -211,12 +350,10 @@ export function ChangeSportDialog({
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Byter sport...
+                    Sparar...
                   </>
                 ) : (
-                  <>
-                    Bekräfta byte till {newSportInfo?.labelSv}
-                  </>
+                  'Spara ändringar'
                 )}
               </Button>
             </DialogFooter>

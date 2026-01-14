@@ -1,13 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Activity, Trophy, Scale, Calendar, Heart, Gauge, Video, Target } from 'lucide-react'
+import { ArrowLeft, Activity, Trophy, Scale, Calendar, Heart, Gauge, Video, Target, Settings2 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 import { ProfileHeroSection } from './ProfileHeroSection'
 import { AIContextSidebar } from './AIContextSidebar'
+import { ManageSportsSection } from './ManageSportsSection'
 import { PhysiologyTab } from './tabs/PhysiologyTab'
 import { PerformanceTab } from './tabs/PerformanceTab'
 import { BodyCompositionTab } from './tabs/BodyCompositionTab'
@@ -78,6 +80,14 @@ export function AthleteProfileClient({
           viewMode={viewMode}
           variant={isAthlete ? "glass" : "default"}
         />
+
+        {/* Manage Sports Section (Athlete only) */}
+        {isAthlete && data.identity.sportProfile && (
+          <ManageSportsSection
+            clientId={client.id}
+            sportProfile={data.identity.sportProfile}
+          />
+        )}
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-10">

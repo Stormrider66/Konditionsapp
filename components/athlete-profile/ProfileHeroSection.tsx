@@ -251,6 +251,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
           onOpenChange={setShowChangeSportDialog}
           clientId={client.id}
           currentSport={sportProfile.primarySport as SportType}
+          currentSecondarySports={(sportProfile.secondarySports as SportType[]) || []}
         />
       )}
     </CardWrapper>

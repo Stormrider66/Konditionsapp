@@ -253,6 +253,7 @@ interface MultiSportSelectorProps {
   onChange: (sports: SportType[]) => void
   locale?: 'en' | 'sv'
   maxSelections?: number
+  excludeSports?: SportType[]
   className?: string
 }
 
@@ -261,6 +262,7 @@ export function MultiSportSelector({
   onChange,
   locale = 'sv',
   maxSelections = 3,
+  excludeSports = [],
   className,
 }: MultiSportSelectorProps) {
   const [selected, setSelected] = useState<SportType[]>(value)
@@ -278,6 +280,11 @@ export function MultiSportSelector({
     onChange(newSelection)
   }
 
+  // Filter out excluded sports
+  const availableSports = SPORT_OPTIONS.filter(
+    (sport) => !excludeSports.includes(sport.value)
+  )
+
   return (
     <div className={cn('space-y-4', className)}>
       <p className="text-sm text-muted-foreground">
@@ -286,7 +293,7 @@ export function MultiSportSelector({
           : `Select up to ${maxSelections} secondary sports (${selected.length}/${maxSelections})`}
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {SPORT_OPTIONS.map((sport) => (
+        {availableSports.map((sport) => (
           <Button
             key={sport.value}
             variant={selected.includes(sport.value) ? 'default' : 'outline'}
