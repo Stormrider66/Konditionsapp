@@ -32,8 +32,7 @@ Complete documentation for all API endpoints in the Konditionstest Training Plat
 20. [Documents & Knowledge](#documents--knowledge) (6 routes)
 21. [Body Composition](#body-composition) (2 routes)
 22. [Sport Profile & Tests](#sport-profile--tests) (5 routes)
-23. [Norwegian Method](#norwegian-method) (2 routes)
-24. [Video Analysis](#video-analysis) (6 routes)
+23. [Video Analysis](#video-analysis) (6 routes)
 25. [Nutrition & Meals](#nutrition--meals) (7 routes)
 26. [Menstrual Cycle](#menstrual-cycle) (3 routes)
 27. [Habits](#habits) (3 routes)
@@ -49,7 +48,7 @@ Complete documentation for all API endpoints in the Konditionstest Training Plat
 37. [Coach Dashboard](#coach-dashboard) (6 routes)
 38. [System & Admin](#system--admin) (15 routes)
 
-**Total: 287 route files**
+**Total: 285 route files**
 
 ---
 
@@ -537,15 +536,6 @@ Complete documentation for all API endpoints in the Konditionstest Training Plat
 | GET | `/api/sport-performance` | Sport performance data |
 
 **Sports**: RUNNING, CYCLING, SWIMMING, TRIATHLON, HYROX, SKIING, GENERAL_FITNESS, FUNCTIONAL_FITNESS, STRENGTH, TEAM_FOOTBALL, TEAM_ICE_HOCKEY, TEAM_HANDBALL, TEAM_FLOORBALL, TEAM_BASKETBALL, TEAM_VOLLEYBALL, TENNIS, PADEL
-
----
-
-## Norwegian Method
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/norwegian-singles/eligibility/[clientId]` | Check 5 prerequisites |
-| POST | `/api/norwegian-singles/generate` | Generate double-threshold workouts |
 
 ---
 

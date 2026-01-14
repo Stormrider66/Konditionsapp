@@ -168,7 +168,7 @@ node scripts/chrome-debug.js navigate <url> # Navigate
 
 | Topic | Location |
 |-------|----------|
-| API endpoints (287 routes) | `docs/API_REFERENCE.md` |
+| API endpoints (285 routes) | `docs/API_REFERENCE.md` |
 | Database ER diagram | `docs/database/erd.svg` |
 | Training engine | `docs/training-engine/` |
 | Athlete dashboard data flow | `docs/ATHLETE_DASHBOARD_CONNECTIONS.md` |
