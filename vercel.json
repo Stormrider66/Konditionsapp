@@ -28,6 +28,30 @@
     {
       "path": "/api/cron/weekly-summary",
       "schedule": "0 3 * * 1"
+    },
+    {
+      "path": "/api/cron/morning-briefings",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/preworkout-nudges",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/pattern-detection",
+      "schedule": "0 5,17 * * *"
+    },
+    {
+      "path": "/api/cron/post-workout-checkins",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/milestone-detection",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/coach-alerts",
+      "schedule": "*/30 * * * *"
     }
   ]
 }
