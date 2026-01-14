@@ -35,7 +35,21 @@ export async function GET(
     const { id } = await params
     const client = await prisma.client.findUnique({
       where: { id, userId: user.id },
-      include: { team: true },
+      include: {
+        team: true,
+        athleteAccount: {
+          select: {
+            id: true,
+            userId: true,
+            user: {
+              select: {
+                email: true,
+                createdAt: true,
+              }
+            }
+          }
+        }
+      },
     })
 
     if (!client) {

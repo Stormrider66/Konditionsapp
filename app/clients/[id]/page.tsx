@@ -22,7 +22,8 @@ import { usePageContextOptional } from '@/components/ai-studio/PageContextProvid
 import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
 import { ClientDetailTabs } from '@/components/client/ClientDetailTabs'
 import { UnifiedCalendar } from '@/components/calendar'
-import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, UserCircle, Calendar, ExternalLink, Loader2, UserPlus } from 'lucide-react'
+import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import {
   Select,
@@ -384,6 +385,13 @@ export default function ClientDetailPage() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Personuppgifter</h2>
           <div className="flex items-center gap-2">
+            <CreateAthleteAccountDialog
+              clientId={id}
+              clientName={client.name}
+              clientEmail={client.email}
+              hasExistingAccount={!!(client as any).athleteAccount}
+              onAccountCreated={fetchClient}
+            />
             <Link href={`/clients/${id}/profile`}>
               <Button variant="default" size="sm">
                 <UserCircle className="w-4 h-4 mr-2" />
@@ -562,8 +570,22 @@ export default function ClientDetailPage() {
         </div>
       ) : (
         <div className="text-center py-12 text-gray-500">
+          <UserPlus className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p className="mb-2">Denna klient har inget atletkonto</p>
-          <p className="text-sm">Atleten måste skapa ett konto för att logga träningspass</p>
+          <p className="text-sm mb-4">Skapa ett atletkonto så att klienten kan logga in och logga träningspass</p>
+          <CreateAthleteAccountDialog
+            clientId={id}
+            clientName={client.name}
+            clientEmail={client.email}
+            hasExistingAccount={false}
+            onAccountCreated={fetchClient}
+            trigger={
+              <Button>
+                <UserPlus className="w-4 h-4 mr-2" />
+                Skapa atletkonto
+              </Button>
+            }
+          />
         </div>
       )}
     </div>

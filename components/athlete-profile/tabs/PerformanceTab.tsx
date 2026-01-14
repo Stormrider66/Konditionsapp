@@ -139,6 +139,126 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
 
   const CardWrapper = isGlass ? GlassCard : Card;
 
+  // Shared dialog components - used in both empty state and data state
+  const renderDialogs = () => (
+    <>
+      {/* Race Result Dialog */}
+      <Dialog open={isRaceDialogOpen} onOpenChange={setIsRaceDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Lägg till tävlingsresultat</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <RaceResultForm
+              clientId={clientId}
+              clientName={clientName}
+              onSuccess={handleRaceResultSuccess}
+              onCancel={() => setIsRaceDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Strength PR Dialog */}
+      <Dialog open={isStrengthDialogOpen} onOpenChange={setIsStrengthDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Lägg till styrke-PR</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <StrengthPRForm
+              clientId={clientId}
+              clientName={clientName}
+              onSuccess={handleStrengthPRSuccess}
+              onCancel={() => setIsStrengthDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cycling Dialog */}
+      <Dialog open={isCyclingDialogOpen} onOpenChange={setIsCyclingDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Logga cykelprestation</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <CyclingPerformanceForm
+              clientId={clientId}
+              athleteWeight={athleteWeight}
+              onSuccess={handleCyclingSuccess}
+              onCancel={() => setIsCyclingDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Swimming Dialog */}
+      <Dialog open={isSwimmingDialogOpen} onOpenChange={setIsSwimmingDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Logga simprestation</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <SwimmingPerformanceForm
+              clientId={clientId}
+              onSuccess={handleSwimmingSuccess}
+              onCancel={() => setIsSwimmingDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Triathlon Dialog */}
+      <Dialog open={isTriathlonDialogOpen} onOpenChange={setIsTriathlonDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Logga triathlonresultat</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <TriathlonPerformanceForm
+              clientId={clientId}
+              onSuccess={handleTriathlonSuccess}
+              onCancel={() => setIsTriathlonDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* HYROX Dialog */}
+      <Dialog open={isHyroxDialogOpen} onOpenChange={setIsHyroxDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Logga HYROX-resultat</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <HYROXPerformanceForm
+              clientId={clientId}
+              onSuccess={handleHyroxSuccess}
+              onCancel={() => setIsHyroxDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Skiing Dialog */}
+      <Dialog open={isSkiingDialogOpen} onOpenChange={setIsSkiingDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Logga skidresultat</DialogTitle>
+          </DialogHeader>
+          {clientId && (
+            <SkiingPerformanceForm
+              clientId={clientId}
+              onSuccess={handleSkiingSuccess}
+              onCancel={() => setIsSkiingDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+
   if (!hasData) {
     return (
       <>
@@ -189,7 +309,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
           </CardContent>
         </CardWrapper>
 
-        {/* Dialogs remain same but could use some glass styling if wanted - skipping for now as they are shared */}
+        {renderDialogs()}
       </>
     )
   }
@@ -428,120 +548,7 @@ export function PerformanceTab({ data, viewMode, variant = 'default' }: Performa
         )}
       </div>
 
-      {/* Race Result Dialog */}
-      <Dialog open={isRaceDialogOpen} onOpenChange={setIsRaceDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Lägg till tävlingsresultat</DialogTitle>
-          </DialogHeader>
-          {clientId && (
-            <RaceResultForm
-              clientId={clientId}
-              clientName={clientName}
-              onSuccess={handleRaceResultSuccess}
-              onCancel={() => setIsRaceDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Strength PR Dialog */}
-      <Dialog open={isStrengthDialogOpen} onOpenChange={setIsStrengthDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Lägg till styrke-PR</DialogTitle>
-          </DialogHeader>
-          {clientId && (
-            <StrengthPRForm
-              clientId={clientId}
-              clientName={clientName}
-              onSuccess={handleStrengthPRSuccess}
-              onCancel={() => setIsStrengthDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Cycling Dialog */}
-      <Dialog open={isCyclingDialogOpen} onOpenChange={setIsCyclingDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Logga cykelprestation</DialogTitle>
-          </DialogHeader>
-          {clientId && (
-            <CyclingPerformanceForm
-              clientId={clientId}
-              athleteWeight={athleteWeight}
-              onSuccess={handleCyclingSuccess}
-              onCancel={() => setIsCyclingDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Swimming Dialog */}
-      <Dialog open={isSwimmingDialogOpen} onOpenChange={setIsSwimmingDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Logga simprestation</DialogTitle>
-          </DialogHeader>
-          {clientId && (
-            <SwimmingPerformanceForm
-              clientId={clientId}
-              onSuccess={handleSwimmingSuccess}
-              onCancel={() => setIsSwimmingDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Triathlon Dialog */}
-      <Dialog open={isTriathlonDialogOpen} onOpenChange={setIsTriathlonDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Logga triathlonresultat</DialogTitle>
-          </DialogHeader>
-          {clientId && (
-            <TriathlonPerformanceForm
-              clientId={clientId}
-              onSuccess={handleTriathlonSuccess}
-              onCancel={() => setIsTriathlonDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* HYROX Dialog */}
-      <Dialog open={isHyroxDialogOpen} onOpenChange={setIsHyroxDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Logga HYROX-resultat</DialogTitle>
-          </DialogHeader>
-          {clientId && (
-            <HYROXPerformanceForm
-              clientId={clientId}
-              onSuccess={handleHyroxSuccess}
-              onCancel={() => setIsHyroxDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Skiing Dialog */}
-      <Dialog open={isSkiingDialogOpen} onOpenChange={setIsSkiingDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Logga skidresultat</DialogTitle>
-          </DialogHeader>
-          {clientId && (
-            <SkiingPerformanceForm
-              clientId={clientId}
-              onSuccess={handleSkiingSuccess}
-              onCancel={() => setIsSkiingDialogOpen(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {renderDialogs()}
     </>
   )
 }

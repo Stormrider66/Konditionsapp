@@ -43,7 +43,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { LoadingTable } from '@/components/ui/loading'
 import { useToast } from '@/hooks/use-toast'
-import { MoreVertical, UserPlus, Eye, Trash2, ArrowLeft, Phone, Mail, Download, UserCircle } from 'lucide-react'
+import { MoreVertical, UserPlus, Eye, Trash2, ArrowLeft, Phone, Mail, Download, UserCircle, Check } from 'lucide-react'
+import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { MobileNav } from '@/components/navigation/MobileNav'
 import { exportClientsToCSV } from '@/lib/utils/csv-export'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
@@ -323,6 +324,23 @@ export default function ClientsPage() {
                                   Fullständig profil
                                 </Link>
                               </DropdownMenuItem>
+                              {!(client as any).athleteAccount && (
+                                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                                  <CreateAthleteAccountDialog
+                                    clientId={client.id}
+                                    clientName={client.name}
+                                    clientEmail={client.email}
+                                    hasExistingAccount={false}
+                                    onAccountCreated={fetchClients}
+                                    trigger={
+                                      <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
+                                        <UserPlus className="w-4 h-4 mr-2" />
+                                        Skapa atletkonto
+                                      </button>
+                                    }
+                                  />
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem
                                 onClick={() => handleDeleteClick(client)}
                                 className="text-red-600 focus:text-red-600"
@@ -346,6 +364,19 @@ export default function ClientsPage() {
                               <Badge variant="outline">{client.team.name}</Badge>
                             </div>
                           )}
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Atletkonto:</span>
+                            {(client as any).athleteAccount ? (
+                              <Badge variant="default" className="bg-green-100 text-green-800">
+                                <Check className="w-3 h-3 mr-1" />
+                                Aktivt
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-gray-500">
+                                Saknas
+                              </Badge>
+                            )}
+                          </div>
                           {client.email && (
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <Mail className="w-4 h-4 flex-shrink-0" />
@@ -377,6 +408,7 @@ export default function ClientsPage() {
                       <TableHead>Kön</TableHead>
                       <TableHead>Lag</TableHead>
                       <TableHead>E-post</TableHead>
+                      <TableHead>Atletkonto</TableHead>
                       <TableHead>Senast uppdaterad</TableHead>
                       <TableHead className="text-right">Åtgärder</TableHead>
                     </TableRow>
@@ -408,6 +440,28 @@ export default function ClientsPage() {
                         <TableCell className="text-muted-foreground">
                           {client.email || '-'}
                         </TableCell>
+                        <TableCell>
+                          {(client as any).athleteAccount ? (
+                            <Badge variant="default" className="bg-green-100 text-green-800">
+                              <Check className="w-3 h-3 mr-1" />
+                              Aktivt
+                            </Badge>
+                          ) : (
+                            <CreateAthleteAccountDialog
+                              clientId={client.id}
+                              clientName={client.name}
+                              clientEmail={client.email}
+                              hasExistingAccount={false}
+                              onAccountCreated={fetchClients}
+                              trigger={
+                                <Button variant="outline" size="sm" className="h-7 text-xs">
+                                  <UserPlus className="w-3 h-3 mr-1" />
+                                  Skapa
+                                </Button>
+                              }
+                            />
+                          )}
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {format(new Date(client.updatedAt), 'PPP', { locale: sv })}
                         </TableCell>
@@ -437,6 +491,23 @@ export default function ClientsPage() {
                                   Fullständig profil
                                 </Link>
                               </DropdownMenuItem>
+                              {!(client as any).athleteAccount && (
+                                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                                  <CreateAthleteAccountDialog
+                                    clientId={client.id}
+                                    clientName={client.name}
+                                    clientEmail={client.email}
+                                    hasExistingAccount={false}
+                                    onAccountCreated={fetchClients}
+                                    trigger={
+                                      <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
+                                        <UserPlus className="w-4 h-4 mr-2" />
+                                        Skapa atletkonto
+                                      </button>
+                                    }
+                                  />
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem
                                 onClick={() => handleDeleteClick(client)}
                                 className="text-red-600 focus:text-red-600"

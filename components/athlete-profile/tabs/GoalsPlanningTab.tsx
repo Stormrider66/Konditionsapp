@@ -1,13 +1,26 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { format, differenceInDays } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import Link from 'next/link'
-import { Target, Calendar, Flag, Clock, Star, Award, TrendingUp } from 'lucide-react'
+import { Target, Calendar, Flag, Clock, Star, Award, TrendingUp, Plus, Edit2, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 
 interface GoalsPlanningTabProps {
@@ -17,9 +30,27 @@ interface GoalsPlanningTabProps {
 }
 
 export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsPlanningTabProps) {
+  const router = useRouter()
   const sportProfile = data.identity.sportProfile
   const { programs } = data.training
   const { raceResults } = data.performance
+  const clientId = data.identity.client?.id
+
+  // Goal editing state
+  const [isGoalDialogOpen, setIsGoalDialogOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Form state
+  const [currentGoal, setCurrentGoal] = useState(sportProfile?.currentGoal || '')
+  const [targetDate, setTargetDate] = useState(
+    sportProfile?.targetDate ? format(new Date(sportProfile.targetDate), 'yyyy-MM-dd') : ''
+  )
+  const [metricType, setMetricType] = useState<'TIME' | 'DISTANCE' | 'WEIGHT' | 'NONE'>(
+    sportProfile?.targetMetric?.type || 'NONE'
+  )
+  const [metricValue, setMetricValue] = useState(sportProfile?.targetMetric?.value?.toString() || '')
+  const [metricUnit, setMetricUnit] = useState(sportProfile?.targetMetric?.unit || '')
 
   // Get active program
   const activeProgram = programs.find((p) => p.isActive)
@@ -30,16 +61,73 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsP
 
   const hasGoals = sportProfile?.currentGoal || sportProfile?.targetDate || activeProgram
 
+  // Handle goal form submission
+  const handleSaveGoal = async () => {
+    if (!clientId) return
+
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/sport-profile/${clientId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentGoal: currentGoal || null,
+          targetDate: targetDate || null,
+          targetMetric: metricType !== 'NONE' && metricValue ? {
+            type: metricType,
+            value: parseFloat(metricValue),
+            unit: metricUnit,
+          } : null,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Kunde inte spara mål')
+      }
+
+      setIsGoalDialogOpen(false)
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Open dialog with current values
+  const handleOpenGoalDialog = () => {
+    setCurrentGoal(sportProfile?.currentGoal || '')
+    setTargetDate(
+      sportProfile?.targetDate ? format(new Date(sportProfile.targetDate), 'yyyy-MM-dd') : ''
+    )
+    setMetricType(sportProfile?.targetMetric?.type || 'NONE')
+    setMetricValue(sportProfile?.targetMetric?.value?.toString() || '')
+    setMetricUnit(sportProfile?.targetMetric?.unit || '')
+    setError(null)
+    setIsGoalDialogOpen(true)
+  }
+
   return (
     <div className="space-y-6">
       {/* Current Goal */}
       {hasGoals ? (
         <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-blue-600" />
-              Aktuellt mål
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-blue-600" />
+                Aktuellt mål
+              </CardTitle>
+              {clientId && (
+                <Button size="sm" variant="ghost" onClick={handleOpenGoalDialog}>
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  Redigera
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -101,10 +189,11 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsP
             <p className="text-gray-500 mb-4">
               Sätt upp träningsmål för att spåra framsteg.
             </p>
-            {viewMode === 'coach' && (
-              <Link href={`/clients/${data.identity.client?.id}/edit`}>
-                <Button>Lägg till mål</Button>
-              </Link>
+            {clientId && (
+              <Button onClick={handleOpenGoalDialog}>
+                <Plus className="h-4 w-4 mr-2" />
+                Lägg till mål
+              </Button>
             )}
           </CardContent>
         </Card>
@@ -284,6 +373,131 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsP
           </CardContent>
         </Card>
       )}
+
+      {/* Goal Editing Dialog */}
+      <Dialog open={isGoalDialogOpen} onOpenChange={setIsGoalDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Redigera träningsmål</DialogTitle>
+            <DialogDescription>
+              Sätt upp ditt huvudmål och måldatum för att spåra framsteg.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Goal Description */}
+            <div className="space-y-2">
+              <Label htmlFor="currentGoal">Mål</Label>
+              <Input
+                id="currentGoal"
+                placeholder="t.ex. Spring Stockholm Marathon under 3:30"
+                value={currentGoal}
+                onChange={(e) => setCurrentGoal(e.target.value)}
+              />
+            </div>
+
+            {/* Target Date */}
+            <div className="space-y-2">
+              <Label htmlFor="targetDate">Måldatum</Label>
+              <Input
+                id="targetDate"
+                type="date"
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
+              />
+            </div>
+
+            {/* Target Metric Type */}
+            <div className="space-y-2">
+              <Label htmlFor="metricType">Mätbart mål (valfritt)</Label>
+              <Select value={metricType} onValueChange={(v: 'TIME' | 'DISTANCE' | 'WEIGHT' | 'NONE') => setMetricType(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Välj typ..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">Inget mätbart mål</SelectItem>
+                  <SelectItem value="TIME">Tid</SelectItem>
+                  <SelectItem value="DISTANCE">Distans</SelectItem>
+                  <SelectItem value="WEIGHT">Vikt</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Metric Value and Unit */}
+            {metricType !== 'NONE' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="metricValue">Värde</Label>
+                  <Input
+                    id="metricValue"
+                    type="text"
+                    placeholder={metricType === 'TIME' ? '3:30:00' : '42.2'}
+                    value={metricValue}
+                    onChange={(e) => setMetricValue(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="metricUnit">Enhet</Label>
+                  <Select value={metricUnit} onValueChange={setMetricUnit}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Enhet..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {metricType === 'TIME' && (
+                        <>
+                          <SelectItem value="HH:MM:SS">HH:MM:SS</SelectItem>
+                          <SelectItem value="minuter">Minuter</SelectItem>
+                        </>
+                      )}
+                      {metricType === 'DISTANCE' && (
+                        <>
+                          <SelectItem value="km">Kilometer</SelectItem>
+                          <SelectItem value="mil">Mil</SelectItem>
+                          <SelectItem value="m">Meter</SelectItem>
+                        </>
+                      )}
+                      {metricType === 'WEIGHT' && (
+                        <>
+                          <SelectItem value="kg">Kilogram</SelectItem>
+                          <SelectItem value="lb">Pounds</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsGoalDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Avbryt
+            </Button>
+            <Button onClick={handleSaveGoal} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sparar...
+                </>
+              ) : (
+                'Spara mål'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -31,6 +31,16 @@ export async function GET() {
       },
       include: {
         team: true,
+        athleteAccount: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                email: true,
+              }
+            }
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc',
