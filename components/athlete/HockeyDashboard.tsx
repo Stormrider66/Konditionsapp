@@ -17,19 +17,10 @@ import {
 } from 'lucide-react'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
+import { MatchScheduleWidget } from './MatchScheduleWidget'
 
 interface HockeyDashboardProps {
   settings: HockeySettings
-  // Match schedule can be added later when API is ready
-  upcomingMatches?: MatchInfo[]
-}
-
-interface MatchInfo {
-  id: string
-  opponent: string
-  isHome: boolean
-  scheduledDate: Date
-  venue?: string
 }
 
 const POSITION_LABELS: Record<string, string> = {
@@ -130,7 +121,7 @@ function getPhaseProgress(phase: string): number {
   return ((index + 1) / phases.length) * 100
 }
 
-export function HockeyDashboard({ settings, upcomingMatches = [] }: HockeyDashboardProps) {
+export function HockeyDashboard({ settings }: HockeyDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -385,47 +376,7 @@ export function HockeyDashboard({ settings, upcomingMatches = [] }: HockeyDashbo
       )}
 
       {/* Upcoming Matches */}
-      {upcomingMatches.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Kommande matcher
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {upcomingMatches.slice(0, 5).map((match) => (
-                <div key={match.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div>
-                    <div className="font-medium">
-                      {match.isHome ? 'vs' : '@'} {match.opponent}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {match.venue || (match.isHome ? 'Hemmamatch' : 'Bortamatch')}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium">
-                      {new Date(match.scheduledDate).toLocaleDateString('sv-SE', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(match.scheduledDate).toLocaleTimeString('sv-SE', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <MatchScheduleWidget />
 
       {/* Training Recommendations */}
       <Card>

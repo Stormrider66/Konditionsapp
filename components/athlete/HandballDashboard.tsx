@@ -20,6 +20,7 @@ import {
   HANDBALL_BENCHMARKS,
   getPositionRecommendations,
 } from '@/lib/training-engine/handball'
+import { MatchScheduleWidget } from './MatchScheduleWidget'
 
 interface HandballDashboardProps {
   settings: HandballSettings
@@ -401,6 +402,9 @@ export function HandballDashboard({ settings }: HandballDashboardProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Match Schedule */}
+      <MatchScheduleWidget />
     </div>
   )
 }

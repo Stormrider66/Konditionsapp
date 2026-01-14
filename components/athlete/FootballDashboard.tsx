@@ -19,19 +19,11 @@ import {
 } from 'lucide-react'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import type { FootballSettings } from '@/components/onboarding/FootballOnboarding'
+import { MatchScheduleWidget } from './MatchScheduleWidget'
 
 interface FootballDashboardProps {
   settings: FootballSettings
-  upcomingMatches?: MatchInfo[]
   recentGPSData?: GPSMatchData[]
-}
-
-interface MatchInfo {
-  id: string
-  opponent: string
-  isHome: boolean
-  scheduledDate: Date
-  venue?: string
 }
 
 interface GPSMatchData {
@@ -156,7 +148,7 @@ const PHASE_FOCUS: Record<string, { focus: string[]; icon: typeof Flame }> = {
   },
 }
 
-export function FootballDashboard({ settings, upcomingMatches = [], recentGPSData = [] }: FootballDashboardProps) {
+export function FootballDashboard({ settings, recentGPSData = [] }: FootballDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -478,47 +470,7 @@ export function FootballDashboard({ settings, upcomingMatches = [], recentGPSDat
       )}
 
       {/* Upcoming Matches */}
-      {upcomingMatches.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Kommande matcher
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {upcomingMatches.slice(0, 5).map((match) => (
-                <div key={match.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                  <div>
-                    <div className="font-medium">
-                      {match.isHome ? 'vs' : '@'} {match.opponent}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {match.venue || (match.isHome ? 'Hemmamatch' : 'Bortamatch')}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium">
-                      {new Date(match.scheduledDate).toLocaleDateString('sv-SE', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(match.scheduledDate).toLocaleTimeString('sv-SE', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <MatchScheduleWidget />
 
       {/* Position-Specific Training Tips */}
       <Card>

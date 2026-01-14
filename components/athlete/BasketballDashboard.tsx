@@ -21,6 +21,7 @@ import {
   BASKETBALL_BENCHMARKS,
   getPositionRecommendations,
 } from '@/lib/training-engine/basketball'
+import { MatchScheduleWidget } from './MatchScheduleWidget'
 
 interface BasketballDashboardProps {
   settings: BasketballSettings
@@ -424,6 +425,9 @@ export function BasketballDashboard({ settings }: BasketballDashboardProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Match Schedule */}
+      <MatchScheduleWidget />
     </div>
   )
 }

@@ -20,6 +20,7 @@ import {
   VOLLEYBALL_BENCHMARKS,
   getPositionRecommendations,
 } from '@/lib/training-engine/volleyball'
+import { MatchScheduleWidget } from './MatchScheduleWidget'
 
 interface VolleyballDashboardProps {
   settings: VolleyballSettings
@@ -418,6 +419,9 @@ export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Match Schedule */}
+      <MatchScheduleWidget />
     </div>
   )
 }

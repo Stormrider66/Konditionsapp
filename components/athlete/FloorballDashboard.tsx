@@ -20,6 +20,7 @@ import {
   FLOORBALL_BENCHMARKS,
   getPositionRecommendations,
 } from '@/lib/training-engine/floorball'
+import { MatchScheduleWidget } from './MatchScheduleWidget'
 
 interface FloorballDashboardProps {
   settings: FloorballSettings
@@ -403,6 +404,9 @@ export function FloorballDashboard({ settings }: FloorballDashboardProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Match Schedule */}
+      <MatchScheduleWidget />
     </div>
   )
 }
