@@ -116,12 +116,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // For API routes, don't do page redirects/auth routing in middleware.
-  // API handlers should return JSON 401/403 as appropriate.
-  if (isApiRoute) {
-    return addSecurityHeaders(NextResponse.next())
-  }
-
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -174,10 +168,18 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
+  // Refresh session if expired - this is critical for API routes too
+  // Without this, expired access tokens cause 401 errors even with valid refresh tokens
   const {
     data: { user: supabaseUser },
   } = await supabase.auth.getUser()
+
+  // For API routes, don't do page redirects/auth routing in middleware.
+  // API handlers should return JSON 401/403 as appropriate.
+  // Session refresh above ensures tokens are refreshed before API calls.
+  if (isApiRoute) {
+    return addSecurityHeaders(response)
+  }
 
   // Public routes that don't require authentication
   const publicRoutes = ['/login', '/register', '/signup', '/']
