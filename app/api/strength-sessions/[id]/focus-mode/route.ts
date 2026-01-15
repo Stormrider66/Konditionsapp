@@ -346,6 +346,59 @@ export async function PUT(
       data: updateData,
     })
 
+    // Create TrainingLoad entry when workout is completed
+    // This ensures strength workouts contribute to weekly load ("Veckobelastning")
+    if (status === 'COMPLETED' && duration) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      // Calculate strength TSS based on duration and RPE
+      // Formula: duration (min) * RPE/10 * 0.8 (strength modifier)
+      // This gives roughly 48 TSS for a 60-min workout at RPE 8
+      const rpeValue = rpe || 6 // Default to moderate if not provided
+      const strengthTSS = Math.round(duration * (rpeValue / 10) * 0.8)
+
+      // Map RPE to intensity label
+      let intensity = 'MODERATE'
+      if (rpeValue <= 3) intensity = 'EASY'
+      else if (rpeValue <= 5) intensity = 'MODERATE'
+      else if (rpeValue <= 7) intensity = 'HARD'
+      else intensity = 'VERY_HARD'
+
+      // Check if there's already a strength TrainingLoad entry for today
+      const existingLoad = await prisma.trainingLoad.findFirst({
+        where: {
+          clientId: assignment.athleteId,
+          date: today,
+          workoutType: 'STRENGTH',
+        },
+      })
+
+      if (existingLoad) {
+        // Update existing entry (add load from this workout)
+        await prisma.trainingLoad.update({
+          where: { id: existingLoad.id },
+          data: {
+            dailyLoad: existingLoad.dailyLoad + strengthTSS,
+            duration: existingLoad.duration + duration,
+          },
+        })
+      } else {
+        // Create new entry for today's strength training
+        await prisma.trainingLoad.create({
+          data: {
+            clientId: assignment.athleteId,
+            date: today,
+            dailyLoad: strengthTSS,
+            loadType: 'STRENGTH_TSS',
+            duration: duration,
+            intensity,
+            workoutType: 'STRENGTH',
+          },
+        })
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: updated,

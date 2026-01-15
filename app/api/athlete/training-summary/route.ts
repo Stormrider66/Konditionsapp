@@ -2,7 +2,8 @@
  * Training Summary API
  *
  * Retrieves weekly or monthly training summaries for an athlete.
- * Summaries are pre-calculated and stored for efficient trend analysis.
+ * Current week is calculated in real-time for fresh data.
+ * Historical summaries are pre-calculated and stored for efficiency.
  *
  * GET /api/athlete/training-summary?period=week|month&count=12
  */
@@ -14,7 +15,18 @@ import { logger } from '@/lib/logger'
 import {
   getRecentWeeklySummaries,
   getRecentMonthlySummaries,
+  calculateWeeklySummary,
 } from '@/lib/training/summary-calculator'
+
+// Helper to get Monday of the current week
+function getWeekStart(date: Date): Date {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Monday
+  d.setDate(diff)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,7 +75,31 @@ export async function GET(request: NextRequest) {
         summaries,
       })
     } else {
-      const summaries = await getRecentWeeklySummaries(clientId, count)
+      // For weekly summaries, calculate current week in real-time
+      const currentWeekStart = getWeekStart(new Date())
+
+      // Calculate current week's summary from live data
+      const currentWeekData = await calculateWeeklySummary(clientId, currentWeekStart)
+
+      // Get historical summaries (excluding current week)
+      const historicalSummaries = await getRecentWeeklySummaries(clientId, count)
+
+      // Filter out current week from historical (if exists) and prepend fresh calculation
+      const filteredHistorical = historicalSummaries.filter(
+        (s) => new Date(s.weekStart).getTime() !== currentWeekStart.getTime()
+      )
+
+      // Build current week summary object with id
+      const currentWeekSummary = {
+        id: `current-${currentWeekStart.toISOString()}`,
+        ...currentWeekData,
+        weekStart: currentWeekStart,
+        weekEnd: new Date(currentWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
+      }
+
+      // Combine: current week first, then historical
+      const summaries = [currentWeekSummary, ...filteredHistorical.slice(0, count - 1)]
+
       return NextResponse.json({
         period: 'week',
         count: summaries.length,

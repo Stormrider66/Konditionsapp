@@ -5864,3 +5864,75 @@ model SportTestBenchmark {
   @@index([protocol, gender, tier])
   @@index([sport, protocol])
 }
+
+// ============================================
+// AD-HOC WORKOUT LOGGING SYSTEM
+// ============================================
+
+/// Input method for ad-hoc workout logging
+enum AdHocInputType {
+  PHOTO           // Photo of whiteboard/paper
+  SCREENSHOT      // Screenshot from app/website
+  VOICE           // Voice recording
+  TEXT            // Free-form text input
+  STRAVA_IMPORT   // Imported from Strava activity
+  GARMIN_IMPORT   // Imported from Garmin activity
+  CONCEPT2_IMPORT // Imported from Concept2
+  MANUAL_FORM     // Structured manual entry form
+}
+
+/// Processing status for ad-hoc workout
+enum AdHocWorkoutStatus {
+  PENDING          // Just created, awaiting AI parsing
+  PROCESSING       // AI is parsing
+  READY_FOR_REVIEW // Parsed, athlete needs to confirm
+  CONFIRMED        // Athlete confirmed, workout created
+  FAILED           // Parsing failed
+}
+
+/// Ad-hoc workout entry - captures workouts done outside of training programs
+model AdHocWorkout {
+  id        String @id @default(cuid())
+  athleteId String
+
+  // Input tracking
+  inputType   AdHocInputType
+  inputDate   DateTime         @default(now()) // When they captured it
+  workoutDate DateTime                          // When they did the workout
+  workoutName String?                           // Optional name for the workout
+
+  // Raw input storage
+  rawInputUrl      String?  // Photo/voice file URL (Supabase storage)
+  rawInputText     String?  @db.Text // Transcription or typed text
+  rawInputMetadata Json?    // External import raw data
+
+  // AI parsing results
+  parsedType        WorkoutType?
+  parsedStructure   Json?    // Full workout structure (ParsedWorkout JSON)
+  parsingModel      String?  // "gemini-3-flash", "gemini-3-pro", etc.
+  parsingConfidence Float?
+  parsingError      String?  @db.Text // If parsing failed
+
+  // Athlete review
+  status          AdHocWorkoutStatus @default(PENDING)
+  athleteReviewed Boolean            @default(false)
+  athleteEdits    Json?              // What they changed from AI interpretation
+
+  // Link to created workout (after confirmation)
+  createdWorkoutId String?  @unique
+  createdWorkout   Workout? @relation("AdHocSourceWorkout", fields: [createdWorkoutId], references: [id])
+
+  // Training load reference (created after confirmation)
+  trainingLoadId String?
+
+  // Relations
+  athlete Client @relation("ClientAdHocWorkouts", fields: [athleteId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteId])
+  @@index([workoutDate])
+  @@index([status])
+  @@index([athleteId, status])
+}

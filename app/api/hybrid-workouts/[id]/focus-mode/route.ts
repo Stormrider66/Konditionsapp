@@ -416,6 +416,60 @@ export async function PUT(
       })
     }
 
+    // Create TrainingLoad entry when workout is completed
+    // This ensures hybrid workouts contribute to weekly load ("Veckobelastning")
+    if (status === 'COMPLETED' && totalTime) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      // Calculate hybrid TSS based on duration (seconds) and RPE
+      // Hybrid workouts are high intensity (HYROX, CrossFit-style), use higher modifier
+      // Formula: (duration in min) * RPE/10 * 1.1 (hybrid modifier)
+      const durationMinutes = totalTime / 60
+      const rpeValue = sessionRPE || 7 // Default to hard for hybrid workouts
+      const hybridTSS = Math.round(durationMinutes * (rpeValue / 10) * 1.1)
+
+      // Map RPE to intensity label
+      let intensity = 'HARD'
+      if (rpeValue <= 3) intensity = 'EASY'
+      else if (rpeValue <= 5) intensity = 'MODERATE'
+      else if (rpeValue <= 7) intensity = 'HARD'
+      else intensity = 'VERY_HARD'
+
+      // Check if there's already a hybrid TrainingLoad entry for today
+      const existingLoad = await prisma.trainingLoad.findFirst({
+        where: {
+          clientId: assignment.athleteId,
+          date: today,
+          workoutType: 'HYBRID',
+        },
+      })
+
+      if (existingLoad) {
+        // Update existing entry (add load from this workout)
+        await prisma.trainingLoad.update({
+          where: { id: existingLoad.id },
+          data: {
+            dailyLoad: existingLoad.dailyLoad + hybridTSS,
+            duration: existingLoad.duration + durationMinutes,
+          },
+        })
+      } else {
+        // Create new entry for today's hybrid training
+        await prisma.trainingLoad.create({
+          data: {
+            clientId: assignment.athleteId,
+            date: today,
+            dailyLoad: hybridTSS,
+            loadType: 'HYBRID_TSS',
+            duration: durationMinutes,
+            intensity,
+            workoutType: 'HYBRID',
+          },
+        })
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: updatedLog,

@@ -72,7 +72,15 @@ export async function GET() {
             },
           },
         },
-        include: { day: true },
+        include: {
+          day: true,
+          // Include logs to check completion status
+          logs: {
+            where: { athleteId: user.id },
+            select: { completed: true, completedAt: true },
+            take: 1,
+          },
+        },
         orderBy: { order: 'asc' },
       }),
       prisma.workout.findMany({
@@ -137,11 +145,18 @@ export async function GET() {
       daysUntil: isToday ? 0 : 1,
     })
 
-    const todaysWorkouts = todaysWorkoutsRaw.map((w) => mapToContext(w, true))
+    // Filter out completed workouts - nutrition guidance only applies to upcoming/incomplete workouts
+    const incompleteWorkouts = todaysWorkoutsRaw.filter((w) => {
+      const log = w.logs?.[0]
+      return !log?.completed // Only include if not completed
+    })
+
+    const todaysWorkouts = incompleteWorkouts.map((w) => mapToContext(w, true))
     const tomorrowsWorkouts = tomorrowsWorkoutsRaw.map((w) => mapToContext(w, false))
 
-    // Map AI WODs to WorkoutContext and add to today's workouts
-    const aiWodContexts: WorkoutContext[] = todaysAiWods.map((wod) => ({
+    // Map AI WODs to WorkoutContext and add to today's workouts (exclude completed ones)
+    const incompleteAiWods = todaysAiWods.filter((wod) => wod.status !== 'COMPLETED')
+    const aiWodContexts: WorkoutContext[] = incompleteAiWods.map((wod) => ({
       id: wod.id,
       name: `AI-Pass: ${wod.title}`,
       type: (wod.primarySport as WorkoutType) || 'STRENGTH',

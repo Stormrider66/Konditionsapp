@@ -98,6 +98,86 @@ export async function POST(
       },
     })
 
+    // Create TrainingLoad entry when workout is completed
+    // This ensures traditional workouts contribute to weekly load ("Veckobelastning")
+    if ((body.completed ?? true) && body.duration) {
+      // Get athlete's client ID
+      const athleteAccount = await prisma.athleteAccount.findUnique({
+        where: { userId: user.id },
+      })
+
+      if (athleteAccount) {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        // Use provided TSS if available, otherwise estimate from duration and RPE
+        const rpeValue = body.perceivedEffort || 6
+        const durationMinutes = body.duration // Already in minutes for WorkoutLog
+        const estimatedTSS = body.tss || Math.round(durationMinutes * (rpeValue / 10) * 0.9)
+
+        // Map workout type to training load workout type
+        const workoutTypeMap: Record<string, string> = {
+          STRENGTH: 'STRENGTH',
+          CARDIO: 'CARDIO',
+          RUNNING: 'CARDIO',
+          CYCLING: 'CARDIO',
+          SWIMMING: 'CARDIO',
+          SKIING: 'CARDIO',
+          FLEXIBILITY: 'RECOVERY',
+          RECOVERY: 'RECOVERY',
+        }
+        const loadWorkoutType = workoutTypeMap[workout.type] || 'GENERAL'
+
+        // Map RPE to intensity label
+        let intensity = 'MODERATE'
+        if (rpeValue <= 3) intensity = 'EASY'
+        else if (rpeValue <= 5) intensity = 'MODERATE'
+        else if (rpeValue <= 7) intensity = 'HARD'
+        else intensity = 'VERY_HARD'
+
+        // Check if there's already a TrainingLoad entry for today with this workout type
+        const existingLoad = await prisma.trainingLoad.findFirst({
+          where: {
+            clientId: athleteAccount.clientId,
+            date: today,
+            workoutType: loadWorkoutType,
+          },
+        })
+
+        if (existingLoad) {
+          // Update existing entry (add load from this workout)
+          await prisma.trainingLoad.update({
+            where: { id: existingLoad.id },
+            data: {
+              dailyLoad: existingLoad.dailyLoad + estimatedTSS,
+              duration: existingLoad.duration + durationMinutes,
+              distance: body.distance
+                ? (existingLoad.distance || 0) + body.distance
+                : existingLoad.distance,
+            },
+          })
+        } else {
+          // Create new entry for today's training
+          await prisma.trainingLoad.create({
+            data: {
+              clientId: athleteAccount.clientId,
+              date: today,
+              dailyLoad: estimatedTSS,
+              loadType: body.tss ? 'TSS' : 'RPE_BASED',
+              duration: durationMinutes,
+              distance: body.distance,
+              avgHR: body.avgHR,
+              maxHR: body.maxHR,
+              avgPace: body.avgPace,
+              intensity,
+              workoutType: loadWorkoutType,
+              workoutId: id,
+            },
+          })
+        }
+      }
+    }
+
     return NextResponse.json(
       {
         success: true,

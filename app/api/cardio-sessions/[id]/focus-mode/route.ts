@@ -450,6 +450,65 @@ export async function PUT(
       })
     }
 
+    // Create TrainingLoad entry when workout is completed
+    // This ensures cardio sessions contribute to weekly load ("Veckobelastning")
+    if (status === 'COMPLETED' && actualDuration) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      // Calculate cardio TSS based on duration (seconds) and RPE
+      // Formula: (duration in min) * RPE/10 * 1.0 (cardio modifier, higher than strength)
+      const durationMinutes = actualDuration / 60
+      const rpeValue = sessionRPE || 6 // Default to moderate if not provided
+      const cardioTSS = Math.round(durationMinutes * (rpeValue / 10) * 1.0)
+
+      // Map RPE to intensity label
+      let intensity = 'MODERATE'
+      if (rpeValue <= 3) intensity = 'EASY'
+      else if (rpeValue <= 5) intensity = 'MODERATE'
+      else if (rpeValue <= 7) intensity = 'HARD'
+      else intensity = 'VERY_HARD'
+
+      // Check if there's already a cardio TrainingLoad entry for today
+      const existingLoad = await prisma.trainingLoad.findFirst({
+        where: {
+          clientId: assignment.athleteId,
+          date: today,
+          workoutType: 'CARDIO',
+        },
+      })
+
+      if (existingLoad) {
+        // Update existing entry (add load from this workout)
+        await prisma.trainingLoad.update({
+          where: { id: existingLoad.id },
+          data: {
+            dailyLoad: existingLoad.dailyLoad + cardioTSS,
+            duration: existingLoad.duration + durationMinutes,
+            distance: actualDistance
+              ? (existingLoad.distance || 0) + actualDistance / 1000
+              : existingLoad.distance,
+          },
+        })
+      } else {
+        // Create new entry for today's cardio training
+        await prisma.trainingLoad.create({
+          data: {
+            clientId: assignment.athleteId,
+            date: today,
+            dailyLoad: cardioTSS,
+            loadType: 'CARDIO_TSS',
+            duration: durationMinutes,
+            distance: actualDistance ? actualDistance / 1000 : undefined,
+            avgHR: avgHeartRate,
+            maxHR: maxHeartRate,
+            intensity,
+            workoutType: 'CARDIO',
+          },
+        })
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: updatedLog,
