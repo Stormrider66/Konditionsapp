@@ -120,6 +120,11 @@ Complete documentation for all API endpoints in the Konditionstest Training Plat
 | POST | `/api/ai/advanced-intelligence/periodization` | Auto-adjust periodization |
 | POST | `/api/ai/advanced-intelligence/coach-style` | Extract coaching style |
 
+### Workout Optimization
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/ai/workout-optimization` | Real-time workout optimization based on readiness, ACWR, injuries |
+
 ---
 
 ## Athlete Portal
