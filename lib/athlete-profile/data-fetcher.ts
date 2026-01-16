@@ -79,6 +79,8 @@ interface SportProfileData {
   hyroxSettings: Record<string, unknown> | null
   skiingSettings: Record<string, unknown> | null
   generalFitnessSettings: Record<string, unknown> | null
+  equipment: Record<string, unknown> | null
+  preferredSessionLength: number | null
   runningExperience: string | null
   cyclingExperience: string | null
   swimmingExperience: string | null

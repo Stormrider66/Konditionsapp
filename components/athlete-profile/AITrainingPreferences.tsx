@@ -87,7 +87,11 @@ export function AITrainingPreferences({ data, clientId, isOpen, onClose, variant
 
   // Parse existing settings
   const existingSettings = sportProfile?.runningSettings as Record<string, unknown> || {}
-  const existingEquipment = (sportProfile?.equipment as string[]) || []
+  // Equipment is stored as a JSON object { equipmentId: true/false }, extract IDs that are true
+  const equipmentObj = sportProfile?.equipment as Record<string, boolean> | null
+  const existingEquipment = equipmentObj
+    ? Object.entries(equipmentObj).filter(([, v]) => v).map(([k]) => k)
+    : []
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)

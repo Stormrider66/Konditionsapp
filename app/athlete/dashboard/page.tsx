@@ -48,6 +48,7 @@ import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { RacePredictionWidget } from '@/components/athlete/RacePredictionWidget'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 import { WODHistorySummary } from '@/components/athlete/wod'
+import { LogWorkoutButton } from '@/components/athlete/adhoc'
 import { MorningBriefingCard } from '@/components/athlete/MorningBriefingCard'
 import { PreWorkoutNudgeCard } from '@/components/athlete/PreWorkoutNudgeCard'
 import { PatternAlertCard } from '@/components/athlete/PatternAlertCard'
@@ -525,11 +526,14 @@ export default async function AthleteDashboardPage() {
             <span className="text-orange-600 dark:text-orange-400 font-medium">{currentProgram ? currentProgram.name : 'No Active Program'}</span>
           </p>
         </div>
-        <Link href={heroWorkout ? `/athlete/workouts/${heroWorkout.id}/log` : '/athlete/programs'}>
-          <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 h-10 px-6 transition-all">
-            <Zap className="w-4 h-4 mr-2" /> {heroWorkout ? 'Start Session' : 'Find Workout'}
-          </Button>
-        </Link>
+        <div className="flex gap-3">
+          <LogWorkoutButton variant="button" className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border-0 h-10 px-4 transition-all" />
+          <Link href={heroWorkout ? `/athlete/workouts/${heroWorkout.id}/log` : '/athlete/programs'}>
+            <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 h-10 px-6 transition-all">
+              <Zap className="w-4 h-4 mr-2" /> {heroWorkout ? 'Start Session' : 'Find Workout'}
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Milestone Celebrations */}
@@ -650,6 +654,9 @@ export default async function AthleteDashboardPage() {
 
           {/* Weekly Zone Summary */}
           <WeeklyZoneSummary clientId={athleteAccount.clientId} variant="glass" />
+
+          {/* Log Ad-Hoc Workout */}
+          <LogWorkoutButton variant="card" />
 
           {/* Accountability Streak Widget */}
           <AccountabilityStreakWidget />

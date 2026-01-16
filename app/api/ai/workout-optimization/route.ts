@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
       prisma.workoutLog.findMany({
         where: {
           athlete: {
-            client: { id: clientId }
+            athleteAccount: { clientId }
           },
           completed: true,
           completedAt: { gte: subDays(now, 3) },
@@ -132,8 +132,11 @@ export async function GET(req: NextRequest) {
 
     // Calculate readiness data
     const readinessScore = latestMetrics?.readinessScore ?? null
-    const fatigueLevel = latestMetrics?.fatigue ?? 50
-    const acwr = latestLoad?.acuteChronicRatio ?? null
+    // Derive fatigue from energy level (inverse scale: energyLevel 1=exhausted->fatigue 90%, 10=energized->fatigue 10%)
+    const fatigueLevel = latestMetrics?.energyLevel
+      ? Math.round((10 - latestMetrics.energyLevel) * 10)
+      : 50
+    const acwr = latestLoad?.acwr ?? null
 
     // Determine readiness trend
     let trend: 'improving' | 'stable' | 'declining' | null = null
@@ -216,18 +219,19 @@ export async function GET(req: NextRequest) {
     }
 
     // Check recent workout density
+    const highIntensityValues = ['THRESHOLD', 'INTERVAL', 'MAX']
     const recentHighIntensity = recentWorkouts.filter(
-      w => w.workout?.intensity && ['HIGH', 'VERY_HIGH'].includes(w.workout.intensity)
+      w => w.workout?.intensity && highIntensityValues.includes(w.workout.intensity)
     ).length
 
-    if (recentHighIntensity >= 2 && (workout?.intensity === 'HIGH' || workout?.intensity === 'VERY_HIGH')) {
+    if (recentHighIntensity >= 2 && workout?.intensity && highIntensityValues.includes(workout.intensity)) {
       suggestions.push({
         type: 'reduce_intensity',
         urgency: 'recommended',
         title: 'Flera hårda pass i rad',
         description: 'Du har redan kört intensiva pass de senaste dagarna. Överväg att sänka intensiteten.',
         originalValue: workout.intensity,
-        suggestedValue: 'MEDIUM',
+        suggestedValue: 'MODERATE',
         confidence: 0.7,
         reason: `${recentHighIntensity} högintensiva pass senaste 3 dagarna`,
       })

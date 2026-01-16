@@ -47,7 +47,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsP
     sportProfile?.targetDate ? format(new Date(sportProfile.targetDate), 'yyyy-MM-dd') : ''
   )
   const [metricType, setMetricType] = useState<'TIME' | 'DISTANCE' | 'WEIGHT' | 'NONE'>(
-    sportProfile?.targetMetric?.type || 'NONE'
+    (sportProfile?.targetMetric?.type as 'TIME' | 'DISTANCE' | 'WEIGHT' | 'NONE') || 'NONE'
   )
   const [metricValue, setMetricValue] = useState(sportProfile?.targetMetric?.value?.toString() || '')
   const [metricUnit, setMetricUnit] = useState(sportProfile?.targetMetric?.unit || '')
@@ -103,7 +103,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsP
     setTargetDate(
       sportProfile?.targetDate ? format(new Date(sportProfile.targetDate), 'yyyy-MM-dd') : ''
     )
-    setMetricType(sportProfile?.targetMetric?.type || 'NONE')
+    setMetricType((sportProfile?.targetMetric?.type as 'TIME' | 'DISTANCE' | 'WEIGHT' | 'NONE') || 'NONE')
     setMetricValue(sportProfile?.targetMetric?.value?.toString() || '')
     setMetricUnit(sportProfile?.targetMetric?.unit || '')
     setError(null)

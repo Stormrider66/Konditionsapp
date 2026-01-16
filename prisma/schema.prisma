@@ -621,6 +621,9 @@ model Client {
   // Proactive AI System relations
   aiBriefings         AIBriefing[]               @relation("ClientBriefings")
   aiNotifications     AINotification[]           @relation("ClientAINotifications")
+
+  // Ad-hoc Workout Logging relations
+  adHocWorkouts       AdHocWorkout[]             @relation("ClientAdHocWorkouts")
   aiNotificationPrefs AINotificationPreferences? @relation("ClientAINotificationPrefs")
 
   // Coach-AI Collaboration relations
@@ -1520,6 +1523,10 @@ model Workout {
   // Is this a custom workout added by athlete?
   isCustom Boolean @default(false)
 
+  // Ad-hoc workout flag (logged outside of program)
+  isAdHoc      Boolean       @default(false)
+  adHocSource  AdHocWorkout? @relation("AdHocSourceWorkout")
+
   // Hero Card Fields (AI-generated or rule-based)
   heroTitle        String? // "Posterior Chain Focus"
   heroDescription  String?   @db.Text // "Focus on hinge movements. Primary lift: Deadlift"
@@ -1539,6 +1546,7 @@ model Workout {
   @@index([dayId, order])
   @@index([type])
   @@index([isCustom])
+  @@index([isAdHoc])
   @@index([status]) // Filter by workout status
 }
 
