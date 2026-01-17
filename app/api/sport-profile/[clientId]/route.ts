@@ -6,11 +6,50 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { SportType } from '@prisma/client'
 import { validateTargets } from '@/lib/training/intensity-targets'
+import { estimateFitnessLevel, type FitnessEstimationInput, type ExperienceLevel } from '@/lib/training/fitness-estimation'
 
 type RouteParams = {
   params: Promise<{
     clientId: string
   }>
+}
+
+// Helper to calculate fitness estimate from profile data
+function calculateFitnessEstimate(data: {
+  biometrics?: { restingHR?: number | null; maxHR?: number | null; watchVO2maxEstimate?: number | null } | null
+  recentRaceTime?: { distance: string; timeMinutes: number } | null
+  runningExperience?: string | null
+  cyclingExperience?: string | null
+}) {
+  const input: FitnessEstimationInput = {}
+
+  // Add biometrics if available
+  if (data.biometrics) {
+    if (data.biometrics.restingHR) input.restingHR = data.biometrics.restingHR
+    if (data.biometrics.maxHR) input.maxHR = data.biometrics.maxHR
+    if (data.biometrics.watchVO2maxEstimate) input.watchVO2maxEstimate = data.biometrics.watchVO2maxEstimate
+  }
+
+  // Add race time if available
+  if (data.recentRaceTime?.distance && data.recentRaceTime?.timeMinutes) {
+    input.recentRaceTime = {
+      distance: data.recentRaceTime.distance as FitnessEstimationInput['recentRaceTime'] extends { distance: infer D } ? D : never,
+      timeMinutes: data.recentRaceTime.timeMinutes,
+    }
+  }
+
+  // Add experience level (prefer running, then cycling)
+  const experience = data.runningExperience || data.cyclingExperience
+  if (experience && ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE'].includes(experience)) {
+    input.experienceLevel = experience as ExperienceLevel
+  }
+
+  // Only calculate if we have some data
+  if (Object.keys(input).length > 0) {
+    return estimateFitnessLevel(input)
+  }
+
+  return null
 }
 
 // Biometrics schema for fitness estimation
@@ -224,9 +263,25 @@ export async function PUT(
         },
       })
 
+      // Calculate and store fitness estimate
+      const fitnessEstimate = calculateFitnessEstimate({
+        biometrics: data.biometrics,
+        recentRaceTime: data.recentRaceTime,
+        runningExperience: data.runningExperience,
+        cyclingExperience: data.cyclingExperience,
+      })
+
+      if (fitnessEstimate) {
+        await prisma.sportProfile.update({
+          where: { clientId },
+          data: { fitnessEstimate },
+        })
+        logger.info('Calculated fitness estimate for new profile', { clientId, level: fitnessEstimate.level })
+      }
+
       return NextResponse.json({
         success: true,
-        data: sportProfile,
+        data: { ...sportProfile, fitnessEstimate },
         message: 'Sport profile created successfully',
       })
     }
@@ -264,9 +319,47 @@ export async function PUT(
       },
     })
 
+    // Recalculate fitness estimate if relevant data was updated
+    const shouldRecalculate =
+      data.biometrics !== undefined ||
+      data.recentRaceTime !== undefined ||
+      data.runningExperience !== undefined ||
+      data.cyclingExperience !== undefined
+
+    let fitnessEstimate = null
+    if (shouldRecalculate) {
+      // Get the latest profile data for calculation
+      const updatedProfile = await prisma.sportProfile.findUnique({
+        where: { clientId },
+        select: {
+          biometrics: true,
+          recentRaceTime: true,
+          runningExperience: true,
+          cyclingExperience: true,
+        },
+      })
+
+      if (updatedProfile) {
+        fitnessEstimate = calculateFitnessEstimate({
+          biometrics: updatedProfile.biometrics as { restingHR?: number | null; maxHR?: number | null; watchVO2maxEstimate?: number | null } | null,
+          recentRaceTime: updatedProfile.recentRaceTime as { distance: string; timeMinutes: number } | null,
+          runningExperience: updatedProfile.runningExperience,
+          cyclingExperience: updatedProfile.cyclingExperience,
+        })
+
+        if (fitnessEstimate) {
+          await prisma.sportProfile.update({
+            where: { clientId },
+            data: { fitnessEstimate },
+          })
+          logger.info('Recalculated fitness estimate', { clientId, level: fitnessEstimate.level })
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data: sportProfile,
+      data: fitnessEstimate ? { ...sportProfile, fitnessEstimate } : sportProfile,
       message: 'Sport profile updated successfully',
     })
   } catch (error) {

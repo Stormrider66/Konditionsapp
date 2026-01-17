@@ -3045,6 +3045,9 @@ model SportProfile {
   // Recent race time for VDOT calculation
   recentRaceTime Json? // { distance: '5K' | '10K' | etc., timeMinutes: number }
 
+  // Calculated fitness estimate (stored for quick access)
+  fitnessEstimate Json? // { level, estimatedVO2max, confidence, source, lt1PercentHRmax, lt2PercentHRmax }
+
   // Experience levels per sport
   runningExperience           String? // "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "ELITE"
   cyclingExperience           String?
