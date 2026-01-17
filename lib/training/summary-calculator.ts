@@ -18,7 +18,7 @@ interface DailyTrainingData {
   calories?: number
   workoutType?: string
   intensity?: string
-  source: 'strava' | 'garmin' | 'manual' | 'program'
+  source: 'strava' | 'garmin' | 'manual' | 'program' | 'adhoc'
 }
 
 interface ReadinessData {
@@ -66,13 +66,25 @@ function getISOWeekNumber(date: Date): number {
   return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
 }
 
-// Classify intensity based on workout type and TSS
+// Classify intensity based on workout intensity level, type, and TSS
 function classifyIntensity(
   workoutType?: string,
   tss?: number,
-  duration?: number
+  duration?: number,
+  intensity?: string
 ): 'easy' | 'moderate' | 'hard' {
-  // If we have workout type classification
+  // First check the actual intensity field (e.g., 'INTERVAL', 'THRESHOLD', 'EASY')
+  if (intensity) {
+    const upperIntensity = intensity.toUpperCase()
+    const easyIntensities = ['EASY', 'RECOVERY']
+    const hardIntensities = ['INTERVAL', 'THRESHOLD', 'MAX', 'VO2MAX', 'RACE_PACE']
+
+    if (easyIntensities.includes(upperIntensity)) return 'easy'
+    if (hardIntensities.includes(upperIntensity)) return 'hard'
+    if (upperIntensity === 'MODERATE') return 'moderate'
+  }
+
+  // If we have workout type classification (e.g., 'LONG' run)
   if (workoutType) {
     const easyTypes = ['EASY', 'RECOVERY', 'LONG', 'BASE']
     const hardTypes = ['INTERVALS', 'THRESHOLD', 'TEMPO', 'RACE', 'VO2MAX']
@@ -117,6 +129,7 @@ async function fetchWeeklyTrainingData(
     strengthSets,
     stravaZoneDistributions,
     garminZoneDistributions,
+    adHocWorkouts,
   ] = await Promise.all([
     // Daily training loads (already calculated TSS)
     prisma.trainingLoad.findMany({
@@ -213,6 +226,15 @@ async function fetchWeeklyTrainingData(
         },
       },
     }),
+
+    // Confirmed ad-hoc workouts
+    prisma.adHocWorkout.findMany({
+      where: {
+        athleteId: clientId,
+        status: 'CONFIRMED',
+        workoutDate: { gte: weekStart, lte: weekEnd },
+      },
+    }),
   ])
 
   // Build unified activity list
@@ -260,11 +282,42 @@ async function fetchWeeklyTrainingData(
     })
   }
 
+  // Add confirmed ad-hoc workouts
+  // Build a map of trainingLoadId -> TSS for quick lookup
+  const trainingLoadTssMap = new Map<string, number>()
+  for (const load of trainingLoads) {
+    trainingLoadTssMap.set(load.id, load.dailyLoad)
+  }
+
+  for (const adhoc of adHocWorkouts) {
+    // Extract data from parsedStructure
+    const parsed = adhoc.parsedStructure as {
+      duration?: number
+      distance?: number
+      intensity?: string
+      type?: string
+    } | null
+
+    // Get TSS from linked TrainingLoad
+    const tss = adhoc.trainingLoadId ? trainingLoadTssMap.get(adhoc.trainingLoadId) ?? 0 : 0
+
+    activities.push({
+      date: new Date(adhoc.workoutDate),
+      tss,
+      distance: parsed?.distance ? parsed.distance / 1000 : 0, // Convert m to km
+      duration: parsed?.duration ?? 0,
+      calories: undefined,
+      workoutType: adhoc.parsedType ?? parsed?.type ?? undefined,
+      intensity: parsed?.intensity ?? undefined,
+      source: 'adhoc',
+    })
+  }
+
   // Deduplicate activities - map to NormalizedActivity format
-  // Note: 'program' source is mapped to 'manual' for deduplication since program workouts are manual entries
+  // Note: 'program' and 'adhoc' sources are mapped to 'manual' for deduplication
   const normalizedForDedup = activities.map((a, i) => ({
     id: `${a.source}-${i}`,
-    source: (a.source === 'program' ? 'manual' : a.source) as 'strava' | 'garmin' | 'manual',
+    source: (a.source === 'program' || a.source === 'adhoc' ? 'manual' : a.source) as 'strava' | 'garmin' | 'manual',
     date: a.date,
     startTime: a.date,
     duration: a.duration * 60, // back to seconds for dedup
@@ -394,13 +447,14 @@ export async function calculateWeeklySummary(
     if (activity.calories) totalCalories += activity.calories
 
     // Intensity distribution
-    const intensity = classifyIntensity(
+    const intensityLevel = classifyIntensity(
       activity.workoutType,
       activity.tss,
-      activity.duration
+      activity.duration,
+      activity.intensity
     )
-    if (intensity === 'easy') easyMinutes += activity.duration
-    else if (intensity === 'moderate') moderateMinutes += activity.duration
+    if (intensityLevel === 'easy') easyMinutes += activity.duration
+    else if (intensityLevel === 'moderate') moderateMinutes += activity.duration
     else hardMinutes += activity.duration
 
     // Type breakdowns

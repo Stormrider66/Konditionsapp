@@ -32,6 +32,7 @@ import {
   ArrowLeft,
   Filter,
   Trophy,
+  Plus,
 } from 'lucide-react'
 import { WorkoutHistoryCharts } from '@/components/athlete/WorkoutHistoryCharts'
 import { PersonalRecords } from '@/components/athlete/PersonalRecords'
@@ -107,26 +108,28 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
     }
   }
 
-  // Fetch workout logs
-  const logs = await prisma.workoutLog.findMany({
-    where: whereClause,
-    include: {
-      workout: {
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          intensity: true,
-          distance: true,
-          duration: true,
-          day: {
-            select: {
-              week: {
-                select: {
-                  program: {
-                    select: {
-                      id: true,
-                      name: true,
+  // Fetch workout logs and ad-hoc workouts in parallel
+  const [logs, adHocWorkouts] = await Promise.all([
+    prisma.workoutLog.findMany({
+      where: whereClause,
+      include: {
+        workout: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            intensity: true,
+            distance: true,
+            duration: true,
+            day: {
+              select: {
+                week: {
+                  select: {
+                    program: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
                     },
                   },
                 },
@@ -135,28 +138,103 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
           },
         },
       },
-    },
-    orderBy: {
-      completedAt: 'desc',
-    },
+      orderBy: {
+        completedAt: 'desc',
+      },
+    }),
+    // Fetch confirmed ad-hoc workouts
+    prisma.adHocWorkout.findMany({
+      where: {
+        athleteId: athleteAccount.clientId,
+        status: 'CONFIRMED',
+        workoutDate: {
+          gte: startDate,
+          lte: now,
+        },
+      },
+      orderBy: {
+        workoutDate: 'desc',
+      },
+    }),
+  ])
+
+  // Parse ad-hoc workout data
+  const adHocWithParsedData = adHocWorkouts.map((adHoc) => {
+    const parsed = adHoc.parsedStructure as any
+    return {
+      id: adHoc.id,
+      workoutDate: adHoc.workoutDate,
+      name: parsed?.name || adHoc.workoutName || 'Ad-hoc pass',
+      type: parsed?.type || 'OTHER',
+      sport: parsed?.sport,
+      distance: parsed?.distance,
+      duration: parsed?.duration,
+      perceivedEffort: parsed?.perceivedEffort,
+      isAdHoc: true,
+      inputType: adHoc.inputType,
+    }
   })
 
-  // Calculate stats
-  const totalWorkouts = logs.length
-  const totalDistance = logs.reduce((sum, log) => sum + (log.distance || 0), 0)
-  const totalDuration = logs.reduce((sum, log) => sum + (log.duration || 0), 0)
-  const avgRPE = logs.filter(log => log.perceivedEffort).length > 0
-    ? (
-      logs
-        .filter(log => log.perceivedEffort)
-        .reduce((sum, log) => sum + (log.perceivedEffort || 0), 0) /
-      logs.filter(log => log.perceivedEffort).length
-    ).toFixed(1)
+  // Calculate stats (including ad-hoc workouts)
+  const totalWorkouts = logs.length + adHocWorkouts.length
+  const totalDistance = logs.reduce((sum, log) => sum + (log.distance || 0), 0) +
+    adHocWithParsedData.reduce((sum, w) => sum + (w.distance || 0), 0)
+  const totalDuration = logs.reduce((sum, log) => sum + (log.duration || 0), 0) +
+    adHocWithParsedData.reduce((sum, w) => sum + (w.duration || 0), 0)
+
+  const allEfforts = [
+    ...logs.filter(log => log.perceivedEffort).map(log => log.perceivedEffort!),
+    ...adHocWithParsedData.filter(w => w.perceivedEffort).map(w => w.perceivedEffort!),
+  ]
+  const avgRPE = allEfforts.length > 0
+    ? (allEfforts.reduce((sum, e) => sum + e, 0) / allEfforts.length).toFixed(1)
     : '-'
 
   const avgPaceCalc = logs.filter(log => log.avgPace).length > 0
     ? logs.filter(log => log.avgPace)[0].avgPace
     : null
+
+  // Create merged and sorted history list
+  interface HistoryItem {
+    id: string
+    date: Date
+    name: string
+    type: string
+    programName?: string
+    distance?: number | null
+    duration?: number | null
+    perceivedEffort?: number | null
+    isAdHoc: boolean
+    inputType?: string
+    workoutId?: string
+  }
+
+  const historyItems: HistoryItem[] = [
+    ...logs.map((log) => ({
+      id: log.id,
+      date: log.completedAt!,
+      name: log.workout.name,
+      type: log.workout.type,
+      programName: log.workout.day.week.program.name,
+      distance: log.distance,
+      duration: log.duration,
+      perceivedEffort: log.perceivedEffort,
+      isAdHoc: false,
+      workoutId: log.workout.id,
+    })),
+    ...adHocWithParsedData.map((w) => ({
+      id: w.id,
+      date: w.workoutDate,
+      name: w.name,
+      type: w.type === 'CARDIO' && w.sport ? w.sport : w.type,
+      programName: undefined,
+      distance: w.distance,
+      duration: w.duration,
+      perceivedEffort: w.perceivedEffort,
+      isAdHoc: true,
+      inputType: w.inputType,
+    })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-7xl mx-auto">
@@ -346,7 +424,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
-          {logs.length === 0 ? (
+          {historyItems.length === 0 ? (
             <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5">
               <Calendar className="h-16 w-16 mx-auto mb-6 opacity-10 text-white" />
               <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Inga pass hittades för vald period</p>
@@ -366,50 +444,62 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log) => (
-                    <TableRow key={log.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                  {historyItems.map((item) => (
+                    <TableRow key={item.id} className="border-white/5 hover:bg-white/5 transition-colors group">
                       <TableCell className="py-5 font-black text-xs text-slate-400">
-                        {log.completedAt ? format(new Date(log.completedAt), 'd MMM yyyy', { locale: sv }) : '-'}
+                        {format(new Date(item.date), 'd MMM yyyy', { locale: sv })}
                       </TableCell>
                       <TableCell className="py-5">
                         <div className="space-y-0.5">
-                          <div className="font-black text-white uppercase italic tracking-tight group-hover:text-blue-400 transition-colors">
-                            {log.workout.name}
+                          <div className="font-black text-white uppercase italic tracking-tight group-hover:text-blue-400 transition-colors flex items-center gap-2">
+                            {item.name}
+                            {item.isAdHoc && (
+                              <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <Plus className="h-2.5 w-2.5" />
+                                Ad-hoc
+                              </span>
+                            )}
                           </div>
                           <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                            {log.workout.day.week.program.name}
+                            {item.programName || (item.isAdHoc ? 'Eget pass' : '-')}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="py-5">
                         <Badge className="bg-white/5 border-0 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg h-6">
-                          {formatWorkoutType(log.workout.type)}
+                          {formatWorkoutType(item.type)}
                         </Badge>
                       </TableCell>
                       <TableCell className="py-5 font-black text-white text-xs">
-                        {log.distance ? `${log.distance.toFixed(1)} km` : '-'}
+                        {item.distance ? `${item.distance.toFixed(1)} km` : '-'}
                       </TableCell>
                       <TableCell className="py-5 font-black text-white text-xs">
-                        {log.duration ? `${log.duration} min` : '-'}
+                        {item.duration ? `${item.duration} min` : '-'}
                       </TableCell>
                       <TableCell className="py-5 text-center">
-                        {log.perceivedEffort ? (
+                        {item.perceivedEffort ? (
                           <div className={cn(
                             "inline-flex items-center justify-center w-8 h-8 rounded-lg font-black text-xs",
-                            getRPEBadgeClass(log.perceivedEffort)
+                            getRPEBadgeClass(item.perceivedEffort)
                           )}>
-                            {log.perceivedEffort}
+                            {item.perceivedEffort}
                           </div>
                         ) : (
                           <span className="text-slate-700 font-black">-</span>
                         )}
                       </TableCell>
                       <TableCell className="py-5 text-right">
-                        <Link href={`/athlete/workouts/${log.workout.id}`}>
-                          <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
-                            Visa
+                        {item.isAdHoc ? (
+                          <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 opacity-50 cursor-default" disabled>
+                            -
                           </Button>
-                        </Link>
+                        ) : (
+                          <Link href={`/athlete/workouts/${item.workoutId}`}>
+                            <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
+                              Visa
+                            </Button>
+                          </Link>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -434,6 +524,13 @@ function formatWorkoutType(type: string): string {
     RECOVERY: 'Återhämtning',
     SKIING: 'Skidåkning',
     OTHER: 'Annat',
+    // Ad-hoc workout types
+    CARDIO: 'Kondition',
+    HYBRID: 'Blandat',
+    MIXED: 'Mixat',
+    SWIMMING: 'Simning',
+    ROWING: 'Rodd',
+    WALKING: 'Promenad',
   }
   return types[type] || type
 }

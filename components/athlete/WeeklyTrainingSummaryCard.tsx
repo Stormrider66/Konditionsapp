@@ -6,9 +6,9 @@
  * Displays the current week's training overview:
  * - Volume metrics (TSS, distance, duration)
  * - Workout count and compliance
- * - Intensity distribution pie chart
+ * - Intensity distribution pie chart with sport-specific targets
  * - ACWR status badge
- * - Polarization ratio indicator
+ * - Methodology indicator (80/20, HYROX Hybrid, etc.)
  */
 
 import { useState, useEffect } from 'react';
@@ -30,6 +30,15 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { SportType, IntensityTargets, VolumeCategory } from '@/types';
+import {
+  getDefaultTargetsForSport,
+  isWithinTarget,
+  getTargetStatus,
+  getRecommendedTargets,
+  getVolumeCategory,
+  VOLUME_ADJUSTED_TARGETS,
+} from '@/lib/training/intensity-targets';
 
 interface WeeklySummary {
   id: string;
@@ -60,6 +69,10 @@ interface WeeklySummary {
 interface WeeklyTrainingSummaryCardProps {
   clientId: string;
   variant?: 'default' | 'compact' | 'glass';
+  /** Active sport for sport-specific intensity targets */
+  activeSport?: SportType;
+  /** Custom intensity targets (overrides sport defaults) */
+  intensityTargets?: IntensityTargets;
 }
 
 const ACWR_ZONE_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -114,6 +127,20 @@ function getWeekDateRange(weekStart: string, weekEnd: string): string {
   return `${startDay}-${endDay} ${month}`;
 }
 
+/**
+ * Get Swedish label for volume category
+ */
+function getVolumeCategoryLabel(category: VolumeCategory): string {
+  const labels: Record<VolumeCategory, string> = {
+    VERY_LOW: '<3h/vecka',
+    LOW: '3-5h/vecka',
+    MODERATE: '5-9h/vecka',
+    HIGH: '9-15h/vecka',
+    VERY_HIGH: '>15h/vecka',
+  };
+  return labels[category];
+}
+
 function IntensityPieChart({ easy, moderate, hard }: { easy: number; moderate: number; hard: number }) {
   const total = easy + moderate + hard;
   if (total === 0) return null;
@@ -154,16 +181,24 @@ function IntensityPieChart({ easy, moderate, hard }: { easy: number; moderate: n
       </ResponsiveContainer>
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-xs font-medium text-muted-foreground">
-          {Math.round((easy / total) * 100)}%
+          {formatDuration(total)}
         </span>
       </div>
     </div>
   );
 }
 
-export function WeeklyTrainingSummaryCard({ clientId, variant = 'default' }: WeeklyTrainingSummaryCardProps) {
+export function WeeklyTrainingSummaryCard({
+  clientId,
+  variant = 'default',
+  activeSport = 'RUNNING',
+  intensityTargets,
+}: WeeklyTrainingSummaryCardProps) {
   const [summary, setSummary] = useState<WeeklySummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Get effective targets: custom targets override sport defaults
+  const targets = intensityTargets || getDefaultTargetsForSport(activeSport);
 
   useEffect(() => {
     fetchSummary();
@@ -230,7 +265,35 @@ export function WeeklyTrainingSummaryCard({ clientId, variant = 'default' }: Wee
 
   const acwrConfig = summary.acwrZone ? ACWR_ZONE_CONFIG[summary.acwrZone] : null;
   const totalIntensityMinutes = summary.easyMinutes + summary.moderateMinutes + summary.hardMinutes;
-  const isPolarized = summary.polarizationRatio !== null && summary.polarizationRatio >= 75;
+
+  // Calculate weekly hours for volume-adjusted recommendations
+  const weeklyHours = summary.totalDuration / 60;
+  const volumeCategory = getVolumeCategory(weeklyHours);
+
+  // Get volume-adjusted recommendation (estimate 4 sessions if not available)
+  const estimatedSessions = summary.workoutCount || 4;
+  const volumeRecommendation = getRecommendedTargets(
+    activeSport,
+    intensityTargets,
+    weeklyHours,
+    estimatedSessions
+  );
+
+  // Calculate actual percentages
+  const actualEasyPercent = totalIntensityMinutes > 0 ? (summary.easyMinutes / totalIntensityMinutes) * 100 : 0;
+  const actualModeratePercent = totalIntensityMinutes > 0 ? (summary.moderateMinutes / totalIntensityMinutes) * 100 : 0;
+  const actualHardPercent = totalIntensityMinutes > 0 ? (summary.hardMinutes / totalIntensityMinutes) * 100 : 0;
+
+  // Check if distribution matches targets (within 10% tolerance for each zone)
+  const easyOnTarget = isWithinTarget(actualEasyPercent, targets.easyPercent, 10);
+  const moderateOnTarget = isWithinTarget(actualModeratePercent, targets.moderatePercent, 10);
+  const hardOnTarget = isWithinTarget(actualHardPercent, targets.hardPercent, 10);
+  const isDistributionOnTarget = easyOnTarget && moderateOnTarget && hardOnTarget;
+
+  // Get status for each zone
+  const easyStatus = getTargetStatus(actualEasyPercent, targets.easyPercent);
+  const moderateStatus = getTargetStatus(actualModeratePercent, targets.moderatePercent);
+  const hardStatus = getTargetStatus(actualHardPercent, targets.hardPercent);
 
   if (variant === 'compact') {
     return (
@@ -328,45 +391,76 @@ export function WeeklyTrainingSummaryCard({ clientId, variant = 'default' }: Wee
           )}
         </div>
 
-        {/* Intensity distribution */}
+        {/* Intensity distribution with targets */}
         {totalIntensityMinutes > 0 && (
-          <div className="flex items-center justify-between p-3 rounded-lg border">
-            <div className="flex items-center gap-3">
-              <IntensityPieChart
-                easy={summary.easyMinutes}
-                moderate={summary.moderateMinutes}
-                hard={summary.hardMinutes}
-              />
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <span className="text-xs">Lagt: {formatDuration(summary.easyMinutes)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                  <span className="text-xs">Medel: {formatDuration(summary.moderateMinutes)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-red-500" />
-                  <span className="text-xs">Hogt: {formatDuration(summary.hardMinutes)}</span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center gap-3">
+                <IntensityPieChart
+                  easy={summary.easyMinutes}
+                  moderate={summary.moderateMinutes}
+                  hard={summary.hardMinutes}
+                />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${easyStatus === 'on-target' ? 'bg-green-500' : easyStatus === 'close' ? 'bg-yellow-500' : 'bg-green-300'}`} />
+                    <span className="text-xs">
+                      Lågt: {formatDuration(summary.easyMinutes)}
+                      <span className="text-muted-foreground ml-1">
+                        ({Math.round(actualEasyPercent)}% / {targets.easyPercent}%)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${moderateStatus === 'on-target' ? 'bg-yellow-500' : moderateStatus === 'close' ? 'bg-yellow-400' : 'bg-yellow-300'}`} />
+                    <span className="text-xs">
+                      Medel: {formatDuration(summary.moderateMinutes)}
+                      <span className="text-muted-foreground ml-1">
+                        ({Math.round(actualModeratePercent)}% / {targets.moderatePercent}%)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${hardStatus === 'on-target' ? 'bg-red-500' : hardStatus === 'close' ? 'bg-red-400' : 'bg-red-300'}`} />
+                    <span className="text-xs">
+                      Högt: {formatDuration(summary.hardMinutes)}
+                      <span className="text-muted-foreground ml-1">
+                        ({Math.round(actualHardPercent)}% / {targets.hardPercent}%)
+                      </span>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="text-right">
-              {isPolarized ? (
-                <Badge className="bg-green-100 text-green-800">
+              <div className="text-right flex flex-col gap-1">
+                <Badge className={isDistributionOnTarget ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}>
                   <Zap className="h-3 w-3 mr-1" />
-                  80/20
+                  {targets.label || `${targets.easyPercent}/${targets.moderatePercent}/${targets.hardPercent}`}
                 </Badge>
-              ) : (
-                summary.polarizationRatio !== null && (
-                  <div>
-                    <p className="font-medium">{Math.round(summary.polarizationRatio)}%</p>
-                    <p className="text-xs text-muted-foreground">Lagt intensitet</p>
-                  </div>
-                )
-              )}
+                <span className="text-[10px] text-muted-foreground">
+                  {getVolumeCategoryLabel(volumeCategory)}
+                </span>
+                {isDistributionOnTarget && (
+                  <span className="text-[10px] text-green-600 flex items-center gap-1 justify-end">
+                    <CheckCircle className="h-3 w-3" />
+                    På mål
+                  </span>
+                )}
+              </div>
             </div>
+
+            {/* Volume-adjusted recommendation advice */}
+            {volumeRecommendation.advice && (
+              <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-amber-800 dark:text-amber-200">
+                  <p className="font-medium mb-1">Volymbaserad rekommendation</p>
+                  <p>{volumeRecommendation.advice}</p>
+                  <p className="mt-1 text-amber-600 dark:text-amber-400">
+                    Rekommenderat: {volumeRecommendation.volumeRecommendation.label} ({volumeRecommendation.volumeRecommendation.easyPercent}/{volumeRecommendation.volumeRecommendation.moderatePercent}/{volumeRecommendation.volumeRecommendation.hardPercent})
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

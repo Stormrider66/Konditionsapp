@@ -45,7 +45,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
       if (data.data.status === 'CONFIRMED') {
         // Already confirmed, redirect to athlete dashboard
         toast.info('Detta pass är redan bekräftat')
-        router.push('/athlete')
+        router.push('/athlete/dashboard')
         return
       }
 
@@ -87,7 +87,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
       }
 
       toast.success('Passet har sparats!')
-      router.push('/athlete')
+      router.push('/athlete/dashboard')
     } catch (error) {
       console.error('Error confirming workout:', error)
       toast.error(error instanceof Error ? error.message : 'Det gick inte att spara passet')

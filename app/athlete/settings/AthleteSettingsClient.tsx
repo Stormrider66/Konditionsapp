@@ -4,16 +4,21 @@
  * Athlete Settings Client Component
  *
  * Client-side component for athlete settings page.
- * Contains ThemeSelector and other settings.
+ * Contains ThemeSelector, IntensityTargetsEditor, and other settings.
  */
 
-import { Settings, ChevronLeft, Bot, Bell, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
+import { Settings, ChevronLeft, Bot, Bell, ChevronRight, Target } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
 import { IntegrationsSettings } from '@/components/athlete/settings/IntegrationsSettings'
 import { AIModelSettings } from '@/components/athlete/settings/AIModelSettings'
+import { IntensityTargetsEditor } from '@/components/athlete/settings/IntensityTargetsEditor'
 import type { SportProfile } from '@prisma/client'
+import { SportType, IntensityTargets } from '@/types'
+import { getTargetsFromSettings } from '@/lib/training/intensity-targets'
+import { useToast } from '@/hooks/use-toast'
 
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
@@ -29,6 +34,71 @@ export function AthleteSettingsClient({
   clientName,
   sportProfile,
 }: AthleteSettingsClientProps) {
+  const { toast } = useToast()
+  const primarySport = (sportProfile?.primarySport || 'RUNNING') as SportType
+
+  // Get current intensity targets from sport settings
+  const getSportSettings = () => {
+    if (!sportProfile) return null
+
+    const settingsMap: Record<string, unknown> = {
+      RUNNING: sportProfile.runningSettings,
+      CYCLING: sportProfile.cyclingSettings,
+      SKIING: sportProfile.skiingSettings,
+      SWIMMING: sportProfile.swimmingSettings,
+      TRIATHLON: sportProfile.triathlonSettings,
+      HYROX: sportProfile.hyroxSettings,
+      GENERAL_FITNESS: sportProfile.generalFitnessSettings,
+      FUNCTIONAL_FITNESS: sportProfile.functionalFitnessSettings,
+      TEAM_FOOTBALL: sportProfile.footballSettings,
+      TEAM_ICE_HOCKEY: sportProfile.hockeySettings,
+      TEAM_HANDBALL: sportProfile.handballSettings,
+      TEAM_FLOORBALL: sportProfile.floorballSettings,
+      TEAM_BASKETBALL: sportProfile.basketballSettings,
+      TEAM_VOLLEYBALL: sportProfile.volleyballSettings,
+      TENNIS: sportProfile.tennisSettings,
+      PADEL: sportProfile.padelSettings,
+    }
+
+    return settingsMap[primarySport] as Record<string, unknown> | undefined
+  }
+
+  const currentSportSettings = getSportSettings()
+  const currentTargets = currentSportSettings
+    ? getTargetsFromSettings(currentSportSettings, primarySport)
+    : undefined
+
+  // Save intensity targets to sport profile
+  async function handleSaveIntensityTargets(targets: IntensityTargets): Promise<void> {
+    try {
+      const response = await fetch(`/api/sport-profile/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sport: primarySport,
+          intensityTargets: targets,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save intensity targets')
+      }
+
+      toast({
+        title: 'Sparad!',
+        description: 'Dina intensitetsmål har uppdaterats.',
+      })
+    } catch (error) {
+      console.error('Error saving intensity targets:', error)
+      toast({
+        title: 'Fel',
+        description: 'Kunde inte spara intensitetsmålen. Försök igen.',
+        variant: 'destructive',
+      })
+      throw error
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#050505] text-slate-900 dark:text-slate-200 pb-20 selection:bg-orange-500/30 transition-colors">
       {/* Background elements */}
@@ -82,6 +152,21 @@ export function AthleteSettingsClient({
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Utseende</h3>
           </div>
           <ThemeSelector variant="glass" />
+        </div>
+
+        {/* Intensity Targets Settings */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-2">
+            <div className="w-1.5 h-4 bg-green-500 rounded-full" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Träningsintensitet</h3>
+          </div>
+          <IntensityTargetsEditor
+            sport={primarySport}
+            currentTargets={currentTargets}
+            onSave={handleSaveIntensityTargets}
+            variant="glass"
+            clientId={clientId}
+          />
         </div>
 
         {/* AI Model Settings */}

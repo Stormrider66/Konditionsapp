@@ -77,4 +77,47 @@ export async function deleteExerciseImage(path: string): Promise<void> {
   }
 }
 
+/**
+ * Upload a file to Supabase Storage (generic upload)
+ * @param path - Full storage path including bucket (e.g., "adhoc-workout-images/clientId/file.jpg")
+ * @param data - File buffer to upload
+ * @param contentType - MIME type of the file
+ * @returns Object with success status and URL or error
+ */
+export async function uploadToSupabaseStorage(
+  path: string,
+  data: Buffer,
+  contentType: string
+): Promise<{ success: true; url: string } | { success: false; error: string }> {
+  try {
+    const admin = createAdminSupabaseClient()
+
+    // Parse bucket and file path from the full path
+    const pathParts = path.split('/')
+    const bucket = pathParts[0]
+    const filePath = pathParts.slice(1).join('/')
+
+    const { data: uploadData, error } = await admin.storage
+      .from(bucket)
+      .upload(filePath, data, {
+        contentType,
+        upsert: true,
+      })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    // Get public URL
+    const { data: urlData } = admin.storage.from(bucket).getPublicUrl(uploadData.path)
+
+    return { success: true, url: urlData.publicUrl }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Unknown error',
+    }
+  }
+}
+
 

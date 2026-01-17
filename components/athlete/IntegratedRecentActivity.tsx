@@ -23,7 +23,7 @@ import { sv } from 'date-fns/locale'
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai' | 'adhoc'
   name: string
   type: string
   date: string
@@ -58,6 +58,7 @@ const SOURCE_CONFIG = {
   garmin: { label: 'Garmin', color: 'bg-blue-100 text-blue-700', icon: '⌚' },
   concept2: { label: 'Concept2', color: 'bg-cyan-100 text-cyan-700', icon: '🚣' },
   ai: { label: 'AI-Pass', color: 'bg-purple-100 text-purple-700', icon: '✨' },
+  adhoc: { label: 'Manuell', color: 'bg-emerald-100 text-emerald-700', icon: '✏️' },
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -71,7 +72,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 
 export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'default' }: IntegratedRecentActivityProps) {
   const [activities, setActivities] = useState<UnifiedActivity[]>([])
-  const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0, concept2: 0, ai: 0 })
+  const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0, concept2: 0, ai: 0, adhoc: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -88,7 +89,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
 
         const data = await response.json()
         setActivities(data.activities || [])
-        setCounts(data.counts || { manual: 0, strava: 0, garmin: 0, concept2: 0, ai: 0 })
+        setCounts(data.counts || { manual: 0, strava: 0, garmin: 0, concept2: 0, ai: 0, adhoc: 0 })
       } catch (err) {
         console.error('Error fetching activities:', err)
         setError('Kunde inte ladda aktiviteter')
@@ -260,6 +261,7 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
               <Badge className={`text-xs px-1.5 py-0 ${
                 activity.source === 'strava' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400' :
                 activity.source === 'ai' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400' :
+                activity.source === 'adhoc' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' :
                 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
               }`}>
                 {sourceConfig.icon} {sourceConfig.label}

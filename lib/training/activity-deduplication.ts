@@ -17,7 +17,7 @@
  * - Manual: 1 (user input, least reliable for TSS)
  */
 
-export type ActivitySource = 'strava' | 'garmin' | 'concept2' | 'manual' | 'ai'
+export type ActivitySource = 'strava' | 'garmin' | 'concept2' | 'manual' | 'ai' | 'adhoc'
 
 export interface NormalizedActivity {
   id: string
@@ -63,6 +63,7 @@ const SOURCE_PRIORITY: Record<ActivitySource, number> = {
   garmin: 3, // Good quality, but often syncs same activity as Strava
   ai: 2, // AI-generated, less metadata
   manual: 1, // User input, least reliable
+  adhoc: 1, // Ad-hoc workout input, same as manual
 }
 
 const DEFAULT_OPTIONS: Required<DeduplicationOptions> = {

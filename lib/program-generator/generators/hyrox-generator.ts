@@ -442,22 +442,28 @@ export async function generateHyroxProgram(
             }
           }
 
-          return {
-            type: mapHyroxWorkoutType(w.type),
-            name: w.name,
-            description: w.description,
-            intensity: mapIntensity(w.intensity),
-            duration: scaledDuration,
-            // Add distance in km for weekly volume tracking
-            distance: scaledDistance ? scaledDistance / 1000 : undefined,
-            instructions: w.structure,
-            segments: w.type === 'station_practice' || w.type === 'hyrox_simulation' || w.type === 'mixed'
+          // Create segments first, then calculate totals from them
+            const segments = w.type === 'station_practice' || w.type === 'hyrox_simulation' || w.type === 'mixed'
               ? createStationSegments(w, params.hyroxDivision, params.hyroxGender, params.experienceLevel)
               : createRunningSegments(
                   { ...w, runningDistance: scaledDistance, duration: scaledDuration },
                   elitePaces,
                   params.hyroxDivision
-                ),
+                )
+
+            // Calculate actual totals from segments (including warmup, intervals, rest, cooldown)
+            const calculatedTotals = calculateTotalsFromSegments(segments, scaledDuration, scaledDistance)
+
+            return {
+            type: mapHyroxWorkoutType(w.type),
+            name: w.name,
+            description: w.description,
+            intensity: mapIntensity(w.intensity, w.structure),
+            duration: calculatedTotals.totalDuration,
+            // Add distance in km for weekly volume tracking
+            distance: calculatedTotals.totalDistance,
+            instructions: w.structure,
+            segments,
           }
         })
 
@@ -573,11 +579,23 @@ function mapHyroxWorkoutType(type: string): 'RUNNING' | 'STRENGTH' | 'HYROX' | '
 /**
  * Map intensity string to WorkoutIntensity
  */
-function mapIntensity(intensity: string): 'RECOVERY' | 'EASY' | 'MODERATE' | 'THRESHOLD' | 'INTERVAL' | 'MAX' {
+function mapIntensity(
+  intensity: string,
+  structure?: string
+): 'RECOVERY' | 'EASY' | 'MODERATE' | 'THRESHOLD' | 'INTERVAL' | 'MAX' {
+  // Check if this is an interval workout based on structure
+  const isIntervalStructure = structure && (
+    structure.includes('x') ||
+    structure.includes('×') ||
+    /\d+x\d+/.test(structure) ||
+    structure.toLowerCase().includes('intervall')
+  )
+
   const mapping: Record<string, 'RECOVERY' | 'EASY' | 'MODERATE' | 'THRESHOLD' | 'INTERVAL' | 'MAX'> = {
     easy: 'EASY',
     moderate: 'MODERATE',
-    hard: 'THRESHOLD',
+    // 'hard' maps to INTERVAL if it has interval structure (e.g., 6x1km), otherwise THRESHOLD
+    hard: isIntervalStructure ? 'INTERVAL' : 'THRESHOLD',
     race_pace: 'INTERVAL',
   }
   return mapping[intensity] || 'MODERATE'
@@ -653,14 +671,64 @@ function getHyroxFocus(goal: string, weekNum: number, totalWeeks: number): strin
 }
 
 /**
- * Parse pace string (MM:SS or M:SS) to seconds
- * Returns the pace in seconds, or the original string if not parseable
+ * Parse pace string (MM:SS or M:SS or MM:SS/km) to seconds
+ * Returns the pace in seconds per km
  */
 function parsePaceToSeconds(pace: string): number {
   if (!pace) return 0
-  const parts = pace.split(':').map(Number)
+  // Remove "/km" suffix if present
+  const cleanPace = pace.replace(/\/km$/i, '').trim()
+  const parts = cleanPace.split(':').map(Number)
   if (parts.some(isNaN) || parts.length !== 2) return 0
   return parts[0] * 60 + parts[1]
+}
+
+/**
+ * Calculate total duration and distance from workout segments
+ * Includes warmup, intervals, rest periods, and cooldown
+ * Falls back to template values if segments don't provide enough info
+ */
+function calculateTotalsFromSegments(
+  segments: CreateWorkoutSegmentDTO[],
+  fallbackDuration: number,
+  fallbackDistanceMeters: number | undefined
+): { totalDuration: number; totalDistance: number | undefined } {
+  if (!segments || segments.length === 0) {
+    return {
+      totalDuration: fallbackDuration,
+      totalDistance: fallbackDistanceMeters ? fallbackDistanceMeters / 1000 : undefined,
+    }
+  }
+
+  let totalDuration = 0
+  let totalDistance = 0
+  let hasDistanceData = false
+
+  for (const segment of segments) {
+    // Sum duration (in minutes)
+    if (segment.duration) {
+      totalDuration += segment.duration
+    } else if (segment.distance && segment.pace) {
+      // Calculate duration from distance and pace
+      // pace is in seconds/km, distance is in km
+      const paceSeconds = typeof segment.pace === 'string' ? parseInt(segment.pace, 10) : segment.pace
+      if (!isNaN(paceSeconds) && paceSeconds > 0) {
+        const durationMinutes = (segment.distance * paceSeconds) / 60
+        totalDuration += durationMinutes
+      }
+    }
+
+    // Sum distance (segments store in km)
+    if (segment.distance) {
+      totalDistance += segment.distance
+      hasDistanceData = true
+    }
+  }
+
+  return {
+    totalDuration: totalDuration > 0 ? Math.round(totalDuration) : fallbackDuration,
+    totalDistance: hasDistanceData ? Math.round(totalDistance * 10) / 10 : (fallbackDistanceMeters ? fallbackDistanceMeters / 1000 : undefined),
+  }
 }
 
 /**

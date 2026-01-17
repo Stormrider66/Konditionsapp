@@ -211,6 +211,56 @@ function getBadgeIcon(type: string) {
   }
 }
 
+// Calculate totals from segments (more accurate than stored values)
+function calculateTotalsFromSegments(
+  segments: DashboardWorkoutWithContext['segments'],
+  storedDuration?: number | null,
+  storedDistance?: number | null
+): { duration: number | null; distance: number | null } {
+  if (!segments || segments.length === 0) {
+    return { duration: storedDuration ?? null, distance: storedDistance ?? null }
+  }
+
+  let totalDuration = 0
+  let totalDistance = 0
+  let hasDistanceData = false
+  let hasDurationData = false
+
+  for (const segment of segments) {
+    // Sum duration (in minutes)
+    if (segment.duration) {
+      totalDuration += segment.duration
+      hasDurationData = true
+    } else if (segment.distance && segment.pace) {
+      // Calculate duration from distance and pace
+      // pace can be string like "393" (seconds/km) or "6:33"
+      let paceSeconds: number
+      if (typeof segment.pace === 'string' && segment.pace.includes(':')) {
+        const [min, sec] = segment.pace.split(':').map(Number)
+        paceSeconds = min * 60 + (sec || 0)
+      } else {
+        paceSeconds = typeof segment.pace === 'string' ? parseInt(segment.pace, 10) : segment.pace
+      }
+      if (!isNaN(paceSeconds) && paceSeconds > 0) {
+        const durationMinutes = (segment.distance * paceSeconds) / 60
+        totalDuration += durationMinutes
+        hasDurationData = true
+      }
+    }
+
+    // Sum distance (segments store in km)
+    if (segment.distance) {
+      totalDistance += segment.distance
+      hasDistanceData = true
+    }
+  }
+
+  return {
+    duration: hasDurationData ? Math.round(totalDuration) : (storedDuration ?? null),
+    distance: hasDistanceData ? Math.round(totalDistance * 10) / 10 : (storedDistance ?? null),
+  }
+}
+
 // Estimate volume from segments (sets × reps × weight)
 function estimateVolume(segments: DashboardWorkoutWithContext['segments']): number | null {
   if (!segments || segments.length === 0) return null
@@ -256,6 +306,12 @@ export function HeroWorkoutCard({ workout, athleteName, modification }: HeroWork
       workout.description
     )
   }, [workout])
+
+  // Calculate duration and distance from segments (more accurate than stored values)
+  const calculatedTotals = useMemo(() =>
+    calculateTotalsFromSegments(workout.segments, workout.duration, workout.distance),
+    [workout.segments, workout.duration, workout.distance]
+  )
 
   const categoryImage = getCategoryImage(focus.category)
   const volume = estimateVolume(workout.segments)
@@ -317,12 +373,12 @@ export function HeroWorkoutCard({ workout, athleteName, modification }: HeroWork
 
         {/* Metrics Row */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6 mt-6 md:mt-8">
-          {workout.duration && (
+          {calculatedTotals.duration && (
             <div>
               <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Längd</div>
               <div className="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 transition-colors">
                 <Timer className="w-4 h-4 md:w-5 md:h-5 text-orange-600 dark:text-orange-500" />
-                {workout.duration} min
+                {calculatedTotals.duration} min
               </div>
             </div>
           )}
@@ -337,12 +393,12 @@ export function HeroWorkoutCard({ workout, athleteName, modification }: HeroWork
             </div>
           )}
 
-          {workout.distance && !volume && (
+          {calculatedTotals.distance && !volume && (
             <div>
               <div className="text-slate-500 text-xs uppercase tracking-wider mb-1">Distans</div>
               <div className="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 transition-colors">
                 <Route className="w-4 h-4 md:w-5 md:h-5 text-orange-600 dark:text-orange-500" />
-                {workout.distance} km
+                {calculatedTotals.distance} km
               </div>
             </div>
           )}

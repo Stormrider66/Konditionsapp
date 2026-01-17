@@ -60,6 +60,7 @@ import { WeeklyTrainingSummaryCard } from '@/components/athlete/WeeklyTrainingSu
 import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
 import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary'
 import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
+import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 
 export default async function AthleteDashboardPage() {
   const t = await getTranslations('athlete')
@@ -96,6 +97,11 @@ export default async function AthleteDashboardPage() {
   const primarySport = activeSportCookie && availableSports.includes(activeSportCookie)
     ? activeSportCookie
     : sportProfile?.primarySport
+
+  // Get sport-specific intensity targets
+  const intensityTargets = sportProfile && primarySport
+    ? getTargetsForAthlete(sportProfile as Parameters<typeof getTargetsForAthlete>[0], primarySport)
+    : undefined
 
   // Helper function to render sport-specific dashboard
   const clientName = athleteAccount.client.name
@@ -166,8 +172,9 @@ export default async function AthleteDashboardPage() {
   const now = new Date()
   const todayStart = startOfDay(now)
   const todayEnd = endOfDay(now)
-  const upcomingStart = addDays(todayEnd, 1)
-  const upcomingEnd = addDays(todayEnd, 7)
+  // Fix: Use startOfDay for upcoming start to include full day
+  const upcomingStart = startOfDay(addDays(now, 1))
+  const upcomingEnd = endOfDay(addDays(now, 7))
 
   // Parallel data fetching for better performance
   const [
@@ -649,8 +656,13 @@ export default async function AthleteDashboardPage() {
 
         {/* Right Column (1/3) */}
         <div className="space-y-6">
-          {/* Weekly Training Summary */}
-          <WeeklyTrainingSummaryCard clientId={athleteAccount.clientId} variant="glass" />
+          {/* Weekly Training Summary with sport-specific intensity targets */}
+          <WeeklyTrainingSummaryCard
+            clientId={athleteAccount.clientId}
+            variant="glass"
+            activeSport={primarySport || 'RUNNING'}
+            intensityTargets={intensityTargets}
+          />
 
           {/* Weekly Zone Summary */}
           <WeeklyZoneSummary clientId={athleteAccount.clientId} variant="glass" />

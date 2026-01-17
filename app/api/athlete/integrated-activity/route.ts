@@ -31,7 +31,7 @@ import {
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai' | 'adhoc'
   name: string
   type: string
   date: Date
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - days)
 
     // Fetch all data sources in parallel
-    const [manualLogs, stravaActivities, garminActivities, concept2Results, aiWods] = await Promise.all([
+    const [manualLogs, stravaActivities, garminActivities, concept2Results, aiWods, adHocWorkouts] = await Promise.all([
       // Manual workout logs - filter by athleteId (the user ID of the athlete)
       athleteId
         ? prisma.workoutLog.findMany({
@@ -151,6 +151,17 @@ export async function GET(request: NextRequest) {
           completedAt: { gte: startDate },
         },
         orderBy: { completedAt: 'desc' },
+        take: limit,
+      }),
+
+      // Ad-hoc workouts (confirmed only)
+      prisma.adHocWorkout.findMany({
+        where: {
+          athleteId: clientId,
+          status: 'CONFIRMED',
+          workoutDate: { gte: startDate },
+        },
+        orderBy: { workoutDate: 'desc' },
         take: limit,
       }),
     ])
@@ -318,6 +329,48 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Process confirmed ad-hoc workouts
+    for (const adhoc of adHocWorkouts) {
+      // Extract data from parsedStructure
+      const parsed = adhoc.parsedStructure as {
+        name?: string
+        type?: string
+        sport?: string
+        duration?: number
+        distance?: number
+        avgHeartRate?: number
+        maxHeartRate?: number
+        avgPace?: string
+        intensity?: string
+        perceivedEffort?: number
+        notes?: string
+      } | null
+
+      // Build workout name
+      let workoutName = adhoc.workoutName || parsed?.name
+      if (!workoutName) {
+        // Generate name from type/sport
+        const type = adhoc.parsedType || parsed?.type || 'OTHER'
+        const sport = parsed?.sport
+        workoutName = sport ? `${sport} ${type}` : type
+      }
+
+      activities.push({
+        id: adhoc.id,
+        source: 'adhoc',
+        name: workoutName,
+        type: adhoc.parsedType || parsed?.type || 'OTHER',
+        date: adhoc.workoutDate,
+        duration: parsed?.duration || undefined,
+        distance: parsed?.distance ? parsed.distance / 1000 : undefined, // Convert m to km
+        avgHR: parsed?.avgHeartRate || undefined,
+        maxHR: parsed?.maxHeartRate || undefined,
+        pace: parsed?.avgPace || undefined,
+        completed: true,
+        notes: parsed?.notes || undefined,
+      })
+    }
+
     // Sort by date (newest first)
     activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
@@ -364,6 +417,7 @@ export async function GET(request: NextRequest) {
         garmin: garminActivities.length,
         concept2: concept2Results.length,
         ai: aiWods.length,
+        adhoc: adHocWorkouts.length,
       },
       deduplication: {
         totalBeforeDedup: activities.length,

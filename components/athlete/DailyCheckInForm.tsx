@@ -414,7 +414,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
       router.refresh()
       // Redirect to athlete dashboard after a short delay to show success feedback
       setTimeout(() => {
-        router.push('/athlete')
+        router.push('/athlete/dashboard')
       }, 1500)
     }
   }

@@ -1,5 +1,6 @@
 // app/api/workouts/[id]/logs/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { canAccessWorkout, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
@@ -157,6 +158,19 @@ export async function POST(
             },
           })
         } else {
+          // Convert pace string (e.g., "5:30") to seconds per km for TrainingLoad
+          let avgPaceSeconds: number | undefined = undefined
+          if (body.avgPace && typeof body.avgPace === 'string') {
+            const paceParts = body.avgPace.replace(/\/km$/, '').split(':')
+            if (paceParts.length === 2) {
+              const minutes = parseInt(paceParts[0], 10)
+              const seconds = parseInt(paceParts[1], 10)
+              if (!isNaN(minutes) && !isNaN(seconds)) {
+                avgPaceSeconds = minutes * 60 + seconds
+              }
+            }
+          }
+
           // Create new entry for today's training
           await prisma.trainingLoad.create({
             data: {
@@ -168,7 +182,7 @@ export async function POST(
               distance: body.distance,
               avgHR: body.avgHR,
               maxHR: body.maxHR,
-              avgPace: body.avgPace,
+              avgPace: avgPaceSeconds,
               intensity,
               workoutType: loadWorkoutType,
               workoutId: id,
@@ -177,6 +191,9 @@ export async function POST(
         }
       }
     }
+
+    // Revalidate athlete dashboard to show updated training load
+    revalidatePath('/athlete/dashboard')
 
     return NextResponse.json(
       {
