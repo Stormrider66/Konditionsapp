@@ -7,6 +7,7 @@
 
 import { SportType } from '@prisma/client'
 import { METHODOLOGIES } from './program-prompts'
+import type { FitnessEstimate } from '@/lib/training/fitness-estimation'
 
 // Types for wizard form data
 export interface WizardFormData {
@@ -152,6 +153,7 @@ export interface ProgramContext {
   raceResults?: RaceResultData[]
   injuries?: InjuryData[]
   documentIds?: string[]
+  fitnessEstimate?: FitnessEstimate  // Fitness level for zone width adjustment
 }
 
 /**
@@ -186,6 +188,41 @@ export function buildProgramPrompt(context: ProgramContext): string {
     prompt += `- **Erfarenhetsnivå**: ${levels[wizardData.experienceLevel] || wizardData.experienceLevel}\n`
   }
   if (wizardData.currentWeeklyVolume) prompt += `- **Nuvarande veckovolym**: ${wizardData.currentWeeklyVolume} km/vecka\n`
+
+  // Fitness Level (for zone width adjustment)
+  if (context.fitnessEstimate) {
+    const fitnessLabels: Record<string, string> = {
+      UNTRAINED: 'Otränad',
+      BEGINNER: 'Nybörjare',
+      RECREATIONAL: 'Motionär',
+      TRAINED: 'Tränad',
+      WELL_TRAINED: 'Vältränad',
+      ELITE: 'Elit'
+    }
+    const confidenceLabels: Record<string, string> = {
+      HIGH: 'Hög',
+      MEDIUM: 'Medel',
+      LOW: 'Låg'
+    }
+
+    prompt += '\n## FITNESSNIVÅ\n'
+    prompt += `- **Nivå**: ${fitnessLabels[context.fitnessEstimate.level] || context.fitnessEstimate.level}\n`
+    if (context.fitnessEstimate.estimatedVO2max) {
+      prompt += `- **Uppskattad VO2max**: ${context.fitnessEstimate.estimatedVO2max.toFixed(1)} ml/kg/min\n`
+    }
+    prompt += `- **Konfidens**: ${confidenceLabels[context.fitnessEstimate.confidence] || context.fitnessEstimate.confidence}\n`
+
+    prompt += '\n### Zonbredd-kontext (Accordion-effekten)\n'
+    prompt += `- **LT1 (aerob tröskel)**: ~${context.fitnessEstimate.lt1PercentHRmax}% av maxpuls\n`
+    prompt += `- **LT2 (anaerob tröskel)**: ~${context.fitnessEstimate.lt2PercentHRmax}% av maxpuls\n`
+
+    // Add walk/run recommendation for beginners
+    if (context.fitnessEstimate.level === 'UNTRAINED' || context.fitnessEstimate.level === 'BEGINNER') {
+      prompt += '\n**VIKTIGT**: Atleten har en smal zon 2, vilket innebär att lätt jogging ofta\n'
+      prompt += 'hamnar i för hög intensitet. Överväg att inkludera gång/löp-intervaller\n'
+      prompt += '(t.ex. 2 min löpning, 1 min gång) för lågintensiva pass.\n'
+    }
+  }
 
   // Program Request
   prompt += '\n## PROGRAMFÖRFRÅGAN\n'

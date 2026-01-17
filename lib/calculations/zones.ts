@@ -1,5 +1,5 @@
 // lib/calculations/zones.ts
-import { TrainingZone, Threshold, TestType, Client, Gender } from '@/types'
+import { TrainingZone, Threshold, TestType, Client, Gender, FitnessEstimate } from '@/types'
 
 /**
  * Zone Calculation Confidence Levels
@@ -72,11 +72,18 @@ export function calculateIndividualizedZones(params: IndividualizedZoneRequest):
  * - Confidence: LOW
  * - Warning displayed to user
  *
+ * Tier 3+ (Bronze+ Standard): Fitness-adjusted %HRmax fallback
+ * - Uses estimated fitness level to adjust LT1/LT2 percentages
+ * - Accounts for the "Accordion Effect" (zone width varies by fitness)
+ * - More accurate than fixed percentages for untrained/elite athletes
+ * - Confidence: LOW (but more accurate than fixed percentages)
+ *
  * @param client - Client demographic data (age, gender, weight)
  * @param maxHR - Maximum heart rate (from test or estimated)
  * @param aerobicThreshold - LT1 threshold (if available from lactate test)
  * @param anaerobicThreshold - LT2 threshold (if available from lactate test)
  * @param testType - Type of test (RUNNING, CYCLING, SKIING)
+ * @param fitnessEstimate - Optional fitness estimate for adjusted zone percentages
  * @returns Zone calculation with confidence indicator
  */
 export function calculateTrainingZones(
@@ -84,7 +91,8 @@ export function calculateTrainingZones(
   maxHR: number | undefined,
   aerobicThreshold: Threshold | undefined | null,
   anaerobicThreshold: Threshold | undefined | null,
-  testType: TestType
+  testType: TestType,
+  fitnessEstimate?: FitnessEstimate
 ): ZoneCalculationResult {
   // Tier 1: Lactate test data exists (Gold Standard)
   if (aerobicThreshold && anaerobicThreshold && maxHR) {
@@ -101,11 +109,13 @@ export function calculateTrainingZones(
   // This would use 30-min TT, HR drift, or critical velocity tests
   // to estimate LT1/LT2
 
-  // Tier 3: Fallback to %HRmax estimation (Bronze Standard)
+  // Tier 3/3+: Fallback to %HRmax estimation (Bronze/Bronze+ Standard)
+  // If fitnessEstimate is provided, use fitness-adjusted percentages
   return calculateZonesFromHRmaxFallback(
     client,
     maxHR,
-    testType
+    testType,
+    fitnessEstimate
   )
 }
 
@@ -217,34 +227,79 @@ function calculateZonesFromLactateTest(
 }
 
 /**
- * Tier 3: Fallback zone calculation using %HRmax
+ * Tier 3/3+: Fallback zone calculation using %HRmax
  *
  * Used when no lactate test data exists. Uses:
  * - Better HRmax formulas (Tanaka or Gulati, not 220-age)
- * - Conservative LT1/LT2 estimates
+ * - Fitness-adjusted LT1/LT2 estimates (if fitnessEstimate provided)
  * - Clear warning to user
  *
  * Formula selection:
  * - Women: Gulati formula (206 - 0.88 * age)
  * - Men/Other: Tanaka formula (208 - 0.7 * age)
  *
- * Zone estimation:
+ * Zone estimation (default without fitness estimate):
  * - LT1 ≈ 75-80% HRmax (conservative)
  * - LT2 ≈ 85-90% HRmax (conservative)
+ *
+ * Zone estimation with fitness estimate ("Accordion Effect"):
+ * - UNTRAINED: LT1 ≈ 58%, LT2 ≈ 78% (narrow Zone 2)
+ * - BEGINNER: LT1 ≈ 63%, LT2 ≈ 80%
+ * - RECREATIONAL: LT1 ≈ 68%, LT2 ≈ 84%
+ * - TRAINED: LT1 ≈ 72%, LT2 ≈ 87%
+ * - WELL_TRAINED: LT1 ≈ 76%, LT2 ≈ 90%
+ * - ELITE: LT1 ≈ 78%, LT2 ≈ 93% (wide Zone 2)
  */
 function calculateZonesFromHRmaxFallback(
   client: Client,
   maxHR: number | undefined,
-  testType: TestType
+  testType: TestType,
+  fitnessEstimate?: FitnessEstimate
 ): ZoneCalculationResult {
   const age = calculateAge(client.birthDate)
 
   // Use provided maxHR or estimate from age
   const estimatedMaxHR = maxHR || estimateMaxHR(age, client.gender)
 
-  // Conservative LT1/LT2 estimates
-  const estimatedLT1 = Math.round(estimatedMaxHR * 0.77) // ~77% (mid-point of 75-80%)
-  const estimatedLT2 = Math.round(estimatedMaxHR * 0.87) // ~87% (mid-point of 85-90%)
+  // Use fitness-adjusted percentages if available, otherwise default
+  const lt1Percent = fitnessEstimate?.lt1PercentHRmax
+    ? fitnessEstimate.lt1PercentHRmax / 100
+    : 0.77  // Default fallback
+
+  const lt2Percent = fitnessEstimate?.lt2PercentHRmax
+    ? fitnessEstimate.lt2PercentHRmax / 100
+    : 0.87  // Default fallback
+
+  // Calculate estimated LT1/LT2 heart rates
+  const estimatedLT1HR = Math.round(estimatedMaxHR * lt1Percent)
+  const estimatedLT2HR = Math.round(estimatedMaxHR * lt2Percent)
+
+  // Calculate zone boundaries based on LT1/LT2
+  // Zone 1: Recovery - below LT1 - 10bpm
+  const zone1Max = Math.max(Math.round(estimatedMaxHR * 0.5), estimatedLT1HR - 15)
+  const zone1MaxPercent = Math.round((zone1Max / estimatedMaxHR) * 100)
+
+  // Zone 2: Easy/Aerobic base - from Zone 1 max to LT1
+  const zone2Min = zone1Max + 1
+  const zone2Max = estimatedLT1HR
+  const zone2MinPercent = Math.round((zone2Min / estimatedMaxHR) * 100)
+  const zone2MaxPercent = Math.round((zone2Max / estimatedMaxHR) * 100)
+
+  // Zone 3: Tempo - from LT1 to just below LT2
+  const zone3Min = estimatedLT1HR + 1
+  const zone3Max = estimatedLT2HR - 3
+  const zone3MinPercent = Math.round((zone3Min / estimatedMaxHR) * 100)
+  const zone3MaxPercent = Math.round((zone3Max / estimatedMaxHR) * 100)
+
+  // Zone 4: Threshold - around LT2
+  const zone4Min = estimatedLT2HR - 2
+  const zone4Max = Math.min(estimatedLT2HR + 5, Math.round(estimatedMaxHR * 0.95))
+  const zone4MinPercent = Math.round((zone4Min / estimatedMaxHR) * 100)
+  const zone4MaxPercent = Math.round((zone4Max / estimatedMaxHR) * 100)
+
+  // Zone 5: VO2max - above threshold
+  const zone5Min = zone4Max + 1
+  const zone5MinPercent = Math.round((zone5Min / estimatedMaxHR) * 100)
 
   const zones: TrainingZone[] = [
     {
@@ -252,61 +307,87 @@ function calculateZonesFromHRmaxFallback(
       name: 'Mycket lätt',
       intensity: 'Återhämtning',
       percentMin: 50,
-      percentMax: 60,
+      percentMax: zone1MaxPercent,
       hrMin: Math.round(estimatedMaxHR * 0.5),
-      hrMax: Math.round(estimatedMaxHR * 0.6),
+      hrMax: zone1Max,
       effect: 'Återhämtning, uppvärmning',
     },
     {
       zone: 2,
       name: 'Lätt',
-      intensity: 'Grundkondition',
-      percentMin: 60,
-      percentMax: 70,
-      hrMin: Math.round(estimatedMaxHR * 0.6),
-      hrMax: Math.round(estimatedMaxHR * 0.7),
+      intensity: fitnessEstimate ? 'Grundkondition (LT1)' : 'Grundkondition',
+      percentMin: zone2MinPercent,
+      percentMax: zone2MaxPercent,
+      hrMin: zone2Min,
+      hrMax: zone2Max,
       effect: 'Grundkondition, fettförbränning',
     },
     {
       zone: 3,
       name: 'Måttlig',
       intensity: 'Tempo',
-      percentMin: 70,
-      percentMax: 80,
-      hrMin: Math.round(estimatedMaxHR * 0.7),
-      hrMax: Math.round(estimatedMaxHR * 0.8),
+      percentMin: zone3MinPercent,
+      percentMax: zone3MaxPercent,
+      hrMin: zone3Min,
+      hrMax: zone3Max,
       effect: 'Tempo, aerob kapacitet',
     },
     {
       zone: 4,
       name: 'Hård',
-      intensity: 'Tröskel',
-      percentMin: 80,
-      percentMax: 90,
-      hrMin: Math.round(estimatedMaxHR * 0.8),
-      hrMax: Math.round(estimatedMaxHR * 0.9),
+      intensity: fitnessEstimate ? 'Tröskel (LT2)' : 'Tröskel',
+      percentMin: zone4MinPercent,
+      percentMax: zone4MaxPercent,
+      hrMin: zone4Min,
+      hrMax: zone4Max,
       effect: 'Anaerob tröskel',
     },
     {
       zone: 5,
       name: 'Maximal',
       intensity: 'VO₂max',
-      percentMin: 90,
+      percentMin: zone5MinPercent,
       percentMax: 100,
-      hrMin: Math.round(estimatedMaxHR * 0.9),
+      hrMin: zone5Min,
       hrMax: estimatedMaxHR,
       effect: 'VO₂max, maximal kapacitet',
     },
   ]
 
+  // Build warning message
+  let warning: string
+  if (fitnessEstimate) {
+    const fitnessLabel = getFitnessLevelLabel(fitnessEstimate.level)
+    warning = maxHR
+      ? `Zoner justerade för fitnessnivå (${fitnessLabel}). LT1 ≈ ${Math.round(lt1Percent * 100)}%, LT2 ≈ ${Math.round(lt2Percent * 100)}% av maxpuls.`
+      : `Zoner uppskattas från ålder (${age} år) och fitnessnivå (${fitnessLabel}). Maxpuls estimerad till ${estimatedMaxHR} bpm.`
+  } else {
+    warning = maxHR
+      ? 'Zoner baserade på % av maxpuls. För bättre noggrannhet, gör ett laktattest eller fälttest.'
+      : `Zoner uppskattas från ålder (${age} år) och kön. Maxpuls estimerad till ${estimatedMaxHR} bpm. För bästa noggrannhet, gör ett laktattest.`
+  }
+
   return {
     zones,
     confidence: 'LOW',
     method: 'ESTIMATED',
-    warning: maxHR
-      ? 'Zoner baserade på % av maxpuls. För bättre noggrannhet, gör ett laktattest eller fälttest.'
-      : `Zoner uppskattas från ålder (${age} år) och kön. Maxpuls estimerad till ${estimatedMaxHR} bpm. För bästa noggrannhet, gör ett laktattest.`
+    warning
   }
+}
+
+/**
+ * Get Swedish label for fitness level
+ */
+function getFitnessLevelLabel(level: string): string {
+  const labels: Record<string, string> = {
+    UNTRAINED: 'otränad',
+    BEGINNER: 'nybörjare',
+    RECREATIONAL: 'motionär',
+    TRAINED: 'tränad',
+    WELL_TRAINED: 'vältränad',
+    ELITE: 'elit'
+  }
+  return labels[level] || level.toLowerCase()
 }
 
 /**

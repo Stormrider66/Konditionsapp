@@ -5,12 +5,27 @@ import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { SportType } from '@prisma/client'
+import { validateTargets } from '@/lib/training/intensity-targets'
 
 type RouteParams = {
   params: Promise<{
     clientId: string
   }>
 }
+
+// Biometrics schema for fitness estimation
+const biometricsSchema = z.object({
+  restingHR: z.number().min(30).max(120).nullable().optional(),
+  maxHR: z.number().min(140).max(230).nullable().optional(),
+  watchVO2maxEstimate: z.number().min(20).max(90).nullable().optional(),
+  watchBrand: z.string().nullable().optional(),
+}).optional()
+
+// Recent race time schema for VDOT calculation
+const recentRaceTimeSchema = z.object({
+  distance: z.enum(['1500M', '1_MILE', '3K', '5K', '10K', 'HALF_MARATHON', 'MARATHON']),
+  timeMinutes: z.number().min(1).max(600), // 1 minute to 10 hours
+}).optional()
 
 // Validation schema for updating sport profile
 // Using z.any() for JSON fields as they're stored as Prisma Json type
@@ -33,6 +48,8 @@ const updateSportProfileSchema = z.object({
   targetDate: z.string().optional().nullable(),
   targetMetric: z.any().optional(),
   themePreferences: z.any().optional(), // { appTheme: 'FITAPP_DARK' | 'MINIMALIST_WHITE', pdfTheme: '...' }
+  biometrics: biometricsSchema, // Heart rate data for fitness estimation
+  recentRaceTime: recentRaceTimeSchema, // Recent race result for VDOT calculation
   runningExperience: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE']).optional(),
   cyclingExperience: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE']).optional(),
   swimmingExperience: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE']).optional(),
@@ -196,6 +213,8 @@ export async function PUT(
           targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
           targetMetric: data.targetMetric,
           themePreferences: data.themePreferences,
+          biometrics: data.biometrics,
+          recentRaceTime: data.recentRaceTime,
           runningExperience: data.runningExperience,
           cyclingExperience: data.cyclingExperience,
           swimmingExperience: data.swimmingExperience,
@@ -234,6 +253,8 @@ export async function PUT(
         ...(data.targetDate !== undefined && { targetDate: data.targetDate ? new Date(data.targetDate) : null }),
         ...(data.targetMetric !== undefined && { targetMetric: data.targetMetric }),
         ...(data.themePreferences !== undefined && { themePreferences: data.themePreferences }),
+        ...(data.biometrics !== undefined && { biometrics: data.biometrics }),
+        ...(data.recentRaceTime !== undefined && { recentRaceTime: data.recentRaceTime }),
         ...(data.runningExperience !== undefined && { runningExperience: data.runningExperience }),
         ...(data.cyclingExperience !== undefined && { cyclingExperience: data.cyclingExperience }),
         ...(data.swimmingExperience !== undefined && { swimmingExperience: data.swimmingExperience }),
@@ -252,6 +273,170 @@ export async function PUT(
     logger.error('Error updating sport profile', {}, error)
     return NextResponse.json(
       { success: false, error: 'Failed to update sport profile' },
+      { status: 500 }
+    )
+  }
+}
+
+// Validation schema for intensity targets
+const intensityTargetsSchema = z.object({
+  easyPercent: z.number().min(0).max(100),
+  moderatePercent: z.number().min(0).max(100),
+  hardPercent: z.number().min(0).max(100),
+  methodology: z.enum(['POLARIZED', 'THRESHOLD_FOCUSED', 'PYRAMIDAL', 'BALANCED', 'CUSTOM']).optional(),
+  label: z.string().optional(),
+})
+
+// PATCH schema for partial updates (like intensity targets)
+const patchSportProfileSchema = z.object({
+  sport: z.nativeEnum(SportType),
+  intensityTargets: intensityTargetsSchema,
+})
+
+// PATCH /api/sport-profile/[clientId] - Partial update for specific sport settings
+// Used for updating intensity targets within a sport's settings JSON
+export async function PATCH(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const { clientId } = await params
+    const body = await request.json()
+
+    const validation = patchSportProfileSchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Validation failed',
+          details: validation.error.errors,
+        },
+        { status: 400 }
+      )
+    }
+
+    const { sport, intensityTargets } = validation.data
+
+    // Validate that percentages sum to 100
+    if (!validateTargets(intensityTargets)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Intensity percentages must sum to 100',
+        },
+        { status: 400 }
+      )
+    }
+
+    // Verify the client belongs to this user (coach) or is the athlete themselves
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { userId: true, athleteAccount: { select: { userId: true } } },
+    })
+
+    if (!client) {
+      return NextResponse.json(
+        { success: false, error: 'Client not found' },
+        { status: 404 }
+      )
+    }
+
+    // Allow access if coach owns the client OR user is the athlete
+    const isCoach = client.userId === user.id
+    const isAthlete = client.athleteAccount?.userId === user.id
+
+    if (!isCoach && !isAthlete) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 403 }
+      )
+    }
+
+    // Get current sport profile
+    const existingProfile = await prisma.sportProfile.findUnique({
+      where: { clientId },
+    })
+
+    if (!existingProfile) {
+      return NextResponse.json(
+        { success: false, error: 'Sport profile not found' },
+        { status: 404 }
+      )
+    }
+
+    // Map sport type to settings field name
+    const settingsFieldMap: Record<SportType, keyof typeof existingProfile> = {
+      RUNNING: 'runningSettings',
+      CYCLING: 'cyclingSettings',
+      SKIING: 'skiingSettings',
+      SWIMMING: 'swimmingSettings',
+      TRIATHLON: 'triathlonSettings',
+      HYROX: 'hyroxSettings',
+      GENERAL_FITNESS: 'generalFitnessSettings',
+      FUNCTIONAL_FITNESS: 'functionalFitnessSettings',
+      STRENGTH: 'generalFitnessSettings', // Use general fitness for strength
+      TEAM_FOOTBALL: 'footballSettings',
+      TEAM_ICE_HOCKEY: 'hockeySettings',
+      TEAM_HANDBALL: 'handballSettings',
+      TEAM_FLOORBALL: 'floorballSettings',
+      TEAM_BASKETBALL: 'basketballSettings',
+      TEAM_VOLLEYBALL: 'volleyballSettings',
+      TENNIS: 'tennisSettings',
+      PADEL: 'padelSettings',
+    }
+
+    const settingsField = settingsFieldMap[sport]
+    if (!settingsField) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid sport type' },
+        { status: 400 }
+      )
+    }
+
+    // Get current settings for this sport (if any) and merge with intensity targets
+    const currentSettings = (existingProfile[settingsField] as Record<string, unknown>) || {}
+    const updatedSettings = {
+      ...currentSettings,
+      intensityTargets,
+    }
+
+    // Update the specific settings field
+    const updateData: Record<string, unknown> = {
+      [settingsField]: updatedSettings,
+    }
+
+    const sportProfile = await prisma.sportProfile.update({
+      where: { clientId },
+      data: updateData,
+    })
+
+    logger.info('Updated intensity targets', {
+      clientId,
+      sport,
+      intensityTargets,
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: sportProfile,
+      message: 'Intensity targets updated successfully',
+    })
+  } catch (error) {
+    logger.error('Error updating intensity targets', {}, error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to update intensity targets' },
       { status: 500 }
     )
   }

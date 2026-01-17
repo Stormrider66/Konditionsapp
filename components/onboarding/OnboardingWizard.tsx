@@ -27,6 +27,8 @@ import { BasketballOnboarding, DEFAULT_BASKETBALL_SETTINGS, type BasketballSetti
 import { VolleyballOnboarding, DEFAULT_VOLLEYBALL_SETTINGS, type VolleyballSettings } from './VolleyballOnboarding'
 import { TennisOnboarding, DEFAULT_TENNIS_SETTINGS, type TennisSettings } from './TennisOnboarding'
 import { PadelOnboarding, DEFAULT_PADEL_SETTINGS, type PadelSettings } from './PadelOnboarding'
+import { BiometricsStep, DEFAULT_BIOMETRICS_DATA, type BiometricsData } from './BiometricsStep'
+import { FitnessSummary } from './FitnessSummary'
 import { SportType } from '@prisma/client'
 import { useToast } from '@/hooks/use-toast'
 
@@ -66,10 +68,22 @@ interface OnboardingWizardProps {
   onComplete?: () => void
 }
 
+// Race distances for VDOT calculation
+type RaceDistance = '1500M' | '1_MILE' | '3K' | '5K' | '10K' | 'HALF_MARATHON' | 'MARATHON'
+
+interface RecentRaceTime {
+  distance: RaceDistance | null
+  hours: number
+  minutes: number
+  seconds: number
+}
+
 interface OnboardingData {
   primarySport: SportType | null
   secondarySports: SportType[]
   experience: string
+  biometrics: BiometricsData
+  recentRaceTime: RecentRaceTime
   equipment: Record<string, boolean>
   weeklyAvailability: Record<string, { available: boolean; maxHours?: number }>
   preferredSessionLength: number
@@ -94,7 +108,7 @@ interface OnboardingData {
 }
 
 // Step definitions for different sports
-type StepId = 'sport' | 'experience' | 'sport_specific' | 'availability' | 'equipment' | 'goals'
+type StepId = 'sport' | 'experience' | 'biometrics' | 'sport_specific' | 'availability' | 'equipment' | 'goals' | 'summary'
 
 interface StepDefinition {
   id: StepId
@@ -118,6 +132,13 @@ const BASE_STEPS: StepDefinition[] = [
     titleSv: 'Erfarenhetsnivå',
     descriptionEn: 'Tell us about your experience level.',
     descriptionSv: 'Berätta om din erfarenhetsnivå.',
+  },
+  {
+    id: 'biometrics',
+    titleEn: 'Biometrics',
+    titleSv: 'Biometri',
+    descriptionEn: 'Help us calculate your training zones by providing heart rate data.',
+    descriptionSv: 'Hjälp oss beräkna dina träningszoner genom att ange pulsdata.',
   },
 ]
 
@@ -263,6 +284,13 @@ const COMMON_STEPS: StepDefinition[] = [
     descriptionEn: 'What are your training goals?',
     descriptionSv: 'Vad är dina träningsmål?',
   },
+  {
+    id: 'summary',
+    titleEn: 'Your Training Profile',
+    titleSv: 'Din träningsprofil',
+    descriptionEn: 'Review your fitness estimate and training zone setup.',
+    descriptionSv: 'Granska din konditionsuppskattning och träningszonsinställning.',
+  },
 ]
 
 export function OnboardingWizard({
@@ -279,6 +307,8 @@ export function OnboardingWizard({
     primarySport: null,
     secondarySports: [],
     experience: '',
+    biometrics: DEFAULT_BIOMETRICS_DATA,
+    recentRaceTime: { distance: null, hours: 0, minutes: 0, seconds: 0 },
     equipment: {},
     weeklyAvailability: DAYS_OF_WEEK.reduce((acc, day) => ({
       ...acc,
@@ -376,6 +406,8 @@ export function OnboardingWizard({
         return data.primarySport !== null
       case 'experience':
         return data.experience !== ''
+      case 'biometrics':
+        return true // Biometrics is optional but helpful
       case 'sport_specific':
         // Cycling requires at least one bike type and a discipline
         if (data.primarySport === 'CYCLING') {
@@ -438,6 +470,8 @@ export function OnboardingWizard({
         return true // Equipment is optional
       case 'goals':
         return true // Goal is optional
+      case 'summary':
+        return true // Summary is just review
       default:
         return false
     }
@@ -470,6 +504,20 @@ export function OnboardingWizard({
         targetDate: data.targetDate || undefined,
         onboardingCompleted: true,
         onboardingStep: totalSteps,
+      }
+
+      // Add biometrics data if any values were provided
+      if (data.biometrics.restingHR || data.biometrics.maxHR || data.biometrics.watchVO2maxEstimate) {
+        requestBody.biometrics = data.biometrics
+      }
+
+      // Add recent race time for fitness estimation (convert to total minutes)
+      if (data.recentRaceTime.distance && (data.recentRaceTime.hours > 0 || data.recentRaceTime.minutes > 0 || data.recentRaceTime.seconds > 0)) {
+        const timeMinutes = data.recentRaceTime.hours * 60 + data.recentRaceTime.minutes + data.recentRaceTime.seconds / 60
+        requestBody.recentRaceTime = {
+          distance: data.recentRaceTime.distance,
+          timeMinutes,
+        }
       }
 
       // Add sport-specific settings
@@ -677,6 +725,15 @@ export function OnboardingWizard({
                 </Label>
               ))}
             </RadioGroup>
+          )}
+
+          {/* Step: Biometrics */}
+          {currentStep.id === 'biometrics' && (
+            <BiometricsStep
+              value={data.biometrics}
+              onChange={(biometrics) => updateData({ biometrics })}
+              locale={locale}
+            />
           )}
 
           {/* Step: Sport-Specific Settings (Cycling) */}
@@ -931,7 +988,136 @@ export function OnboardingWizard({
                   className="max-w-[200px]"
                 />
               </div>
+
+              {/* Recent race time for fitness estimation (running sports only) */}
+              {(data.primarySport === 'RUNNING' || data.primarySport === 'TRIATHLON') && (
+                <Card className="border-blue-200 bg-blue-50/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">
+                      {t('Recent Race Time (optional)', 'Senaste tävlingstid (valfritt)')}
+                    </CardTitle>
+                    <CardDescription>
+                      {t(
+                        'A recent race result helps us calculate your fitness level and personalize your training zones.',
+                        'Ett nytt tävlingsresultat hjälper oss beräkna din konditionsnivå och personalisera dina träningszoner.'
+                      )}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>{t('Distance', 'Distans')}</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { id: '1500M', label: '1500m' },
+                          { id: '1_MILE', label: '1 mile' },
+                          { id: '3K', label: '3K' },
+                          { id: '5K', label: '5K' },
+                          { id: '10K', label: '10K' },
+                          { id: 'HALF_MARATHON', label: locale === 'sv' ? 'Halvmaraton' : 'Half Marathon' },
+                          { id: 'MARATHON', label: 'Marathon' },
+                        ].map((dist) => (
+                          <button
+                            key={dist.id}
+                            type="button"
+                            onClick={() => updateData({
+                              recentRaceTime: {
+                                ...data.recentRaceTime,
+                                distance: data.recentRaceTime.distance === dist.id ? null : dist.id as RaceDistance,
+                              }
+                            })}
+                            className={cn(
+                              'px-3 py-1.5 text-sm rounded-full border transition-colors',
+                              data.recentRaceTime.distance === dist.id
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border hover:border-primary/50'
+                            )}
+                          >
+                            {dist.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {data.recentRaceTime.distance && (
+                      <div className="space-y-2">
+                        <Label>{t('Time', 'Tid')}</Label>
+                        <div className="flex items-center gap-2">
+                          {(data.recentRaceTime.distance === 'HALF_MARATHON' || data.recentRaceTime.distance === 'MARATHON') && (
+                            <>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={10}
+                                placeholder="0"
+                                value={data.recentRaceTime.hours || ''}
+                                onChange={(e) => updateData({
+                                  recentRaceTime: {
+                                    ...data.recentRaceTime,
+                                    hours: parseInt(e.target.value) || 0,
+                                  }
+                                })}
+                                className="w-16 text-center"
+                              />
+                              <span className="text-sm text-muted-foreground">{t('h', 't')}</span>
+                            </>
+                          )}
+                          <Input
+                            type="number"
+                            min={0}
+                            max={59}
+                            placeholder="00"
+                            value={data.recentRaceTime.minutes || ''}
+                            onChange={(e) => updateData({
+                              recentRaceTime: {
+                                ...data.recentRaceTime,
+                                minutes: parseInt(e.target.value) || 0,
+                              }
+                            })}
+                            className="w-16 text-center"
+                          />
+                          <span className="text-sm text-muted-foreground">min</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={59}
+                            placeholder="00"
+                            value={data.recentRaceTime.seconds || ''}
+                            onChange={(e) => updateData({
+                              recentRaceTime: {
+                                ...data.recentRaceTime,
+                                seconds: parseInt(e.target.value) || 0,
+                              }
+                            })}
+                            className="w-16 text-center"
+                          />
+                          <span className="text-sm text-muted-foreground">{t('sec', 'sek')}</span>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
+          )}
+
+          {/* Step: Summary */}
+          {currentStep.id === 'summary' && (
+            <FitnessSummary
+              biometrics={data.biometrics}
+              recentRaceTime={
+                data.recentRaceTime.distance
+                  ? {
+                      distance: data.recentRaceTime.distance,
+                      timeMinutes:
+                        data.recentRaceTime.hours * 60 +
+                        data.recentRaceTime.minutes +
+                        data.recentRaceTime.seconds / 60,
+                    }
+                  : undefined
+              }
+              experienceLevel={data.experience as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE' | undefined}
+              locale={locale}
+            />
           )}
         </CardContent>
 

@@ -3039,6 +3039,12 @@ model SportProfile {
   // Theme preferences for workout display
   themePreferences Json? // { appTheme: 'FITAPP_DARK' | 'MINIMALIST_WHITE', pdfTheme: 'FITAPP_DARK' | 'MINIMALIST_WHITE' }
 
+  // Biometrics for fitness estimation (training zone calculation)
+  biometrics Json? // { restingHR, maxHR, watchVO2maxEstimate, watchBrand }
+
+  // Recent race time for VDOT calculation
+  recentRaceTime Json? // { distance: '5K' | '10K' | etc., timeMinutes: number }
+
   // Experience levels per sport
   runningExperience           String? // "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "ELITE"
   cyclingExperience           String?
