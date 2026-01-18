@@ -113,17 +113,18 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
         const thresholdRes = await fetch(`/api/ergometer-thresholds/${clientId}`);
         if (thresholdRes.ok) {
           const thresholdData = await thresholdRes.json();
-          setThresholds(thresholdData.thresholds || []);
+          setThresholds(thresholdData.data?.thresholds || []);
         }
 
         // Fetch zones
         const zonesRes = await fetch(`/api/ergometer-zones/${clientId}`);
         if (zonesRes.ok) {
           const zonesData = await zonesRes.json();
-          setZones(zonesData.zones || {});
+          const zonesResult = zonesData.data?.zones || {};
+          setZones(zonesResult);
 
           // Set active tab to first ergometer with zones
-          const availableTypes = Object.keys(zonesData.zones || {}) as ErgometerType[];
+          const availableTypes = Object.keys(zonesResult) as ErgometerType[];
           if (availableTypes.length > 0) {
             setActiveTab(availableTypes[0]);
           }

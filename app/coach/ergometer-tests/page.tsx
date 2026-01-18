@@ -28,8 +28,7 @@ import { Plus, Activity, TrendingUp, Users, ArrowLeft } from 'lucide-react';
 
 interface Client {
   id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   gender?: 'MALE' | 'FEMALE';
   weight?: number;
 }
@@ -69,7 +68,7 @@ export default function CoachErgometerTestsPage() {
         const res = await fetch('/api/clients');
         if (res.ok) {
           const data = await res.json();
-          setClients(data.clients || []);
+          setClients(data.data || []);
         }
       } catch (error) {
         console.error('Failed to fetch clients:', error);
@@ -96,12 +95,12 @@ export default function CoachErgometerTestsPage() {
 
       if (testsRes.ok) {
         const data = await testsRes.json();
-        setTests(data.tests || []);
+        setTests(data.data?.tests || []);
       }
 
       if (zonesRes.ok) {
         const data = await zonesRes.json();
-        setZones(data.zones || []);
+        setZones(data.data?.zones || []);
       }
     } catch (error) {
       console.error('Failed to fetch client data:', error);
@@ -115,7 +114,7 @@ export default function CoachErgometerTestsPage() {
   // Format athletes for the test form
   const athletesForForm = clients.map(c => ({
     id: c.id,
-    name: `${c.firstName} ${c.lastName}`,
+    name: c.name,
     gender: c.gender,
     weight: c.weight,
   }));
@@ -153,7 +152,7 @@ export default function CoachErgometerTestsPage() {
                 <SelectContent>
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
-                      {client.firstName} {client.lastName}
+                      {client.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -217,7 +216,7 @@ export default function CoachErgometerTestsPage() {
               <CardHeader>
                 <CardTitle>Testhistorik</CardTitle>
                 <CardDescription>
-                  Alla ergometertester for {selectedClient?.firstName} {selectedClient?.lastName}
+                  Alla ergometertester for {selectedClient?.name}
                 </CardDescription>
               </CardHeader>
               <CardContent>

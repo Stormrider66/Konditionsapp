@@ -124,21 +124,21 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
         const thresholdRes = await fetch(`/api/ergometer-thresholds/${clientId}`);
         if (thresholdRes.ok) {
           const thresholdData = await thresholdRes.json();
-          setThresholds(thresholdData.thresholds || []);
+          setThresholds(thresholdData.data?.thresholds || []);
         }
 
         // Fetch zones
         const zonesRes = await fetch(`/api/ergometer-zones/${clientId}`);
         if (zonesRes.ok) {
           const zonesData = await zonesRes.json();
-          setZones(zonesData.zones || {});
+          setZones(zonesData.data?.zones || {});
         }
 
         // Fetch recent tests
         const testsRes = await fetch(`/api/ergometer-tests?clientId=${clientId}&limit=10`);
         if (testsRes.ok) {
           const testsData = await testsRes.json();
-          setRecentTests(testsData.tests || []);
+          setRecentTests(testsData.data?.tests || []);
         }
 
         // Set active tab to first ergometer with data
