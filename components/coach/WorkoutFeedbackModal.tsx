@@ -341,6 +341,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
                     <Textarea
                       placeholder="Skriv din feedback till atleten här..."
                       rows={6}
+                      className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800"
                       {...field}
                     />
                   </FormControl>

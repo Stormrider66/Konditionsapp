@@ -11,7 +11,7 @@
 
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 import { ArrowUp, MoveHorizontal, Target, Zap } from 'lucide-react'
 import { VerticalJumpForm } from './VerticalJumpForm'
 import { StandingLongJumpForm } from './StandingLongJumpForm'
@@ -42,37 +42,37 @@ export function PowerTestForm({ clients, onTestSaved }: PowerTestFormProps) {
 
   if (clients.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5" />
-            Krafttest
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-slate-900 dark:text-white" />
+            <span className="text-slate-900 dark:text-white">Krafttest</span>
+          </GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent>
+          <p className="text-slate-500 dark:text-slate-400">
             Inga klienter hittades. Lägg till klienter för att kunna registrera test.
           </p>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     )
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5" />
-            Krafttest
-          </CardTitle>
-          <CardDescription>
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-slate-900 dark:text-white" />
+            <span className="text-slate-900 dark:text-white">Krafttest</span>
+          </GlassCardTitle>
+          <GlassCardDescription className="text-slate-500 dark:text-slate-400">
             Mät explosiv kraft och styrka genom hopp- och kasttest
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           <Tabs value={testType} onValueChange={(v) => setTestType(v as PowerTestType)}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-3 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm">
               <TabsTrigger value="vertical-jump" className="flex items-center gap-2">
                 <ArrowUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Vertikalhopp</span>
@@ -104,42 +104,42 @@ export function PowerTestForm({ clients, onTestSaved }: PowerTestFormProps) {
               </TabsContent>
             </div>
           </Tabs>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
 
       {/* Recent saved tests */}
       {savedTests.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Senaste sparade test</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle className="text-lg text-slate-900 dark:text-white">Senaste sparade test</GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
             <div className="space-y-2">
               {savedTests.slice(0, 5).map((test) => (
                 <div
                   key={test.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                  className="flex items-center justify-between p-3 rounded-lg bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200 dark:border-white/5"
                 >
                   <div>
-                    <p className="font-medium">{test.client?.name || 'Okänd klient'}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-medium text-slate-900 dark:text-white">{test.client?.name || 'Okänd klient'}</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                       {test.protocol?.replace(/_/g, ' ')} -{' '}
                       {new Date(test.testDate).toLocaleDateString('sv-SE')}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold">
+                    <p className="font-semibold text-slate-900 dark:text-white">
                       {test.primaryResult} {test.primaryUnit}
                     </p>
                     {test.benchmarkTier && (
-                      <p className="text-xs text-muted-foreground">{test.benchmarkTier}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{test.benchmarkTier}</p>
                     )}
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
     </div>
   )

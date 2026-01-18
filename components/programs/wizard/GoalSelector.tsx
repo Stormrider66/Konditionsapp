@@ -99,19 +99,20 @@ export function GoalSelector({ sport, selectedGoal, onSelect, onBack }: GoalSele
         {goals.map((goal) => {
           const isSelected = selectedGoal === goal.id
           return (
+            // ...
             <button
               key={goal.id}
               onClick={() => onSelect(goal.id)}
               className={cn(
                 'flex flex-col items-start p-5 rounded-xl border-2 transition-all duration-200 text-left',
                 isSelected
-                  ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                  : 'border-muted bg-card hover:border-primary/50 hover:bg-muted/50',
+                  ? 'border-primary bg-primary/10 ring-2 ring-primary ring-offset-2'
+                  : 'border-slate-200 dark:border-white/10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm hover:border-primary/50 hover:bg-white/60 dark:hover:bg-slate-800/60',
                 'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
               )}
             >
-              <span className="font-semibold text-lg">{goal.label}</span>
-              <span className="text-sm text-muted-foreground mt-1">
+              <span className="font-semibold text-lg text-slate-900 dark:text-white">{goal.label}</span>
+              <span className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 {goal.description}
               </span>
               {goal.duration && (
@@ -120,6 +121,7 @@ export function GoalSelector({ sport, selectedGoal, onSelect, onBack }: GoalSele
                 </span>
               )}
             </button>
+            // ...
           )
         })}
       </div>

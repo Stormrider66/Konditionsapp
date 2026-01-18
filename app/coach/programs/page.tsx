@@ -60,8 +60,8 @@ export default async function CoachProgramsPage() {
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Träningsprogram</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">Träningsprogram</h1>
+          <p className="text-slate-600 dark:text-slate-400">
             Hantera och skapa träningsprogram för dina atleter
           </p>
         </div>
@@ -74,8 +74,8 @@ export default async function CoachProgramsPage() {
       </div>
 
       {!canCreateMore && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <p className="text-sm text-yellow-800">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-lg p-4 mb-6">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
             Du har nått gränsen för antalet atleter i din prenumeration.
             Uppgradera för att skapa fler program.
           </p>

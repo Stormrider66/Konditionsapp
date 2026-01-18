@@ -89,6 +89,7 @@ export function SportSelector({ selectedSport, onSelect }: SportSelectorProps) {
         {sports.map((sport) => {
           const isSelected = selectedSport === sport.id
           return (
+            // ...
             <button
               key={sport.id}
               onClick={() => onSelect(sport.id)}
@@ -96,17 +97,18 @@ export function SportSelector({ selectedSport, onSelect }: SportSelectorProps) {
                 'flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all duration-200',
                 'min-h-[140px]',
                 isSelected
-                  ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-                  : `border-muted bg-card ${sport.color}`,
+                  ? 'border-primary bg-primary/10 ring-2 ring-primary ring-offset-2'
+                  : `border-slate-200 dark:border-white/10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm ${sport.color}`,
                 'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
               )}
             >
               <span className="text-4xl mb-3">{sport.icon}</span>
-              <span className="font-semibold text-lg">{sport.label}</span>
-              <span className="text-xs text-muted-foreground mt-1 text-center">
+              <span className="font-semibold text-lg text-slate-900 dark:text-white">{sport.label}</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-center">
                 {sport.description}
               </span>
             </button>
+            // ...
           )
         })}
       </div>

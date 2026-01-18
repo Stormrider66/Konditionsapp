@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { format, addDays } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -49,27 +49,27 @@ export function ProgramCalendar({ program }: ProgramCalendarProps) {
 
   if (!program.weeks || program.weeks.length === 0) {
     return (
-      <Card>
-        <CardContent className="text-center py-12">
-          <p className="text-muted-foreground">Inga veckor tillgängliga</p>
-        </CardContent>
-      </Card>
+      <GlassCard>
+        <GlassCardContent className="text-center py-12">
+          <p className="text-slate-500 dark:text-slate-400">Inga veckor tillgängliga</p>
+        </GlassCardContent>
+      </GlassCard>
     )
   }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Programkalender</h2>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Programkalender</h2>
         <div className="flex gap-2">
           <Link href="/coach/strength">
-            <Button variant="outline" size="sm" className="hidden md:flex">
+            <Button variant="outline" size="sm" className="hidden md:flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
               <Dumbbell className="mr-2 h-4 w-4" />
               Strength Studio
             </Button>
           </Link>
           <Link href={`/coach/cardio?programId=${program.id}`}>
-            <Button variant="outline" size="sm" className="hidden md:flex">
+            <Button variant="outline" size="sm" className="hidden md:flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
               <Activity className="mr-2 h-4 w-4" />
               Cardio Studio
             </Button>
@@ -78,6 +78,7 @@ export function ProgramCalendar({ program }: ProgramCalendarProps) {
             variant="outline"
             size="sm"
             onClick={() => setExpandedWeeks(new Set(program.weeks.map((w) => w.id)))}
+            className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"
           >
             Expandera alla
           </Button>
@@ -85,6 +86,7 @@ export function ProgramCalendar({ program }: ProgramCalendarProps) {
             variant="outline"
             size="sm"
             onClick={() => setExpandedWeeks(new Set())}
+            className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"
           >
             Minimera alla
           </Button>
@@ -134,21 +136,21 @@ function WeekCard({
   const weeklyStats = calculateWeeklyStats(week)
 
   return (
-    <Card
+    <GlassCard
       className={cn(
         'transition-all',
-        isCurrent && 'border-primary border-2',
+        isCurrent && 'border-primary/50 ring-1 ring-primary/20',
         isExpanded && 'shadow-md'
       )}
     >
       <Collapsible open={isExpanded} onOpenChange={onToggle}>
         <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+          <GlassCardHeader className="cursor-pointer hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <CardTitle className="text-lg">Vecka {week.weekNumber}</CardTitle>
+                    <GlassCardTitle className="text-lg">Vecka {week.weekNumber}</GlassCardTitle>
                     {isCurrent && (
                       <Badge variant="default">Aktuell vecka</Badge>
                     )}
@@ -159,7 +161,7 @@ function WeekCard({
                       {formatPhase(week.phase)}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     {format(weekStartDate, 'd MMM', { locale: sv })} -{' '}
                     {format(weekEndDate, 'd MMM yyyy', { locale: sv })}
                   </p>
@@ -168,11 +170,11 @@ function WeekCard({
 
               <div className="flex items-center gap-4">
                 {week.focus && (
-                  <p className="text-sm text-muted-foreground max-w-md hidden md:block">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md hidden md:block">
                     {week.focus}
                   </p>
                 )}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                   <Badge variant="secondary">{totalWorkouts} pass</Badge>
                   {weeklyStats.totalDistance > 0 && (
                     <span className="font-medium">📏 {weeklyStats.totalDistance.toFixed(1)} km</span>
@@ -182,17 +184,17 @@ function WeekCard({
                   )}
                 </div>
                 {isExpanded ? (
-                  <ChevronUp className="h-5 w-5" />
+                  <ChevronUp className="h-5 w-5 text-slate-400" />
                 ) : (
-                  <ChevronDown className="h-5 w-5" />
+                  <ChevronDown className="h-5 w-5 text-slate-400" />
                 )}
               </div>
             </div>
-          </CardHeader>
+          </GlassCardHeader>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <CardContent className="pt-0">
+          <GlassCardContent className="pt-0">
             <div className="space-y-3">
               {week.days && week.days.length > 0 ? (
                 week.days.map((day) => (
@@ -203,15 +205,15 @@ function WeekCard({
                   />
                 ))
               ) : (
-                <p className="text-center text-muted-foreground py-8">
+                <p className="text-center text-slate-500 dark:text-slate-400 py-8">
                   Inga träningspass denna vecka
                 </p>
               )}
             </div>
-          </CardContent>
+          </GlassCardContent>
         </CollapsibleContent>
       </Collapsible>
-    </Card>
+    </GlassCard>
   )
 }
 
@@ -238,15 +240,15 @@ function DayCard({ day, date }: DayCardProps) {
 
   if (!day.workouts || day.workouts.length === 0) {
     return (
-      <div className="flex items-center gap-4 p-3 bg-muted/30 rounded-lg">
+      <div className="flex items-center gap-4 p-3 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg border border-slate-100 dark:border-white/5">
         <div className="w-24 flex-shrink-0">
-          <p className="font-medium text-sm">{dayNames[day.dayNumber - 1]}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="font-medium text-sm text-slate-900 dark:text-white">{dayNames[day.dayNumber - 1]}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             {format(date, 'd MMM', { locale: sv })}
           </p>
         </div>
         <div className="flex-1">
-          <p className="text-sm text-muted-foreground">Vilodag</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Vilodag</p>
         </div>
       </div>
     )
@@ -257,102 +259,102 @@ function DayCard({ day, date }: DayCardProps) {
       {day.workouts.map((workout, index) => {
         const isExpanded = expandedWorkouts.has(workout.id)
         return (
-        <div
-          key={workout.id}
-          className="flex items-start gap-4 p-3 bg-card border rounded-lg hover:shadow-sm transition-shadow"
-        >
-          <div className="w-24 flex-shrink-0">
-            <p className="font-medium text-sm">{dayNames[day.dayNumber - 1]}</p>
-            <p className="text-xs text-muted-foreground">
-              {format(date, 'd MMM', { locale: sv })}
-            </p>
-          </div>
-
-          <div className="flex-1 space-y-2">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="font-semibold">{workout.name}</h4>
-                <Badge variant="outline" className={getIntensityBadgeClass(workout.intensity)}>
-                  {formatIntensity(workout.intensity)}
-                </Badge>
-              </div>
-              {workout.instructions && (
-                <p className="text-sm text-muted-foreground">{workout.instructions}</p>
-              )}
+          <div
+            key={workout.id}
+            className="flex items-start gap-4 p-3 bg-white/40 dark:bg-slate-950/40 border border-slate-200/50 dark:border-white/5 rounded-lg hover:bg-white/60 dark:hover:bg-slate-950/60 transition-colors backdrop-blur-sm"
+          >
+            <div className="w-24 flex-shrink-0">
+              <p className="font-medium text-sm text-slate-900 dark:text-white">{dayNames[day.dayNumber - 1]}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {format(date, 'd MMM', { locale: sv })}
+              </p>
             </div>
 
-            {workout.segments && workout.segments.length > 0 && (
-              <div className="text-xs space-y-1">
-                {(isExpanded ? workout.segments : workout.segments.slice(0, 3)).map((segment) => (
-                  <div key={segment.id} className="flex items-center gap-2 flex-wrap">
-                    <Badge variant="secondary" className="text-xs">
-                      {segment.exercise?.nameSv || formatSegmentType(segment.type)}
-                    </Badge>
-                    <span className="text-muted-foreground">
-                      {segment.description}
-                      {segment.duration && ` (${segment.duration} min)`}
-                      {segment.distance && ` ${segment.distance} km`}
-                      {segment.pace && ` @ ${segment.pace}`}
-                    </span>
-                    {segment.zone && (
-                      <Badge variant="outline" className="text-xs border-blue-400 text-blue-700">
-                        Zon {segment.zone}
-                      </Badge>
-                    )}
-                    {segment.heartRate && (
-                      <span className="text-xs text-muted-foreground">
-                        ❤️ {segment.heartRate}
-                      </span>
-                    )}
-                    {segment.sets && segment.repsCount && (
-                      <span className="text-xs text-muted-foreground">
-                        {segment.sets} × {segment.repsCount} reps
-                      </span>
-                    )}
-                  </div>
-                ))}
-                {!isExpanded && workout.segments.length > 3 && (
-                  <p className="text-muted-foreground">
-                    +{workout.segments.length - 3} fler segment
-                  </p>
+            <div className="flex-1 space-y-2">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="font-semibold text-slate-900 dark:text-white">{workout.name}</h4>
+                  <Badge variant="outline" className={getIntensityBadgeClass(workout.intensity)}>
+                    {formatIntensity(workout.intensity)}
+                  </Badge>
+                </div>
+                {workout.instructions && (
+                  <p className="text-sm text-slate-600 dark:text-slate-300">{workout.instructions}</p>
                 )}
               </div>
-            )}
 
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              {workout.duration && <span>⏱ {workout.duration} min</span>}
-              {(() => {
-                // Calculate total distance from segments (includes warmup/cooldown)
-                const segmentDistance = workout.segments?.reduce((sum, s) => sum + (s.distance || 0), 0) || 0
-                const displayDistance = segmentDistance > 0 ? segmentDistance : workout.distance
-                return displayDistance ? <span>📏 {displayDistance.toFixed(1)} km</span> : null
-              })()}
+              {workout.segments && workout.segments.length > 0 && (
+                <div className="text-xs space-y-1">
+                  {(isExpanded ? workout.segments : workout.segments.slice(0, 3)).map((segment) => (
+                    <div key={segment.id} className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">
+                        {segment.exercise?.nameSv || formatSegmentType(segment.type)}
+                      </Badge>
+                      <span className="text-slate-600 dark:text-slate-300">
+                        {segment.description}
+                        {segment.duration && ` (${segment.duration} min)`}
+                        {segment.distance && ` ${segment.distance} km`}
+                        {segment.pace && ` @ ${segment.pace}`}
+                      </span>
+                      {segment.zone && (
+                        <Badge variant="outline" className="text-xs border-blue-400 text-blue-700">
+                          Zon {segment.zone}
+                        </Badge>
+                      )}
+                      {segment.heartRate && (
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          ❤️ {segment.heartRate}
+                        </span>
+                      )}
+                      {segment.sets && segment.repsCount && (
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {segment.sets} × {segment.repsCount} reps
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {!isExpanded && workout.segments.length > 3 && (
+                    <p className="text-slate-500 dark:text-slate-400">
+                      +{workout.segments.length - 3} fler segment
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+                {workout.duration && <span>⏱ {workout.duration} min</span>}
+                {(() => {
+                  // Calculate total distance from segments (includes warmup/cooldown)
+                  const segmentDistance = workout.segments?.reduce((sum, s) => sum + (s.distance || 0), 0) || 0
+                  const displayDistance = segmentDistance > 0 ? segmentDistance : workout.distance
+                  return displayDistance ? <span>📏 {displayDistance.toFixed(1)} km</span> : null
+                })()}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => toggleWorkout(workout.id)}
+                className="h-8 w-8 p-0"
+              >
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+
+              <Link href={workout.type === 'STRENGTH'
+                ? `/coach/strength?workoutId=${workout.id}`
+                : `/coach/cardio?workoutId=${workout.id}`}>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-primary" title="Redigera pass">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </div>
-
-          <div className="flex flex-col gap-1 flex-shrink-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleWorkout(workout.id)}
-              className="h-8 w-8 p-0"
-            >
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-
-            <Link href={workout.type === 'STRENGTH' 
-                ? `/coach/strength?workoutId=${workout.id}` 
-                : `/coach/cardio?workoutId=${workout.id}`}>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary" title="Redigera pass">
-                <Pencil className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
         )
       })}
     </div>

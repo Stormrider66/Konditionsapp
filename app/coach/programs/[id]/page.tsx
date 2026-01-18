@@ -89,7 +89,7 @@ export default async function ProgramPage({ params }: ProgramPageProps) {
   return (
     <div className="container mx-auto py-8 px-4">
       <Link href="/coach/programs">
-        <Button variant="ghost" className="mb-6">
+        <Button variant="ghost" className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Tillbaka till program
         </Button>

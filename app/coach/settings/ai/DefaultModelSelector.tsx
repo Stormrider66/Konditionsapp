@@ -229,14 +229,14 @@ export function DefaultModelSelector() {
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <FileText className="h-3 w-3" />
-                          {formatTokenCount(model.capabilities.maxOutputTokens)} output
+                          {formatTokenCount(model.capabilities?.maxOutputTokens)} output
                           <span className="text-muted-foreground/70">
-                            (~{estimateWeeksFromTokens(model.capabilities.maxOutputTokens)} veckor)
+                            (~{estimateWeeksFromTokens(model.capabilities?.maxOutputTokens)} veckor)
                           </span>
                         </span>
                         <span className="flex items-center gap-1">
                           <DollarSign className="h-3 w-3" />
-                          ${model.pricing.output}/1M
+                          ${model.pricing?.output}/1M
                         </span>
                       </div>
                       {model.description && (
@@ -261,8 +261,8 @@ export function DefaultModelSelector() {
                         <div className="flex flex-col gap-1">
                           <span>{model.displayName || model.name}</span>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span>{formatTokenCount(model.capabilities.maxOutputTokens)} output</span>
-                            <span>${model.pricing.output}/1M</span>
+                            <span>{formatTokenCount(model.capabilities?.maxOutputTokens)} output</span>
+                            <span>${model.pricing?.output}/1M</span>
                           </div>
                           <span className="text-xs text-muted-foreground">
                             {getProviderLabel(model.provider)} - API-nyckel saknas
@@ -312,19 +312,19 @@ export function DefaultModelSelector() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-muted-foreground">Max output:</span>{' '}
-                  <span className="font-medium">{formatTokenCount(defaultModel.capabilities.maxOutputTokens)} tokens</span>
+                  <span className="font-medium">{formatTokenCount(defaultModel.capabilities?.maxOutputTokens)} tokens</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Uppskattad kapacitet:</span>{' '}
-                  <span className="font-medium">~{estimateWeeksFromTokens(defaultModel.capabilities.maxOutputTokens)} veckors program</span>
+                  <span className="font-medium">~{estimateWeeksFromTokens(defaultModel.capabilities?.maxOutputTokens)} veckors program</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Input-pris:</span>{' '}
-                  <span className="font-medium">${defaultModel.pricing.input}/1M tokens</span>
+                  <span className="font-medium">${defaultModel.pricing?.input}/1M tokens</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Output-pris:</span>{' '}
-                  <span className="font-medium">${defaultModel.pricing.output}/1M tokens</span>
+                  <span className="font-medium">${defaultModel.pricing?.output}/1M tokens</span>
                 </div>
               </div>
             </div>

@@ -249,7 +249,13 @@ export const COST_TIER_COLORS: Record<CostTier, string> = {
 /**
  * Format token count for display (e.g., 128000 -> "128K")
  */
-export function formatTokenCount(tokens: number): string {
+/**
+ * Format token count for display (e.g., 128000 -> "128K")
+ */
+export function formatTokenCount(tokens: number | undefined | null): string {
+  if (tokens == null || isNaN(tokens)) {
+    return '0'
+  }
   if (tokens >= 1000000) {
     return `${(tokens / 1000000).toFixed(tokens % 1000000 === 0 ? 0 : 1)}M`
   }
@@ -263,7 +269,8 @@ export function formatTokenCount(tokens: number): string {
  * Estimate weeks of training program that can be generated
  * Assumes ~4000 tokens per week of detailed program
  */
-export function estimateWeeksFromTokens(maxOutputTokens: number): number {
+export function estimateWeeksFromTokens(maxOutputTokens: number | undefined | null): number {
+  if (maxOutputTokens == null || isNaN(maxOutputTokens)) return 0
   return Math.floor(maxOutputTokens / 4000)
 }
 

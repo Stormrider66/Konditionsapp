@@ -8,7 +8,12 @@ import { sv } from 'date-fns/locale'
 import type { Client, Team } from '@/types'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/search-input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import {
   Select,
   SelectContent,
@@ -45,10 +50,8 @@ import { LoadingTable } from '@/components/ui/loading'
 import { useToast } from '@/hooks/use-toast'
 import { MoreVertical, UserPlus, Eye, Trash2, ArrowLeft, Phone, Mail, Download, UserCircle, Check } from 'lucide-react'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
-import { MobileNav } from '@/components/navigation/MobileNav'
+import { CoachLayout } from '@/components/layouts/CoachLayout'
 import { exportClientsToCSV } from '@/lib/utils/csv-export'
-import { createClient as createSupabaseClient } from '@/lib/supabase/client'
-import type { User } from '@supabase/supabase-js'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
@@ -59,22 +62,12 @@ export default function ClientsPage() {
   const [teamFilter, setTeamFilter] = useState<string>('all')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null)
-  const [user, setUser] = useState<User | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
     fetchClients()
     fetchTeams()
-    fetchUser()
   }, [])
-
-  const fetchUser = async () => {
-    const supabase = createSupabaseClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    setUser(user)
-  }
 
   const fetchClients = async () => {
     try {
@@ -208,13 +201,11 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <MobileNav user={user} />
-
-      <main className="max-w-7xl mx-auto px-4 py-6 lg:py-12">
+    <CoachLayout>
+      <div className="max-w-7xl mx-auto px-4 py-6 lg:py-12">
         <div className="mb-6">
-          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">Klientregister</h2>
-          <p className="text-gray-600 mt-1 text-sm lg:text-base">
+          <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">Klientregister</h2>
+          <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm lg:text-base">
             Hantera klienter och deras testhistorik
           </p>
         </div>
@@ -224,11 +215,11 @@ export default function ClientsPage() {
           </Alert>
         )}
 
-        <Card>
-          <CardHeader>
+        <GlassCard>
+          <GlassCardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <CardTitle>Alla klienter</CardTitle>
+                <GlassCardTitle>Alla klienter</GlassCardTitle>
                 {searchTerm && (
                   <p className="text-sm text-muted-foreground mt-1">
                     Visar {filteredClients.length} av {clients.length} klienter
@@ -278,8 +269,8 @@ export default function ClientsPage() {
                 </div>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
+          </GlassCardHeader>
+          <GlassCardContent>
             {loading ? (
               <LoadingTable />
             ) : filteredClients.length === 0 ? (
@@ -291,15 +282,15 @@ export default function ClientsPage() {
                 {/* Mobile Card View */}
                 <div className="lg:hidden space-y-4">
                   {filteredClients.map((client) => (
-                    <Card key={client.id} className="hover:shadow-md transition">
-                      <CardContent className="p-4">
+                    <GlassCard key={client.id} className="hover:shadow-md transition">
+                      <GlassCardContent className="p-4">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-3 flex-1">
                             <Avatar className="w-12 h-12">
                               <AvatarFallback>{getInitials(client.name)}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-lg truncate">{client.name}</h3>
+                              <h3 className="font-semibold text-lg truncate dark:text-slate-100">{client.name}</h3>
                               <p className="text-sm text-muted-foreground">
                                 {calculateAge(client.birthDate)} år
                               </p>
@@ -367,7 +358,7 @@ export default function ClientsPage() {
                           <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">Atletkonto:</span>
                             {(client as any).athleteAccount ? (
-                              <Badge variant="default" className="bg-green-100 text-green-800">
+                              <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
                                 <Check className="w-3 h-3 mr-1" />
                                 Aktivt
                               </Badge>
@@ -393,150 +384,150 @@ export default function ClientsPage() {
                             Uppdaterad: {format(new Date(client.updatedAt), 'PPP', { locale: sv })}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </GlassCardContent>
+                    </GlassCard>
                   ))}
                 </div>
 
                 {/* Desktop Table View */}
                 <div className="hidden lg:block overflow-x-auto">
                   <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Klient</TableHead>
-                      <TableHead>Ålder</TableHead>
-                      <TableHead>Kön</TableHead>
-                      <TableHead>Lag</TableHead>
-                      <TableHead>E-post</TableHead>
-                      <TableHead>Atletkonto</TableHead>
-                      <TableHead>Senast uppdaterad</TableHead>
-                      <TableHead className="text-right">Åtgärder</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredClients.map((client) => (
-                      <TableRow key={client.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback>{getInitials(client.name)}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{client.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{calculateAge(client.birthDate)} år</TableCell>
-                        <TableCell>
-                          <Badge variant={client.gender === 'MALE' ? 'default' : 'secondary'}>
-                            {client.gender === 'MALE' ? 'Man' : 'Kvinna'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {client.team ? (
-                            <Badge variant="outline">{client.team.name}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {client.email || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {(client as any).athleteAccount ? (
-                            <Badge variant="default" className="bg-green-100 text-green-800">
-                              <Check className="w-3 h-3 mr-1" />
-                              Aktivt
-                            </Badge>
-                          ) : (
-                            <CreateAthleteAccountDialog
-                              clientId={client.id}
-                              clientName={client.name}
-                              clientEmail={client.email}
-                              hasExistingAccount={false}
-                              onAccountCreated={fetchClients}
-                              trigger={
-                                <Button variant="outline" size="sm" className="h-7 text-xs">
-                                  <UserPlus className="w-3 h-3 mr-1" />
-                                  Skapa
-                                </Button>
-                              }
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(client.updatedAt), 'PPP', { locale: sv })}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/clients/${client.id}`}
-                                  className="cursor-pointer"
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  Visa
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  href={`/clients/${client.id}/profile`}
-                                  className="cursor-pointer"
-                                >
-                                  <UserCircle className="w-4 h-4 mr-2" />
-                                  Fullständig profil
-                                </Link>
-                              </DropdownMenuItem>
-                              {!(client as any).athleteAccount && (
-                                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
-                                  <CreateAthleteAccountDialog
-                                    clientId={client.id}
-                                    clientName={client.name}
-                                    clientEmail={client.email}
-                                    hasExistingAccount={false}
-                                    onAccountCreated={fetchClients}
-                                    trigger={
-                                      <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
-                                        <UserPlus className="w-4 h-4 mr-2" />
-                                        Skapa atletkonto
-                                      </button>
-                                    }
-                                  />
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteClick(client)}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Ta bort
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent border-slate-200 dark:border-white/10">
+                        <TableHead>Klient</TableHead>
+                        <TableHead>Ålder</TableHead>
+                        <TableHead>Kön</TableHead>
+                        <TableHead>Lag</TableHead>
+                        <TableHead>E-post</TableHead>
+                        <TableHead>Atletkonto</TableHead>
+                        <TableHead>Senast uppdaterad</TableHead>
+                        <TableHead className="text-right">Åtgärder</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClients.map((client) => (
+                        <TableRow key={client.id} className="hover:bg-slate-100/50 dark:hover:bg-white/5 border-slate-200 dark:border-white/10">
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarFallback>{getInitials(client.name)}</AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium dark:text-slate-100">{client.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="dark:text-slate-300">{calculateAge(client.birthDate)} år</TableCell>
+                          <TableCell>
+                            <Badge variant={client.gender === 'MALE' ? 'default' : 'secondary'}>
+                              {client.gender === 'MALE' ? 'Man' : 'Kvinna'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {client.team ? (
+                              <Badge variant="outline">{client.team.name}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {client.email || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {(client as any).athleteAccount ? (
+                              <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
+                                <Check className="w-3 h-3 mr-1" />
+                                Aktivt
+                              </Badge>
+                            ) : (
+                              <CreateAthleteAccountDialog
+                                clientId={client.id}
+                                clientName={client.name}
+                                clientEmail={client.email}
+                                hasExistingAccount={false}
+                                onAccountCreated={fetchClients}
+                                trigger={
+                                  <Button variant="outline" size="sm" className="h-7 text-xs">
+                                    <UserPlus className="w-3 h-3 mr-1" />
+                                    Skapa
+                                  </Button>
+                                }
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {format(new Date(client.updatedAt), 'PPP', { locale: sv })}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    href={`/clients/${client.id}`}
+                                    className="cursor-pointer"
+                                  >
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Visa
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <Link
+                                    href={`/clients/${client.id}/profile`}
+                                    className="cursor-pointer"
+                                  >
+                                    <UserCircle className="w-4 h-4 mr-2" />
+                                    Fullständig profil
+                                  </Link>
+                                </DropdownMenuItem>
+                                {!(client as any).athleteAccount && (
+                                  <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                                    <CreateAthleteAccountDialog
+                                      clientId={client.id}
+                                      clientName={client.name}
+                                      clientEmail={client.email}
+                                      hasExistingAccount={false}
+                                      onAccountCreated={fetchClients}
+                                      trigger={
+                                        <button className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer">
+                                          <UserPlus className="w-4 h-4 mr-2" />
+                                          Skapa atletkonto
+                                        </button>
+                                      }
+                                    />
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                  onClick={() => handleDeleteClick(client)}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Ta bort
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </>
             )}
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="mt-6 bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <p className="text-sm text-blue-800">
+        <GlassCard className="mt-6 bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30">
+          <GlassCardContent className="p-4">
+            <p className="text-sm text-blue-800 dark:text-blue-300">
               <strong>Tips:</strong> Klicka på en klient för att se deras testhistorik
               och skapa nya tester.
             </p>
-          </CardContent>
-        </Card>
-      </main>
+          </GlassCardContent>
+        </GlassCard>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -558,6 +549,6 @@ export default function ClientsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </CoachLayout>
   )
 }

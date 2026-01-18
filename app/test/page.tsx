@@ -10,7 +10,7 @@ import { EmailReportButton } from '@/components/reports/EmailReportButton'
 import { performAllCalculations } from '@/lib/calculations'
 import { Test, Client, TestCalculations, TestStage, ReportData, TestType } from '@/types'
 import { CreateTestFormData } from '@/lib/validations/schemas'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { ArrowLeft, Printer, User, Home, Droplet, Scale, Zap, Timer, Dumbbell, Shuffle, Waves, Activity, Flame } from 'lucide-react'
@@ -23,7 +23,8 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Label } from '@/components/ui/label'
-import { MobileNav } from '@/components/navigation/MobileNav'
+import { CoachLayout } from '@/components/layouts/CoachLayout'
+import { cn } from '@/lib/utils'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { User as SupabaseUser } from '@supabase/supabase-js'
 
@@ -225,19 +226,18 @@ export default function TestPage() {
     }
   }
 
-  // Client selector component (shared between test types)
   const ClientSelector = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Välj klient</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <GlassCard>
+      <GlassCardHeader>
+        <GlassCardTitle>Välj klient</GlassCardTitle>
+      </GlassCardHeader>
+      <GlassCardContent>
         <div className="space-y-2">
-          <Label htmlFor="client-select">Klient</Label>
+          <Label htmlFor="client-select" className="text-slate-900 dark:text-white">Klient</Label>
           {loading ? (
             <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
           ) : clients.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Inga klienter tillgängliga. Gå till{' '}
               <Link href="/clients" className="text-blue-600 hover:underline">
                 Klientregister
@@ -246,7 +246,7 @@ export default function TestPage() {
             </p>
           ) : (
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-              <SelectTrigger id="client-select">
+              <SelectTrigger id="client-select" className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                 <SelectValue placeholder="Välj en klient" />
               </SelectTrigger>
               <SelectContent>
@@ -259,22 +259,22 @@ export default function TestPage() {
             </Select>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <MobileNav user={user} userRole={userRole} />
+    <CoachLayout>
+      {/* MobileNav removed as CoachLayout handles header */}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8">
         {!showReport ? (
           <div className="space-y-6">
             {/* Test Category Tabs */}
             <div>
-              <h1 className="text-2xl font-bold mb-4">Nytt Test</h1>
+              <h1 className="text-2xl font-bold mb-4 text-slate-900 dark:text-white">Nytt Test</h1>
               <Tabs value={testCategory} onValueChange={(v) => setTestCategory(v as TestCategory)}>
-                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 h-auto gap-1">
+                <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 h-auto gap-1 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm p-1">
                   {TEST_CATEGORIES.map((category) => {
                     const Icon = category.icon
                     return (
@@ -294,17 +294,17 @@ export default function TestPage() {
 
                 {/* Lactate Test Content */}
                 <TabsContent value="lactate" className="space-y-6 mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Laktattestinställningar</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                  <GlassCard>
+                    <GlassCardHeader>
+                      <GlassCardTitle>Laktattestinställningar</GlassCardTitle>
+                    </GlassCardHeader>
+                    <GlassCardContent className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="client-select">Klient</Label>
+                        <Label htmlFor="client-select" className="text-slate-900 dark:text-white">Klient</Label>
                         {loading ? (
                           <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
                         ) : clients.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
                             Inga klienter tillgängliga. Gå till{' '}
                             <Link href="/clients" className="text-blue-600 hover:underline">
                               Klientregister
@@ -313,7 +313,7 @@ export default function TestPage() {
                           </p>
                         ) : (
                           <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                            <SelectTrigger id="client-select">
+                            <SelectTrigger id="client-select" className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                               <SelectValue placeholder="Välj en klient" />
                             </SelectTrigger>
                             <SelectContent>
@@ -328,9 +328,9 @@ export default function TestPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Testtyp</Label>
+                        <Label className="text-slate-900 dark:text-white">Testtyp</Label>
                         <Tabs value={testType} onValueChange={(value) => setTestType(value as TestType)}>
-                          <TabsList className="grid w-full grid-cols-3">
+                          <TabsList className="grid w-full grid-cols-3 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm">
                             <TabsTrigger value="RUNNING">Löpning</TabsTrigger>
                             <TabsTrigger value="CYCLING">Cykling</TabsTrigger>
                             <TabsTrigger value="SKIING">Skidåkning</TabsTrigger>
@@ -340,9 +340,9 @@ export default function TestPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="location-select">Plats</Label>
+                          <Label htmlFor="location-select" className="text-slate-900 dark:text-white">Plats</Label>
                           <Select value={location} onValueChange={setLocation}>
-                            <SelectTrigger id="location-select" className="min-h-[44px]">
+                            <SelectTrigger id="location-select" className="min-h-[44px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                               <SelectValue placeholder="Välj plats" />
                             </SelectTrigger>
                             <SelectContent>
@@ -353,9 +353,9 @@ export default function TestPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="test-leader">Testledare</Label>
+                          <Label htmlFor="test-leader" className="text-slate-900 dark:text-white">Testledare</Label>
                           <Select value={testLeader} onValueChange={setTestLeader}>
-                            <SelectTrigger id="test-leader" className="min-h-[44px]">
+                            <SelectTrigger id="test-leader" className="min-h-[44px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                               <SelectValue placeholder="Välj testledare" />
                             </SelectTrigger>
                             <SelectContent>
@@ -367,23 +367,23 @@ export default function TestPage() {
                           </Select>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </GlassCardContent>
+                  </GlassCard>
 
                   {selectedClient && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Mata in testdata</CardTitle>
-                      </CardHeader>
-                      <CardContent>
+                    <GlassCard>
+                      <GlassCardHeader>
+                        <GlassCardTitle>Mata in testdata</GlassCardTitle>
+                      </GlassCardHeader>
+                      <GlassCardContent>
                         <TestDataForm
                           key={`${selectedClientId}-${testType}`}
                           testType={testType}
                           onSubmit={handleSubmit}
                           clientId={selectedClient.id}
                         />
-                      </CardContent>
-                    </Card>
+                      </GlassCardContent>
+                    </GlassCard>
                   )}
                 </TabsContent>
 
@@ -392,17 +392,17 @@ export default function TestPage() {
                   <ClientSelector />
 
                   {selectedClient && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Bioimpedansmätning</CardTitle>
-                      </CardHeader>
-                      <CardContent>
+                    <GlassCard>
+                      <GlassCardHeader>
+                        <GlassCardTitle>Bioimpedansmätning</GlassCardTitle>
+                      </GlassCardHeader>
+                      <GlassCardContent>
                         <BioimpedanceForm
                           clientId={selectedClient.id}
                           clientName={selectedClient.name}
                         />
-                      </CardContent>
-                    </Card>
+                      </GlassCardContent>
+                    </GlassCard>
                   )}
                 </TabsContent>
 
@@ -582,6 +582,6 @@ export default function TestPage() {
           </div>
         )}
       </main>
-    </div>
+    </CoachLayout>
   )
 }

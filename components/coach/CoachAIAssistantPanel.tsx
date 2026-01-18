@@ -9,7 +9,13 @@
 
 import { useState } from 'react'
 import useSWR from 'swr'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -137,15 +143,15 @@ export function CoachAIAssistantPanel() {
   const totalActive = alerts.length
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
+    <GlassCard className="h-full">
+      <GlassCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Bot className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <CardTitle className="text-lg flex items-center gap-2">
+              <GlassCardTitle className="text-lg flex items-center gap-2">
                 AI Assistent
                 {totalActive > 0 && (
                   <Badge
@@ -161,8 +167,8 @@ export function CoachAIAssistantPanel() {
                     {totalActive}
                   </Badge>
                 )}
-              </CardTitle>
-              <CardDescription>Atleter som behöver uppmärksamhet</CardDescription>
+              </GlassCardTitle>
+              <GlassCardDescription>Atleter som behöver uppmärksamhet</GlassCardDescription>
             </div>
           </div>
           <Button
@@ -170,7 +176,7 @@ export function CoachAIAssistantPanel() {
             size="icon"
             onClick={() => mutate()}
             disabled={isLoading}
-            className="h-8 w-8"
+            className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -179,9 +185,9 @@ export function CoachAIAssistantPanel() {
             )}
           </Button>
         </div>
-      </CardHeader>
+      </GlassCardHeader>
 
-      <CardContent className="pt-0">
+      <GlassCardContent className="pt-0">
         {error ? (
           <div className="text-center py-8 text-muted-foreground">
             <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-red-500" />
@@ -201,7 +207,7 @@ export function CoachAIAssistantPanel() {
           <>
             {/* Filter tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-3">
-              <TabsList className="w-full grid grid-cols-6 h-8">
+              <TabsList className="w-full grid grid-cols-6 h-8 bg-muted/50 dark:bg-slate-900/50">
                 <TabsTrigger value="all" className="text-xs px-1">
                   Alla
                 </TabsTrigger>
@@ -244,7 +250,7 @@ export function CoachAIAssistantPanel() {
             </ScrollArea>
           </>
         )}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

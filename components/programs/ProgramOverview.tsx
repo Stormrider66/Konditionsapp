@@ -3,7 +3,7 @@
 
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Card, CardContent } from '@/components/ui/card'
+import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -88,14 +88,14 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold">{program.name}</h1>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{program.name}</h1>
             {isActive && (
-              <Badge variant="default" className="text-sm">
+              <Badge variant="default" className="text-sm bg-green-600 hover:bg-green-700">
                 Aktivt
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
             <User className="h-4 w-4" />
             <span>{program.client?.name || 'Okänd klient'}</span>
           </div>
@@ -131,13 +131,13 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
             startDate={new Date(program.startDate)}
             size="sm"
           />
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
             <Edit className="mr-2 h-4 w-4" />
             Redigera
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" disabled={isDeleting}>
+              <Button variant="outline" size="sm" disabled={isDeleting} className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Radera
               </Button>
@@ -152,7 +152,7 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Avbryt</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete}>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
                   Radera program
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -163,104 +163,104 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Vecka</p>
-                <p className="text-2xl font-bold">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Vecka</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {currentWeek} / {totalWeeks}
                 </p>
               </div>
-              <Calendar className="h-8 w-8 text-muted-foreground" />
+              <Calendar className="h-8 w-8 text-slate-400 dark:text-slate-500" />
             </div>
-            <div className="mt-3 w-full bg-secondary rounded-full h-2">
+            <div className="mt-3 w-full bg-secondary dark:bg-white/10 rounded-full h-2">
               <div
                 className="bg-primary h-full rounded-full transition-all"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardContent className="pt-6">
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Mål</p>
-                <p className="text-2xl font-bold">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Mål</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {formatGoalType(program.goalType || '')}
                 </p>
               </div>
-              <Target className="h-8 w-8 text-muted-foreground" />
+              <Target className="h-8 w-8 text-slate-400 dark:text-slate-500" />
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardContent className="pt-6">
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Startdatum</p>
-                <p className="text-lg font-semibold">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Startdatum</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-white">
                   {format(new Date(program.startDate), 'd MMM yyyy', { locale: sv })}
                 </p>
               </div>
-              <Calendar className="h-8 w-8 text-muted-foreground" />
+              <Calendar className="h-8 w-8 text-slate-400 dark:text-slate-500" />
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card>
-          <CardContent className="pt-6">
+        <GlassCard>
+          <GlassCardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Slutdatum</p>
-                <p className="text-lg font-semibold">
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Slutdatum</p>
+                <p className="text-lg font-semibold text-slate-900 dark:text-white">
                   {format(new Date(program.endDate), 'd MMM yyyy', { locale: sv })}
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-muted-foreground" />
+              <TrendingUp className="h-8 w-8 text-slate-400 dark:text-slate-500" />
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* Program Notes */}
       {program.description && (
-        <Card>
-          <CardContent className="pt-6">
-            <h3 className="font-semibold mb-2">Anteckningar</h3>
-            <p className="text-muted-foreground whitespace-pre-wrap">{program.description}</p>
-          </CardContent>
-        </Card>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
+            <h3 className="font-semibold mb-2 text-slate-900 dark:text-white">Anteckningar</h3>
+            <p className="text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{program.description}</p>
+          </GlassCardContent>
+        </GlassCard>
       )}
 
       {/* Test Info */}
       {program.test && (
-        <Card>
-          <CardContent className="pt-6">
-            <h3 className="font-semibold mb-3">Baserat på test</h3>
+        <GlassCard>
+          <GlassCardContent className="pt-6">
+            <h3 className="font-semibold mb-3 text-slate-900 dark:text-white">Baserat på test</h3>
             <div className="flex items-center gap-6 text-sm">
               <div>
-                <p className="text-muted-foreground">Testdatum</p>
-                <p className="font-medium">
+                <p className="text-slate-500 dark:text-slate-400">Testdatum</p>
+                <p className="font-medium text-slate-900 dark:text-white">
                   {format(new Date(program.test.testDate), 'PPP', { locale: sv })}
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground">Testtyp</p>
-                <p className="font-medium">{program.test.testType}</p>
+                <p className="text-slate-500 dark:text-slate-400">Testtyp</p>
+                <p className="font-medium text-slate-900 dark:text-white">{program.test.testType}</p>
               </div>
               {program.test.vo2max && (
                 <div>
-                  <p className="text-muted-foreground">VO2max</p>
-                  <p className="font-medium">{program.test.vo2max.toFixed(1)} ml/kg/min</p>
+                  <p className="text-slate-500 dark:text-slate-400">VO2max</p>
+                  <p className="font-medium text-slate-900 dark:text-white">{program.test.vo2max.toFixed(1)} ml/kg/min</p>
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
     </div>
   )

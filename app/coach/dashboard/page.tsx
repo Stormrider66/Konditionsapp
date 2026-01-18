@@ -1,15 +1,14 @@
-// app/coach/dashboard/page.tsx
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import {
   Activity,
@@ -129,18 +128,18 @@ export default async function CoachDashboardPage() {
   const feedbackGiven = recentLogs.filter(log => log.coachFeedback).length
   const avgRPE = recentLogs.filter(log => log.perceivedEffort).length > 0
     ? (
-        recentLogs
-          .filter(log => log.perceivedEffort)
-          .reduce((sum, log) => sum + (log.perceivedEffort || 0), 0) /
-        recentLogs.filter(log => log.perceivedEffort).length
-      ).toFixed(1)
+      recentLogs
+        .filter(log => log.perceivedEffort)
+        .reduce((sum, log) => sum + (log.perceivedEffort || 0), 0) /
+      recentLogs.filter(log => log.perceivedEffort).length
+    ).toFixed(1)
     : '-'
 
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">{tNav('dashboard')}</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{tNav('dashboard')}</h1>
         <p className="text-muted-foreground text-sm">
           {t('welcomeBack', { name: user.name })}
         </p>
@@ -148,8 +147,8 @@ export default async function CoachDashboardPage() {
 
       {/* Key Stats - 4 cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0">
-          <CardContent className="p-4">
+        <GlassCard className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 dark:ring-0">
+          <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-sm">{t('athletes')}</p>
@@ -160,11 +159,11 @@ export default async function CoachDashboardPage() {
             <Link href="/clients" className="text-xs text-blue-100 hover:text-white flex items-center gap-1 mt-2">
               {t('viewAll')} <ArrowRight className="h-3 w-3" />
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
-          <CardContent className="p-4">
+        <GlassCard className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 dark:ring-0">
+          <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm">{t('activePrograms')}</p>
@@ -175,11 +174,11 @@ export default async function CoachDashboardPage() {
             <Link href="/coach/programs" className="text-xs text-green-100 hover:text-white flex items-center gap-1 mt-2">
               {t('viewPrograms')} <ArrowRight className="h-3 w-3" />
             </Link>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0">
-          <CardContent className="p-4">
+        <GlassCard className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 dark:ring-0">
+          <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm">{t('workoutsThisWeek')}</p>
@@ -188,11 +187,11 @@ export default async function CoachDashboardPage() {
               <Activity className="h-8 w-8 opacity-80" />
             </div>
             <p className="text-xs text-purple-100 mt-2">{t('completedByAthletes')}</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
-        <Card className={`border-0 ${logsNeedingFeedback.length > 0 ? 'bg-gradient-to-br from-red-500 to-red-600 text-white' : 'bg-gradient-to-br from-slate-500 to-slate-600 text-white'}`}>
-          <CardContent className="p-4">
+        <GlassCard className={`border-0 dark:ring-0 ${logsNeedingFeedback.length > 0 ? 'bg-gradient-to-br from-red-500 to-red-600 text-white' : 'bg-gradient-to-br from-slate-500 to-slate-600 text-white'}`}>
+          <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className={logsNeedingFeedback.length > 0 ? 'text-red-100 text-sm' : 'text-slate-100 text-sm'}>{t('needsFeedback')}</p>
@@ -201,8 +200,8 @@ export default async function CoachDashboardPage() {
               <AlertCircle className="h-8 w-8 opacity-80" />
             </div>
             <p className={`text-xs mt-2 ${logsNeedingFeedback.length > 0 ? 'text-red-100' : 'text-slate-100'}`}>{t('workoutsWithoutFeedback')}</p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       </div>
 
       {/* Main Content Grid */}
@@ -210,19 +209,19 @@ export default async function CoachDashboardPage() {
         {/* Left Column - Needs Attention */}
         <div className="lg:col-span-2 space-y-6">
           {/* Logs Needing Feedback */}
-          <Card>
-            <CardHeader className="pb-3">
+          <GlassCard>
+            <GlassCardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
+                <GlassCardTitle className="text-base flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 text-red-500" />
                   {t('needsFeedback')}
-                </CardTitle>
+                </GlassCardTitle>
                 {logsNeedingFeedback.length > 0 && (
                   <Badge variant="destructive">{logsNeedingFeedback.length}</Badge>
                 )}
               </div>
-            </CardHeader>
-            <CardContent>
+            </GlassCardHeader>
+            <GlassCardContent>
               {logsNeedingFeedback.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
                   <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-green-500" />
@@ -233,10 +232,10 @@ export default async function CoachDashboardPage() {
                   {logsNeedingFeedback.slice(0, 4).map((log) => (
                     <div
                       key={log.id}
-                      className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 rounded-lg"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">
+                        <p className="font-medium text-sm truncate dark:text-slate-200">
                           {log.workout.day.week.program.client.name}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
@@ -257,21 +256,21 @@ export default async function CoachDashboardPage() {
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
           {/* Recent Activity */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+          <GlassCard>
+            <GlassCardHeader className="pb-3">
+              <GlassCardTitle className="text-base flex items-center gap-2">
                 <Activity className="h-4 w-4 text-blue-500" />
                 {t('recentActivity')}
-              </CardTitle>
-              <CardDescription className="text-xs">
+              </GlassCardTitle>
+              <GlassCardDescription className="text-xs">
                 {t('workoutsLoggedLast7Days')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </GlassCardDescription>
+            </GlassCardHeader>
+            <GlassCardContent>
               {recentLogs.length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
                   <Activity className="h-10 w-10 mx-auto mb-2 opacity-50" />
@@ -282,11 +281,11 @@ export default async function CoachDashboardPage() {
                   {recentLogs.slice(0, 8).map((log) => (
                     <div
                       key={log.id}
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-muted/30 dark:bg-white/5 rounded-lg"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm truncate">
+                          <p className="font-medium text-sm truncate dark:text-slate-200">
                             {log.workout.day.week.program.client.name}
                           </p>
                           {log.completed && <CheckCircle2 className="h-3 w-3 text-green-600 flex-shrink-0" />}
@@ -310,8 +309,8 @@ export default async function CoachDashboardPage() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
 
         {/* Right Column - Summary & Alerts */}
@@ -320,51 +319,51 @@ export default async function CoachDashboardPage() {
           <CoachAIAssistantPanel />
 
           {/* Weekly Summary */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t('weeklySummary')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <GlassCard>
+            <GlassCardHeader className="pb-3">
+              <GlassCardTitle className="text-base">{t('weeklySummary')}</GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold">{completedLogsThisWeek}</p>
+                  <p className="text-xl font-bold dark:text-slate-200">{completedLogsThisWeek}</p>
                   <p className="text-xs text-muted-foreground">{t('completedWorkouts')}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <MessageSquare className="h-5 w-5 text-blue-600" />
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                  <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold">{feedbackGiven}</p>
+                  <p className="text-xl font-bold dark:text-slate-200">{feedbackGiven}</p>
                   <p className="text-xs text-muted-foreground">{t('feedbackGiven')}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-orange-600" />
+                <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold">{avgRPE}</p>
+                  <p className="text-xl font-bold dark:text-slate-200">{avgRPE}</p>
                   <p className="text-xs text-muted-foreground">{t('averageRpe')}</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
 
           {/* Alerts */}
           {activeInjuries > 0 && (
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="p-4">
+            <GlassCard className="border-red-200 bg-red-50 dark:bg-red-950/10 dark:border-red-900/30">
+              <GlassCardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <HeartPulse className="h-6 w-6 text-red-500" />
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{t('activeInjuries', { count: activeInjuries })}</p>
+                    <p className="font-medium text-sm dark:text-red-200">{t('activeInjuries', { count: activeInjuries })}</p>
                     <p className="text-xs text-muted-foreground">{t('requiresFollowUp')}</p>
                   </div>
                   <Link href="/coach/injuries">
@@ -373,42 +372,42 @@ export default async function CoachDashboardPage() {
                     </Button>
                   </Link>
                 </div>
-              </CardContent>
-            </Card>
+              </GlassCardContent>
+            </GlassCard>
           )}
 
           {/* Quick Links */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t('quickLinks')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <GlassCard>
+            <GlassCardHeader className="pb-3">
+              <GlassCardTitle className="text-base">{t('quickLinks')}</GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-2">
               <Link href="/test" className="block">
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition">
+                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
                   <ClipboardList className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm">{t('newLactateTest')}</span>
+                  <span className="text-sm dark:text-slate-300">{t('newLactateTest')}</span>
                 </div>
               </Link>
               <Link href="/coach/programs/new" className="block">
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition">
+                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
                   <Calendar className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">{t('createProgram')}</span>
+                  <span className="text-sm dark:text-slate-300">{t('createProgram')}</span>
                 </div>
               </Link>
               <Link href="/coach/messages" className="block">
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition">
+                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
                   <MessageSquare className="h-4 w-4 text-orange-500" />
-                  <span className="text-sm">{tNav('messages')}</span>
+                  <span className="text-sm dark:text-slate-300">{tNav('messages')}</span>
                 </div>
               </Link>
               <Link href="/coach/monitoring" className="block">
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition">
+                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
                   <Activity className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm">{t('monitoring')}</span>
+                  <span className="text-sm dark:text-slate-300">{t('monitoring')}</span>
                 </div>
               </Link>
-            </CardContent>
-          </Card>
+            </GlassCardContent>
+          </GlassCard>
         </div>
       </div>
     </div>

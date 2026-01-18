@@ -31,7 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowUp, Zap, Timer, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react'
@@ -254,27 +255,28 @@ function CMJForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ArrowUp className="h-5 w-5" />
-              Counter Movement Jump (CMJ)
-            </CardTitle>
-            <CardDescription>
+
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
+              <ArrowUp className="h-5 w-5 text-slate-900 dark:text-white" />
+              <span className="text-slate-900 dark:text-white">Counter Movement Jump (CMJ)</span>
+            </GlassCardTitle>
+            <GlassCardDescription className="text-slate-500 dark:text-slate-400">
               Standard vertikalhopp med motrörelse. Mest använda hopptest för explosiv styrka.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Klient</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Klient</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                           <SelectValue placeholder="Välj klient" />
                         </SelectTrigger>
                       </FormControl>
@@ -312,7 +314,7 @@ function CMJForm({
                 name="jumpHeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hopphöjd (cm)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Hopphöjd (cm)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -322,9 +324,10 @@ function CMJForm({
                         placeholder="t.ex. 42.5"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                       />
                     </FormControl>
-                    <FormDescription>Bästa hopp av alla försök</FormDescription>
+                    <FormDescription className="text-slate-500 dark:text-slate-400">Bästa hopp av alla försök</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -335,7 +338,7 @@ function CMJForm({
                 name="bodyWeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kroppsvikt (kg)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Kroppsvikt (kg)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -344,9 +347,10 @@ function CMJForm({
                         max={200}
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                       />
                     </FormControl>
-                    <FormDescription>Vikt vid testtillfället</FormDescription>
+                    <FormDescription className="text-slate-500 dark:text-slate-400">Vikt vid testtillfället</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -359,13 +363,13 @@ function CMJForm({
                 name="armSwing"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Armsving</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Armsving</FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(v === 'true')}
                       value={field.value ? 'true' : 'false'}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
@@ -440,8 +444,8 @@ function CMJForm({
                 </FormItem>
               )}
             />
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? 'Sparar...' : 'Spara CMJ-test'}
@@ -487,27 +491,27 @@ function SJForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5" />
-              Squat Jump (SJ)
-            </CardTitle>
-            <CardDescription>
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-slate-900 dark:text-white" />
+              <span className="text-slate-900 dark:text-white">Squat Jump (SJ)</span>
+            </GlassCardTitle>
+            <GlassCardDescription className="text-slate-500 dark:text-slate-400">
               Hopp från stillastående knäböjläge utan motrörelse. Mäter ren koncentrisk styrka.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Klient</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Klient</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                           <SelectValue placeholder="Välj klient" />
                         </SelectTrigger>
                       </FormControl>
@@ -529,9 +533,9 @@ function SJForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Testdatum</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -545,7 +549,7 @@ function SJForm({
                 name="jumpHeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hopphöjd (cm)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Hopphöjd (cm)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -555,9 +559,10 @@ function SJForm({
                         placeholder="t.ex. 38.0"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                       />
                     </FormControl>
-                    <FormDescription>SJ är typiskt 5-10cm lägre än CMJ</FormDescription>
+                    <FormDescription className="text-slate-500 dark:text-slate-400">SJ är typiskt 5-10cm lägre än CMJ</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -568,7 +573,7 @@ function SJForm({
                 name="bodyWeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kroppsvikt (kg)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Kroppsvikt (kg)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -577,6 +582,7 @@ function SJForm({
                         max={200}
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                       />
                     </FormControl>
                     <FormMessage />
@@ -590,13 +596,13 @@ function SJForm({
               name="squatDepth"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Knävinkel (grader)</FormLabel>
+                  <FormLabel className="text-slate-900 dark:text-white">Knävinkel (grader)</FormLabel>
                   <Select
                     onValueChange={(v) => field.onChange(parseInt(v))}
                     value={field.value?.toString()}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
@@ -606,7 +612,7 @@ function SJForm({
                       <SelectItem value="100">100° (grundare)</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Standardiserad knävinkel vid startposition</FormDescription>
+                  <FormDescription className="text-slate-500 dark:text-slate-400">Standardiserad knävinkel vid startposition</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -640,16 +646,16 @@ function SJForm({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Anteckningar</FormLabel>
+                  <FormLabel className="text-slate-900 dark:text-white">Anteckningar</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Teknik, startposition, observationer..." {...field} />
+                    <Textarea placeholder="Teknik, startposition, observationer..." {...field} className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? 'Sparar...' : 'Spara SJ-test'}
@@ -698,27 +704,27 @@ function DJForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Timer className="h-5 w-5" />
-              Drop Jump (DJ) - Reaktiv styrka
-            </CardTitle>
-            <CardDescription>
+        <GlassCard>
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2">
+              <Timer className="h-5 w-5 text-slate-900 dark:text-white" />
+              <span className="text-slate-900 dark:text-white">Drop Jump (DJ) - Reaktiv styrka</span>
+            </GlassCardTitle>
+            <GlassCardDescription className="text-slate-500 dark:text-slate-400">
               Hopp från upphöjning med minimal markkontakttid. Mäter Reactive Strength Index (RSI).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </GlassCardDescription>
+          </GlassCardHeader>
+          <GlassCardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Klient</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Klient</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                           <SelectValue placeholder="Välj klient" />
                         </SelectTrigger>
                       </FormControl>
@@ -740,9 +746,9 @@ function DJForm({
                 name="testDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Testdatum</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Testdatum</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input type="date" {...field} className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -755,13 +761,13 @@ function DJForm({
               name="dropHeight"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Dropphöjd (cm)</FormLabel>
+                  <FormLabel className="text-slate-900 dark:text-white">Dropphöjd (cm)</FormLabel>
                   <Select
                     onValueChange={(v) => field.onChange(parseInt(v))}
                     value={field.value?.toString()}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
@@ -773,7 +779,7 @@ function DJForm({
                       <SelectItem value="60">60 cm</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Höjd på lådan/upphöjningen</FormDescription>
+                  <FormDescription className="text-slate-500 dark:text-slate-400">Höjd på lådan/upphöjningen</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -785,7 +791,7 @@ function DJForm({
                 name="jumpHeight"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hopphöjd (cm)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Hopphöjd (cm)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -795,6 +801,7 @@ function DJForm({
                         placeholder="t.ex. 35.0"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                        className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                       />
                     </FormControl>
                     <FormMessage />
@@ -807,7 +814,7 @@ function DJForm({
                 name="contactTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Markkontakttid (ms)</FormLabel>
+                    <FormLabel className="text-slate-900 dark:text-white">Markkontakttid (ms)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -816,9 +823,10 @@ function DJForm({
                         placeholder="t.ex. 180"
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                       />
                     </FormControl>
-                    <FormDescription>Kontakttid i millisekunder</FormDescription>
+                    <FormDescription className="text-slate-500 dark:text-slate-400">Kontakttid i millisekunder</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -830,7 +838,7 @@ function DJForm({
               name="bodyWeight"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Kroppsvikt (kg)</FormLabel>
+                  <FormLabel className="text-slate-900 dark:text-white">Kroppsvikt (kg)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -839,6 +847,7 @@ function DJForm({
                       max={200}
                       {...field}
                       onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                     />
                   </FormControl>
                   <FormMessage />
@@ -890,19 +899,20 @@ function DJForm({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Anteckningar</FormLabel>
+                  <FormLabel className="text-slate-900 dark:text-white">Anteckningar</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Landningsteknik, styvhet, observationer..."
                       {...field}
+                      className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
 
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? 'Sparar...' : 'Spara DJ-test'}
@@ -920,17 +930,17 @@ function JumpTestResult({ result }: { result: any }) {
       : null
 
   return (
-    <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+    <GlassCard className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10 backdrop-blur-sm">
+      <GlassCardHeader>
+        <GlassCardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
           <CheckCircle className="h-5 w-5" />
           Test sparat
-        </CardTitle>
-        <CardDescription>
+        </GlassCardTitle>
+        <GlassCardDescription className="text-green-600/80 dark:text-green-400/80">
           {result.client?.name} - {new Date(result.testDate).toLocaleDateString('sv-SE')}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+        </GlassCardDescription>
+      </GlassCardHeader>
+      <GlassCardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <CompactResult
             label="Hopphöjd"
@@ -957,7 +967,7 @@ function JumpTestResult({ result }: { result: any }) {
             <TestBenchmarkBadge tier={result.tier} />
           </div>
         )}
-      </CardContent>
-    </Card>
+      </GlassCardContent>
+    </GlassCard>
   )
 }

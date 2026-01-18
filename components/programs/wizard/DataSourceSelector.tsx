@@ -67,23 +67,23 @@ export function DataSourceSelector({
           className={cn(
             'flex flex-col items-center p-6 rounded-xl border-2 transition-all duration-200',
             selectedSource === 'TEST'
-              ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
+              ? 'border-primary bg-primary/10 ring-2 ring-primary ring-offset-2'
               : testSource.available
-              ? 'border-muted bg-card hover:border-primary/50 hover:bg-muted/50'
-              : 'border-muted bg-muted/30 cursor-not-allowed opacity-60',
+                ? 'border-slate-200 dark:border-white/10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm hover:border-primary/50 hover:bg-white/60 dark:hover:bg-slate-800/60'
+                : 'border-slate-200 dark:border-white/5 bg-slate-100/50 dark:bg-slate-900/20 cursor-not-allowed opacity-60',
             'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
           )}
         >
           <div
             className={cn(
               'w-14 h-14 rounded-full flex items-center justify-center mb-4',
-              testSource.available ? 'bg-blue-100 text-blue-600' : 'bg-muted text-muted-foreground'
+              testSource.available ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
             )}
           >
             <FlaskConical className="w-7 h-7" />
           </div>
-          <span className="font-semibold text-lg">Labtest</span>
-          <span className="text-sm text-muted-foreground mt-1 text-center">
+          <span className="font-semibold text-lg text-slate-900 dark:text-white">Labtest</span>
+          <span className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
             Använd befintligt konditionstest med träningszoner
           </span>
           <div className="mt-4 flex items-center gap-2">
@@ -97,7 +97,7 @@ export function DataSourceSelector({
             ) : (
               <>
                 <X className="w-4 h-4 text-red-500" />
-                <span className="text-xs text-muted-foreground">Inga tester</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Inga tester</span>
               </>
             )}
           </div>
@@ -110,23 +110,23 @@ export function DataSourceSelector({
           className={cn(
             'flex flex-col items-center p-6 rounded-xl border-2 transition-all duration-200',
             selectedSource === 'PROFILE'
-              ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
+              ? 'border-primary bg-primary/10 ring-2 ring-primary ring-offset-2'
               : profileSource.available
-              ? 'border-muted bg-card hover:border-primary/50 hover:bg-muted/50'
-              : 'border-muted bg-muted/30 cursor-not-allowed opacity-60',
+                ? 'border-slate-200 dark:border-white/10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm hover:border-primary/50 hover:bg-white/60 dark:hover:bg-slate-800/60'
+                : 'border-slate-200 dark:border-white/5 bg-slate-100/50 dark:bg-slate-900/20 cursor-not-allowed opacity-60',
             'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
           )}
         >
           <div
             className={cn(
               'w-14 h-14 rounded-full flex items-center justify-center mb-4',
-              profileSource.available ? 'bg-purple-100 text-purple-600' : 'bg-muted text-muted-foreground'
+              profileSource.available ? 'bg-purple-100 text-purple-600' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
             )}
           >
             <User className="w-7 h-7" />
           </div>
-          <span className="font-semibold text-lg">Sportprofil</span>
-          <span className="text-sm text-muted-foreground mt-1 text-center">
+          <span className="font-semibold text-lg text-slate-900 dark:text-white">Sportprofil</span>
+          <span className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
             Använd sparade värden från atletens profil
           </span>
           <div className="mt-4 flex items-center gap-2">
@@ -141,7 +141,7 @@ export function DataSourceSelector({
             ) : (
               <>
                 <X className="w-4 h-4 text-red-500" />
-                <span className="text-xs text-muted-foreground">Ingen profil</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">Ingen profil</span>
               </>
             )}
           </div>
@@ -153,16 +153,16 @@ export function DataSourceSelector({
           className={cn(
             'flex flex-col items-center p-6 rounded-xl border-2 transition-all duration-200',
             selectedSource === 'MANUAL'
-              ? 'border-primary bg-primary/5 ring-2 ring-primary ring-offset-2'
-              : 'border-muted bg-card hover:border-primary/50 hover:bg-muted/50',
+              ? 'border-primary bg-primary/10 ring-2 ring-primary ring-offset-2'
+              : 'border-slate-200 dark:border-white/10 bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm hover:border-primary/50 hover:bg-white/60 dark:hover:bg-slate-800/60',
             'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
           )}
         >
           <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 bg-green-100 text-green-600">
             <PenLine className="w-7 h-7" />
           </div>
-          <span className="font-semibold text-lg">Manuellt</span>
-          <span className="text-sm text-muted-foreground mt-1 text-center">
+          <span className="font-semibold text-lg text-slate-900 dark:text-white">Manuellt</span>
+          <span className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
             Ange värden direkt i formuläret
           </span>
           <div className="mt-4 flex items-center gap-2">

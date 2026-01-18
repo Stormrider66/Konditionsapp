@@ -7,12 +7,12 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  GlassCard,
+  GlassCardContent,
+  GlassCardDescription,
+  GlassCardHeader,
+  GlassCardTitle,
+} from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -72,18 +72,18 @@ export function ProgramsList({ programs }: ProgramsListProps) {
 
   if (programs.length === 0) {
     return (
-      <Card className="text-center py-12">
-        <CardContent>
+      <GlassCard className="text-center py-12">
+        <GlassCardContent>
           <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Inga program än</h3>
+          <h3 className="text-lg font-semibold mb-2 dark:text-white">Inga program än</h3>
           <p className="text-muted-foreground mb-6">
             Kom igång genom att skapa ditt första träningsprogram
           </p>
           <Link href="/coach/programs/new">
             <Button>Skapa program</Button>
           </Link>
-        </CardContent>
-      </Card>
+        </GlassCardContent>
+      </GlassCard>
     )
   }
 
@@ -97,11 +97,11 @@ export function ProgramsList({ programs }: ProgramsListProps) {
             placeholder="Sök program eller atlet..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10"
           />
         </div>
         <Select value={goalFilter} onValueChange={setGoalFilter}>
-          <SelectTrigger className="w-full sm:w-[200px]">
+          <SelectTrigger className="w-full sm:w-[200px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
             <SelectValue placeholder="Filtrera mål" />
           </SelectTrigger>
           <SelectContent>
@@ -116,7 +116,7 @@ export function ProgramsList({ programs }: ProgramsListProps) {
           </SelectContent>
         </Select>
         <Select value={phaseFilter} onValueChange={setPhaseFilter}>
-          <SelectTrigger className="w-full sm:w-[200px]">
+          <SelectTrigger className="w-full sm:w-[200px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
             <SelectValue placeholder="Filtrera fas" />
           </SelectTrigger>
           <SelectContent>
@@ -131,7 +131,7 @@ export function ProgramsList({ programs }: ProgramsListProps) {
       </div>
 
       {/* Results count */}
-      <p className="text-sm text-muted-foreground mb-4">
+      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
         Visar {filteredPrograms.length} av {programs.length} program
       </p>
 
@@ -143,15 +143,15 @@ export function ProgramsList({ programs }: ProgramsListProps) {
       </div>
 
       {filteredPrograms.length === 0 && (
-        <Card className="text-center py-12">
-          <CardContent>
+        <GlassCard className="text-center py-12">
+          <GlassCardContent>
             <Filter className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Inga matchande program</h3>
+            <h3 className="text-lg font-semibold mb-2 dark:text-white">Inga matchande program</h3>
             <p className="text-muted-foreground">
               Prova att ändra dina filterinställningar
             </p>
-          </CardContent>
-        </Card>
+          </GlassCardContent>
+        </GlassCard>
       )}
     </div>
   )
@@ -200,7 +200,7 @@ function ProgramCard({ program }: { program: any }) {
   }
 
   return (
-    <Card className="hover:shadow-lg transition-shadow h-full relative group">
+    <GlassCard className="hover:shadow-lg transition-shadow h-full relative group">
       {/* Delete button - positioned at top-right, left of "Aktiv" badge */}
       <div className="absolute top-3 right-20 z-20">
         <AlertDialog>
@@ -208,7 +208,7 @@ function ProgramCard({ program }: { program: any }) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-white hover:bg-destructive hover:text-destructive-foreground shadow-sm border border-gray-200"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 dark:bg-slate-900/80 hover:bg-destructive hover:text-destructive-foreground shadow-sm border border-slate-200 dark:border-white/10"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -237,30 +237,30 @@ function ProgramCard({ program }: { program: any }) {
       </div>
 
       <Link href={`/coach/programs/${program.id}`} className="block">
-        <CardHeader>
+        <GlassCardHeader>
           <div className="flex justify-between items-start mb-2">
-            <CardTitle className="text-lg pr-12">{program.name}</CardTitle>
+            <GlassCardTitle className="text-lg pr-12 text-slate-900 dark:text-white">{program.name}</GlassCardTitle>
             {isActive && (
-              <Badge variant="default">Aktiv</Badge>
+              <Badge variant="default" className="bg-green-600 hover:bg-green-700">Aktiv</Badge>
             )}
           </div>
-          <CardDescription className="flex items-center gap-2">
+          <GlassCardDescription className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
             <User className="h-4 w-4" />
             {program.client?.name || 'Okänd klient'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </GlassCardDescription>
+        </GlassCardHeader>
+        <GlassCardContent>
           <div className="space-y-3">
             {/* Goal Type */}
             {program.goalType && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <Target className="h-4 w-4 text-muted-foreground" />
                 <span className="capitalize">{formatGoalType(program.goalType)}</span>
               </div>
             )}
 
             {/* Dates */}
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span>
                 {format(new Date(program.startDate), 'd MMM', { locale: sv })} -{' '}
@@ -279,16 +279,16 @@ function ProgramCard({ program }: { program: any }) {
             </div>
 
             {/* Progress bar */}
-            <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-secondary dark:bg-white/10 rounded-full h-2 overflow-hidden">
               <div
                 className="bg-primary h-full transition-all"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
           </div>
-        </CardContent>
+        </GlassCardContent>
       </Link>
-    </Card>
+    </GlassCard>
   )
 }
 

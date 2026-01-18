@@ -161,7 +161,7 @@ export function AthleteAttentionCard({
   return (
     <div
       className={cn(
-        'border rounded-lg bg-card overflow-hidden border-l-4 transition-all',
+        'border rounded-lg bg-white/40 dark:bg-slate-950/40 backdrop-blur-sm overflow-hidden border-l-4 transition-all border-slate-200/50 dark:border-white/5',
         severity.border
       )}
     >

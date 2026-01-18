@@ -55,15 +55,15 @@ export default async function NewProgramPage() {
     return (
       <div className="container mx-auto py-8 px-4 max-w-2xl">
         <Link href="/coach/programs">
-          <Button variant="ghost" className="mb-6">
+          <Button variant="ghost" className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Tillbaka
           </Button>
         </Link>
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-2">Inga klienter tillgängliga</h2>
-          <p className="text-muted-foreground mb-4">
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-2 text-yellow-800 dark:text-yellow-200">Inga klienter tillgängliga</h2>
+          <p className="text-yellow-700 dark:text-yellow-200/80 mb-4">
             Du behöver skapa en klient innan du kan skapa ett träningsprogram.
           </p>
           <Link href="/clients/new">
@@ -77,15 +77,15 @@ export default async function NewProgramPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <Link href="/coach/programs">
-        <Button variant="ghost" className="mb-6">
+        <Button variant="ghost" className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Tillbaka till program
         </Button>
       </Link>
 
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-2">Skapa träningsprogram</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">Skapa träningsprogram</h1>
+        <p className="text-slate-600 dark:text-slate-400">
           Välj sport, mål och datakälla för att generera ett personligt program
         </p>
       </div>
