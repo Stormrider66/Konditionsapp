@@ -109,7 +109,7 @@ export function ContractForm({ contract, onSuccess }: ContractFormProps) {
         const response = await fetch('/api/admin/businesses');
         const result = await response.json();
         if (result.success) {
-          setBusinesses(result.data || []);
+          setBusinesses(result.data?.businesses || []);
         }
       } catch (err) {
         console.error('Failed to fetch businesses:', err);
