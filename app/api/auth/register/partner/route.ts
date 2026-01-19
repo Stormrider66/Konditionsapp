@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    if (authError) {
+    if (authError || !authData?.user) {
       console.error('Supabase auth error:', authError)
       return NextResponse.json(
         { success: false, error: 'Failed to create account' },

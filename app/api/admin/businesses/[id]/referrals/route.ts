@@ -13,8 +13,8 @@ export async function GET(
     const { id: businessId } = await params
 
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')))
     const status = searchParams.get('status')
 
     // Verify business exists
@@ -61,9 +61,9 @@ export async function GET(
         take: limit,
       }),
       prisma.partnerReferral.count({ where }),
-      // Aggregate stats
+      // Aggregate stats (uses same filter as referrals list for consistency)
       prisma.partnerReferral.aggregate({
-        where: { businessId },
+        where,
         _sum: {
           totalRevenue: true,
           totalBusinessShare: true,
