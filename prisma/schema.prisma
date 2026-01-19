@@ -449,8 +449,14 @@ model User {
   contractChanges EnterpriseContractChange[] @relation("ContractChanges")
   resolvedErrors  SystemError[]              @relation("ResolvedErrors")
 
+  // Partner Referral System
+  referredByBusinessId String?
+  referredByBusiness   Business? @relation("PartnerReferredUsers", fields: [referredByBusinessId], references: [id], onDelete: SetNull)
+  partnerReferral      PartnerReferral? @relation("ReferredUserPartner")
+
   @@index([email])
   @@index([role])
+  @@index([referredByBusinessId])
 }
 
 // ==================== TEAM SPORTS SYSTEM ====================
@@ -1037,6 +1043,10 @@ model Business {
   pricingOverrides   PricingOverride[]
   apiKeys            BusinessApiKey[]
 
+  // Partner Referral System
+  partnerReferrals   PartnerReferral[]
+  referredUsers      User[] @relation("PartnerReferredUsers")
+
   @@index([slug])
   @@index([isActive])
 }
@@ -1097,6 +1107,66 @@ model BusinessApiKey {
 
   @@index([businessId])
   @@index([keyHash])
+}
+
+// ==================== PARTNER REFERRAL SYSTEM ====================
+
+enum PartnerReferralStatus {
+  PENDING     // User signed up but hasn't subscribed yet
+  ACTIVE      // User has active subscription, revenue being shared
+  CHURNED     // User cancelled subscription
+  EXPIRED     // Referral expired (no subscription within window)
+}
+
+/// Tracks partner/business referrals and ongoing revenue sharing
+model PartnerReferral {
+  id         String  @id @default(uuid())
+  businessId String
+  userId     String  @unique // The user who was referred
+
+  // Referral tracking
+  referralCode    String? // Optional code used (e.g., "STAR2024")
+  referralSource  String? // "link", "code", "api", "manual"
+  landingPage     String? // URL they landed on
+
+  status PartnerReferralStatus @default(PENDING)
+
+  // Revenue sharing terms (copied from contract at time of referral)
+  revenueSharePercent Float @default(70) // Business gets this % (e.g., 70 = 70%)
+  platformSharePercent Float @default(30) // Platform gets this % (e.g., 30 = 30%)
+
+  // Subscription tracking
+  subscriptionTier     String? // "FREE", "STANDARD", "PRO"
+  monthlyAmount        Int?    // Amount in smallest currency unit (öre)
+  currency             String  @default("SEK")
+  firstSubscriptionAt  DateTime?
+  lastPaymentAt        DateTime?
+
+  // Revenue totals (updated on each payment)
+  totalRevenue         Int @default(0) // Total revenue generated (öre)
+  totalBusinessShare   Int @default(0) // Total paid to business (öre)
+  totalPlatformShare   Int @default(0) // Total kept by platform (öre)
+  paymentCount         Int @default(0) // Number of payments processed
+
+  // Payout tracking
+  pendingPayout        Int @default(0) // Amount pending payout to business (öre)
+  lastPayoutAt         DateTime?
+  lastPayoutAmount     Int?
+
+  // Timestamps
+  signedUpAt  DateTime @default(now())
+  activatedAt DateTime? // When subscription started
+  churnedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation("ReferredUserPartner", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([status])
+  @@index([signedUpAt])
+  @@index([activatedAt])
 }
 
 // ==================== TESTERS & LOCATIONS ====================

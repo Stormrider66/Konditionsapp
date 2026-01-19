@@ -15,9 +15,11 @@ import {
   Calendar,
   RefreshCw,
   ExternalLink,
+  UserPlus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { BusinessMembersManager } from './BusinessMembersManager';
+import { PartnerReferralsTab } from './PartnerReferralsTab';
 
 interface BusinessDetail {
   id: string;
@@ -145,10 +147,14 @@ export function BusinessDetailPanel({ businessId, onUpdate }: BusinessDetailPane
   return (
     <div className="mt-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members ({business._count.members})</TabsTrigger>
           <TabsTrigger value="locations">Locations ({business._count.locations})</TabsTrigger>
+          <TabsTrigger value="referrals" className="flex items-center gap-1">
+            <UserPlus className="h-3 w-3" />
+            Referrals
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -358,6 +364,15 @@ export function BusinessDetailPanel({ businessId, onUpdate }: BusinessDetailPane
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Referrals Tab */}
+        <TabsContent value="referrals" className="mt-4">
+          <PartnerReferralsTab
+            businessId={business.id}
+            businessSlug={business.slug}
+            businessName={business.name}
+          />
         </TabsContent>
       </Tabs>
     </div>
