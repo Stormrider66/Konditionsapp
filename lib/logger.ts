@@ -7,7 +7,10 @@
  * - Pretty console output in development
  * - Context/metadata support
  * - Automatic error serialization
+ * - Sentry integration for error-level logs
  */
+
+import * as Sentry from '@sentry/nextjs'
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -239,9 +242,33 @@ function log(
       break
     case 'warn':
       console.warn(formatted)
+      // Optionally capture warnings to Sentry as breadcrumbs
+      Sentry.addBreadcrumb({
+        category: 'log',
+        message: message,
+        level: 'warning',
+        data: entry.context,
+      })
       break
     case 'error':
       console.error(formatted)
+      // Capture error-level logs to Sentry
+      if (error instanceof Error) {
+        Sentry.captureException(error, {
+          extra: {
+            message,
+            context: entry.context,
+          },
+        })
+      } else if (error) {
+        Sentry.captureMessage(message, {
+          level: 'error',
+          extra: {
+            context: entry.context,
+            errorValue: String(error),
+          },
+        })
+      }
       break
   }
 }

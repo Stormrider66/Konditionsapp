@@ -34,8 +34,16 @@ import {
   Gift,
   ChevronLeft,
   ChevronRight,
+  FileText,
+  CreditCard,
+  Monitor,
+  Building2,
 } from 'lucide-react';
 import { useTranslations } from '@/i18n/client';
+import { ContractsTable } from '@/components/admin/contracts/ContractsTable';
+import { PricingTiersManager } from '@/components/admin/pricing/PricingTiersManager';
+import { MonitoringDashboard } from '@/components/admin/monitoring/MonitoringDashboard';
+import { BusinessesTable } from '@/components/admin/businesses/BusinessesTable';
 import {
   LineChart,
   Line,
@@ -122,7 +130,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('ALL');
 
   useEffect(() => {
     fetchStats();
@@ -170,7 +178,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
         page: String(page),
         limit: '20',
         ...(debouncedSearch && { search: debouncedSearch }),
-        ...(roleFilter && { role: roleFilter }),
+        ...(roleFilter !== 'ALL' && { role: roleFilter }),
       });
       const response = await fetch(`/api/admin/users?${params}`);
       const result = await response.json();
@@ -285,9 +293,25 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="overview">{t('overview')}</TabsTrigger>
           <TabsTrigger value="users">{t('users')}</TabsTrigger>
+          <TabsTrigger value="businesses" className="flex items-center gap-1">
+            <Building2 className="h-3 w-3" />
+            Businesses
+          </TabsTrigger>
+          <TabsTrigger value="pricing" className="flex items-center gap-1">
+            <CreditCard className="h-3 w-3" />
+            Pricing
+          </TabsTrigger>
+          <TabsTrigger value="contracts" className="flex items-center gap-1">
+            <FileText className="h-3 w-3" />
+            Contracts
+          </TabsTrigger>
+          <TabsTrigger value="monitoring" className="flex items-center gap-1">
+            <Monitor className="h-3 w-3" />
+            Monitoring
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -525,7 +549,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                     <SelectValue placeholder={t('allRoles')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{t('allRoles')}</SelectItem>
+                    <SelectItem value="ALL">{t('allRoles')}</SelectItem>
                     <SelectItem value="COACH">Coach</SelectItem>
                     <SelectItem value="ATHLETE">Athlete</SelectItem>
                     <SelectItem value="ADMIN">Admin</SelectItem>
@@ -626,6 +650,26 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Businesses Tab */}
+        <TabsContent value="businesses">
+          <BusinessesTable />
+        </TabsContent>
+
+        {/* Pricing Tab */}
+        <TabsContent value="pricing">
+          <PricingTiersManager />
+        </TabsContent>
+
+        {/* Contracts Tab */}
+        <TabsContent value="contracts">
+          <ContractsTable />
+        </TabsContent>
+
+        {/* Monitoring Tab */}
+        <TabsContent value="monitoring">
+          <MonitoringDashboard />
         </TabsContent>
       </Tabs>
     </div>

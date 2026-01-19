@@ -21,7 +21,8 @@
       "Bash(node:*)",
       "Bash(git push:*)",
       "Bash(git diff:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm run lint)"
     ],
     "deny": [],
     "ask": []

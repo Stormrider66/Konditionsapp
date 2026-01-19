@@ -163,6 +163,23 @@ enum ReferralRewardType {
   ATHLETE_SLOTS // Additional athlete slots
 }
 
+// ==================== ADMIN SYSTEM ====================
+
+enum AdminRole {
+  SUPER_ADMIN // Full system access, can delete contracts
+  ADMIN // System administration
+  SUPPORT // Customer support access
+}
+
+enum EnterpriseContractStatus {
+  DRAFT // Contract being prepared
+  PENDING_APPROVAL // Awaiting approval
+  ACTIVE // Active contract
+  SUSPENDED // Temporarily suspended
+  CANCELLED // Cancelled contract
+  EXPIRED // Contract period ended
+}
+
 // ==================== CALENDAR SYSTEM ====================
 
 enum CalendarEventType {
@@ -358,11 +375,12 @@ enum SportTestProtocol {
 }
 
 model User {
-  id       String   @id @default(uuid())
-  email    String   @unique
-  name     String
-  role     UserRole @default(COACH)
-  language String   @default("sv") // "sv" or "en"
+  id        String     @id @default(uuid())
+  email     String     @unique
+  name      String
+  role      UserRole   @default(COACH)
+  adminRole AdminRole? // Admin-specific role for admin panel access
+  language  String     @default("sv") // "sv" or "en"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -426,6 +444,10 @@ model User {
 
   // Sport-Specific Testing System relations
   sportTests SportTest[] @relation("UserSportTests")
+
+  // Admin System relations
+  contractChanges EnterpriseContractChange[] @relation("ContractChanges")
+  resolvedErrors  SystemError[]              @relation("ResolvedErrors")
 
   @@index([email])
   @@index([role])
@@ -1010,6 +1032,11 @@ model Business {
   athleteSubscriptions AthleteSubscription[]
   invitations          Invitation[]
 
+  // Admin System relations
+  enterpriseContract EnterpriseContract?
+  pricingOverrides   PricingOverride[]
+  apiKeys            BusinessApiKey[]
+
   @@index([slug])
   @@index([isActive])
 }
@@ -1041,6 +1068,35 @@ model BusinessMember {
   @@index([businessId])
   @@index([userId])
   @@index([role])
+}
+
+/// API keys for business external integrations
+model BusinessApiKey {
+  id         String  @id @default(uuid())
+  businessId String
+  name       String  // "Production API Key", "Development Key"
+  keyHash    String  @unique // SHA-256 hash of the actual key
+  keyPrefix  String  // First 8 chars for display: "bak_xxxx..."
+
+  // Rate limiting
+  requestsPerMinute Int @default(60)
+  requestsPerDay    Int @default(10000)
+
+  // Scopes/permissions
+  scopes String[] @default([]) // ["read:athletes", "write:workouts", etc.]
+
+  // Status
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([keyHash])
 }
 
 // ==================== TESTERS & LOCATIONS ====================
@@ -5952,4 +6008,184 @@ model AdHocWorkout {
   @@index([workoutDate])
   @@index([status])
   @@index([athleteId, status])
+}
+
+// ==================== ADMIN SYSTEM - ENTERPRISE CONTRACTS ====================
+
+/// Enterprise contract for business customers
+model EnterpriseContract {
+  id         String   @id @default(uuid())
+  businessId String   @unique
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Contract info
+  contractNumber String @unique // EC-2026-001
+  contractName   String
+  contactName    String
+  contactEmail   String
+  contactPhone   String?
+
+  // Pricing
+  monthlyFee          Float
+  currency            String @default("SEK")
+  revenueSharePercent Float  @default(75) // Business gets this %
+
+  // Limits
+  athleteLimit Int @default(-1) // -1 = unlimited
+  coachLimit   Int @default(-1)
+
+  // Terms
+  billingCycle     String    @default("MONTHLY") // MONTHLY, QUARTERLY, YEARLY
+  paymentTermDays  Int       @default(30)
+  startDate        DateTime
+  endDate          DateTime?
+  autoRenew        Boolean   @default(true)
+  noticePeriodDays Int       @default(90)
+
+  // Status
+  status EnterpriseContractStatus @default(DRAFT)
+
+  // Features (JSON for flexibility)
+  customFeatures Json?
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  activatedAt DateTime?
+  cancelledAt DateTime?
+
+  changeHistory EnterpriseContractChange[]
+
+  @@index([status])
+  @@index([endDate])
+}
+
+/// Audit trail for enterprise contract changes
+model EnterpriseContractChange {
+  id         String             @id @default(uuid())
+  contractId String
+  contract   EnterpriseContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  changeType  String // CREATED, UPDATED, ACTIVATED, RENEWED, CANCELLED, SUSPENDED
+  changedById String
+  changedBy   User   @relation("ContractChanges", fields: [changedById], references: [id])
+
+  previousData Json?
+  newData      Json?
+  notes        String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([contractId, createdAt])
+}
+
+// ==================== ADMIN SYSTEM - PRICING MANAGEMENT ====================
+
+/// Pricing tier configuration
+model PricingTier {
+  id String @id @default(uuid())
+
+  tierType    String // COACH, ATHLETE
+  tierName    String // FREE, BASIC, PRO, ENTERPRISE, STANDARD
+  displayName String
+  description String? @db.Text
+  features    Json // ["Feature 1", "Feature 2", ...]
+
+  // Pricing (in smallest currency unit, e.g., öre for SEK)
+  monthlyPriceCents Int
+  yearlyPriceCents  Int?
+  currency          String @default("SEK")
+
+  // Stripe
+  stripeProductId      String?
+  stripePriceIdMonthly String?
+  stripePriceIdYearly  String?
+
+  // Limits
+  maxAthletes  Int @default(0)
+  aiChatLimit  Int @default(0)
+
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  overrides PricingOverride[]
+
+  @@unique([tierType, tierName])
+  @@index([tierType, isActive])
+}
+
+/// Business-specific pricing overrides
+model PricingOverride {
+  id         String      @id @default(uuid())
+  tierId     String
+  tier       PricingTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  businessId String
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Overrides (null = use default)
+  monthlyPriceCents Int?
+  yearlyPriceCents  Int?
+  maxAthletes       Int?
+  aiChatLimit       Int?
+
+  validFrom  DateTime  @default(now())
+  validUntil DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tierId, businessId])
+}
+
+// ==================== ADMIN SYSTEM - MONITORING ====================
+
+/// System errors tracked for monitoring
+model SystemError {
+  id String @id @default(uuid())
+
+  level   String  @default("ERROR") // ERROR, WARN, CRITICAL
+  message String  @db.Text
+  stack   String? @db.Text
+
+  // Context
+  userId     String?
+  route      String?
+  method     String?
+  statusCode Int?
+  userAgent  String?
+
+  // Sentry link
+  sentryEventId String?
+
+  metadata Json?
+
+  // Resolution
+  isResolved   Boolean   @default(false)
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?     @relation("ResolvedErrors", fields: [resolvedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([level, createdAt])
+  @@index([isResolved, createdAt])
+  @@index([route])
+}
+
+/// System metrics for dashboard
+model SystemMetric {
+  id String @id @default(uuid())
+
+  metricName String // active_users, api_requests, error_rate, avg_response_time
+  value      Float
+  unit       String? // count, ms, percent
+
+  dimensions Json? // { route: '/api/...', method: 'GET' }
+
+  timestamp DateTime @default(now())
+
+  @@index([metricName, timestamp])
 }

@@ -9,7 +9,9 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { logger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * Standard error codes for API responses
@@ -166,6 +168,35 @@ export function handleApiError(error: unknown, context?: string): NextResponse<A
     },
     error instanceof Error ? error : new Error(String(error))
   )
+
+  // Capture to Sentry and database for 500-level errors
+  if (apiError.statusCode >= 500) {
+    const sentryEventId = Sentry.captureException(error, {
+      tags: {
+        errorCode: apiError.code,
+        context: context || 'unknown',
+      },
+      extra: {
+        statusCode: apiError.statusCode,
+        details: apiError.details,
+      },
+    })
+
+    // Record to database for monitoring dashboard (fire and forget)
+    prisma.systemError.create({
+      data: {
+        level: apiError.statusCode >= 500 ? 'ERROR' : 'WARN',
+        message: apiError.message,
+        stack: error instanceof Error ? error.stack : undefined,
+        route: context,
+        statusCode: apiError.statusCode,
+        sentryEventId: sentryEventId || undefined,
+        metadata: apiError.details as object || undefined,
+      },
+    }).catch(() => {
+      // Silently ignore database errors to prevent error loops
+    })
+  }
 
   return createErrorResponse(
     apiError.statusCode,

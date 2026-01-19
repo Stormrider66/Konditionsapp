@@ -66,7 +66,7 @@ async function main() {
       }
     },
     include: {
-      day: { select: { date: true, dayOfWeek: true } }
+      day: { select: { date: true, dayNumber: true } }
     },
     orderBy: { day: { date: 'asc' } }
   })
@@ -76,7 +76,7 @@ async function main() {
     const dayDate = w.day.date
     console.log(`  - ${format(dayDate, 'EEE dd MMM')}: ${w.name} (${w.type})`)
     console.log(`    Day date (ISO): ${dayDate.toISOString()}`)
-    console.log(`    Day of week: ${w.day.dayOfWeek}`)
+    console.log(`    Day number: ${w.day.dayNumber}`)
   }
   console.log('')
 

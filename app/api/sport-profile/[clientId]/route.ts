@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
-import { SportType } from '@prisma/client'
+import { SportType, Prisma } from '@prisma/client'
 import { validateTargets } from '@/lib/training/intensity-targets'
 import { estimateFitnessLevel, type FitnessEstimationInput, type ExperienceLevel } from '@/lib/training/fitness-estimation'
 
@@ -274,7 +274,7 @@ export async function PUT(
       if (fitnessEstimate) {
         await prisma.sportProfile.update({
           where: { clientId },
-          data: { fitnessEstimate },
+          data: { fitnessEstimate: fitnessEstimate as unknown as Prisma.InputJsonValue },
         })
         logger.info('Calculated fitness estimate for new profile', { clientId, level: fitnessEstimate.level })
       }
@@ -350,7 +350,7 @@ export async function PUT(
         if (fitnessEstimate) {
           await prisma.sportProfile.update({
             where: { clientId },
-            data: { fitnessEstimate },
+            data: { fitnessEstimate: fitnessEstimate as unknown as Prisma.InputJsonValue },
           })
           logger.info('Recalculated fitness estimate', { clientId, level: fitnessEstimate.level })
         }

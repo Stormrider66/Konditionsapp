@@ -1,7 +1,7 @@
 // lib/auth-utils.ts
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { User, UserRole } from '@/types'
+import { User, UserRole, AdminRole } from '@/types'
 import { redirect } from 'next/navigation'
 
 /**
@@ -557,4 +557,77 @@ export async function canAccessTestAsTester(
   })
 
   return test?.testerId === tester.id
+}
+
+// ============================================
+// Admin Role Controls
+// ============================================
+
+/**
+ * Extended user type that includes adminRole
+ */
+export interface AdminUser extends User {
+  adminRole: AdminRole | null
+}
+
+/**
+ * Require user to have an admin role
+ * @param requiredRoles - Array of admin roles that are allowed
+ * @throws Error if user doesn't have required admin role
+ */
+export async function requireAdminRole(requiredRoles: AdminRole[]): Promise<AdminUser> {
+  const user = await getCurrentUser()
+
+  if (!user) {
+    throw new Error('Unauthorized: not authenticated')
+  }
+
+  // Get the full user with adminRole from database
+  const fullUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      adminRole: true,
+      language: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  })
+
+  if (!fullUser) {
+    throw new Error('Unauthorized: user not found')
+  }
+
+  // ADMIN role users automatically get SUPER_ADMIN privileges for backwards compatibility
+  if (fullUser.role === 'ADMIN') {
+    return {
+      ...user,
+      adminRole: fullUser.adminRole || 'SUPER_ADMIN',
+    } as AdminUser
+  }
+
+  // Check if user has required admin role
+  if (!fullUser.adminRole || !requiredRoles.includes(fullUser.adminRole as AdminRole)) {
+    throw new Error(`Forbidden: requires one of these roles: ${requiredRoles.join(', ')}`)
+  }
+
+  return {
+    ...user,
+    adminRole: fullUser.adminRole as AdminRole,
+  } as AdminUser
+}
+
+/**
+ * Check if user has admin role without throwing
+ */
+export async function hasAdminRole(requiredRoles: AdminRole[]): Promise<boolean> {
+  try {
+    await requireAdminRole(requiredRoles)
+    return true
+  } catch {
+    return false
+  }
 }
