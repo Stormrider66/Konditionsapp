@@ -59,9 +59,11 @@ ${excludedCategories.length > 0 ? `\n## EXKLUDERADE ÖVNINGSKATEGORIER\n${exclud
 
 ## PASSSPECIFIKATION
 - **Längd**: ${request.duration || 45} minuter
-- **Utrustning**: ${formatEquipment(request.equipment || ['none'])}
+- **Önskad utrustning**: ${formatEquipment(request.equipment || ['none'])}
 - **Fokusområde**: ${request.focusArea ? WOD_LABELS.focusAreas[request.focusArea] : 'Helkropp'}
 - **Justerad intensitet**: ${WOD_LABELS.intensity[guardrails.adjustedIntensity]}
+
+${formatLocationEquipment(context.locationEquipment)}
 
 ## OUTPUT FORMAT
 
@@ -347,6 +349,57 @@ function formatEquipment(equipment: WODEquipment[]): string {
     .filter(e => e !== 'none')
     .map(e => WOD_LABELS.equipment[e] || e)
     .join(', ')
+}
+
+/**
+ * Format location equipment for the prompt
+ * Shows what's available at the athlete's gym
+ */
+function formatLocationEquipment(
+  locationEquipment: WODAthleteContext['locationEquipment']
+): string {
+  if (!locationEquipment || locationEquipment.equipment.length === 0) {
+    return ''
+  }
+
+  // Group equipment by category for cleaner output
+  const byCategory: Record<string, string[]> = {}
+  for (const item of locationEquipment.equipment) {
+    const category = translateEquipmentCategory(item.category)
+    if (!byCategory[category]) {
+      byCategory[category] = []
+    }
+    const name = item.nameSv || item.name
+    const qty = item.quantity > 1 ? ` (${item.quantity}st)` : ''
+    byCategory[category].push(`${name}${qty}`)
+  }
+
+  const categoryLines = Object.entries(byCategory)
+    .map(([cat, items]) => `- **${cat}**: ${items.join(', ')}`)
+    .join('\n')
+
+  return `## TILLGÄNGLIG UTRUSTNING PÅ ${locationEquipment.locationName.toUpperCase()}
+VIKTIGT: Skapa passet med den utrustning som finns tillgänglig nedan. Använd INTE utrustning som inte listas här.
+
+${categoryLines}
+
+Använd denna utrustning för att skapa ett varierat och effektivt pass!`
+}
+
+/**
+ * Translate equipment category to Swedish
+ */
+function translateEquipmentCategory(category: string): string {
+  const translations: Record<string, string> = {
+    CARDIO_MACHINE: 'Konditionsmaskiner',
+    STRENGTH_MACHINE: 'Styrkebyggare',
+    FREE_WEIGHTS: 'Fria vikter',
+    RACKS: 'Rack & stationer',
+    TESTING: 'Testutrstning',
+    ACCESSORIES: 'Tillbehör',
+    RECOVERY: 'Återhämtning',
+  }
+  return translations[category] || category
 }
 
 // ============================================

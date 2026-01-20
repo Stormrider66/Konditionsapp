@@ -11,6 +11,123 @@ import type { WODAthleteContext, WODEquipment, WODUsageStats } from '@/types/wod
 import { WOD_USAGE_LIMITS } from '@/types/wod'
 
 // ============================================
+// LOCATION EQUIPMENT FETCHING
+// ============================================
+
+/**
+ * Get equipment available at the athlete's preferred location
+ * Falls back to the business's primary location, then any location
+ */
+async function getLocationEquipment(clientId: string): Promise<WODAthleteContext['locationEquipment']> {
+  // First, find the athlete's account with preferred location
+  const athleteAccount = await prisma.athleteAccount.findFirst({
+    where: {
+      client: { id: clientId }
+    },
+    select: {
+      userId: true,
+      preferredLocationId: true,
+    }
+  })
+
+  if (!athleteAccount) {
+    return null
+  }
+
+  // Get business membership
+  const membership = await prisma.businessMember.findFirst({
+    where: {
+      userId: athleteAccount.userId,
+      isActive: true,
+    },
+    select: {
+      businessId: true,
+    }
+  })
+
+  if (!membership) {
+    return null
+  }
+
+  // Equipment select fields (reused for both queries)
+  const equipmentSelect = {
+    id: true,
+    name: true,
+    equipment: {
+      where: { isAvailable: true },
+      include: {
+        equipment: {
+          select: {
+            id: true,
+            name: true,
+            nameSv: true,
+            category: true,
+            enablesExercises: true,
+          }
+        }
+      }
+    }
+  } as const
+
+  let location: { id: string; name: string; equipment: Array<{
+    quantity: number;
+    isAvailable: boolean;
+    equipment: {
+      id: string;
+      name: string;
+      nameSv: string | null;
+      category: string;
+      enablesExercises: string[];
+    }
+  }> } | null = null
+
+  // Try athlete's preferred location first
+  if (athleteAccount.preferredLocationId) {
+    location = await prisma.location.findFirst({
+      where: {
+        id: athleteAccount.preferredLocationId,
+        businessId: membership.businessId, // Security: must be in same business
+        isActive: true,
+      },
+      select: equipmentSelect,
+    })
+  }
+
+  // Fall back to business's primary location, then any active location
+  if (!location) {
+    location = await prisma.location.findFirst({
+      where: {
+        businessId: membership.businessId,
+        isActive: true,
+      },
+      orderBy: [
+        { isPrimary: 'desc' },
+        { createdAt: 'asc' }
+      ],
+      select: equipmentSelect,
+    })
+  }
+
+  if (!location || location.equipment.length === 0) {
+    return null
+  }
+
+  return {
+    locationId: location.id,
+    locationName: location.name,
+    equipment: location.equipment.map(le => ({
+      id: le.equipment.id,
+      name: le.equipment.name,
+      nameSv: le.equipment.nameSv,
+      category: le.equipment.category,
+      quantity: le.quantity,
+      isAvailable: le.isAvailable,
+      enablesExercises: le.equipment.enablesExercises,
+    }))
+  }
+}
+
+// ============================================
 // MAIN CONTEXT BUILDER
 // ============================================
 
@@ -31,6 +148,7 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
     activeInjuries,
     recentWorkoutLogs,
     weeklyTrainingLoad,
+    locationEquipment,
   ] = await Promise.all([
     // 1. Basic client info
     prisma.client.findUnique({
@@ -145,6 +263,9 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
         dailyLoad: true,
       },
     }),
+
+    // 8. Location equipment (enterprise feature)
+    getLocationEquipment(clientId),
   ])
 
   if (!client) {
@@ -221,6 +342,9 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
     currentGoal: sportProfile?.currentGoal ?? undefined,
     availableEquipment,
     preferredDuration: 45, // Default
+
+    // Location-based equipment (enterprise feature)
+    locationEquipment,
   }
 }
 

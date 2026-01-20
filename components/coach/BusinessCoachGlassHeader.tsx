@@ -46,17 +46,21 @@ import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
 
-interface CoachGlassHeaderProps {
+interface BusinessCoachGlassHeaderProps {
     user: any
+    businessSlug: string
 }
 
-export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
+export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGlassHeaderProps) {
     const pathname = usePathname()
     const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
     const [businessRole, setBusinessRole] = useState<BusinessMemberRole | null>(null)
+    const [businessName, setBusinessName] = useState<string | null>(null)
     const displayName = user?.email || 'Coach'
-    // Assuming we might want to show coach name if available in metadata later, but user.email is safe fallback
+
+    // Base path for all business-scoped routes
+    const basePath = `/${businessSlug}`
 
     // Fetch business context to check if user is a business admin
     useEffect(() => {
@@ -65,9 +69,11 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                 const response = await fetch('/api/coach/admin/context')
                 if (response.ok) {
                     const result = await response.json()
-                    console.log('[BusinessContext]', result.data) // Debug log
                     if (result.data?.role) {
                         setBusinessRole(result.data.role as BusinessMemberRole)
+                    }
+                    if (result.data?.business?.name) {
+                        setBusinessName(result.data.business.name)
                     }
                 }
             } catch (err) {
@@ -83,42 +89,42 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
         router.push('/login')
     }
 
-    // Top Level Links
+    // Top Level Links - using business-scoped URLs
     const mainNavItems = [
         { href: '/', label: 'Hem', icon: Home },
-        { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { href: '/clients', label: 'Atleter', icon: Users },
-        { href: '/coach/programs', label: 'Program', icon: Calendar },
+        { href: `${basePath}/coach/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
+        { href: `${basePath}/coach/clients`, label: 'Atleter', icon: Users },
+        { href: `${basePath}/coach/programs`, label: 'Program', icon: Calendar },
     ]
 
-    // Dropdown Groups
+    // Dropdown Groups - using business-scoped URLs
     const navGroups = {
         tools: {
             label: 'Verktyg',
             icon: Wrench,
             items: [
-                { href: '/test', label: 'Nytt Test', icon: Activity }, // Changed icon to generic Activity or TestTube if available
-                { href: '/coach/ai-studio', label: 'AI Studio', icon: Sparkles },
-                { href: '/coach/hybrid-studio', label: 'Hybrid Studio', icon: Flame },
-                { href: '/coach/strength', label: 'Strength Studio', icon: Dumbbell },
-                { href: '/coach/cardio', label: 'Cardio Studio', icon: Heart },
-                { href: '/coach/ergometer-tests', label: 'Ergometertester', icon: Gauge },
-                { href: '/coach/video-analysis', label: 'Videoanalys', icon: Video },
-                { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
-                { href: '/coach/live-hr', label: 'Live HR', icon: Heart },
+                { href: `${basePath}/coach/test`, label: 'Nytt Test', icon: Activity },
+                { href: `${basePath}/coach/ai-studio`, label: 'AI Studio', icon: Sparkles },
+                { href: `${basePath}/coach/hybrid-studio`, label: 'Hybrid Studio', icon: Flame },
+                { href: `${basePath}/coach/strength`, label: 'Strength Studio', icon: Dumbbell },
+                { href: `${basePath}/coach/cardio`, label: 'Cardio Studio', icon: Heart },
+                { href: `${basePath}/coach/ergometer-tests`, label: 'Ergometertester', icon: Gauge },
+                { href: `${basePath}/coach/video-analysis`, label: 'Videoanalys', icon: Video },
+                { href: `${basePath}/coach/monitoring`, label: 'Monitorering', icon: Activity },
+                { href: `${basePath}/coach/live-hr`, label: 'Live HR', icon: Heart },
             ]
         },
         more: {
             label: 'Mer',
             icon: Menu,
             items: [
-                { href: '/coach/analytics', label: 'Analys', icon: BarChart3 },
-                { href: '/teams', label: 'Lag', icon: Users2 },
-                { href: '/coach/organizations', label: 'Organisationer', icon: Building2 },
-                { href: '/coach/documents', label: 'Dokument', icon: FileStack },
-                { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare },
-                { href: '/coach/referrals', label: 'Värvningar', icon: Gift },
-                { href: '/coach/settings', label: 'Inställningar', icon: Settings },
+                { href: `${basePath}/coach/analytics`, label: 'Analys', icon: BarChart3 },
+                { href: `${basePath}/coach/teams`, label: 'Lag', icon: Users2 },
+                { href: `${basePath}/coach/organizations`, label: 'Organisationer', icon: Building2 },
+                { href: `${basePath}/coach/documents`, label: 'Dokument', icon: FileStack },
+                { href: `${basePath}/coach/messages`, label: 'Meddelanden', icon: MessageSquare },
+                { href: `${basePath}/coach/referrals`, label: 'Värvningar', icon: Gift },
+                { href: `${basePath}/coach/settings`, label: 'Inställningar', icon: Settings },
             ]
         }
     }
@@ -128,7 +134,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
         ...navGroups.more.items,
         // Add Admin link if user is OWNER or ADMIN
         ...((businessRole === 'OWNER' || businessRole === 'ADMIN')
-            ? [{ href: '/coach/admin', label: 'Admin', icon: Shield }]
+            ? [{ href: `${basePath}/coach/admin`, label: 'Admin', icon: Shield }]
             : [])
     ]
 
@@ -145,12 +151,12 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
 
                 {/* Logo Area */}
                 <div className="flex items-center gap-4">
-                    <Link href="/coach/dashboard" className="flex items-center gap-2 group">
+                    <Link href={`${basePath}/coach/dashboard`} className="flex items-center gap-2 group">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.8)] transition-all">
-                            C
+                            {businessName ? businessName.charAt(0).toUpperCase() : 'C'}
                         </div>
                         <span className="font-bold text-lg tracking-tight text-white hidden sm:inline">
-                            Star by<span className="text-blue-500"> Thomson</span>
+                            {businessName || 'Coach Portal'}
                         </span>
                     </Link>
                 </div>
@@ -235,11 +241,6 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                     {/* Language & Notifications (Desktop) */}
                     <div className="hidden md:flex items-center gap-1 text-slate-200">
                         <LanguageSwitcher showLabel={false} variant="ghost" />
-                        {/* NotificationBell for coaches might need clientId logic, but MobileNav used clientId passed prop. 
-                             GlassHeader received clientId prop too. We need to check if we can get it from somewhere or if user info is enough.
-                             For now, let's omit or try to implement without specific clientId if possible, or pass it if available.
-                             The original MobileNav calls it with clientId={clientId}. We should probably pass clientId to this component too.
-                         */}
                         <NotificationBell />
                     </div>
 
@@ -267,7 +268,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
-                                    <Link href="/coach/settings">
+                                    <Link href={`${basePath}/coach/settings`}>
                                         <Settings className="mr-2 h-4 w-4" />
                                         <span>Settings</span>
                                     </Link>
@@ -292,7 +293,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                         <SheetContent side="right" className="bg-slate-950 border-l border-white/10 text-slate-200 w-[300px] overflow-y-auto">
                             <div className="flex flex-col gap-6 mt-8">
                                 <div className="flex items-center justify-between px-4">
-                                    <span className="font-bold text-lg">Menu</span>
+                                    <span className="font-bold text-lg">{businessName || 'Menu'}</span>
                                     <div className="flex gap-1">
                                         <LanguageSwitcher showLabel={false} variant="ghost" />
                                         <NotificationBell />

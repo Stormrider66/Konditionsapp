@@ -15,6 +15,7 @@ import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
 import { IntegrationsSettings } from '@/components/athlete/settings/IntegrationsSettings'
 import { AIModelSettings } from '@/components/athlete/settings/AIModelSettings'
 import { IntensityTargetsEditor } from '@/components/athlete/settings/IntensityTargetsEditor'
+import { LocationSettings } from '@/components/athlete/settings/LocationSettings'
 import type { SportProfile } from '@prisma/client'
 import { SportType, IntensityTargets } from '@/types'
 import { getTargetsFromSettings } from '@/lib/training/intensity-targets'
@@ -176,6 +177,15 @@ export function AthleteSettingsClient({
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">AI-modell</h3>
           </div>
           <AIModelSettings variant="glass" />
+        </div>
+
+        {/* Gym Location Settings */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-2">
+            <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Gym-plats</h3>
+          </div>
+          <LocationSettings variant="glass" />
         </div>
 
         {/* AI Notifications */}

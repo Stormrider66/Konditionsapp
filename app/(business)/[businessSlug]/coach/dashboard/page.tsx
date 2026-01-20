@@ -1,4 +1,5 @@
-import { requireCoach, getBusinessContext } from '@/lib/auth-utils'
+import { requireCoach } from '@/lib/auth-utils'
+import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,6 @@ import {
   MessageSquare,
   AlertCircle,
   Calendar,
-  Clock,
   CheckCircle2,
   ArrowRight,
   HeartPulse,
@@ -27,8 +27,14 @@ import { format, subDays } from 'date-fns'
 import { sv, enUS } from 'date-fns/locale'
 import { getTranslations, getLocale } from '@/i18n/server'
 import { CoachAIAssistantPanel } from '@/components/coach/CoachAIAssistantPanel'
+import { notFound } from 'next/navigation'
 
-export default async function CoachDashboardPage() {
+interface BusinessDashboardPageProps {
+  params: Promise<{ businessSlug: string }>
+}
+
+export default async function BusinessDashboardPage({ params }: BusinessDashboardPageProps) {
+  const { businessSlug } = await params
   const t = await getTranslations('coach')
   const tNav = await getTranslations('nav')
   const tCommon = await getTranslations('common')
@@ -36,33 +42,34 @@ export default async function CoachDashboardPage() {
   const dateLocale = locale === 'sv' ? sv : enUS
   const user = await requireCoach()
 
-  // Get business context - if user belongs to a business, scope to all business coaches
-  const businessContext = await getBusinessContext(user.id)
-  let coachIds = [user.id]
-
-  if (businessContext.businessId) {
-    const members = await prisma.businessMember.findMany({
-      where: {
-        businessId: businessContext.businessId,
-        isActive: true,
-        // Only include members who are coaches (exclude testers)
-        user: { role: 'COACH' },
-      },
-      select: { userId: true },
-    })
-    coachIds = members.map(m => m.userId)
-    // Ensure current user is included even if not found in members
-    if (!coachIds.includes(user.id)) {
-      coachIds.push(user.id)
-    }
+  // Validate business membership (should already be validated by layout, but double-check)
+  const membership = await validateBusinessMembership(user.id, businessSlug)
+  if (!membership) {
+    notFound()
   }
 
-  // Get clients count (scoped to business if applicable)
+  const basePath = `/${businessSlug}`
+
+  // Get all coaches in the business
+  const members = await prisma.businessMember.findMany({
+    where: {
+      businessId: membership.businessId,
+      isActive: true,
+      user: { role: 'COACH' },
+    },
+    select: { userId: true },
+  })
+  const coachIds = members.map(m => m.userId)
+  if (!coachIds.includes(user.id)) {
+    coachIds.push(user.id)
+  }
+
+  // Get clients count (scoped to business)
   const clientsCount = await prisma.client.count({
     where: { userId: { in: coachIds } },
   })
 
-  // Get active programs count (scoped to business if applicable)
+  // Get active programs count (scoped to business)
   const now = new Date()
   const activeProgramsCount = await prisma.trainingProgram.count({
     where: {
@@ -131,7 +138,7 @@ export default async function CoachDashboardPage() {
   // Logs without feedback
   const logsNeedingFeedback = recentLogs.filter(log => !log.coachFeedback && log.completed)
 
-  // Active injuries count (via InjuryAssessment) - scoped to business if applicable
+  // Active injuries count (via InjuryAssessment) - scoped to business
   const activeInjuries = await prisma.injuryAssessment.count({
     where: {
       client: {
@@ -162,7 +169,7 @@ export default async function CoachDashboardPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{tNav('dashboard')}</h1>
         <p className="text-muted-foreground text-sm">
-          {t('welcomeBack', { name: user.name })}
+          {t('welcomeBack', { name: user.name })} - {membership.business.name}
         </p>
       </div>
 
@@ -177,7 +184,7 @@ export default async function CoachDashboardPage() {
               </div>
               <Users className="h-8 w-8 opacity-80" />
             </div>
-            <Link href="/clients" className="text-xs text-blue-100 hover:text-white flex items-center gap-1 mt-2">
+            <Link href={`${basePath}/coach/clients`} className="text-xs text-blue-100 hover:text-white flex items-center gap-1 mt-2">
               {t('viewAll')} <ArrowRight className="h-3 w-3" />
             </Link>
           </GlassCardContent>
@@ -192,7 +199,7 @@ export default async function CoachDashboardPage() {
               </div>
               <Calendar className="h-8 w-8 opacity-80" />
             </div>
-            <Link href="/coach/programs" className="text-xs text-green-100 hover:text-white flex items-center gap-1 mt-2">
+            <Link href={`${basePath}/coach/programs`} className="text-xs text-green-100 hover:text-white flex items-center gap-1 mt-2">
               {t('viewPrograms')} <ArrowRight className="h-3 w-3" />
             </Link>
           </GlassCardContent>
@@ -263,7 +270,7 @@ export default async function CoachDashboardPage() {
                           {log.workout.name} • {log.completedAt ? format(new Date(log.completedAt), 'd MMM', { locale: dateLocale }) : '-'}
                         </p>
                       </div>
-                      <Link href={`/coach/athletes/${log.workout.day.week.program.client.id}/logs`}>
+                      <Link href={`${basePath}/coach/athletes/${log.workout.day.week.program.client.id}/logs`}>
                         <Button size="sm" variant="outline" className="text-xs h-8">
                           {t('giveFeedback')}
                         </Button>
@@ -387,7 +394,7 @@ export default async function CoachDashboardPage() {
                     <p className="font-medium text-sm dark:text-red-200">{t('activeInjuries', { count: activeInjuries })}</p>
                     <p className="text-xs text-muted-foreground">{t('requiresFollowUp')}</p>
                   </div>
-                  <Link href="/coach/injuries">
+                  <Link href={`${basePath}/coach/injuries`}>
                     <Button size="sm" variant="outline" className="text-xs h-8">
                       {tCommon('view')}
                     </Button>
@@ -403,25 +410,25 @@ export default async function CoachDashboardPage() {
               <GlassCardTitle className="text-base">{t('quickLinks')}</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent className="space-y-2">
-              <Link href="/test" className="block">
+              <Link href={`${basePath}/coach/test`} className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
                   <ClipboardList className="h-4 w-4 text-blue-500" />
                   <span className="text-sm dark:text-slate-300">{t('newLactateTest')}</span>
                 </div>
               </Link>
-              <Link href="/coach/programs/new" className="block">
+              <Link href={`${basePath}/coach/programs/new`} className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
                   <Calendar className="h-4 w-4 text-green-500" />
                   <span className="text-sm dark:text-slate-300">{t('createProgram')}</span>
                 </div>
               </Link>
-              <Link href="/coach/messages" className="block">
+              <Link href={`${basePath}/coach/messages`} className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
                   <MessageSquare className="h-4 w-4 text-orange-500" />
                   <span className="text-sm dark:text-slate-300">{tNav('messages')}</span>
                 </div>
               </Link>
-              <Link href="/coach/monitoring" className="block">
+              <Link href={`${basePath}/coach/monitoring`} className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
                   <Activity className="h-4 w-4 text-purple-500" />
                   <span className="text-sm dark:text-slate-300">{t('monitoring')}</span>

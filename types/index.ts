@@ -442,6 +442,16 @@ export interface User {
   updatedAt: Date
 }
 
+/**
+ * Extended user type for business admins (OWNER or ADMIN role)
+ * Includes business context for scoped queries
+ */
+export interface BusinessAdminUser extends User {
+  businessId: string
+  businessRole: 'OWNER' | 'ADMIN'
+  business: { id: string; name: string; slug: string }
+}
+
 // Test-typer
 export interface Test {
   id: string

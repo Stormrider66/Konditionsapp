@@ -2,6 +2,85 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
+// Reserved top-level routes that are NOT business slugs
+const RESERVED_ROUTES = [
+  'api',
+  'coach',
+  'athlete',
+  'admin',
+  'login',
+  'logout',
+  'signup',
+  'register',
+  'pricing',
+  'test',
+  'tests',
+  'clients',
+  'teams',
+  'programs',
+  'report',
+  'simple-test',
+  'cycling-test',
+  'pdf-demo',
+  'design-preview',
+  'dev',
+  '_next',
+]
+
+// Coach routes that should be redirected to business-scoped routes
+const COACH_REDIRECT_ROUTES = [
+  '/coach/dashboard',
+  '/coach/admin',
+  '/coach/clients',
+  '/coach/programs',
+  '/coach/ai-studio',
+  '/coach/hybrid-studio',
+  '/coach/strength',
+  '/coach/cardio',
+  '/coach/ergometer-tests',
+  '/coach/video-analysis',
+  '/coach/monitoring',
+  '/coach/live-hr',
+  '/coach/analytics',
+  '/coach/documents',
+  '/coach/messages',
+  '/coach/referrals',
+  '/coach/settings',
+  '/coach/injuries',
+  '/coach/field-tests',
+  '/coach/organizations',
+]
+
+// Athlete routes that should be redirected to business-scoped routes
+const ATHLETE_REDIRECT_ROUTES = [
+  '/athlete/dashboard',
+  '/athlete/check-in',
+  '/athlete/calendar',
+  '/athlete/history',
+  '/athlete/programs',
+  '/athlete/wod',
+  '/athlete/strength',
+  '/athlete/cardio',
+  '/athlete/hybrid',
+  '/athlete/vbt',
+  '/athlete/concept2',
+  '/athlete/ergometer',
+  '/athlete/video-analysis',
+  '/athlete/profile',
+  '/athlete/tests',
+  '/athlete/lactate',
+  '/athlete/messages',
+  '/athlete/settings',
+  '/athlete/body-composition',
+  '/athlete/log-workout',
+  '/athlete/workouts',
+  '/athlete/injury-prevention',
+  '/athlete/research',
+  '/athlete/matches',
+  '/athlete/subscription',
+  '/athlete/onboarding',
+]
+
 /**
  * Add security headers to response
  */
@@ -204,6 +283,60 @@ export async function middleware(request: NextRequest) {
     if (!error && userData) {
       const role = userData.role
 
+      // Check if this is a business-scoped route (e.g., /star-by-thomson/coach/dashboard or /star-by-thomson/athlete/dashboard)
+      const pathSegments = pathname.split('/').filter(Boolean)
+      const firstSegment = pathSegments[0]
+      const secondSegment = pathSegments[1]
+      const isBusinessRoute =
+        firstSegment &&
+        !RESERVED_ROUTES.includes(firstSegment) &&
+        (secondSegment === 'coach' || secondSegment === 'athlete')
+
+      if (isBusinessRoute) {
+        const businessSlug = firstSegment
+
+        // Verify user is a member of this business
+        const { data: membership, error: membershipError } = await supabase
+          .from('BusinessMember')
+          .select('id, Business!inner(slug, isActive)')
+          .eq('userId', supabaseUser.id)
+          .eq('isActive', true)
+          .eq('Business.slug', businessSlug)
+          .eq('Business.isActive', true)
+          .limit(1)
+          .single()
+
+        if (membershipError || !membership) {
+          // User is not a member of this business - redirect to their own business or login
+          const { data: userMembership } = await supabase
+            .from('BusinessMember')
+            .select('Business!inner(slug)')
+            .eq('userId', supabaseUser.id)
+            .eq('isActive', true)
+            .order('createdAt', { ascending: true })
+            .limit(1)
+            .single()
+
+          if (userMembership && userMembership.Business) {
+            const userBusinessSlug = Array.isArray(userMembership.Business)
+              ? userMembership.Business[0]?.slug
+              : (userMembership.Business as { slug: string }).slug
+
+            if (userBusinessSlug) {
+              // Redirect to user's own business
+              const newPath = pathname.replace(`/${businessSlug}/`, `/${userBusinessSlug}/`)
+              return NextResponse.redirect(new URL(newPath, request.url))
+            }
+          }
+
+          // No business membership - redirect to login or home
+          return NextResponse.redirect(new URL('/', request.url))
+        }
+
+        // User has access to this business route - continue
+        return addSecurityHeaders(response)
+      }
+
       // Role-based route protection
       if (pathname.startsWith('/coach')) {
         if (role !== 'COACH' && role !== 'ADMIN') {
@@ -211,6 +344,37 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/athlete/dashboard', request.url))
           }
           return NextResponse.redirect(new URL('/', request.url))
+        }
+
+        // Check if this coach route should redirect to business-scoped route
+        const shouldRedirect = COACH_REDIRECT_ROUTES.some(
+          (route) => pathname === route || pathname.startsWith(route + '/')
+        )
+
+        if (shouldRedirect) {
+          // Get user's primary business membership
+          const { data: membership } = await supabase
+            .from('BusinessMember')
+            .select('businessId, Business!inner(slug)')
+            .eq('userId', supabaseUser.id)
+            .eq('isActive', true)
+            .order('createdAt', { ascending: true })
+            .limit(1)
+            .single()
+
+          if (membership && membership.Business) {
+            // Extract business slug - handle both object and array response formats
+            const businessSlug = Array.isArray(membership.Business)
+              ? membership.Business[0]?.slug
+              : (membership.Business as { slug: string }).slug
+
+            if (businessSlug) {
+              // Build the new business-scoped path
+              const newPath = pathname.replace('/coach/', `/${businessSlug}/coach/`)
+              return NextResponse.redirect(new URL(newPath, request.url))
+            }
+          }
+          // If no business membership, allow access to legacy routes
         }
       }
 
@@ -220,6 +384,37 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/coach/dashboard', request.url))
           }
           return NextResponse.redirect(new URL('/', request.url))
+        }
+
+        // Check if this athlete route should redirect to business-scoped route
+        const shouldRedirectAthlete = ATHLETE_REDIRECT_ROUTES.some(
+          (route) => pathname === route || pathname.startsWith(route + '/')
+        )
+
+        if (shouldRedirectAthlete) {
+          // Get user's primary business membership
+          const { data: athleteMembership } = await supabase
+            .from('BusinessMember')
+            .select('businessId, Business!inner(slug)')
+            .eq('userId', supabaseUser.id)
+            .eq('isActive', true)
+            .order('createdAt', { ascending: true })
+            .limit(1)
+            .single()
+
+          if (athleteMembership && athleteMembership.Business) {
+            // Extract business slug - handle both object and array response formats
+            const athleteBusinessSlug = Array.isArray(athleteMembership.Business)
+              ? athleteMembership.Business[0]?.slug
+              : (athleteMembership.Business as { slug: string }).slug
+
+            if (athleteBusinessSlug) {
+              // Build the new business-scoped path
+              const newAthletePath = pathname.replace('/athlete/', `/${athleteBusinessSlug}/athlete/`)
+              return NextResponse.redirect(new URL(newAthletePath, request.url))
+            }
+          }
+          // If no business membership, allow access to legacy routes
         }
       }
 
@@ -238,10 +433,50 @@ export async function middleware(request: NextRequest) {
       // Redirect from login/register pages if authenticated (but allow access to /)
       if (pathname === '/login' || pathname === '/register') {
         if (role === 'ATHLETE') {
+          // Try to redirect to business athlete dashboard
+          const { data: athleteLoginMembership } = await supabase
+            .from('BusinessMember')
+            .select('Business!inner(slug)')
+            .eq('userId', supabaseUser.id)
+            .eq('isActive', true)
+            .order('createdAt', { ascending: true })
+            .limit(1)
+            .single()
+
+          if (athleteLoginMembership && athleteLoginMembership.Business) {
+            const athleteLoginSlug = Array.isArray(athleteLoginMembership.Business)
+              ? athleteLoginMembership.Business[0]?.slug
+              : (athleteLoginMembership.Business as { slug: string }).slug
+
+            if (athleteLoginSlug) {
+              return NextResponse.redirect(new URL(`/${athleteLoginSlug}/athlete/dashboard`, request.url))
+            }
+          }
+          // Fallback to legacy athlete dashboard if no business
           return NextResponse.redirect(new URL('/athlete/dashboard', request.url))
         }
         if (role === 'COACH' || role === 'ADMIN') {
-          return NextResponse.redirect(new URL('/clients', request.url))
+          // Try to redirect to business dashboard
+          const { data: membership } = await supabase
+            .from('BusinessMember')
+            .select('Business!inner(slug)')
+            .eq('userId', supabaseUser.id)
+            .eq('isActive', true)
+            .order('createdAt', { ascending: true })
+            .limit(1)
+            .single()
+
+          if (membership && membership.Business) {
+            const businessSlug = Array.isArray(membership.Business)
+              ? membership.Business[0]?.slug
+              : (membership.Business as { slug: string }).slug
+
+            if (businessSlug) {
+              return NextResponse.redirect(new URL(`/${businessSlug}/coach/dashboard`, request.url))
+            }
+          }
+          // Fallback to homepage if no business membership
+          return NextResponse.redirect(new URL('/', request.url))
         }
       }
       // Allow authenticated users to access / - the page will show appropriate content

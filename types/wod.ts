@@ -167,6 +167,21 @@ export interface WODAthleteContext {
   currentGoal?: string
   availableEquipment: WODEquipment[]
   preferredDuration?: number
+
+  // Location-based equipment (enterprise feature)
+  locationEquipment?: {
+    locationId: string
+    locationName: string
+    equipment: {
+      id: string
+      name: string
+      nameSv: string | null
+      category: string
+      quantity: number
+      isAvailable: boolean
+      enablesExercises: string[]
+    }[]
+  } | null
 }
 
 export interface WODGuardrailResult {

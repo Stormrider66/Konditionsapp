@@ -66,6 +66,10 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
   const tSports = useTranslations('sports')
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [businessContext, setBusinessContext] = useState<{
+    role: string | null
+    business: { slug: string; name: string } | null
+  }>({ role: null, business: null })
   const pathname = usePathname()
 
   // Get sport display info
@@ -84,6 +88,32 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       return () => clearInterval(interval)
     }
   }, [user, userRole])
+
+  // Fetch business context for coaches
+  useEffect(() => {
+    if (user && (userRole === 'COACH' || userRole === 'ADMIN')) {
+      fetchBusinessContext()
+    }
+  }, [user, userRole])
+
+  async function fetchBusinessContext() {
+    try {
+      const response = await fetch('/api/coach/admin/context')
+      const result = await response.json()
+      if (response.ok && result.success && result.data) {
+        setBusinessContext({
+          role: result.data.role,
+          business: result.data.business,
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching business context:', error)
+    }
+  }
+
+  // Check if user is a business admin (OWNER or ADMIN)
+  const isBusinessAdmin = businessContext.role === 'OWNER' || businessContext.role === 'ADMIN'
+  const businessSlug = businessContext.business?.slug
 
   async function fetchUnreadCount() {
     try {
@@ -133,7 +163,10 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
         { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
         { href: '/coach/referrals', label: 'Värvningar', icon: Gift },
         { href: '/coach/settings/ai', label: 'Inställningar', icon: Settings },
-        ...(userRole === 'ADMIN' ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
+        // Business admin for OWNER/ADMIN members
+        ...(isBusinessAdmin && businessSlug ? [{ href: `/${businessSlug}/coach/admin`, label: 'Admin', icon: Shield }] : []),
+        // Platform admin only for ADMIN role users
+        ...(userRole === 'ADMIN' ? [{ href: '/admin', label: 'Platform Admin', icon: Shield }] : []),
       ],
     },
   }
@@ -160,7 +193,10 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
     { href: '/coach/referrals', label: 'Värvningar', icon: Gift },
     { href: '/coach/settings/ai', label: 'Inställningar', icon: Settings },
-    ...(userRole === 'ADMIN' ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
+    // Business admin for OWNER/ADMIN members
+    ...(isBusinessAdmin && businessSlug ? [{ href: `/${businessSlug}/coach/admin`, label: 'Admin', icon: Shield }] : []),
+    // Platform admin only for ADMIN role users
+    ...(userRole === 'ADMIN' ? [{ href: '/admin', label: 'Platform Admin', icon: Shield }] : []),
   ]
 
   // Legacy base + coach links for backwards compatibility

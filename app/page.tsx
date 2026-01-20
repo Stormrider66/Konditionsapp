@@ -58,10 +58,24 @@ export default function Home() {
           const role = result.data.role
           setUserRole(role)
 
-          // Only redirect athletes, let coaches stay on home page
+          // Redirect athletes to athlete dashboard
           if (role === 'ATHLETE') {
             window.location.href = '/athlete/dashboard'
             return
+          }
+
+          // Redirect coaches to their business dashboard
+          if (role === 'COACH' || role === 'ADMIN') {
+            try {
+              const contextResponse = await fetch('/api/coach/admin/context')
+              const contextResult = await contextResponse.json()
+              if (contextResult.data?.business?.slug) {
+                window.location.href = `/${contextResult.data.business.slug}/coach/dashboard`
+                return
+              }
+            } catch (err) {
+              console.error('Error fetching business context:', err)
+            }
           }
         }
       } catch (error) {

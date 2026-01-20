@@ -1,7 +1,7 @@
 // lib/auth-utils.ts
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { User, UserRole, AdminRole } from '@/types'
+import { User, UserRole, AdminRole, BusinessAdminUser, BusinessMemberRole } from '@/types'
 import { redirect } from 'next/navigation'
 
 /**
@@ -626,6 +626,109 @@ export async function requireAdminRole(requiredRoles: AdminRole[]): Promise<Admi
 export async function hasAdminRole(requiredRoles: AdminRole[]): Promise<boolean> {
   try {
     await requireAdminRole(requiredRoles)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// ============================================
+// Business Admin Controls
+// ============================================
+
+/**
+ * Get the business context for a user (if they belong to a business)
+ * Returns null values if user is not a member of any business
+ */
+export async function getBusinessContext(userId: string): Promise<{
+  businessId: string | null
+  role: BusinessMemberRole | null
+  business: { id: string; name: string; slug: string } | null
+}> {
+  const membership = await prisma.businessMember.findFirst({
+    where: {
+      userId,
+      isActive: true,
+    },
+    include: {
+      business: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'asc', // Get the first/primary business if user belongs to multiple
+    },
+  })
+
+  if (!membership) {
+    return {
+      businessId: null,
+      role: null,
+      business: null,
+    }
+  }
+
+  return {
+    businessId: membership.businessId,
+    role: membership.role as BusinessMemberRole,
+    business: membership.business,
+  }
+}
+
+/**
+ * Require user to be a business OWNER or ADMIN
+ * Returns the user with business context for scoped queries
+ * @throws Error if user is not authenticated or not a business admin
+ */
+export async function requireBusinessAdminRole(): Promise<BusinessAdminUser> {
+  const user = await getCurrentUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  // Get business membership
+  const membership = await prisma.businessMember.findFirst({
+    where: {
+      userId: user.id,
+      isActive: true,
+      role: {
+        in: ['OWNER', 'ADMIN'],
+      },
+    },
+    include: {
+      business: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
+  })
+
+  if (!membership) {
+    throw new Error('Access denied. Business admin role required.')
+  }
+
+  return {
+    ...user,
+    businessId: membership.businessId,
+    businessRole: membership.role as 'OWNER' | 'ADMIN',
+    business: membership.business,
+  }
+}
+
+/**
+ * Check if user is a business admin without throwing
+ */
+export async function hasBusinessAdminRole(): Promise<boolean> {
+  try {
+    await requireBusinessAdminRole()
     return true
   } catch {
     return false

@@ -117,8 +117,16 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Update business referral count (optional tracking)
-    // Could add a referralCount field to Business model if needed
+    // Add user as MEMBER of the business
+    await prisma.businessMember.create({
+      data: {
+        businessId: business.id,
+        userId: user.id,
+        role: 'MEMBER',
+        isActive: true,
+        acceptedAt: new Date(),
+      }
+    })
 
     return NextResponse.json({
       success: true,

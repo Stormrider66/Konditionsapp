@@ -374,6 +374,63 @@ enum SportTestProtocol {
   SHOT_SPEED              // Hockey shot speed
 }
 
+// ==================== EQUIPMENT & LOCATION SERVICES ====================
+
+enum EquipmentCategory {
+  CARDIO_MACHINE    // RowErg, SkiErg, BikeErg, Wattbike, Treadmill
+  STRENGTH_MACHINE  // Cable machine, Leg press
+  FREE_WEIGHTS      // Barbells, Dumbbells, Kettlebells
+  RACKS             // Squat rack, Power cage
+  TESTING           // Lactate analyzer, VO2max system, Force plates
+  ACCESSORIES       // Bands, Boxes, Balls
+  RECOVERY          // Massage gun, Foam roller, Sauna
+}
+
+enum ServiceType {
+  LACTATE_TESTING
+  VO2MAX_TESTING
+  BODY_COMPOSITION
+  STRENGTH_TRAINING
+  CARDIO_TRAINING
+  GROUP_CLASSES
+  PERSONAL_TRAINING
+  REHABILITATION
+  NUTRITION_COACHING
+  VIDEO_ANALYSIS
+  REMOTE_COACHING
+}
+
+enum FeatureFlag {
+  // Core modules
+  LACTATE_TESTING
+  ERGOMETER_TESTING
+  TRAINING_PROGRAMS
+  AI_STUDIO
+  VIDEO_ANALYSIS
+
+  // Advanced
+  HYBRID_WORKOUTS
+  VBT_TRACKING
+  NUTRITION_TRACKING
+  MENSTRUAL_TRACKING
+
+  // Integrations
+  STRAVA_SYNC
+  GARMIN_SYNC
+  CONCEPT2_SYNC
+
+  // Enterprise
+  MULTI_LOCATION
+  API_ACCESS
+  WHITE_LABEL
+  CUSTOM_BRANDING
+  SSO_LOGIN
+
+  // Limits
+  UNLIMITED_ATHLETES
+  UNLIMITED_COACHES
+}
+
 model User {
   id        String     @id @default(uuid())
   email     String     @unique
@@ -453,6 +510,9 @@ model User {
   referredByBusinessId String?
   referredByBusiness   Business? @relation("PartnerReferredUsers", fields: [referredByBusinessId], references: [id], onDelete: SetNull)
   partnerReferral      PartnerReferral? @relation("ReferredUserPartner")
+
+  // Location Staff assignments
+  locationStaff LocationStaff[]
 
   @@index([email])
   @@index([role])
@@ -1047,6 +1107,9 @@ model Business {
   partnerReferrals   PartnerReferral[]
   referredUsers      User[] @relation("PartnerReferredUsers")
 
+  // Enterprise Features
+  features BusinessFeature[]
+
   @@index([slug])
   @@index([isActive])
 }
@@ -1209,33 +1272,175 @@ model Location {
   id         String  @id @default(uuid())
   businessId String
   name       String
+  slug       String? // For URL: /star-by-thomson/locations/nordstan
   city       String?
 
-  // Address
+  // Contact
   address    String?
   postalCode String?
+  phone      String?
+  email      String?
 
   // Coordinates (for map display)
   latitude  Float?
   longitude Float?
+
+  // Operating hours
+  openingHours Json? // { "monday": "06:00-22:00", ... }
+
+  // Capabilities (computed from equipment/services)
+  capabilities String[] // ["lactate_testing", "strength_training"]
 
   // Stats (cached for performance)
   totalTests Int       @default(0)
   lastTestAt DateTime?
 
   // Settings
+  isActive  Boolean @default(true)
+  isPrimary Boolean @default(false) // HQ/main location
+  settings  Json? // Location-specific settings
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business         Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  tests            Test[]
+  equipment        LocationEquipment[]
+  services         LocationService[]
+  staff            LocationStaff[]
+  athletePreferred AthleteAccount[]    @relation("AthletePreferredLocation")
+
+  @@unique([businessId, slug])
+  @@index([businessId])
+  @@index([city])
+  @@index([isActive])
+}
+
+/// Master catalog of all possible equipment
+model Equipment {
+  id          String            @id @default(uuid())
+  name        String // "Concept2 RowErg"
+  nameSv      String? // "Concept2 Roddmaskin"
+  category    EquipmentCategory
+  brand       String? // "Concept2", "Technogym"
+  description String?
+  imageUrl    String?
+
+  // What this equipment enables
+  enablesTests     String[] // ["rowing_2k", "rowing_cp"]
+  enablesExercises String[] // Exercise IDs or categories
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  locations LocationEquipment[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+/// What equipment each location has
+model LocationEquipment {
+  id          String @id @default(uuid())
+  locationId  String
+  equipmentId String
+
+  quantity  Int     @default(1)
+  condition String? // "Good", "Needs maintenance"
+  notes     String?
+
+  // Availability
+  isAvailable   Boolean   @default(true)
+  availableFrom DateTime?
+  availableTo   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  location  Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, equipmentId])
+  @@index([locationId])
+  @@index([equipmentId])
+}
+
+/// Services offered at each location
+model LocationService {
+  id          String @id @default(uuid())
+  locationId  String
+
+  serviceType ServiceType
+  name        String // Custom name override
+  description String?
+
+  // Requirements
+  requiredEquipment String[] // Equipment IDs needed
+  requiredStaff     String[] // Certifications needed
+
+  // Pricing (optional)
+  price        Float?
+  currency     String  @default("SEK")
+  pricingModel String? // "per_session", "monthly", "included"
+
   isActive Boolean @default(true)
-  settings Json? // Location-specific settings
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([locationId])
+  @@index([serviceType])
+}
+
+/// Staff assigned to locations
+model LocationStaff {
+  id         String @id @default(uuid())
+  locationId String
+  userId     String
+
+  role      String  // "Manager", "Coach", "Tester"
+  isPrimary Boolean @default(false) // Their main location
+
+  // Availability
+  schedule Json? // Weekly schedule
+
+  createdAt DateTime @default(now())
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([locationId, userId])
+  @@index([locationId])
+  @@index([userId])
+}
+
+/// Business feature flags - what modules are enabled
+model BusinessFeature {
+  id         String @id @default(uuid())
+  businessId String
+
+  feature   FeatureFlag
+  isEnabled Boolean     @default(false)
+
+  // Optional config
+  config Json?
+
+  // Limits
+  usageLimit Int @default(-1) // -1 = unlimited
+  usageCount Int @default(0)
+
+  enabledAt DateTime?
+  expiresAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  tests    Test[]
 
+  @@unique([businessId, feature])
   @@index([businessId])
-  @@index([city])
-  @@index([isActive])
 }
 
 // ==================== INTEGRATIONS (Strava, Garmin) ====================
@@ -1535,16 +1740,19 @@ model AthleteAccount {
   userId   String @unique
 
   // Athlete preferences
-  notificationPrefs Json? // { email: boolean, push: boolean, workoutReminders: boolean }
+  notificationPrefs     Json?   // { email: boolean, push: boolean, workoutReminders: boolean }
+  preferredLocationId   String? // Preferred gym location for WOD generation
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredLocation Location? @relation("AthletePreferredLocation", fields: [preferredLocationId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([userId])
+  @@index([preferredLocationId])
 }
 
 // ==================== TRAINING PROGRAMS ====================
