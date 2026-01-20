@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { User } from '@supabase/supabase-js'
 import { SportType } from '@prisma/client'
 import {
-  Menu, X, Home, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, Dumbbell,
+  Menu, X, Users, Plus, User as UserIcon, Users2, MessageSquare, Calendar, CalendarDays, Dumbbell,
   ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, FileText, LayoutDashboard, Video, Settings,
   Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Bell, Gift, BarChart3, Shield, Building2
 } from 'lucide-react'
@@ -129,10 +129,10 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
   // Simplified main navigation for coaches (desktop header)
   const mainNavLinks = [
-    { href: '/', label: 'Hem', icon: Home },
     { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/coach/calendar', label: 'Kalender', icon: CalendarDays },
     { href: '/clients', label: 'Atleter', icon: Users },
-    { href: '/coach/programs', label: 'Program', icon: Calendar },
+    { href: '/coach/programs', label: 'Program', icon: FileStack },
   ]
 
   // Grouped navigation for dropdown menus
@@ -173,10 +173,10 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
   // Mobile navigation - flat list with all items
   const mobileNavLinks = [
-    { href: '/', label: 'Hem', icon: Home },
     { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/coach/calendar', label: 'Kalender', icon: CalendarDays },
     { href: '/clients', label: 'Atleter', icon: Users },
-    { href: '/coach/programs', label: 'Program', icon: Calendar },
+    { href: '/coach/programs', label: 'Program', icon: FileStack },
     { href: '/test', label: 'Nytt Test', icon: TestTube },
     { href: '/coach/ai-studio', label: 'AI Studio', icon: Sparkles },
     { href: '/coach/hybrid-studio', label: 'Hybrid Studio', icon: Flame },

@@ -7,6 +7,7 @@ import {
     LayoutDashboard,
     Users,
     Calendar,
+    CalendarDays,
     Menu,
     LogOut,
     Settings,
@@ -27,7 +28,6 @@ import {
     Gift,
     Shield,
     ChevronDown,
-    Home
 } from 'lucide-react'
 import type { BusinessMemberRole } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -85,10 +85,10 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
 
     // Top Level Links
     const mainNavItems = [
-        { href: '/', label: 'Hem', icon: Home },
         { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { href: '/coach/calendar', label: 'Kalender', icon: CalendarDays },
         { href: '/clients', label: 'Atleter', icon: Users },
-        { href: '/coach/programs', label: 'Program', icon: Calendar },
+        { href: '/coach/programs', label: 'Program', icon: FileStack },
     ]
 
     // Dropdown Groups

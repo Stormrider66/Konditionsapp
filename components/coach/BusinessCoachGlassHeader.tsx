@@ -7,6 +7,7 @@ import {
     LayoutDashboard,
     Users,
     Calendar,
+    CalendarDays,
     Menu,
     LogOut,
     Settings,
@@ -27,7 +28,6 @@ import {
     Gift,
     Shield,
     ChevronDown,
-    Home
 } from 'lucide-react'
 import type { BusinessMemberRole } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -91,10 +91,10 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
 
     // Top Level Links - using business-scoped URLs
     const mainNavItems = [
-        { href: '/', label: 'Hem', icon: Home },
         { href: `${basePath}/coach/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
+        { href: `${basePath}/coach/calendar`, label: 'Kalender', icon: CalendarDays },
         { href: `${basePath}/coach/clients`, label: 'Atleter', icon: Users },
-        { href: `${basePath}/coach/programs`, label: 'Program', icon: Calendar },
+        { href: `${basePath}/coach/programs`, label: 'Program', icon: FileStack },
     ]
 
     // Dropdown Groups - using business-scoped URLs
