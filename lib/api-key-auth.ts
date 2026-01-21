@@ -216,8 +216,8 @@ export function withApiKey(
     requiredScopes?: string[]
     requireAllScopes?: boolean // default: true (AND logic), false = OR logic
   }
-) {
-  return async (request: NextRequest, routeContext?: { params?: Promise<Record<string, string>> }) => {
+): (request: NextRequest, routeContext: { params: Promise<Record<string, string>> }) => Promise<NextResponse> {
+  return async (request: NextRequest, routeContext: { params: Promise<Record<string, string>> }) => {
     const validation = await validateApiKey(request)
 
     if (!validation.valid) {
@@ -245,8 +245,8 @@ export function withApiKey(
       }
     }
 
-    // Resolve params if present
-    const params = routeContext?.params ? await routeContext.params : undefined
+    // Resolve params
+    const params = await routeContext.params
 
     return handler(request, { apiKey: validation.context!, params })
   }

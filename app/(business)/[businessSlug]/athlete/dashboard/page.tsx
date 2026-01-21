@@ -102,8 +102,10 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         },
         week: {
           program: {
-            clientId: clientId,
-            status: 'ACTIVE',
+            is: {
+              clientId: clientId,
+              isActive: true,
+            },
           },
         },
       },
@@ -123,7 +125,12 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
           },
         },
       },
-      workoutLogs: {
+      segments: {
+        include: {
+          exercise: true,
+        },
+      },
+      logs: {
         where: {
           athleteId: user.id,
         },
@@ -134,7 +141,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       },
     },
     orderBy: {
-      sortOrder: 'asc',
+      order: 'asc',
     },
   })
 
@@ -142,7 +149,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   const activePrograms = await prisma.trainingProgram.findMany({
     where: {
       clientId: clientId,
-      status: 'ACTIVE',
+      isActive: true,
     },
     include: {
       _count: {
@@ -168,8 +175,10 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         },
         week: {
           program: {
-            clientId: clientId,
-            status: 'ACTIVE',
+            is: {
+              clientId: clientId,
+              isActive: true,
+            },
           },
         },
       },
@@ -192,24 +201,13 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     },
     orderBy: [
       { day: { date: 'asc' } },
-      { sortOrder: 'asc' },
+      { order: 'asc' },
     ],
     take: 5,
   })
 
-  // Get latest readiness check-in
-  const latestReadiness = await prisma.readinessCheckIn.findFirst({
-    where: {
-      userId: user.id,
-      date: {
-        gte: startOfToday,
-        lte: endOfToday,
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
+  // Readiness check-in placeholder (model not yet implemented)
+  const latestReadiness = null
 
   // Get recent workout logs for muscular fatigue calculation
   const recentLogs = await prisma.workoutLog.findMany({
@@ -223,8 +221,9 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       setLogs: true,
       workout: {
         select: {
-          workoutType: true,
+          type: true,
           name: true,
+          intensity: true,
         },
       },
     },
@@ -237,10 +236,12 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   const muscularFatigue = calculateMuscularFatigue(recentLogs as WorkoutLogWithSetLogs[])
 
   // Get intensity targets for the athlete
-  const intensityTargets = await getTargetsForAthlete(clientId)
+  const intensityTargets = sportProfile && primarySport
+    ? getTargetsForAthlete(sportProfile as Parameters<typeof getTargetsForAthlete>[0], primarySport)
+    : undefined
 
   // Get hero workout (first uncompleted workout today, or first workout if all completed)
-  const heroWorkout = todaysWorkouts.find(w => !w.workoutLogs.length || !w.workoutLogs[0]?.completed)
+  const heroWorkout = todaysWorkouts.find(w => !w.logs.length || !w.logs[0]?.completed)
     || todaysWorkouts[0]
     || null
 
@@ -259,11 +260,11 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       </div>
 
       {/* AI Suggestions Banner */}
-      <AISuggestionsBanner clientId={clientId} />
+      <AISuggestionsBanner />
 
       {/* Morning Briefing */}
       <div className="mb-6">
-        <MorningBriefingCard clientId={clientId} />
+        <MorningBriefingCard />
       </div>
 
       {/* Main Grid */}
@@ -272,39 +273,41 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         <div className="lg:col-span-2 space-y-6">
           {/* Hero Workout Card */}
           {isRestDay ? (
-            <RestDayHeroCard />
+            <RestDayHeroCard
+              nextWorkout={null}
+              readinessScore={null}
+            />
           ) : heroWorkout ? (
             <HeroWorkoutCard
-              workout={heroWorkout as DashboardWorkoutWithContext}
-              basePath={basePath}
+              workout={heroWorkout as unknown as DashboardWorkoutWithContext}
             />
           ) : null}
 
           {/* Today's Workouts */}
           {!isRestDay && todaysWorkouts.length > 1 && (
             <TodaysWorkouts
-              workouts={todaysWorkouts as DashboardWorkoutWithContext[]}
-              basePath={basePath}
+              workouts={todaysWorkouts as unknown as DashboardWorkoutWithContext[]}
             />
           )}
 
           {/* Upcoming Workouts */}
           <UpcomingWorkouts
-            workouts={upcomingWorkouts as DashboardWorkoutWithContext[]}
-            basePath={basePath}
+            workouts={upcomingWorkouts as unknown as DashboardWorkoutWithContext[]}
           />
 
           {/* Active Programs */}
-          <ActivePrograms programs={activePrograms} basePath={basePath} />
+          <ActivePrograms programs={activePrograms as unknown as Parameters<typeof ActivePrograms>[0]['programs']} />
         </div>
 
         {/* Right Column - Stats & Widgets */}
         <div className="space-y-6">
           {/* Readiness Panel */}
           <ReadinessPanel
-            latestReadiness={latestReadiness}
+            readinessScore={null}
+            weeklyTSS={null}
+            weeklyTSSTarget={0}
             muscularFatigue={muscularFatigue}
-            basePath={basePath}
+            hasCheckedInToday={false}
           />
 
           {/* Weekly Summary */}
@@ -347,7 +350,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
           </GlassCard>
 
           {/* Log Workout Button */}
-          <LogWorkoutButton clientId={clientId} />
+          <LogWorkoutButton />
         </div>
       </div>
     </div>

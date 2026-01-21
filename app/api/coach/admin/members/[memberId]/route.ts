@@ -5,7 +5,7 @@ import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
 
 const updateMemberSchema = z.object({
-  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'TESTER']).optional(),
+  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'COACH']).optional(),
   isActive: z.boolean().optional(),
 })
 

@@ -691,8 +691,8 @@ export async function requireBusinessAdminRole(): Promise<BusinessAdminUser> {
     redirect('/login')
   }
 
-  // Get business membership
-  const membership = await prisma.businessMember.findFirst({
+  // First try to find a membership with OWNER or ADMIN role
+  let membership = await prisma.businessMember.findFirst({
     where: {
       userId: user.id,
       isActive: true,
@@ -710,6 +710,25 @@ export async function requireBusinessAdminRole(): Promise<BusinessAdminUser> {
       },
     },
   })
+
+  // If user is a global ADMIN, allow access to any business they're a member of
+  if (!membership && user.role === 'ADMIN') {
+    membership = await prisma.businessMember.findFirst({
+      where: {
+        userId: user.id,
+        isActive: true,
+      },
+      include: {
+        business: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+    })
+  }
 
   if (!membership) {
     throw new Error('Access denied. Business admin role required.')

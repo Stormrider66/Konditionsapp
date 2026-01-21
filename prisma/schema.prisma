@@ -1121,7 +1121,7 @@ model BusinessMember {
   userId     String
 
   // Role within business
-  role String @default("MEMBER") // "OWNER", "ADMIN", "MEMBER", "TESTER"
+  role String @default("MEMBER") // "OWNER", "ADMIN", "MEMBER", "COACH"
 
   // Permissions (JSON for flexibility)
   permissions Json? // { canManageTesters, canViewAllTests, canManageClients, etc. }

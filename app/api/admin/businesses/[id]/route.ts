@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { requireAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
@@ -139,9 +140,20 @@ export async function PUT(
       }
     }
 
+    // Build update data, handling JSON fields specially for Prisma
+    const { settings, ...restData } = validatedData
+    const updateData: Prisma.BusinessUpdateInput = {
+      ...restData,
+      ...(settings !== undefined && {
+        settings: settings === null
+          ? Prisma.JsonNull
+          : (settings as Prisma.InputJsonValue),
+      }),
+    }
+
     const business = await prisma.business.update({
       where: { id },
-      data: validatedData,
+      data: updateData,
       include: {
         _count: {
           select: {

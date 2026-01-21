@@ -24,12 +24,12 @@ export async function GET(request: NextRequest) {
         where: { businessId, isActive: true },
       }),
       // Locations count
-      prisma.businessLocation.count({
+      prisma.location.count({
         where: { businessId, isActive: true },
       }),
-      // Testers count (members with TESTER role)
+      // Coaches count (members with COACH role)
       prisma.businessMember.count({
-        where: { businessId, role: 'TESTER', isActive: true },
+        where: { businessId, role: 'COACH', isActive: true },
       }),
       // Active API keys
       prisma.businessApiKey.count({

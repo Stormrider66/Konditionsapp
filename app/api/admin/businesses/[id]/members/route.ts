@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { requireAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
@@ -8,7 +9,7 @@ import { z } from 'zod'
 const addMemberSchema = z.object({
   userId: z.string().uuid().optional(),
   userEmail: z.string().email().optional(),
-  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'TESTER']).default('MEMBER'),
+  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'COACH']).default('MEMBER'),
   permissions: z.record(z.boolean()).optional().nullable(),
 }).refine((data) => data.userId || data.userEmail, {
   message: 'Either userId or userEmail must be provided',
@@ -136,7 +137,9 @@ export async function POST(
         businessId,
         userId,
         role: validatedData.role,
-        permissions: validatedData.permissions,
+        permissions: validatedData.permissions === null
+          ? Prisma.JsonNull
+          : validatedData.permissions,
         acceptedAt: new Date(), // Admin-added members are auto-accepted
       },
       include: {

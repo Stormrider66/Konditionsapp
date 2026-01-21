@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
-type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'TESTER';
+type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH';
 
 interface BusinessMember {
   id: string;
@@ -70,14 +70,14 @@ const roleIcons: Record<MemberRole, React.ReactNode> = {
   OWNER: <Crown className="h-4 w-4 text-amber-500" />,
   ADMIN: <Shield className="h-4 w-4 text-blue-500" />,
   MEMBER: <User className="h-4 w-4 text-gray-500" />,
-  TESTER: <Beaker className="h-4 w-4 text-purple-500" />,
+  COACH: <Beaker className="h-4 w-4 text-green-500" />,
 };
 
 const roleColors: Record<MemberRole, string> = {
   OWNER: 'bg-amber-100 text-amber-700',
   ADMIN: 'bg-blue-100 text-blue-700',
   MEMBER: 'bg-gray-100 text-gray-700',
-  TESTER: 'bg-purple-100 text-purple-700',
+  COACH: 'bg-green-100 text-green-700',
 };
 
 export function BusinessMembersManager({
@@ -233,7 +233,7 @@ export function BusinessMembersManager({
                       <SelectItem value="OWNER">Owner</SelectItem>
                       <SelectItem value="ADMIN">Admin</SelectItem>
                       <SelectItem value="MEMBER">Member</SelectItem>
-                      <SelectItem value="TESTER">Tester</SelectItem>
+                      <SelectItem value="COACH">Coach</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -325,7 +325,7 @@ export function BusinessMembersManager({
                               <SelectItem value="OWNER">Owner</SelectItem>
                               <SelectItem value="ADMIN">Admin</SelectItem>
                               <SelectItem value="MEMBER">Member</SelectItem>
-                              <SelectItem value="TESTER">Tester</SelectItem>
+                              <SelectItem value="COACH">Coach</SelectItem>
                             </SelectContent>
                           </Select>
                           {isOnlyOwner && editRole !== 'OWNER' && (

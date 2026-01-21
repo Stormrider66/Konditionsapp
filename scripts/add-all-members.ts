@@ -38,7 +38,7 @@ async function main() {
     let memberRole = 'MEMBER'
     if (user.role === 'ADMIN') memberRole = 'ADMIN'
     if (user.role === 'COACH') memberRole = 'MEMBER'
-    if (user.role === 'ATHLETE') memberRole = 'TESTER'
+    if (user.role === 'ATHLETE') memberRole = 'COACH'
 
     try {
       await prisma.businessMember.create({

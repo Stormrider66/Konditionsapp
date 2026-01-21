@@ -46,7 +46,7 @@ import { Business } from '@/types';
 import { BusinessForm } from './BusinessForm';
 import { BusinessDetailPanel } from './BusinessDetailPanel';
 
-interface BusinessWithDetails extends Business {
+interface BusinessWithDetails extends Omit<Business, 'enterpriseContract' | '_count'> {
   createdAt: string;
   enterpriseContract?: {
     id: string;
@@ -287,7 +287,7 @@ export function BusinessesTable() {
                                   </DialogHeader>
                                   {editingBusiness && (
                                     <BusinessForm
-                                      business={editingBusiness}
+                                      business={editingBusiness as Business}
                                       onSuccess={handleEditSuccess}
                                     />
                                   )}

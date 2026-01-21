@@ -45,12 +45,41 @@ interface Athlete {
   id: string
   name: string
   email: string | null
+  teamId: string | null
+  sportProfile: {
+    primarySport: string
+  } | null
+}
+
+interface Team {
+  id: string
+  name: string
+}
+
+const SPORT_LABELS: Record<string, string> = {
+  RUNNING: 'Löpning',
+  CYCLING: 'Cykling',
+  SKIING: 'Längdskidåkning',
+  SWIMMING: 'Simning',
+  TRIATHLON: 'Triathlon',
+  HYROX: 'HYROX',
+  GENERAL_FITNESS: 'Allmän fitness',
+  FUNCTIONAL_FITNESS: 'Funktionell träning',
+  STRENGTH: 'Styrka',
+  TEAM_FOOTBALL: 'Fotboll',
+  TEAM_ICE_HOCKEY: 'Ishockey',
+  TEAM_HANDBALL: 'Handboll',
+  TEAM_FLOORBALL: 'Innebandy',
+  TEAM_BASKETBALL: 'Basket',
+  TEAM_VOLLEYBALL: 'Volleyboll',
+  TENNIS: 'Tennis',
+  PADEL: 'Padel',
 }
 
 interface CalendarEventData {
   id: string
   title: string
-  eventType: string
+  type: string
   startDate: Date
   endDate: Date | null
   trainingImpact: string | null
@@ -62,9 +91,9 @@ interface CalendarEventData {
 
 interface WorkoutData {
   id: string
-  title: string | null
+  name: string
   type: string
-  intensity: string | null
+  intensity: string
   completed: boolean
   athlete: {
     id: string
@@ -77,6 +106,9 @@ interface CoachCalendarClientProps {
   upcomingEvents: CalendarEventData[]
   todaysWorkouts: WorkoutData[]
   upcomingRaces: CalendarEventData[]
+  basePath?: string
+  teams?: Team[]
+  sports?: string[]
 }
 
 const EVENT_TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -104,23 +136,61 @@ export function CoachCalendarClient({
   upcomingEvents,
   todaysWorkouts,
   upcomingRaces,
+  basePath = '',
+  teams = [],
+  sports = [],
 }: CoachCalendarClientProps) {
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('all')
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('all')
+  const [selectedSport, setSelectedSport] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Filter athletes by search
-  const filteredAthletes = athletes.filter(a =>
-    a.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Get athlete IDs matching the team and sport filters
+  const getFilteredAthleteIds = () => {
+    let filtered = athletes
 
-  // Filter events by selected athlete
-  const filteredEvents = selectedAthleteId === 'all'
-    ? upcomingEvents
-    : upcomingEvents.filter(e => e.client.id === selectedAthleteId)
+    if (selectedTeamId !== 'all') {
+      filtered = filtered.filter(a => a.teamId === selectedTeamId)
+    }
 
-  const filteredWorkouts = selectedAthleteId === 'all'
-    ? todaysWorkouts
-    : todaysWorkouts.filter(w => w.athlete.id === selectedAthleteId)
+    if (selectedSport !== 'all') {
+      filtered = filtered.filter(a => a.sportProfile?.primarySport === selectedSport)
+    }
+
+    return filtered.map(a => a.id)
+  }
+
+  const filteredAthleteIds = getFilteredAthleteIds()
+
+  // Filter athletes by search and team/sport filters
+  const filteredAthletes = athletes.filter(a => {
+    const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesTeam = selectedTeamId === 'all' || a.teamId === selectedTeamId
+    const matchesSport = selectedSport === 'all' || a.sportProfile?.primarySport === selectedSport
+    return matchesSearch && matchesTeam && matchesSport
+  })
+
+  // Filter events by selected athlete, team, and sport
+  const filteredEvents = upcomingEvents.filter(e => {
+    if (selectedAthleteId !== 'all') {
+      return e.client.id === selectedAthleteId
+    }
+    return filteredAthleteIds.includes(e.client.id)
+  })
+
+  const filteredWorkouts = todaysWorkouts.filter(w => {
+    if (selectedAthleteId !== 'all') {
+      return w.athlete.id === selectedAthleteId
+    }
+    return filteredAthleteIds.includes(w.athlete.id)
+  })
+
+  const filteredRaces = upcomingRaces.filter(r => {
+    if (selectedAthleteId !== 'all') {
+      return r.client.id === selectedAthleteId
+    }
+    return filteredAthleteIds.includes(r.client.id)
+  })
 
   const completedWorkouts = filteredWorkouts.filter(w => w.completed).length
   const totalWorkouts = filteredWorkouts.length
@@ -130,28 +200,65 @@ export function CoachCalendarClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-              <CalendarDays className="w-5 h-5 text-blue-400" />
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <CalendarDays className="w-5 h-5 text-primary" />
             </div>
             Kalender
           </h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-muted-foreground mt-1">
             Överblick av alla atleters schema och händelser
           </p>
         </div>
 
-        {/* Athlete Filter */}
-        <div className="flex items-center gap-3">
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Team Filter */}
+          {teams.length > 0 && (
+            <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+              <SelectTrigger className="w-[160px] bg-background/50 backdrop-blur-sm border-border">
+                <Users className="w-4 h-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Lag" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alla lag</SelectItem>
+                {teams.map(team => (
+                  <SelectItem key={team.id} value={team.id}>
+                    {team.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Sport Filter */}
+          {sports.length > 0 && (
+            <Select value={selectedSport} onValueChange={setSelectedSport}>
+              <SelectTrigger className="w-[160px] bg-background/50 backdrop-blur-sm border-border">
+                <Dumbbell className="w-4 h-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Sport" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Alla sporter</SelectItem>
+                {sports.map(sport => (
+                  <SelectItem key={sport} value={sport}>
+                    {SPORT_LABELS[sport] || sport}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Athlete Filter */}
           <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
-            <SelectTrigger className="w-[200px] bg-slate-900 border-white/10 text-white">
-              <Filter className="w-4 h-4 mr-2 text-slate-400" />
+            <SelectTrigger className="w-[180px] bg-background/50 backdrop-blur-sm border-border">
+              <Filter className="w-4 h-4 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Filtrera atlet" />
             </SelectTrigger>
-            <SelectContent className="bg-slate-900 border-white/10">
-              <SelectItem value="all" className="text-white">Alla atleter</SelectItem>
-              {athletes.map(athlete => (
-                <SelectItem key={athlete.id} value={athlete.id} className="text-white">
+            <SelectContent>
+              <SelectItem value="all">Alla atleter</SelectItem>
+              {filteredAthletes.map(athlete => (
+                <SelectItem key={athlete.id} value={athlete.id}>
                   {athlete.name}
                 </SelectItem>
               ))}
@@ -162,24 +269,24 @@ export function CoachCalendarClient({
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <GlassCard className="bg-slate-900/50">
+        <GlassCard>
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Atleter</p>
-                <p className="text-2xl font-bold text-white">{athletes.length}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Atleter</p>
+                <p className="text-2xl font-bold text-foreground">{athletes.length}</p>
               </div>
               <Users className="w-8 h-8 text-blue-500/50" />
             </div>
           </GlassCardContent>
         </GlassCard>
 
-        <GlassCard className="bg-slate-900/50">
+        <GlassCard>
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Pass idag</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Pass idag</p>
+                <p className="text-2xl font-bold text-foreground">
                   {completedWorkouts}/{totalWorkouts}
                 </p>
               </div>
@@ -188,24 +295,24 @@ export function CoachCalendarClient({
           </GlassCardContent>
         </GlassCard>
 
-        <GlassCard className="bg-slate-900/50">
+        <GlassCard>
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Kommande händelser</p>
-                <p className="text-2xl font-bold text-white">{filteredEvents.length}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Kommande händelser</p>
+                <p className="text-2xl font-bold text-foreground">{filteredEvents.length}</p>
               </div>
               <Calendar className="w-8 h-8 text-purple-500/50" />
             </div>
           </GlassCardContent>
         </GlassCard>
 
-        <GlassCard className="bg-slate-900/50">
+        <GlassCard>
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-slate-400 uppercase tracking-wide">Tävlingar</p>
-                <p className="text-2xl font-bold text-white">{upcomingRaces.length}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Tävlingar</p>
+                <p className="text-2xl font-bold text-foreground">{filteredRaces.length}</p>
               </div>
               <Trophy className="w-8 h-8 text-yellow-500/50" />
             </div>
@@ -217,29 +324,29 @@ export function CoachCalendarClient({
         {/* Today's Workouts */}
         <GlassCard className="lg:col-span-1">
           <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2 text-white">
+            <GlassCardTitle className="flex items-center gap-2">
               <Zap className="w-5 h-5 text-yellow-500" />
               Dagens pass
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent className="p-0">
             {filteredWorkouts.length === 0 ? (
-              <div className="p-6 text-center text-slate-400">
+              <div className="p-6 text-center text-muted-foreground">
                 Inga pass schemalagda idag
               </div>
             ) : (
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-border">
                 {filteredWorkouts.map(workout => (
                   <Link
                     key={workout.id}
-                    href={`/coach/athletes/${workout.athlete.id}/calendar`}
-                    className="flex items-center gap-3 p-4 hover:bg-white/5 transition-colors"
+                    href={`${basePath}/coach/athletes/${workout.athlete.id}/calendar`}
+                    className="flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors"
                   >
                     <div className={cn(
                       'w-8 h-8 rounded-lg flex items-center justify-center',
                       workout.completed
-                        ? 'bg-green-500/20 text-green-400'
-                        : 'bg-slate-700 text-slate-400'
+                        ? 'bg-green-500/20 text-green-500'
+                        : 'bg-muted text-muted-foreground'
                     )}>
                       {workout.completed ? (
                         <CheckCircle2 className="w-4 h-4" />
@@ -248,13 +355,13 @@ export function CoachCalendarClient({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
-                        {workout.title || workout.type}
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {workout.name || workout.type}
                       </p>
-                      <p className="text-xs text-slate-400">{workout.athlete.name}</p>
+                      <p className="text-xs text-muted-foreground">{workout.athlete.name}</p>
                     </div>
                     {workout.intensity && (
-                      <Badge variant="outline" className="text-xs border-white/10">
+                      <Badge variant="outline" className="text-xs border-border">
                         {workout.intensity}
                       </Badge>
                     )}
@@ -268,31 +375,31 @@ export function CoachCalendarClient({
         {/* Upcoming Events */}
         <GlassCard className="lg:col-span-2">
           <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2 text-white">
+            <GlassCardTitle className="flex items-center gap-2">
               <CalendarDays className="w-5 h-5 text-blue-500" />
               Kommande händelser
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent className="p-0">
             {filteredEvents.length === 0 ? (
-              <div className="p-6 text-center text-slate-400">
+              <div className="p-6 text-center text-muted-foreground">
                 Inga kommande händelser de närmaste 14 dagarna
               </div>
             ) : (
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-border">
                 {filteredEvents.slice(0, 10).map(event => {
-                  const config = EVENT_TYPE_CONFIG[event.eventType] || {
-                    label: event.eventType,
+                  const config = EVENT_TYPE_CONFIG[event.type] || {
+                    label: event.type,
                     icon: Calendar,
-                    color: 'text-slate-400 bg-slate-500/10',
+                    color: 'text-muted-foreground bg-muted',
                   }
                   const Icon = config.icon
 
                   return (
                     <Link
                       key={event.id}
-                      href={`/coach/athletes/${event.client.id}/calendar`}
-                      className="flex items-center gap-4 p-4 hover:bg-white/5 transition-colors"
+                      href={`${basePath}/coach/athletes/${event.client.id}/calendar`}
+                      className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
                     >
                       <div className={cn(
                         'w-10 h-10 rounded-xl flex items-center justify-center',
@@ -302,18 +409,18 @@ export function CoachCalendarClient({
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-white truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {event.title}
                           </p>
-                          <Badge variant="outline" className="text-xs border-white/10 shrink-0">
+                          <Badge variant="outline" className="text-xs border-border shrink-0">
                             {config.label}
                           </Badge>
                         </div>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-muted-foreground">
                           {event.client.name} • {formatRelativeDate(new Date(event.startDate))}
                         </p>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-slate-500" />
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
                     </Link>
                   )
                 })}
@@ -327,24 +434,24 @@ export function CoachCalendarClient({
       <GlassCard>
         <GlassCardHeader>
           <div className="flex items-center justify-between">
-            <GlassCardTitle className="flex items-center gap-2 text-white">
+            <GlassCardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5 text-purple-500" />
               Snabbåtkomst till kalendrar
             </GlassCardTitle>
             <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Sök atlet..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-slate-900 border-white/10 text-white placeholder:text-slate-500"
+                className="pl-9 bg-background/50 border-border placeholder:text-muted-foreground"
               />
             </div>
           </div>
         </GlassCardHeader>
         <GlassCardContent>
           {filteredAthletes.length === 0 ? (
-            <div className="text-center text-slate-400 py-8">
+            <div className="text-center text-muted-foreground py-8">
               Inga atleter hittades
             </div>
           ) : (
@@ -352,18 +459,18 @@ export function CoachCalendarClient({
               {filteredAthletes.map(athlete => (
                 <Link
                   key={athlete.id}
-                  href={`/coach/athletes/${athlete.id}/calendar`}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-white/5 hover:border-white/10 transition-all group"
+                  href={`${basePath}/coach/athletes/${athlete.id}/calendar`}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted border border-border/50 hover:border-border transition-all group"
                 >
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
                     {athlete.name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate group-hover:text-blue-400 transition-colors">
+                    <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
                       {athlete.name}
                     </p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </Link>
               ))}
             </div>

@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { requireBusinessAdminRole } from '@/lib/auth-utils'
 import { z } from 'zod'
 
@@ -135,24 +136,35 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Build update data with proper JSON field handling for Prisma
+    const updateData: Prisma.LocationUpdateInput = {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.slug !== undefined && { slug: data.slug }),
+      ...(data.city !== undefined && { city: data.city }),
+      ...(data.address !== undefined && { address: data.address }),
+      ...(data.postalCode !== undefined && { postalCode: data.postalCode }),
+      ...(data.phone !== undefined && { phone: data.phone }),
+      ...(data.email !== undefined && { email: data.email || null }),
+      ...(data.latitude !== undefined && { latitude: data.latitude }),
+      ...(data.longitude !== undefined && { longitude: data.longitude }),
+      ...(data.openingHours !== undefined && {
+        openingHours: data.openingHours === null
+          ? Prisma.JsonNull
+          : (data.openingHours as Prisma.InputJsonValue)
+      }),
+      ...(data.capabilities !== undefined && { capabilities: data.capabilities }),
+      ...(data.isPrimary !== undefined && { isPrimary: data.isPrimary }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+      ...(data.settings !== undefined && {
+        settings: data.settings === null
+          ? Prisma.JsonNull
+          : (data.settings as Prisma.InputJsonValue)
+      }),
+    }
+
     const location = await prisma.location.update({
       where: { id: locationId },
-      data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.slug !== undefined && { slug: data.slug }),
-        ...(data.city !== undefined && { city: data.city }),
-        ...(data.address !== undefined && { address: data.address }),
-        ...(data.postalCode !== undefined && { postalCode: data.postalCode }),
-        ...(data.phone !== undefined && { phone: data.phone }),
-        ...(data.email !== undefined && { email: data.email || null }),
-        ...(data.latitude !== undefined && { latitude: data.latitude }),
-        ...(data.longitude !== undefined && { longitude: data.longitude }),
-        ...(data.openingHours !== undefined && { openingHours: data.openingHours }),
-        ...(data.capabilities !== undefined && { capabilities: data.capabilities }),
-        ...(data.isPrimary !== undefined && { isPrimary: data.isPrimary }),
-        ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.settings !== undefined && { settings: data.settings }),
-      },
+      data: updateData,
       include: {
         _count: {
           select: {

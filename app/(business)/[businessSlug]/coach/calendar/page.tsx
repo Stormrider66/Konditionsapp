@@ -1,34 +1,49 @@
 /**
- * Coach Calendar Overview
+ * Business-Scoped Coach Calendar Overview
  *
  * Shows all athletes' calendars with filtering and quick navigation.
  * Provides aggregated view of upcoming events, workouts, and races.
  */
 
 import { requireCoach } from '@/lib/auth-utils'
+import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
-import { getBusinessContext } from '@/lib/auth-utils'
-import { CoachCalendarClient } from './CoachCalendarClient'
+import { CoachCalendarClient } from '@/app/coach/calendar/CoachCalendarClient'
 import { addDays, startOfDay, endOfDay } from 'date-fns'
+import { notFound } from 'next/navigation'
 import { SportType } from '@prisma/client'
 
-export default async function CoachCalendarPage() {
+interface BusinessCalendarPageProps {
+  params: Promise<{ businessSlug: string }>
+}
+
+export default async function BusinessCalendarPage({ params }: BusinessCalendarPageProps) {
+  const { businessSlug } = await params
   const user = await requireCoach()
 
-  // Check if coach is part of a business
-  const businessContext = await getBusinessContext(user.id)
-
-  // Get coach IDs (business-scoped or just current user)
-  let coachIds = [user.id]
-  if (businessContext.businessId) {
-    const members = await prisma.businessMember.findMany({
-      where: { businessId: businessContext.businessId, isActive: true },
-      select: { userId: true },
-    })
-    coachIds = members.map(m => m.userId)
+  // Validate business membership
+  const membership = await validateBusinessMembership(user.id, businessSlug)
+  if (!membership) {
+    notFound()
   }
 
-  // Get all athletes for this coach/business (with team and sport info)
+  const basePath = `/${businessSlug}`
+
+  // Get all coaches in the business
+  const members = await prisma.businessMember.findMany({
+    where: {
+      businessId: membership.businessId,
+      isActive: true,
+      user: { role: 'COACH' },
+    },
+    select: { userId: true },
+  })
+  const coachIds = members.map(m => m.userId)
+  if (!coachIds.includes(user.id)) {
+    coachIds.push(user.id)
+  }
+
+  // Get all athletes for this business (with team and sport info)
   const athletes = await prisma.client.findMany({
     where: {
       userId: { in: coachIds },
@@ -47,7 +62,7 @@ export default async function CoachCalendarPage() {
     orderBy: { name: 'asc' },
   })
 
-  // Get all teams for this coach/business
+  // Get all teams for this business
   const teams = await prisma.team.findMany({
     where: {
       userId: { in: coachIds },
@@ -178,6 +193,7 @@ export default async function CoachCalendarPage() {
           upcomingEvents={upcomingEvents}
           todaysWorkouts={formattedWorkouts}
           upcomingRaces={upcomingRaces}
+          basePath={basePath}
           teams={teams}
           sports={uniqueSports}
         />

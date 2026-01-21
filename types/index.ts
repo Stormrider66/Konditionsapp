@@ -147,7 +147,7 @@ export interface SystemMetric {
 
 // ==================== BUSINESS ORGANIZATION ====================
 
-export type BusinessMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'TESTER'
+export type BusinessMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH'
 
 export interface Business {
   id: string

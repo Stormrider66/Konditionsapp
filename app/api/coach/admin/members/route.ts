@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 const addMemberSchema = z.object({
   userEmail: z.string().email(),
-  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'TESTER']).default('MEMBER'),
+  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'COACH']).default('MEMBER'),
 })
 
 // GET /api/coach/admin/members - List business members

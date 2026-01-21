@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { requireAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
@@ -134,11 +135,20 @@ export async function POST(request: NextRequest) {
       slug = `${slug}-${Date.now().toString(36)}`
     }
 
+    // Build create data, handling JSON fields specially for Prisma
+    const { settings, ...restData } = validatedData
+    const createData: Prisma.BusinessCreateInput = {
+      ...restData,
+      slug,
+      ...(settings !== undefined && {
+        settings: settings === null
+          ? Prisma.JsonNull
+          : (settings as Prisma.InputJsonValue),
+      }),
+    }
+
     const business = await prisma.business.create({
-      data: {
-        ...validatedData,
-        slug,
-      },
+      data: createData,
       include: {
         _count: {
           select: {

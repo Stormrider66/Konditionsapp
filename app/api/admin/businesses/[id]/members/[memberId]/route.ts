@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { requireAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
 
 // Validation schema for updating a member
 const updateMemberSchema = z.object({
-  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'TESTER']).optional(),
+  role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'COACH']).optional(),
   permissions: z.record(z.boolean()).optional().nullable(),
   isActive: z.boolean().optional(),
 })
@@ -59,9 +60,20 @@ export async function PUT(
       }, { status: 400 })
     }
 
+    // Transform permissions for Prisma JSON field (null needs special handling)
+    const updateData: Prisma.BusinessMemberUpdateInput = {
+      ...(validatedData.role !== undefined && { role: validatedData.role }),
+      ...(validatedData.isActive !== undefined && { isActive: validatedData.isActive }),
+      ...(validatedData.permissions !== undefined && {
+        permissions: validatedData.permissions === null
+          ? Prisma.JsonNull
+          : validatedData.permissions,
+      }),
+    }
+
     const member = await prisma.businessMember.update({
       where: { id: memberId },
-      data: validatedData,
+      data: updateData,
       include: {
         user: {
           select: {

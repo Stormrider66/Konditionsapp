@@ -181,7 +181,7 @@ export default async function CoachDashboardPage() {
       select: {
         id: true,
         title: true,
-        eventType: true,
+        type: true,
         startDate: true,
         client: { select: { id: true, name: true } },
       },
@@ -253,7 +253,7 @@ export default async function CoachDashboardPage() {
 
   // Upcoming races
   const upcomingRaces = upcomingEvents.filter(e =>
-    ['RACE_A', 'RACE_B', 'RACE_C', 'COMPETITION'].includes(e.eventType)
+    ['RACE_A', 'RACE_B', 'RACE_C', 'COMPETITION'].includes(e.type)
   )
 
   return (
@@ -603,7 +603,7 @@ export default async function CoachDashboardPage() {
                 ) : (
                   <div className="space-y-2">
                     {upcomingEvents.slice(0, 5).map(event => {
-                      const isRace = ['RACE_A', 'RACE_B', 'RACE_C', 'COMPETITION'].includes(event.eventType)
+                      const isRace = ['RACE_A', 'RACE_B', 'RACE_C', 'COMPETITION'].includes(event.type)
                       return (
                         <Link
                           key={event.id}

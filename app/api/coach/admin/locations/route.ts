@@ -8,12 +8,12 @@ import { z } from 'zod'
 
 const createLocationSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  slug: z.string().min(1).optional(),
-  city: z.string().optional(),
-  address: z.string().optional(),
-  postalCode: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
+  slug: z.string().optional().transform(v => v === '' ? undefined : v),
+  city: z.string().optional().transform(v => v === '' ? undefined : v),
+  address: z.string().optional().transform(v => v === '' ? undefined : v),
+  postalCode: z.string().optional().transform(v => v === '' ? undefined : v),
+  phone: z.string().optional().transform(v => v === '' ? undefined : v),
+  email: z.string().email().optional().or(z.literal('')).transform(v => v === '' ? undefined : v),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
   openingHours: z.record(z.string()).optional(),
@@ -148,7 +148,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    console.error('Error creating location:', error)
+    // Check for auth errors
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { success: false, error: 'Access denied. You need OWNER or ADMIN role in your business.' },
+        { status: 403 }
+      )
+    }
     return NextResponse.json(
       { success: false, error: 'Failed to create location' },
       { status: 500 }
