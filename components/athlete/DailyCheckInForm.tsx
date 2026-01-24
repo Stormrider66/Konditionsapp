@@ -41,7 +41,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Mic, ClipboardList, Watch, CheckCircle2, ChevronRight, Zap, Moon, Activity, Smile, AlertCircle, Loader2 } from 'lucide-react'
+import { Mic, ClipboardList, Watch, CheckCircle2, ChevronRight, Zap, Moon, Activity, Smile, AlertCircle, Loader2, Stethoscope, MessageCircle } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   GlassCard,
   GlassCardHeader,
@@ -95,6 +96,14 @@ const checkInSchema = z.object({
   stress: z.number().min(1).max(10),
   injuryPain: z.number().min(1).max(10),
 
+  // Rehab compliance (optional)
+  rehabExercisesDone: z.boolean().default(false),
+  rehabPainDuring: z.number().min(0).max(10).optional().nullable(),
+  rehabPainAfter: z.number().min(0).max(10).optional().nullable(),
+  rehabNotes: z.string().max(500).optional(),
+  requestPhysioContact: z.boolean().default(false),
+  physioContactReason: z.string().max(500).optional(),
+
   // Notes (optional)
   notes: z.string().max(500).optional(),
 })
@@ -145,6 +154,8 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
   const [injurySelection, setInjurySelection] = useState<InjurySelectorValue>(
     createDefaultInjurySelectorValue()
   )
+  const [hasActiveRehabProgram, setHasActiveRehabProgram] = useState(false)
+  const [activeRehabExercises, setActiveRehabExercises] = useState<{name: string; nameSv: string}[]>([])
 
   const form = useForm<CheckInFormData>({
     resolver: zodResolver(checkInSchema),
@@ -160,6 +171,13 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
       stress: 1, // Default to no stress
       injuryPain: 1, // Default to no pain
       notes: '',
+      // Rehab compliance defaults
+      rehabExercisesDone: false,
+      rehabPainDuring: undefined,
+      rehabPainAfter: undefined,
+      rehabNotes: '',
+      requestPhysioContact: false,
+      physioContactReason: '',
     },
   })
 
@@ -177,6 +195,39 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
       }
     }
     fetchGarminPrefill()
+  }, [clientId])
+
+  // Fetch active rehab programs for this athlete
+  useEffect(() => {
+    async function fetchActiveRehabPrograms() {
+      try {
+        const response = await fetch(`/api/physio/rehab-programs?clientId=${clientId}&status=ACTIVE`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.programs && data.programs.length > 0) {
+            setHasActiveRehabProgram(true)
+            // Collect exercises from all active programs
+            const exercises: {name: string; nameSv: string}[] = []
+            for (const program of data.programs) {
+              if (program.exercises) {
+                for (const ex of program.exercises) {
+                  if (ex.exercise) {
+                    exercises.push({
+                      name: ex.exercise.name,
+                      nameSv: ex.exercise.nameSv || ex.exercise.name
+                    })
+                  }
+                }
+              }
+            }
+            setActiveRehabExercises(exercises)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch active rehab programs:', error)
+      }
+    }
+    fetchActiveRehabPrograms()
   }, [clientId])
 
   // Apply Garmin prefill data
@@ -272,6 +323,13 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
             summary: keywordAnalysis.summary,
             matches: keywordAnalysis.matches,
           } : null,
+          // Rehab compliance (Phase 7 - Physio System)
+          rehabExercisesDone: data.rehabExercisesDone,
+          rehabPainDuring: data.rehabPainDuring ?? null,
+          rehabPainAfter: data.rehabPainAfter ?? null,
+          rehabNotes: data.rehabNotes || null,
+          requestPhysioContact: data.requestPhysioContact,
+          physioContactReason: data.physioContactReason || null,
         }),
       })
 
@@ -724,6 +782,202 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                 />
               </GlassCardContent>
             </GlassCard>
+
+            {/* Rehab Compliance Section - Only shown if athlete has active rehab program */}
+            {hasActiveRehabProgram && (
+              <GlassCard className="border-teal-500/20">
+                <GlassCardHeader>
+                  <GlassCardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+                    <Stethoscope className="h-5 w-5 text-teal-500" />
+                    Rehabilitering
+                  </GlassCardTitle>
+                  <GlassCardDescription className="text-slate-400">
+                    Logga dina rehabövningar och eventuell smärta.
+                  </GlassCardDescription>
+                </GlassCardHeader>
+                <GlassCardContent className="space-y-6">
+                  {/* Active rehab exercises list */}
+                  {activeRehabExercises.length > 0 && (
+                    <div className="p-4 rounded-2xl bg-teal-500/5 border border-teal-500/10">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-teal-500 mb-3">Dagens övningar</p>
+                      <div className="flex flex-wrap gap-2">
+                        {activeRehabExercises.map((ex, idx) => (
+                          <Badge key={idx} variant="outline" className="border-teal-500/30 text-teal-400 bg-teal-500/10">
+                            {ex.nameSv}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Did exercises checkbox */}
+                  <FormField
+                    control={form.control}
+                    name="rehabExercisesDone"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            className="h-6 w-6 border-2 border-teal-500/50 data-[state=checked]:bg-teal-500 data-[state=checked]:border-teal-500"
+                          />
+                        </FormControl>
+                        <div className="flex-1">
+                          <FormLabel className="text-white font-bold cursor-pointer">
+                            Jag har gjort mina rehabövningar idag
+                          </FormLabel>
+                          <FormDescription className="text-slate-500 text-xs">
+                            Markera om du har genomfört dina tilldelade övningar.
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Pain during/after sliders - only show if exercises were done */}
+                  {form.watch('rehabExercisesDone') && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <FormField
+                        control={form.control}
+                        name="rehabPainDuring"
+                        render={({ field }) => (
+                          <FormItem className="space-y-4">
+                            <div className="flex justify-between items-end">
+                              <FormLabel className="font-black uppercase tracking-widest text-[10px] text-slate-500">
+                                Smärta under övningarna
+                              </FormLabel>
+                              <span className="text-2xl font-black text-white leading-none">
+                                {field.value ?? 0}
+                              </span>
+                            </div>
+                            <FormControl>
+                              <Slider
+                                min={0}
+                                max={10}
+                                step={1}
+                                value={[field.value ?? 0]}
+                                onValueChange={vals => field.onChange(vals[0])}
+                                className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-4 [&_[role=slider]]:border-teal-600 [&_[role=slider]]:bg-white"
+                              />
+                            </FormControl>
+                            <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
+                              <span>Ingen smärta</span>
+                              <span>Extrem smärta</span>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="rehabPainAfter"
+                        render={({ field }) => (
+                          <FormItem className="space-y-4">
+                            <div className="flex justify-between items-end">
+                              <FormLabel className="font-black uppercase tracking-widest text-[10px] text-slate-500">
+                                Smärta efter övningarna
+                              </FormLabel>
+                              <span className="text-2xl font-black text-white leading-none">
+                                {field.value ?? 0}
+                              </span>
+                            </div>
+                            <FormControl>
+                              <Slider
+                                min={0}
+                                max={10}
+                                step={1}
+                                value={[field.value ?? 0]}
+                                onValueChange={vals => field.onChange(vals[0])}
+                                className="[&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-4 [&_[role=slider]]:border-teal-600 [&_[role=slider]]:bg-white"
+                              />
+                            </FormControl>
+                            <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
+                              <span>Ingen smärta</span>
+                              <span>Extrem smärta</span>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Rehab notes */}
+                  <FormField
+                    control={form.control}
+                    name="rehabNotes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                          Rehabanteckningar
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="t.ex. Övningarna kändes bra, lättare att utföra än förra veckan..."
+                            className="bg-white/5 border-white/10 min-h-[80px] rounded-2xl p-4 text-white"
+                            {...field}
+                            value={field.value ?? ''}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Request physio contact */}
+                  <div className="pt-4 border-t border-white/5">
+                    <FormField
+                      control={form.control}
+                      name="requestPhysioContact"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              className="h-6 w-6 border-2 border-blue-500/50 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+                            />
+                          </FormControl>
+                          <div className="flex-1">
+                            <FormLabel className="text-white font-bold cursor-pointer flex items-center gap-2">
+                              <MessageCircle className="h-4 w-4 text-blue-500" />
+                              Jag vill kontakta min fysioterapeut
+                            </FormLabel>
+                            <FormDescription className="text-slate-500 text-xs">
+                              Din fysio får en notifikation och kan kontakta dig.
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Reason for contact - only show if checkbox is checked */}
+                    {form.watch('requestPhysioContact') && (
+                      <FormField
+                        control={form.control}
+                        name="physioContactReason"
+                        render={({ field }) => (
+                          <FormItem className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <FormLabel className="text-[11px] font-black uppercase tracking-widest text-slate-500">
+                              Anledning till kontakt
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="t.ex. Ökad smärta, frågor om progression, behöver justering av övningar..."
+                                className="bg-white/5 border-white/10 min-h-[80px] rounded-2xl p-4 text-white"
+                                {...field}
+                                value={field.value ?? ''}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </div>
+                </GlassCardContent>
+              </GlassCard>
+            )}
 
             <Button
               type="submit"

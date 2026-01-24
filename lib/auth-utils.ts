@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { User, UserRole, AdminRole, BusinessAdminUser, BusinessMemberRole } from '@/types'
 import { redirect } from 'next/navigation'
+import { isAthleteModeActive } from '@/lib/athlete-mode'
 
 /**
  * Get the currently authenticated user from Supabase session
@@ -138,6 +139,81 @@ export async function requireAthlete(): Promise<User> {
  */
 export async function requireAdmin(): Promise<User> {
   return requireRole('ADMIN')
+}
+
+/**
+ * Return type for athlete mode auth check
+ */
+export interface AthleteOrCoachInAthleteModeResult {
+  user: User
+  clientId: string
+  isCoachInAthleteMode: boolean
+}
+
+/**
+ * Require user to be an ATHLETE or a COACH/ADMIN in athlete mode
+ * Returns the user with the clientId for data access
+ *
+ * For ATHLETE role: returns athleteAccount.clientId
+ * For COACH/ADMIN with athleteMode cookie: returns selfAthleteClientId
+ *
+ * @throws Redirects to login if not authenticated
+ * @throws Redirects to /coach/settings/athlete-profile if coach without athlete profile
+ */
+export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoachInAthleteModeResult> {
+  const user = await getCurrentUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  // Check if user is a regular ATHLETE
+  if (user.role === 'ATHLETE') {
+    const athleteAccount = await prisma.athleteAccount.findUnique({
+      where: { userId: user.id },
+      select: { clientId: true },
+    })
+
+    if (!athleteAccount) {
+      throw new Error('Athlete account not found')
+    }
+
+    return {
+      user,
+      clientId: athleteAccount.clientId,
+      isCoachInAthleteMode: false,
+    }
+  }
+
+  // Check if user is COACH/ADMIN in athlete mode
+  if (user.role === 'COACH' || user.role === 'ADMIN') {
+    const athleteMode = await isAthleteModeActive()
+
+    if (!athleteMode) {
+      // Not in athlete mode, redirect to coach dashboard
+      redirect('/coach')
+    }
+
+    // Get the coach's self athlete client ID
+    const fullUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { selfAthleteClientId: true },
+    })
+
+    if (!fullUser?.selfAthleteClientId) {
+      // No athlete profile set up, redirect to setup page
+      redirect('/coach/settings/athlete-profile')
+    }
+
+    return {
+      user,
+      clientId: fullUser.selfAthleteClientId,
+      isCoachInAthleteMode: true,
+    }
+  }
+
+  // Unknown role
+  throw new Error('Access denied')
 }
 
 /**
@@ -752,4 +828,435 @@ export async function hasBusinessAdminRole(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+// ============================================
+// Physiotherapist Controls
+// ============================================
+
+/**
+ * Extended user type for physio context
+ */
+export interface PhysioUser extends User {
+  physioAssignments?: {
+    id: string
+    clientId: string | null
+    teamId: string | null
+    organizationId: string | null
+    businessId: string | null
+    locationId: string | null
+    role: 'PRIMARY' | 'SECONDARY' | 'CONSULTANT'
+    canModifyPrograms: boolean
+    canCreateRestrictions: boolean
+    canViewFullHistory: boolean
+  }[]
+}
+
+/**
+ * Require user to be a PHYSIO or ADMIN
+ * Returns the user with physio context
+ * @throws Redirects to login if not authenticated
+ * @throws Error if user doesn't have PHYSIO or ADMIN role
+ */
+export async function requirePhysio(): Promise<User> {
+  const user = await getCurrentUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  if (user.role !== 'PHYSIO' && user.role !== 'ADMIN') {
+    throw new Error('Access denied. Physiotherapist access required.')
+  }
+
+  return user
+}
+
+/**
+ * Require user to be a PHYSIO or ADMIN, and return with assignments
+ */
+export async function requirePhysioWithAssignments(): Promise<PhysioUser> {
+  const user = await requirePhysio()
+
+  // Get physio's assignments
+  const assignments = await prisma.physioAssignment.findMany({
+    where: {
+      physioUserId: user.id,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      clientId: true,
+      teamId: true,
+      organizationId: true,
+      businessId: true,
+      locationId: true,
+      role: true,
+      canModifyPrograms: true,
+      canCreateRestrictions: true,
+      canViewFullHistory: true,
+    },
+  })
+
+  return {
+    ...user,
+    physioAssignments: assignments.map(a => ({
+      ...a,
+      role: a.role as 'PRIMARY' | 'SECONDARY' | 'CONSULTANT',
+    })),
+  }
+}
+
+/**
+ * Check if a physio user can access a specific athlete
+ * Checks direct client assignment, team membership, organization membership,
+ * business membership, and location membership
+ */
+export async function canAccessAthleteAsPhysio(
+  physioUserId: string,
+  clientId: string
+): Promise<boolean> {
+  // First check if user has PHYSIO or ADMIN role
+  const user = await prisma.user.findUnique({
+    where: { id: physioUserId },
+    select: { role: true },
+  })
+
+  if (!user) return false
+  if (user.role === 'ADMIN') return true
+  if (user.role !== 'PHYSIO') return false
+
+  // Get the client with all relevant context
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: {
+      id: true,
+      teamId: true,
+      team: {
+        select: {
+          organizationId: true,
+        },
+      },
+      athleteAccount: {
+        select: {
+          preferredLocationId: true,
+        },
+      },
+    },
+  })
+
+  if (!client) return false
+
+  // Check all physio assignments
+  const assignments = await prisma.physioAssignment.findMany({
+    where: {
+      physioUserId,
+      isActive: true,
+    },
+  })
+
+  for (const assignment of assignments) {
+    // Direct client assignment
+    if (assignment.clientId && assignment.clientId === clientId) {
+      return true
+    }
+
+    // Team assignment
+    if (assignment.teamId && client.teamId === assignment.teamId) {
+      return true
+    }
+
+    // Organization assignment (check if client's team belongs to this org)
+    if (assignment.organizationId && client.team?.organizationId === assignment.organizationId) {
+      return true
+    }
+
+    // Business assignment - check if client's coach belongs to this business
+    if (assignment.businessId) {
+      const coachBusiness = await prisma.businessMember.findFirst({
+        where: {
+          userId: client.id, // Note: client.userId is the coach
+          businessId: assignment.businessId,
+          isActive: true,
+        },
+      })
+      if (coachBusiness) return true
+
+      // Also check by client's userId (the coach who owns the client)
+      const clientRecord = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { userId: true },
+      })
+      if (clientRecord) {
+        const ownerBusiness = await prisma.businessMember.findFirst({
+          where: {
+            userId: clientRecord.userId,
+            businessId: assignment.businessId,
+            isActive: true,
+          },
+        })
+        if (ownerBusiness) return true
+      }
+    }
+
+    // Location assignment - check if client prefers this location
+    if (assignment.locationId && client.athleteAccount?.preferredLocationId === assignment.locationId) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * Get all athletes accessible by a physio user
+ * Returns athletes based on direct assignments, team assignments,
+ * organization assignments, business assignments, and location assignments
+ */
+export async function getPhysioAthletes(physioUserId: string): Promise<string[]> {
+  // First check if user has PHYSIO or ADMIN role
+  const user = await prisma.user.findUnique({
+    where: { id: physioUserId },
+    select: { role: true },
+  })
+
+  if (!user) return []
+  if (user.role !== 'PHYSIO' && user.role !== 'ADMIN') return []
+
+  // Get all physio assignments
+  const assignments = await prisma.physioAssignment.findMany({
+    where: {
+      physioUserId,
+      isActive: true,
+    },
+  })
+
+  const clientIds = new Set<string>()
+
+  for (const assignment of assignments) {
+    // Direct client assignments
+    if (assignment.clientId) {
+      clientIds.add(assignment.clientId)
+    }
+
+    // Team assignments - get all clients in the team
+    if (assignment.teamId) {
+      const teamClients = await prisma.client.findMany({
+        where: { teamId: assignment.teamId },
+        select: { id: true },
+      })
+      teamClients.forEach(c => clientIds.add(c.id))
+    }
+
+    // Organization assignments - get all clients in all teams of the org
+    if (assignment.organizationId) {
+      const orgClients = await prisma.client.findMany({
+        where: {
+          team: {
+            organizationId: assignment.organizationId,
+          },
+        },
+        select: { id: true },
+      })
+      orgClients.forEach(c => clientIds.add(c.id))
+    }
+
+    // Business assignments - get all clients whose coach belongs to this business
+    if (assignment.businessId) {
+      const businessMembers = await prisma.businessMember.findMany({
+        where: {
+          businessId: assignment.businessId,
+          isActive: true,
+        },
+        select: { userId: true },
+      })
+      const coachIds = businessMembers.map(m => m.userId)
+
+      if (coachIds.length > 0) {
+        const businessClients = await prisma.client.findMany({
+          where: {
+            userId: { in: coachIds },
+          },
+          select: { id: true },
+        })
+        businessClients.forEach(c => clientIds.add(c.id))
+      }
+    }
+
+    // Location assignments - get all clients who prefer this location
+    if (assignment.locationId) {
+      const locationClients = await prisma.athleteAccount.findMany({
+        where: {
+          preferredLocationId: assignment.locationId,
+        },
+        select: { clientId: true },
+      })
+      locationClients.forEach(a => clientIds.add(a.clientId))
+    }
+  }
+
+  return Array.from(clientIds)
+}
+
+/**
+ * Require user to be a PHYSIO or ADMIN
+ * Alias for requirePhysio for consistency
+ */
+export async function requirePhysioOrAdmin(): Promise<User> {
+  return requirePhysio()
+}
+
+/**
+ * Get business context for a physio user
+ * Returns null if physio is not associated with any business
+ */
+export async function getPhysioBusinessContext(userId: string): Promise<{
+  businessId: string | null
+  business: { id: string; name: string; slug: string } | null
+  role: string | null
+}> {
+  // First check direct business membership
+  const membership = await prisma.businessMember.findFirst({
+    where: {
+      userId,
+      isActive: true,
+    },
+    include: {
+      business: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
+  })
+
+  if (membership) {
+    return {
+      businessId: membership.businessId,
+      business: membership.business,
+      role: membership.role,
+    }
+  }
+
+  // Check if physio has business-level assignment
+  const businessAssignment = await prisma.physioAssignment.findFirst({
+    where: {
+      physioUserId: userId,
+      businessId: { not: null },
+      isActive: true,
+    },
+    include: {
+      business: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
+  })
+
+  if (businessAssignment?.business) {
+    return {
+      businessId: businessAssignment.businessId!,
+      business: businessAssignment.business,
+      role: 'PHYSIO',
+    }
+  }
+
+  return {
+    businessId: null,
+    business: null,
+    role: null,
+  }
+}
+
+/**
+ * Check if current user can create training restrictions
+ * Returns true if user is ADMIN or PHYSIO/COACH with permission
+ */
+export async function canCreateRestrictions(userId: string, clientId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  })
+
+  if (!user) return false
+  if (user.role === 'ADMIN') return true
+
+  // Check if user is the coach who owns this client
+  if (user.role === 'COACH') {
+    const client = await prisma.client.findFirst({
+      where: {
+        id: clientId,
+        userId: userId,
+      },
+    })
+    return client !== null
+  }
+
+  // Check if user is a physio with restriction permission for this client
+  if (user.role === 'PHYSIO') {
+    const canAccess = await canAccessAthleteAsPhysio(userId, clientId)
+    if (!canAccess) return false
+
+    // Check if any of their assignments allow creating restrictions
+    const assignments = await prisma.physioAssignment.findMany({
+      where: {
+        physioUserId: userId,
+        isActive: true,
+        canCreateRestrictions: true,
+      },
+    })
+
+    return assignments.length > 0
+  }
+
+  return false
+}
+
+/**
+ * Check if current user can modify training programs
+ * Returns true if user is ADMIN or PHYSIO with permission
+ */
+export async function canModifyProgramsAsPhysio(userId: string, clientId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  })
+
+  if (!user) return false
+  if (user.role === 'ADMIN') return true
+
+  // Coaches can always modify their own clients' programs
+  if (user.role === 'COACH') {
+    const client = await prisma.client.findFirst({
+      where: {
+        id: clientId,
+        userId: userId,
+      },
+    })
+    return client !== null
+  }
+
+  // Check if user is a physio with program modification permission
+  if (user.role === 'PHYSIO') {
+    const canAccess = await canAccessAthleteAsPhysio(userId, clientId)
+    if (!canAccess) return false
+
+    // Check if any of their assignments allow modifying programs
+    const assignments = await prisma.physioAssignment.findMany({
+      where: {
+        physioUserId: userId,
+        isActive: true,
+        canModifyPrograms: true,
+      },
+    })
+
+    return assignments.length > 0
+  }
+
+  return false
 }

@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { subDays, startOfWeek, endOfWeek } from 'date-fns'
 import type { WODAthleteContext, WODEquipment, WODUsageStats } from '@/types/wod'
 import { WOD_USAGE_LIMITS } from '@/types/wod'
+import { getRestrictionsForWOD } from '@/lib/training-restrictions'
 
 // ============================================
 // LOCATION EQUIPMENT FETCHING
@@ -149,6 +150,7 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
     recentWorkoutLogs,
     weeklyTrainingLoad,
     locationEquipment,
+    trainingRestrictions,
   ] = await Promise.all([
     // 1. Basic client info
     prisma.client.findUnique({
@@ -266,6 +268,9 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
 
     // 8. Location equipment (enterprise feature)
     getLocationEquipment(clientId),
+
+    // 9. Active training restrictions (physio system)
+    getRestrictionsForWOD(clientId),
   ])
 
   if (!client) {
@@ -345,6 +350,9 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
 
     // Location-based equipment (enterprise feature)
     locationEquipment,
+
+    // Training restrictions (physio system)
+    trainingRestrictions,
   }
 }
 

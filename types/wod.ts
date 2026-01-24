@@ -182,6 +182,16 @@ export interface WODAthleteContext {
       enablesExercises: string[]
     }[]
   } | null
+
+  // Training restrictions (physio system)
+  trainingRestrictions?: {
+    hasRestrictions: boolean
+    restrictedAreas: string[]
+    restrictionTypes: string[]
+    maxIntensityZone: number
+    volumeReduction: number
+    promptConstraints: string
+  }
 }
 
 export interface WODGuardrailResult {
@@ -191,10 +201,12 @@ export interface WODGuardrailResult {
     injury: { passed: boolean; reason?: string; modification?: string }
     fatigue: { passed: boolean; reason?: string; modification?: string }
     usageLimit: { passed: boolean; reason?: string }
+    restrictions: { passed: boolean; reason?: string; modification?: string }
   }
   guardrailsApplied: WODGuardrailApplied[]
   adjustedIntensity: AdjustedIntensity
   excludedAreas: string[]  // Body areas to avoid
+  restrictionConstraints?: string  // Prompt constraints from restrictions
   blockedReason?: string   // If canGenerate is false
 }
 

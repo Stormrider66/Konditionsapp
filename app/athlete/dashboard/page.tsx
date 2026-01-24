@@ -1,7 +1,7 @@
 // app/athlete/dashboard/page.tsx
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { SportType } from '@prisma/client'
 import { addDays, startOfDay, endOfDay, subDays, format } from 'date-fns'
@@ -39,12 +39,14 @@ import {
   Utensils,
   CalendarDays,
   TrendingUp,
-  Calendar
+  Calendar,
+  Stethoscope
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget } from '@/components/athlete/dashboard'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
+import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
 import { RacePredictionWidget } from '@/components/athlete/RacePredictionWidget'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 import { WODHistorySummary } from '@/components/athlete/wod'
@@ -65,26 +67,22 @@ import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 export default async function AthleteDashboardPage() {
   const t = await getTranslations('athlete')
   const tNav = await getTranslations('nav')
-  const user = await requireAthlete()
+  const { user, clientId, isCoachInAthleteMode } = await requireAthleteOrCoachInAthleteMode()
 
-  // Get athlete account with sport profile
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
+  // Get client with sport profile using clientId (works for both athletes and coaches in athlete mode)
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
     include: {
-      client: {
-        include: {
-          sportProfile: true,
-        },
-      },
+      sportProfile: true,
     },
   })
 
-  if (!athleteAccount) {
+  if (!client) {
     redirect('/login')
   }
 
   // Get sport profile for sport-aware dashboard
-  const sportProfile = athleteAccount.client.sportProfile
+  const sportProfile = client.sportProfile
 
   // Check for active sport cookie (for sport switching)
   const cookieStore = await cookies()
@@ -104,7 +102,7 @@ export default async function AthleteDashboardPage() {
     : undefined
 
   // Helper function to render sport-specific dashboard
-  const clientName = athleteAccount.client.name
+  const clientName = client.name
   const renderSportDashboard = () => {
     if (!sportProfile) return null
 
@@ -190,7 +188,7 @@ export default async function AthleteDashboardPage() {
     // 1. Active Programs
     prisma.trainingProgram.findMany({
       where: {
-        clientId: athleteAccount.clientId,
+        clientId: clientId,
         startDate: { lte: now },
         endDate: { gte: now },
         isActive: true,
@@ -245,7 +243,7 @@ export default async function AthleteDashboardPage() {
           },
           week: {
             program: {
-              clientId: athleteAccount.clientId
+              clientId: clientId
             }
           }
         }
@@ -259,7 +257,7 @@ export default async function AthleteDashboardPage() {
     // 4. Latest DailyMetrics for readiness score
     prisma.dailyMetrics.findFirst({
       where: {
-        clientId: athleteAccount.clientId,
+        clientId: clientId,
         date: { gte: todayStart },
       },
       orderBy: { date: 'desc' },
@@ -301,7 +299,7 @@ export default async function AthleteDashboardPage() {
     // 6. Weekly training load (sum of dailyLoad for last 7 days)
     prisma.trainingLoad.findMany({
       where: {
-        clientId: athleteAccount.clientId,
+        clientId: clientId,
         date: { gte: subDays(now, 7) },
       },
       select: {
@@ -312,7 +310,7 @@ export default async function AthleteDashboardPage() {
     // 7. Active injuries (not fully recovered)
     prisma.injuryAssessment.findMany({
       where: {
-        clientId: athleteAccount.clientId,
+        clientId: clientId,
         status: { not: 'FULLY_RECOVERED' },
       },
       select: {
@@ -324,7 +322,7 @@ export default async function AthleteDashboardPage() {
     // 8. WOD (AI-generated workout) history
     prisma.aIGeneratedWOD.findMany({
       where: {
-        clientId: athleteAccount.clientId,
+        clientId: clientId,
       },
       orderBy: { createdAt: 'desc' },
       take: 10,
@@ -345,7 +343,7 @@ export default async function AthleteDashboardPage() {
     where: {
       day: {
         date: { gte: todayStart, lte: todayEnd },
-        week: { program: { clientId: athleteAccount.clientId, isActive: true } }
+        week: { program: { clientId: clientId, isActive: true } }
       }
     },
     include: {
@@ -369,7 +367,7 @@ export default async function AthleteDashboardPage() {
     where: {
       day: {
         date: { gte: upcomingStart, lte: upcomingEnd },
-        week: { program: { clientId: athleteAccount.clientId, isActive: true } }
+        week: { program: { clientId: clientId, isActive: true } }
       }
     },
     include: {
@@ -499,6 +497,7 @@ export default async function AthleteDashboardPage() {
       { href: '/athlete/tests', icon: ClipboardList, label: t('testsAndReports'), color: 'text-red-500' },
       { href: '/athlete/history', icon: TrendingUp, label: t('trainingHistory'), color: 'text-blue-500' },
       { href: '/athlete/programs', icon: Calendar, label: t('allPrograms'), color: 'text-green-500' },
+      { href: '/athlete/rehab', icon: Stethoscope, label: 'Rehabilitering', color: 'text-teal-500' },
       { href: '/athlete/settings/nutrition', icon: Utensils, label: t('nutritionSettings'), color: 'text-emerald-500' },
       { href: '/athlete/profile', icon: User, label: t('myProfile'), color: 'text-purple-500' },
     ]
@@ -524,7 +523,7 @@ export default async function AthleteDashboardPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
-            Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500">{athleteAccount.client.name.split(' ')[0]}</span>
+            Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500">{client.name.split(' ')[0]}</span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2 transition-colors">
             <CalendarDays className="w-4 h-4 text-orange-600 dark:text-orange-500" />
@@ -596,13 +595,13 @@ export default async function AthleteDashboardPage() {
         {heroWorkout ? (
           <HeroWorkoutCard
             workout={heroWorkout}
-            athleteName={athleteAccount.client.name.split(' ')[0]}
+            athleteName={client.name.split(' ')[0]}
           />
         ) : (
           <RestDayHeroCard
             nextWorkout={nextWorkout}
             readinessScore={readinessScore}
-            athleteName={athleteAccount.client.name.split(' ')[0]}
+            athleteName={client.name.split(' ')[0]}
           />
         )}
 
@@ -632,40 +631,40 @@ export default async function AthleteDashboardPage() {
 
           {/* Today&apos;s Workouts (If more than 1, show the rest - using sorted list) */}
           {remainingTodaysWorkouts.length > 0 && (
-            <TodaysWorkouts workouts={remainingTodaysWorkouts} variant="glass" clientId={athleteAccount.clientId} />
+            <TodaysWorkouts workouts={remainingTodaysWorkouts} variant="glass" clientId={clientId} />
           )}
 
           {/* Upcoming Workouts */}
           <UpcomingWorkouts workouts={upcomingWorkouts} variant="glass" />
 
           {/* Training Load Widget (TSS from integrations) */}
-          <TrainingLoadWidget clientId={athleteAccount.clientId} variant="glass" />
+          <TrainingLoadWidget clientId={clientId} variant="glass" />
 
           {/* Training Trend Chart */}
-          <TrainingTrendChart clientId={athleteAccount.clientId} variant="glass" weeks={12} />
+          <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
 
           {/* Zone Distribution Chart */}
-          <ZoneDistributionChart clientId={athleteAccount.clientId} variant="glass" />
+          <ZoneDistributionChart clientId={clientId} variant="glass" />
 
           {/* Nutrition Dashboard */}
-          <NutritionDashboard clientId={athleteAccount.clientId} />
+          <NutritionDashboard clientId={clientId} />
 
           {/* Integrated Recent Activity (Manual + Strava + Garmin) */}
-          <IntegratedRecentActivity clientId={athleteAccount.clientId} variant="glass" />
+          <IntegratedRecentActivity clientId={clientId} variant="glass" />
         </div>
 
         {/* Right Column (1/3) */}
         <div className="space-y-6">
           {/* Weekly Training Summary with sport-specific intensity targets */}
           <WeeklyTrainingSummaryCard
-            clientId={athleteAccount.clientId}
+            clientId={clientId}
             variant="glass"
             activeSport={primarySport || 'RUNNING'}
             intensityTargets={intensityTargets}
           />
 
           {/* Weekly Zone Summary */}
-          <WeeklyZoneSummary clientId={athleteAccount.clientId} variant="glass" />
+          <WeeklyZoneSummary clientId={clientId} variant="glass" />
 
           {/* Log Ad-Hoc Workout */}
           <LogWorkoutButton variant="card" />
@@ -673,11 +672,14 @@ export default async function AthleteDashboardPage() {
           {/* Accountability Streak Widget */}
           <AccountabilityStreakWidget />
 
+          {/* Active Training Restrictions (shown only when restrictions exist) */}
+          <ActiveRestrictionsCard clientId={clientId} />
+
           {/* Injury Prevention Widget */}
           <InjuryPreventionWidget />
 
           {/* Race Predictions Widget */}
-          <RacePredictionWidget clientId={athleteAccount.clientId} />
+          <RacePredictionWidget clientId={clientId} />
 
           {/* Active Programs */}
           <ActivePrograms programs={activePrograms} variant="glass" />
@@ -686,7 +688,7 @@ export default async function AthleteDashboardPage() {
           <WODHistorySummary recentWods={wodHistory} stats={wodStats} />
 
           {/* Integration Status (Full Card) */}
-          <IntegrationStatusWidget clientId={athleteAccount.clientId} variant="glass" />
+          <IntegrationStatusWidget clientId={clientId} variant="glass" />
 
           {/* Quick Links */}
           <GlassCard>

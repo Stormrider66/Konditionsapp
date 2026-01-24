@@ -1,7 +1,7 @@
 // app/(business)/[businessSlug]/athlete/dashboard/page.tsx
 import { redirect, notFound } from 'next/navigation'
 import { cookies } from 'next/headers'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { SportType } from '@prisma/client'
@@ -25,10 +25,12 @@ import {
   Utensils,
   CalendarDays,
   TrendingUp,
-  Calendar
+  Calendar,
+  Stethoscope
 } from 'lucide-react'
 import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget } from '@/components/athlete/dashboard'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
+import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
 import { RacePredictionWidget } from '@/components/athlete/RacePredictionWidget'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 import { WODHistorySummary } from '@/components/athlete/wod'
@@ -46,7 +48,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   const { businessSlug } = await params
   const t = await getTranslations('athlete')
   const tNav = await getTranslations('nav')
-  const user = await requireAthlete()
+  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -56,24 +58,20 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
   const basePath = `/${businessSlug}`
 
-  // Get athlete account with sport profile
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
+  // Get client with sport profile
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
     include: {
-      client: {
-        include: {
-          sportProfile: true,
-        },
-      },
+      sportProfile: true,
     },
   })
 
-  if (!athleteAccount) {
+  if (!client) {
     redirect('/login')
   }
 
   // Get sport profile for sport-aware dashboard
-  const sportProfile = athleteAccount.client.sportProfile
+  const sportProfile = client.sportProfile
 
   // Check for active sport cookie (for sport switching)
   const cookieStore = await cookies()
@@ -87,7 +85,6 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     ? activeSportCookie
     : sportProfile?.primarySport
 
-  const clientId = athleteAccount.clientId
   const today = new Date()
   const startOfToday = startOfDay(today)
   const endOfToday = endOfDay(today)
@@ -252,7 +249,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       {/* Business-branded header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          {t('welcomeBack', { name: athleteAccount.client.name || user.name })}
+          {t('welcomeBack', { name: client.name || user.name })}
         </h1>
         <p className="text-muted-foreground text-sm">
           {membership.business.name} - {format(today, 'EEEE d MMMM')}
@@ -340,6 +337,12 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
                   <span className="text-sm dark:text-slate-300">{t('messages')}</span>
                 </div>
               </Link>
+              <Link href={`${basePath}/athlete/rehab`} className="block">
+                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
+                  <Stethoscope className="h-4 w-4 text-teal-500" />
+                  <span className="text-sm dark:text-slate-300">Rehabilitering</span>
+                </div>
+              </Link>
               <Link href={`${basePath}/athlete/profile`} className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
                   <User className="h-4 w-4 text-purple-500" />
@@ -348,6 +351,9 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
               </Link>
             </GlassCardContent>
           </GlassCard>
+
+          {/* Active Training Restrictions (shown only when restrictions exist) */}
+          <ActiveRestrictionsCard clientId={clientId} />
 
           {/* Log Workout Button */}
           <LogWorkoutButton />

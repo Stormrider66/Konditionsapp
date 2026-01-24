@@ -75,6 +75,13 @@ export async function POST(request: NextRequest) {
       notes,
       injuryDetails,
       keywordAnalysis,
+      // Rehab compliance (Phase 7 - Physio System)
+      rehabExercisesDone,
+      rehabPainDuring,
+      rehabPainAfter,
+      rehabNotes,
+      requestPhysioContact,
+      physioContactReason,
     } = body
 
     // Validate required fields
@@ -392,6 +399,14 @@ export async function POST(request: NextRequest) {
         keywordSeverity: keywordAnalysis?.severityLevel || null,
         keywordSummary: keywordAnalysis?.summary || null,
 
+        // Rehab compliance (Phase 7 - Physio System)
+        rehabExercisesDone: rehabExercisesDone ?? false,
+        rehabPainDuring: rehabPainDuring ?? null,
+        rehabPainAfter: rehabPainAfter ?? null,
+        rehabNotes: rehabNotes || null,
+        requestPhysioContact: requestPhysioContact ?? false,
+        physioContactReason: physioContactReason || null,
+
         updatedAt: new Date(),
       },
       create: {
@@ -443,6 +458,14 @@ export async function POST(request: NextRequest) {
         keywordBodyPart: keywordAnalysis?.suggestedBodyPart || null,
         keywordSeverity: keywordAnalysis?.severityLevel || null,
         keywordSummary: keywordAnalysis?.summary || null,
+
+        // Rehab compliance (Phase 7 - Physio System)
+        rehabExercisesDone: rehabExercisesDone ?? false,
+        rehabPainDuring: rehabPainDuring ?? null,
+        rehabPainAfter: rehabPainAfter ?? null,
+        rehabNotes: rehabNotes || null,
+        requestPhysioContact: requestPhysioContact ?? false,
+        physioContactReason: physioContactReason || null,
       },
     })
 
@@ -561,6 +584,55 @@ export async function POST(request: NextRequest) {
         syncedStrengthFatigue.score,
         muscleSoreness
       )
+    }
+
+    // ==========================================
+    // Physio Contact Request Notification (Phase 7)
+    // ==========================================
+    if (requestPhysioContact) {
+      try {
+        // Find physio assigned to this athlete
+        const physioAssignment = await prisma.physioAssignment.findFirst({
+          where: {
+            clientId,
+            active: true,
+          },
+          include: {
+            physio: true,
+          },
+        })
+
+        if (physioAssignment) {
+          // Create notification for the physio
+          await prisma.aINotification.create({
+            data: {
+              clientId,
+              notificationType: 'PHYSIO_CONTACT_REQUEST',
+              title: '📞 Atlet begär kontakt',
+              message: physioContactReason || 'Atleten vill prata med dig.',
+              priority: 'HIGH',
+              contextData: {
+                requestType: 'ATHLETE_INITIATED',
+                athleteName: client.name,
+                reason: physioContactReason,
+                checkInDate: metricsDate.toISOString(),
+                rehabPainDuring,
+                rehabPainAfter,
+              },
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            },
+          })
+          logger.info('Physio contact request notification created', {
+            clientId,
+            physioId: physioAssignment.physioUserId,
+          })
+        } else {
+          logger.warn('No active physio assignment found for athlete', { clientId })
+        }
+      } catch (error) {
+        logger.error('Error creating physio contact notification', { clientId }, error)
+        // Don't fail check-in if notification fails
+      }
     }
 
     // ==========================================

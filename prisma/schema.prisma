@@ -66,6 +66,7 @@ enum UserRole {
   ADMIN
   COACH
   ATHLETE
+  PHYSIO
 }
 
 enum WorkoutType {
@@ -514,6 +515,28 @@ model User {
   // Location Staff assignments
   locationStaff LocationStaff[]
 
+  // Self-coaching: link to coach's own athlete profile
+  selfAthleteClientId String? @unique
+  selfAthleteClient   Client? @relation("SelfAthleteClient", fields: [selfAthleteClientId], references: [id], onDelete: SetNull)
+
+  // Data Moat System relations
+  coachDecisions     CoachDecision[]  @relation("CoachDecisions")
+  coachPredictions   AIPrediction[]   @relation("CoachPredictions")
+
+  // Data Moat Phase 2: Training-Performance Correlation
+  coachTrainingOutcomes TrainingPeriodOutcome[] @relation("CoachTrainingOutcomes")
+
+  // Physiotherapist System relations
+  physioAssignments      PhysioAssignment[]      @relation("PhysioAssignments")
+  treatmentSessions      TreatmentSession[]      @relation("PhysioTreatmentSessions")
+  rehabPrograms          RehabProgram[]          @relation("PhysioRehabPrograms")
+  movementScreens        MovementScreen[]        @relation("PhysioMovementScreens")
+  createdRestrictions    TrainingRestriction[]   @relation("UserCreatedRestrictions")
+  acuteInjuryReports     AcuteInjuryReport[]     @relation("UserAcuteInjuryReports")
+  createdCareTeamThreads CareTeamThread[]        @relation("UserCreatedCareTeamThreads")
+  careTeamMessages       CareTeamMessage[]       @relation("UserCareTeamMessages")
+  careTeamParticipations CareTeamParticipant[]   @relation("UserCareTeamParticipations")
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -534,6 +557,9 @@ model Organization {
 
   user  User   @relation(fields: [userId], references: [id])
   teams Team[] // Teams belonging to this organization
+
+  // Physiotherapist System relations
+  physioAssignments PhysioAssignment[] @relation("OrgPhysioAssignments")
 
   @@index([userId])
   @@index([name])
@@ -563,6 +589,9 @@ model Team {
 
   // Live HR Streaming System
   liveHRSessions LiveHRSession[]
+
+  // Physiotherapist System relations
+  physioAssignments PhysioAssignment[] @relation("TeamPhysioAssignments")
 
   @@index([userId])
   @@index([name])
@@ -740,6 +769,33 @@ model Client {
 
   // Sport-Specific Testing System relations
   sportTests SportTest[] @relation("ClientSportTests")
+
+  // Self-coaching: coach who owns this as their personal athlete profile
+  selfCoachUser User? @relation("SelfAthleteClient")
+
+  // Data Moat System relations
+  athleteDecisions      CoachDecision[]      @relation("AthleteDecisions")
+  athletePredictions    AIPrediction[]       @relation("AthletePredictions")
+  dataMoatConsent       DataMoatConsent?     @relation("AthleteDataMoatConsent")
+
+  // Data Moat Phase 2: Training-Performance Correlation
+  trainingOutcomes        TrainingPeriodOutcome[] @relation("AthleteTrainingOutcomes")
+  exerciseEffectiveness   ExerciseEffectiveness[] @relation("AthleteExerciseEffectiveness")
+  testPredictiveValidations TestPredictiveValidation[] @relation("AthleteTestValidations")
+
+  // Data Moat Phase 3: Cross-Athlete Intelligence
+  benchmarkComparisons    BenchmarkComparison[]   @relation("AthleteBenchmarks")
+  patternMatches          AthletePatternMatch[]   @relation("AthletePatternMatches")
+
+  // Physiotherapist System relations
+  physioAssignments     PhysioAssignment[]     @relation("ClientPhysioAssignments")
+  treatmentSessions     TreatmentSession[]     @relation("ClientTreatmentSessions")
+  rehabPrograms         RehabProgram[]         @relation("ClientRehabPrograms")
+  rehabProgressLogs     RehabProgressLog[]     @relation("ClientRehabProgressLogs")
+  trainingRestrictions  TrainingRestriction[]  @relation("ClientTrainingRestrictions")
+  movementScreens       MovementScreen[]       @relation("ClientMovementScreens")
+  acuteInjuryReports    AcuteInjuryReport[]    @relation("ClientAcuteInjuryReports")
+  careTeamThreads       CareTeamThread[]       @relation("ClientCareTeamThreads")
 
   @@index([userId])
   @@index([teamId])
@@ -1110,6 +1166,9 @@ model Business {
   // Enterprise Features
   features BusinessFeature[]
 
+  // Physiotherapist System relations
+  physioAssignments PhysioAssignment[] @relation("BusinessPhysioAssignments")
+
   @@index([slug])
   @@index([isActive])
 }
@@ -1309,6 +1368,9 @@ model Location {
   services         LocationService[]
   staff            LocationStaff[]
   athletePreferred AthleteAccount[]    @relation("AthletePreferredLocation")
+
+  // Physiotherapist System relations
+  physioAssignments PhysioAssignment[] @relation("LocationPhysioAssignments")
 
   @@unique([businessId, slug])
   @@index([businessId])
@@ -1788,6 +1850,12 @@ model TrainingProgram {
 
   weeks TrainingWeek[]
 
+  // Data Moat System relations
+  coachDecisions CoachDecision[] @relation("ProgramDecisions")
+
+  // Data Moat Phase 2: Training-Performance Correlation
+  programOutcomes TrainingPeriodOutcome[] @relation("ProgramOutcomes")
+
   @@index([clientId])
   @@index([coachId])
   @@index([testId])
@@ -1873,6 +1941,9 @@ model Workout {
   segments WorkoutSegment[]
   logs     WorkoutLog[]
   messages Message[]
+
+  // Data Moat System relations
+  coachDecisions CoachDecision[] @relation("WorkoutDecisions")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1997,6 +2068,27 @@ model Exercise {
   // Per-set logging
   setLogs SetLog[]
 
+  // Data Moat Phase 2: Exercise Effectiveness Tracking
+  effectivenessRecords ExerciseEffectiveness[] @relation("ExerciseEffectivenessRecords")
+  outcomePatterns      ExerciseOutcomePattern[] @relation("ExerciseOutcomePatterns")
+
+  // Physiotherapist System relations
+  rehabExercises RehabExercise[] @relation("RehabExerciseRef")
+
+  // Rehab Exercise Library Fields (Phase 6)
+  isRehabExercise         Boolean       @default(false) // Is this a rehab-specific exercise?
+  rehabPhases             RehabPhase[]  @default([]) // Which phases is this exercise suitable for?
+  targetBodyParts         String[]      @default([]) // Body parts this exercise targets/rehabilitates
+  contraindications       String[]      @default([]) // Conditions where this exercise should be avoided
+  progressionExerciseId   String?       // ID of harder progression exercise
+  regressionExerciseId    String?       // ID of easier regression exercise
+
+  // Self-relations for progression path
+  progressionExercise   Exercise? @relation("ExerciseProgression", fields: [progressionExerciseId], references: [id])
+  regressionExercise    Exercise? @relation("ExerciseRegression", fields: [regressionExerciseId], references: [id])
+  progressionOf         Exercise[] @relation("ExerciseProgression")
+  regressionOf          Exercise[] @relation("ExerciseRegression")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -2008,6 +2100,7 @@ model Exercise {
   @@index([progressionLevel])
   @@index([isHybridMovement])
   @@index([movementCategory])
+  @@index([isRehabExercise])
 }
 
 // ==================== WORKOUT LOGGING ====================
@@ -2314,6 +2407,14 @@ model DailyCheckIn {
   // Audio journal (if populated from voice input)
   audioJournal AudioJournal?
 
+  // Rehab Compliance (Phase 7 - Physio System)
+  rehabExercisesDone  Boolean @default(false) // Did athlete complete rehab exercises today?
+  rehabPainDuring     Int?    // Pain during rehab exercises (0-10)
+  rehabPainAfter      Int?    // Pain after rehab exercises (0-10)
+  rehabNotes          String? @db.Text // Notes about rehab session
+  requestPhysioContact Boolean @default(false) // Athlete requests physio contact
+  physioContactReason String? @db.Text // Why the athlete wants to contact physio
+
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2322,6 +2423,7 @@ model DailyCheckIn {
   @@index([clientId, date])
   @@index([readinessScore])
   @@index([readinessDecision])
+  @@index([requestPhysioContact])
 }
 
 /// Field test schedule and reminders
@@ -2411,6 +2513,14 @@ model DailyMetrics {
   keywordSeverity  String? // Severity level from keywords: LOW, MEDIUM, HIGH
   keywordSummary   String? // Human-readable summary for coach
 
+  // Rehab Compliance (Phase 7 - Physio System)
+  rehabExercisesDone   Boolean @default(false) // Did athlete complete rehab exercises today?
+  rehabPainDuring      Int?    // Pain during rehab exercises (0-10)
+  rehabPainAfter       Int?    // Pain after rehab exercises (0-10)
+  rehabNotes           String? @db.Text // Notes about rehab session
+  requestPhysioContact Boolean @default(false) // Athlete requests physio contact
+  physioContactReason  String? @db.Text // Why the athlete wants to contact physio
+
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2420,6 +2530,7 @@ model DailyMetrics {
   @@index([clientId, readinessScore]) // Filter athletes by readiness score
   @@index([clientId, readinessLevel]) // Filter by readiness level categories
   @@index([date, readinessLevel]) // Daily readiness overview across all athletes
+  @@index([requestPhysioContact]) // Filter by physio contact requests
 }
 
 // ============================================
@@ -2985,6 +3096,639 @@ model InjuryAssessment {
   @@index([clientId, resolved]) // Track active vs resolved injuries
   @@index([injuryType, phase]) // Track injury types and phases across athletes
   @@index([clientId, injuryType, resolved]) // Track specific injury resolution
+
+  // Relations to physio system
+  treatmentSessions TreatmentSession[]
+  trainingRestrictions TrainingRestriction[]
+  rehabPrograms     RehabProgram[]
+  acuteInjuryReports AcuteInjuryReport[]
+}
+
+// ============================================
+// PHYSIOTHERAPIST SYSTEM
+// Added: 2025-01
+// Purpose: Injury management, rehabilitation, and care team communication
+// ============================================
+
+/// Treatment type for physiotherapy sessions
+enum TreatmentType {
+  ASSESSMENT          // Initial or follow-up assessment
+  MANUAL_THERAPY      // Hands-on treatment (massage, mobilization)
+  DRY_NEEDLING        // Acupuncture/dry needling
+  EXERCISE_THERAPY    // Supervised exercise session
+  ELECTROTHERAPY      // TENS, ultrasound, etc.
+  TAPING              // Kinesio or rigid taping
+  EDUCATION           // Patient education session
+  DISCHARGE           // Final session/discharge
+  OTHER               // Other treatment type
+}
+
+/// Physio assignment role type
+enum PhysioAssignmentRole {
+  PRIMARY             // Primary physiotherapist
+  SECONDARY           // Secondary/backup physiotherapist
+  CONSULTANT          // Consulting physiotherapist
+}
+
+/// Rehabilitation phase
+enum RehabPhase {
+  ACUTE               // 0-7 days post-injury, focus on protection
+  SUBACUTE            // 7-21 days, controlled loading begins
+  REMODELING          // 3-12 weeks, progressive loading
+  FUNCTIONAL          // 12+ weeks, sport-specific training
+  RETURN_TO_SPORT     // Final phase, full activity clearance
+}
+
+/// Training restriction type
+enum RestrictionType {
+  NO_RUNNING          // No running allowed
+  NO_JUMPING          // No jumping/plyometrics
+  NO_IMPACT           // No high-impact activities
+  NO_UPPER_BODY       // No upper body exercises
+  NO_LOWER_BODY       // No lower body exercises
+  REDUCED_VOLUME      // Reduce training volume by percentage
+  REDUCED_INTENSITY   // Cap intensity (e.g., no Zone 4-5)
+  MODIFIED_ONLY       // Only modified exercises allowed
+  SPECIFIC_EXERCISES  // Block specific exercises only
+  CUSTOM              // Custom restriction
+}
+
+/// Restriction severity level
+enum RestrictionSeverity {
+  MILD                // Minor modification needed
+  MODERATE            // Significant modification needed
+  SEVERE              // Major restriction on activity
+  COMPLETE            // No activity allowed
+}
+
+/// Source of the restriction
+enum RestrictionSource {
+  INJURY_CASCADE      // Auto-created from injury check-in
+  PHYSIO_MANUAL       // Manually set by physiotherapist
+  COACH_MANUAL        // Manually set by coach
+  SYSTEM_AUTO         // System-generated (e.g., ACWR)
+}
+
+/// Injury mechanism for acute reports
+enum InjuryMechanism {
+  CONTACT             // Contact injury (collision)
+  NON_CONTACT         // Non-contact injury (twist, sudden movement)
+  OVERUSE             // Gradual onset from overuse
+  UNKNOWN             // Unknown mechanism
+}
+
+/// Urgency level for acute injuries
+enum InjuryUrgency {
+  EMERGENCY           // Requires immediate medical attention
+  URGENT              // Needs same-day assessment
+  MODERATE            // Needs assessment within 24-48h
+  LOW                 // Can wait for scheduled appointment
+}
+
+/// Care team thread status
+enum CareTeamThreadStatus {
+  OPEN                // Active discussion
+  RESOLVED            // Issue resolved
+  ARCHIVED            // Archived for reference
+}
+
+/// Care team thread priority
+enum CareTeamThreadPriority {
+  URGENT              // Requires immediate attention
+  HIGH                // High priority
+  NORMAL              // Normal priority
+  LOW                 // Low priority
+}
+
+/// Movement screen type
+enum MovementScreenType {
+  FMS                 // Functional Movement Screen
+  SFMA                // Selective Functional Movement Assessment
+  Y_BALANCE           // Y-Balance Test
+  CUSTOM              // Custom screening protocol
+}
+
+/// Physio assignment - links physiotherapists to athletes/teams/organizations
+model PhysioAssignment {
+  id      String @id @default(uuid())
+  physioUserId String // User with PHYSIO role
+
+  // Scope (one of these should be set)
+  clientId       String?   // Individual athlete assignment
+  teamId         String?   // Entire team assignment
+  organizationId String?   // All teams in organization
+  businessId     String?   // All athletes in business (enterprise)
+  locationId     String?   // All athletes at specific location
+
+  // Role and permissions
+  role PhysioAssignmentRole @default(PRIMARY)
+  canModifyPrograms     Boolean @default(false) // Can modify training programs
+  canCreateRestrictions Boolean @default(true)  // Can create training restrictions
+  canViewFullHistory    Boolean @default(true)  // Can view full injury/medical history
+
+  // Status
+  isActive Boolean @default(true)
+  startDate DateTime @default(now())
+  endDate   DateTime?
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  physio       User          @relation("PhysioAssignments", fields: [physioUserId], references: [id], onDelete: Cascade)
+  client       Client?       @relation("ClientPhysioAssignments", fields: [clientId], references: [id], onDelete: Cascade)
+  team         Team?         @relation("TeamPhysioAssignments", fields: [teamId], references: [id], onDelete: Cascade)
+  organization Organization? @relation("OrgPhysioAssignments", fields: [organizationId], references: [id], onDelete: Cascade)
+  business     Business?     @relation("BusinessPhysioAssignments", fields: [businessId], references: [id], onDelete: Cascade)
+  location     Location?     @relation("LocationPhysioAssignments", fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([physioUserId])
+  @@index([clientId])
+  @@index([teamId])
+  @@index([organizationId])
+  @@index([businessId])
+  @@index([locationId])
+  @@index([isActive])
+}
+
+/// Treatment session with SOAP notes format
+model TreatmentSession {
+  id          String        @id @default(uuid())
+  physioUserId String       // Treating physiotherapist
+  clientId    String        // Athlete being treated
+  injuryId    String?       // Link to InjuryAssessment if applicable
+
+  sessionDate DateTime @default(now())
+  duration    Int?     // Session duration in minutes
+  treatmentType TreatmentType
+
+  // SOAP Notes format
+  subjective  String? @db.Text // Patient's symptoms, history, complaints
+  objective   String? @db.Text // Measurable/observable findings
+  assessment  String? @db.Text // Clinical reasoning/diagnosis
+  plan        String? @db.Text // Treatment plan going forward
+
+  // Pain tracking (0-10 scale)
+  painBefore  Int?
+  painAfter   Int?
+
+  // Range of Motion measurements (JSON for flexibility)
+  romMeasurements Json? // { "shoulderFlexion": { "left": 170, "right": 165 }, ... }
+
+  // Treatment modalities used
+  modalitiesUsed String[] @default([]) // Array of treatment modalities applied
+
+  // Follow-up
+  followUpRequired Boolean @default(false)
+  followUpDate     DateTime?
+  followUpNotes    String?
+
+  // Billing/admin
+  isBillable Boolean @default(true)
+  billingCode String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  physio User              @relation("PhysioTreatmentSessions", fields: [physioUserId], references: [id])
+  client Client            @relation("ClientTreatmentSessions", fields: [clientId], references: [id], onDelete: Cascade)
+  injury InjuryAssessment? @relation(fields: [injuryId], references: [id], onDelete: SetNull)
+
+  @@index([physioUserId])
+  @@index([clientId])
+  @@index([injuryId])
+  @@index([sessionDate])
+  @@index([treatmentType])
+}
+
+/// Rehabilitation program with phases and milestones
+model RehabProgram {
+  id          String @id @default(uuid())
+  physioUserId String // Creating physiotherapist
+  clientId    String
+  injuryId    String? // Link to InjuryAssessment
+
+  name        String
+  description String? @db.Text
+
+  // Phase management
+  currentPhase RehabPhase @default(ACUTE)
+  phaseStartDate DateTime @default(now())
+
+  // Timeline
+  startDate     DateTime @default(now())
+  estimatedEndDate DateTime?
+  actualEndDate DateTime?
+
+  // Goals
+  shortTermGoals String[] @default([]) // Goals for current phase
+  longTermGoals  String[] @default([]) // Final outcome goals
+
+  // Contraindications and precautions
+  contraindications String[] @default([]) // Movements/activities to avoid
+  precautions       String[] @default([]) // Cautions to observe
+
+  // Pain thresholds
+  acceptablePainDuring Int @default(3)  // Max pain during exercise (0-10)
+  acceptablePainAfter  Int @default(5)  // Max pain allowed 24h post (0-10)
+
+  // Status
+  status String @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, DISCONTINUED
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  physio     User                @relation("PhysioRehabPrograms", fields: [physioUserId], references: [id])
+  client     Client              @relation("ClientRehabPrograms", fields: [clientId], references: [id], onDelete: Cascade)
+  injury     InjuryAssessment?   @relation(fields: [injuryId], references: [id], onDelete: SetNull)
+  exercises  RehabExercise[]
+  milestones RehabMilestone[]
+  progressLogs RehabProgressLog[]
+
+  @@index([physioUserId])
+  @@index([clientId])
+  @@index([injuryId])
+  @@index([status])
+  @@index([currentPhase])
+}
+
+/// Exercise prescription within a rehab program
+model RehabExercise {
+  id        String @id @default(uuid())
+  programId String
+  exerciseId String // Link to Exercise library
+
+  // Prescription
+  sets      Int?
+  reps      String? // "10-12", "AMRAP", "30 sec hold"
+  duration  Int?    // Duration in seconds (for timed exercises)
+  frequency String? // "Daily", "3x/week", "Every other day"
+  intensity String? // "Light", "Moderate", "As tolerated"
+
+  // Progression criteria
+  progressionCriteria String? @db.Text // When to progress to next level
+  regressionCriteria  String? @db.Text // When to regress
+
+  // Phase applicability
+  phases RehabPhase[] @default([]) // Which phases this exercise applies to
+
+  // Order within program
+  order Int @default(0)
+
+  // Notes
+  notes String? @db.Text
+  cuePoints String[] @default([]) // Key coaching cues
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  program  RehabProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercise Exercise     @relation("RehabExerciseRef", fields: [exerciseId], references: [id])
+
+  @@index([programId])
+  @@index([exerciseId])
+  @@index([isActive])
+}
+
+/// Milestones for tracking rehab progress
+model RehabMilestone {
+  id        String @id @default(uuid())
+  programId String
+
+  name        String
+  description String? @db.Text
+
+  // Criteria for achievement
+  criteria    String? @db.Text // Description of what needs to be achieved
+  criteriaJson Json?  // Structured criteria: { "painLevel": "<=2", "romFlexion": ">=160" }
+
+  // Phase association
+  phase RehabPhase
+
+  // Target and actual dates
+  targetDate   DateTime?
+  achievedDate DateTime?
+
+  // Status
+  isAchieved Boolean @default(false)
+  notes      String? @db.Text
+
+  order Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  program RehabProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@index([phase])
+  @@index([isAchieved])
+}
+
+/// Progress log for athlete rehab exercise completion
+model RehabProgressLog {
+  id        String @id @default(uuid())
+  programId String
+  clientId  String
+
+  date DateTime @default(now())
+
+  // Completion
+  exercisesCompleted String[] @default([]) // Array of exercise IDs completed
+  completionPercent  Float?   // Overall completion percentage
+
+  // Pain tracking
+  painDuring Int? // Pain during exercises (0-10)
+  painAfter  Int? // Pain 24h after (0-10)
+
+  // Self-assessment
+  difficultyRating Int?    // 1-5 how difficult was it
+  notes            String? @db.Text
+
+  // Physio review
+  physioReviewed   Boolean   @default(false)
+  physioNotes      String?   @db.Text
+  physioReviewedAt DateTime?
+  physioReviewedBy String?   // Physio userId who reviewed
+
+  createdAt DateTime @default(now())
+
+  // Relations
+  program RehabProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  client  Client       @relation("ClientRehabProgressLogs", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@index([clientId])
+  @@index([date])
+  @@index([physioReviewed])
+}
+
+/// Training restrictions applied to athletes
+model TrainingRestriction {
+  id           String @id @default(uuid())
+  clientId     String
+  createdById  String // Physio or Coach who created it
+  injuryId     String? // Link to InjuryAssessment if applicable
+
+  // Restriction details
+  type     RestrictionType
+  severity RestrictionSeverity @default(MODERATE)
+  source   RestrictionSource   @default(PHYSIO_MANUAL)
+
+  // Affected areas
+  bodyParts String[] @default([]) // Affected body parts
+  affectedWorkoutTypes String[] @default([]) // Workout types affected (RUNNING, STRENGTH, etc.)
+  affectedExerciseIds  String[] @default([]) // Specific exercises blocked
+
+  // Duration
+  startDate DateTime @default(now())
+  endDate   DateTime? // null = indefinite until cleared
+
+  // For volume/intensity restrictions
+  volumeReductionPercent   Int? // e.g., 50 = reduce volume by 50%
+  maxIntensityZone         Int? // e.g., 3 = no Zone 4-5 work
+
+  // Description
+  description String? @db.Text
+  reason      String? // Brief reason for restriction
+
+  // Status
+  isActive    Boolean   @default(true)
+  clearedAt   DateTime?
+  clearedById String?   // Who cleared the restriction
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client    Client            @relation("ClientTrainingRestrictions", fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy User              @relation("UserCreatedRestrictions", fields: [createdById], references: [id])
+  injury    InjuryAssessment? @relation(fields: [injuryId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+  @@index([createdById])
+  @@index([injuryId])
+  @@index([isActive])
+  @@index([type])
+  @@index([endDate])
+}
+
+/// Movement screening assessments
+model MovementScreen {
+  id           String @id @default(uuid())
+  physioUserId String
+  clientId     String
+
+  screenDate DateTime @default(now())
+  screenType MovementScreenType
+
+  // Results (flexible JSON structure for different screen types)
+  results Json // { "deepSquat": 2, "hurdleStep": { "left": 2, "right": 3 }, ... }
+
+  // Scores
+  totalScore    Int?   // Overall score if applicable
+  asymmetryFlag Boolean @default(false) // Any significant L/R asymmetries
+
+  // Comparison
+  previousScreenId String? // Link to previous screen for comparison
+  improvement      String? // IMPROVED, STABLE, DECLINED
+
+  // Recommendations
+  recommendations String[] @default([]) // Exercise/intervention recommendations
+  priorityAreas   String[] @default([]) // Areas needing attention
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  physio User   @relation("PhysioMovementScreens", fields: [physioUserId], references: [id])
+  client Client @relation("ClientMovementScreens", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([physioUserId])
+  @@index([clientId])
+  @@index([screenDate])
+  @@index([screenType])
+}
+
+/// Acute injury reports for match-day injuries
+model AcuteInjuryReport {
+  id         String @id @default(uuid())
+  reporterId String // Who reported (coach, physio, or athlete)
+  clientId   String
+  injuryId   String? // Link to created InjuryAssessment
+
+  reportDate  DateTime @default(now())
+  incidentDate DateTime // When injury occurred
+  incidentTime String?  // Time of incident
+
+  // Injury details
+  mechanism   InjuryMechanism
+  bodyPart    String          // Primary body part affected
+  side        String?         // LEFT, RIGHT, BOTH, N/A
+  description String?         @db.Text // Description of what happened
+
+  // Urgency and severity
+  urgency         InjuryUrgency @default(MODERATE)
+  initialSeverity Int           @default(5) // 1-10 scale
+
+  // Context
+  activityType String?  // "MATCH", "TRAINING", "WARMUP", etc.
+  surfaceType  String?  // "GRASS", "INDOOR", "ARTIFICIAL", etc.
+  equipmentInvolved String? // Any equipment involved
+
+  // Immediate care
+  immediateCareGiven String? @db.Text // What first aid was provided
+  iceApplied        Boolean @default(false)
+  removedFromPlay   Boolean @default(false)
+  ambulanceCalled   Boolean @default(false)
+
+  // Referral
+  referralNeeded  Boolean @default(false)
+  referralType    String? // "HOSPITAL", "IMAGING", "SPECIALIST"
+  referralUrgency String? // "IMMEDIATE", "SAME_DAY", "WITHIN_WEEK"
+
+  // Follow-up
+  physioNotified    Boolean   @default(false)
+  physioNotifiedAt  DateTime?
+  coachNotified     Boolean   @default(false)
+  coachNotifiedAt   DateTime?
+  followUpScheduled DateTime?
+
+  // Status
+  status String @default("PENDING_REVIEW") // PENDING_REVIEW, REVIEWED, ASSESSED, CLOSED
+
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  reporter User              @relation("UserAcuteInjuryReports", fields: [reporterId], references: [id])
+  client   Client            @relation("ClientAcuteInjuryReports", fields: [clientId], references: [id], onDelete: Cascade)
+  injury   InjuryAssessment? @relation(fields: [injuryId], references: [id], onDelete: SetNull)
+
+  @@index([reporterId])
+  @@index([clientId])
+  @@index([injuryId])
+  @@index([reportDate])
+  @@index([urgency])
+  @@index([status])
+}
+
+/// Care team communication thread
+model CareTeamThread {
+  id       String @id @default(uuid())
+  clientId String // Athlete being discussed
+  createdById String // Who created the thread
+
+  // Context
+  subject     String
+  description String? @db.Text
+
+  // Linked items (optional context)
+  injuryId      String? // Link to injury being discussed
+  rehabProgramId String? // Link to rehab program
+  restrictionId String? // Link to restriction
+
+  // Status
+  status   CareTeamThreadStatus   @default(OPEN)
+  priority CareTeamThreadPriority @default(NORMAL)
+
+  // Timestamps
+  lastMessageAt DateTime?
+  resolvedAt    DateTime?
+  resolvedById  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client      Client              @relation("ClientCareTeamThreads", fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy   User                @relation("UserCreatedCareTeamThreads", fields: [createdById], references: [id])
+  messages    CareTeamMessage[]
+  participants CareTeamParticipant[]
+
+  @@index([clientId])
+  @@index([createdById])
+  @@index([status])
+  @@index([priority])
+  @@index([lastMessageAt])
+}
+
+/// Messages within care team threads
+model CareTeamMessage {
+  id       String @id @default(uuid())
+  threadId String
+  senderId String
+
+  content String @db.Text
+
+  // Mentions
+  mentionedUserIds String[] @default([]) // Users @mentioned in message
+
+  // Attachments
+  attachments Json? // Array of { url, name, type }
+
+  // Read tracking
+  readByUserIds String[] @default([]) // Users who have read this message
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  thread CareTeamThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User           @relation("UserCareTeamMessages", fields: [senderId], references: [id])
+
+  @@index([threadId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+/// Participants in care team threads
+model CareTeamParticipant {
+  id       String @id @default(uuid())
+  threadId String
+  userId   String
+
+  // Role in thread
+  role String @default("PARTICIPANT") // OWNER, PHYSIO, COACH, ATHLETE
+
+  // Notification preferences
+  notifyEmail Boolean @default(true)
+  notifyPush  Boolean @default(true)
+
+  // Activity tracking
+  lastReadAt DateTime?
+  lastViewedAt DateTime?
+
+  // Status
+  isActive Boolean @default(true)
+  mutedUntil DateTime?
+
+  joinedAt DateTime @default(now())
+
+  // Relations
+  thread CareTeamThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User           @relation("UserCareTeamParticipations", fields: [userId], references: [id])
+
+  @@unique([threadId, userId])
+  @@index([threadId])
+  @@index([userId])
+  @@index([isActive])
 }
 
 // ============================================
@@ -3227,6 +3971,13 @@ model RaceResult {
   usedForZones      Boolean @default(false) // Is this being used for current training zones?
   trainingProgramId String? // Link to program this race was part of
 
+  // Data Moat: Prediction validation & outcome tracking
+  linkedPredictionId String? // Link to AI prediction that was made for this race
+  linkedPrediction   AIPrediction? @relation("RacePredictionValidation", fields: [linkedPredictionId], references: [id])
+  satisfactionScore  Int? // 1-5 athlete satisfaction with performance
+  conditionFactors   Json? // Structured factors: { heat: true, altitude: false, illness: false, ... }
+  coachAnalysis      Json? // Structured post-race analysis: { pacing, execution, nutrition, mental, recommendations }
+
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3236,6 +3987,7 @@ model RaceResult {
   @@index([distance, raceDate]) // Compare performances by distance
   @@index([vdot]) // Rank athletes by VDOT
   @@index([confidence]) // Filter high-confidence results
+  @@index([linkedPredictionId]) // Find races linked to predictions
 }
 
 /// Sport-specific performance results (Cycling, Swimming, Triathlon, HYROX, Skiing)
@@ -6466,4 +7218,917 @@ model SystemMetric {
   timestamp DateTime @default(now())
 
   @@index([metricName, timestamp])
+}
+
+// ==================== DATA MOAT SYSTEM ====================
+// Platform-wide data collection for competitive advantage
+// Applies to all customers - individual coaches, teams, and enterprise businesses
+
+// ===== DATA MOAT ENUMS =====
+
+enum AISuggestionType {
+  WORKOUT
+  ZONE_CALCULATION
+  PROGRAM_PERIODIZATION
+  RECOVERY_RECOMMENDATION
+  LOAD_ADJUSTMENT
+  EXERCISE_SELECTION
+  INTENSITY_PRESCRIPTION
+  VOLUME_PRESCRIPTION
+  TAPER_PLAN
+  OTHER
+}
+
+enum DecisionReason {
+  ATHLETE_FEEDBACK
+  FATIGUE_OBSERVED
+  HRV_LOW
+  SLEEP_POOR
+  INJURY_CONCERN
+  SCHEDULE_CONFLICT
+  PROGRESSION_ADJUSTMENT
+  WEATHER_CONDITIONS
+  EQUIPMENT_UNAVAILABLE
+  COACH_INTUITION
+  ATHLETE_PREFERENCE
+  TECHNIQUE_FOCUS
+  MENTAL_FRESHNESS
+  TRAVEL_FATIGUE
+  ILLNESS_RECOVERY
+  COMPETITION_PROXIMITY
+  OTHER
+}
+
+enum OutcomeAssessment {
+  BETTER_THAN_AI
+  SAME_AS_AI
+  WORSE_THAN_AI
+  UNKNOWN
+}
+
+enum PredictionType {
+  RACE_TIME
+  THRESHOLD_POWER
+  THRESHOLD_PACE
+  THRESHOLD_HEART_RATE
+  VO2MAX_ESTIMATE
+  INJURY_RISK
+  READINESS_SCORE
+  RECOVERY_TIME
+  IMPROVEMENT_RATE
+  PEAK_TIMING
+  OPTIMAL_TAPER
+  FTP_ESTIMATE
+  CRITICAL_POWER
+  WEIGHT_PREDICTION
+  BODY_COMPOSITION
+}
+
+enum PredictionUserAction {
+  ACCEPTED
+  IGNORED
+  MODIFIED
+  REJECTED
+}
+
+enum ValidationSource {
+  AUTO_STRAVA_IMPORT
+  AUTO_GARMIN_IMPORT
+  AUTO_RACE_RESULT
+  AUTO_TEST_RESULT
+  MANUAL_ENTRY
+  DEVICE_SYNC
+}
+
+// ===== DATA MOAT MODELS =====
+
+/// Tracks when coaches modify AI suggestions - captures expertise for AI improvement
+model CoachDecision {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  coach     User     @relation("CoachDecisions", fields: [coachId], references: [id])
+  coachId   String
+  athlete   Client   @relation("AthleteDecisions", fields: [athleteId], references: [id])
+  athleteId String
+
+  // AI Suggestion
+  aiSuggestionType     AISuggestionType
+  aiSuggestionData     Json      // Full AI suggestion
+  aiConfidence         Float?    // AI's confidence (0-1)
+
+  // Modification
+  modificationData     Json      // What coach changed to
+  modificationMagnitude Float?   // How different (0-1 scale)
+
+  // Reasoning
+  reasonCategory       DecisionReason
+  reasonNotes          String?   @db.Text
+  coachConfidence      Float?    // Coach's confidence (0-1)
+
+  // Athlete context at decision time
+  athleteContext       Json?     // HRV, sleep, fatigue, etc.
+
+  // Outcome tracking
+  outcomeAssessment    OutcomeAssessment?
+  outcomeNotes         String?   @db.Text
+  outcomeValidatedAt   DateTime?
+
+  // Quality flags
+  validated            Boolean   @default(false)
+  usedForAITraining    Boolean   @default(false)
+
+  // Related entities (optional links)
+  workoutId            String?
+  workout              Workout?  @relation("WorkoutDecisions", fields: [workoutId], references: [id], onDelete: SetNull)
+  programId            String?
+  program              TrainingProgram? @relation("ProgramDecisions", fields: [programId], references: [id], onDelete: SetNull)
+
+  // Data Moat Phase 4: Feedback loops
+  feedbackLoops        AIFeedbackLoop[] @relation("DecisionFeedback")
+
+  @@index([coachId])
+  @@index([athleteId])
+  @@index([reasonCategory])
+  @@index([createdAt])
+  @@index([aiSuggestionType])
+  @@index([validated])
+}
+
+/// Logs AI predictions for later validation and accuracy tracking
+model AIPrediction {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Prediction details
+  predictionType     PredictionType
+  predictedValue     Json          // Can be number, string, or complex object
+  confidenceScore    Float         // 0-1
+  confidenceLower    Float?        // Lower bound of CI
+  confidenceUpper    Float?        // Upper bound of CI
+
+  // Model info
+  modelVersion       String
+  modelParameters    Json?
+
+  // Input snapshot for reproducibility
+  inputDataSnapshot  Json
+
+  // Context
+  athlete            Client        @relation("AthletePredictions", fields: [athleteId], references: [id])
+  athleteId          String
+  coach              User?         @relation("CoachPredictions", fields: [coachId], references: [id])
+  coachId            String?
+
+  // Validity
+  validUntil         DateTime?     // Prediction expiry
+
+  // User interaction
+  displayedToUser    Boolean       @default(false)
+  userAction         PredictionUserAction?
+
+  // Validation
+  validation         PredictionValidation?
+  validated          Boolean       @default(false)
+
+  // Data Moat: Race result validation
+  raceResults        RaceResult[] @relation("RacePredictionValidation")
+
+  // Data Moat Phase 4: Feedback loops
+  feedbackLoops      AIFeedbackLoop[] @relation("PredictionFeedback")
+
+  @@index([athleteId])
+  @@index([coachId])
+  @@index([predictionType])
+  @@index([createdAt])
+  @@index([validated])
+}
+
+/// Links predictions to actual outcomes for accuracy measurement
+model PredictionValidation {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+
+  // Link to prediction
+  prediction   AIPrediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  predictionId String       @unique
+
+  // Actual outcome
+  actualValue  Json
+  occurredAt   DateTime
+
+  // Error metrics
+  absoluteError          Float
+  percentageError        Float
+  withinConfidenceInterval Boolean
+
+  // Context
+  environmentalFactors   Json?     // Weather, altitude, illness, etc.
+
+  // Quality
+  validationSource       ValidationSource
+  validationQuality      Float     // 0-1, reliability score
+
+  // Analysis
+  errorExplanation       String?   @db.Text
+  usedForRetraining      Boolean   @default(false)
+
+  @@index([predictionId])
+  @@index([occurredAt])
+  @@index([validationSource])
+}
+
+/// Manages athlete consent for data usage in the Data Moat system
+model DataMoatConsent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Athlete
+  athlete           Client   @relation("AthleteDataMoatConsent", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId         String   @unique
+
+  // Consent levels
+  anonymizedBenchmarking   Boolean @default(true)
+  patternContribution      Boolean @default(true)
+  predictionValidation     Boolean @default(true)
+  coachDecisionSharing     Boolean @default(true)
+
+  // Opt-outs
+  excludeFromResearch      Boolean @default(false)
+  excludeFromPublicStats   Boolean @default(false)
+
+  // Version tracking
+  consentVersion           String  @default("1.0")
+  acceptedAt               DateTime @default(now())
+
+  @@index([athleteId])
+}
+
+// ============================================================================
+// DATA MOAT: PHASE 2 - Training-Performance Correlation
+// ============================================================================
+
+/// Outcome classification for training periods
+enum TrainingOutcome {
+  EXCEEDED_GOALS    // Significantly better than expected
+  MET_GOALS         // Achieved target metrics
+  PARTIALLY_MET     // Some goals achieved
+  MISSED_GOALS      // Did not achieve targets
+  ABANDONED         // Program stopped early
+  INJURED           // Training interrupted by injury
+}
+
+/// Tracks effectiveness of training periods/programs
+model TrainingPeriodOutcome {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  athlete   Client   @relation("AthleteTrainingOutcomes", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+  coach     User     @relation("CoachTrainingOutcomes", fields: [coachId], references: [id])
+  coachId   String
+  program   TrainingProgram? @relation("ProgramOutcomes", fields: [programId], references: [id])
+  programId String?
+
+  // Training period
+  periodName        String        // "Marathon Build Phase 2", "Base Training"
+  periodType        String?       // "BASE", "BUILD", "PEAK", "TAPER", "RECOVERY"
+  startDate         DateTime
+  endDate           DateTime
+  durationWeeks     Int
+
+  // Goals
+  goalMetrics       Json          // { targetRaceTime: "3:30:00", targetFTP: 280, ... }
+  goalDescription   String?       @db.Text
+
+  // Actual outcomes
+  actualMetrics     Json?         // { actualRaceTime: "3:28:15", actualFTP: 285, ... }
+  outcomeClass      TrainingOutcome
+
+  // Training summary
+  totalVolume       Float?        // Total hours or km
+  avgWeeklyVolume   Float?        // Average weekly hours/km
+  compliance        Float?        // 0-1, how much of planned training was completed
+  missedSessions    Int?          // Number of skipped workouts
+
+  // Analysis
+  contributingFactors Json?       // { injury: false, illness: true, travel: false, ... }
+  coachAssessment   String?       @db.Text
+  athleteFeedback   String?       @db.Text
+  lessonsLearned    String?       @db.Text
+
+  // Fingerprint link
+  fingerprint       TrainingFingerprint? @relation("OutcomeFingerprint")
+
+  // Data Moat Phase 4: Feedback loops
+  feedbackLoops     AIFeedbackLoop[] @relation("OutcomeFeedback")
+
+  @@index([athleteId])
+  @@index([coachId])
+  @@index([programId])
+  @@index([startDate, endDate])
+  @@index([outcomeClass])
+}
+
+/// Captures the "signature" of a training period for pattern matching
+model TrainingFingerprint {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Link to outcome
+  periodOutcome   TrainingPeriodOutcome @relation("OutcomeFingerprint", fields: [periodOutcomeId], references: [id], onDelete: Cascade)
+  periodOutcomeId String                @unique
+
+  // Zone distribution (percentage in each zone)
+  zone1Percent    Float   // Recovery
+  zone2Percent    Float   // Aerob bas
+  zone3Percent    Float   // Tempo
+  zone4Percent    Float   // Tröskel
+  zone5Percent    Float   // VO2max
+
+  // Volume patterns
+  avgWeeklyHours        Float
+  weeklyVolumeVariation Float   // Standard deviation of weekly volume
+  longSessionRatio      Float   // % of sessions >90min
+
+  // Intensity patterns
+  intensityDistribution Json    // { easy: 0.7, moderate: 0.2, hard: 0.1 }
+  avgSessionIntensity   Float   // 0-1 scale
+  hardDayFrequency      Float   // Hard sessions per week
+
+  // Session composition
+  strengthSessionsPerWeek Float
+  crossTrainingPercent    Float
+  restDaysPerWeek         Float
+
+  // Periodization pattern
+  periodizationType     String?  // "LINEAR", "BLOCK", "POLARIZED", "PYRAMIDAL"
+  progressionRate       Float?   // Weekly volume/intensity increase %
+
+  // Key workout types
+  keyWorkoutTypes       Json     // ["long_run", "tempo", "intervals", ...]
+
+  @@index([periodOutcomeId])
+  @@index([zone2Percent])  // For polarized training queries
+  @@index([avgWeeklyHours])
+}
+
+/// Tracks which exercises improve specific metrics for specific athletes
+model ExerciseEffectiveness {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relationships
+  exercise   Exercise @relation("ExerciseEffectivenessRecords", fields: [exerciseId], references: [id])
+  exerciseId String
+  athlete    Client   @relation("AthleteExerciseEffectiveness", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId  String
+
+  // Target metric
+  targetMetric      String    // "vertical_jump", "5k_time", "1rm_squat", ...
+  baselineMeasure   Float     // Starting value
+  baselineDate      DateTime
+
+  // Training period
+  trainingWeeks     Int
+  volumeDescription String?   // "3x10 twice/week"
+  avgIntensity      Float?    // 0-1 scale or % of 1RM
+
+  // Post-period measurement
+  postMeasure       Float?
+  postDate          DateTime?
+
+  // Results
+  absoluteImprovement Float?   // postMeasure - baselineMeasure
+  percentImprovement  Float?   // % improvement
+  effectivenessScore  Float?   // Normalized 0-1 score
+
+  // Confounding factors
+  confoundingFactors Json?    // { other_exercises: [...], diet_change: false, ... }
+  notes              String?  @db.Text
+
+  @@unique([exerciseId, athleteId, targetMetric, baselineDate])
+  @@index([exerciseId])
+  @@index([athleteId])
+  @@index([targetMetric])
+  @@index([effectivenessScore])
+}
+
+/// Aggregated patterns across athletes for exercise effectiveness
+model ExerciseOutcomePattern {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Exercise
+  exercise   Exercise @relation("ExerciseOutcomePatterns", fields: [exerciseId], references: [id])
+  exerciseId String
+
+  // Target metric
+  targetMetric      String    // "vertical_jump", "5k_time", etc.
+
+  // Sample statistics
+  sampleSize        Int       // Number of athletes
+  avgImprovement    Float     // Mean improvement
+  stdDeviation      Float     // Standard deviation
+  confidenceLevel   Float     // Statistical confidence 0-1
+  confidenceInterval Json     // { lower: 0.05, upper: 0.12 }
+
+  // Athlete type modifiers
+  athleteTypeModifiers Json?  // { "beginner": 1.2, "advanced": 0.8, "age>40": 0.9 }
+
+  // Validity
+  lastCalculated    DateTime
+  isSignificant     Boolean   // p < 0.05
+
+  @@unique([exerciseId, targetMetric])
+  @@index([exerciseId])
+  @@index([targetMetric])
+  @@index([avgImprovement])
+}
+
+/// Validates that test metrics (lactate, VO2max) predict actual performance
+model TestPredictiveValidation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Source test
+  testType          String    // "LACTATE", "VO2MAX", "FTP", "CRITICAL_POWER"
+  testId            String    // Reference to actual test record
+  testDate          DateTime
+
+  // Prediction made
+  predictedMetric   String    // "10k_time", "marathon_time", "ftp"
+  predictedValue    Float
+  predictionDate    DateTime
+
+  // Athlete
+  athlete           Client    @relation("AthleteTestValidations", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId         String
+
+  // Validation event
+  validationEventType String?  // "RACE", "TIME_TRIAL", "FTP_TEST"
+  validationEventId   String?  // Reference to race result or test
+  validationDate      DateTime?
+  actualValue         Float?
+
+  // Error metrics
+  absoluteError       Float?
+  percentageError     Float?
+
+  // Environmental factors
+  environmentalFactors Json?   // { heat: true, altitude: 1500, ... }
+
+  // Quality
+  validationQuality   Float?   // 0-1, reliability of the validation
+
+  @@index([athleteId])
+  @@index([testType])
+  @@index([predictedMetric])
+  @@index([validationDate])
+}
+
+// ============================================================================
+// DATA MOAT: PHASE 3 - Cross-Athlete Intelligence
+// ============================================================================
+
+/// Experience level for cohort segmentation
+enum ExperienceLevel {
+  BEGINNER      // <1 year
+  INTERMEDIATE  // 1-3 years
+  ADVANCED      // 3-7 years
+  ELITE         // 7+ years or competitive
+}
+
+/// Primary goal types for cohort segmentation
+enum GoalType {
+  GENERAL_FITNESS
+  WEIGHT_LOSS
+  ENDURANCE_PERFORMANCE
+  STRENGTH_GAIN
+  SPORT_SPECIFIC
+  COMPETITION
+  HEALTH_MAINTENANCE
+}
+
+/// Aggregated metrics for athlete cohorts (anonymized benchmarks)
+model AthleteCohort {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Cohort definition
+  sport             String          // "RUNNING", "CYCLING", "TRIATHLON", etc.
+  ageRangeLower     Int             // e.g., 30
+  ageRangeUpper     Int             // e.g., 39
+  experienceLevel   ExperienceLevel
+  weeklyVolumeMin   Float?          // Minimum weekly hours
+  weeklyVolumeMax   Float?          // Maximum weekly hours
+  primaryGoal       GoalType?
+  gender            String?         // "MALE", "FEMALE", "ALL"
+
+  // Sample info
+  sampleSize        Int             // Number of athletes in cohort
+  lastCalculated    DateTime
+
+  // Aggregated metrics (all anonymized averages)
+  avgWeeklyHours    Float?
+  avgZone2Percent   Float?
+  avgHighIntensityPercent Float?
+  avgStrengthSessionsPerWeek Float?
+  avgRestDaysPerWeek Float?
+
+  // Performance benchmarks
+  benchmarks        Json            // { "5k_time": { p10: X, p25: X, p50: X, p75: X, p90: X }, ... }
+
+  // Outcome statistics
+  avgSuccessRate    Float?          // % meeting/exceeding goals
+  avgInjuryRate     Float?          // % with injury outcomes
+  avgImprovement    Float?          // Average improvement %
+
+  // Confidence
+  confidenceLevel   Float           // Statistical confidence 0-1
+
+  // Comparisons generated
+  comparisons       BenchmarkComparison[] @relation("CohortComparisons")
+
+  @@unique([sport, ageRangeLower, ageRangeUpper, experienceLevel, gender])
+  @@index([sport])
+  @@index([experienceLevel])
+  @@index([sampleSize])
+}
+
+/// Individual athlete comparison to their cohort
+model BenchmarkComparison {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Athlete
+  athlete   Client   @relation("AthleteBenchmarks", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+
+  // Cohort
+  cohort    AthleteCohort @relation("CohortComparisons", fields: [cohortId], references: [id], onDelete: Cascade)
+  cohortId  String
+
+  // Comparison metrics
+  metricName        String          // "5k_time", "weekly_volume", "zone2_percent"
+  athleteValue      Float
+  cohortPercentile  Float           // 0-100, where athlete ranks
+
+  // Percentile details
+  cohortP25         Float?
+  cohortP50         Float?
+  cohortP75         Float?
+
+  // Interpretation
+  interpretation    String?         // "Above average", "Top 10%", etc.
+  recommendation    String?         @db.Text
+
+  @@index([athleteId])
+  @@index([cohortId])
+  @@index([metricName])
+  @@index([cohortPercentile])
+}
+
+/// Pattern confidence level
+enum PatternConfidence {
+  PRELIMINARY   // n < 20
+  MODERATE      // n >= 20, p < 0.1
+  HIGH          // n >= 50, p < 0.05
+  VERY_HIGH     // n >= 100, p < 0.01
+}
+
+/// Cross-athlete performance patterns (what works across many athletes)
+model PerformancePattern {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Pattern identification
+  patternName       String          // "High Responder to Polarized Training"
+  patternDescription String?        @db.Text
+
+  // Pattern criteria (what defines this pattern)
+  criteria          Json            // { zoneDistribution: { zone2: ">75%" }, consistency: ">85%" }
+
+  // Outcome correlation
+  outcomeType       String          // "improvement_rate", "injury_prevention", "goal_achievement"
+  outcomeCorrelation Float          // Effect size
+  outcomeDescription String?        // "14% higher improvement rate"
+
+  // Statistical validity
+  sampleSize        Int
+  pValue            Float?
+  effectSize        Float?
+  confidenceLevel   PatternConfidence
+
+  // Applicability
+  applicableSports  String[]        // ["RUNNING", "CYCLING"] or ["ALL"]
+  applicableAgeMin  Int?
+  applicableAgeMax  Int?
+  applicableExperience ExperienceLevel[]
+
+  // Discovery metadata
+  discoveredAt      DateTime        @default(now())
+  lastValidated     DateTime?
+  validationCount   Int             @default(1)
+
+  // Status
+  isActive          Boolean         @default(true)
+  isPublished       Boolean         @default(false)  // Shown to users
+
+  // Matches
+  athleteMatches    AthletePatternMatch[] @relation("PatternMatches")
+
+  // Data Moat Phase 4: Feedback loops
+  feedbackLoops     AIFeedbackLoop[] @relation("PatternFeedback")
+
+  @@index([patternName])
+  @@index([outcomeType])
+  @@index([confidenceLevel])
+  @@index([isActive, isPublished])
+}
+
+/// Links athletes to patterns they match
+model AthletePatternMatch {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Athlete
+  athlete   Client   @relation("AthletePatternMatches", fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+
+  // Pattern
+  pattern   PerformancePattern @relation("PatternMatches", fields: [patternId], references: [id], onDelete: Cascade)
+  patternId String
+
+  // Match quality
+  matchScore        Float           // 0-1, how well athlete matches pattern criteria
+  matchedCriteria   Json            // Which criteria were matched
+
+  // Recommendation
+  recommendation    String?         @db.Text
+  recommendationAccepted Boolean?
+
+  // Outcome tracking (if recommendation was applied)
+  appliedAt         DateTime?
+  outcomeTracked    Boolean         @default(false)
+  outcomeResult     String?         // "POSITIVE", "NEGATIVE", "NEUTRAL"
+  outcomeNotes      String?         @db.Text
+
+  @@unique([athleteId, patternId])
+  @@index([athleteId])
+  @@index([patternId])
+  @@index([matchScore])
+  @@index([outcomeTracked])
+}
+
+// ==================== DATA MOAT PHASE 4: AI LEARNING LOOP ====================
+
+enum FeedbackCategory {
+  PREDICTION_ERROR       // AI prediction was wrong
+  DECISION_OVERRIDE      // Coach overrode AI suggestion
+  PATTERN_DISCOVERED     // New pattern identified
+  ACCURACY_IMPROVEMENT   // Model accuracy improved
+  USER_FEEDBACK          // Direct user feedback
+  OUTCOME_MISMATCH       // Expected vs actual outcome mismatch
+}
+
+enum LessonStatus {
+  IDENTIFIED            // Lesson extracted
+  VALIDATED             // Confirmed by multiple sources
+  APPLIED               // Applied to AI prompts
+  DEPRECATED            // No longer valid
+}
+
+enum ModelStatus {
+  DEVELOPMENT          // In development
+  TESTING              // A/B testing
+  ACTIVE               // Currently deployed
+  DEPRECATED           // Phased out
+  ARCHIVED             // Historical reference
+}
+
+/// Captures lessons learned from AI predictions and coach decisions
+model AIFeedbackLoop {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Source of feedback
+  feedbackCategory   FeedbackCategory
+
+  // Links to source data (at least one should be present)
+  coachDecision      CoachDecision?    @relation("DecisionFeedback", fields: [coachDecisionId], references: [id], onDelete: SetNull)
+  coachDecisionId    String?
+  prediction         AIPrediction?     @relation("PredictionFeedback", fields: [predictionId], references: [id], onDelete: SetNull)
+  predictionId       String?
+  trainingOutcome    TrainingPeriodOutcome? @relation("OutcomeFeedback", fields: [trainingOutcomeId], references: [id], onDelete: SetNull)
+  trainingOutcomeId  String?
+  pattern            PerformancePattern? @relation("PatternFeedback", fields: [patternId], references: [id], onDelete: SetNull)
+  patternId          String?
+
+  // Lesson learned
+  lessonTitle        String            // "Athletes over 40 need longer recovery"
+  lessonDescription  String            @db.Text
+  lessonCategory     String            // "recovery", "intensity", "periodization"
+  lessonConfidence   Float             // 0-1
+
+  // Evidence
+  evidenceCount      Int               @default(1)
+  evidenceData       Json?             // Supporting data points
+  contradictions     Int               @default(0)
+
+  // Prompt adjustment (if applicable)
+  promptAdjustment   String?           @db.Text  // New prompt text or modification
+  affectedPrompts    String[]          // Which AI prompts this affects
+
+  // Status tracking
+  lessonStatus       LessonStatus      @default(IDENTIFIED)
+  validatedAt        DateTime?
+  appliedAt          DateTime?
+
+  // Model version affected
+  modelVersion       AIModelVersion?   @relation("VersionFeedback", fields: [modelVersionId], references: [id])
+  modelVersionId     String?
+
+  // Impact measurement (filled after application)
+  impactMeasured     Boolean           @default(false)
+  impactDescription  String?           @db.Text
+  accuracyBefore     Float?
+  accuracyAfter      Float?
+  improvementPercent Float?
+
+  @@index([feedbackCategory])
+  @@index([lessonStatus])
+  @@index([lessonCategory])
+  @@index([createdAt])
+  @@index([coachDecisionId])
+  @@index([predictionId])
+  @@index([modelVersionId])
+}
+
+/// Tracks AI model versions and their performance
+model AIModelVersion {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Version identification
+  versionName        String            // "v1.2.0", "race-prediction-v3"
+  versionNumber      Int               // Sequential number
+  modelType          String            // "race_prediction", "injury_risk", "workout_generation"
+
+  // Description
+  description        String?           @db.Text
+  changelog          String?           @db.Text  // What changed from previous version
+
+  // Training data
+  trainingDataStart  DateTime?         // Start of training data period
+  trainingDataEnd    DateTime?         // End of training data period
+  trainingDataSize   Int?              // Number of samples
+  trainingDataHash   String?           // Hash for data integrity
+
+  // Prompt/Configuration
+  promptTemplate     String?           @db.Text
+  parameters         Json?             // Model parameters/settings
+
+  // Status
+  status             ModelStatus       @default(DEVELOPMENT)
+  deployedAt         DateTime?
+  deprecatedAt       DateTime?
+
+  // Accuracy metrics (updated periodically)
+  overallAccuracy    Float?            // 0-1
+  accuracyByType     Json?             // { "5K": 0.92, "marathon": 0.87 }
+
+  // Detailed metrics
+  meanAbsoluteError  Float?
+  meanSquaredError   Float?
+  rSquared           Float?
+  within5Percent     Float?            // % of predictions within 5%
+  within10Percent    Float?            // % of predictions within 10%
+
+  // Sample counts
+  predictionCount    Int               @default(0)
+  validatedCount     Int               @default(0)
+
+  // A/B Testing
+  abTestId           String?           // If part of an A/B test
+  abTestVariant      String?           // "control", "treatment"
+  abTestResult       Json?             // Test results
+
+  // Feedback incorporated
+  feedbackLoops      AIFeedbackLoop[]  @relation("VersionFeedback")
+
+  // Relations
+  previousVersion    AIModelVersion?   @relation("VersionHistory", fields: [previousVersionId], references: [id])
+  previousVersionId  String?
+  nextVersions       AIModelVersion[]  @relation("VersionHistory")
+
+  @@unique([modelType, versionNumber])
+  @@index([modelType])
+  @@index([status])
+  @@index([deployedAt])
+  @@index([versionName])
+}
+
+/// Periodic snapshots of prediction accuracy for the dashboard
+model AccuracySnapshot {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Snapshot period
+  periodStart        DateTime
+  periodEnd          DateTime
+  snapshotType       String            // "daily", "weekly", "monthly", "all_time"
+
+  // Race prediction accuracy
+  racePredictions    Json?             // { total, mae, within5pct, within10pct, byDistance: {...} }
+
+  // Threshold prediction accuracy
+  thresholdPredictions Json?           // { total, meanError, correlation, byTestType: {...} }
+
+  // Injury prediction accuracy
+  injuryPredictions  Json?             // { total, sensitivity, specificity, falsePositiveRate, auc }
+
+  // Readiness prediction accuracy
+  readinessPredictions Json?           // { total, correlation, mae }
+
+  // Program outcome accuracy
+  programOutcomes    Json?             // { total, goalAchievementRate, avgImprovement, byProgramType: {...} }
+
+  // Overall metrics
+  overallSampleSize  Int
+  overallAccuracy    Float?            // Weighted average
+  confidenceLevel    Float?            // Statistical confidence
+
+  // Comparison to previous period
+  previousSnapshotId String?
+  previousSnapshot   AccuracySnapshot? @relation("SnapshotHistory", fields: [previousSnapshotId], references: [id])
+  nextSnapshots      AccuracySnapshot[] @relation("SnapshotHistory")
+  changeFromPrevious Json?             // Delta metrics
+
+  // Visibility
+  isPublic           Boolean           @default(false)  // Shown on public dashboard
+
+  @@unique([periodStart, periodEnd, snapshotType])
+  @@index([snapshotType])
+  @@index([createdAt])
+  @@index([isPublic])
+}
+
+/// Stores AI prompt templates with version history
+model AIPromptTemplate {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Identification
+  promptName         String            // "workout_generation", "injury_risk_assessment"
+  promptCategory     String            // "training", "health", "prediction"
+  version            Int               @default(1)
+
+  // Content
+  systemPrompt       String            @db.Text
+  userPromptTemplate String?           @db.Text  // Template with {{variables}}
+  outputFormat       Json?             // Expected output structure
+
+  // Metadata
+  description        String?           @db.Text
+  variables          String[]          // ["athleteName", "currentFitness", "goals"]
+
+  // Status
+  isActive           Boolean           @default(true)
+  activatedAt        DateTime?
+  deactivatedAt      DateTime?
+
+  // Performance tracking
+  usageCount         Int               @default(0)
+  avgResponseQuality Float?            // Based on user feedback
+  avgLatencyMs       Int?
+
+  // A/B testing
+  abTestGroup        String?           // "control", "variant_a", etc.
+  abTestWeight       Float?            // Traffic allocation
+
+  // Version history
+  previousVersion    AIPromptTemplate? @relation("PromptVersionHistory", fields: [previousVersionId], references: [id])
+  previousVersionId  String?
+  nextVersions       AIPromptTemplate[] @relation("PromptVersionHistory")
+
+  // Feedback that led to this version
+  basedOnFeedback    String[]          // IDs of AIFeedbackLoop entries
+
+  @@unique([promptName, version])
+  @@index([promptName])
+  @@index([promptCategory])
+  @@index([isActive])
 }

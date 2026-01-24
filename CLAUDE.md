@@ -70,6 +70,7 @@ type TestType = 'RUNNING' | 'CYCLING' | 'SKIING'
 
 - `COACH` - Creates clients, tests, programs
 - `ATHLETE` - Views programs, logs workouts
+- `PHYSIO` - Manages rehabilitation, restrictions, treatments
 - `ADMIN` - Full system access
 
 Route protection in `middleware.ts`. Subscription tiers (Stripe): FREE, STANDARD, PREMIUM, ENTERPRISE - controls athlete limits and feature access (AI chat, video analysis, Strava/Garmin sync).
@@ -153,6 +154,15 @@ node scripts/chrome-debug.js navigate <url> # Navigate
 - Sport-specific onboarding (6-step wizard)
 - Sport-specific coach dashboards (`components/coach/sport-views/`)
 
+### Physio System (`app/api/physio/`, `app/physio/`)
+- **Rehab Programs** - Phase-based rehabilitation (ACUTE → SUBACUTE → REMODELING → FUNCTIONAL → RETURN_TO_SPORT)
+- **Training Restrictions** - AI WOD integration, body part/exercise blocking, intensity caps
+- **Treatment Sessions** - SOAP-format documentation, modality tracking
+- **Care Team Communication** - Thread-based messaging between physio, coach, athlete
+- **Physio Assignments** - Flexible scoping (client, team, organization, business, location)
+- Models: `PhysioAssignment`, `RehabProgram`, `RehabExercise`, `RehabMilestone`, `RehabProgressLog`, `TrainingRestriction`, `TreatmentSession`, `CareTeamThread`
+- **Docs:** `docs/physio-system/`
+
 ### Additional Systems
 - **Menstrual Cycle Tracking** - Phase tracking with training integration (`MenstrualCycle`, `MenstrualDailyLog`)
 - **Audio Journals** - Voice logs for athlete check-ins (`AudioJournal`)
@@ -168,11 +178,12 @@ node scripts/chrome-debug.js navigate <url> # Navigate
 
 | Topic | Location |
 |-------|----------|
-| API endpoints (285 routes) | `docs/API_REFERENCE.md` |
+| API endpoints (300+ routes) | `docs/API_REFERENCE.md` |
 | Database ER diagram | `docs/database/erd.svg` |
 | Training engine | `docs/training-engine/` |
+| Physio system | `docs/physio-system/` |
 | Athlete dashboard data flow | `docs/ATHLETE_DASHBOARD_CONNECTIONS.md` |
-| Complete database schema | `prisma/schema.prisma` (122 models) |
+| Complete database schema | `prisma/schema.prisma` (130+ models) |
 | TypeScript types | `types/index.ts` |
 
 ## Known Issues

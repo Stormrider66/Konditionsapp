@@ -291,7 +291,11 @@ export async function POST(request: NextRequest) {
     const injuryResponse: InjuryResponse = await processInjuryDetection(
       injuryDetection,
       prisma,
-      { persistRecord: true }
+      {
+        persistRecord: true,
+        createRestriction: true,
+        createdByUserId: dbUser.id
+      }
     )
 
     logger.info('Injury cascade completed', {

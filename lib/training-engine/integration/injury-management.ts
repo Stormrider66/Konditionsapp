@@ -15,6 +15,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { createRestrictionFromInjury } from '@/lib/training-restrictions';
 
 export interface InjuryDetection {
   athleteId: string;
@@ -109,10 +110,13 @@ export async function processInjuryDetection(
   prisma: PrismaClient,
   options?: {
     persistRecord?: boolean
+    createRestriction?: boolean
+    createdByUserId?: string
   }
 ): Promise<InjuryResponse> {
 
   const shouldPersistRecord = options?.persistRecord !== false;
+  const shouldCreateRestriction = options?.createRestriction !== false;
 
   // Step 1: Apply University of Delaware pain rules
   const immediateAction = determineImmediateAction(injury.painLevel, injury.painTiming);
@@ -158,10 +162,45 @@ export async function processInjuryDetection(
   );
 
   // Step 8: Persist injury record and modifications
+  let injuryAssessmentId: string | null = null;
   if (shouldPersistRecord) {
-    await persistInjuryRecord(injury, prisma);
+    injuryAssessmentId = await persistInjuryRecord(injury, prisma);
   }
   await applyWorkoutModifications(workoutModifications, prisma);
+
+  // Step 9: Create training restriction from injury (physio system integration)
+  if (shouldCreateRestriction && injuryAssessmentId) {
+    try {
+      // Map immediate action to restriction parameters
+      const volumeReduction = immediateAction === 'REST' ? 100
+        : immediateAction === 'CROSS_TRAINING_ONLY' ? 100
+        : immediateAction === 'REDUCE_50' ? 50
+        : 20;
+
+      const maxIntensityZone = immediateAction === 'REST' ? 1
+        : immediateAction === 'CROSS_TRAINING_ONLY' ? 2
+        : immediateAction === 'REDUCE_50' ? 3
+        : 4;
+
+      // Duration based on estimated return weeks
+      const durationDays = estimatedReturnWeeks * 7;
+
+      await createRestrictionFromInjury(
+        injury.athleteId,
+        injuryAssessmentId,
+        options?.createdByUserId || 'SYSTEM',
+        {
+          volumeReduction,
+          maxIntensityZone,
+          durationDays,
+          notes: `Auto-created from injury cascade: ${injury.injuryType} (pain ${injury.painLevel}/10). ${programAdjustment.reasoning}`,
+        }
+      );
+    } catch (restrictionError) {
+      // Log but don't fail the main flow if restriction creation fails
+      console.error('Failed to create training restriction from injury:', restrictionError);
+    }
+  }
 
   return {
     immediateAction,
@@ -629,8 +668,9 @@ async function generateCoachNotification(
 
 /**
  * Persist injury record to database
+ * Returns the created injury assessment ID for linking to restrictions
  */
-async function persistInjuryRecord(injury: InjuryDetection, prisma: PrismaClient) {
+async function persistInjuryRecord(injury: InjuryDetection, prisma: PrismaClient): Promise<string> {
   // Derive assessment based on pain level
   let assessment = 'CONTINUE';
   if (injury.painLevel > 5) {
@@ -641,7 +681,7 @@ async function persistInjuryRecord(injury: InjuryDetection, prisma: PrismaClient
     assessment = 'MODIFY';
   }
 
-  await prisma.injuryAssessment.create({
+  const injuryAssessment = await prisma.injuryAssessment.create({
     data: {
       clientId: injury.athleteId,
       injuryType: injury.injuryType,
@@ -652,6 +692,8 @@ async function persistInjuryRecord(injury: InjuryDetection, prisma: PrismaClient
       assessment
     }
   });
+
+  return injuryAssessment.id;
 }
 
 /**

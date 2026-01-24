@@ -7,6 +7,7 @@ const RESERVED_ROUTES = [
   'api',
   'coach',
   'athlete',
+  'physio',
   'admin',
   'login',
   'logout',
@@ -79,6 +80,19 @@ const ATHLETE_REDIRECT_ROUTES = [
   '/athlete/matches',
   '/athlete/subscription',
   '/athlete/onboarding',
+  '/athlete/rehab',
+]
+
+// Physio routes that should be redirected to business-scoped routes
+const PHYSIO_REDIRECT_ROUTES = [
+  '/physio/dashboard',
+  '/physio/athletes',
+  '/physio/treatments',
+  '/physio/rehab-programs',
+  '/physio/screenings',
+  '/physio/restrictions',
+  '/physio/messages',
+  '/physio/settings',
 ]
 
 /**
@@ -283,14 +297,14 @@ export async function middleware(request: NextRequest) {
     if (!error && userData) {
       const role = userData.role
 
-      // Check if this is a business-scoped route (e.g., /star-by-thomson/coach/dashboard or /star-by-thomson/athlete/dashboard)
+      // Check if this is a business-scoped route (e.g., /star-by-thomson/coach/dashboard or /star-by-thomson/athlete/dashboard or /star-by-thomson/physio/dashboard)
       const pathSegments = pathname.split('/').filter(Boolean)
       const firstSegment = pathSegments[0]
       const secondSegment = pathSegments[1]
       const isBusinessRoute =
         firstSegment &&
         !RESERVED_ROUTES.includes(firstSegment) &&
-        (secondSegment === 'coach' || secondSegment === 'athlete')
+        (secondSegment === 'coach' || secondSegment === 'athlete' || secondSegment === 'physio')
 
       if (isBusinessRoute) {
         const businessSlug = firstSegment
@@ -379,42 +393,59 @@ export async function middleware(request: NextRequest) {
       }
 
       if (pathname.startsWith('/athlete')) {
-        if (role !== 'ATHLETE') {
-          if (role === 'COACH' || role === 'ADMIN') {
-            return NextResponse.redirect(new URL('/coach/dashboard', request.url))
+        // Check if coach/admin is in athlete mode
+        const athleteModeCookie = request.cookies.get('athleteMode')?.value === 'true'
+
+        if (role === 'ATHLETE') {
+          // Standard athlete - existing logic for business redirect
+          const shouldRedirectAthlete = ATHLETE_REDIRECT_ROUTES.some(
+            (route) => pathname === route || pathname.startsWith(route + '/')
+          )
+
+          if (shouldRedirectAthlete) {
+            // Get user's primary business membership
+            const { data: athleteMembership } = await supabase
+              .from('BusinessMember')
+              .select('businessId, Business!inner(slug)')
+              .eq('userId', supabaseUser.id)
+              .eq('isActive', true)
+              .order('createdAt', { ascending: true })
+              .limit(1)
+              .single()
+
+            if (athleteMembership && athleteMembership.Business) {
+              // Extract business slug - handle both object and array response formats
+              const athleteBusinessSlug = Array.isArray(athleteMembership.Business)
+                ? athleteMembership.Business[0]?.slug
+                : (athleteMembership.Business as { slug: string }).slug
+
+              if (athleteBusinessSlug) {
+                // Build the new business-scoped path
+                const newAthletePath = pathname.replace('/athlete/', `/${athleteBusinessSlug}/athlete/`)
+                return NextResponse.redirect(new URL(newAthletePath, request.url))
+              }
+            }
+            // If no business membership, allow access to legacy routes
           }
-          return NextResponse.redirect(new URL('/', request.url))
-        }
-
-        // Check if this athlete route should redirect to business-scoped route
-        const shouldRedirectAthlete = ATHLETE_REDIRECT_ROUTES.some(
-          (route) => pathname === route || pathname.startsWith(route + '/')
-        )
-
-        if (shouldRedirectAthlete) {
-          // Get user's primary business membership
-          const { data: athleteMembership } = await supabase
-            .from('BusinessMember')
-            .select('businessId, Business!inner(slug)')
-            .eq('userId', supabaseUser.id)
-            .eq('isActive', true)
-            .order('createdAt', { ascending: true })
-            .limit(1)
+        } else if ((role === 'COACH' || role === 'ADMIN') && athleteModeCookie) {
+          // Coach/Admin in athlete mode - verify they have a self-athlete profile
+          const { data: userWithSelfAthlete } = await supabase
+            .from('User')
+            .select('selfAthleteClientId')
+            .eq('id', supabaseUser.id)
             .single()
 
-          if (athleteMembership && athleteMembership.Business) {
-            // Extract business slug - handle both object and array response formats
-            const athleteBusinessSlug = Array.isArray(athleteMembership.Business)
-              ? athleteMembership.Business[0]?.slug
-              : (athleteMembership.Business as { slug: string }).slug
-
-            if (athleteBusinessSlug) {
-              // Build the new business-scoped path
-              const newAthletePath = pathname.replace('/athlete/', `/${athleteBusinessSlug}/athlete/`)
-              return NextResponse.redirect(new URL(newAthletePath, request.url))
-            }
+          if (!userWithSelfAthlete?.selfAthleteClientId) {
+            // No athlete profile set up - redirect to setup page
+            return NextResponse.redirect(new URL('/coach/settings/athlete-profile', request.url))
           }
-          // If no business membership, allow access to legacy routes
+          // Has athlete profile - allow access to athlete routes
+        } else if (role === 'COACH' || role === 'ADMIN') {
+          // Coach/Admin NOT in athlete mode - redirect to coach dashboard
+          return NextResponse.redirect(new URL('/coach/dashboard', request.url))
+        } else {
+          // Unknown role - redirect to home
+          return NextResponse.redirect(new URL('/', request.url))
         }
       }
 
@@ -426,7 +457,54 @@ export async function middleware(request: NextRequest) {
           if (role === 'ATHLETE') {
             return NextResponse.redirect(new URL('/athlete/dashboard', request.url))
           }
+          if (role === 'PHYSIO') {
+            return NextResponse.redirect(new URL('/physio/dashboard', request.url))
+          }
           return NextResponse.redirect(new URL('/', request.url))
+        }
+      }
+
+      // Physio route protection
+      if (pathname.startsWith('/physio')) {
+        if (role !== 'PHYSIO' && role !== 'ADMIN') {
+          if (role === 'COACH') {
+            return NextResponse.redirect(new URL('/coach/dashboard', request.url))
+          }
+          if (role === 'ATHLETE') {
+            return NextResponse.redirect(new URL('/athlete/dashboard', request.url))
+          }
+          return NextResponse.redirect(new URL('/', request.url))
+        }
+
+        // Check if this physio route should redirect to business-scoped route
+        const shouldRedirectPhysio = PHYSIO_REDIRECT_ROUTES.some(
+          (route) => pathname === route || pathname.startsWith(route + '/')
+        )
+
+        if (shouldRedirectPhysio) {
+          // Get user's primary business membership (or physio assignment business)
+          const { data: physioMembership } = await supabase
+            .from('BusinessMember')
+            .select('businessId, Business!inner(slug)')
+            .eq('userId', supabaseUser.id)
+            .eq('isActive', true)
+            .order('createdAt', { ascending: true })
+            .limit(1)
+            .single()
+
+          if (physioMembership && physioMembership.Business) {
+            // Extract business slug - handle both object and array response formats
+            const physioBusinessSlug = Array.isArray(physioMembership.Business)
+              ? physioMembership.Business[0]?.slug
+              : (physioMembership.Business as { slug: string }).slug
+
+            if (physioBusinessSlug) {
+              // Build the new business-scoped path
+              const newPhysioPath = pathname.replace('/physio/', `/${physioBusinessSlug}/physio/`)
+              return NextResponse.redirect(new URL(newPhysioPath, request.url))
+            }
+          }
+          // If no business membership, allow access to legacy routes
         }
       }
 
@@ -477,6 +555,29 @@ export async function middleware(request: NextRequest) {
           }
           // Fallback to homepage if no business membership
           return NextResponse.redirect(new URL('/', request.url))
+        }
+        if (role === 'PHYSIO') {
+          // Try to redirect to business physio dashboard
+          const { data: physioLoginMembership } = await supabase
+            .from('BusinessMember')
+            .select('Business!inner(slug)')
+            .eq('userId', supabaseUser.id)
+            .eq('isActive', true)
+            .order('createdAt', { ascending: true })
+            .limit(1)
+            .single()
+
+          if (physioLoginMembership && physioLoginMembership.Business) {
+            const physioLoginSlug = Array.isArray(physioLoginMembership.Business)
+              ? physioLoginMembership.Business[0]?.slug
+              : (physioLoginMembership.Business as { slug: string }).slug
+
+            if (physioLoginSlug) {
+              return NextResponse.redirect(new URL(`/${physioLoginSlug}/physio/dashboard`, request.url))
+            }
+          }
+          // Fallback to legacy physio dashboard if no business
+          return NextResponse.redirect(new URL('/physio/dashboard', request.url))
         }
       }
       // Allow authenticated users to access / - the page will show appropriate content

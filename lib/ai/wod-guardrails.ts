@@ -29,6 +29,7 @@ export async function checkWODGuardrails(
   const injuryCheck = checkInjuries(context)
   const fatigueCheck = checkFatigue(context)
   const usageLimitCheck = await checkUsageLimit(context.clientId, subscriptionTier)
+  const restrictionsCheck = checkRestrictions(context)
 
   // Collect all applied guardrails
   const guardrailsApplied: WODGuardrailApplied[] = []
@@ -85,6 +86,15 @@ export async function checkWODGuardrails(
     })
   }
 
+  // Add restriction guardrails
+  if (!restrictionsCheck.passed && restrictionsCheck.restrictedAreas.length > 0) {
+    guardrailsApplied.push({
+      type: 'INJURY_EXCLUDED',
+      description: `Träningsrestriktioner aktiva: ${restrictionsCheck.restrictedAreas.join(', ')}`,
+      modification: restrictionsCheck.reason,
+    })
+  }
+
   // Calculate adjusted intensity based on all factors
   const adjustedIntensity = calculateAdjustedIntensity(
     context.readinessScore,
@@ -101,6 +111,14 @@ export async function checkWODGuardrails(
       modification: 'Intensitet satt till recovery baserat på samlade faktorer',
     })
   }
+
+  // Combine excluded areas from injuries and restrictions
+  const allExcludedAreas = [
+    ...new Set([
+      ...injuryCheck.excludedAreas,
+      ...restrictionsCheck.restrictedAreas,
+    ]),
+  ]
 
   return {
     canGenerate,
@@ -124,10 +142,16 @@ export async function checkWODGuardrails(
         passed: usageLimitCheck.passed,
         reason: usageLimitCheck.reason,
       },
+      restrictions: {
+        passed: restrictionsCheck.passed,
+        reason: restrictionsCheck.reason,
+        modification: restrictionsCheck.modification,
+      },
     },
     guardrailsApplied,
     adjustedIntensity,
-    excludedAreas: injuryCheck.excludedAreas,
+    excludedAreas: allExcludedAreas,
+    restrictionConstraints: restrictionsCheck.promptConstraints,
     blockedReason,
   }
 }
@@ -349,6 +373,68 @@ async function checkUsageLimit(
   }
 }
 
+interface RestrictionsCheckResult {
+  passed: boolean
+  reason?: string
+  modification?: string
+  restrictedAreas: string[]
+  promptConstraints?: string
+}
+
+/**
+ * Check training restrictions from physio system
+ */
+function checkRestrictions(context: WODAthleteContext): RestrictionsCheckResult {
+  const restrictions = context.trainingRestrictions
+
+  if (!restrictions || !restrictions.hasRestrictions) {
+    return {
+      passed: true,
+      restrictedAreas: [],
+    }
+  }
+
+  const restrictedAreas = restrictions.restrictedAreas
+  const modifications: string[] = []
+
+  // Add restriction type specific modifications
+  for (const type of restrictions.restrictionTypes) {
+    switch (type) {
+      case 'NO_RUNNING':
+        modifications.push('Ingen löpning - ersätt med cykling/simning')
+        break
+      case 'NO_JUMPING':
+        modifications.push('Inga hopp eller plyometriska övningar')
+        break
+      case 'NO_IMPACT':
+        modifications.push('Ingen stötbelastning')
+        break
+      case 'NO_UPPER_BODY':
+        modifications.push('Inga överkroppsövningar')
+        break
+      case 'NO_LOWER_BODY':
+        modifications.push('Inga underkroppsövningar')
+        break
+      case 'REDUCED_VOLUME':
+        modifications.push(`Volymreduktion: ${restrictions.volumeReduction}%`)
+        break
+      case 'REDUCED_INTENSITY':
+        modifications.push(`Max intensitetszon: ${restrictions.maxIntensityZone}/5`)
+        break
+    }
+  }
+
+  return {
+    passed: restrictedAreas.length === 0,
+    reason: restrictedAreas.length > 0
+      ? `Aktiva restriktioner för: ${restrictedAreas.join(', ')}`
+      : undefined,
+    modification: modifications.join(', '),
+    restrictedAreas,
+    promptConstraints: restrictions.promptConstraints,
+  }
+}
+
 // ============================================
 // INTENSITY CALCULATION
 // ============================================
@@ -410,6 +496,11 @@ export function generateGuardrailConstraints(
   // Add excluded areas
   if (guardrails.excludedAreas.length > 0) {
     constraints.push(`UNDVIK HELT: Övningar som belastar ${guardrails.excludedAreas.join(', ')}`)
+  }
+
+  // Add restriction constraints from physio system
+  if (guardrails.restrictionConstraints) {
+    constraints.push(guardrails.restrictionConstraints)
   }
 
   // Add specific warnings
