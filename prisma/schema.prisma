@@ -385,6 +385,47 @@ enum EquipmentCategory {
   TESTING           // Lactate analyzer, VO2max system, Force plates
   ACCESSORIES       // Bands, Boxes, Balls
   RECOVERY          // Massage gun, Foam roller, Sauna
+  AGILITY           // Cones, Ladders, Hurdles, Poles, Reaction equipment
+  TIMING_SYSTEMS    // Timing gates, Reaction lights, Laser systems
+}
+
+// ==================== AGILITY STUDIO SYSTEM ====================
+
+enum AgilityDrillCategory {
+  COD               // Change of Direction drills
+  REACTIVE_AGILITY  // Reactive agility with decision making
+  SPEED_ACCELERATION // Sprint and acceleration work
+  PLYOMETRICS       // Jump and bound training
+  FOOTWORK          // Ladder and cone footwork patterns
+  BALANCE           // Balance and stability drills
+}
+
+enum AgilityWorkoutFormat {
+  CIRCUIT           // Multiple drills in sequence
+  STATION_ROTATION  // Teams rotate through stations
+  INTERVAL          // Work/rest intervals
+  PROGRESSIVE       // Progressive difficulty increase
+  REACTIVE          // Reactive/random order drills
+  TESTING           // Standardized testing session
+}
+
+/// Long-Term Athlete Development stages
+enum DevelopmentStage {
+  FUNDAMENTALS        // Ages 6-9: FUNdamentals, basic movement skills
+  LEARNING_TO_TRAIN   // Ages 9-12: Learning to train, skill development
+  TRAINING_TO_TRAIN   // Ages 12-16: Training to train, aerobic base
+  TRAINING_TO_COMPETE // Ages 16-18+: Training to compete, specialization
+  TRAINING_TO_WIN     // Ages 18+: Training to win, peak performance
+  ELITE               // Professional/elite level athletes
+}
+
+enum TimingGateSource {
+  CSV_IMPORT  // Generic CSV file import
+  VALD_API    // VALD Performance API
+  BROWER      // Brower timing systems
+  FREELAP     // Freelap timing system
+  WITTY       // Witty timing system
+  MANUAL      // Manual entry
 }
 
 enum ServiceType {
@@ -469,6 +510,11 @@ model User {
   strengthSessions  StrengthSession[]  @relation("CoachStrengthSessions")
   cardioSessions    CardioSession[]    @relation("CoachCardioSessions")
   strengthTemplates StrengthTemplate[] @relation("StrengthTemplateOwner")
+
+  // Agility Studio relations
+  agilityDrills         AgilityDrill[]         @relation("CoachAgilityDrills")
+  agilityWorkouts       AgilityWorkout[]       @relation("CoachAgilityWorkouts")
+  timingGateSessions    TimingGateSession[]    @relation("CoachTimingGateSessions")
 
   // Business & Organization relations
   businessMemberships BusinessMember[]
@@ -610,6 +656,7 @@ model TeamWorkoutBroadcast {
   strengthSessionId String?
   cardioSessionId   String?
   hybridWorkoutId   String?
+  agilityWorkoutId  String?
 
   // Assignment metadata
   assignedDate DateTime @db.Date
@@ -627,11 +674,13 @@ model TeamWorkoutBroadcast {
   strengthSession StrengthSession? @relation(fields: [strengthSessionId], references: [id])
   cardioSession   CardioSession?   @relation(fields: [cardioSessionId], references: [id])
   hybridWorkout   HybridWorkout?   @relation(fields: [hybridWorkoutId], references: [id])
+  agilityWorkout  AgilityWorkout?  @relation("AgilityWorkoutBroadcasts", fields: [agilityWorkoutId], references: [id])
 
   // Individual assignments from this broadcast
   strengthAssignments StrengthSessionAssignment[]
   cardioAssignments   CardioSessionAssignment[]
   hybridAssignments   HybridWorkoutAssignment[]
+  agilityAssignments  AgilityWorkoutAssignment[]
 
   @@index([teamId])
   @@index([coachId])
@@ -702,6 +751,11 @@ model Client {
   strengthSessionAssignments StrengthSessionAssignment[]
   cardioSessionAssignments   CardioSessionAssignment[]
   cardioSessionLogs          CardioSessionLog[]          @relation("AthleteCardioLogs")
+
+  // Agility Studio relations
+  agilityWorkoutAssignments AgilityWorkoutAssignment[]
+  agilityWorkoutResults     AgilityWorkoutResult[]
+  timingGateResults         TimingGateResult[]
 
   // Nutrition Timing System relations
   dietaryPreferences DietaryPreferences?
@@ -1372,6 +1426,9 @@ model Location {
 
   // Physiotherapist System relations
   physioAssignments PhysioAssignment[] @relation("LocationPhysioAssignments")
+
+  // Agility Studio relations
+  timingGateSessions TimingGateSession[] @relation("TimingGateSessionLocation")
 
   @@unique([businessId, slug])
   @@index([businessId])
@@ -4110,6 +4167,11 @@ model SportProfile {
   // Onboarding completed
   onboardingCompleted Boolean @default(false)
   onboardingStep      Int     @default(0)
+
+  // LTAD (Long-Term Athlete Development)
+  developmentStage    DevelopmentStage? // Current LTAD stage
+  peakHeightVelocity  DateTime?         // Estimated PHV date (for youth athletes)
+  biologicalAge       Float?            // Biological vs chronological age offset
 
   // Sport-specific settings (JSON for flexibility)
   runningSettings           Json? // { preferredDistances, terrainPrefs, shoeRotation, etc. }
@@ -8155,4 +8217,292 @@ model AIPromptTemplate {
   @@index([promptName])
   @@index([promptCategory])
   @@index([isActive])
+}
+
+// ==================== AGILITY STUDIO SYSTEM ====================
+
+/// Agility drill template in the drill library
+model AgilityDrill {
+  id          String  @id @default(uuid())
+  name        String
+  nameSv      String? // Swedish translation
+  description String? @db.Text
+  descriptionSv String? @db.Text
+
+  // Drill configuration
+  category    AgilityDrillCategory
+
+  // Equipment requirements
+  requiredEquipment String[] @default([]) // Equipment IDs or names that are mandatory
+  optionalEquipment String[] @default([]) // Equipment IDs or names that enhance the drill
+
+  // Drill parameters
+  distanceMeters    Float?   // Total distance if applicable
+  durationSeconds   Int?     // Typical duration per rep
+  defaultReps       Int?     // Suggested rep count
+  defaultSets       Int?     // Suggested set count
+  restSeconds       Int?     // Suggested rest between reps
+
+  // LTAD development stage restrictions
+  minDevelopmentStage DevelopmentStage @default(FUNDAMENTALS)
+  maxDevelopmentStage DevelopmentStage @default(ELITE)
+
+  // Sport associations
+  primarySports     SportType[] @default([])
+
+  // Difficulty (1-5)
+  difficultyLevel   Int @default(3)
+
+  // Media
+  videoUrl          String?
+  animationUrl      String?
+  diagramUrl        String?  // Setup diagram image
+
+  // Instructions
+  setupInstructions String? @db.Text
+  executionCues     String[] @default([]) // Coaching cues
+
+  // Progressions/Regressions
+  progressionDrillId String?
+  regressionDrillId  String?
+  progressionDrill   AgilityDrill? @relation("DrillProgression", fields: [progressionDrillId], references: [id], onDelete: SetNull)
+  regressionDrill    AgilityDrill? @relation("DrillRegression", fields: [regressionDrillId], references: [id], onDelete: SetNull)
+  progressions       AgilityDrill[] @relation("DrillProgression")
+  regressions        AgilityDrill[] @relation("DrillRegression")
+
+  // Ownership
+  coachId       String?
+  coach         User?   @relation("CoachAgilityDrills", fields: [coachId], references: [id], onDelete: SetNull)
+  isSystemDrill Boolean @default(false) // True for seeded/library drills
+
+  // Usage in workouts
+  workoutDrills AgilityWorkoutDrill[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([coachId])
+  @@index([isSystemDrill])
+  @@index([difficultyLevel])
+  @@index([minDevelopmentStage])
+}
+
+/// Agility workout template
+model AgilityWorkout {
+  id          String  @id @default(uuid())
+  name        String
+  description String? @db.Text
+
+  // Workout configuration
+  format        AgilityWorkoutFormat
+  totalDuration Int?   // Estimated total duration in minutes
+  restBetweenDrills Int? // Default rest between drills in seconds
+
+  // Target audience
+  developmentStage  DevelopmentStage?
+  targetSports      SportType[] @default([])
+  primaryFocus      AgilityDrillCategory?
+
+  // Ownership
+  coachId    String
+  coach      User    @relation("CoachAgilityWorkouts", fields: [coachId], references: [id], onDelete: Cascade)
+  isTemplate Boolean @default(false) // Reusable template
+  isPublic   Boolean @default(false)
+
+  // Tags for filtering
+  tags String[] @default([])
+
+  // Drills in this workout
+  drills AgilityWorkoutDrill[]
+
+  // Assignments and results
+  assignments AgilityWorkoutAssignment[]
+  results     AgilityWorkoutResult[]
+
+  // Team workout broadcasts
+  teamWorkoutBroadcasts TeamWorkoutBroadcast[] @relation("AgilityWorkoutBroadcasts")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([format])
+  @@index([developmentStage])
+  @@index([isTemplate])
+  @@index([isPublic])
+}
+
+/// Link between workout and drill with configuration
+model AgilityWorkoutDrill {
+  id String @id @default(uuid())
+
+  workout   AgilityWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workoutId String
+
+  drill   AgilityDrill @relation(fields: [drillId], references: [id], onDelete: Cascade)
+  drillId String
+
+  // Ordering
+  order       Int
+  sectionType WorkoutSectionType @default(MAIN) // WARMUP, MAIN, COOLDOWN
+
+  // Drill parameters (override defaults)
+  sets        Int?
+  reps        Int?
+  duration    Int? // seconds
+  restSeconds Int?
+
+  // Notes
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@unique([workoutId, order])
+  @@index([workoutId])
+  @@index([drillId])
+}
+
+/// Assignment of agility workout to athlete
+model AgilityWorkoutAssignment {
+  id String @id @default(uuid())
+
+  workout   AgilityWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workoutId String
+
+  athlete   Client @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+
+  // Assignment details
+  assignedDate DateTime @db.Date
+  assignedBy   String   // Coach user ID
+  notes        String?  @db.Text
+
+  // Status tracking
+  status      String   @default("ASSIGNED") // ASSIGNED, IN_PROGRESS, COMPLETED, SKIPPED
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Team broadcast link (if assigned via team)
+  teamBroadcast   TeamWorkoutBroadcast? @relation(fields: [teamBroadcastId], references: [id], onDelete: SetNull)
+  teamBroadcastId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workoutId, athleteId, assignedDate])
+  @@index([workoutId])
+  @@index([athleteId])
+  @@index([assignedDate])
+  @@index([status])
+  @@index([teamBroadcastId])
+}
+
+/// Result from completed agility workout
+model AgilityWorkoutResult {
+  id String @id @default(uuid())
+
+  workout   AgilityWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workoutId String
+
+  athlete   Client @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athleteId String
+
+  // Completion data
+  completedAt   DateTime
+  totalDuration Int?     // Actual duration in seconds
+
+  // Subjective feedback
+  perceivedEffort Int?   // RPE 1-10
+  notes           String? @db.Text
+
+  // Detailed drill results (JSON for flexibility)
+  drillResults Json? // [{drillId, completed, timeSeconds, notes}]
+
+  createdAt DateTime @default(now())
+
+  @@index([workoutId])
+  @@index([athleteId])
+  @@index([completedAt])
+}
+
+/// Timing gate testing session
+model TimingGateSession {
+  id String @id @default(uuid())
+
+  // Session info
+  coachId     String
+  coach       User     @relation("CoachTimingGateSessions", fields: [coachId], references: [id], onDelete: Cascade)
+  sessionDate DateTime @db.Date
+  sessionName String?
+
+  // Import source
+  importSource  TimingGateSource
+  importedAt    DateTime?
+  rawDataUrl    String?  // Link to original file in storage
+
+  // Gate configuration
+  gateCount         Int?       // Number of gates used
+  intervalDistances Float[]    // Distances between gates in meters
+
+  // Location
+  locationId String?
+  location   Location? @relation("TimingGateSessionLocation", fields: [locationId], references: [id], onDelete: SetNull)
+
+  // Results
+  results TimingGateResult[]
+
+  // Notes
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([sessionDate])
+  @@index([importSource])
+  @@index([locationId])
+}
+
+/// Individual timing gate result
+model TimingGateResult {
+  id String @id @default(uuid())
+
+  session   TimingGateSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String
+
+  // Athlete (can be null if not yet matched)
+  athlete   Client? @relation(fields: [athleteId], references: [id], onDelete: SetNull)
+  athleteId String?
+
+  // Unmatched athlete info (from import)
+  unmatchedAthleteName String?
+  unmatchedAthleteId   String? // External ID from import
+
+  // Test protocol
+  testProtocol SportTestProtocol?
+  attemptNumber Int @default(1)
+
+  // Timing data
+  splitTimes  Float[] // Times at each gate in seconds
+  totalTime   Float   // Total time in seconds
+
+  // Calculated metrics
+  acceleration Float?  // Acceleration phase time
+  maxVelocity  Float?  // Maximum velocity achieved (m/s)
+  codDeficit   Float?  // Change of direction deficit (%)
+
+  // Validity
+  valid       Boolean @default(true)
+  invalidReason String?
+
+  // Notes
+  notes String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([athleteId])
+  @@index([testProtocol])
+  @@index([valid])
 }

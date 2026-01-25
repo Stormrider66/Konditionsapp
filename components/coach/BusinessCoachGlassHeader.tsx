@@ -28,6 +28,7 @@ import {
     Gift,
     Shield,
     ChevronDown,
+    Zap,
 } from 'lucide-react'
 import type { BusinessMemberRole } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -109,6 +110,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                 { href: `${basePath}/coach/hybrid-studio`, label: 'Hybrid Studio', icon: Flame },
                 { href: `${basePath}/coach/strength`, label: 'Strength Studio', icon: Dumbbell },
                 { href: `${basePath}/coach/cardio`, label: 'Cardio Studio', icon: Heart },
+                { href: `${basePath}/coach/agility-studio`, label: 'Agility Studio', icon: Zap },
                 { href: `${basePath}/coach/ergometer-tests`, label: 'Ergometertester', icon: Gauge },
                 { href: `${basePath}/coach/video-analysis`, label: 'Videoanalys', icon: Video },
                 { href: `${basePath}/coach/monitoring`, label: 'Monitorering', icon: Activity },
