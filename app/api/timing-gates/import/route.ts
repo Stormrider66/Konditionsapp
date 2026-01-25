@@ -2,7 +2,7 @@
 // API route for importing timing gate CSV files
 
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { TimingGateSource, SportTestProtocol } from '@prisma/client'
 

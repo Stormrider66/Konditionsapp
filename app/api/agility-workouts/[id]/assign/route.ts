@@ -2,7 +2,7 @@
 // API route for assigning agility workouts to athletes
 
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 

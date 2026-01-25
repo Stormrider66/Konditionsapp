@@ -9,6 +9,7 @@ import {
   calculateEquipmentGaps,
   getAvailableCategories
 } from '@/lib/agility-studio/equipment-filter'
+import { filterDrillsByStage } from '@/lib/agility-studio/ltad-utils'
 import type { AgilityDrillCategory, DevelopmentStage } from '@/types'
 
 export async function GET(request: NextRequest) {
@@ -25,17 +26,13 @@ export async function GET(request: NextRequest) {
     const includeGapAnalysis = searchParams.get('includeGapAnalysis') === 'true'
 
     // Get all drills (system drills and coach's custom drills)
-    const allDrills = await prisma.agilityDrill.findMany({
+    let allDrills = await prisma.agilityDrill.findMany({
       where: {
         OR: [
           { isSystemDrill: true },
           { coachId: user.id }
         ],
-        ...(category && { category }),
-        ...(developmentStage && {
-          minDevelopmentStage: { lte: developmentStage },
-          maxDevelopmentStage: { gte: developmentStage }
-        })
+        ...(category && { category })
       },
       orderBy: [
         { category: 'asc' },
@@ -43,6 +40,11 @@ export async function GET(request: NextRequest) {
         { name: 'asc' }
       ]
     })
+
+    // Filter by development stage if specified (manual filter since Prisma enum doesn't support lte/gte)
+    if (developmentStage) {
+      allDrills = filterDrillsByStage(allDrills as any, developmentStage) as typeof allDrills
+    }
 
     // If no location specified, return all drills
     if (!locationId) {

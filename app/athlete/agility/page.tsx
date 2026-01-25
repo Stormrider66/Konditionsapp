@@ -77,9 +77,9 @@ export default async function AthleteAgilityPage() {
       <Suspense fallback={<AgilityDashboardSkeleton />}>
         <AgilityDashboard
           clientId={clientId}
-          assignments={data.assignments}
-          results={data.results}
-          timingResults={data.timingResults}
+          assignments={data.assignments as any}
+          results={data.results as any}
+          timingResults={data.timingResults as any}
         />
       </Suspense>
     </div>

@@ -114,13 +114,14 @@ export function AgilityAnalyticsDashboard({
     const protocols: Record<string, { times: number[]; count: number }> = {}
 
     filteredTimingResults
-      .filter(r => r.valid)
+      .filter(r => r.valid && r.testProtocol)
       .forEach(r => {
-        if (!protocols[r.testProtocol]) {
-          protocols[r.testProtocol] = { times: [], count: 0 }
+        const protocol = r.testProtocol!
+        if (!protocols[protocol]) {
+          protocols[protocol] = { times: [], count: 0 }
         }
-        protocols[r.testProtocol].times.push(r.totalTime)
-        protocols[r.testProtocol].count++
+        protocols[protocol].times.push(r.totalTime)
+        protocols[protocol].count++
       })
 
     return Object.entries(protocols).map(([protocol, data]) => ({
@@ -466,7 +467,7 @@ export function AgilityAnalyticsDashboard({
                       cx="50%"
                       cy="50%"
                       outerRadius={80}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }: Record<string, unknown>) => `${name} ${((percent as number) * 100).toFixed(0)}%`}
                     >
                       {benchmarkDistribution.map((entry, index) => (
                         <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />

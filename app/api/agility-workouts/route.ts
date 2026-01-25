@@ -2,7 +2,7 @@
 // API routes for agility workouts
 
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { AgilityWorkoutFormat, AgilityDrillCategory, DevelopmentStage, SportType, WorkoutSectionType } from '@prisma/client'
 import { z } from 'zod'

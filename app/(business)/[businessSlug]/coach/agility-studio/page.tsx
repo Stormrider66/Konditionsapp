@@ -18,7 +18,7 @@ interface PageProps {
   params: Promise<{ businessSlug: string }>
 }
 
-async function getInitialData(userId: string, businessId: string) {
+async function getInitialData(userId: string) {
   const [drills, workouts, athletes, timingSessions] = await Promise.all([
     // Get system drills and coach's custom drills
     prisma.agilityDrill.findMany({
@@ -54,12 +54,9 @@ async function getInitialData(userId: string, businessId: string) {
         }
       }
     }),
-    // Get coach's athletes for this business
+    // Get coach's athletes
     prisma.client.findMany({
-      where: {
-        userId,
-        businessId
-      },
+      where: { userId },
       orderBy: { name: 'asc' },
       select: { id: true, name: true, email: true, teamId: true }
     }),
@@ -86,17 +83,17 @@ export default async function AgilityStudioPage({ params }: PageProps) {
     notFound()
   }
 
-  const initialData = await getInitialData(user.id, membership.businessId)
+  const initialData = await getInitialData(user.id)
 
   return (
     <div className="min-h-screen bg-background">
       <Suspense fallback={<AgilityStudioSkeleton />}>
         <AgilityStudioClient
           userId={user.id}
-          initialDrills={initialData.drills}
-          initialWorkouts={initialData.workouts}
+          initialDrills={initialData.drills as any}
+          initialWorkouts={initialData.workouts as any}
           initialAthletes={initialData.athletes}
-          initialTimingSessions={initialData.timingSessions}
+          initialTimingSessions={initialData.timingSessions as any}
         />
       </Suspense>
     </div>

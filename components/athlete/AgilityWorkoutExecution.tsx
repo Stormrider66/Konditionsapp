@@ -120,8 +120,8 @@ export function AgilityWorkoutExecution({
       ...prev,
       [drillId]: {
         drillId,
-        completedReps: currentDrill.reps || currentDrill.drill.defaultReps,
-        completedSets: currentDrill.sets || currentDrill.drill.defaultSets,
+        completedReps: currentDrill.reps ?? currentDrill.drill.defaultReps ?? undefined,
+        completedSets: currentDrill.sets ?? currentDrill.drill.defaultSets ?? undefined,
         timeInSeconds: elapsedSeconds,
         notes: prev[drillId]?.notes
       }

@@ -19,25 +19,11 @@ import {
   getWorkoutFocusRecommendations,
   getCategoryDistribution
 } from '@/lib/agility-studio/sport-recommendations'
-import type { AgilityDrill, AgilityDrillCategory } from '@/types'
-
-// The sport-recommendations utility uses internal sport identifiers
-// that differ from the exported SportType. Use type assertion for testing.
-type InternalSportType =
-  | 'FOOTBALL' | 'BASKETBALL' | 'HANDBALL' | 'ICE_HOCKEY' | 'FLOORBALL'
-  | 'TENNIS' | 'BADMINTON' | 'SQUASH' | 'PADEL'
-  | 'ATHLETICS' | 'SWIMMING' | 'TRIATHLON' | 'CROSS_COUNTRY_SKIING'
-  | 'ORIENTEERING' | 'CYCLING' | 'ROWING' | 'GENERAL'
-
-// Helper type for mock drill overrides that accepts internal sport types
-type MockDrillOverrides = Omit<Partial<AgilityDrill>, 'primarySports'> & {
-  primarySports?: InternalSportType[]
-}
+import type { AgilityDrill, AgilityDrillCategory, SportType } from '@/types'
 
 // Mock drill data for testing
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const createMockDrill = (overrides: MockDrillOverrides = {}): AgilityDrill => {
-  const { primarySports, ...rest } = overrides
+const createMockDrill = (overrides: Partial<AgilityDrill> = {}): AgilityDrill => {
   return {
     id: 'drill-1',
     name: 'Test Drill',
@@ -54,7 +40,7 @@ const createMockDrill = (overrides: MockDrillOverrides = {}): AgilityDrill => {
     restSeconds: null,
     minDevelopmentStage: 'FUNDAMENTALS',
     maxDevelopmentStage: 'ELITE',
-    primarySports: (primarySports || []) as AgilityDrill['primarySports'],
+    primarySports: [],
     difficultyLevel: 3,
     videoUrl: null,
     animationUrl: null,
@@ -63,17 +49,17 @@ const createMockDrill = (overrides: MockDrillOverrides = {}): AgilityDrill => {
     isSystemDrill: true,
     createdAt: new Date(),
     updatedAt: new Date(),
-    ...rest
+    ...overrides
   }
 }
 
 describe('getPrimaryFocus', () => {
   it('should return primary focus for team sports', () => {
-    const footballFocus = getPrimaryFocus('FOOTBALL')
+    const footballFocus = getPrimaryFocus('TEAM_FOOTBALL')
     expect(footballFocus).toContain('COD')
     expect(footballFocus).toContain('REACTIVE_AGILITY')
 
-    const basketballFocus = getPrimaryFocus('BASKETBALL')
+    const basketballFocus = getPrimaryFocus('TEAM_BASKETBALL')
     expect(basketballFocus).toContain('COD')
     expect(basketballFocus).toContain('PLYOMETRICS')
   })
@@ -83,34 +69,34 @@ describe('getPrimaryFocus', () => {
     expect(tennisFocus).toContain('COD')
     expect(tennisFocus).toContain('FOOTWORK')
 
-    const badmintonFocus = getPrimaryFocus('BADMINTON')
-    expect(badmintonFocus).toContain('FOOTWORK')
-    expect(badmintonFocus).toContain('SPEED_ACCELERATION')
+    const padelFocus = getPrimaryFocus('PADEL')
+    expect(padelFocus).toContain('FOOTWORK')
+    expect(padelFocus).toContain('COD')
   })
 
   it('should return primary focus for endurance sports', () => {
-    const athleticsFocus = getPrimaryFocus('ATHLETICS')
-    expect(athleticsFocus).toContain('SPEED_ACCELERATION')
-    expect(athleticsFocus).toContain('PLYOMETRICS')
+    const runningFocus = getPrimaryFocus('RUNNING')
+    expect(runningFocus).toContain('SPEED_ACCELERATION')
+    expect(runningFocus).toContain('PLYOMETRICS')
 
     const cyclingFocus = getPrimaryFocus('CYCLING')
     expect(cyclingFocus).toContain('BALANCE')
     expect(cyclingFocus).toContain('PLYOMETRICS')
   })
 
-  it('should return general focus for unknown sports', () => {
-    // GENERAL sport should work
-    const generalFocus = getPrimaryFocus('GENERAL')
+  it('should return general focus for unsupported sports', () => {
+    // GENERAL_FITNESS sport should work
+    const generalFocus = getPrimaryFocus('GENERAL_FITNESS')
     expect(generalFocus).toContain('COD')
     expect(generalFocus).toContain('SPEED_ACCELERATION')
   })
 
   it('should return non-empty array for all supported sports', () => {
-    const sports: InternalSportType[] = [
-      'FOOTBALL', 'BASKETBALL', 'HANDBALL', 'ICE_HOCKEY', 'FLOORBALL',
-      'TENNIS', 'BADMINTON', 'SQUASH', 'PADEL',
-      'ATHLETICS', 'SWIMMING', 'TRIATHLON', 'CROSS_COUNTRY_SKIING',
-      'ORIENTEERING', 'CYCLING', 'ROWING', 'GENERAL'
+    const sports: SportType[] = [
+      'TEAM_FOOTBALL', 'TEAM_BASKETBALL', 'TEAM_HANDBALL', 'TEAM_ICE_HOCKEY', 'TEAM_FLOORBALL',
+      'TEAM_VOLLEYBALL', 'TENNIS', 'PADEL',
+      'RUNNING', 'SWIMMING', 'TRIATHLON', 'SKIING',
+      'CYCLING', 'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'STRENGTH'
     ]
 
     sports.forEach(sport => {
@@ -122,7 +108,7 @@ describe('getPrimaryFocus', () => {
 
 describe('getAllFocusAreas', () => {
   it('should return both primary and secondary focus areas', () => {
-    const footballFocus = getAllFocusAreas('FOOTBALL')
+    const footballFocus = getAllFocusAreas('TEAM_FOOTBALL')
 
     // Should have both primary (COD, REACTIVE_AGILITY) and secondary (SPEED_ACCELERATION, FOOTWORK)
     expect(footballFocus).toContain('COD')
@@ -141,7 +127,7 @@ describe('getAllFocusAreas', () => {
 
 describe('getSportDescription', () => {
   it('should return description for each sport', () => {
-    const footballDesc = getSportDescription('FOOTBALL')
+    const footballDesc = getSportDescription('TEAM_FOOTBALL')
     expect(footballDesc).toContain('direction')
 
     const swimmingDesc = getSportDescription('SWIMMING')
@@ -149,8 +135,8 @@ describe('getSportDescription', () => {
   })
 
   it('should return non-empty string for all sports', () => {
-    const sports: InternalSportType[] = [
-      'FOOTBALL', 'BASKETBALL', 'HANDBALL', 'TENNIS', 'ATHLETICS'
+    const sports: SportType[] = [
+      'TEAM_FOOTBALL', 'TEAM_BASKETBALL', 'TEAM_HANDBALL', 'TENNIS', 'RUNNING'
     ]
 
     sports.forEach(sport => {
@@ -168,9 +154,9 @@ describe('getRecommendedDrills', () => {
       createMockDrill({ id: '3', category: 'BALANCE' }) // Not primary for football
     ]
 
-    const recommended = getRecommendedDrills(drills, 'FOOTBALL')
+    const recommended = getRecommendedDrills(drills, 'TEAM_FOOTBALL')
 
-    // FOOTBALL focus: COD, REACTIVE_AGILITY, SPEED_ACCELERATION, FOOTWORK
+    // TEAM_FOOTBALL focus: COD, REACTIVE_AGILITY, SPEED_ACCELERATION, FOOTWORK
     // BALANCE is not in the focus areas
     expect(recommended.map(d => d.id)).toContain('1')
     expect(recommended.map(d => d.id)).toContain('2')
@@ -193,36 +179,36 @@ describe('getRecommendedDrills', () => {
       })
     ]
 
-    const fundamentalsDrills = getRecommendedDrills(drills, 'FOOTBALL', 'FUNDAMENTALS')
+    const fundamentalsDrills = getRecommendedDrills(drills, 'TEAM_FOOTBALL', 'FUNDAMENTALS')
     expect(fundamentalsDrills.map(d => d.id)).toContain('1')
     expect(fundamentalsDrills.map(d => d.id)).not.toContain('2')
 
-    const eliteDrills = getRecommendedDrills(drills, 'FOOTBALL', 'ELITE')
+    const eliteDrills = getRecommendedDrills(drills, 'TEAM_FOOTBALL', 'ELITE')
     expect(eliteDrills.map(d => d.id)).not.toContain('1')
     expect(eliteDrills.map(d => d.id)).toContain('2')
   })
 
   it('should prioritize sport-specific drills', () => {
     const drills = [
-      createMockDrill({ id: '1', category: 'COD', primarySports: ['FOOTBALL'], difficultyLevel: 3 }),
-      createMockDrill({ id: '2', category: 'COD', primarySports: ['GENERAL'], difficultyLevel: 3 }),
+      createMockDrill({ id: '1', category: 'COD', primarySports: ['TEAM_FOOTBALL'], difficultyLevel: 3 }),
+      createMockDrill({ id: '2', category: 'COD', primarySports: ['GENERAL_FITNESS'], difficultyLevel: 3 }),
       createMockDrill({ id: '3', category: 'COD', primarySports: [], difficultyLevel: 3 })
     ]
 
-    const recommended = getRecommendedDrills(drills, 'FOOTBALL')
+    const recommended = getRecommendedDrills(drills, 'TEAM_FOOTBALL')
 
     // Sport-specific drill should come first
-    expect(recommended[0].primarySports).toContain('FOOTBALL')
+    expect(recommended[0].primarySports).toContain('TEAM_FOOTBALL')
   })
 
   it('should sort by difficulty level within categories', () => {
     const drills = [
-      createMockDrill({ id: '1', category: 'COD', primarySports: ['FOOTBALL'], difficultyLevel: 5 }),
-      createMockDrill({ id: '2', category: 'COD', primarySports: ['FOOTBALL'], difficultyLevel: 1 }),
-      createMockDrill({ id: '3', category: 'COD', primarySports: ['FOOTBALL'], difficultyLevel: 3 })
+      createMockDrill({ id: '1', category: 'COD', primarySports: ['TEAM_FOOTBALL'], difficultyLevel: 5 }),
+      createMockDrill({ id: '2', category: 'COD', primarySports: ['TEAM_FOOTBALL'], difficultyLevel: 1 }),
+      createMockDrill({ id: '3', category: 'COD', primarySports: ['TEAM_FOOTBALL'], difficultyLevel: 3 })
     ]
 
-    const recommended = getRecommendedDrills(drills, 'FOOTBALL')
+    const recommended = getRecommendedDrills(drills, 'TEAM_FOOTBALL')
 
     // All have same sport priority, so sorted by difficulty
     expect(recommended[0].difficultyLevel).toBe(1)
@@ -235,14 +221,14 @@ describe('getRecommendedDrills', () => {
       createMockDrill({ id: '1', category: 'BALANCE' }) // Not in football focus
     ]
 
-    const recommended = getRecommendedDrills(drills, 'FOOTBALL')
+    const recommended = getRecommendedDrills(drills, 'TEAM_FOOTBALL')
     expect(recommended).toHaveLength(0)
   })
 })
 
 describe('getWorkoutFocusRecommendations', () => {
   it('should return warmup, main, and cooldown phases', () => {
-    const recommendations = getWorkoutFocusRecommendations('FOOTBALL')
+    const recommendations = getWorkoutFocusRecommendations('TEAM_FOOTBALL')
 
     expect(recommendations).toHaveProperty('warmup')
     expect(recommendations).toHaveProperty('main')
@@ -250,7 +236,7 @@ describe('getWorkoutFocusRecommendations', () => {
   })
 
   it('should include footwork and balance in warmup for all sports', () => {
-    const sports: InternalSportType[] = ['FOOTBALL', 'TENNIS', 'ATHLETICS']
+    const sports: SportType[] = ['TEAM_FOOTBALL', 'TENNIS', 'RUNNING']
 
     sports.forEach(sport => {
       const recommendations = getWorkoutFocusRecommendations(sport)
@@ -260,8 +246,8 @@ describe('getWorkoutFocusRecommendations', () => {
   })
 
   it('should include sport primary focus in main phase', () => {
-    const footballRecs = getWorkoutFocusRecommendations('FOOTBALL')
-    const footballPrimary = getPrimaryFocus('FOOTBALL')
+    const footballRecs = getWorkoutFocusRecommendations('TEAM_FOOTBALL')
+    const footballPrimary = getPrimaryFocus('TEAM_FOOTBALL')
 
     // Main should include primary focus areas
     footballPrimary.forEach(category => {
@@ -270,7 +256,7 @@ describe('getWorkoutFocusRecommendations', () => {
   })
 
   it('should include balance and footwork in cooldown', () => {
-    const recommendations = getWorkoutFocusRecommendations('BASKETBALL')
+    const recommendations = getWorkoutFocusRecommendations('TEAM_BASKETBALL')
 
     expect(recommendations.cooldown).toContain('BALANCE')
     expect(recommendations.cooldown).toContain('FOOTWORK')
@@ -279,7 +265,7 @@ describe('getWorkoutFocusRecommendations', () => {
 
 describe('getCategoryDistribution', () => {
   it('should distribute drills across primary and secondary categories', () => {
-    const distribution = getCategoryDistribution('FOOTBALL', 10)
+    const distribution = getCategoryDistribution('TEAM_FOOTBALL', 10)
 
     // Should have distribution for primary categories (COD, REACTIVE_AGILITY)
     expect(distribution['COD']).toBeGreaterThan(0)
@@ -287,7 +273,7 @@ describe('getCategoryDistribution', () => {
   })
 
   it('should allocate roughly 60% to primary categories', () => {
-    const distribution = getCategoryDistribution('FOOTBALL', 10)
+    const distribution = getCategoryDistribution('TEAM_FOOTBALL', 10)
     const primaryCategories: AgilityDrillCategory[] = ['COD', 'REACTIVE_AGILITY']
 
     const primaryTotal = primaryCategories.reduce((sum, cat) => sum + (distribution[cat] || 0), 0)
@@ -306,7 +292,7 @@ describe('getCategoryDistribution', () => {
   })
 
   it('should work for all sports', () => {
-    const sports: InternalSportType[] = ['FOOTBALL', 'BASKETBALL', 'TENNIS', 'ATHLETICS', 'GENERAL']
+    const sports: SportType[] = ['TEAM_FOOTBALL', 'TEAM_BASKETBALL', 'TENNIS', 'RUNNING', 'GENERAL_FITNESS']
 
     sports.forEach(sport => {
       const distribution = getCategoryDistribution(sport, 8)

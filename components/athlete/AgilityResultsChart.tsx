@@ -48,9 +48,9 @@ export function AgilityResultsChart({
     testProtocol || results[0]?.testProtocol || ''
   )
 
-  // Get unique protocols
+  // Get unique protocols (filter out null/undefined)
   const protocols = useMemo(() => {
-    const unique = new Set(results.map(r => r.testProtocol))
+    const unique = new Set(results.map(r => r.testProtocol).filter((p): p is string => p != null))
     return Array.from(unique)
   }, [results])
 

@@ -78,10 +78,10 @@ export default async function AgilityStudioPage() {
       <Suspense fallback={<AgilityStudioSkeleton />}>
         <AgilityStudioClient
           userId={user.id}
-          initialDrills={initialData.drills}
-          initialWorkouts={initialData.workouts}
+          initialDrills={initialData.drills as any}
+          initialWorkouts={initialData.workouts as any}
           initialAthletes={initialData.athletes}
-          initialTimingSessions={initialData.timingSessions}
+          initialTimingSessions={initialData.timingSessions as any}
         />
       </Suspense>
     </div>

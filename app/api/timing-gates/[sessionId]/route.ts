@@ -2,7 +2,7 @@
 // API routes for individual timing gate session operations
 
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 
 interface RouteParams {

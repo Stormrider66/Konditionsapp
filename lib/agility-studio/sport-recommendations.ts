@@ -3,61 +3,65 @@
 
 import type { SportType, AgilityDrillCategory, DevelopmentStage, AgilityDrill } from '@/types'
 
+interface SportAgilityFocus {
+  primary: AgilityDrillCategory[]
+  secondary: AgilityDrillCategory[]
+  description: string
+}
+
+// Default focus for sports not explicitly mapped
+const DEFAULT_FOCUS: SportAgilityFocus = {
+  primary: ['COD', 'SPEED_ACCELERATION'],
+  secondary: ['PLYOMETRICS', 'FOOTWORK', 'REACTIVE_AGILITY', 'BALANCE'],
+  description: 'General athletic development'
+}
+
 /**
  * Sport to agility focus mapping
  * Defines which agility categories are most important for each sport
  */
-const sportAgilityFocus: Record<SportType, {
-  primary: AgilityDrillCategory[]
-  secondary: AgilityDrillCategory[]
-  description: string
-}> = {
-  FOOTBALL: {
+const sportAgilityFocus: Partial<Record<SportType, SportAgilityFocus>> = {
+  TEAM_FOOTBALL: {
     primary: ['COD', 'REACTIVE_AGILITY'],
     secondary: ['SPEED_ACCELERATION', 'FOOTWORK'],
     description: 'Quick direction changes, reactive movements to opponents'
   },
-  BASKETBALL: {
+  TEAM_BASKETBALL: {
     primary: ['COD', 'PLYOMETRICS'],
     secondary: ['FOOTWORK', 'REACTIVE_AGILITY'],
     description: 'Explosive jumping, defensive slides, quick cuts'
   },
-  HANDBALL: {
+  TEAM_HANDBALL: {
     primary: ['COD', 'SPEED_ACCELERATION'],
     secondary: ['PLYOMETRICS', 'REACTIVE_AGILITY'],
     description: 'Fast breaks, defensive transitions, jump shots'
   },
-  ICE_HOCKEY: {
+  TEAM_ICE_HOCKEY: {
     primary: ['SPEED_ACCELERATION', 'COD'],
     secondary: ['REACTIVE_AGILITY', 'BALANCE'],
     description: 'Quick starts and stops, pivots, edge work translation'
   },
-  FLOORBALL: {
+  TEAM_FLOORBALL: {
     primary: ['COD', 'REACTIVE_AGILITY'],
     secondary: ['SPEED_ACCELERATION', 'FOOTWORK'],
     description: 'Quick transitions, defensive positioning'
+  },
+  TEAM_VOLLEYBALL: {
+    primary: ['PLYOMETRICS', 'REACTIVE_AGILITY'],
+    secondary: ['FOOTWORK', 'COD'],
+    description: 'Explosive jumping, defensive positioning, quick lateral movements'
   },
   TENNIS: {
     primary: ['COD', 'FOOTWORK'],
     secondary: ['SPEED_ACCELERATION', 'REACTIVE_AGILITY'],
     description: 'Split step, recovery runs, lateral movement'
   },
-  BADMINTON: {
-    primary: ['FOOTWORK', 'SPEED_ACCELERATION'],
-    secondary: ['COD', 'REACTIVE_AGILITY'],
-    description: 'Court coverage, lunges, quick direction changes'
-  },
-  SQUASH: {
-    primary: ['COD', 'FOOTWORK'],
-    secondary: ['SPEED_ACCELERATION', 'REACTIVE_AGILITY'],
-    description: 'Movement to corners, T-position recovery'
-  },
   PADEL: {
     primary: ['FOOTWORK', 'COD'],
     secondary: ['REACTIVE_AGILITY', 'SPEED_ACCELERATION'],
     description: 'Wall play positioning, court coverage'
   },
-  ATHLETICS: {
+  RUNNING: {
     primary: ['SPEED_ACCELERATION', 'PLYOMETRICS'],
     secondary: ['COD', 'BALANCE'],
     description: 'Start mechanics, power development'
@@ -72,30 +76,35 @@ const sportAgilityFocus: Record<SportType, {
     secondary: ['PLYOMETRICS', 'FOOTWORK'],
     description: 'Transition efficiency, run mechanics'
   },
-  CROSS_COUNTRY_SKIING: {
+  SKIING: {
     primary: ['BALANCE', 'SPEED_ACCELERATION'],
     secondary: ['PLYOMETRICS', 'FOOTWORK'],
     description: 'Stability, pole push power'
-  },
-  ORIENTEERING: {
-    primary: ['BALANCE', 'FOOTWORK'],
-    secondary: ['COD', 'SPEED_ACCELERATION'],
-    description: 'Terrain navigation, obstacle handling'
   },
   CYCLING: {
     primary: ['BALANCE', 'PLYOMETRICS'],
     secondary: ['SPEED_ACCELERATION', 'FOOTWORK'],
     description: 'Sprint power, criterium handling'
   },
-  ROWING: {
-    primary: ['PLYOMETRICS', 'BALANCE'],
-    secondary: ['SPEED_ACCELERATION', 'FOOTWORK'],
-    description: 'Leg drive power, catch timing'
+  HYROX: {
+    primary: ['SPEED_ACCELERATION', 'COD'],
+    secondary: ['PLYOMETRICS', 'FOOTWORK'],
+    description: 'Station transitions, run efficiency, functional movements'
   },
-  GENERAL: {
+  GENERAL_FITNESS: {
     primary: ['COD', 'SPEED_ACCELERATION'],
     secondary: ['PLYOMETRICS', 'FOOTWORK', 'REACTIVE_AGILITY', 'BALANCE'],
     description: 'General athletic development'
+  },
+  FUNCTIONAL_FITNESS: {
+    primary: ['COD', 'PLYOMETRICS'],
+    secondary: ['SPEED_ACCELERATION', 'BALANCE'],
+    description: 'Functional movement patterns, explosive power'
+  },
+  STRENGTH: {
+    primary: ['PLYOMETRICS', 'BALANCE'],
+    secondary: ['SPEED_ACCELERATION', 'FOOTWORK'],
+    description: 'Power development, movement preparation'
   }
 }
 
@@ -103,14 +112,14 @@ const sportAgilityFocus: Record<SportType, {
  * Get the primary agility focus for a sport
  */
 export function getPrimaryFocus(sport: SportType): AgilityDrillCategory[] {
-  return sportAgilityFocus[sport]?.primary || sportAgilityFocus.GENERAL.primary
+  return sportAgilityFocus[sport]?.primary || DEFAULT_FOCUS.primary
 }
 
 /**
  * Get all agility focus areas for a sport (primary + secondary)
  */
 export function getAllFocusAreas(sport: SportType): AgilityDrillCategory[] {
-  const focus = sportAgilityFocus[sport] || sportAgilityFocus.GENERAL
+  const focus = sportAgilityFocus[sport] || DEFAULT_FOCUS
   return [...focus.primary, ...focus.secondary]
 }
 
@@ -118,7 +127,7 @@ export function getAllFocusAreas(sport: SportType): AgilityDrillCategory[] {
  * Get sport-specific description
  */
 export function getSportDescription(sport: SportType): string {
-  return sportAgilityFocus[sport]?.description || sportAgilityFocus.GENERAL.description
+  return sportAgilityFocus[sport]?.description || DEFAULT_FOCUS.description
 }
 
 /**
@@ -159,7 +168,7 @@ export function getRecommendedDrills(
 
       // Filter by sport association if the drill has specific sports
       if (drill.primarySports && drill.primarySports.length > 0) {
-        if (!drill.primarySports.includes(sport) && !drill.primarySports.includes('GENERAL')) {
+        if (!drill.primarySports.includes(sport) && !drill.primarySports.includes('GENERAL_FITNESS')) {
           // De-prioritize but don't exclude completely
           return true
         }
@@ -174,8 +183,9 @@ export function getRecommendedDrills(
       if (aHasSport !== bHasSport) return aHasSport - bHasSport
 
       // Then by primary vs secondary category
-      const aIsPrimary = sportAgilityFocus[sport]?.primary.includes(a.category) ? 0 : 1
-      const bIsPrimary = sportAgilityFocus[sport]?.primary.includes(b.category) ? 0 : 1
+      const focus = sportAgilityFocus[sport] || DEFAULT_FOCUS
+      const aIsPrimary = focus.primary.includes(a.category) ? 0 : 1
+      const bIsPrimary = focus.primary.includes(b.category) ? 0 : 1
       if (aIsPrimary !== bIsPrimary) return aIsPrimary - bIsPrimary
 
       // Then by difficulty
@@ -191,7 +201,7 @@ export function getWorkoutFocusRecommendations(sport: SportType): {
   main: AgilityDrillCategory[]
   cooldown: AgilityDrillCategory[]
 } {
-  const focus = sportAgilityFocus[sport] || sportAgilityFocus.GENERAL
+  const focus = sportAgilityFocus[sport] || DEFAULT_FOCUS
 
   return {
     warmup: ['FOOTWORK', 'BALANCE'],
@@ -207,7 +217,7 @@ export function getCategoryDistribution(
   sport: SportType,
   totalDrills: number
 ): Record<AgilityDrillCategory, number> {
-  const focus = sportAgilityFocus[sport] || sportAgilityFocus.GENERAL
+  const focus = sportAgilityFocus[sport] || DEFAULT_FOCUS
 
   // Primary categories get 60%, secondary get 40%
   const primaryCount = Math.ceil(totalDrills * 0.6)

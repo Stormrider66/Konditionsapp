@@ -2,7 +2,8 @@
 // API routes for agility workout results
 
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         totalDuration: validatedData.totalDuration,
         perceivedEffort: validatedData.perceivedEffort,
         notes: validatedData.notes,
-        drillResults: validatedData.drillResults || null
+        drillResults: validatedData.drillResults || Prisma.JsonNull
       },
       include: {
         athlete: {

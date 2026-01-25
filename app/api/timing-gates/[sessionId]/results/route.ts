@@ -2,7 +2,7 @@
 // API routes for timing gate session results
 
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { SportTestProtocol } from '@prisma/client'
 import { z } from 'zod'

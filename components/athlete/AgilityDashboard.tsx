@@ -22,19 +22,29 @@ import {
 } from 'lucide-react'
 import { format, isToday, isTomorrow, isPast, isFuture } from 'date-fns'
 import Link from 'next/link'
-import type { AgilityWorkoutAssignment, AgilityWorkoutResult, TimingGateResult } from '@/types'
+import type { AgilityWorkoutResult, TimingGateResult } from '@/types'
+
+// Simplified assignment type for dashboard display (partial workout data from Prisma select)
+interface DashboardAssignment {
+  id: string
+  athleteId: string
+  workoutId: string
+  assignedDate: Date
+  status: string
+  completedAt?: Date | null
+  notes?: string | null
+  workout: {
+    id: string
+    name: string
+    format: string
+    totalDuration?: number | null
+    drills?: { id: string }[]
+  }
+}
 
 interface AgilityDashboardProps {
   clientId: string
-  assignments: (AgilityWorkoutAssignment & {
-    workout: {
-      id: string
-      name: string
-      format: string
-      totalDuration?: number | null
-      drills?: { id: string }[]
-    }
-  })[]
+  assignments: DashboardAssignment[]
   results: (AgilityWorkoutResult & {
     workout: {
       id: string
@@ -69,14 +79,17 @@ export function AgilityDashboard({
   const completedAssignments = assignments.filter(a => a.status === 'COMPLETED')
 
   // Get personal records from timing results
+  type TimingResultWithSession = typeof timingResults[number]
   const getPersonalRecords = () => {
-    const recordsByProtocol: Record<string, TimingGateResult> = {}
-    timingResults.forEach(result => {
-      const protocol = result.testProtocol
-      if (!recordsByProtocol[protocol] || result.totalTime < recordsByProtocol[protocol].totalTime) {
-        recordsByProtocol[protocol] = result
-      }
-    })
+    const recordsByProtocol: Record<string, TimingResultWithSession> = {}
+    timingResults
+      .filter(r => r.testProtocol)
+      .forEach(result => {
+        const protocol = result.testProtocol!
+        if (!recordsByProtocol[protocol] || result.totalTime < recordsByProtocol[protocol].totalTime) {
+          recordsByProtocol[protocol] = result
+        }
+      })
     return Object.values(recordsByProtocol)
   }
 
@@ -299,7 +312,7 @@ export function AgilityDashboard({
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">
-                              {result.testProtocol.replace(/_/g, ' ')}
+                              {result.testProtocol?.replace(/_/g, ' ') || 'Timing Test'}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {result.session.sessionName || format(new Date(result.session.sessionDate), 'PPP')}
@@ -345,7 +358,7 @@ export function AgilityDashboard({
                   {personalRecords.map(pr => (
                     <div key={pr.id} className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium">{pr.testProtocol.replace(/_/g, ' ')}</p>
+                        <p className="font-medium">{pr.testProtocol?.replace(/_/g, ' ') || 'Timing Test'}</p>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(pr.session.sessionDate), 'PPP')}
                         </p>
