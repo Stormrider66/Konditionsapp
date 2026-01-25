@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Video } from 'lucide-react'
 
-import { requireAthlete, getAthleteClientId } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { normalizeStoragePath, isHttpUrl } from '@/lib/storage/supabase-storage'
 import { createSignedUrl } from '@/lib/storage/supabase-storage-server'
@@ -32,13 +32,7 @@ type VideoAnalysisWithVideo = Omit<VideoAnalysisRow, 'videoUrl'> & {
 }
 
 export default async function AthleteVideoAnalysisPage() {
-  const user = await requireAthlete()
-
-  const clientId = await getAthleteClientId(user.id)
-
-  if (!clientId) {
-    redirect('/login')
-  }
+  const { clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Prisma typings can appear stale locally (especially on Windows) if `prisma generate` didn’t fully run.
   // Calling through `any` avoids TS false-positives about select fields/relations.

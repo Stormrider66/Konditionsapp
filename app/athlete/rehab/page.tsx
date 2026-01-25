@@ -22,7 +22,7 @@ export default async function AthleteRehabPage() {
   const dbUser = await prisma.user.findUnique({
     where: { email: user.email },
     include: {
-      athleteAccounts: {
+      athleteAccount: {
         include: {
           client: {
             select: {
@@ -35,11 +35,11 @@ export default async function AthleteRehabPage() {
     },
   })
 
-  if (!dbUser || !dbUser.athleteAccounts[0]) {
+  if (!dbUser || !dbUser.athleteAccount) {
     redirect('/login')
   }
 
-  const clientId = dbUser.athleteAccounts[0].clientId
+  const clientId = dbUser.athleteAccount.clientId
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-8">

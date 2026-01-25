@@ -536,6 +536,7 @@ model User {
   createdCareTeamThreads CareTeamThread[]        @relation("UserCreatedCareTeamThreads")
   careTeamMessages       CareTeamMessage[]       @relation("UserCareTeamMessages")
   careTeamParticipations CareTeamParticipant[]   @relation("UserCareTeamParticipations")
+  assessedInjuries       InjuryAssessment[]      @relation("AssessedInjuries")
 
   @@index([email])
   @@index([role])
@@ -3048,10 +3049,17 @@ model Race {
 
 /// Injury assessment and pain tracking (University of Delaware Soreness Rules)
 model InjuryAssessment {
-  id         String   @id @default(uuid())
-  clientId   String
-  date       DateTime @default(now())
-  detectedAt DateTime @default(now()) // Timestamp of injury detection
+  id           String   @id @default(uuid())
+  clientId     String
+  assessedById String?  // User who created the assessment
+  date         DateTime @default(now())
+  detectedAt   DateTime @default(now()) // Timestamp of injury detection
+
+  // Injury classification
+  bodyPart    String?  // "KNEE", "ANKLE", "SHOULDER", etc.
+  side        String?  // "LEFT", "RIGHT", "BILATERAL", "CENTRAL"
+  mechanism   String?  // How the injury occurred
+  description String?  // Detailed description
 
   // Pain assessment (0-10 scale)
   painLevel    Int // 0=none, 10=severe
@@ -3066,14 +3074,20 @@ model InjuryAssessment {
   painRedevelopsLater       Boolean @default(false)
   painPersists1HourPost     Boolean @default(false)
 
+  // Delaware pain rule
+  delawarePainRuleTriggered Boolean @default(false)
+  delawareRule              String? // Which Delaware rule was triggered
+
   // Functional assessment
-  rangeOfMotion String? // "NORMAL", "SLIGHTLY_LIMITED", etc.
-  swelling      Boolean @default(false)
-  discoloration Boolean @default(false)
-  weightBearing String? // "NORMAL", "SLIGHTLY_AFFECTED", "LIMPING", "UNABLE"
+  rangeOfMotion        String?  // "NORMAL", "SLIGHTLY_LIMITED", etc.
+  swelling             Boolean  @default(false)
+  discoloration        Boolean  @default(false)
+  weightBearing        String?  // "NORMAL", "SLIGHTLY_AFFECTED", "LIMPING", "UNABLE"
+  functionalLimitations Json?   // Array of functional limitations
+  redFlags              Json?   // Array of red flag indicators
 
   // Assessment result
-  assessment String // "CONTINUE", "MODIFY", "REST_1_DAY", etc.
+  assessment String? // "CONTINUE", "MODIFY", "REST_1_DAY", etc.
   status     String  @default("ACTIVE") // "ACTIVE", "MONITORING", "RESOLVED"
   injuryType String?
   phase      String? // "ACUTE", "SUBACUTE", "CHRONIC", "RECOVERY"
@@ -3087,9 +3101,10 @@ model InjuryAssessment {
   resolvedDate DateTime?
   notes        String?
 
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  client     Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  assessedBy User?  @relation("AssessedInjuries", fields: [assessedById], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([clientId, date])
   @@index([painLevel, gaitAffected])
@@ -3102,6 +3117,7 @@ model InjuryAssessment {
   trainingRestrictions TrainingRestriction[]
   rehabPrograms     RehabProgram[]
   acuteInjuryReports AcuteInjuryReport[]
+  careTeamThreads   CareTeamThread[] @relation("InjuryCareTeamThreads")
 }
 
 // ============================================
@@ -3350,6 +3366,7 @@ model RehabProgram {
   exercises  RehabExercise[]
   milestones RehabMilestone[]
   progressLogs RehabProgressLog[]
+  careTeamThreads CareTeamThread[] @relation("RehabProgramCareTeamThreads")
 
   @@index([physioUserId])
   @@index([clientId])
@@ -3516,6 +3533,7 @@ model TrainingRestriction {
   client    Client            @relation("ClientTrainingRestrictions", fields: [clientId], references: [id], onDelete: Cascade)
   createdBy User              @relation("UserCreatedRestrictions", fields: [createdById], references: [id])
   injury    InjuryAssessment? @relation(fields: [injuryId], references: [id], onDelete: SetNull)
+  careTeamThreads CareTeamThread[] @relation("RestrictionCareTeamThreads")
 
   @@index([clientId])
   @@index([createdById])
@@ -3659,11 +3677,17 @@ model CareTeamThread {
   // Relations
   client      Client              @relation("ClientCareTeamThreads", fields: [clientId], references: [id], onDelete: Cascade)
   createdBy   User                @relation("UserCreatedCareTeamThreads", fields: [createdById], references: [id])
+  injury      InjuryAssessment?   @relation("InjuryCareTeamThreads", fields: [injuryId], references: [id])
+  rehabProgram RehabProgram?      @relation("RehabProgramCareTeamThreads", fields: [rehabProgramId], references: [id])
+  restriction TrainingRestriction? @relation("RestrictionCareTeamThreads", fields: [restrictionId], references: [id])
   messages    CareTeamMessage[]
   participants CareTeamParticipant[]
 
   @@index([clientId])
   @@index([createdById])
+  @@index([injuryId])
+  @@index([rehabProgramId])
+  @@index([restrictionId])
   @@index([status])
   @@index([priority])
   @@index([lastMessageAt])

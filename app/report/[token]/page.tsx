@@ -6,6 +6,7 @@
  */
 
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import { performAllCalculations } from '@/lib/calculations';
 import { PublicReportView } from '@/components/reports/PublicReportView';
@@ -61,12 +62,12 @@ export default async function PublicReportPage({ params }: PageProps) {
             Den här rapportlänken är inte längre giltig. Kontakta din coach för
             att få en ny länk.
           </p>
-          <a
+          <Link
             href="/signup"
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
           >
             Skapa konto för att spara dina rapporter
-          </a>
+          </Link>
         </div>
       </div>
     );

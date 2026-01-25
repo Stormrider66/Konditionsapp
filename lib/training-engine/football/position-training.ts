@@ -602,7 +602,7 @@ export function getInjuryPreventionExercises(position: FootballPosition): Exerci
   return [...commonExercises, ...(positionSpecific[position] || [])];
 }
 
-export default {
+const footballTrainingModule = {
   FOOTBALL_POSITION_PROFILES,
   FOOTBALL_SEASON_PHASES,
   GPS_LOAD_THRESHOLDS,
@@ -612,3 +612,5 @@ export default {
   calculateACWR,
   getInjuryPreventionExercises,
 };
+
+export default footballTrainingModule;

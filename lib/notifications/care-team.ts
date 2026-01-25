@@ -241,7 +241,7 @@ export async function notifyCoachOfRestriction(
       senderId: physioUserId,
       recipientId: client.userId,
       clientId,
-      priority: restriction?.severity === 'HIGH' ? 'HIGH' : 'NORMAL',
+      priority: restriction?.severity === 'SEVERE' || restriction?.severity === 'COMPLETE' ? 'HIGH' : 'NORMAL',
       contextData: {
         restrictionId,
         restrictionType: restriction?.type,

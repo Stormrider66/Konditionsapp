@@ -9,7 +9,7 @@
  * - Analyze zones and benchmarks
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ErgometerType } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,30 +62,7 @@ export default function CoachErgometerTestsPage() {
   const [zones, setZones] = useState<ErgometerZone[]>([]);
   const [loadingTests, setLoadingTests] = useState(false);
 
-  useEffect(() => {
-    async function fetchClients() {
-      try {
-        const res = await fetch('/api/clients');
-        if (res.ok) {
-          const data = await res.json();
-          setClients(data.data || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch clients:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchClients();
-  }, []);
-
-  useEffect(() => {
-    if (selectedClientId) {
-      fetchClientData();
-    }
-  }, [selectedClientId]);
-
-  async function fetchClientData() {
+  const fetchClientData = useCallback(async () => {
     setLoadingTests(true);
     try {
       const [testsRes, zonesRes] = await Promise.all([
@@ -107,7 +84,30 @@ export default function CoachErgometerTestsPage() {
     } finally {
       setLoadingTests(false);
     }
-  }
+  }, [selectedClientId]);
+
+  useEffect(() => {
+    async function fetchClients() {
+      try {
+        const res = await fetch('/api/clients');
+        if (res.ok) {
+          const data = await res.json();
+          setClients(data.data || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch clients:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchClients();
+  }, []);
+
+  useEffect(() => {
+    if (selectedClientId) {
+      fetchClientData();
+    }
+  }, [selectedClientId, fetchClientData]);
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
 

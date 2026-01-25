@@ -9,7 +9,7 @@
  * - PDF/JSON export
  */
 
-import { requireAthlete } from '@/lib/auth-utils';
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils';
 import { ProgramReportViewer } from '@/components/athlete/program/ProgramReportViewer';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
@@ -21,16 +21,12 @@ interface ProgramReportPageProps {
 }
 
 export default async function ProgramReportPage({ searchParams }: ProgramReportPageProps) {
-  const user = await requireAthlete();
+  const { clientId } = await requireAthleteOrCoachInAthleteMode();
   const resolvedParams = await searchParams;
 
-  // Get athlete's client
-  const client = await prisma.client.findFirst({
-    where: {
-      athleteAccount: {
-        userId: user.id
-      }
-    },
+  // Get athlete's client with training programs
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
     include: {
       trainingPrograms: {
         where: {

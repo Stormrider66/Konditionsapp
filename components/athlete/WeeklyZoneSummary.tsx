@@ -9,7 +9,7 @@
  * - Comparison to previous week
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -102,11 +102,7 @@ export function WeeklyZoneSummary({
   const [distributions, setDistributions] = useState<ZoneDistribution[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDistributions();
-  }, [clientId]);
-
-  async function fetchDistributions() {
+  const fetchDistributions = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await fetch(
@@ -121,7 +117,11 @@ export function WeeklyZoneSummary({
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchDistributions();
+  }, [fetchDistributions]);
 
   const currentWeek = distributions[distributions.length - 1];
   const previousWeek = distributions.length > 1 ? distributions[0] : null;

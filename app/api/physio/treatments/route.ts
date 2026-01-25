@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePhysio, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
+import type { Prisma } from '@prisma/client'
 
 // Validation schema for creating a treatment session
 const createTreatmentSchema = z.object({
@@ -30,7 +31,7 @@ const createTreatmentSchema = z.object({
   painBefore: z.number().int().min(0).max(10).optional(),
   painAfter: z.number().int().min(0).max(10).optional(),
   // ROM measurements
-  romMeasurements: z.record(z.unknown()).optional(),
+  romMeasurements: z.record(z.any()).optional(),
   // Modalities
   modalitiesUsed: z.array(z.string()).default([]),
   // Follow-up
@@ -191,7 +192,7 @@ export async function POST(request: NextRequest) {
         plan: validatedData.plan,
         painBefore: validatedData.painBefore,
         painAfter: validatedData.painAfter,
-        romMeasurements: validatedData.romMeasurements,
+        romMeasurements: validatedData.romMeasurements as Prisma.InputJsonValue | undefined,
         modalitiesUsed: validatedData.modalitiesUsed,
         followUpRequired: validatedData.followUpRequired,
         followUpDate: validatedData.followUpDate ? new Date(validatedData.followUpDate) : undefined,

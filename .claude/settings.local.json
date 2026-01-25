@@ -22,7 +22,9 @@
       "Bash(git push:*)",
       "Bash(git diff:*)",
       "WebSearch",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(find:*)",
+      "Bash(npx next lint:*)"
     ],
     "deny": [],
     "ask": []

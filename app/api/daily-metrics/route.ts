@@ -595,7 +595,7 @@ export async function POST(request: NextRequest) {
         const physioAssignment = await prisma.physioAssignment.findFirst({
           where: {
             clientId,
-            active: true,
+            isActive: true,
           },
           include: {
             physio: true,

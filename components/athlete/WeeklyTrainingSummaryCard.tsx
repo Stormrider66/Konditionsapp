@@ -11,7 +11,7 @@
  * - Methodology indicator (80/20, HYROX Hybrid, etc.)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -200,11 +200,7 @@ export function WeeklyTrainingSummaryCard({
   // Get effective targets: custom targets override sport defaults
   const targets = intensityTargets || getDefaultTargetsForSport(activeSport);
 
-  useEffect(() => {
-    fetchSummary();
-  }, [clientId]);
-
-  async function fetchSummary() {
+  const fetchSummary = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await fetch(`/api/athlete/training-summary?clientId=${clientId}&period=week&count=1`);
@@ -219,7 +215,11 @@ export function WeeklyTrainingSummaryCard({
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
 
   const cardClass = variant === 'glass'
     ? 'backdrop-blur-sm bg-white/80 dark:bg-gray-900/80 border-white/20'

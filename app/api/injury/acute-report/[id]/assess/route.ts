@@ -168,7 +168,7 @@ export async function POST(
             role: true,
           },
         },
-        restrictions: {
+        trainingRestrictions: {
           select: {
             id: true,
             type: true,

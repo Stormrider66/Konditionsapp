@@ -1,28 +1,24 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Settings, Calendar as CalendarIcon, ArrowLeft } from 'lucide-react'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { UnifiedCalendar } from '@/components/calendar'
 import { Button } from '@/components/ui/button'
 
 export default async function AthleteCalendarPage() {
-  const user = await requireAthlete()
+  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
-  // Get athlete account
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-    include: {
-      client: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
+  // Get client info
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: {
+      id: true,
+      name: true,
     },
   })
 
-  if (!athleteAccount) {
+  if (!client) {
     redirect('/login')
   }
 
@@ -63,8 +59,8 @@ export default async function AthleteCalendarPage() {
         </div>
 
         <UnifiedCalendar
-          clientId={athleteAccount.clientId}
-          clientName={athleteAccount.client.name}
+          clientId={client.id}
+          clientName={client.name}
           isCoachView={false}
           variant="glass"
         />

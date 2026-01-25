@@ -7,7 +7,7 @@
  * compares to goal times, and indicates improvement trends.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -118,7 +118,7 @@ export function RacePredictionWidget({
   const [error, setError] = useState<string | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const fetchPredictions = async (showRefresh = false) => {
+  const fetchPredictions = useCallback(async (showRefresh = false) => {
     if (showRefresh) setIsRefreshing(true)
     else setIsLoading(true)
     setError(null)
@@ -142,11 +142,11 @@ export function RacePredictionWidget({
       setIsLoading(false)
       setIsRefreshing(false)
     }
-  }
+  }, [clientId, goalDistance])
 
   useEffect(() => {
     fetchPredictions()
-  }, [clientId, goalDistance])
+  }, [fetchPredictions])
 
   if (isLoading) {
     return (

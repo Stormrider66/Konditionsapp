@@ -271,6 +271,30 @@ export function DeepResearchPanel({
     }
   }
 
+  // Poll for final status if SSE fails
+  const pollFinalStatus = useCallback(async (sid: string) => {
+    try {
+      const response = await fetch(`/api/ai/deep-research/${sid}`)
+      const data = await response.json()
+
+      if (data.status === 'COMPLETED' && data.report) {
+        setIsResearching(false)
+        setProgress(100)
+        onComplete(data.report, sid)
+      } else if (['FAILED', 'CANCELLED', 'TIMEOUT'].includes(data.status)) {
+        setIsResearching(false)
+        setError(data.errorMessage || 'Research failed')
+      }
+      // If still running, keep polling
+      else if (data.status === 'RUNNING') {
+        setTimeout(() => pollFinalStatus(sid), 5000)
+      }
+    } catch {
+      setError('Lost connection to research')
+      setIsResearching(false)
+    }
+  }, [onComplete])
+
   // Connect to SSE progress stream
   const connectToProgress = useCallback((sid: string) => {
     const eventSource = new EventSource(`/api/ai/deep-research/${sid}/progress`)
@@ -322,31 +346,7 @@ export function DeepResearchPanel({
     return () => {
       eventSource.close()
     }
-  }, [onComplete, toast])
-
-  // Poll for final status if SSE fails
-  const pollFinalStatus = async (sid: string) => {
-    try {
-      const response = await fetch(`/api/ai/deep-research/${sid}`)
-      const data = await response.json()
-
-      if (data.status === 'COMPLETED' && data.report) {
-        setIsResearching(false)
-        setProgress(100)
-        onComplete(data.report, sid)
-      } else if (['FAILED', 'CANCELLED', 'TIMEOUT'].includes(data.status)) {
-        setIsResearching(false)
-        setError(data.errorMessage || 'Research failed')
-      }
-      // If still running, keep polling
-      else if (data.status === 'RUNNING') {
-        setTimeout(() => pollFinalStatus(sid), 5000)
-      }
-    } catch {
-      setError('Lost connection to research')
-      setIsResearching(false)
-    }
-  }
+  }, [onComplete, toast, pollFinalStatus])
 
   // Cancel research
   const cancelResearch = async () => {

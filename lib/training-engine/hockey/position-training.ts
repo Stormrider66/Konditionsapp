@@ -486,7 +486,7 @@ export function getInjuryPreventionExercises(position: HockeyPosition): Exercise
   return [...commonExercises, ...(positionSpecific[position] || [])];
 }
 
-export default {
+const hockeyTrainingModule = {
   HOCKEY_POSITION_PROFILES,
   HOCKEY_SEASON_PHASES,
   getPositionRecommendations,
@@ -494,3 +494,5 @@ export default {
   calculateTrainingLoad,
   getInjuryPreventionExercises,
 };
+
+export default hockeyTrainingModule;

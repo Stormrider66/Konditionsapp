@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
@@ -77,7 +77,7 @@ export function ShareResearchDialog({
   const [sendNotification, setSendNotification] = useState(true)
 
   // Fetch current shares
-  const fetchCurrentShares = async () => {
+  const fetchCurrentShares = useCallback(async () => {
     if (!sessionId) return
 
     setIsLoading(true)
@@ -92,14 +92,14 @@ export function ShareResearchDialog({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [sessionId])
 
   useEffect(() => {
     if (open && sessionId) {
       fetchCurrentShares()
       setSelectedAthletes([])
     }
-  }, [open, sessionId])
+  }, [open, sessionId, fetchCurrentShares])
 
   // Get athletes that haven't been shared with
   const availableAthletes = clients.filter(

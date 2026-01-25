@@ -7,7 +7,7 @@
  * - Completed test results
  */
 
-import { requireAthlete } from '@/lib/auth-utils';
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils';
 import { BenchmarkSchedule } from '@/components/athlete/program/BenchmarkSchedule';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
@@ -19,16 +19,12 @@ interface BenchmarkSchedulePageProps {
 }
 
 export default async function BenchmarkSchedulePage({ searchParams }: BenchmarkSchedulePageProps) {
-  const user = await requireAthlete();
+  const { clientId } = await requireAthleteOrCoachInAthleteMode();
   const resolvedParams = await searchParams;
 
-  // Get athlete's client
-  const client = await prisma.client.findFirst({
-    where: {
-      athleteAccount: {
-        userId: user.id
-      }
-    },
+  // Get athlete's client with training programs
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
     include: {
       trainingPrograms: {
         where: {

@@ -3,20 +3,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
+import type { Prisma } from '@prisma/client'
 
 const updateTreatmentSchema = z.object({
   treatmentType: z.enum([
-    'INITIAL_ASSESSMENT',
-    'FOLLOW_UP',
+    'ASSESSMENT',
     'MANUAL_THERAPY',
     'DRY_NEEDLING',
     'EXERCISE_THERAPY',
     'ELECTROTHERAPY',
-    'ULTRASOUND',
     'TAPING',
-    'MASSAGE',
-    'STRETCHING',
-    'MOBILIZATION',
+    'EDUCATION',
     'DISCHARGE',
     'OTHER',
   ]).optional(),
@@ -26,16 +23,11 @@ const updateTreatmentSchema = z.object({
   plan: z.string().optional(),
   painBefore: z.number().int().min(0).max(10).optional(),
   painAfter: z.number().int().min(0).max(10).optional(),
-  romBefore: z.record(z.number()).optional(),
-  romAfter: z.record(z.number()).optional(),
-  strengthBefore: z.record(z.number()).optional(),
-  strengthAfter: z.record(z.number()).optional(),
-  functionalTests: z.record(z.unknown()).optional(),
+  romMeasurements: z.record(z.any()).optional(),
   modalitiesUsed: z.array(z.string()).optional(),
-  exercisesPrescribed: z.array(z.string()).optional(),
-  homeExerciseProgram: z.string().optional(),
-  nextAppointmentNotes: z.string().optional(),
-  notes: z.string().optional(),
+  followUpRequired: z.boolean().optional(),
+  followUpDate: z.string().datetime().optional(),
+  followUpNotes: z.string().optional(),
 })
 
 /**
@@ -85,7 +77,7 @@ export async function GET(
     }
 
     // Check access - physio can only see their own sessions
-    if (session.physioId !== user.id) {
+    if (session.physioUserId !== user.id) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
@@ -125,13 +117,26 @@ export async function PATCH(
       return NextResponse.json({ error: 'Treatment session not found' }, { status: 404 })
     }
 
-    if (existingSession.physioId !== user.id) {
+    if (existingSession.physioUserId !== user.id) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
     const session = await prisma.treatmentSession.update({
       where: { id },
-      data: validatedData,
+      data: {
+        ...(validatedData.treatmentType && { treatmentType: validatedData.treatmentType }),
+        ...(validatedData.subjective !== undefined && { subjective: validatedData.subjective }),
+        ...(validatedData.objective !== undefined && { objective: validatedData.objective }),
+        ...(validatedData.assessment !== undefined && { assessment: validatedData.assessment }),
+        ...(validatedData.plan !== undefined && { plan: validatedData.plan }),
+        ...(validatedData.painBefore !== undefined && { painBefore: validatedData.painBefore }),
+        ...(validatedData.painAfter !== undefined && { painAfter: validatedData.painAfter }),
+        ...(validatedData.romMeasurements && { romMeasurements: validatedData.romMeasurements as Prisma.InputJsonValue }),
+        ...(validatedData.modalitiesUsed && { modalitiesUsed: validatedData.modalitiesUsed }),
+        ...(validatedData.followUpRequired !== undefined && { followUpRequired: validatedData.followUpRequired }),
+        ...(validatedData.followUpDate && { followUpDate: new Date(validatedData.followUpDate) }),
+        ...(validatedData.followUpNotes !== undefined && { followUpNotes: validatedData.followUpNotes }),
+      },
       include: {
         client: {
           select: {

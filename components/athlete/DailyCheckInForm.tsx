@@ -97,11 +97,11 @@ const checkInSchema = z.object({
   injuryPain: z.number().min(1).max(10),
 
   // Rehab compliance (optional)
-  rehabExercisesDone: z.boolean().default(false),
+  rehabExercisesDone: z.boolean().optional(),
   rehabPainDuring: z.number().min(0).max(10).optional().nullable(),
   rehabPainAfter: z.number().min(0).max(10).optional().nullable(),
   rehabNotes: z.string().max(500).optional(),
-  requestPhysioContact: z.boolean().default(false),
+  requestPhysioContact: z.boolean().optional(),
   physioContactReason: z.string().max(500).optional(),
 
   // Notes (optional)

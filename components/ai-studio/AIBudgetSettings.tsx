@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -87,7 +87,7 @@ export function AIBudgetSettings({
   const [chatBudget, setChatBudget] = useState<string>('')
 
   // Fetch budget status
-  const fetchBudgetStatus = async () => {
+  const fetchBudgetStatus = useCallback(async () => {
     setIsLoading(true)
     try {
       const [budgetRes, usageRes] = await Promise.all([
@@ -117,13 +117,13 @@ export function AIBudgetSettings({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [toast])
 
   useEffect(() => {
     if (open) {
       fetchBudgetStatus()
     }
-  }, [open])
+  }, [open, fetchBudgetStatus])
 
   // Save settings
   const saveSettings = async () => {

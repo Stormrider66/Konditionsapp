@@ -1,6 +1,6 @@
 // app/athlete/history/page.tsx
 import { redirect } from 'next/navigation'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { subDays, subWeeks, subMonths, startOfWeek, endOfWeek, format } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -54,17 +54,8 @@ interface HistoryPageProps {
 }
 
 export default async function WorkoutHistoryPage({ searchParams }: HistoryPageProps) {
-  const user = await requireAthlete()
+  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
   const params = await searchParams
-
-  // Get athlete account
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-  })
-
-  if (!athleteAccount) {
-    redirect('/login')
-  }
 
   // Determine timeframe
   const now = new Date()
@@ -145,7 +136,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
     // Fetch confirmed ad-hoc workouts
     prisma.adHocWorkout.findMany({
       where: {
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         status: 'CONFIRMED',
         workoutDate: {
           gte: startDate,

@@ -66,12 +66,6 @@ export async function GET(
             name: true,
           },
         },
-        assignedBy: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
     })
 
@@ -80,7 +74,7 @@ export async function GET(
     }
 
     // Check access
-    if (user.role !== 'ADMIN' && assignment.physioId !== user.id) {
+    if (user.role !== 'ADMIN' && assignment.physioUserId !== user.id) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
@@ -121,7 +115,7 @@ export async function PATCH(
     }
 
     // Only admin or the assigned physio can update
-    if (user.role !== 'ADMIN' && existingAssignment.physioId !== user.id) {
+    if (user.role !== 'ADMIN' && existingAssignment.physioUserId !== user.id) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

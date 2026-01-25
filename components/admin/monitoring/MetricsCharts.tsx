@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -39,7 +39,7 @@ export function MetricsCharts() {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('24');
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/admin/monitoring/metrics?range=${range}`);
@@ -52,11 +52,11 @@ export function MetricsCharts() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [range]);
 
   useEffect(() => {
     fetchMetrics();
-  }, [range]);
+  }, [fetchMetrics]);
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);

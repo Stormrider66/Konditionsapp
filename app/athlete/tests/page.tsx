@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -32,24 +32,12 @@ import { sv } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 
 export default async function AthleteTestsPage() {
-  const user = await requireAthlete()
-
-  // Get athlete account
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-    include: {
-      client: true,
-    },
-  })
-
-  if (!athleteAccount) {
-    redirect('/login')
-  }
+  const { clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Fetch all tests for this client
   const tests = await prisma.test.findMany({
     where: {
-      clientId: athleteAccount.clientId,
+      clientId: clientId,
       status: 'COMPLETED',
     },
     orderBy: {

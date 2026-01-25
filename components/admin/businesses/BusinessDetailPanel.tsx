@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -87,7 +87,7 @@ export function BusinessDetailPanel({ businessId, onUpdate }: BusinessDetailPane
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const fetchBusiness = async () => {
+  const fetchBusiness = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -104,11 +104,11 @@ export function BusinessDetailPanel({ businessId, onUpdate }: BusinessDetailPane
     } finally {
       setLoading(false);
     }
-  };
+  }, [businessId]);
 
   useEffect(() => {
     fetchBusiness();
-  }, [businessId]);
+  }, [fetchBusiness]);
 
   const handleMemberUpdate = () => {
     fetchBusiness();

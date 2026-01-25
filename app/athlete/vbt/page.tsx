@@ -1,7 +1,5 @@
 // app/athlete/vbt/page.tsx
-import { redirect } from 'next/navigation';
-import { requireAthlete } from '@/lib/auth-utils';
-import { prisma } from '@/lib/prisma';
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils';
 import { VBTDashboard } from '@/components/athlete/VBTDashboard';
 
 export const metadata = {
@@ -10,17 +8,7 @@ export const metadata = {
 };
 
 export default async function AthleteVBTPage() {
-  const user = await requireAthlete();
-
-  // Get athlete account
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-    select: { clientId: true },
-  });
-
-  if (!athleteAccount) {
-    redirect('/login');
-  }
+  const { clientId } = await requireAthleteOrCoachInAthleteMode();
 
   return (
     <div className="container mx-auto py-4 sm:py-6 px-4 sm:px-6 max-w-7xl">
@@ -31,7 +19,7 @@ export default async function AthleteVBTPage() {
         </p>
       </div>
 
-      <VBTDashboard clientId={athleteAccount.clientId} />
+      <VBTDashboard clientId={clientId} />
     </div>
   );
 }

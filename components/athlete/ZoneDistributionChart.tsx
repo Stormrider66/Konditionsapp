@@ -9,7 +9,7 @@
  * - Color-coded by zone (Z1: green, Z2: blue, Z3: yellow, Z4: orange, Z5: red)
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -187,11 +187,7 @@ export function ZoneDistributionChart({
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>(period);
   const [displayMode, setDisplayMode] = useState<'bar' | 'donut'>(chartType);
 
-  useEffect(() => {
-    fetchDistributions();
-  }, [clientId, selectedPeriod, count]);
-
-  async function fetchDistributions() {
+  const fetchDistributions = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await fetch(
@@ -207,7 +203,11 @@ export function ZoneDistributionChart({
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [clientId, selectedPeriod, count]);
+
+  useEffect(() => {
+    fetchDistributions();
+  }, [fetchDistributions]);
 
   const chartData = useMemo(() => {
     return distributions.map((dist) => ({

@@ -145,7 +145,7 @@ export function AudioRecorder({
     };
 
     draw();
-  }, [state]);
+  }, [state, isGlass]);
 
   // Start recording
   const startRecording = async () => {

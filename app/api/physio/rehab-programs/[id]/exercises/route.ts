@@ -6,10 +6,10 @@ import { z } from 'zod'
 
 const addExerciseSchema = z.object({
   exerciseId: z.string().uuid(),
-  phase: z.enum(['ACUTE', 'SUBACUTE', 'REMODELING', 'FUNCTIONAL', 'RETURN_TO_SPORT']),
+  phases: z.array(z.enum(['ACUTE', 'SUBACUTE', 'REMODELING', 'FUNCTIONAL', 'RETURN_TO_SPORT'])).default([]),
   sets: z.number().int().min(1).default(3),
   reps: z.string().optional(), // Can be "10-12" or "30 sec"
-  hold: z.number().int().optional(), // Hold time in seconds
+  duration: z.number().int().optional(), // Duration in seconds
   frequency: z.string().optional(), // "Daily", "2x/day", etc.
   intensity: z.string().optional(),
   progressionCriteria: z.string().optional(),
@@ -68,10 +68,10 @@ export async function POST(
       data: {
         programId,
         exerciseId: validatedData.exerciseId,
-        phase: validatedData.phase,
+        phases: validatedData.phases,
         sets: validatedData.sets,
         reps: validatedData.reps,
-        hold: validatedData.hold,
+        duration: validatedData.duration,
         frequency: validatedData.frequency,
         intensity: validatedData.intensity,
         progressionCriteria: validatedData.progressionCriteria,

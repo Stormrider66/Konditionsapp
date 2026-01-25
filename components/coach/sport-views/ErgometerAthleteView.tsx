@@ -11,7 +11,7 @@
  * - Benchmark comparison
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ErgometerType } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -114,47 +114,49 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ErgometerType>('CONCEPT2_ROW');
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setIsLoading(true);
-        setError(null);
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        // Fetch thresholds
-        const thresholdRes = await fetch(`/api/ergometer-thresholds/${clientId}`);
-        if (thresholdRes.ok) {
-          const thresholdData = await thresholdRes.json();
-          setThresholds(thresholdData.data?.thresholds || []);
-        }
-
-        // Fetch zones
-        const zonesRes = await fetch(`/api/ergometer-zones/${clientId}`);
-        if (zonesRes.ok) {
-          const zonesData = await zonesRes.json();
-          setZones(zonesData.data?.zones || {});
-        }
-
-        // Fetch recent tests
-        const testsRes = await fetch(`/api/ergometer-tests?clientId=${clientId}&limit=10`);
-        if (testsRes.ok) {
-          const testsData = await testsRes.json();
-          setRecentTests(testsData.data?.tests || []);
-        }
-
-        // Set active tab to first ergometer with data
-        const availableTypes = Object.keys(zones) as ErgometerType[];
-        if (availableTypes.length > 0) {
-          setActiveTab(availableTypes[0]);
-        }
-      } catch (err) {
-        setError('Kunde inte hamta ergometerdata');
-      } finally {
-        setIsLoading(false);
+      // Fetch thresholds
+      const thresholdRes = await fetch(`/api/ergometer-thresholds/${clientId}`);
+      if (thresholdRes.ok) {
+        const thresholdData = await thresholdRes.json();
+        setThresholds(thresholdData.data?.thresholds || []);
       }
-    }
 
-    fetchData();
+      // Fetch zones
+      const zonesRes = await fetch(`/api/ergometer-zones/${clientId}`);
+      let fetchedZones: Record<ErgometerType, ErgometerZone[]> = {} as Record<ErgometerType, ErgometerZone[]>;
+      if (zonesRes.ok) {
+        const zonesData = await zonesRes.json();
+        fetchedZones = zonesData.data?.zones || {};
+        setZones(fetchedZones);
+      }
+
+      // Fetch recent tests
+      const testsRes = await fetch(`/api/ergometer-tests?clientId=${clientId}&limit=10`);
+      if (testsRes.ok) {
+        const testsData = await testsRes.json();
+        setRecentTests(testsData.data?.tests || []);
+      }
+
+      // Set active tab to first ergometer with data
+      const availableTypes = Object.keys(fetchedZones) as ErgometerType[];
+      if (availableTypes.length > 0) {
+        setActiveTab(availableTypes[0]);
+      }
+    } catch (err) {
+      setError('Kunde inte hamta ergometerdata');
+    } finally {
+      setIsLoading(false);
+    }
   }, [clientId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   if (isLoading) {
     return (

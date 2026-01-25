@@ -2,8 +2,9 @@
 
 // components/coach/race-results/RaceResultForm.tsx
 // Form for entering race results with automatic VDOT calculation
+// Integrated with Data Moat system for prediction validation
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +13,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Star, Brain, Target } from 'lucide-react'
+
+// Types for Data Moat integration
+interface AIPrediction {
+  id: string
+  predictionType: string
+  predictedValue: { seconds?: number; formatted?: string }
+  confidenceScore: number
+  createdAt: string
+}
 
 interface RaceResultFormProps {
   clientId: string
@@ -48,8 +60,33 @@ export function RaceResultForm({ clientId, clientName, onSuccess, onCancel }: Ra
   const [coachNotes, setCoachNotes] = useState('')
   const [usedForZones, setUsedForZones] = useState(false)
 
+  // Data Moat: Prediction linking and satisfaction
+  const [availablePredictions, setAvailablePredictions] = useState<AIPrediction[]>([])
+  const [linkedPredictionId, setLinkedPredictionId] = useState<string | null>(null)
+  const [satisfactionScore, setSatisfactionScore] = useState<number | null>(null)
+  const [goalAssessment, setGoalAssessment] = useState<'EXCEEDED' | 'MET' | 'MISSED' | null>(null)
+
   // Calculated VDOT preview (client-side estimation)
   const [estimatedVDOT, setEstimatedVDOT] = useState<number | null>(null)
+
+  // Fetch available predictions for this athlete
+  useEffect(() => {
+    const fetchPredictions = async () => {
+      try {
+        const response = await fetch(
+          `/api/data-moat/predictions?athleteId=${clientId}&predictionType=RACE_TIME&validated=false`
+        )
+        if (response.ok) {
+          const data = await response.json()
+          setAvailablePredictions(data.predictions || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch predictions:', error)
+      }
+    }
+
+    fetchPredictions()
+  }, [clientId])
 
   // Calculate time in minutes
   const calculateTimeMinutes = (): number | null => {
@@ -169,11 +206,15 @@ export function RaceResultForm({ clientId, clientName, onSuccess, onCancel }: Ra
           terrain,
           goalTime: goalTime || undefined,
           goalAchieved,
+          goalAssessment: goalAssessment || undefined,
           raceType,
           conditions: conditions || undefined,
           athleteNotes: athleteNotes || undefined,
           coachNotes: coachNotes || undefined,
           usedForZones,
+          // Data Moat fields
+          satisfactionScore: satisfactionScore || undefined,
+          linkedPredictionId: linkedPredictionId || undefined,
         }),
       })
 
@@ -183,6 +224,32 @@ export function RaceResultForm({ clientId, clientName, onSuccess, onCancel }: Ra
       }
 
       const raceResult = await response.json()
+
+      // Data Moat: Validate linked prediction if present
+      if (linkedPredictionId && timeMinutes) {
+        try {
+          const actualSeconds = timeMinutes * 60
+          await fetch(`/api/data-moat/predictions/${linkedPredictionId}/validate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              actualValue: { seconds: actualSeconds, formatted: formatTime() },
+              occurredAt: new Date(raceDate).toISOString(),
+              environmentalFactors: {
+                temperature,
+                humidity,
+                terrain,
+                conditions,
+              },
+              validationSource: 'AUTO_RACE_RESULT',
+              validationQuality: 0.95, // High quality - direct race result
+            }),
+          })
+        } catch (validationError) {
+          console.error('Failed to validate prediction:', validationError)
+          // Don't fail the whole submission for prediction validation errors
+        }
+      }
 
       if (onSuccess) {
         onSuccess(raceResult.id)
@@ -348,20 +415,111 @@ export function RaceResultForm({ clientId, clientName, onSuccess, onCancel }: Ra
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="goalAchieved">Goal Achieved?</Label>
+              <Label htmlFor="goalAssessment">Goal Assessment</Label>
               <Select
-                value={goalAchieved ? 'true' : 'false'}
-                onValueChange={(value) => setGoalAchieved(value === 'true')}
+                value={goalAssessment || ''}
+                onValueChange={(value) => {
+                  setGoalAssessment(value as 'EXCEEDED' | 'MET' | 'MISSED' | null)
+                  setGoalAchieved(value === 'EXCEEDED' || value === 'MET')
+                }}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="false">No</SelectItem>
-                  <SelectItem value="true">Yes</SelectItem>
+                  <SelectItem value="EXCEEDED">
+                    <span className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-green-500" />
+                      Exceeded Goal
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="MET">
+                    <span className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-blue-500" />
+                      Met Goal
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="MISSED">
+                    <span className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-red-500" />
+                      Missed Goal
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Data Moat: Prediction Linking */}
+          {availablePredictions.length > 0 && (
+            <Card className="border-blue-200 bg-blue-50/50">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Brain className="h-4 w-4 text-blue-600" />
+                  <Label className="text-blue-800 font-medium">AI Prediction Available</Label>
+                </div>
+                <div className="space-y-3">
+                  <Select
+                    value={linkedPredictionId || ''}
+                    onValueChange={(value) => setLinkedPredictionId(value || null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Link to AI prediction..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No prediction linked</SelectItem>
+                      {availablePredictions.map((pred) => (
+                        <SelectItem key={pred.id} value={pred.id}>
+                          <span className="flex items-center gap-2">
+                            Predicted: {pred.predictedValue.formatted || 'N/A'}
+                            <Badge variant="outline" className="ml-2">
+                              {Math.round(pred.confidenceScore * 100)}% confidence
+                            </Badge>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {linkedPredictionId && (
+                    <p className="text-xs text-blue-600">
+                      Linking helps validate AI predictions and improve future accuracy.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Data Moat: Satisfaction Score */}
+          <div className="space-y-2">
+            <Label>Overall Satisfaction with Performance</Label>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((score) => (
+                <Button
+                  key={score}
+                  type="button"
+                  variant={satisfactionScore === score ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSatisfactionScore(score)}
+                  className="flex-1"
+                >
+                  <Star
+                    className={`h-4 w-4 ${
+                      satisfactionScore && satisfactionScore >= score
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : ''
+                    }`}
+                  />
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {satisfactionScore === 1 && 'Very disappointed'}
+              {satisfactionScore === 2 && 'Below expectations'}
+              {satisfactionScore === 3 && 'Met expectations'}
+              {satisfactionScore === 4 && 'Above expectations'}
+              {satisfactionScore === 5 && 'Excellent performance'}
+            </p>
           </div>
 
           {/* Conditions */}

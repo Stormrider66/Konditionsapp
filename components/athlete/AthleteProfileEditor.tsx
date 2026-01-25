@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -409,9 +410,9 @@ export function AthleteProfileEditor({
           ) : (
             <p className="text-muted-foreground">
               Du har inte slutfört din sportprofil ännu.{' '}
-              <a href="/athlete/onboarding" className="text-primary underline">
+              <Link href="/athlete/onboarding" className="text-primary underline">
                 Slutför nu
-              </a>
+              </Link>
             </p>
           )}
         </CardContent>

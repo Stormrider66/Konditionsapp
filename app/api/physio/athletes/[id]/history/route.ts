@@ -46,7 +46,7 @@ export async function GET(
           },
         },
         // Related restrictions
-        restrictions: {
+        trainingRestrictions: {
           select: {
             id: true,
             type: true,
@@ -152,9 +152,9 @@ export async function GET(
     // Get movement screens
     const screenings = await prisma.movementScreen.findMany({
       where: { clientId },
-      orderBy: { testDate: 'desc' },
+      orderBy: { screenDate: 'desc' },
       include: {
-        conductedBy: {
+        physio: {
           select: {
             id: true,
             name: true,
@@ -198,7 +198,7 @@ export async function GET(
       })),
       ...screenings.map(s => ({
         type: 'screening' as const,
-        date: s.testDate,
+        date: s.screenDate,
         data: s,
       })),
       ...acuteReports.map(r => ({

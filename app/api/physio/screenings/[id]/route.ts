@@ -3,12 +3,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePhysio, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
+import type { Prisma } from '@prisma/client'
 
 const updateScreeningSchema = z.object({
-  results: z.record(z.unknown()).optional(),
+  results: z.record(z.any()).optional(),
   totalScore: z.number().optional(),
-  asymmetries: z.array(z.string()).optional(),
-  limitations: z.array(z.string()).optional(),
+  asymmetryFlag: z.boolean().optional(),
+  priorityAreas: z.array(z.string()).optional(),
   recommendations: z.array(z.string()).optional(),
   notes: z.string().optional(),
 })
@@ -37,12 +38,6 @@ export async function GET(
             gender: true,
           },
         },
-        conductedBy: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
     })
 
@@ -51,7 +46,7 @@ export async function GET(
     }
 
     // Check access
-    if (screening.conductedById !== user.id) {
+    if (screening.physioUserId !== user.id) {
       const hasAccess = await canAccessAthleteAsPhysio(user.id, screening.clientId)
       if (!hasAccess) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 })
@@ -62,14 +57,14 @@ export async function GET(
     const previousScreenings = await prisma.movementScreen.findMany({
       where: {
         clientId: screening.clientId,
-        screeningType: screening.screeningType,
-        testDate: { lt: screening.testDate },
+        screenType: screening.screenType,
+        screenDate: { lt: screening.screenDate },
       },
-      orderBy: { testDate: 'desc' },
+      orderBy: { screenDate: 'desc' },
       take: 3,
       select: {
         id: true,
-        testDate: true,
+        screenDate: true,
         totalScore: true,
         results: true,
       },
@@ -115,13 +110,20 @@ export async function PATCH(
     }
 
     // Only the physio who conducted the screening can update it
-    if (existingScreening.conductedById !== user.id) {
+    if (existingScreening.physioUserId !== user.id) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
     const screening = await prisma.movementScreen.update({
       where: { id },
-      data: validatedData,
+      data: {
+        ...(validatedData.results && { results: validatedData.results as Prisma.InputJsonValue }),
+        ...(validatedData.totalScore !== undefined && { totalScore: validatedData.totalScore }),
+        ...(validatedData.asymmetryFlag !== undefined && { asymmetryFlag: validatedData.asymmetryFlag }),
+        ...(validatedData.priorityAreas && { priorityAreas: validatedData.priorityAreas }),
+        ...(validatedData.recommendations && { recommendations: validatedData.recommendations }),
+        ...(validatedData.notes !== undefined && { notes: validatedData.notes }),
+      },
       include: {
         client: {
           select: {

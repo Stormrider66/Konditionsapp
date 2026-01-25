@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -177,7 +177,7 @@ export function ResearchHistory({
   const limit = 20
 
   // Fetch sessions
-  const fetchSessions = async (reset = false) => {
+  const fetchSessions = useCallback(async (reset = false) => {
     setIsLoading(true)
     const newOffset = reset ? 0 : offset
 
@@ -214,12 +214,12 @@ export function ResearchHistory({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [offset, statusFilter, toast])
 
   // Initial fetch
   useEffect(() => {
     fetchSessions(true)
-  }, [statusFilter])
+  }, [statusFilter, fetchSessions])
 
   // Filter sessions by search query
   const filteredSessions = sessions.filter((session) =>

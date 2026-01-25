@@ -7,14 +7,11 @@ import { logger } from '@/lib/logger'
 
 const logProgressSchema = z.object({
   exercisesCompleted: z.array(z.string().uuid()).default([]),
-  exercisesCompletedCount: z.number().int().min(0).optional(), // Alternative: count instead of IDs
-  exercisesSkipped: z.number().int().min(0).default(0),
+  completionPercent: z.number().min(0).max(100).optional(),
   painDuring: z.number().int().min(0).max(10).optional(),
   painAfter: z.number().int().min(0).max(10).optional(),
-  difficulty: z.enum(['TOO_EASY', 'APPROPRIATE', 'TOO_HARD']).optional(),
-  overallFeeling: z.enum(['GOOD', 'NEUTRAL', 'BAD']).optional(),
+  difficultyRating: z.number().int().min(1).max(5).optional(), // 1-5 how difficult
   notes: z.string().optional(),
-  exerciseNotes: z.record(z.string()).optional(), // exerciseId -> notes
   wantsPhysioContact: z.boolean().default(false),
 })
 
@@ -74,15 +71,14 @@ export async function GET(
       prisma.rehabProgressLog.findMany({
         where: { programId },
         include: {
-          loggedBy: {
+          client: {
             select: {
               id: true,
               name: true,
-              role: true,
             },
           },
         },
-        orderBy: { loggedAt: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: limit,
         skip: offset,
       }),
@@ -158,32 +154,30 @@ export async function POST(
     const progressLog = await prisma.rehabProgressLog.create({
       data: {
         programId,
-        loggedById: user.id,
+        clientId: program.clientId,
         exercisesCompleted: validatedData.exercisesCompleted,
+        completionPercent: validatedData.completionPercent,
         painDuring: validatedData.painDuring,
         painAfter: validatedData.painAfter,
-        difficulty: validatedData.difficulty,
-        overallFeeling: validatedData.overallFeeling,
+        difficultyRating: validatedData.difficultyRating,
         notes: validatedData.notes,
-        exerciseNotes: validatedData.exerciseNotes,
       },
       include: {
-        loggedBy: {
+        client: {
           select: {
             id: true,
             name: true,
-            role: true,
           },
         },
       },
     })
 
-    // Check if we need to notify physio (pain exceeded, bad feeling, or contact requested)
+    // Check if we need to notify physio (pain exceeded or contact requested)
     const painExceeded =
       (validatedData.painDuring !== undefined && validatedData.painDuring > program.acceptablePainDuring) ||
       (validatedData.painAfter !== undefined && validatedData.painAfter > program.acceptablePainAfter)
 
-    if (painExceeded || validatedData.wantsPhysioContact || validatedData.overallFeeling === 'BAD') {
+    if (painExceeded || validatedData.wantsPhysioContact) {
       try {
         // Get client info for notification
         const client = await prisma.client.findUnique({
@@ -197,10 +191,8 @@ export async function POST(
             notificationType: 'REHAB_PROGRESS_ALERT',
             title: painExceeded
               ? `Smärta överskred gränsvärde - ${client?.name || 'Atlet'}`
-              : validatedData.wantsPhysioContact
-              ? `${client?.name || 'Atlet'} vill kontakta dig`
-              : `${client?.name || 'Atlet'} rapporterade dåligt pass`,
-            message: `Rehabprogram: ${program.name}. Smärta under: ${validatedData.painDuring ?? '-'}/10, efter: ${validatedData.painAfter ?? '-'}/10.${validatedData.overallFeeling ? ` Känsla: ${validatedData.overallFeeling}.` : ''}`,
+              : `${client?.name || 'Atlet'} vill kontakta dig`,
+            message: `Rehabprogram: ${program.name}. Smärta under: ${validatedData.painDuring ?? '-'}/10, efter: ${validatedData.painAfter ?? '-'}/10.`,
             priority: painExceeded ? 'HIGH' : 'MEDIUM',
             contextData: {
               programId: program.id,
@@ -210,7 +202,6 @@ export async function POST(
               painAfter: validatedData.painAfter,
               acceptablePainDuring: program.acceptablePainDuring,
               acceptablePainAfter: program.acceptablePainAfter,
-              overallFeeling: validatedData.overallFeeling,
               wantsContact: validatedData.wantsPhysioContact,
             },
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days

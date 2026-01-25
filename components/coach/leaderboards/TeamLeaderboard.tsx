@@ -11,7 +11,7 @@
  * - Gap to leader display
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -192,11 +192,7 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
   const [isLoading, setIsLoading] = useState(true);
   const [teamStats, setTeamStats] = useState<{ totalMembers: number; testedMembers: number } | null>(null);
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, [teamId, sortMetric]);
-
-  async function fetchLeaderboard() {
+  const fetchLeaderboard = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await fetch(`/api/teams/${teamId}/leaderboard?sortMetric=${sortMetric}`);
@@ -206,18 +202,19 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
         setTeamStats(data.data.teamStats);
 
         // Select first leaderboard by default
-        if (data.data.leaderboards?.length > 0 && !selectedLeaderboard) {
-          setSelectedLeaderboard(data.data.leaderboards[0]);
-        } else if (selectedLeaderboard) {
-          // Update selected leaderboard with new data
-          const updated = data.data.leaderboards?.find(
-            (lb: LeaderboardResult) =>
-              lb.ergometerType === selectedLeaderboard.ergometerType &&
-              lb.testProtocol === selectedLeaderboard.testProtocol
-          );
-          if (updated) {
-            setSelectedLeaderboard(updated);
-          }
+        if (data.data.leaderboards?.length > 0) {
+          setSelectedLeaderboard((current) => {
+            if (!current) {
+              return data.data.leaderboards[0];
+            }
+            // Update selected leaderboard with new data
+            const updated = data.data.leaderboards?.find(
+              (lb: LeaderboardResult) =>
+                lb.ergometerType === current.ergometerType &&
+                lb.testProtocol === current.testProtocol
+            );
+            return updated || current;
+          });
         }
       }
     } catch (error) {
@@ -225,7 +222,11 @@ export function TeamLeaderboard({ teamId, variant = 'default' }: TeamLeaderboard
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [teamId, sortMetric]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
 
   if (isLoading) {
     return (

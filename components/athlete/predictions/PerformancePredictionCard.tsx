@@ -10,7 +10,7 @@
  * - Contributing factors
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ErgometerType } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -121,11 +121,7 @@ export function PerformancePredictionCard({
   const [powerCurve, setPowerCurve] = useState<PowerPrediction[]>([]);
   const [improvement, setImprovement] = useState<ImprovementProjection | null>(null);
 
-  useEffect(() => {
-    fetchPredictions();
-  }, [clientId, ergometerType, projectionWeeks]);
-
-  async function fetchPredictions() {
+  const fetchPredictions = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -164,7 +160,11 @@ export function PerformancePredictionCard({
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [clientId, ergometerType, projectionWeeks]);
+
+  useEffect(() => {
+    fetchPredictions();
+  }, [fetchPredictions]);
 
   const cardClass = variant === 'glass'
     ? 'backdrop-blur-sm bg-white/80 dark:bg-gray-900/80 border-white/20'

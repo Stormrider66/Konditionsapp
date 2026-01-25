@@ -1,6 +1,6 @@
 // app/athlete/body-composition/page.tsx
 import { redirect } from 'next/navigation'
-import { requireAthlete, getAthleteClientId } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { BioimpedanceForm } from '@/components/forms/BioimpedanceForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,13 +12,7 @@ import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCard
 import { cn } from '@/lib/utils'
 
 export default async function AthleteBodyCompositionPage() {
-  const user = await requireAthlete()
-
-  const clientId = await getAthleteClientId(user.id)
-
-  if (!clientId) {
-    redirect('/login')
-  }
+  const { clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Get client name for display
   const client = await prisma.client.findUnique({

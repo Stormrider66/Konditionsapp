@@ -1,6 +1,6 @@
 // app/athlete/workouts/[id]/page.tsx
 import { notFound, redirect } from 'next/navigation'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -26,17 +26,8 @@ interface WorkoutDetailPageProps {
 }
 
 export default async function WorkoutDetailPage({ params }: WorkoutDetailPageProps) {
-  const user = await requireAthlete()
+  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
   const { id } = await params
-
-  // Get athlete account
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-  })
-
-  if (!athleteAccount) {
-    redirect('/login')
-  }
 
   // Fetch workout with full details
   const workout = await prisma.workout.findFirst({
@@ -85,7 +76,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
   }
 
   // Verify athlete has access to this program
-  if (workout.day.week.program.clientId !== athleteAccount.clientId) {
+  if (workout.day.week.program.clientId !== clientId) {
     notFound()
   }
 
@@ -212,7 +203,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
           <WorkoutSegments
             segments={workout.segments}
             workoutId={workout.id}
-            clientId={athleteAccount.clientId}
+            clientId={clientId}
             workoutName={workout.name}
             variant="glass"
           />

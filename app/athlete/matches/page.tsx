@@ -1,29 +1,20 @@
 import { redirect } from 'next/navigation'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { MatchesPageClient } from './MatchesPageClient'
 
 export default async function MatchesPage() {
-  const user = await requireAthlete()
+  const { clientId } = await requireAthleteOrCoachInAthleteMode()
 
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-    include: {
-      client: {
-        include: {
-          sportProfile: true,
-        },
-      },
-    },
+  // Get client with sport profile
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    include: { sportProfile: true },
   })
-
-  if (!athleteAccount) {
-    redirect('/login')
-  }
 
   // Fetch all matches for this athlete
   const matches = await prisma.externalMatchSchedule.findMany({
-    where: { clientId: athleteAccount.clientId },
+    where: { clientId: clientId },
     orderBy: { scheduledDate: 'desc' },
   })
 
@@ -47,8 +38,8 @@ export default async function MatchesPage() {
     <MatchesPageClient
       matches={matches}
       stats={stats}
-      clientId={athleteAccount.clientId}
-      sportType={athleteAccount.client.sportProfile?.primarySport}
+      clientId={clientId}
+      sportType={client?.sportProfile?.primarySport}
     />
   )
 }

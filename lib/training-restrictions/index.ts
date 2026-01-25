@@ -30,8 +30,8 @@ export interface ActiveRestriction {
   endDate: Date | null
   injury?: {
     id: string
-    injuryType: string
-    bodyPart: string
+    injuryType: string | null
+    bodyPart: string | null
   } | null
 }
 

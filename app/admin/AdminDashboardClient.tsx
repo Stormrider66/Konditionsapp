@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -132,31 +132,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
 
-  useEffect(() => {
-    fetchStats();
-  }, [range]);
-
-  // Debounce search input to avoid excessive API calls
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  // Reset page when search or role filter changes
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, roleFilter]);
-
-  // Fetch users when tab active and params change
-  useEffect(() => {
-    if (activeTab === 'users') {
-      fetchUsers();
-    }
-  }, [activeTab, page, roleFilter, debouncedSearch]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/admin/stats?range=${range}`);
@@ -169,9 +145,9 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
     } finally {
       setLoading(false);
     }
-  };
+  }, [range]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
       const params = new URLSearchParams({
@@ -191,7 +167,31 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
     } finally {
       setUsersLoading(false);
     }
-  };
+  }, [page, debouncedSearch, roleFilter]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // Debounce search input to avoid excessive API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Reset page when search or role filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, roleFilter]);
+
+  // Fetch users when tab active and params change
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    }
+  }, [activeTab, fetchUsers]);
 
   const handleSearch = () => {
     // Immediately apply search (bypass debounce) for explicit user action

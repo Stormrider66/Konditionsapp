@@ -10,7 +10,7 @@
  * - Comparison indicators
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import {
@@ -132,11 +132,7 @@ export function TrainingTrendChart({
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('tss');
   const [showACWR, setShowACWR] = useState(true);
 
-  useEffect(() => {
-    fetchSummaries();
-  }, [clientId, weeks]);
-
-  async function fetchSummaries() {
+  const fetchSummaries = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await fetch(
@@ -152,7 +148,11 @@ export function TrainingTrendChart({
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [clientId, weeks]);
+
+  useEffect(() => {
+    fetchSummaries();
+  }, [fetchSummaries]);
 
   const chartData = useMemo(() => {
     return summaries.map((summary) => ({

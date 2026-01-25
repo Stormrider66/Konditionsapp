@@ -7,8 +7,7 @@
  */
 
 import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { AthleteCardioClient } from '@/components/athlete/cardio/AthleteCardioClient'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,27 +18,13 @@ export const metadata = {
 }
 
 export default async function AthleteCardioPage() {
-  const user = await requireAthlete()
-
-  // Get athlete account to get clientId
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-    select: {
-      clientId: true,
-    },
-  })
-
-  if (!athleteAccount) {
-    redirect('/login')
-  }
+  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Get subscription from User model
   const subscription = await prisma.subscription.findUnique({
     where: { userId: user.id },
     select: { tier: true },
   })
-
-  const clientId = athleteAccount.clientId
   const subscriptionTier = subscription?.tier || 'FREE'
 
   // Check if athlete can access templates (PRO or higher)

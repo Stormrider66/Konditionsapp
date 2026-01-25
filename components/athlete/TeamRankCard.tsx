@@ -10,7 +10,7 @@
  * - Nearby competitors
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -131,11 +131,7 @@ export function TeamRankCard({ clientId, variant = 'default' }: TeamRankCardProp
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRanking, setSelectedRanking] = useState<TeamRanking | null>(null);
 
-  useEffect(() => {
-    fetchRankings();
-  }, [clientId]);
-
-  async function fetchRankings() {
+  const fetchRankings = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await fetch(`/api/athlete/team-rank?clientId=${clientId}`);
@@ -154,7 +150,11 @@ export function TeamRankCard({ clientId, variant = 'default' }: TeamRankCardProp
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchRankings();
+  }, [fetchRankings]);
 
   const cardClass = variant === 'glass'
     ? 'backdrop-blur-sm bg-white/80 dark:bg-gray-900/80 border-white/20'

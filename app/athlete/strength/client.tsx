@@ -10,6 +10,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   GlassCard,
   GlassCardContent,
@@ -219,9 +220,9 @@ export function AthleteStrengthClient({
                   </Badge>
                 </div>
                 <Button variant="outline" asChild className="font-bold border-slate-200 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5">
-                  <a href="/athlete/subscription">
+                  <Link href="/athlete/subscription">
                     Uppgradera nu
-                  </a>
+                  </Link>
                 </Button>
               </GlassCardContent>
             </GlassCard>

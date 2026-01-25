@@ -36,17 +36,17 @@ export default async function AthleteRehabProgramPage({ params }: PageProps) {
   const dbUser = await prisma.user.findUnique({
     where: { email: user.email },
     include: {
-      athleteAccounts: {
+      athleteAccount: {
         select: { clientId: true },
       },
     },
   })
 
-  if (!dbUser || !dbUser.athleteAccounts[0]) {
+  if (!dbUser || !dbUser.athleteAccount) {
     redirect('/login')
   }
 
-  const clientId = dbUser.athleteAccounts[0].clientId
+  const clientId = dbUser.athleteAccount.clientId
 
   // Verify this program belongs to this athlete
   const program = await prisma.rehabProgram.findFirst({

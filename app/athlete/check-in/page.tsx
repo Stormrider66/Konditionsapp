@@ -7,32 +7,11 @@
  * - Wellness questionnaire (7 questions)
  */
 
-import { requireAthlete } from '@/lib/auth-utils';
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils';
 import { DailyCheckInForm } from '@/components/athlete/DailyCheckInForm';
-import { prisma } from '@/lib/prisma';
 
 export default async function CheckInPage() {
-  const user = await requireAthlete();
-
-  // Get athlete's client ID
-  const client = await prisma.client.findFirst({
-    where: {
-      athleteAccount: {
-        userId: user.id
-      }
-    }
-  });
-
-  if (!client) {
-    return (
-      <div className="container max-w-2xl mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-4">Daglig incheckning</h1>
-        <p className="text-muted-foreground">
-          Ditt atletkonto är inte kopplat till en klient. Kontakta din tränare.
-        </p>
-      </div>
-    );
-  }
+  const { clientId } = await requireAthleteOrCoachInAthleteMode();
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 sm:px-6">
@@ -45,7 +24,7 @@ export default async function CheckInPage() {
         </p>
       </div>
 
-      <DailyCheckInForm clientId={client.id} variant="glass" />
+      <DailyCheckInForm clientId={clientId} variant="glass" />
     </div>
   );
 }

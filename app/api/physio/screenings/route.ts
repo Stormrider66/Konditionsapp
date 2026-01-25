@@ -3,15 +3,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePhysio, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
+import type { Prisma } from '@prisma/client'
 
 const createScreeningSchema = z.object({
   clientId: z.string().uuid(),
-  screeningType: z.enum(['FMS', 'SFMA', 'Y_BALANCE', 'CUSTOM']),
-  testDate: z.string().datetime().optional(),
-  results: z.record(z.unknown()), // Flexible results storage
+  screenType: z.enum(['FMS', 'SFMA', 'Y_BALANCE', 'CUSTOM']),
+  screenDate: z.string().datetime().optional(),
+  results: z.record(z.any()), // Flexible results storage
   totalScore: z.number().optional(),
-  asymmetries: z.array(z.string()).optional(),
-  limitations: z.array(z.string()).optional(),
+  asymmetryFlag: z.boolean().optional(),
+  priorityAreas: z.array(z.string()).optional(),
   recommendations: z.array(z.string()).optional(),
   notes: z.string().optional(),
 })
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const where: Record<string, unknown> = {
-      conductedById: user.id,
+      physioUserId: user.id,
     }
 
     if (clientId) {
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (screeningType) {
-      where.screeningType = screeningType
+      where.screenType = screeningType
     }
 
     const [screenings, total] = await Promise.all([
@@ -62,14 +63,8 @@ export async function GET(request: NextRequest) {
               email: true,
             },
           },
-          conductedBy: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
         },
-        orderBy: { testDate: 'desc' },
+        orderBy: { screenDate: 'desc' },
         take: limit,
         skip: offset,
       }),
@@ -116,13 +111,13 @@ export async function POST(request: NextRequest) {
     const screening = await prisma.movementScreen.create({
       data: {
         clientId: validatedData.clientId,
-        conductedById: user.id,
-        screeningType: validatedData.screeningType,
-        testDate: validatedData.testDate ? new Date(validatedData.testDate) : new Date(),
-        results: validatedData.results,
+        physioUserId: user.id,
+        screenType: validatedData.screenType,
+        screenDate: validatedData.screenDate ? new Date(validatedData.screenDate) : new Date(),
+        results: validatedData.results as Prisma.InputJsonValue,
         totalScore: validatedData.totalScore,
-        asymmetries: validatedData.asymmetries || [],
-        limitations: validatedData.limitations || [],
+        asymmetryFlag: validatedData.asymmetryFlag ?? false,
+        priorityAreas: validatedData.priorityAreas || [],
         recommendations: validatedData.recommendations || [],
         notes: validatedData.notes,
       },

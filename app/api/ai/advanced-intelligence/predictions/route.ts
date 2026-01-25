@@ -6,6 +6,7 @@ import { generatePredictiveGoals, predictRaceTimes, calculateTrainingReadiness }
 import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
+import { logPrediction, logPredictionBatch, createRaceTimeInputSnapshot } from '@/lib/data-moat/prediction-logger'
 
 /**
  * GET /api/ai/advanced-intelligence/predictions
@@ -58,13 +59,54 @@ export async function GET(req: NextRequest) {
 
     // Race time predictions
     if (type === 'all' || type === 'race-times') {
-      result.racePredictions = await predictRaceTimes(clientId, trainingWeeks)
+      const racePredictions = await predictRaceTimes(clientId, trainingWeeks)
+      result.racePredictions = racePredictions
+
+      // Data Moat: Log race time predictions
+      if (racePredictions && Array.isArray(racePredictions) && racePredictions.length > 0) {
+        const predictionBatch = racePredictions.map((pred) => ({
+          athleteId: clientId,
+          coachId: user.id,
+          predictionType: 'RACE_TIME' as const,
+          predictedValue: {
+            distance: pred.distance,
+            currentPrediction: pred.currentPrediction,
+            trainedPrediction: pred.trainedPrediction,
+            improvementPercent: pred.improvementPercent,
+          },
+          confidenceScore: pred.confidence,
+          modelVersion: 'race-prediction-v1',
+          inputDataSnapshot: createRaceTimeInputSnapshot({
+            targetDistance: pred.distance === '5K' ? 5000 : pred.distance === '10K' ? 10000 : pred.distance === 'HALF' ? 21097 : 42195,
+          }),
+          displayedToUser: true,
+        }))
+
+        logPredictionBatch(predictionBatch).catch((err) =>
+          logger.error('Failed to log race predictions', {}, err)
+        )
+      }
     }
 
     // Training readiness
     if ((type === 'all' || type === 'readiness') && goalDateStr) {
       const goalDate = new Date(goalDateStr)
-      result.trainingReadiness = await calculateTrainingReadiness(clientId, goalDate)
+      const readiness = await calculateTrainingReadiness(clientId, goalDate)
+      result.trainingReadiness = readiness
+
+      // Data Moat: Log readiness prediction
+      if (readiness) {
+        logPrediction({
+          athleteId: clientId,
+          coachId: user.id,
+          predictionType: 'READINESS_SCORE',
+          predictedValue: readiness,
+          confidenceScore: (readiness as { confidence?: number }).confidence ?? 0.7,
+          modelVersion: 'readiness-v1',
+          inputDataSnapshot: { goalDate: goalDateStr, generatedAt: new Date().toISOString() },
+          displayedToUser: true,
+        }).catch((err) => logger.error('Failed to log readiness prediction', {}, err))
+      }
     }
 
     return NextResponse.json(result)
@@ -127,9 +169,48 @@ export async function POST(req: NextRequest) {
 
     const goalPrediction = await generatePredictiveGoals(clientId, targetDistance)
 
+    // Data Moat: Log goal prediction
+    if (goalPrediction) {
+      const distanceMeters = targetDistance === '5K' ? 5000 : targetDistance === '10K' ? 10000 : targetDistance === 'HALF' ? 21097 : 42195
+      logPrediction({
+        athleteId: clientId,
+        coachId: user.id,
+        predictionType: 'RACE_TIME',
+        predictedValue: {
+          distance: targetDistance,
+          predictedTime: goalPrediction.predictedTime,
+          predictedPace: goalPrediction.predictedPace,
+          confidenceInterval: goalPrediction.confidenceInterval,
+          targetDate: goalDate,
+        },
+        confidenceScore: goalPrediction.confidence,
+        modelVersion: 'goal-prediction-v1',
+        inputDataSnapshot: createRaceTimeInputSnapshot({
+          targetDistance: distanceMeters,
+          targetDate: goalDate,
+        }),
+        validUntil: goalDate ? new Date(goalDate) : undefined,
+        displayedToUser: true,
+      }).catch((err) => logger.error('Failed to log goal prediction', {}, err))
+    }
+
     let readiness = null
     if (goalDate) {
       readiness = await calculateTrainingReadiness(clientId, new Date(goalDate))
+
+      // Data Moat: Log readiness prediction
+      if (readiness) {
+        logPrediction({
+          athleteId: clientId,
+          coachId: user.id,
+          predictionType: 'READINESS_SCORE',
+          predictedValue: readiness,
+          confidenceScore: (readiness as { confidence?: number }).confidence ?? 0.7,
+          modelVersion: 'readiness-v1',
+          inputDataSnapshot: { targetDistance, goalDate, generatedAt: new Date().toISOString() },
+          displayedToUser: true,
+        }).catch((err) => logger.error('Failed to log readiness prediction', {}, err))
+      }
     }
 
     return NextResponse.json({

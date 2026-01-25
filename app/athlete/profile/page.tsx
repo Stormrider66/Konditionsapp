@@ -1,6 +1,6 @@
 // app/athlete/profile/page.tsx
 import { redirect } from 'next/navigation'
-import { requireAthlete, getAthleteClientId } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { fetchAthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 import { AthleteProfileClient } from '@/components/athlete-profile/AthleteProfileClient'
 
@@ -11,14 +11,7 @@ interface PageProps {
 export default async function AthleteProfilePage({ searchParams }: PageProps) {
   const { tab = 'physiology' } = await searchParams
 
-  const user = await requireAthlete()
-
-  // Get athlete's client ID
-  const clientId = await getAthleteClientId(user.id)
-
-  if (!clientId) {
-    redirect('/login')
-  }
+  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Fetch all profile data in parallel
   const data = await fetchAthleteProfileData(clientId)

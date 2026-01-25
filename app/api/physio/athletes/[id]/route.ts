@@ -40,12 +40,11 @@ export async function GET(
             name: true,
           },
         },
-        sport: {
+        sportProfile: {
           select: {
             id: true,
-            sport: true,
-            discipline: true,
-            trainingAge: true,
+            primarySport: true,
+            onboardingCompleted: true,
           },
         },
         // Active injuries
@@ -127,21 +126,20 @@ export async function GET(
           select: {
             date: true,
             injuryPain: true,
-            injuryLocation: true,
-            soreness: true,
+            muscleSoreness: true,
             readinessLevel: true,
             sleepQuality: true,
-            stressLevel: true,
+            stress: true,
           },
         },
         // Movement screens
         movementScreens: {
-          orderBy: { testDate: 'desc' },
+          orderBy: { screenDate: 'desc' },
           take: 3,
           select: {
             id: true,
-            screeningType: true,
-            testDate: true,
+            screenType: true,
+            screenDate: true,
             totalScore: true,
           },
         },

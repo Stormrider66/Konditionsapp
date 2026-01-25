@@ -7,7 +7,7 @@ import { z } from 'zod'
 const updateThreadSchema = z.object({
   subject: z.string().min(1).max(255).optional(),
   description: z.string().optional(),
-  status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']).optional(),
+  status: z.enum(['OPEN', 'RESOLVED', 'ARCHIVED']).optional(),
   priority: z.enum(['URGENT', 'HIGH', 'NORMAL', 'LOW']).optional(),
 })
 
@@ -51,7 +51,7 @@ export async function GET(
           select: {
             id: true,
             injuryType: true,
-            bodyPart: true,
+            painLocation: true,
             phase: true,
             painLevel: true,
           },
@@ -186,12 +186,9 @@ export async function PATCH(
     // Build update data
     const updateData: Record<string, unknown> = { ...validatedData }
 
-    // Set resolved/closed timestamps
+    // Set resolved timestamp
     if (validatedData.status === 'RESOLVED' && existingThread.status !== 'RESOLVED') {
       updateData.resolvedAt = new Date()
-    }
-    if (validatedData.status === 'CLOSED' && existingThread.status !== 'CLOSED') {
-      updateData.closedAt = new Date()
     }
 
     const thread = await prisma.careTeamThread.update({

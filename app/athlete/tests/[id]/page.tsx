@@ -1,6 +1,6 @@
 // app/athlete/tests/[id]/page.tsx
 import { redirect, notFound } from 'next/navigation'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -16,20 +16,8 @@ interface AthleteTestDetailPageProps {
 }
 
 export default async function AthleteTestDetailPage({ params }: AthleteTestDetailPageProps) {
-  const user = await requireAthlete()
+  const { clientId } = await requireAthleteOrCoachInAthleteMode()
   const { id } = await params
-
-  // Get athlete account
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-    include: {
-      client: true,
-    },
-  })
-
-  if (!athleteAccount) {
-    redirect('/login')
-  }
 
   // Fetch test with stages and client data
   const test = await prisma.test.findUnique({
@@ -43,7 +31,7 @@ export default async function AthleteTestDetailPage({ params }: AthleteTestDetai
   })
 
   // Verify test belongs to this athlete
-  if (!test || test.clientId !== athleteAccount.clientId) {
+  if (!test || test.clientId !== clientId) {
     notFound()
   }
 

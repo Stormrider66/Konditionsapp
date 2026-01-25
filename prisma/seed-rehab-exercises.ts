@@ -162,7 +162,7 @@ const hipGluteExercises: RehabExercise[] = [
 3. Draw circles with the knee (forward, out, back, in)
 4. Perform 5 circles each direction
 5. Keep spine neutral throughout`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Glutes',
     equipment: null,
     difficulty: 'Beginner',
@@ -270,7 +270,7 @@ const ankleMobilityExercises: RehabExercise[] = [
 3. Move through full range of motion
 4. Keep leg still, move only ankle
 5. Complete A-Z`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Ankle',
     equipment: null,
     difficulty: 'Beginner',
@@ -289,7 +289,7 @@ const ankleMobilityExercises: RehabExercise[] = [
 3. Gently pull towel toward you
 4. Keep knee straight
 5. Hold 30 seconds`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Calf',
     equipment: 'Towel',
     difficulty: 'Beginner',
@@ -309,7 +309,7 @@ const ankleMobilityExercises: RehabExercise[] = [
 3. Bend front knee, keep back knee straight
 4. Lean into wall until stretch is felt
 5. Hold 30 seconds each side`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Calf',
     equipment: 'Wall',
     difficulty: 'Beginner',
@@ -330,7 +330,7 @@ const ankleMobilityExercises: RehabExercise[] = [
 3. Pull foot toward you against band
 4. Hold 5 seconds, return slowly
 5. Repeat 10-15 times`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Ankle',
     equipment: 'Resistance band',
     difficulty: 'Beginner',
@@ -349,7 +349,7 @@ const ankleMobilityExercises: RehabExercise[] = [
 3. Complete 10 circles
 4. Reverse direction for 10 circles
 5. Keep movement smooth and controlled`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Ankle',
     equipment: null,
     difficulty: 'Beginner',
@@ -763,7 +763,7 @@ const coreStabilityExercises: RehabExercise[] = [
 3. Lower belly and look up (inhale)
 4. Move smoothly between positions
 5. Repeat 10-15 cycles`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Spine',
     equipment: null,
     difficulty: 'Beginner',
@@ -781,7 +781,7 @@ const coreStabilityExercises: RehabExercise[] = [
 3. Hold 5 seconds
 4. Release to neutral
 5. Repeat 10-15 times`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Core',
     equipment: null,
     difficulty: 'Beginner',
@@ -802,7 +802,7 @@ const coreStabilityExercises: RehabExercise[] = [
 3. Lower knees to one side
 4. Keep shoulders on floor
 5. Hold 30 seconds each side`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Spine',
     equipment: null,
     difficulty: 'Beginner',
@@ -867,7 +867,7 @@ const shoulderRehabExercises: RehabExercise[] = [
 3. Swing arm gently in circles
 4. Then forward/back, side to side
 5. Keep movement passive (use body)`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Shoulder',
     equipment: null,
     difficulty: 'Beginner',
@@ -886,7 +886,7 @@ const shoulderRehabExercises: RehabExercise[] = [
 3. Go as high as comfortable
 4. Lower with control
 5. Repeat 10-15 times`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Shoulder',
     equipment: null,
     difficulty: 'Beginner',
@@ -906,7 +906,7 @@ const shoulderRehabExercises: RehabExercise[] = [
 3. Keep shoulder blades back and down
 4. Go as high as comfortable
 5. Slide back down`,
-    category: 'MOBILITY',
+    category: 'RECOVERY',
     muscleGroup: 'Shoulder',
     equipment: 'Wall',
     difficulty: 'Beginner',

@@ -10,8 +10,10 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Gift, CheckCircle2 } from 'lucide-react'
+import { Loader2, Gift, CheckCircle2, User } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
@@ -20,9 +22,23 @@ const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirmPassword: z.string(),
+  createAthleteProfile: z.boolean(),
+  // Athlete profile fields (required if createAthleteProfile is true)
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+  birthDate: z.string().optional(),
+  height: z.string().optional(),
+  weight: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
+}).refine((data) => {
+  if (data.createAthleteProfile) {
+    return data.gender && data.birthDate && data.height && data.weight
+  }
+  return true
+}, {
+  message: 'All athlete profile fields are required',
+  path: ['gender'],
 })
 
 type RegisterFormData = z.infer<typeof registerSchema>
@@ -78,10 +94,17 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      createAthleteProfile: false,
+    },
   })
+
+  const createAthleteProfile = watch('createAthleteProfile')
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true)
@@ -134,6 +157,13 @@ export default function RegisterPage() {
           },
           body: JSON.stringify({
             name: data.name,
+            createAthleteProfile: data.createAthleteProfile,
+            ...(data.createAthleteProfile && {
+              gender: data.gender,
+              birthDate: data.birthDate,
+              height: parseFloat(data.height || '0'),
+              weight: parseFloat(data.weight || '0'),
+            }),
           }),
         })
 
@@ -298,6 +328,111 @@ export default function RegisterPage() {
               />
               {errors.confirmPassword && (
                 <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+
+            {/* Athlete Profile Option */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="createAthleteProfile"
+                  checked={createAthleteProfile}
+                  onCheckedChange={(checked) => setValue('createAthleteProfile', checked === true)}
+                  disabled={isLoading}
+                />
+                <label
+                  htmlFor="createAthleteProfile"
+                  className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  {t('alsoUseAsAthlete') || 'I also want to use the app as an athlete'}
+                </label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t('athleteProfileDescription') || 'Create a personal athlete profile for self-coaching and tracking your own training.'}
+              </p>
+
+              {/* Conditional Athlete Profile Fields */}
+              {createAthleteProfile && (
+                <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                  <p className="text-sm font-medium text-blue-800">
+                    {t('athleteProfileFields') || 'Athlete Profile Information'}
+                  </p>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">{t('genderLabel') || 'Gender'}</label>
+                    <Select
+                      onValueChange={(value) => setValue('gender', value as 'MALE' | 'FEMALE' | 'OTHER')}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger className={errors.gender ? 'border-red-500' : ''}>
+                        <SelectValue placeholder={t('selectGender') || 'Select gender'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MALE">{t('male') || 'Male'}</SelectItem>
+                        <SelectItem value="FEMALE">{t('female') || 'Female'}</SelectItem>
+                        <SelectItem value="OTHER">{t('other') || 'Other'}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.gender && (
+                      <p className="text-sm text-red-500">{errors.gender.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="birthDate" className="text-sm font-medium">
+                      {t('birthDateLabel') || 'Birth Date'}
+                    </label>
+                    <input
+                      id="birthDate"
+                      type="date"
+                      className={`flex h-10 w-full rounded-md border ${
+                        errors.birthDate ? 'border-red-500' : 'border-input'
+                      } bg-background px-3 py-2 text-sm`}
+                      {...register('birthDate')}
+                      disabled={isLoading}
+                    />
+                    {errors.birthDate && (
+                      <p className="text-sm text-red-500">{errors.birthDate.message}</p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="height" className="text-sm font-medium">
+                        {t('heightLabel') || 'Height (cm)'}
+                      </label>
+                      <input
+                        id="height"
+                        type="number"
+                        step="0.1"
+                        className={`flex h-10 w-full rounded-md border ${
+                          errors.height ? 'border-red-500' : 'border-input'
+                        } bg-background px-3 py-2 text-sm`}
+                        placeholder="175"
+                        {...register('height')}
+                        disabled={isLoading}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="weight" className="text-sm font-medium">
+                        {t('weightLabel') || 'Weight (kg)'}
+                      </label>
+                      <input
+                        id="weight"
+                        type="number"
+                        step="0.1"
+                        className={`flex h-10 w-full rounded-md border ${
+                          errors.weight ? 'border-red-500' : 'border-input'
+                        } bg-background px-3 py-2 text-sm`}
+                        placeholder="70"
+                        {...register('weight')}
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 

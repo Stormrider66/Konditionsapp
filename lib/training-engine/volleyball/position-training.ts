@@ -538,7 +538,7 @@ export function getJumpLoadRecommendation(weeklyJumps: number, position: Volleyb
   return 'Optimal hoppbelastning';
 }
 
-export default {
+const volleyballTrainingModule = {
   VOLLEYBALL_POSITION_PROFILES,
   VOLLEYBALL_SEASON_PHASES,
   VOLLEYBALL_BENCHMARKS,
@@ -554,3 +554,5 @@ export default {
   calculateWeeklyJumpLoad,
   getJumpLoadRecommendation,
 };
+
+export default volleyballTrainingModule;

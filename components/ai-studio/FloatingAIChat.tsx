@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { ChatMessage } from './ChatMessage'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 // Page context types for different page contexts
 export interface PageContext {
@@ -545,10 +546,10 @@ export function FloatingAIChat({
             </p>
             {!isAthleteUser && (
               <Button asChild>
-                <a href="/coach/settings/ai">
+                <Link href="/coach/settings/ai">
                   <Settings className="h-4 w-4 mr-2" />
                   Gå till inställningar
-                </a>
+                </Link>
               </Button>
             )}
           </div>

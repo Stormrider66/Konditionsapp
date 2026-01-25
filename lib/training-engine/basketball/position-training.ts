@@ -507,7 +507,7 @@ export function getLoadStatus(weeklyLoad: number, avgLoad: number): 'optimal' | 
   return 'danger';
 }
 
-export default {
+const basketballTrainingModule = {
   BASKETBALL_POSITION_PROFILES,
   BASKETBALL_SEASON_PHASES,
   BASKETBALL_BENCHMARKS,
@@ -521,3 +521,5 @@ export default {
   calculateMatchLoadScore,
   getLoadStatus,
 };
+
+export default basketballTrainingModule;

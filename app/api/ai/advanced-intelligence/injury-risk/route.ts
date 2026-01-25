@@ -6,6 +6,7 @@ import { calculateInjuryRisk } from '@/lib/ai/advanced-intelligence'
 import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
+import { logPrediction, createInjuryRiskInputSnapshot } from '@/lib/data-moat/prediction-logger'
 
 /**
  * GET /api/ai/advanced-intelligence/injury-risk
@@ -42,6 +43,35 @@ export async function GET(req: NextRequest) {
     }
 
     const riskAssessment = await calculateInjuryRisk(clientId)
+
+    // Data Moat: Log injury risk prediction for validation
+    logPrediction({
+      athleteId: clientId,
+      coachId: user.id,
+      predictionType: 'INJURY_RISK',
+      predictedValue: {
+        overallRisk: riskAssessment.overallRisk,
+        riskScore: riskAssessment.riskScore,
+        riskFactors: riskAssessment.riskFactors.map((f) => ({
+          name: f.name,
+          severity: f.severity,
+          contribution: f.contribution,
+        })),
+      },
+      confidenceScore: 0.7, // Default confidence for injury risk model
+      modelVersion: 'injury-risk-v1',
+      inputDataSnapshot: createInjuryRiskInputSnapshot({
+        acuteLoad: riskAssessment.loadAnalysis.weeklyTSS,
+        chronicLoad: riskAssessment.loadAnalysis.acwr > 0
+          ? riskAssessment.loadAnalysis.weeklyTSS / riskAssessment.loadAnalysis.acwr
+          : 0,
+        acwr: riskAssessment.loadAnalysis.acwr,
+        hrvTrend: undefined,
+        sleepScore: undefined,
+        fatigueLevel: undefined,
+      }),
+      displayedToUser: true,
+    }).catch((err) => logger.error('Failed to log injury risk prediction', {}, err))
 
     return NextResponse.json({
       success: true,

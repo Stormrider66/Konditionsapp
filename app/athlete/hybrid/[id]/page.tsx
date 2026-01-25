@@ -5,8 +5,8 @@
  */
 
 import { Suspense } from 'react';
-import { notFound, redirect } from 'next/navigation';
-import { requireAthlete } from '@/lib/auth-utils';
+import { notFound } from 'next/navigation';
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { HybridWorkoutDetail } from '@/components/athlete/hybrid/HybridWorkoutDetail';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,19 +17,7 @@ interface PageProps {
 
 export default async function AthleteHybridWorkoutPage({ params }: PageProps) {
   const { id } = await params;
-  const user = await requireAthlete();
-
-  // Get athlete account to get clientId
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-    select: { clientId: true },
-  });
-
-  if (!athleteAccount) {
-    redirect('/login');
-  }
-
-  const clientId = athleteAccount.clientId;
+  const { clientId } = await requireAthleteOrCoachInAthleteMode();
 
   const workout = await prisma.hybridWorkout.findUnique({
     where: { id },

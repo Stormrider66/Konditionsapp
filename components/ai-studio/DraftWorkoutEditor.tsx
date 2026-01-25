@@ -5,9 +5,10 @@
  *
  * Allows editing of AI-generated workouts before saving to database.
  * Works with ParsedWorkout data structure from program-parser.
+ * Integrates with Data Moat system to capture coach decision feedback.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,11 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ParsedWorkout, ParsedWorkoutSegment } from '@/lib/ai/program-parser'
+import {
+  CoachDecisionModal,
+  useCoachDecision,
+  type AthleteContext,
+} from '@/components/data-moat/CoachDecisionModal'
 
 interface DraftWorkoutEditorProps {
   open: boolean
@@ -50,6 +56,11 @@ interface DraftWorkoutEditorProps {
   dayName: string
   phaseName: string
   onSave: (workout: ParsedWorkout) => void
+  // Data Moat integration props
+  athleteId?: string
+  athleteName?: string
+  athleteContext?: AthleteContext
+  isAIGenerated?: boolean
 }
 
 // Workout types
@@ -108,6 +119,10 @@ export function DraftWorkoutEditor({
   dayName,
   phaseName,
   onSave,
+  athleteId,
+  athleteName,
+  athleteContext,
+  isAIGenerated = false,
 }: DraftWorkoutEditorProps) {
   // Type definitions from schema
   type WorkoutType = ParsedWorkout['type']
@@ -122,6 +137,16 @@ export function DraftWorkoutEditor({
   const [description, setDescription] = useState(workout.description || '')
   const [segments, setSegments] = useState<ParsedWorkoutSegment[]>(workout.segments || [])
 
+  // Data Moat: Store original AI workout for comparison
+  const originalWorkoutRef = useRef<ParsedWorkout | null>(null)
+  const {
+    isOpen: isDecisionModalOpen,
+    setIsOpen: setDecisionModalOpen,
+    pendingDecision,
+    triggerDecisionModal,
+    submitDecision,
+  } = useCoachDecision()
+
   // Reset state when workout changes
   useEffect(() => {
     setName(workout.name || '')
@@ -131,7 +156,12 @@ export function DraftWorkoutEditor({
     setDistance(workout.distance || '')
     setDescription(workout.description || '')
     setSegments(workout.segments || [])
-  }, [workout])
+
+    // Data Moat: Store the original AI-generated workout for comparison
+    if (isAIGenerated && !originalWorkoutRef.current) {
+      originalWorkoutRef.current = { ...workout }
+    }
+  }, [workout, isAIGenerated])
 
   // Check if this is an endurance workout (has segments)
   const isEndurance = ['RUNNING', 'CYCLING', 'SWIMMING', 'CROSS_TRAINING'].includes(type)
@@ -181,6 +211,46 @@ export function DraftWorkoutEditor({
     setSegments(updated)
   }
 
+  // Data Moat: Check if workout was modified from AI suggestion
+  const wasModified = (updatedWorkout: ParsedWorkout): boolean => {
+    if (!originalWorkoutRef.current || !isAIGenerated) return false
+
+    const original = originalWorkoutRef.current
+    return (
+      original.name !== updatedWorkout.name ||
+      original.type !== updatedWorkout.type ||
+      original.intensity !== updatedWorkout.intensity ||
+      original.duration !== updatedWorkout.duration ||
+      original.distance !== updatedWorkout.distance ||
+      original.description !== updatedWorkout.description ||
+      JSON.stringify(original.segments) !== JSON.stringify(updatedWorkout.segments)
+    )
+  }
+
+  // Data Moat: Generate human-readable summary of changes
+  const generateSummaries = (
+    original: ParsedWorkout,
+    modified: ParsedWorkout
+  ): { suggestionSummary: string; modificationSummary: string } => {
+    const originalParts: string[] = []
+    const modifiedParts: string[] = []
+
+    if (original.name) originalParts.push(original.name)
+    if (original.type) originalParts.push(original.type.toLowerCase())
+    if (original.duration) originalParts.push(`${original.duration} min`)
+    if (original.intensity) originalParts.push(original.intensity)
+
+    if (modified.name) modifiedParts.push(modified.name)
+    if (modified.type) modifiedParts.push(modified.type.toLowerCase())
+    if (modified.duration) modifiedParts.push(`${modified.duration} min`)
+    if (modified.intensity) modifiedParts.push(modified.intensity)
+
+    return {
+      suggestionSummary: originalParts.join(', ') || 'AI workout',
+      modificationSummary: modifiedParts.join(', ') || 'Modified workout',
+    }
+  }
+
   // Handle save
   const handleSave = () => {
     // Parse distance - handle both number and string inputs like "10" or "8-10"
@@ -202,11 +272,39 @@ export function DraftWorkoutEditor({
       description: description || '',
       segments: segments.length > 0 ? segments : undefined,
     }
-    onSave(updatedWorkout)
-    onOpenChange(false)
+
+    // Data Moat: Check if modifications were made and athlete info is available
+    if (isAIGenerated && athleteId && athleteName && wasModified(updatedWorkout)) {
+      const original = originalWorkoutRef.current!
+      const summaries = generateSummaries(original, updatedWorkout)
+
+      // Save the workout first
+      onSave(updatedWorkout)
+      onOpenChange(false)
+
+      // Then trigger the decision modal
+      triggerDecisionModal({
+        athleteId,
+        athleteName,
+        aiSuggestionType: 'WORKOUT',
+        aiSuggestionData: original as unknown as Record<string, unknown>,
+        modificationData: updatedWorkout as unknown as Record<string, unknown>,
+        aiConfidence: 0.8, // Default AI confidence for workout generation
+        athleteContext,
+        suggestionSummary: summaries.suggestionSummary,
+        modificationSummary: summaries.modificationSummary,
+      })
+
+      // Reset original workout ref for next edit
+      originalWorkoutRef.current = null
+    } else {
+      onSave(updatedWorkout)
+      onOpenChange(false)
+    }
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -457,5 +555,24 @@ export function DraftWorkoutEditor({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {/* Data Moat: Coach Decision Modal */}
+    {pendingDecision && (
+      <CoachDecisionModal
+        open={isDecisionModalOpen}
+        onOpenChange={setDecisionModalOpen}
+        onSubmit={submitDecision}
+        athleteId={pendingDecision.athleteId}
+        athleteName={pendingDecision.athleteName}
+        aiSuggestionType={pendingDecision.aiSuggestionType}
+        aiSuggestionData={pendingDecision.aiSuggestionData}
+        modificationData={pendingDecision.modificationData}
+        aiConfidence={pendingDecision.aiConfidence}
+        athleteContext={pendingDecision.athleteContext}
+        suggestionSummary={pendingDecision.suggestionSummary}
+        modificationSummary={pendingDecision.modificationSummary}
+      />
+    )}
+    </>
   )
 }

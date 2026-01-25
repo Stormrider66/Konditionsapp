@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { WODHistoryClient } from './WODHistoryClient'
 
@@ -9,21 +9,11 @@ export const metadata = {
 }
 
 export default async function WODHistoryPage() {
-  const user = await requireAthlete()
-
-  // Get athlete's client ID
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-    select: { clientId: true },
-  })
-
-  if (!athleteAccount) {
-    redirect('/athlete/dashboard')
-  }
+  const { clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Fetch WOD history
   const wods = await prisma.aIGeneratedWOD.findMany({
-    where: { clientId: athleteAccount.clientId },
+    where: { clientId: clientId },
     orderBy: { createdAt: 'desc' },
     take: 50,
     select: {

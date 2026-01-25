@@ -1,6 +1,6 @@
 // app/athlete/programs/page.tsx
 import { redirect } from 'next/navigation'
-import { requireAthlete } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,23 +19,14 @@ import {
 import { cn } from '@/lib/utils'
 
 export default async function AthleteProgramsPage() {
-  const user = await requireAthlete()
-
-  // Get athlete account
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-  })
-
-  if (!athleteAccount) {
-    redirect('/login')
-  }
+  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   const now = new Date()
 
   // Fetch all programs for this athlete
   const programs = await prisma.trainingProgram.findMany({
     where: {
-      clientId: athleteAccount.clientId,
+      clientId: clientId,
     },
     include: {
       weeks: {

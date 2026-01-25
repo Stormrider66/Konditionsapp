@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Timer, Gauge, TrendingUp, Clock, Target, Activity, Snowflake, Mountain } from 'lucide-react'
@@ -163,9 +164,9 @@ export function SkiingDashboard({
           <p style={{ color: theme.colors.textMuted }}>
             Slutför din skidprofil för att se dina mätvärden.
           </p>
-          <a href="/athlete/onboarding" className="underline mt-2 inline-block" style={{ color: theme.colors.accent }}>
+          <Link href="/athlete/onboarding" className="underline mt-2 inline-block" style={{ color: theme.colors.accent }}>
             Gå till onboarding
-          </a>
+          </Link>
         </CardContent>
       </Card>
     )

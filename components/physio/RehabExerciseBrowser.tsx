@@ -139,13 +139,7 @@ export function RehabExerciseBrowser({
   const [restrictions, setRestrictions] = useState<RestrictionInfo | null>(null)
 
   // Fetch restrictions if clientId provided
-  useEffect(() => {
-    if (clientId) {
-      fetchRestrictions()
-    }
-  }, [clientId])
-
-  const fetchRestrictions = async () => {
+  const fetchRestrictions = useCallback(async () => {
     if (!clientId) return
 
     try {
@@ -161,7 +155,13 @@ export function RehabExerciseBrowser({
     } catch (error) {
       console.error('Failed to fetch restrictions:', error)
     }
-  }
+  }, [clientId])
+
+  useEffect(() => {
+    if (clientId) {
+      fetchRestrictions()
+    }
+  }, [clientId, fetchRestrictions])
 
   // Fetch exercises with filters
   const fetchExercises = useCallback(async () => {

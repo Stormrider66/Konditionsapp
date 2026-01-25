@@ -62,10 +62,10 @@ export async function POST(
         phase: validatedData.phase,
         name: validatedData.name,
         description: validatedData.description,
-        criteria: validatedData.criteria,
+        criteriaJson: validatedData.criteria.length > 0 ? validatedData.criteria : undefined,
         targetDate: validatedData.targetDate ? new Date(validatedData.targetDate) : undefined,
         order,
-        achieved: false,
+        isAchieved: false,
       },
     })
 
@@ -138,8 +138,8 @@ export async function PATCH(
     const milestone = await prisma.rehabMilestone.update({
       where: { id: milestoneId },
       data: {
-        achieved: validatedData.achieved,
-        achievedAt: validatedData.achieved
+        isAchieved: validatedData.achieved,
+        achievedDate: validatedData.achieved
           ? (validatedData.achievedAt ? new Date(validatedData.achievedAt) : new Date())
           : null,
         notes: validatedData.notes,

@@ -9,34 +9,13 @@
  * - Automatic validation
  */
 
-import { requireAthlete } from '@/lib/auth-utils';
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils';
 import { SelfReportedLactateForm } from '@/components/athlete/lactate/SelfReportedLactateForm';
-import { prisma } from '@/lib/prisma';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 
 export default async function NewLactateEntryPage() {
-  const user = await requireAthlete();
-
-  // Get athlete's client ID
-  const client = await prisma.client.findFirst({
-    where: {
-      athleteAccount: {
-        userId: user.id
-      }
-    }
-  });
-
-  if (!client) {
-    return (
-      <div className="container max-w-4xl mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-4">Rapportera laktatvärden</h1>
-        <p className="text-muted-foreground">
-          Ditt atletkonto är inte kopplat till en klient. Kontakta din tränare.
-        </p>
-      </div>
-    );
-  }
+  const { clientId } = await requireAthleteOrCoachInAthleteMode();
 
   return (
     <div className="container max-w-4xl mx-auto py-8">
@@ -61,7 +40,7 @@ export default async function NewLactateEntryPage() {
         </AlertDescription>
       </Alert>
 
-      <SelfReportedLactateForm clientId={client.id} />
+      <SelfReportedLactateForm clientId={clientId} />
     </div>
   );
 }

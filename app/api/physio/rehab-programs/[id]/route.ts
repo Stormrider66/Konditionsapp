@@ -82,10 +82,10 @@ export async function GET(
           orderBy: { order: 'asc' },
         },
         progressLogs: {
-          orderBy: { loggedAt: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
-            loggedBy: {
+            client: {
               select: {
                 id: true,
                 name: true,

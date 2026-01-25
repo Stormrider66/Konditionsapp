@@ -10,7 +10,7 @@
  * - Activity type distribution
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -100,11 +100,7 @@ export function YearlyTrainingOverview({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  useEffect(() => {
-    fetchSummaries();
-  }, [clientId]);
-
-  async function fetchSummaries() {
+  const fetchSummaries = useCallback(async () => {
     try {
       setIsLoading(true);
       const res = await fetch(`/api/athlete/yearly-summary?clientId=${clientId}&count=5`);
@@ -120,7 +116,11 @@ export function YearlyTrainingOverview({
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [clientId]);
+
+  useEffect(() => {
+    fetchSummaries();
+  }, [fetchSummaries]);
 
   const currentSummary = useMemo(() => {
     return summaries.find(s => s.year === selectedYear);
