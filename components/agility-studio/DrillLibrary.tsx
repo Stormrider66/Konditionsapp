@@ -321,11 +321,14 @@ function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
             {categoryIcons[drill.category]}
             {drill.name}
           </SheetTitle>
-          <SheetDescription>
+          <SheetDescription className="sr-only">
+            {drill.description}
+          </SheetDescription>
+          <div className="mt-1">
             <Badge className={categoryColors[drill.category]}>
               {categoryLabels[drill.category]}
             </Badge>
-          </SheetDescription>
+          </div>
         </SheetHeader>
 
         <div className="mt-6 space-y-6">
