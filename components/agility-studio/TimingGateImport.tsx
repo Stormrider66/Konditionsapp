@@ -123,6 +123,7 @@ export function TimingGateImport({
     if (files && files[0]) {
       await processFile(files[0])
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedFormat])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {

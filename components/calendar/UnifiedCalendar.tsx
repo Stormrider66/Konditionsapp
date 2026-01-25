@@ -128,7 +128,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
     }
   )
 
-  const items: UnifiedCalendarItem[] = data?.items || []
+  const items: UnifiedCalendarItem[] = useMemo(() => data?.items || [], [data?.items])
 
   // Compute items for the selected date
   const selectedDateItems = useMemo(() => {

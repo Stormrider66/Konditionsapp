@@ -15,7 +15,7 @@
  * - Breakdown of time distribution
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -160,12 +160,25 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
   const category = form.watch('category')
   const division = selectedClient?.gender === 'FEMALE' ? 'WOMEN' : 'MEN'
 
+  // Watch all station values for dependency tracking
+  const watchedSkierg = form.watch('skierg')
+  const watchedSledPush = form.watch('sledPush')
+  const watchedSledPull = form.watch('sledPull')
+  const watchedBurpeeBroadJump = form.watch('burpeeBroadJump')
+  const watchedRow = form.watch('row')
+  const watchedFarmersCarry = form.watch('farmersCarry')
+  const watchedSandbagLunge = form.watch('sandbagLunge')
+  const watchedWallBalls = form.watch('wallBalls')
+  const watchedRunPaceMinutes = form.watch('runPaceMinutes')
+  const watchedRunPaceSeconds = form.watch('runPaceSeconds')
+  const watchedRoxzoneTime = form.watch('roxzoneTime')
+
   // Calculate station times from form values
-  const getStationTimeInSeconds = (key: keyof RaceSimulationFormData): number => {
-    const value = form.watch(key) as { minutes?: number; seconds?: number } | undefined
+  const getStationTimeInSeconds = useCallback((key: keyof RaceSimulationFormData): number => {
+    const value = form.getValues(key) as { minutes?: number; seconds?: number } | undefined
     if (!value) return 0
     return ((value.minutes || 0) * 60) + (value.seconds || 0)
-  }
+  }, [form])
 
   // Live race estimate calculation
   const liveEstimate = useMemo(() => {
@@ -184,10 +197,10 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
 
     if (!hasAnyStation) return null
 
-    const runPaceMinutes = form.watch('runPaceMinutes') || 5
-    const runPaceSeconds = form.watch('runPaceSeconds') || 0
+    const runPaceMinutes = watchedRunPaceMinutes || 5
+    const runPaceSeconds = watchedRunPaceSeconds || 0
     const runPacePerKm = runPaceMinutes * 60 + runPaceSeconds
-    const roxzoneTime = form.watch('roxzoneTime') || 30
+    const roxzoneTime = watchedRoxzoneTime || 30
 
     return estimateRaceTime(
       stationTimes,
@@ -196,21 +209,25 @@ export function HYROXRaceSimulationForm({ clients, onTestSaved }: HYROXRaceSimul
       division as 'MEN' | 'WOMEN',
       category as HYROXCategory
     )
+    // Watched station values are needed to trigger recalculation when form values change
+    // (getStationTimeInSeconds uses form.getValues which doesn't trigger re-renders)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedClient,
     division,
     category,
-    form.watch('skierg'),
-    form.watch('sledPush'),
-    form.watch('sledPull'),
-    form.watch('burpeeBroadJump'),
-    form.watch('row'),
-    form.watch('farmersCarry'),
-    form.watch('sandbagLunge'),
-    form.watch('wallBalls'),
-    form.watch('runPaceMinutes'),
-    form.watch('runPaceSeconds'),
-    form.watch('roxzoneTime'),
+    getStationTimeInSeconds,
+    watchedSkierg,
+    watchedSledPush,
+    watchedSledPull,
+    watchedBurpeeBroadJump,
+    watchedRow,
+    watchedFarmersCarry,
+    watchedSandbagLunge,
+    watchedWallBalls,
+    watchedRunPaceMinutes,
+    watchedRunPaceSeconds,
+    watchedRoxzoneTime,
   ])
 
   // Get station tier for display

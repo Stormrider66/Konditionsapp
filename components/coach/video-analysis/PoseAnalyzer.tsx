@@ -812,6 +812,8 @@ export function PoseAnalyzer({
         cancelAnimationFrame(animationFrameRef.current)
       }
     }
+    // detectedCameraAngle is intentionally excluded - we don't want to reinitialize pose on camera angle detection
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoType, calculateJointAngles, drawLandmarks])
 
   // Process video frame
