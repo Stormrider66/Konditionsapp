@@ -534,18 +534,22 @@ export function TimingGateImport({
           </DialogHeader>
           <div className="py-4">
             <div className="flex gap-4 mb-4">
-              <Badge variant="outline">
-                {selectedSession && t(`timing.formats.${selectedSession.importSource}`)}
-              </Badge>
+              {selectedSession && (
+                <Badge variant="outline">
+                  {t(`timing.formats.${selectedSession.importSource}`)}
+                </Badge>
+              )}
               {selectedSession?.gateCount && (
                 <Badge variant="secondary">
                   {t('timing.gatesCount', { count: selectedSession.gateCount })}
                 </Badge>
               )}
-              <Badge variant="secondary">
-                <Users className="h-3 w-3 mr-1" />
-                {t('timing.resultsCount', { count: selectedSession?._count?.results ?? 0 })}
-              </Badge>
+              {selectedSession && (
+                <Badge variant="secondary">
+                  <Users className="h-3 w-3 mr-1" />
+                  {t('timing.resultsCount', { count: selectedSession._count?.results ?? 0 })}
+                </Badge>
+              )}
             </div>
             {selectedSession?.intervalDistances && selectedSession.intervalDistances.length > 0 && (
               <div className="mb-4">
