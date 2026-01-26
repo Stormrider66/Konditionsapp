@@ -39,6 +39,7 @@ import { format, subDays, startOfDay, endOfDay, addDays } from 'date-fns'
 import { sv, enUS } from 'date-fns/locale'
 import { getTranslations, getLocale } from '@/i18n/server'
 import { CoachAIAssistantPanel } from '@/components/coach/CoachAIAssistantPanel'
+import { VoiceWorkoutButton } from '@/components/coach/voice-workout'
 import { cn } from '@/lib/utils'
 
 export default async function CoachDashboardPage() {
@@ -701,6 +702,7 @@ export default async function CoachDashboardPage() {
                 <GlassCardTitle className="text-base">{t('quickLinks')}</GlassCardTitle>
               </GlassCardHeader>
               <GlassCardContent className="grid grid-cols-2 gap-2">
+                <VoiceWorkoutButton variant="card" />
                 <Link href="/test" className="block">
                   <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
                     <ClipboardList className="h-5 w-5 text-cyan-500" />
@@ -729,12 +731,6 @@ export default async function CoachDashboardPage() {
                   <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
                     <Dumbbell className="h-5 w-5 text-orange-500" />
                     <span className="text-xs dark:text-slate-300">Styrka</span>
-                  </div>
-                </Link>
-                <Link href="/coach/ergometer-tests" className="block">
-                  <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
-                    <Gauge className="h-5 w-5 text-blue-500" />
-                    <span className="text-xs dark:text-slate-300">Ergo</span>
                   </div>
                 </Link>
               </GlassCardContent>

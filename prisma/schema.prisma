@@ -584,6 +584,9 @@ model User {
   careTeamParticipations CareTeamParticipant[]   @relation("UserCareTeamParticipations")
   assessedInjuries       InjuryAssessment[]      @relation("AssessedInjuries")
 
+  // Voice Workout Creation
+  voiceWorkoutSessions VoiceWorkoutSession[] @relation("CoachVoiceWorkouts")
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -5142,6 +5145,9 @@ model HybridWorkout {
   versions       HybridWorkout[]        @relation("WorkoutVersions")
   versionHistory HybridWorkoutVersion[]
 
+  // Voice workout creation
+  voiceWorkoutSessions VoiceWorkoutSession[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -5422,6 +5428,9 @@ model StrengthSession {
   // Team workout broadcasts
   teamWorkoutBroadcasts TeamWorkoutBroadcast[]
 
+  // Voice workout creation
+  voiceWorkoutSessions VoiceWorkoutSession[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -5548,6 +5557,9 @@ model CardioSession {
 
   // Team workout broadcasts
   teamWorkoutBroadcasts TeamWorkoutBroadcast[]
+
+  // Voice workout creation
+  voiceWorkoutSessions VoiceWorkoutSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -8505,4 +8517,55 @@ model TimingGateResult {
   @@index([athleteId])
   @@index([testProtocol])
   @@index([valid])
+}
+
+// ==================== VOICE WORKOUT CREATION ====================
+
+/// Voice-to-workout creation session
+/// Tracks audio upload, transcription, intent parsing, and generated workout
+model VoiceWorkoutSession {
+  id      String @id @default(uuid())
+  coachId String
+  coach   User   @relation("CoachVoiceWorkouts", fields: [coachId], references: [id], onDelete: Cascade)
+
+  // Audio file data
+  audioUrl String // Supabase Storage URL
+  duration Int // seconds
+  mimeType String? // "audio/webm", "audio/mp4", etc.
+
+  // Processing status
+  status String @default("PENDING") // PENDING, PROCESSING, PARSED, CONFIRMED, FAILED
+
+  // Transcription
+  transcription String? @db.Text
+
+  // Parsed intent (structured data from AI)
+  parsedIntent Json? // VoiceWorkoutIntent structure
+
+  // Generated workout (polymorphic - one will be set after confirmation)
+  workoutType       String? // CARDIO, STRENGTH, HYBRID
+  strengthSessionId String?
+  cardioSessionId   String?
+  hybridWorkoutId   String?
+
+  strengthSession StrengthSession? @relation(fields: [strengthSessionId], references: [id], onDelete: SetNull)
+  cardioSession   CardioSession?   @relation(fields: [cardioSessionId], references: [id], onDelete: SetNull)
+  hybridWorkout   HybridWorkout?   @relation(fields: [hybridWorkoutId], references: [id], onDelete: SetNull)
+
+  // Assignment target
+  targetType   String?   // ATHLETE, TEAM
+  targetId     String?   // Client ID or Team ID
+  assignedDate DateTime? @db.Date
+
+  // Processing metadata
+  processingTimeMs Int?
+  modelUsed        String? // "gemini-2.0-flash"
+  errorMessage     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([status])
+  @@index([createdAt])
 }

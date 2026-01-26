@@ -27,6 +27,7 @@ import { format, subDays } from 'date-fns'
 import { sv, enUS } from 'date-fns/locale'
 import { getTranslations, getLocale } from '@/i18n/server'
 import { CoachAIAssistantPanel } from '@/components/coach/CoachAIAssistantPanel'
+import { VoiceWorkoutButton } from '@/components/coach/voice-workout'
 import { notFound } from 'next/navigation'
 
 interface BusinessDashboardPageProps {
@@ -410,6 +411,10 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
               <GlassCardTitle className="text-base">{t('quickLinks')}</GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent className="space-y-2">
+              <VoiceWorkoutButton
+                variant="ghost"
+                className="w-full justify-start gap-3 p-2 h-auto font-normal hover:bg-muted dark:hover:bg-white/5"
+              />
               <Link href={`${basePath}/coach/test`} className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
                   <ClipboardList className="h-4 w-4 text-blue-500" />
