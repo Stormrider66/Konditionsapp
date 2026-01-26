@@ -49,3 +49,43 @@ export function speedToPace(speedKmh: number): number {
   if (speedKmh <= 0) return 0
   return 60 / speedKmh
 }
+
+type PlainObject = Record<string, unknown>
+
+function isPlainObject(value: unknown): value is PlainObject {
+  if (!value || typeof value !== 'object') return false
+  const proto = Object.getPrototypeOf(value)
+  return proto === Object.prototype || proto === null
+}
+
+/**
+ * Deep merge for JSON-like data.
+ *
+ * - Only recurses into plain objects
+ * - Arrays are replaced (not merged)
+ * - `undefined` in the override is ignored (keeps base)
+ */
+export function deepMerge<T>(base: T, override: unknown): T {
+  if (override === undefined) return base
+
+  // Replace non-objects directly (including null, arrays, dates, etc.)
+  if (!isPlainObject(base) || !isPlainObject(override)) {
+    return override as T
+  }
+
+  const result: PlainObject = { ...(base as PlainObject) }
+
+  for (const [key, overrideValue] of Object.entries(override)) {
+    if (overrideValue === undefined) continue
+
+    const baseValue = (base as PlainObject)[key]
+
+    if (isPlainObject(baseValue) && isPlainObject(overrideValue)) {
+      result[key] = deepMerge(baseValue, overrideValue)
+    } else {
+      result[key] = overrideValue
+    }
+  }
+
+  return result as T
+}

@@ -215,6 +215,23 @@ export const generatedWorkoutDataSchema = z.object({
 })
 
 /**
+ * Generated workout overrides (deep-ish partial).
+ *
+ * NOTE: `generatedWorkoutDataSchema.partial()` only makes the top-level optional.
+ * This schema also makes nested workout data objects optional/partial so a coach
+ * can safely override just a few fields (e.g. `cardioData.name`) without needing
+ * to resend required nested fields like `segments`.
+ */
+export const generatedWorkoutDataOverrideSchema = z.object({
+  type: voiceWorkoutTypeSchema.optional(),
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  cardioData: cardioSessionDataSchema.partial().optional(),
+  strengthData: strengthSessionDataSchema.partial().optional(),
+  hybridData: hybridWorkoutDataSchema.partial().optional(),
+})
+
+/**
  * Upload request (FormData validation happens at API level)
  */
 export const voiceWorkoutUploadSchema = z.object({
@@ -228,7 +245,7 @@ export const voiceWorkoutUploadSchema = z.object({
  */
 export const voiceWorkoutConfirmSchema = z.object({
   // Optional modifications to the generated workout
-  workout: generatedWorkoutDataSchema.partial().optional(),
+  workout: generatedWorkoutDataOverrideSchema.optional(),
   // Assignment configuration
   assignment: z.object({
     targetType: voiceWorkoutTargetTypeSchema,
