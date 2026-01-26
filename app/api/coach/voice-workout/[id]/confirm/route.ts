@@ -13,11 +13,49 @@ import { prisma } from '@/lib/prisma'
 import { voiceWorkoutConfirmSchema } from '@/lib/validations/voice-workout-schemas'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { deepMerge } from '@/lib/utils'
 import type { VoiceWorkoutIntent, GeneratedWorkoutData } from '@/types/voice-workout'
 import { generateWorkoutFromIntent } from '@/lib/ai/voice-workout-generator'
 
 type RouteContext = {
   params: Promise<{ id: string }>
+}
+
+function syncWorkoutDisplayFields(workoutData: GeneratedWorkoutData): GeneratedWorkoutData {
+  if (workoutData.type === 'CARDIO' && workoutData.cardioData) {
+    const name = workoutData.cardioData.name ?? workoutData.name
+    const description = workoutData.cardioData.description ?? workoutData.description
+    return {
+      ...workoutData,
+      name,
+      description,
+      cardioData: { ...workoutData.cardioData, name, description },
+    }
+  }
+
+  if (workoutData.type === 'STRENGTH' && workoutData.strengthData) {
+    const name = workoutData.strengthData.name ?? workoutData.name
+    const description = workoutData.strengthData.description ?? workoutData.description
+    return {
+      ...workoutData,
+      name,
+      description,
+      strengthData: { ...workoutData.strengthData, name, description },
+    }
+  }
+
+  if (workoutData.type === 'HYBRID' && workoutData.hybridData) {
+    const name = workoutData.hybridData.name ?? workoutData.name
+    const description = workoutData.hybridData.description ?? workoutData.description
+    return {
+      ...workoutData,
+      name,
+      description,
+      hybridData: { ...workoutData.hybridData, name, description },
+    }
+  }
+
+  return workoutData
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
@@ -80,15 +118,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
       )
     }
 
-    const intent = session.parsedIntent as VoiceWorkoutIntent
+    const intent = session.parsedIntent as unknown as VoiceWorkoutIntent
     const workoutType = session.workoutType || intent.workout.type
 
     // Generate workout data (allows overrides from confirm request)
-    const workoutData = await generateWorkoutFromIntent(intent, user.id)
+    let workoutData = await generateWorkoutFromIntent(intent, user.id)
 
     // Apply any workout modifications from the request
     if (parsed.data.workout) {
-      Object.assign(workoutData, parsed.data.workout)
+      workoutData = deepMerge(workoutData, parsed.data.workout)
+      workoutData = syncWorkoutDisplayFields(workoutData)
     }
 
     // Get target athletes
@@ -256,20 +295,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
         workoutId = hybridWorkout.id
 
-        // Create movements
-        if (workoutData.hybridData.movements.length > 0) {
+        // Create movements (only those with valid exerciseId)
+        const validMovements = workoutData.hybridData.movements.filter(m => m.exerciseId)
+        if (validMovements.length > 0) {
           await tx.hybridMovement.createMany({
-            data: workoutData.hybridData.movements.map((m) => ({
+            data: validMovements.map((m, index) => ({
               workoutId: hybridWorkout.id,
-              exerciseId: m.exerciseId,
-              name: m.name,
+              exerciseId: m.exerciseId!,
+              order: m.sequence ?? index,
               reps: m.reps ? parseInt(m.reps) || null : null,
-              weight: m.weight ? parseFloat(m.weight) || null : null,
+              weightMale: m.weight ? parseFloat(m.weight) || null : null,
               distance: m.distance,
               duration: m.duration,
               calories: m.calories,
-              sequence: m.sequence,
-              notes: m.notes,
             })),
           })
         }
@@ -329,12 +367,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
               createdById: user.id,
               title: workoutData.name,
               description: `Tilldelat via röstkommando`,
-              eventType: 'EXTERNAL_EVENT',
+              type: 'EXTERNAL_EVENT',
               status: 'SCHEDULED',
-              trainingImpact: 'FULL_TRAINING',
+              trainingImpact: 'NORMAL',
               startDate: eventDate,
               endDate: eventDate,
-              isAllDay: !calendarEventTime,
+              allDay: !calendarEventTime,
             },
           })
 

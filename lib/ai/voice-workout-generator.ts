@@ -71,14 +71,14 @@ export async function buildVoiceWorkoutPreview(
   for (const athlete of targetInfo.athletes) {
     const context = await buildWODContext(athlete.id)
     if (context) {
-      // Get athlete subscription tier
+      // Get athlete subscription tier (subscription is on User, linked via AthleteAccount)
       const athleteAccount = await prisma.athleteAccount.findFirst({
         where: { client: { id: athlete.id } },
         select: {
-          subscription: { select: { tier: true } },
+          user: { select: { subscription: { select: { tier: true } } } },
         },
       })
-      const tier = athleteAccount?.subscription?.tier || 'FREE'
+      const tier = athleteAccount?.user?.subscription?.tier || 'FREE'
 
       const guardrails = await checkWODGuardrails(context, tier)
 
@@ -384,13 +384,17 @@ async function getDefaultStrengthExercises(
   const isUpperBody = subtype.includes('överkropp') || subtype.includes('upper')
   const isLowerBody = subtype.includes('underkropp') || subtype.includes('lower') || subtype.includes('ben')
 
-  let category: string | undefined
-  if (isUpperBody) category = 'UPPER_BODY'
-  if (isLowerBody) category = 'LOWER_BODY'
+  // Filter by muscleGroup for upper/lower body, category is an enum (STRENGTH, etc.)
+  let muscleGroupFilter: string | undefined
+  if (isUpperBody) muscleGroupFilter = 'Upper'
+  if (isLowerBody) muscleGroupFilter = 'Legs'
 
   // Get some default exercises
   const exercises = await prisma.exercise.findMany({
-    where: category ? { category: { contains: category, mode: 'insensitive' } } : undefined,
+    where: {
+      category: 'STRENGTH',
+      ...(muscleGroupFilter ? { muscleGroup: { contains: muscleGroupFilter, mode: 'insensitive' } } : {}),
+    },
     select: { id: true, name: true, nameSv: true },
     take: 5,
   })
@@ -591,17 +595,17 @@ async function getAthleteWarnings(clientId: string): Promise<string[]> {
     }
   }
 
-  // Check ACWR
-  const latestAcwr = await prisma.aCWRCalculation.findFirst({
-    where: { clientId },
-    orderBy: { calculatedAt: 'desc' },
-    select: { acwr: true, riskZone: true },
+  // Check ACWR from TrainingLoad
+  const latestAcwr = await prisma.trainingLoad.findFirst({
+    where: { clientId, acwr: { not: null } },
+    orderBy: { date: 'desc' },
+    select: { acwr: true, acwrZone: true },
   })
 
   if (latestAcwr) {
-    if (latestAcwr.riskZone === 'CRITICAL' || latestAcwr.riskZone === 'DANGER') {
-      warnings.push(`Hög ACWR (${latestAcwr.acwr?.toFixed(2) || 'N/A'}) - ${latestAcwr.riskZone}`)
-    } else if (latestAcwr.riskZone === 'CAUTION') {
+    if (latestAcwr.acwrZone === 'CRITICAL' || latestAcwr.acwrZone === 'DANGER') {
+      warnings.push(`Hög ACWR (${latestAcwr.acwr?.toFixed(2) || 'N/A'}) - ${latestAcwr.acwrZone}`)
+    } else if (latestAcwr.acwrZone === 'CAUTION') {
       warnings.push(`Förhöjd ACWR (${latestAcwr.acwr?.toFixed(2) || 'N/A'})`)
     }
   }

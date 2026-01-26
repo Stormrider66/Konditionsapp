@@ -73,7 +73,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       try {
         preview = await buildVoiceWorkoutPreview(
           session.id,
-          session.parsedIntent as VoiceWorkoutIntent,
+          session.parsedIntent as unknown as VoiceWorkoutIntent,
           user.id
         )
       } catch (err) {
@@ -204,7 +204,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     // Merge updates into existing intent
-    const currentIntent = session.parsedIntent as VoiceWorkoutIntent
+    const currentIntent = session.parsedIntent as unknown as VoiceWorkoutIntent
     const updates = parsed.data
 
     const updatedIntent: VoiceWorkoutIntent = {
