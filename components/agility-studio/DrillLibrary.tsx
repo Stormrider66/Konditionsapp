@@ -367,16 +367,11 @@ function DrillDetailSheet({ drill, onClose, onAdd, categoryLabels }: DrillDetail
             <p className="text-sm text-muted-foreground">{drill.descriptionSv || drill.description}</p>
           </div>
 
-          {/* Drill Animation */}
-          {drill.category === 'COD' && drill.name.includes('5-10-5') && (
-            <div>
-              <h4 className="font-medium mb-2">{t('drill.animation')}</h4>
-              <DrillAnimationPlayer
-                drillId={drill.id}
-                drillName={drill.name}
-              />
-            </div>
-          )}
+          {/* Drill Animation - shown for all drills that have animations */}
+          <DrillAnimationPlayer
+            drillId={drill.id}
+            drillName={drill.name}
+          />
 
           {/* Parameters */}
           <div>

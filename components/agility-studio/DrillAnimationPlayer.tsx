@@ -341,12 +341,14 @@ export function DrillAnimationPlayer({
   const totalTime = (totalFrames / fps).toFixed(1);
 
   return (
-    <div
-      ref={containerRef}
-      className={`bg-slate-50 rounded-lg overflow-hidden ${
-        isFullscreen ? "p-4" : ""
-      }`}
-    >
+    <div className="mt-4">
+      <h4 className="font-medium mb-2">Animation</h4>
+      <div
+        ref={containerRef}
+        className={`bg-slate-50 rounded-lg overflow-hidden ${
+          isFullscreen ? "p-4" : ""
+        }`}
+      >
       {/* Player */}
       <div className="relative aspect-[2/1] bg-slate-100">
         <Player
@@ -438,6 +440,7 @@ export function DrillAnimationPlayer({
             )}
           </Button>
         </div>
+      </div>
       </div>
     </div>
   );
