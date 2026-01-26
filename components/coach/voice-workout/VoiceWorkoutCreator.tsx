@@ -234,6 +234,7 @@ export function VoiceWorkoutCreator({
     if (!audioBlob) return
 
     try {
+      setError(null)
       setStep('processing')
 
       // Create FormData for upload

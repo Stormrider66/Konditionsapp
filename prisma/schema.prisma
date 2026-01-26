@@ -5146,7 +5146,7 @@ model HybridWorkout {
   versionHistory HybridWorkoutVersion[]
 
   // Voice workout creation
-  voiceWorkoutSessions VoiceWorkoutSession[]
+  voiceWorkoutSessions VoiceWorkoutSession[] @relation("HybridWorkoutVoiceWorkouts")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -5429,7 +5429,7 @@ model StrengthSession {
   teamWorkoutBroadcasts TeamWorkoutBroadcast[]
 
   // Voice workout creation
-  voiceWorkoutSessions VoiceWorkoutSession[]
+  voiceWorkoutSessions VoiceWorkoutSession[] @relation("StrengthSessionVoiceWorkouts")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -5559,7 +5559,7 @@ model CardioSession {
   teamWorkoutBroadcasts TeamWorkoutBroadcast[]
 
   // Voice workout creation
-  voiceWorkoutSessions VoiceWorkoutSession[]
+  voiceWorkoutSessions VoiceWorkoutSession[] @relation("CardioSessionVoiceWorkouts")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -8548,9 +8548,9 @@ model VoiceWorkoutSession {
   cardioSessionId   String?
   hybridWorkoutId   String?
 
-  strengthSession StrengthSession? @relation(fields: [strengthSessionId], references: [id], onDelete: SetNull)
-  cardioSession   CardioSession?   @relation(fields: [cardioSessionId], references: [id], onDelete: SetNull)
-  hybridWorkout   HybridWorkout?   @relation(fields: [hybridWorkoutId], references: [id], onDelete: SetNull)
+  strengthSession StrengthSession? @relation("StrengthSessionVoiceWorkouts", fields: [strengthSessionId], references: [id], onDelete: SetNull)
+  cardioSession   CardioSession?   @relation("CardioSessionVoiceWorkouts", fields: [cardioSessionId], references: [id], onDelete: SetNull)
+  hybridWorkout   HybridWorkout?   @relation("HybridWorkoutVoiceWorkouts", fields: [hybridWorkoutId], references: [id], onDelete: SetNull)
 
   // Assignment target
   targetType   String?   // ATHLETE, TEAM

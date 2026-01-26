@@ -130,7 +130,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // Use transaction to create everything atomically
     const result = await prisma.$transaction(async (tx) => {
       let workoutId: string
-      let calendarEventId: string | undefined
+      const calendarEventIds: string[] = []
 
       // Create workout based on type
       if (workoutType === 'STRENGTH' && workoutData.strengthData) {
@@ -338,9 +338,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             },
           })
 
-          if (!calendarEventId) {
-            calendarEventId = calendarEvent.id
-          }
+          calendarEventIds.push(calendarEvent.id)
         }
       }
 
@@ -348,7 +346,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         workoutId,
         workoutType,
         assignmentCount: athleteIds.length,
-        calendarEventId,
+        calendarEventIds,
       }
     })
 
@@ -357,7 +355,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       workoutId: result.workoutId,
       workoutType: result.workoutType,
       assignmentCount: result.assignmentCount,
-      calendarEventId: result.calendarEventId,
+      calendarEventIds: result.calendarEventIds,
     })
   } catch (error) {
     logger.error('Voice workout confirm error', {}, error)

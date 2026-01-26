@@ -89,9 +89,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate unique filename
+    // Generate unique filename with correct extension for MIME type
     const timestamp = Date.now()
-    const ext = audioFile.type === 'audio/webm' ? 'webm' : audioFile.type === 'audio/mp4' ? 'm4a' : 'mp3'
+    const mimeToExt: Record<string, string> = {
+      'audio/webm': 'webm',
+      'audio/mp4': 'm4a',
+      'audio/mpeg': 'mp3',
+      'audio/wav': 'wav',
+      'audio/ogg': 'ogg',
+    }
+    const ext = mimeToExt[audioFile.type] || 'webm'
     const fileName = `${user.id}/${timestamp}.${ext}`
 
     // Upload to Supabase Storage
