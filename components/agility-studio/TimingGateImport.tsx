@@ -4,6 +4,7 @@
 // Timing gate data import and session management
 
 import { useState, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -92,6 +93,7 @@ export function TimingGateImport({
   athletes,
   onSessionCreated
 }: TimingGateImportProps) {
+  const t = useTranslations('agilityStudio')
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -250,14 +252,14 @@ export function TimingGateImport({
       {/* Header with Import Button */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-lg font-semibold">Timing Gate Sessions</h2>
+          <h2 className="text-lg font-semibold">{t('timing.sessionsTitle')}</h2>
           <p className="text-sm text-muted-foreground">
-            Import and manage speed testing data
+            {t('timing.sessionsDescription')}
           </p>
         </div>
         <Button onClick={() => setImportDialogOpen(true)}>
           <Upload className="h-4 w-4 mr-2" />
-          Import Data
+          {t('timing.importData')}
         </Button>
       </div>
 
@@ -265,8 +267,8 @@ export function TimingGateImport({
       {sessions.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Timer className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-medium">No timing sessions yet</h3>
-          <p>Import timing gate data to get started.</p>
+          <h3 className="text-lg font-medium">{t('timing.noSessions')}</h3>
+          <p>{t('timing.noSessionsHint')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -275,7 +277,7 @@ export function TimingGateImport({
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <Badge variant="outline">
-                    {formatLabels[session.importSource]}
+                    {t(`timing.formats.${session.importSource}`)}
                   </Badge>
                   <div className="flex gap-1">
                     <Button
@@ -301,7 +303,7 @@ export function TimingGateImport({
                   </div>
                 </div>
                 <CardTitle className="text-lg">
-                  {session.sessionName || 'Timing Session'}
+                  {session.sessionName || t('timing.timingSession')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -312,11 +314,11 @@ export function TimingGateImport({
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    {session._count.results} results
+                    {t('timing.resultsCount', { count: session._count.results })}
                   </div>
                   {session.gateCount && (
                     <Badge variant="secondary">
-                      {session.gateCount} gates
+                      {t('timing.gatesCount', { count: session.gateCount })}
                     </Badge>
                   )}
                 </div>
@@ -330,9 +332,9 @@ export function TimingGateImport({
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Import Timing Data</DialogTitle>
+            <DialogTitle>{t('timing.importTitle')}</DialogTitle>
             <DialogDescription>
-              Upload a CSV file from your timing gate system
+              {t('timing.importDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -340,7 +342,7 @@ export function TimingGateImport({
             <div className="space-y-4 py-4">
               {/* Format Selector */}
               <div className="space-y-2">
-                <Label>Timing System Format</Label>
+                <Label>{t('timing.systemFormat')}</Label>
                 <Select
                   value={selectedFormat}
                   onValueChange={(v) => setSelectedFormat(v as TimingGateSource)}
@@ -349,10 +351,10 @@ export function TimingGateImport({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="CSV_IMPORT">Auto-detect / Generic CSV</SelectItem>
-                    <SelectItem value="BROWER">Brower Timing</SelectItem>
-                    <SelectItem value="FREELAP">Freelap</SelectItem>
-                    <SelectItem value="WITTY">Witty Timer</SelectItem>
+                    <SelectItem value="CSV_IMPORT">{t('timing.formatOptions.CSV_IMPORT')}</SelectItem>
+                    <SelectItem value="BROWER">{t('timing.formatOptions.BROWER')}</SelectItem>
+                    <SelectItem value="FREELAP">{t('timing.formatOptions.FREELAP')}</SelectItem>
+                    <SelectItem value="WITTY">{t('timing.formatOptions.WITTY')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -372,10 +374,10 @@ export function TimingGateImport({
               >
                 <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-lg font-medium mb-2">
-                  Drop your CSV file here
+                  {t('timing.dropCsvHere')}
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  or click to browse
+                  {t('timing.orClickBrowse')}
                 </p>
                 <Input
                   type="file"
@@ -386,7 +388,7 @@ export function TimingGateImport({
                 />
                 <Button asChild variant="outline">
                   <label htmlFor="file-upload" className="cursor-pointer">
-                    Select File
+                    {t('timing.selectFile')}
                   </label>
                 </Button>
               </div>
@@ -400,7 +402,7 @@ export function TimingGateImport({
 
               {importing && (
                 <div className="text-center text-muted-foreground">
-                  Processing file...
+                  {t('timing.processingFile')}
                 </div>
               )}
             </div>
@@ -411,15 +413,15 @@ export function TimingGateImport({
                 <div>
                   <h3 className="font-medium">{importPreview.sessionName}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {importPreview.results.length} results found
+                    {t('timing.resultsFound', { count: importPreview.results.length })}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">
-                    {importPreview.gateCount} gates
+                    {t('timing.gatesCount', { count: importPreview.gateCount })}
                   </Badge>
                   <Badge variant={matchedCount === importPreview.results.length ? 'default' : 'secondary'}>
-                    {matchedCount}/{importPreview.results.length} matched
+                    {t('timing.matchedCount', { matched: matchedCount, total: importPreview.results.length })}
                   </Badge>
                 </div>
               </div>
@@ -429,18 +431,18 @@ export function TimingGateImport({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Athlete</TableHead>
-                      <TableHead>Match To</TableHead>
-                      <TableHead>Splits</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Valid</TableHead>
+                      <TableHead>{t('timing.athlete')}</TableHead>
+                      <TableHead>{t('timing.matchTo')}</TableHead>
+                      <TableHead>{t('timing.splits')}</TableHead>
+                      <TableHead>{t('timing.total')}</TableHead>
+                      <TableHead>{t('timing.valid')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {importPreview.results.map((result, i) => (
                       <TableRow key={i}>
                         <TableCell className="font-medium">
-                          {result.athleteName || `Athlete ${i + 1}`}
+                          {result.athleteName || `${t('timing.athlete')} ${i + 1}`}
                         </TableCell>
                         <TableCell>
                           <Select
@@ -448,7 +450,7 @@ export function TimingGateImport({
                             onValueChange={(v) => result.athleteName && updateAthleteMatch(result.athleteName, v)}
                           >
                             <SelectTrigger className="w-40">
-                              <SelectValue placeholder="Select athlete" />
+                              <SelectValue placeholder={t('timing.selectAthlete')} />
                             </SelectTrigger>
                             <SelectContent>
                               {athletes.map(athlete => (
@@ -504,15 +506,15 @@ export function TimingGateImport({
                     setError(null)
                   }}
                 >
-                  Back
+                  {t('timing.back')}
                 </Button>
                 <Button onClick={handleImport} disabled={importing}>
-                  {importing ? 'Importing...' : `Import ${importPreview.results.length} Results`}
+                  {importing ? t('timing.importing') : t('timing.importResults', { count: importPreview.results.length })}
                 </Button>
               </>
             ) : (
               <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
-                Cancel
+                {t('timing.cancel')}
               </Button>
             )}
           </DialogFooter>
@@ -524,7 +526,7 @@ export function TimingGateImport({
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {selectedSession?.sessionName || 'Timing Session'}
+              {selectedSession?.sessionName || t('timing.timingSession')}
             </DialogTitle>
             <DialogDescription>
               {selectedSession && format(new Date(selectedSession.sessionDate), 'PPP')}
@@ -533,21 +535,21 @@ export function TimingGateImport({
           <div className="py-4">
             <div className="flex gap-4 mb-4">
               <Badge variant="outline">
-                {selectedSession && formatLabels[selectedSession.importSource]}
+                {selectedSession && t(`timing.formats.${selectedSession.importSource}`)}
               </Badge>
               {selectedSession?.gateCount && (
                 <Badge variant="secondary">
-                  {selectedSession.gateCount} gates
+                  {t('timing.gatesCount', { count: selectedSession.gateCount })}
                 </Badge>
               )}
               <Badge variant="secondary">
                 <Users className="h-3 w-3 mr-1" />
-                {selectedSession?._count.results} results
+                {t('timing.resultsCount', { count: selectedSession?._count?.results ?? 0 })}
               </Badge>
             </div>
             {selectedSession?.intervalDistances && selectedSession.intervalDistances.length > 0 && (
               <div className="mb-4">
-                <p className="text-sm font-medium mb-2">Interval Distances</p>
+                <p className="text-sm font-medium mb-2">{t('timing.intervalDistances')}</p>
                 <div className="flex gap-2">
                   {selectedSession.intervalDistances.map((dist, i) => (
                     <Badge key={i} variant="outline">{dist}m</Badge>
@@ -556,12 +558,12 @@ export function TimingGateImport({
               </div>
             )}
             <p className="text-sm text-muted-foreground">
-              View detailed results and athlete matching in the full session view.
+              {t('timing.viewDetails')}
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
-              Close
+              {t('timing.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -571,18 +573,17 @@ export function TimingGateImport({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Session</DialogTitle>
+            <DialogTitle>{t('timing.deleteSession')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{selectedSession?.sessionName || 'this session'}&quot;?
-              This will also delete all associated results. This action cannot be undone.
+              {t('timing.deleteSessionConfirm', { name: selectedSession?.sessionName || t('timing.timingSession') })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {t('timing.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting ? 'Deleting...' : 'Delete'}
+              {deleting ? t('timing.deleting') : t('timing.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

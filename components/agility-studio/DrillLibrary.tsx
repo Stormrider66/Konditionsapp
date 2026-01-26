@@ -4,6 +4,7 @@
 // Drill library browser with filters
 
 import { useState, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,6 +27,7 @@ import {
   Timer
 } from 'lucide-react'
 import type { AgilityDrill, AgilityDrillCategory, DevelopmentStage } from '@/types'
+import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 
 interface DrillLibraryProps {
   drills: AgilityDrill[]
@@ -52,15 +54,6 @@ const categoryColors: Record<AgilityDrillCategory, string> = {
   BALANCE: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200'
 }
 
-const categoryLabels: Record<AgilityDrillCategory, string> = {
-  COD: 'Change of Direction',
-  REACTIVE_AGILITY: 'Reactive Agility',
-  SPEED_ACCELERATION: 'Speed & Acceleration',
-  PLYOMETRICS: 'Plyometrics',
-  FOOTWORK: 'Footwork',
-  BALANCE: 'Balance'
-}
-
 const categories: AgilityDrillCategory[] = [
   'COD',
   'REACTIVE_AGILITY',
@@ -76,8 +69,19 @@ export function DrillLibrary({
   developmentStage,
   onAddToWorkout
 }: DrillLibraryProps) {
+  const t = useTranslations('agilityStudio')
+  const tCommon = useTranslations('common')
   const [selectedCategory, setSelectedCategory] = useState<AgilityDrillCategory | 'all'>('all')
   const [selectedDrill, setSelectedDrill] = useState<AgilityDrill | null>(null)
+
+  const categoryLabels: Record<AgilityDrillCategory, string> = {
+    COD: t('categories.COD'),
+    REACTIVE_AGILITY: t('categories.REACTIVE_AGILITY'),
+    SPEED_ACCELERATION: t('categories.SPEED_ACCELERATION'),
+    PLYOMETRICS: t('categories.PLYOMETRICS'),
+    FOOTWORK: t('categories.FOOTWORK'),
+    BALANCE: t('categories.BALANCE')
+  }
 
   const filteredDrills = useMemo(() => {
     return drills.filter(drill => {
@@ -145,7 +149,7 @@ export function DrillLibrary({
           size="sm"
           onClick={() => setSelectedCategory('all')}
         >
-          All ({filteredDrills.length})
+          {tCommon('all')} ({filteredDrills.length})
         </Button>
         {categories.map(category => {
           const count = groupedDrills[category].length
@@ -211,8 +215,8 @@ export function DrillLibrary({
       {filteredDrills.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-medium">No drills found</h3>
-          <p>Try adjusting your filters or search query.</p>
+          <h3 className="text-lg font-medium">{t('drill.noDrillsFound')}</h3>
+          <p>{t('drill.adjustFilters')}</p>
         </div>
       )}
 
@@ -221,6 +225,7 @@ export function DrillLibrary({
         drill={selectedDrill}
         onClose={() => setSelectedDrill(null)}
         onAdd={onAddToWorkout}
+        categoryLabels={categoryLabels}
       />
     </div>
   )
@@ -233,6 +238,9 @@ interface DrillCardProps {
 }
 
 function DrillCard({ drill, onView, onAdd }: DrillCardProps) {
+  const t = useTranslations('agilityStudio')
+  const tCommon = useTranslations('common')
+
   return (
     <Card
       className="cursor-pointer hover:shadow-md transition-shadow"
@@ -242,7 +250,7 @@ function DrillCard({ drill, onView, onAdd }: DrillCardProps) {
         <div className="flex justify-between items-start">
           <Badge className={categoryColors[drill.category]}>
             {categoryIcons[drill.category]}
-            <span className="ml-1">{drill.category.replace(/_/g, ' ')}</span>
+            <span className="ml-1">{t(`categories.${drill.category}`)}</span>
           </Badge>
           <div className="flex items-center gap-1">
             {[...Array(5)].map((_, i) => (
@@ -255,11 +263,11 @@ function DrillCard({ drill, onView, onAdd }: DrillCardProps) {
             ))}
           </div>
         </div>
-        <CardTitle className="text-lg mt-2">{drill.name}</CardTitle>
+        <CardTitle className="text-lg mt-2">{drill.nameSv || drill.name}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-          {drill.description}
+          {drill.descriptionSv || drill.description}
         </p>
         <div className="flex flex-wrap gap-2 mb-4">
           {drill.distanceMeters && (
@@ -275,7 +283,7 @@ function DrillCard({ drill, onView, onAdd }: DrillCardProps) {
             </Badge>
           )}
           {drill.defaultReps && (
-            <Badge variant="outline">{drill.defaultReps} reps</Badge>
+            <Badge variant="outline">{drill.defaultReps} {t('drill.reps')}</Badge>
           )}
         </div>
         <div className="flex justify-end gap-2">
@@ -287,7 +295,7 @@ function DrillCard({ drill, onView, onAdd }: DrillCardProps) {
               onView()
             }}
           >
-            View
+            {tCommon('view')}
           </Button>
           <Button
             size="sm"
@@ -308,9 +316,12 @@ interface DrillDetailSheetProps {
   drill: AgilityDrill | null
   onClose: () => void
   onAdd: (drill: AgilityDrill) => void
+  categoryLabels: Record<AgilityDrillCategory, string>
 }
 
-function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
+function DrillDetailSheet({ drill, onClose, onAdd, categoryLabels }: DrillDetailSheetProps) {
+  const t = useTranslations('agilityStudio')
+
   if (!drill) return null
 
   return (
@@ -319,10 +330,10 @@ function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             {categoryIcons[drill.category]}
-            {drill.name}
+            {drill.nameSv || drill.name}
           </SheetTitle>
           <SheetDescription className="sr-only">
-            {drill.description}
+            {drill.descriptionSv || drill.description}
           </SheetDescription>
           <div className="mt-1">
             <Badge className={categoryColors[drill.category]}>
@@ -334,7 +345,7 @@ function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
         <div className="mt-6 space-y-6">
           {/* Difficulty */}
           <div>
-            <h4 className="font-medium mb-2">Difficulty</h4>
+            <h4 className="font-medium mb-2">{t('drill.difficulty')}</h4>
             <div className="flex items-center gap-1">
               {[...Array(5)].map((_, i) => (
                 <div
@@ -345,53 +356,59 @@ function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
                 />
               ))}
               <span className="ml-2 text-sm text-muted-foreground">
-                Level {drill.difficultyLevel}
+                {t('drill.level')} {drill.difficultyLevel}
               </span>
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <h4 className="font-medium mb-2">Description</h4>
-            <p className="text-sm text-muted-foreground">{drill.description}</p>
-            {drill.descriptionSv && (
-              <p className="text-sm text-muted-foreground mt-2 italic">
-                {drill.descriptionSv}
-              </p>
-            )}
+            <h4 className="font-medium mb-2">{t('drill.description')}</h4>
+            <p className="text-sm text-muted-foreground">{drill.descriptionSv || drill.description}</p>
           </div>
+
+          {/* Drill Animation */}
+          {drill.category === 'COD' && drill.name.includes('5-10-5') && (
+            <div>
+              <h4 className="font-medium mb-2">{t('drill.animation')}</h4>
+              <DrillAnimationPlayer
+                drillId={drill.id}
+                drillName={drill.name}
+              />
+            </div>
+          )}
 
           {/* Parameters */}
           <div>
-            <h4 className="font-medium mb-2">Parameters</h4>
+            <h4 className="font-medium mb-2">{t('drill.parameters')}</h4>
             <div className="grid grid-cols-2 gap-2">
               {drill.distanceMeters && (
                 <div className="p-2 bg-muted rounded">
-                  <p className="text-xs text-muted-foreground">Distance</p>
+                  <p className="text-xs text-muted-foreground">{t('drill.distance')}</p>
                   <p className="font-medium">{drill.distanceMeters}m</p>
                 </div>
               )}
               {drill.durationSeconds && (
                 <div className="p-2 bg-muted rounded">
-                  <p className="text-xs text-muted-foreground">Duration</p>
+                  <p className="text-xs text-muted-foreground">{t('drill.duration')}</p>
                   <p className="font-medium">{drill.durationSeconds}s</p>
                 </div>
               )}
               {drill.defaultSets && (
                 <div className="p-2 bg-muted rounded">
-                  <p className="text-xs text-muted-foreground">Sets</p>
+                  <p className="text-xs text-muted-foreground">{t('drill.sets')}</p>
                   <p className="font-medium">{drill.defaultSets}</p>
                 </div>
               )}
               {drill.defaultReps && (
                 <div className="p-2 bg-muted rounded">
-                  <p className="text-xs text-muted-foreground">Reps</p>
+                  <p className="text-xs text-muted-foreground">{t('drill.reps')}</p>
                   <p className="font-medium">{drill.defaultReps}</p>
                 </div>
               )}
               {drill.restSeconds && (
                 <div className="p-2 bg-muted rounded">
-                  <p className="text-xs text-muted-foreground">Rest</p>
+                  <p className="text-xs text-muted-foreground">{t('drill.rest')}</p>
                   <p className="font-medium">{drill.restSeconds}s</p>
                 </div>
               )}
@@ -401,7 +418,7 @@ function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
           {/* Setup Instructions */}
           {drill.setupInstructions && (
             <div>
-              <h4 className="font-medium mb-2">Setup</h4>
+              <h4 className="font-medium mb-2">{t('drill.setup')}</h4>
               <p className="text-sm text-muted-foreground">{drill.setupInstructions}</p>
             </div>
           )}
@@ -409,7 +426,7 @@ function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
           {/* Execution Cues */}
           {drill.executionCues && drill.executionCues.length > 0 && (
             <div>
-              <h4 className="font-medium mb-2">Coaching Cues</h4>
+              <h4 className="font-medium mb-2">{t('drill.coachingCues')}</h4>
               <ul className="list-disc list-inside space-y-1">
                 {drill.executionCues.map((cue, i) => (
                   <li key={i} className="text-sm text-muted-foreground">{cue}</li>
@@ -421,11 +438,11 @@ function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
           {/* Equipment */}
           {(drill.requiredEquipment.length > 0 || drill.optionalEquipment.length > 0) && (
             <div>
-              <h4 className="font-medium mb-2">Equipment</h4>
+              <h4 className="font-medium mb-2">{t('drill.equipment')}</h4>
               <div className="space-y-2">
                 {drill.requiredEquipment.length > 0 && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Required:</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('drill.required')}:</p>
                     <div className="flex flex-wrap gap-1">
                       {drill.requiredEquipment.map(eq => (
                         <Badge key={eq} variant="outline">{eq}</Badge>
@@ -435,7 +452,7 @@ function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
                 )}
                 {drill.optionalEquipment.length > 0 && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Optional:</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('drill.optional')}:</p>
                     <div className="flex flex-wrap gap-1">
                       {drill.optionalEquipment.map(eq => (
                         <Badge key={eq} variant="secondary">{eq}</Badge>
@@ -449,20 +466,20 @@ function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
 
           {/* Development Stage Range */}
           <div>
-            <h4 className="font-medium mb-2">Appropriate For</h4>
+            <h4 className="font-medium mb-2">{t('drill.appropriateFor')}</h4>
             <p className="text-sm text-muted-foreground">
-              {drill.minDevelopmentStage.replace(/_/g, ' ')} to {drill.maxDevelopmentStage.replace(/_/g, ' ')}
+              {drill.minDevelopmentStage.replace(/_/g, ' ')} - {drill.maxDevelopmentStage.replace(/_/g, ' ')}
             </p>
           </div>
 
           {/* Video */}
           {drill.videoUrl && (
             <div>
-              <h4 className="font-medium mb-2">Video</h4>
+              <h4 className="font-medium mb-2">{t('drill.video')}</h4>
               <Button variant="outline" asChild>
                 <a href={drill.videoUrl} target="_blank" rel="noopener noreferrer">
                   <Play className="h-4 w-4 mr-2" />
-                  Watch Demo
+                  {t('drill.watchDemo')}
                 </a>
               </Button>
             </div>
@@ -472,7 +489,7 @@ function DrillDetailSheet({ drill, onClose, onAdd }: DrillDetailSheetProps) {
           <div className="flex gap-2 pt-4 border-t">
             <Button className="flex-1" onClick={() => onAdd(drill)}>
               <Plus className="h-4 w-4 mr-2" />
-              Add to Workout
+              {t('drill.addToWorkout')}
             </Button>
           </div>
         </div>

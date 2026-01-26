@@ -4,6 +4,7 @@
 // Main client component for Agility Studio
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -48,6 +49,7 @@ export default function AgilityStudioClient({
   initialAthletes,
   initialTimingSessions
 }: AgilityStudioClientProps) {
+  const t = useTranslations('agilityStudio')
   const [activeTab, setActiveTab] = useState('drills')
   const [searchQuery, setSearchQuery] = useState('')
   const [developmentStage, setDevelopmentStage] = useState<DevelopmentStage | 'all'>('all')
@@ -71,13 +73,13 @@ export default function AgilityStudioClient({
   }
 
   const developmentStages: { value: DevelopmentStage | 'all'; label: string }[] = [
-    { value: 'all', label: 'All Stages' },
-    { value: 'FUNDAMENTALS', label: 'Fundamentals (6-9)' },
-    { value: 'LEARNING_TO_TRAIN', label: 'Learning to Train (9-12)' },
-    { value: 'TRAINING_TO_TRAIN', label: 'Training to Train (12-16)' },
-    { value: 'TRAINING_TO_COMPETE', label: 'Training to Compete (16-18)' },
-    { value: 'TRAINING_TO_WIN', label: 'Training to Win (18+)' },
-    { value: 'ELITE', label: 'Elite' }
+    { value: 'all', label: t('stages.all') },
+    { value: 'FUNDAMENTALS', label: t('stages.fundamentals') },
+    { value: 'LEARNING_TO_TRAIN', label: t('stages.learningToTrain') },
+    { value: 'TRAINING_TO_TRAIN', label: t('stages.trainingToTrain') },
+    { value: 'TRAINING_TO_COMPETE', label: t('stages.trainingToCompete') },
+    { value: 'TRAINING_TO_WIN', label: t('stages.trainingToWin') },
+    { value: 'ELITE', label: t('stages.elite') }
   ]
 
   return (
@@ -87,15 +89,15 @@ export default function AgilityStudioClient({
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Zap className="h-6 w-6 text-yellow-500" />
-            Agility Studio
+            {t('title')}
           </h1>
           <p className="text-muted-foreground">
-            Build agility workouts and track athlete speed testing
+            {t('description')}
           </p>
         </div>
         <Button onClick={() => setShowWorkoutBuilder(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Create Workout
+          {t('createWorkout')}
         </Button>
       </div>
 
@@ -104,7 +106,7 @@ export default function AgilityStudioClient({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search drills and workouts..."
+            placeholder={t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -115,7 +117,7 @@ export default function AgilityStudioClient({
           onValueChange={(value) => setDevelopmentStage(value as DevelopmentStage | 'all')}
         >
           <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Development Stage" />
+            <SelectValue placeholder={t('developmentStage')} />
           </SelectTrigger>
           <SelectContent>
             {developmentStages.map((stage) => (
@@ -132,19 +134,19 @@ export default function AgilityStudioClient({
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="drills" className="flex items-center gap-2">
             <Dumbbell className="h-4 w-4" />
-            <span className="hidden sm:inline">Drills</span>
+            <span className="hidden sm:inline">{t('tabs.drills')}</span>
           </TabsTrigger>
           <TabsTrigger value="workouts" className="flex items-center gap-2">
             <Zap className="h-4 w-4" />
-            <span className="hidden sm:inline">Workouts</span>
+            <span className="hidden sm:inline">{t('tabs.workouts')}</span>
           </TabsTrigger>
           <TabsTrigger value="testing" className="flex items-center gap-2">
             <Timer className="h-4 w-4" />
-            <span className="hidden sm:inline">Testing</span>
+            <span className="hidden sm:inline">{t('tabs.testing')}</span>
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Analytics</span>
+            <span className="hidden sm:inline">{t('tabs.analytics')}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -188,8 +190,8 @@ export default function AgilityStudioClient({
         <TabsContent value="analytics" className="mt-6">
           <div className="text-center py-12 text-muted-foreground">
             <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium">Analytics Coming Soon</h3>
-            <p>Track team performance, benchmark comparisons, and progress over time.</p>
+            <h3 className="text-lg font-medium">{t('analyticsComingSoon')}</h3>
+            <p>{t('analyticsDescription')}</p>
           </div>
         </TabsContent>
       </Tabs>

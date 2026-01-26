@@ -4,6 +4,7 @@
 // Multi-step workout builder dialog
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   Dialog,
   DialogContent,
@@ -95,6 +96,7 @@ export function AgilityWorkoutBuilder({
   onSave,
   onClose
 }: AgilityWorkoutBuilderProps) {
+  const t = useTranslations('agilityStudio')
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -242,7 +244,7 @@ export function AgilityWorkoutBuilder({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-yellow-500" />
-            Create Agility Workout
+            {t('builder.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -278,10 +280,17 @@ export function AgilityWorkoutBuilder({
           {step === 1 && (
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                Choose a workout format that matches your training goals.
+                {t('builder.chooseFormat')}
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {formatOptions.map((option) => (
+                {([
+                  { value: 'CIRCUIT' as AgilityWorkoutFormat, key: 'Circuit' },
+                  { value: 'STATION_ROTATION' as AgilityWorkoutFormat, key: 'Station' },
+                  { value: 'INTERVAL' as AgilityWorkoutFormat, key: 'Interval' },
+                  { value: 'PROGRESSIVE' as AgilityWorkoutFormat, key: 'Progressive' },
+                  { value: 'REACTIVE' as AgilityWorkoutFormat, key: 'Reactive' },
+                  { value: 'TESTING' as AgilityWorkoutFormat, key: 'Testing' }
+                ]).map((option) => (
                   <Card
                     key={option.value}
                     className={`cursor-pointer transition-colors ${
@@ -292,9 +301,9 @@ export function AgilityWorkoutBuilder({
                     onClick={() => setFormat(option.value)}
                   >
                     <CardContent className="p-4">
-                      <h4 className="font-medium">{option.label}</h4>
+                      <h4 className="font-medium">{t(`builder.format${option.key}`)}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {option.description}
+                        {t(`builder.format${option.key}Desc`)}
                       </p>
                     </CardContent>
                   </Card>
@@ -307,18 +316,25 @@ export function AgilityWorkoutBuilder({
           {step === 2 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label>Development Stage</Label>
+                <Label>{t('builder.developmentStage')}</Label>
                 <Select
                   value={developmentStage}
                   onValueChange={(v) => setDevelopmentStage(v as DevelopmentStage)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select stage (optional)" />
+                    <SelectValue placeholder={t('builder.selectStage')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {stageOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                    {([
+                      { value: 'FUNDAMENTALS' as DevelopmentStage, key: 'fundamentals' },
+                      { value: 'LEARNING_TO_TRAIN' as DevelopmentStage, key: 'learningToTrain' },
+                      { value: 'TRAINING_TO_TRAIN' as DevelopmentStage, key: 'trainingToTrain' },
+                      { value: 'TRAINING_TO_COMPETE' as DevelopmentStage, key: 'trainingToCompete' },
+                      { value: 'TRAINING_TO_WIN' as DevelopmentStage, key: 'trainingToWin' },
+                      { value: 'ELITE' as DevelopmentStage, key: 'elite' }
+                    ]).map((stage) => (
+                      <SelectItem key={stage.value} value={stage.value}>
+                        {t(`stages.${stage.key}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -326,16 +342,16 @@ export function AgilityWorkoutBuilder({
               </div>
 
               <div className="space-y-2">
-                <Label>Target Sports</Label>
+                <Label>{t('builder.targetSports')}</Label>
                 <div className="flex flex-wrap gap-2">
-                  {sportOptions.map((sport) => (
+                  {(['TEAM_FOOTBALL', 'TEAM_BASKETBALL', 'TEAM_HANDBALL', 'TEAM_FLOORBALL', 'TEAM_ICE_HOCKEY', 'TEAM_VOLLEYBALL', 'TENNIS', 'PADEL', 'RUNNING'] as SportType[]).map((sport) => (
                     <Badge
-                      key={sport.value}
-                      variant={targetSports.includes(sport.value) ? 'default' : 'outline'}
+                      key={sport}
+                      variant={targetSports.includes(sport) ? 'default' : 'outline'}
                       className="cursor-pointer"
-                      onClick={() => toggleSport(sport.value)}
+                      onClick={() => toggleSport(sport)}
                     >
-                      {sport.label}
+                      {t(`sports.${sport}`)}
                     </Badge>
                   ))}
                 </div>
@@ -343,23 +359,23 @@ export function AgilityWorkoutBuilder({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Total Duration (minutes)</Label>
+                  <Label>{t('builder.totalDuration')}</Label>
                   <Input
                     type="number"
                     min={1}
                     value={totalDuration || ''}
                     onChange={(e) => setTotalDuration(e.target.value ? parseInt(e.target.value) : undefined)}
-                    placeholder="e.g., 30"
+                    placeholder="30"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Rest Between Drills (seconds)</Label>
+                  <Label>{t('builder.restBetweenDrills')}</Label>
                   <Input
                     type="number"
                     min={0}
                     value={restBetweenDrills || ''}
                     onChange={(e) => setRestBetweenDrills(e.target.value ? parseInt(e.target.value) : undefined)}
-                    placeholder="e.g., 30"
+                    placeholder="30"
                   />
                 </div>
               </div>
@@ -371,9 +387,9 @@ export function AgilityWorkoutBuilder({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[400px]">
               {/* Drill Picker */}
               <div className="border rounded-lg p-4 overflow-hidden flex flex-col">
-                <h4 className="font-medium mb-2">Available Drills</h4>
+                <h4 className="font-medium mb-2">{t('builder.availableDrills')}</h4>
                 <Input
-                  placeholder="Search drills..."
+                  placeholder={t('builder.searchDrills')}
                   value={drillSearchQuery}
                   onChange={(e) => setDrillSearchQuery(e.target.value)}
                   className="mb-2"
@@ -385,9 +401,9 @@ export function AgilityWorkoutBuilder({
                       className="flex items-center justify-between p-2 border rounded hover:bg-muted"
                     >
                       <div>
-                        <p className="text-sm font-medium">{drill.name}</p>
+                        <p className="text-sm font-medium">{drill.nameSv || drill.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {drill.category.replace(/_/g, ' ')}
+                          {t(`categories.${drill.category}`)}
                         </p>
                       </div>
                       <Button size="sm" onClick={() => addDrill(drill)}>
@@ -401,12 +417,12 @@ export function AgilityWorkoutBuilder({
               {/* Selected Drills */}
               <div className="border rounded-lg p-4 overflow-hidden flex flex-col">
                 <h4 className="font-medium mb-2">
-                  Selected Drills ({selectedDrills.length})
+                  {t('builder.selectedDrills')} ({selectedDrills.length})
                 </h4>
                 <div className="flex-1 overflow-y-auto space-y-2">
                   {selectedDrills.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-8">
-                      Add drills from the left panel
+                      {t('builder.addDrillsHint')}
                     </p>
                   ) : (
                     selectedDrills.map((item, index) => (
@@ -417,7 +433,7 @@ export function AgilityWorkoutBuilder({
                         <GripVertical className="h-4 w-4 mt-1 text-muted-foreground cursor-grab" />
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium">{item.drill.name}</p>
+                            <p className="text-sm font-medium">{item.drill.nameSv || item.drill.name}</p>
                             <Button
                               size="sm"
                               variant="ghost"
@@ -439,14 +455,14 @@ export function AgilityWorkoutBuilder({
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="WARMUP">Warmup</SelectItem>
-                                <SelectItem value="MAIN">Main</SelectItem>
-                                <SelectItem value="COOLDOWN">Cooldown</SelectItem>
+                                <SelectItem value="WARMUP">{t('builder.sectionWarmup')}</SelectItem>
+                                <SelectItem value="MAIN">{t('builder.sectionMain')}</SelectItem>
+                                <SelectItem value="COOLDOWN">{t('builder.sectionCooldown')}</SelectItem>
                               </SelectContent>
                             </Select>
                             <Input
                               type="number"
-                              placeholder="Sets"
+                              placeholder={t('builder.sets')}
                               className="h-7 w-16 text-xs"
                               value={item.sets || ''}
                               onChange={(e) =>
@@ -457,7 +473,7 @@ export function AgilityWorkoutBuilder({
                             />
                             <Input
                               type="number"
-                              placeholder="Reps"
+                              placeholder={t('builder.reps')}
                               className="h-7 w-16 text-xs"
                               value={item.reps || ''}
                               onChange={(e) =>
@@ -480,22 +496,22 @@ export function AgilityWorkoutBuilder({
           {step === 4 && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Workout Name *</Label>
+                <Label htmlFor="name">{t('builder.workoutNameRequired')}</Label>
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Pre-Season Agility Circuit"
+                  placeholder={t('builder.workoutNamePlaceholder')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t('workout.description')}</Label>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe the workout..."
+                  placeholder={t('builder.descriptionPlaceholder')}
                   rows={3}
                 />
               </div>
@@ -510,28 +526,28 @@ export function AgilityWorkoutBuilder({
                   htmlFor="template"
                   className="text-sm font-medium leading-none cursor-pointer"
                 >
-                  Save as reusable template
+                  {t('builder.saveAsTemplate')}
                 </label>
               </div>
 
               {/* Summary */}
               <div className="mt-6 p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Summary</h4>
+                <h4 className="font-medium mb-2">{t('builder.summary')}</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>Format: {format}</div>
-                  <div>Drills: {selectedDrills.length}</div>
-                  {totalDuration && <div>Duration: {totalDuration} min</div>}
+                  <div>{t('builder.format')}: {t(`workout.formats.${format}`)}</div>
+                  <div>{t('builder.selectedDrills')}: {selectedDrills.length}</div>
+                  {totalDuration && <div>{t('builder.duration')}: {totalDuration} min</div>}
                   {developmentStage && (
-                    <div>Stage: {developmentStage.replace(/_/g, ' ')}</div>
+                    <div>{t('builder.stage')}: {t(`stages.${developmentStage === 'FUNDAMENTALS' ? 'fundamentals' : developmentStage === 'LEARNING_TO_TRAIN' ? 'learningToTrain' : developmentStage === 'TRAINING_TO_TRAIN' ? 'trainingToTrain' : developmentStage === 'TRAINING_TO_COMPETE' ? 'trainingToCompete' : developmentStage === 'TRAINING_TO_WIN' ? 'trainingToWin' : 'elite'}`)}</div>
                   )}
                 </div>
                 {targetSports.length > 0 && (
                   <div className="mt-2">
-                    <p className="text-sm">Sports:</p>
+                    <p className="text-sm">{t('builder.sports')}:</p>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {targetSports.map((sport) => (
                         <Badge key={sport} variant="secondary" className="text-xs">
-                          {sport.replace(/_/g, ' ')}
+                          {t(`sports.${sport}`)}
                         </Badge>
                       ))}
                     </div>
@@ -549,7 +565,7 @@ export function AgilityWorkoutBuilder({
             onClick={() => (step > 1 ? setStep(step - 1) : onClose())}
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            {step > 1 ? 'Back' : 'Cancel'}
+            {step > 1 ? t('builder.back') : t('builder.cancel')}
           </Button>
           <Button
             onClick={() => (step < 4 ? setStep(step + 1) : handleSubmit())}
@@ -557,13 +573,13 @@ export function AgilityWorkoutBuilder({
           >
             {step < 4 ? (
               <>
-                Next
+                {t('builder.next')}
                 <ChevronRight className="h-4 w-4 ml-1" />
               </>
             ) : isSubmitting ? (
-              'Creating...'
+              t('builder.creating')
             ) : (
-              'Create Workout'
+              t('builder.createWorkout')
             )}
           </Button>
         </div>

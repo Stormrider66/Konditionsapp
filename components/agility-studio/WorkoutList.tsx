@@ -4,6 +4,7 @@
 // List of agility workouts with actions
 
 import { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,7 +23,6 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Calendar } from '@/components/ui/calendar'
@@ -58,15 +58,6 @@ interface WorkoutListProps {
   onDuplicate: (workout: AgilityWorkout) => void
 }
 
-const formatLabels: Record<string, string> = {
-  CIRCUIT: 'Circuit',
-  STATION_ROTATION: 'Station Rotation',
-  INTERVAL: 'Interval',
-  PROGRESSIVE: 'Progressive',
-  REACTIVE: 'Reactive',
-  TESTING: 'Testing'
-}
-
 export function WorkoutList({
   workouts,
   athletes,
@@ -75,6 +66,8 @@ export function WorkoutList({
   onDelete,
   onDuplicate
 }: WorkoutListProps) {
+  const t = useTranslations('agilityStudio')
+  const tCommon = useTranslations('common')
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedWorkout, setSelectedWorkout] = useState<AgilityWorkout | null>(null)
@@ -161,8 +154,8 @@ export function WorkoutList({
       {filteredWorkouts.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Zap className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-medium">No workouts found</h3>
-          <p>Create your first agility workout to get started.</p>
+          <h3 className="text-lg font-medium">{t('workout.noWorkouts')}</h3>
+          <p>{t('workout.createFirst')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -170,7 +163,7 @@ export function WorkoutList({
             <Card key={workout.id}>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
-                  <Badge variant="outline">{formatLabels[workout.format]}</Badge>
+                  <Badge variant="outline">{t(`workout.formats.${workout.format}`)}</Badge>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm">
@@ -180,18 +173,18 @@ export function WorkoutList({
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => onEdit(workout)}>
                         <Edit className="h-4 w-4 mr-2" />
-                        Edit
+                        {t('workout.edit')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => {
                         setSelectedWorkout(workout)
                         setAssignDialogOpen(true)
                       }}>
                         <Users className="h-4 w-4 mr-2" />
-                        Assign
+                        {t('workout.assign')}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onDuplicate(workout)}>
                         <Copy className="h-4 w-4 mr-2" />
-                        Duplicate
+                        {t('workout.duplicate')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
@@ -201,7 +194,7 @@ export function WorkoutList({
                         }}
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
+                        {t('workout.delete')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -223,12 +216,12 @@ export function WorkoutList({
                   )}
                   <Badge variant="secondary">
                     <Dumbbell className="h-3 w-3 mr-1" />
-                    {workout.drills?.length || 0} drills
+                    {t('workout.drillsCount', { count: workout.drills?.length || 0 })}
                   </Badge>
                   {workout._count && (
                     <Badge variant="secondary">
                       <Users className="h-3 w-3 mr-1" />
-                      {workout._count.assignments} assigned
+                      {t('workout.assignedCount', { count: workout._count.assignments })}
                     </Badge>
                   )}
                 </div>
@@ -256,15 +249,15 @@ export function WorkoutList({
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Assign Workout</DialogTitle>
+            <DialogTitle>{t('workout.assignWorkout')}</DialogTitle>
             <DialogDescription>
-              Assign &quot;{selectedWorkout?.name}&quot; to athletes
+              {t('workout.assignDescription', { name: selectedWorkout?.name ?? '' })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* Date Picker */}
             <div className="space-y-2">
-              <Label>Date</Label>
+              <Label>{tCommon('date')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -275,7 +268,7 @@ export function WorkoutList({
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {assignDate ? format(assignDate, 'PPP') : 'Pick a date'}
+                    {assignDate ? format(assignDate, 'PPP') : t('workout.pickDate')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -292,13 +285,13 @@ export function WorkoutList({
             {/* Athlete Selection */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label>Athletes</Label>
+                <Label>{t('workout.athletes')}</Label>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={selectAllAthletes}
                 >
-                  {selectedAthletes.length === athletes.length ? 'Select None' : 'Select All'}
+                  {selectedAthletes.length === athletes.length ? t('workout.selectNone') : t('workout.selectAll')}
                 </Button>
               </div>
               <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-2">
@@ -319,16 +312,16 @@ export function WorkoutList({
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                {selectedAthletes.length} of {athletes.length} selected
+                {t('workout.selectedOf', { selected: selectedAthletes.length, total: athletes.length })}
               </p>
             </div>
 
             {/* Notes */}
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes (optional)</Label>
+              <Label htmlFor="notes">{t('workout.notesOptional')}</Label>
               <Textarea
                 id="notes"
-                placeholder="Add instructions or notes..."
+                placeholder={t('workout.notesPlaceholder')}
                 value={assignNotes}
                 onChange={(e) => setAssignNotes(e.target.value)}
               />
@@ -336,13 +329,13 @@ export function WorkoutList({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button
               onClick={handleAssign}
               disabled={selectedAthletes.length === 0 || !assignDate || isAssigning}
             >
-              {isAssigning ? 'Assigning...' : `Assign (${selectedAthletes.length})`}
+              {isAssigning ? t('workout.assigning') : t('workout.assignCount', { count: selectedAthletes.length })}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -352,17 +345,17 @@ export function WorkoutList({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Workout</DialogTitle>
+            <DialogTitle>{t('workout.deleteWorkout')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{selectedWorkout?.name}&quot;? This action cannot be undone.
+              {t('workout.deleteConfirmMessage', { name: selectedWorkout?.name ?? '' })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {tCommon('cancel')}
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? t('workout.deleting') : tCommon('delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
