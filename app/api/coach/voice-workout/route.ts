@@ -47,7 +47,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Audio file required' }, { status: 400 })
     }
 
-    if (!ALLOWED_TYPES.includes(audioFile.type)) {
+    // Check if file type starts with any allowed type (handles codecs like "audio/webm;codecs=opus")
+    const isAllowedType = ALLOWED_TYPES.some(allowed => audioFile.type.startsWith(allowed))
+    if (!isAllowedType) {
       return NextResponse.json(
         { error: `Invalid file type. Allowed: ${ALLOWED_TYPES.join(', ')}` },
         { status: 400 }
@@ -98,7 +100,9 @@ export async function POST(request: NextRequest) {
       'audio/wav': 'wav',
       'audio/ogg': 'ogg',
     }
-    const ext = mimeToExt[audioFile.type] || 'webm'
+    // Extract base MIME type without codec suffix (e.g., "audio/webm;codecs=opus" -> "audio/webm")
+    const baseMimeType = audioFile.type.split(';')[0]
+    const ext = mimeToExt[baseMimeType] || 'webm'
     const fileName = `${user.id}/${timestamp}.${ext}`
 
     // Upload to Supabase Storage
@@ -111,8 +115,19 @@ export async function POST(request: NextRequest) {
       })
 
     if (uploadError) {
-      logger.error('Voice workout upload: Supabase upload error', {}, uploadError)
-      return NextResponse.json({ error: 'Failed to upload audio file' }, { status: 500 })
+      logger.error('Voice workout upload: Supabase upload error', {
+        message: uploadError.message,
+        name: uploadError.name,
+        bucket: 'voice-workouts',
+        fileName,
+      }, uploadError)
+      // Return more specific error for debugging
+      const errorMessage = uploadError.message?.includes('bucket')
+        ? 'Storage bucket "voice-workouts" not found. Please create it in Supabase.'
+        : uploadError.message?.includes('policy')
+        ? 'Storage permission denied. Check bucket policies.'
+        : `Failed to upload audio file: ${uploadError.message}`
+      return NextResponse.json({ error: errorMessage }, { status: 500 })
     }
 
     // Create database record

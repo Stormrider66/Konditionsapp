@@ -26,28 +26,34 @@ interface VoiceWorkoutButtonProps {
   variant?: 'default' | 'outline' | 'ghost' | 'link' | 'card'
   size?: 'default' | 'sm' | 'lg' | 'icon'
   className?: string
+  /** Base path for navigation (e.g., '/starbythomson' for business context) */
+  basePath?: string
 }
 
 export function VoiceWorkoutButton({
   variant = 'default',
   size = 'default',
   className,
+  basePath = '',
 }: VoiceWorkoutButtonProps) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
+
+  // Build coach path with optional business prefix
+  const coachPath = basePath ? `${basePath}/coach` : '/coach'
 
   const handleComplete = (result: { workoutId: string; workoutType: string }) => {
     setOpen(false)
     // Navigate to the created workout
     switch (result.workoutType) {
       case 'STRENGTH':
-        router.push(`/coach/strength?created=${result.workoutId}`)
+        router.push(`${coachPath}/strength?created=${result.workoutId}`)
         break
       case 'CARDIO':
-        router.push(`/coach/cardio?created=${result.workoutId}`)
+        router.push(`${coachPath}/cardio?created=${result.workoutId}`)
         break
       case 'HYBRID':
-        router.push(`/coach/hybrid-studio?created=${result.workoutId}`)
+        router.push(`${coachPath}/hybrid-studio?created=${result.workoutId}`)
         break
       default:
         router.refresh()
@@ -70,6 +76,10 @@ export function VoiceWorkoutButton({
           </button>
         </SheetTrigger>
         <SheetContent side="right" className="w-full sm:max-w-lg p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Skapa träningspass med röst</SheetTitle>
+            <SheetDescription>Spela in ett röstkommando för att skapa ett träningspass</SheetDescription>
+          </SheetHeader>
           <VoiceWorkoutCreator
             onComplete={handleComplete}
             onCancel={() => setOpen(false)}
@@ -88,6 +98,10 @@ export function VoiceWorkoutButton({
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-lg p-0">
+        <SheetHeader className="sr-only">
+          <SheetTitle>Skapa träningspass med röst</SheetTitle>
+          <SheetDescription>Spela in ett röstkommando för att skapa ett träningspass</SheetDescription>
+        </SheetHeader>
         <VoiceWorkoutCreator
           onComplete={handleComplete}
           onCancel={() => setOpen(false)}

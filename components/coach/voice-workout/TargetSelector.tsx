@@ -54,31 +54,33 @@ export function TargetSelector({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch athletes
+        // Fetch athletes (API returns { success, data: clients[] })
         const clientsRes = await fetch('/api/clients?limit=100')
         if (clientsRes.ok) {
-          const data = await clientsRes.json()
+          const result = await clientsRes.json()
+          const clients = result.data || result.clients || []
           setAthletes(
-            data.clients?.map((c: { id: string; name: string; email?: string }) => ({
+            clients.map((c: { id: string; name: string; email?: string; athleteAccount?: { user?: { email?: string } } }) => ({
               id: c.id,
               name: c.name,
-              email: c.email,
-            })) || []
+              email: c.athleteAccount?.user?.email || c.email,
+            }))
           )
         }
 
-        // Fetch teams
+        // Fetch teams (API returns { success, data: teams[] })
         const teamsRes = await fetch('/api/teams')
         if (teamsRes.ok) {
-          const data = await teamsRes.json()
+          const result = await teamsRes.json()
+          const teamsList = result.data || result.teams || []
           setTeams(
-            data.teams?.map(
+            teamsList.map(
               (t: { id: string; name: string; _count?: { members?: number } }) => ({
                 id: t.id,
                 name: t.name,
                 memberCount: t._count?.members || 0,
               })
-            ) || []
+            )
           )
         }
       } catch (err) {

@@ -414,6 +414,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
               <VoiceWorkoutButton
                 variant="ghost"
                 className="w-full justify-start gap-3 p-2 h-auto font-normal hover:bg-muted dark:hover:bg-white/5"
+                basePath={basePath}
               />
               <Link href={`${basePath}/coach/test`} className="block">
                 <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
