@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -47,6 +47,7 @@ import { NotificationBell } from '@/components/calendar/NotificationsPanel'
 import { Badge } from '@/components/ui/badge'
 import { SportSwitcher } from './SportSwitcher'
 import { SportType } from '@prisma/client'
+import { TrialBadge } from '@/components/ui/TrialBadge'
 
 interface SportProfile {
     primarySport: SportType
@@ -65,7 +66,31 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
     const pathname = usePathname()
     const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
+    const [subscriptionStatus, setSubscriptionStatus] = useState<{
+        trialActive: boolean
+        trialDaysRemaining: number | null
+    } | null>(null)
     const displayName = clientName || athleteName || user?.email || 'Athlete'
+
+    // Fetch subscription status for trial badge
+    useEffect(() => {
+        async function fetchSubscriptionStatus() {
+            try {
+                const response = await fetch('/api/athlete/subscription-status')
+                const data = await response.json()
+                if (data.success) {
+                    setSubscriptionStatus({
+                        trialActive: data.data.trialActive,
+                        trialDaysRemaining: data.data.trialDaysRemaining,
+                    })
+                }
+            } catch (error) {
+                // Silently fail - subscription status is non-critical
+                console.error('Failed to fetch subscription status:', error)
+            }
+        }
+        fetchSubscriptionStatus()
+    }, [])
 
     const handleSignOut = async () => {
         const supabase = createClient()
@@ -219,8 +244,14 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                 {/* User Profile / Mobile Menu */}
                 <div className="flex items-center gap-4">
 
-                    {/* Language & Notifications (Desktop) */}
-                    <div className="hidden md:flex items-center gap-1 text-slate-200">
+                    {/* Trial Badge, Language & Notifications (Desktop) */}
+                    <div className="hidden md:flex items-center gap-2 text-slate-200">
+                        {subscriptionStatus?.trialActive && subscriptionStatus.trialDaysRemaining && (
+                            <TrialBadge
+                                daysRemaining={subscriptionStatus.trialDaysRemaining}
+                                upgradeUrl="/athlete/subscription"
+                            />
+                        )}
                         <LanguageSwitcher showLabel={false} variant="ghost" />
                         <NotificationBell clientId={clientId} />
                     </div>
@@ -286,6 +317,17 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                                         <NotificationBell clientId={clientId} />
                                     </div>
                                 </div>
+
+                                {/* Trial Badge (Mobile) */}
+                                {subscriptionStatus?.trialActive && subscriptionStatus.trialDaysRemaining && (
+                                    <div className="px-4">
+                                        <TrialBadge
+                                            daysRemaining={subscriptionStatus.trialDaysRemaining}
+                                            upgradeUrl="/athlete/subscription"
+                                            className="w-full justify-center"
+                                        />
+                                    </div>
+                                )}
 
                                 {/* Mobile Sport Switcher */}
                                 {sportProfile && sportProfile.secondarySports.length > 0 && (

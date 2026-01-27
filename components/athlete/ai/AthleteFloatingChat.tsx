@@ -17,11 +17,14 @@ import {
   Maximize2,
   Sparkles,
   MessageSquare,
+  Lock,
 } from 'lucide-react'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
 import { cn } from '@/lib/utils'
 import { ATHLETE_QUICK_PROMPTS, MemoryContext } from '@/lib/ai/athlete-prompts'
 import { MemoryIndicator } from './MemoryIndicator'
+import { AIChatUsageMeter, AIChatUsageCompact } from '@/components/athlete/AIChatUsageMeter'
+import Link from 'next/link'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -49,6 +52,16 @@ export function AthleteFloatingChat({
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null)
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
   const [memoryContext, setMemoryContext] = useState<MemoryContext | null>(null)
+  const [subscriptionStatus, setSubscriptionStatus] = useState<{
+    aiChatEnabled: boolean
+    used: number
+    limit: number
+  } | null>(null)
+  const [subscriptionError, setSubscriptionError] = useState<{
+    code: string
+    message: string
+    upgradeUrl?: string
+  } | null>(null)
 
   // Fetch AI config from coach
   useEffect(() => {
@@ -78,6 +91,26 @@ export function AthleteFloatingChat({
     fetchConfig()
   }, [])
 
+  // Fetch subscription status
+  useEffect(() => {
+    async function fetchSubscriptionStatus() {
+      try {
+        const response = await fetch('/api/athlete/subscription-status')
+        const data = await response.json()
+        if (data.success && data.data) {
+          setSubscriptionStatus({
+            aiChatEnabled: data.data.features?.aiChat?.enabled ?? false,
+            used: data.data.features?.aiChat?.used ?? 0,
+            limit: data.data.features?.aiChat?.limit ?? 0,
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription status:', error)
+      }
+    }
+    fetchSubscriptionStatus()
+  }, [])
+
   // Manual input state
   const [input, setInput] = useState('')
 
@@ -92,6 +125,17 @@ export function AthleteFloatingChat({
       api: '/api/ai/chat',
     }),
     onError: (error) => {
+      // Check for subscription error (403)
+      const errorMessage = error.message || ''
+      if (errorMessage.includes('SUBSCRIPTION_REQUIRED') || errorMessage.includes('403')) {
+        setSubscriptionError({
+          code: 'SUBSCRIPTION_REQUIRED',
+          message: 'Du har nått din månadsgräns för AI-chatt.',
+          upgradeUrl: '/athlete/subscription',
+        })
+        return
+      }
+
       toast({
         title: 'Kunde inte skicka meddelande',
         description: error.message,
@@ -281,6 +325,58 @@ export function AthleteFloatingChat({
     )
   }
 
+  // Subscription error (limit reached)
+  if (subscriptionError) {
+    return (
+      <div
+        className={cn(
+          'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
+          'bottom-6 right-6 w-[380px] h-[350px]'
+        )}
+      >
+        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-lg">
+          <div className="flex items-center gap-2">
+            <Lock className="h-5 w-5 text-white" />
+            <span className="font-semibold text-white">Prenumeration krävs</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setSubscriptionError(null)
+              handleClose()
+            }}
+            className="h-8 w-8 text-white hover:bg-white/20"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6 text-center">
+          <div>
+            <Lock className="h-12 w-12 mx-auto mb-4 text-amber-500" />
+            <h3 className="font-semibold mb-2">{subscriptionError.message}</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Uppgradera din prenumeration för att fortsätta använda AI-chatten.
+            </p>
+            {subscriptionStatus && subscriptionStatus.limit > 0 && (
+              <div className="mb-4">
+                <AIChatUsageMeter
+                  used={subscriptionStatus.used}
+                  limit={subscriptionStatus.limit}
+                />
+              </div>
+            )}
+            <Link href={subscriptionError.upgradeUrl || '/athlete/subscription'}>
+              <Button className="bg-amber-600 hover:bg-amber-700">
+                Uppgradera prenumeration
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Chat panel
   return (
     <div
@@ -297,6 +393,16 @@ export function AthleteFloatingChat({
           <Bot className="h-5 w-5 text-white" />
           <span className="font-semibold text-white">AI-assistent</span>
           {getProviderBadge()}
+          {/* Usage meter - only show if there's a limit */}
+          {subscriptionStatus && subscriptionStatus.limit > 0 && subscriptionStatus.limit !== -1 && (
+            <Badge variant="secondary" className="text-xs bg-white/20 text-white">
+              <AIChatUsageCompact
+                used={subscriptionStatus.used}
+                limit={subscriptionStatus.limit}
+                className="text-white"
+              />
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <MemoryIndicator
