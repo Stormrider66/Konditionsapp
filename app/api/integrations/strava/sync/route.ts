@@ -15,6 +15,7 @@ import {
 } from '@/lib/integrations/strava/sync';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
+import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
 
 // Schema for POST request
 const syncRequestSchema = z.object({
@@ -150,6 +151,19 @@ export async function POST(request: NextRequest) {
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    // Check subscription for Strava sync access
+    const access = await checkAthleteFeatureAccess(clientId, 'strava');
+    if (!access.allowed) {
+      return NextResponse.json(
+        {
+          error: access.reason || 'Strava sync requires a Standard or Pro subscription',
+          code: access.code || 'SUBSCRIPTION_REQUIRED',
+          upgradeUrl: access.upgradeUrl || '/athlete/subscription',
+        },
+        { status: 403 }
+      );
     }
 
     // Check if connected

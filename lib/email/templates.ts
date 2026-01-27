@@ -455,6 +455,202 @@ interface ReferralInviteEmailData extends BaseTemplateData {
   benefit: string;
 }
 
+// ==================== TRIAL WARNING EMAIL ====================
+interface TrialWarningEmailData extends BaseTemplateData {
+  daysRemaining: number;
+  upgradeUrl: string;
+}
+
+export function getTrialWarningEmailTemplate(data: TrialWarningEmailData) {
+  const { recipientName, daysRemaining, upgradeUrl, locale = 'sv' } = data;
+  const safeRecipientName = escapeHtml(recipientName)
+  const safeUpgradeUrl = sanitizeAttribute(sanitizeUrl(upgradeUrl))
+
+  const content = locale === 'sv' ? {
+    subject: `Din provperiod går ut om ${daysRemaining} dag${daysRemaining > 1 ? 'ar' : ''}`,
+    greeting: `Hej ${safeRecipientName},`,
+    intro: `Din gratis provperiod av Star by Thomson går ut om <strong>${daysRemaining} dag${daysRemaining > 1 ? 'ar' : ''}</strong>.`,
+    benefits: [
+      'Obegränsad tillgång till AI-assistent för träningsplanering',
+      'Videoanalys av löpteknik och styrketräning',
+      'Synkronisering med Strava och Garmin',
+      'Avancerad prestandaanalys och rapporter'
+    ],
+    benefitsTitle: 'Uppgradera nu för att behålla tillgång till:',
+    urgency: daysRemaining <= 3
+      ? 'Agera nu för att undvika avbrott i din tjänst!'
+      : 'Uppgradera idag och fortsätt optimera din träning.',
+    ctaText: 'Uppgradera nu',
+    helpText: 'Har du frågor? Svara på detta mail så hjälper vi dig.',
+    closing: 'Med vänliga hälsningar,',
+    team: 'Star by Thomson-teamet'
+  } : {
+    subject: `Your trial expires in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}`,
+    greeting: `Hi ${safeRecipientName},`,
+    intro: `Your free trial of Star by Thomson expires in <strong>${daysRemaining} day${daysRemaining > 1 ? 's' : ''}</strong>.`,
+    benefits: [
+      'Unlimited access to AI training assistant',
+      'Video analysis for running form and strength training',
+      'Strava and Garmin synchronization',
+      'Advanced performance analytics and reports'
+    ],
+    benefitsTitle: 'Upgrade now to keep access to:',
+    urgency: daysRemaining <= 3
+      ? 'Act now to avoid service interruption!'
+      : 'Upgrade today and continue optimizing your training.',
+    ctaText: 'Upgrade now',
+    helpText: 'Have questions? Reply to this email and we\'ll help you.',
+    closing: 'Best regards,',
+    team: 'The Star by Thomson Team'
+  };
+
+  const urgentStyles = daysRemaining <= 3
+    ? 'background-color: #fef2f2; border-left: 4px solid #dc2626;'
+    : 'background-color: #fef3c7; border-left: 4px solid #f59e0b;';
+
+  const urgentTextColor = daysRemaining <= 3 ? '#991b1b' : '#92400e';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 40px 20px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">⏰ ${locale === 'sv' ? 'Provperiod snart slut' : 'Trial Ending Soon'}</h1>
+      </div>
+
+      <div style="padding: 40px 30px;">
+        <h2 style="color: #333; margin-top: 0;">${content.greeting}</h2>
+
+        <p style="color: #555; font-size: 16px; line-height: 1.6;">${content.intro}</p>
+
+        <div style="${urgentStyles} padding: 15px 20px; margin: 25px 0;">
+          <p style="color: ${urgentTextColor}; margin: 0; font-weight: bold;">${content.urgency}</p>
+        </div>
+
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+          <h3 style="color: #667eea; margin-top: 0;">${content.benefitsTitle}</h3>
+          <ul style="color: #555; padding-left: 20px;">
+            ${content.benefits.map(b => `<li style="margin: 8px 0;">${b}</li>`).join('')}
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin: 35px 0;">
+          <a href="${safeUpgradeUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 18px;">
+            ${content.ctaText}
+          </a>
+        </div>
+
+        <p style="color: #888; font-size: 14px;">${content.helpText}</p>
+
+        <p style="color: #555; margin-top: 30px;">
+          ${content.closing}<br/>
+          <strong>${content.team}</strong>
+        </p>
+      </div>
+
+      <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+        <p style="color: #888; font-size: 12px; margin: 0;">
+          © ${new Date().getFullYear()} Star by Thomson. All rights reserved.
+        </p>
+      </div>
+    </div>
+  `;
+
+  return { subject: content.subject, html };
+}
+
+// ==================== TRIAL EXPIRED EMAIL ====================
+interface TrialExpiredEmailData extends BaseTemplateData {
+  upgradeUrl: string;
+}
+
+export function getTrialExpiredEmailTemplate(data: TrialExpiredEmailData) {
+  const { recipientName, upgradeUrl, locale = 'sv' } = data;
+  const safeRecipientName = escapeHtml(recipientName)
+  const safeUpgradeUrl = sanitizeAttribute(sanitizeUrl(upgradeUrl))
+
+  const content = locale === 'sv' ? {
+    subject: 'Din provperiod har gått ut',
+    greeting: `Hej ${safeRecipientName},`,
+    intro: 'Din gratis provperiod av Star by Thomson har nu gått ut.',
+    explanation: 'Du har fortfarande tillgång till ditt konto, men premiumfunktioner som AI-assistenten, videoanalys och integrationsynkronisering är nu begränsade.',
+    benefits: [
+      'AI-assistent för träningsplanering',
+      'Videoanalys av löpteknik',
+      'Strava och Garmin-synkronisering',
+      'Avancerad prestandaanalys'
+    ],
+    benefitsTitle: 'Uppgradera för att låsa upp:',
+    ctaText: 'Uppgradera nu',
+    missYou: 'Vi hoppas att du har haft en bra upplevelse! Uppgradera idag för att fortsätta använda alla funktioner.',
+    helpText: 'Har du frågor? Svara på detta mail så hjälper vi dig.',
+    closing: 'Med vänliga hälsningar,',
+    team: 'Star by Thomson-teamet'
+  } : {
+    subject: 'Your trial has expired',
+    greeting: `Hi ${safeRecipientName},`,
+    intro: 'Your free trial of Star by Thomson has now expired.',
+    explanation: 'You still have access to your account, but premium features like the AI assistant, video analysis, and integration sync are now limited.',
+    benefits: [
+      'AI training assistant',
+      'Running form video analysis',
+      'Strava and Garmin sync',
+      'Advanced performance analytics'
+    ],
+    benefitsTitle: 'Upgrade to unlock:',
+    ctaText: 'Upgrade now',
+    missYou: 'We hope you\'ve had a great experience! Upgrade today to continue using all features.',
+    helpText: 'Have questions? Reply to this email and we\'ll help you.',
+    closing: 'Best regards,',
+    team: 'The Star by Thomson Team'
+  };
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+      <div style="background-color: #6b7280; padding: 40px 20px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">${locale === 'sv' ? 'Provperiod avslutad' : 'Trial Expired'}</h1>
+      </div>
+
+      <div style="padding: 40px 30px;">
+        <h2 style="color: #333; margin-top: 0;">${content.greeting}</h2>
+
+        <p style="color: #555; font-size: 16px; line-height: 1.6;">${content.intro}</p>
+
+        <p style="color: #555; font-size: 16px; line-height: 1.6;">${content.explanation}</p>
+
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+          <h3 style="color: #667eea; margin-top: 0;">${content.benefitsTitle}</h3>
+          <ul style="color: #555; padding-left: 20px;">
+            ${content.benefits.map(b => `<li style="margin: 8px 0;">${b}</li>`).join('')}
+          </ul>
+        </div>
+
+        <p style="color: #555; font-size: 16px;">${content.missYou}</p>
+
+        <div style="text-align: center; margin: 35px 0;">
+          <a href="${safeUpgradeUrl}" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 18px;">
+            ${content.ctaText}
+          </a>
+        </div>
+
+        <p style="color: #888; font-size: 14px;">${content.helpText}</p>
+
+        <p style="color: #555; margin-top: 30px;">
+          ${content.closing}<br/>
+          <strong>${content.team}</strong>
+        </p>
+      </div>
+
+      <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+        <p style="color: #888; font-size: 12px; margin: 0;">
+          © ${new Date().getFullYear()} Star by Thomson. All rights reserved.
+        </p>
+      </div>
+    </div>
+  `;
+
+  return { subject: content.subject, html };
+}
+
+// ==================== REFERRAL INVITE EMAIL ====================
 export function getReferralInviteEmailTemplate(data: ReferralInviteEmailData) {
   const { recipientName, referrerName, signupUrl, benefit, locale = 'sv' } = data;
   const safeRecipientName = escapeHtml(recipientName)

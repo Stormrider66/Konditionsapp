@@ -11,6 +11,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { requireCoach, requireAthlete, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { checkAthleteFeatureAccess, incrementAIChatUsage } from '@/lib/subscription/feature-access';
 import { searchSimilarChunks } from '@/lib/ai/embeddings';
 import { buildSportSpecificContext, type AthleteData } from '@/lib/ai/sport-context-builder';
 import { buildAthleteOwnContext } from '@/lib/ai/athlete-context-builder';
@@ -140,6 +141,21 @@ export async function POST(request: NextRequest) {
       apiKeyUserId = athleteAccount.client.userId; // Use coach's API keys
       athleteClientId = athleteAccount.client.id;
       athleteName = athleteAccount.client.name;
+
+      // Check subscription for AI chat access
+      const access = await checkAthleteFeatureAccess(athleteClientId, 'ai_chat');
+      if (!access.allowed) {
+        return new Response(
+          JSON.stringify({
+            error: access.reason || 'AI chat requires a subscription',
+            code: access.code || 'SUBSCRIPTION_REQUIRED',
+            upgradeUrl: access.upgradeUrl || '/athlete/subscription',
+            currentUsage: access.currentUsage,
+            limit: access.limit,
+          }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
 
       // Get current program window for calendar constraints (if available)
       try {
@@ -780,6 +796,15 @@ ${pageContext}
             });
           } catch (error) {
             logger.error('Error saving messages', { conversationId }, error)
+          }
+        }
+
+        // Increment AI chat usage for subscription tracking
+        if (isAthleteChat && athleteClientId) {
+          try {
+            await incrementAIChatUsage(athleteClientId);
+          } catch (usageError) {
+            logger.warn('Failed to increment AI chat usage', { clientId: athleteClientId }, usageError);
           }
         }
 

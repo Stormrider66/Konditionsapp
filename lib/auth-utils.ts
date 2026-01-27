@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { User, UserRole, AdminRole, BusinessAdminUser, BusinessMemberRole } from '@/types'
 import { redirect } from 'next/navigation'
-import { isAthleteModeActive } from '@/lib/athlete-mode'
+import { isAthleteModeActive, getAthleteModeAccess } from '@/lib/athlete-mode'
+import { createCoachTrialSubscription } from '@/lib/subscription/feature-access'
 
 /**
  * Get the currently authenticated user from Supabase session
@@ -85,6 +86,14 @@ export async function getCurrentUser(): Promise<User | null> {
       updatedAt: true,
     },
   })
+
+  // Auto-create trial subscription for new coach (14-day trial)
+  try {
+    await createCoachTrialSubscription(user.id, 14)
+  } catch (error) {
+    // Subscription may already exist if created through another flow
+    console.error('Failed to create coach trial subscription:', error)
+  }
 
   return user
 }
@@ -192,6 +201,13 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
     if (!athleteMode) {
       // Not in athlete mode, redirect to coach dashboard
       redirect('/coach')
+    }
+
+    // Check subscription status for athlete mode access
+    const access = await getAthleteModeAccess(user.id)
+    if (!access.allowed) {
+      // Subscription expired or invalid, redirect to subscription page
+      redirect('/coach/subscription?reason=trial_expired')
     }
 
     // Get the coach's self athlete client ID

@@ -13,6 +13,7 @@ import { normalizeStoragePath } from '@/lib/storage/supabase-storage';
 import { createSignedUrl } from '@/lib/storage/supabase-storage-server';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
 
 const createAnalysisSchema = z.object({
   // Accept either a Supabase storage path or a Supabase Storage URL (signed/public).
@@ -71,6 +72,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'Athlete not found' },
           { status: 404 }
+        );
+      }
+
+      // Check athlete subscription for video analysis access
+      const access = await checkAthleteFeatureAccess(validated.athleteId, 'video_analysis');
+      if (!access.allowed) {
+        return NextResponse.json(
+          {
+            error: access.reason || 'Video analysis requires a Pro subscription',
+            code: access.code || 'SUBSCRIPTION_REQUIRED',
+            upgradeUrl: access.upgradeUrl || '/athlete/subscription',
+          },
+          { status: 403 }
         );
       }
     }

@@ -4,13 +4,17 @@
  * Subscription Client Component
  *
  * Client-side component for managing subscription.
+ * Shows trial status, usage meters, and upgrade options.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
+import { TrialBadge } from '@/components/ui/TrialBadge'
+import { AIChatUsageMeter } from '@/components/athlete/AIChatUsageMeter'
+import { Progress } from '@/components/ui/progress'
 import {
   ChevronLeft,
   CreditCard,
@@ -19,10 +23,12 @@ import {
   Crown,
   Zap,
   Star,
-  Activity,
   MessageSquare,
   Video,
   Watch,
+  Clock,
+  AlertTriangle,
+  Lock,
 } from 'lucide-react'
 
 interface Subscription {
@@ -31,11 +37,33 @@ interface Subscription {
   status: string
   billingCycle?: string | null
   stripeSubscriptionId?: string | null
+  trialEndsAt?: string | null
+  aiChatEnabled?: boolean
+  aiChatMessagesUsed?: number
+  aiChatMessagesLimit?: number
+  videoAnalysisEnabled?: boolean
+  stravaEnabled?: boolean
+  garminEnabled?: boolean
 }
 
 interface SubscriptionClientProps {
   clientId: string
   subscription: Subscription | null
+  basePath?: string
+}
+
+interface SubscriptionStatus {
+  hasSubscription: boolean
+  tier: string
+  status: string
+  trialActive: boolean
+  trialDaysRemaining: number | null
+  features: {
+    aiChat: { enabled: boolean; used: number; limit: number }
+    videoAnalysis: { enabled: boolean }
+    strava: { enabled: boolean }
+    garmin: { enabled: boolean }
+  }
 }
 
 const TIERS = [
@@ -63,7 +91,7 @@ const TIERS = [
       'Daglig incheckning',
       'Träningsloggning',
       'AI-chatt (50 meddelanden/månad)',
-      'Grundläggande Strava/Garmin-synk',
+      'Strava/Garmin-synk',
     ],
     icon: Zap,
     color: 'blue',
@@ -78,10 +106,9 @@ const TIERS = [
     features: [
       'Allt i Standard',
       'Obegränsad AI-chatt',
-      'AI-agent (autonom)',
       'Videoanalys',
-      'Full Strava/Garmin-integration',
-      'Näringsplanering',
+      'AI-agent (autonom)',
+      'Full integration',
       'Programjusteringar med AI',
     ],
     icon: Crown,
@@ -89,12 +116,32 @@ const TIERS = [
   },
 ]
 
-export function SubscriptionClient({ clientId, subscription }: SubscriptionClientProps) {
+export function SubscriptionClient({ clientId, subscription, basePath = '' }: SubscriptionClientProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY')
+  const [status, setStatus] = useState<SubscriptionStatus | null>(null)
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true)
 
   const currentTier = subscription?.tier || 'FREE'
+
+  // Fetch detailed subscription status
+  useEffect(() => {
+    async function fetchStatus() {
+      try {
+        const response = await fetch('/api/athlete/subscription-status')
+        const data = await response.json()
+        if (data.success) {
+          setStatus(data.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription status:', error)
+      } finally {
+        setIsLoadingStatus(false)
+      }
+    }
+    fetchStatus()
+  }, [])
 
   const handleUpgrade = async (tierId: string) => {
     if (tierId === 'FREE') return
@@ -171,66 +218,124 @@ export function SubscriptionClient({ clientId, subscription }: SubscriptionClien
     return tier.price
   }
 
-  const getColorClasses = (color: string, isActive: boolean) => {
-    if (isActive) {
-      return {
-        border: `border-${color}-500 ring-2 ring-${color}-500`,
-        bg: `bg-${color}-50`,
-        badge: `bg-${color}-100 text-${color}-700`,
-      }
-    }
-    return {
-      border: 'border-gray-200',
-      bg: 'bg-white',
-      badge: 'bg-gray-100 text-gray-700',
-    }
-  }
+  const isTrialExpired = status?.status === 'EXPIRED' && subscription?.status === 'TRIAL'
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href="/athlete/settings">
-            <Button variant="ghost" size="icon">
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            <h1 className="text-lg font-semibold">Prenumeration</h1>
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href={`${basePath}/athlete/settings`}>
+              <Button variant="ghost" size="icon">
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              <h1 className="text-lg font-semibold">Prenumeration</h1>
+            </div>
           </div>
+          {status?.trialActive && status.trialDaysRemaining && (
+            <TrialBadge daysRemaining={status.trialDaysRemaining} upgradeUrl="#plans" />
+          )}
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-4xl mx-auto p-4 space-y-6">
-        {/* Current Plan */}
+        {/* Trial Expired Warning */}
+        {isTrialExpired && (
+          <Card className="border-amber-500 bg-amber-50">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-amber-100 rounded-full">
+                  <AlertTriangle className="h-6 w-6 text-amber-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-amber-900">Din provperiod har gått ut</h3>
+                  <p className="text-sm text-amber-700 mt-1">
+                    Uppgradera nu för att fortsätta använda AI-chatt, videoanalys och andra premiumfunktioner.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Current Plan Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Din nuvarande plan</CardTitle>
-            <CardDescription>
-              {currentTier === 'FREE'
-                ? 'Du använder gratisversionen'
-                : `Du har ${currentTier} prenumeration`}
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  Din nuvarande plan
+                  {status?.trialActive && (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                      Provperiod
+                    </span>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  {currentTier === 'FREE'
+                    ? 'Du använder gratisversionen'
+                    : status?.trialActive
+                    ? `Du testar ${currentTier} - ${status.trialDaysRemaining} dagar kvar`
+                    : `Du har ${currentTier} prenumeration`}
+                </CardDescription>
+              </div>
+              {subscription?.stripeSubscriptionId && (
+                <Button variant="outline" onClick={handleManageSubscription} disabled={isLoading === 'manage'}>
+                  {isLoading === 'manage' ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 mr-2" />
+                  )}
+                  Hantera
+                </Button>
+              )}
+            </div>
           </CardHeader>
-          {subscription?.stripeSubscriptionId && (
-            <CardContent>
-              <Button variant="outline" onClick={handleManageSubscription} disabled={isLoading === 'manage'}>
-                {isLoading === 'manage' ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <CreditCard className="h-4 w-4 mr-2" />
-                )}
-                Hantera betalning
-              </Button>
+
+          {/* Usage & Features */}
+          {status && (currentTier !== 'FREE' || status.trialActive) && (
+            <CardContent className="border-t pt-6">
+              <div className="grid sm:grid-cols-2 gap-6">
+                {/* AI Chat Usage */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <MessageSquare className="h-4 w-4" />
+                    AI-chatt
+                  </div>
+                  <AIChatUsageMeter
+                    used={status.features.aiChat.used}
+                    limit={status.features.aiChat.limit === -1 ? undefined : status.features.aiChat.limit}
+                  />
+                </div>
+
+                {/* Feature Status */}
+                <div className="space-y-3">
+                  <div className="text-sm font-medium">Funktioner</div>
+                  <div className="space-y-2">
+                    <FeatureStatus
+                      icon={<Video className="h-4 w-4" />}
+                      label="Videoanalys"
+                      enabled={status.features.videoAnalysis.enabled}
+                    />
+                    <FeatureStatus
+                      icon={<Watch className="h-4 w-4" />}
+                      label="Strava/Garmin"
+                      enabled={status.features.strava.enabled || status.features.garmin.enabled}
+                    />
+                  </div>
+                </div>
+              </div>
             </CardContent>
           )}
         </Card>
 
         {/* Billing Cycle Toggle */}
-        <div className="flex justify-center">
+        <div className="flex justify-center" id="plans">
           <div className="bg-white rounded-lg p-1 border inline-flex">
             <button
               onClick={() => setBillingCycle('MONTHLY')}
@@ -319,7 +424,7 @@ export function SubscriptionClient({ clientId, subscription }: SubscriptionClien
 
                   {isActive ? (
                     <Button variant="outline" className="w-full" disabled>
-                      Nuvarande plan
+                      {status?.trialActive ? 'Provperiod aktiv' : 'Nuvarande plan'}
                     </Button>
                   ) : tier.id === 'FREE' ? (
                     <Button variant="outline" className="w-full" disabled>
@@ -338,7 +443,9 @@ export function SubscriptionClient({ clientId, subscription }: SubscriptionClien
                       {isLoading === tier.id ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : null}
-                      Uppgradera
+                      {status?.trialActive && currentTier === tier.id
+                        ? 'Aktivera nu'
+                        : 'Uppgradera'}
                     </Button>
                   )}
                 </CardContent>
@@ -347,6 +454,31 @@ export function SubscriptionClient({ clientId, subscription }: SubscriptionClien
           })}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Helper component for feature status display
+function FeatureStatus({
+  icon,
+  label,
+  enabled,
+}: {
+  icon: React.ReactNode
+  label: string
+  enabled: boolean
+}) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        {icon}
+        {label}
+      </div>
+      {enabled ? (
+        <Check className="h-4 w-4 text-green-500" />
+      ) : (
+        <Lock className="h-4 w-4 text-muted-foreground" />
+      )}
     </div>
   )
 }
