@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
+import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -17,6 +18,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireCoach();
     const { id } = await params;
+
+    // Rate limit stats requests to prevent abuse
+    const rateLimited = await rateLimitJsonResponse('stats:location', user.id, {
+      limit: 30,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({

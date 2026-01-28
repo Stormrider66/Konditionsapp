@@ -389,7 +389,9 @@ export async function backfillStravaHRStreams(
       await prisma.stravaActivity.update({
         where: { id: activity.id },
         data: { hrStreamFetched: true },
-      }).catch(() => {});
+      }).catch((err) => {
+        logger.warn('Failed to mark activity as HR fetched', { activityId: activity.id }, err)
+      });
     }
   }
 

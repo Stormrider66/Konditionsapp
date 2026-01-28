@@ -8,6 +8,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { PatternConfidence } from '@prisma/client'
+import { logger } from '@/lib/logger'
 
 // Types
 export interface DetectedPattern {
@@ -459,8 +460,8 @@ export async function matchAthleteToPatterns(
         matchedCriteria: {},
         recommendation: match.recommendations.join('\n'),
       },
-    }).catch(() => {
-      // Non-critical, continue on error
+    }).catch((err) => {
+      logger.warn('Failed to save pattern match', { athleteId, patternId: match.patternId }, err)
     })
   }
 

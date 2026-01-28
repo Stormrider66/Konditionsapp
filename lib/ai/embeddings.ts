@@ -252,7 +252,15 @@ export async function storeChunkEmbeddings(
 
       // Update embedding using raw SQL (pgvector)
       // Use schema-qualified type for Supabase compatibility (extensions.vector)
-      const embeddingArray = `[${embedding.embedding.join(',')}]`;
+      // SECURITY: Validate all embedding values are finite numbers to prevent SQL injection
+      const validatedEmbedding = embedding.embedding.map((val, idx) => {
+        const num = Number(val);
+        if (!Number.isFinite(num)) {
+          throw new Error(`Invalid embedding value at index ${idx}: ${val}`);
+        }
+        return num;
+      });
+      const embeddingArray = `[${validatedEmbedding.join(',')}]`;
       try {
         // Try with extensions schema first (Supabase default)
         await prisma.$executeRawUnsafe(
@@ -326,7 +334,15 @@ export async function searchSimilarChunks(
 
   // Generate embedding for query
   const { embedding } = await generateEmbedding(query, apiKey);
-  const embeddingArray = `[${embedding.join(',')}]`;
+  // SECURITY: Validate all embedding values are finite numbers to prevent SQL injection
+  const validatedEmbedding = embedding.map((val, idx) => {
+    const num = Number(val);
+    if (!Number.isFinite(num)) {
+      throw new Error(`Invalid query embedding value at index ${idx}: ${val}`);
+    }
+    return num;
+  });
+  const embeddingArray = `[${validatedEmbedding.join(',')}]`;
 
   // Search using pgvector
   // Try extensions.vector first (Supabase), fallback to unqualified

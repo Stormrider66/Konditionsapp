@@ -96,14 +96,7 @@ export default function NewClientPage() {
         // Store athlete credentials if created
         if (result.athleteCredentials) {
           setAthleteCredentials(result.athleteCredentials)
-          console.log('='.repeat(60))
-          console.log('🎉 ATHLETE ACCOUNT CREATED AUTOMATICALLY!')
-          console.log('='.repeat(60))
-          console.log('Email:', result.athleteCredentials.email)
-          console.log('Temporary Password:', result.athleteCredentials.temporaryPassword)
-          console.log('='.repeat(60))
-          console.log('Use these credentials to log in as an athlete!')
-          console.log('='.repeat(60))
+          // Note: Credentials are shown in UI only, never logged for security
 
           toast({
             title: 'Klient och atlet-konto skapat!',

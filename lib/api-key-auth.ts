@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createHash } from 'crypto'
+import { logger } from '@/lib/logger'
 
 // In-memory rate limit store (use Redis in production for multi-instance)
 const rateLimitStore = new Map<string, { minute: number; day: number; minuteReset: number; dayReset: number }>()
@@ -90,7 +91,9 @@ export async function validateApiKey(request: NextRequest): Promise<ApiKeyValida
   prisma.businessApiKey.update({
     where: { id: storedKey.id },
     data: { lastUsedAt: new Date() }
-  }).catch(() => {}) // Ignore errors
+  }).catch((err) => {
+    logger.warn('Failed to update API key lastUsedAt', { keyId: storedKey.id }, err)
+  })
 
   return {
     valid: true,
