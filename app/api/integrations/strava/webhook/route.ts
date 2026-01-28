@@ -145,8 +145,11 @@ export async function POST(request: NextRequest) {
       object_id,
     })
 
-    // Re-extract after safe logging
-    const { object_type: objectType, aspect_type: aspectType, owner_id: ownerId, object_id: objectId } = event as any;
+    // Use already extracted fields (renamed for clarity)
+    const objectType = object_type;
+    const aspectType = aspect_type;
+    const ownerId = owner_id;
+    const objectId = object_id;
 
     // Validate required fields to avoid accidental broad queries/updates
     if (!objectType || !ownerId) {

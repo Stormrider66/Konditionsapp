@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/readiness/route'
 
 const mockTrend = vi.hoisted(() => ({
@@ -110,7 +111,7 @@ beforeEach(() => {
       .mockResolvedValueOnce([...last7Days, ...last30Days])
 
     const request = new Request('http://localhost/api/readiness?clientId=client-1')
-    const response = await GET(request as any)
+    const response = await GET(request as NextRequest)
 
     expect(response.status).toBe(200)
     const body = await response.json()
@@ -133,7 +134,7 @@ beforeEach(() => {
     })
 
     const request = new Request('http://localhost/api/readiness?clientId=client-1')
-    const response = await GET(request as any)
+    const response = await GET(request as NextRequest)
 
     expect(response.status).toBe(401)
     expect(await response.json()).toEqual({ error: 'Unauthorized' })
@@ -144,7 +145,7 @@ beforeEach(() => {
     mockClientAccess({ isOwner: true })
 
     const request = new Request('http://localhost/api/readiness')
-    const response = await GET(request as any)
+    const response = await GET(request as NextRequest)
 
     expect(response.status).toBe(400)
     const body = await response.json()
@@ -156,7 +157,7 @@ beforeEach(() => {
     mockClientAccess({ isOwner: false, isAthlete: false })
 
     const request = new Request('http://localhost/api/readiness?clientId=client-1')
-    const response = await GET(request as any)
+    const response = await GET(request as NextRequest)
 
     expect(response.status).toBe(403)
     const body = await response.json()

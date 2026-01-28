@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import {
@@ -672,7 +673,7 @@ async function analyzeSkiingTechnique(
 
   // Create the skiing analysis record
   const skiingAnalysis = await prisma.skiingTechniqueAnalysis.create({
-    data: skiingAnalysisData as any,
+    data: skiingAnalysisData as Prisma.SkiingTechniqueAnalysisCreateInput,
   });
 
   // Fetch the updated video analysis
@@ -894,7 +895,7 @@ async function analyzeHyroxStation(
 
   // Create the HYROX analysis record
   const hyroxAnalysis = await prisma.hyroxStationAnalysis.create({
-    data: hyroxAnalysisData as any,
+    data: hyroxAnalysisData as Prisma.HyroxStationAnalysisCreateInput,
   });
 
   // Fetch the updated video analysis

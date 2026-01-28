@@ -116,7 +116,7 @@ export async function POST(
     // - { preferences: {...} } (API-style)
     // - { ... } (client sends the preferences object directly)
     const preferences =
-      body && typeof body === 'object' && 'preferences' in body ? (body as any).preferences : body
+      body && typeof body === 'object' && 'preferences' in body ? (body as Record<string, unknown>).preferences : body
 
     if (!preferences) {
       return NextResponse.json(

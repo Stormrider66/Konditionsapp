@@ -114,11 +114,11 @@ export async function GET(
       return {
         id: test.id,
         date: test.date.toISOString().split('T')[0],
-        testType: test.testType as any,
+        testType: test.testType as FieldTestPoint['testType'],
         lt2Pace: lt2PaceFormatted,
         lt2PaceSeconds,
         lt2HR: test.lt2HR,
-        confidence: test.confidence as any,
+        confidence: test.confidence as FieldTestPoint['confidence'],
         valid: test.valid,
         validationErrors: (test.errors as string[]) || [],
       }

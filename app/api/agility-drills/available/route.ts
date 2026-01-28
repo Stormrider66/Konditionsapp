@@ -10,7 +10,7 @@ import {
   getAvailableCategories
 } from '@/lib/agility-studio/equipment-filter'
 import { filterDrillsByStage } from '@/lib/agility-studio/ltad-utils'
-import type { AgilityDrillCategory, DevelopmentStage } from '@/types'
+import type { AgilityDrill, AgilityDrillCategory, DevelopmentStage } from '@/types'
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     // Filter by development stage if specified (manual filter since Prisma enum doesn't support lte/gte)
     if (developmentStage) {
-      allDrills = filterDrillsByStage(allDrills as any, developmentStage) as typeof allDrills
+      allDrills = filterDrillsByStage(allDrills as unknown as AgilityDrill[], developmentStage) as typeof allDrills
     }
 
     // If no location specified, return all drills

@@ -231,14 +231,14 @@ interface Log {
 
 function calculatePhasePatterns(logs: Log[]) {
   const phases: Phase[] = ['MENSTRUAL', 'FOLLICULAR', 'OVULATORY', 'LUTEAL'];
-  const patterns: Record<Phase, {
+  const patterns = {} as Record<Phase, {
     count: number;
     avgFatigue: number | null;
     avgMood: number | null;
     avgCramps: number | null;
     avgEffort: number | null;
     avgFlow: number | null;
-  }> = {} as any;
+  }>;
 
   for (const phase of phases) {
     const phaseLogs = logs.filter((l) => l.phase === phase);

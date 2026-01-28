@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
@@ -93,8 +94,8 @@ export async function PATCH(
 
     if (process.env.NODE_ENV !== 'production') {
       logger.debug('Landmarks PATCH received', {
-        keys: typeof body === 'object' && body ? Object.keys(body as any) : [],
-        hasAiPoseAnalysis: !!(body as any)?.aiPoseAnalysis,
+        keys: typeof body === 'object' && body ? Object.keys(body as Record<string, unknown>) : [],
+        hasAiPoseAnalysis: !!(body as Record<string, unknown>)?.aiPoseAnalysis,
       })
     }
 
@@ -198,12 +199,11 @@ export async function PATCH(
     }
 
     // Update analysis with landmarks and AI analysis
-    // Prisma typings can be stale (e.g. after schema changes). Build update payload as `any`
-    // so this endpoint keeps working even if editor types haven't refreshed yet.
-    const updateData: any = {
+    // Use Prisma.VideoAnalysisUpdateInput for proper typing
+    const updateData: Prisma.VideoAnalysisUpdateInput = {
       // IMPORTANT: `landmarksData` contains ONLY the compressed landmarks envelope
       // (format/frameCount/toonBase64/compressionStats/metadata). Do not mix analysis objects into it.
-      landmarksData: compressedData,
+      landmarksData: compressedData as Prisma.InputJsonValue,
       ...(aiAnalysisText && { aiAnalysis: aiAnalysisText }),
       ...(aiPoseAnalysis?.score && { formScore: aiPoseAnalysis.score }),
       ...(aiPoseAnalysis && { status: 'COMPLETED' }),
