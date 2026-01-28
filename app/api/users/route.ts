@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json().catch(() => ({} as any))
+    const body = await request.json().catch(() => ({} as Record<string, unknown>))
     const requestedName =
       body && typeof body === 'object' && typeof body.name === 'string'
         ? body.name.trim()
@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
       (supabaseUser.user_metadata &&
         typeof supabaseUser.user_metadata === 'object' &&
         'name' in supabaseUser.user_metadata &&
-        typeof (supabaseUser.user_metadata as any).name === 'string' &&
-        ((supabaseUser.user_metadata as any).name as string).trim()) ||
+        typeof (supabaseUser.user_metadata as Record<string, unknown>).name === 'string' &&
+        ((supabaseUser.user_metadata as Record<string, unknown>).name as string).trim()) ||
       ''
 
     const name = requestedName || nameFromMetadata || supabaseUser.email.split('@')[0]

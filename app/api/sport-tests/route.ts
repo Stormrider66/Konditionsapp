@@ -1,6 +1,6 @@
 // app/api/sport-tests/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { Prisma } from '@prisma/client'
+import { Prisma, SportTestCategory, SportTestProtocol, SportType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
@@ -41,13 +41,24 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
+    // Build filter with validated enum values
+    const categoryFilter = category && Object.values(SportTestCategory).includes(category as SportTestCategory)
+      ? { category: category as SportTestCategory }
+      : {}
+    const protocolFilter = protocol && Object.values(SportTestProtocol).includes(protocol as SportTestProtocol)
+      ? { protocol: protocol as SportTestProtocol }
+      : {}
+    const sportFilter = sport && Object.values(SportType).includes(sport as SportType)
+      ? { sport: sport as SportType }
+      : {}
+
     const tests = await prisma.sportTest.findMany({
       where: {
         userId: user.id,
         ...(clientId ? { clientId } : {}),
-        ...(category ? { category: category as any } : {}),
-        ...(protocol ? { protocol: protocol as any } : {}),
-        ...(sport ? { sport: sport as any } : {}),
+        ...categoryFilter,
+        ...protocolFilter,
+        ...sportFilter,
       },
       include: {
         client: {
@@ -71,9 +82,9 @@ export async function GET(request: NextRequest) {
       where: {
         userId: user.id,
         ...(clientId ? { clientId } : {}),
-        ...(category ? { category: category as any } : {}),
-        ...(protocol ? { protocol: protocol as any } : {}),
-        ...(sport ? { sport: sport as any } : {}),
+        ...categoryFilter,
+        ...protocolFilter,
+        ...sportFilter,
       },
     })
 
@@ -363,7 +374,7 @@ function calculateDerivedMetrics(
     case 'HYROX_WALL_BALLS': {
       const time = rawData.time as number
       if (time) {
-        const station = protocol.replace('HYROX_', '') as any
+        const station = protocol.replace('HYROX_', '')
         const division = gender === 'MALE' ? 'MEN' : 'WOMEN'
         metrics.primaryResult = time
         metrics.primaryUnit = 's'

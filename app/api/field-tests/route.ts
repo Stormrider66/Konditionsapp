@@ -7,12 +7,15 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { validateRequest, successResponse, handleApiError, requireAuth } from '@/lib/api/utils';
-import { analyzeThirtyMinTT, type ThirtyMinTTData } from '@/lib/training-engine/field-tests/thirty-min-tt';
-import { analyzeHRDrift, type HRDriftTestData } from '@/lib/training-engine/field-tests/hr-drift';
-import { calculateCriticalVelocity, type CriticalVelocityData } from '@/lib/training-engine/field-tests/critical-velocity';
-import { analyzeTwentyMinTT, type TwentyMinTTData } from '@/lib/training-engine/field-tests/twenty-min-tt';
-import { estimateRaceBasedThreshold } from '@/lib/training-engine/field-tests/race-based';
+import { analyzeThirtyMinTT, type ThirtyMinTTData, type ThirtyMinTTResult } from '@/lib/training-engine/field-tests/thirty-min-tt';
+import { analyzeHRDrift, type HRDriftTestData, type HRDriftResult } from '@/lib/training-engine/field-tests/hr-drift';
+import { calculateCriticalVelocity, type CriticalVelocityData, type CriticalVelocityResult } from '@/lib/training-engine/field-tests/critical-velocity';
+import { analyzeTwentyMinTT, type TwentyMinTTData, type TwentyMinTTResult } from '@/lib/training-engine/field-tests/twenty-min-tt';
+import { estimateRaceBasedThreshold, type RaceBasedEstimationResult } from '@/lib/training-engine/field-tests/race-based';
 import { prisma } from '@/lib/prisma';
+
+// Union type for all field test results
+type FieldTestResult = ThirtyMinTTResult | HRDriftResult | CriticalVelocityResult | TwentyMinTTResult | RaceBasedEstimationResult;
 
 const ttSchema = z.object({
   testType: z.literal('THIRTY_MIN_TT'),
@@ -101,11 +104,11 @@ export async function POST(request: NextRequest) {
     const validation = await validateRequest(request, requestSchema);
     if (!validation.success) return validation.response;
 
-    const data = validation.data as any;
+    const data = validation.data;
 
-    let result: any;
+    let result: FieldTestResult;
     let confidence: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
-    let conditions: Record<string, any> | null = null;
+    let conditions: Record<string, unknown> | null = null;
 
     switch (data.testType) {
       case 'THIRTY_MIN_TT': {
@@ -152,7 +155,7 @@ export async function POST(request: NextRequest) {
         break;
       }
       default:
-        throw new Error(`Unsupported test type: ${(data as any).testType}`);
+        throw new Error(`Unsupported test type`);
     }
 
     const thresholds = extractThresholds(data.testType, result);

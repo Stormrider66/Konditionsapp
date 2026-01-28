@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { StrengthPhase, SportType, HybridWorkoutFormat } from '@prisma/client'
 import { voiceWorkoutConfirmSchema } from '@/lib/validations/voice-workout-schemas'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             coachId: user.id,
             name: workoutData.strengthData.name,
             description: workoutData.strengthData.description,
-            phase: workoutData.strengthData.phase as any || 'ANATOMICAL_ADAPTATION',
+            phase: (workoutData.strengthData.phase as StrengthPhase) || StrengthPhase.ANATOMICAL_ADAPTATION,
             exercises: workoutData.strengthData.exercises as object,
             warmupData: workoutData.strengthData.warmupData as object,
             coreData: workoutData.strengthData.coreData as object,
@@ -231,7 +232,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             coachId: user.id,
             name: workoutData.cardioData.name,
             description: workoutData.cardioData.description,
-            sport: workoutData.cardioData.sport as any || 'RUNNING',
+            sport: (workoutData.cardioData.sport as SportType) || SportType.RUNNING,
             segments: workoutData.cardioData.segments as object,
             totalDuration: workoutData.cardioData.totalDuration,
             totalDistance: workoutData.cardioData.totalDistance,
@@ -283,7 +284,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             coachId: user.id,
             name: workoutData.hybridData.name,
             description: workoutData.hybridData.description,
-            format: workoutData.hybridData.format as any || 'AMRAP',
+            format: (workoutData.hybridData.format as HybridWorkoutFormat) || HybridWorkoutFormat.AMRAP,
             timeCap: workoutData.hybridData.timeCap,
             totalMinutes: workoutData.hybridData.totalMinutes,
             repScheme: workoutData.hybridData.repScheme,
