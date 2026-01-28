@@ -191,7 +191,7 @@ export async function getProgressionHistory(
     weight: r.actualLoad,
     reps: r.repsCompleted,
     estimated1RM: r.estimated1RM,
-    method: r.estimationMethod as any,
+    method: r.estimationMethod as RMEstimation['method'],
     confidence: 'MEDIUM' as const,
     percentageOf1RM: (r.actualLoad / r.estimated1RM) * 100,
     date: r.date,

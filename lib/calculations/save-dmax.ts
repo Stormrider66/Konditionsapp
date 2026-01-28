@@ -17,11 +17,28 @@ export async function saveDmaxResults(
 ) {
   try {
     // Check if either threshold used D-max
-    const aerobicDmax = (aerobicThreshold as any).method === 'DMAX' || (aerobicThreshold as any).method === 'MOD_DMAX'
-    const anaerobicDmax = (anaerobicThreshold as any).method === 'DMAX' || (anaerobicThreshold as any).method === 'MOD_DMAX'
+    const aerobicDmax = aerobicThreshold.method === 'DMAX' || aerobicThreshold.method === 'MOD_DMAX'
+    const anaerobicDmax = anaerobicThreshold.method === 'DMAX' || anaerobicThreshold.method === 'MOD_DMAX'
 
     // Prepare data - store both LT1 and LT2 in one record
-    const thresholdData: any = {
+    const thresholdData: {
+      testId: string
+      testDate: Date
+      lt1Intensity: number
+      lt1Lactate?: number
+      lt1Hr: number
+      lt1Method: string
+      lt2Intensity: number
+      lt2Lactate?: number
+      lt2Hr: number
+      method: string
+      confidence: string
+      r2?: number
+      dmaxIntensity?: number
+      dmaxLactate?: number
+      dmaxHr?: number
+      polynomialCoeffs?: { a: number; b: number; c: number; d: number }
+    } = {
       testId,
       testDate,
 
@@ -29,7 +46,7 @@ export async function saveDmaxResults(
       lt1Intensity: aerobicThreshold.value,
       lt1Lactate: aerobicThreshold.lactate,
       lt1Hr: aerobicThreshold.heartRate,
-      lt1Method: aerobicDmax ? (aerobicThreshold as any).method : 'LINEAR_INTERPOLATION',
+      lt1Method: aerobicDmax ? (aerobicThreshold.method ?? 'LINEAR_INTERPOLATION') : 'LINEAR_INTERPOLATION',
 
       // LT2 (Anaerobic) data
       lt2Intensity: anaerobicThreshold.value,
@@ -37,26 +54,25 @@ export async function saveDmaxResults(
       lt2Hr: anaerobicThreshold.heartRate,
 
       // Primary method (use D-max if either threshold used it)
-      method: anaerobicDmax ? (anaerobicThreshold as any).method : (aerobicDmax ? (aerobicThreshold as any).method : 'LINEAR_INTERPOLATION'),
+      method: anaerobicDmax ? (anaerobicThreshold.method ?? 'LINEAR_INTERPOLATION') : (aerobicDmax ? (aerobicThreshold.method ?? 'LINEAR_INTERPOLATION') : 'LINEAR_INTERPOLATION'),
 
       // Confidence (use highest confidence if available)
-      confidence: anaerobicDmax ? (anaerobicThreshold as any).confidence : (aerobicDmax ? (aerobicThreshold as any).confidence : 'MEDIUM'),
+      confidence: anaerobicDmax ? (anaerobicThreshold.confidence ?? 'MEDIUM') : (aerobicDmax ? (aerobicThreshold.confidence ?? 'MEDIUM') : 'MEDIUM'),
     }
 
     // If D-max was used for anaerobic threshold, save D-max specific data
     if (anaerobicDmax) {
-      const lt2 = anaerobicThreshold as any
-      thresholdData.r2 = lt2.r2
-      thresholdData.dmaxIntensity = lt2.value
-      thresholdData.dmaxLactate = lt2.lactate
-      thresholdData.dmaxHr = lt2.heartRate
+      thresholdData.r2 = anaerobicThreshold.r2
+      thresholdData.dmaxIntensity = anaerobicThreshold.value
+      thresholdData.dmaxLactate = anaerobicThreshold.lactate
+      thresholdData.dmaxHr = anaerobicThreshold.heartRate
 
-      if (lt2.coefficients) {
+      if (anaerobicThreshold.coefficients) {
         thresholdData.polynomialCoeffs = {
-          a: lt2.coefficients.a,
-          b: lt2.coefficients.b,
-          c: lt2.coefficients.c,
-          d: lt2.coefficients.d
+          a: anaerobicThreshold.coefficients.a,
+          b: anaerobicThreshold.coefficients.b,
+          c: anaerobicThreshold.coefficients.c,
+          d: anaerobicThreshold.coefficients.d
         }
       }
 

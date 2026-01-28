@@ -884,6 +884,16 @@ export interface Threshold {
   unit: 'km/h' | 'watt' | 'min/km'
   lactate?: number
   percentOfMax: number
+  // D-max specific fields (optional)
+  method?: 'DMAX' | 'MOD_DMAX' | 'LINEAR_INTERPOLATION' | 'FIXED_4MMOL'
+  confidence?: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW'
+  r2?: number
+  coefficients?: {
+    a: number
+    b: number
+    c: number
+    d: number
+  }
 }
 
 // Träningszon-typer

@@ -14,7 +14,7 @@
  * - Pain < 3/10: Reduce volume/intensity
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, WorkoutType, WorkoutIntensity } from '@prisma/client';
 import { createRestrictionFromInjury } from '@/lib/training-restrictions';
 
 export interface InjuryDetection {
@@ -53,9 +53,9 @@ export interface WorkoutModification {
   action: 'CANCEL' | 'REDUCE_INTENSITY' | 'REDUCE_VOLUME' | 'CONVERT_TO_CROSS_TRAINING';
   reasoning: string;
   modifiedWorkout?: {
-    type: string;
+    type: WorkoutType;
     duration: number;
-    intensity: string;
+    intensity: WorkoutIntensity;
     notes: string;
   };
 }
@@ -716,9 +716,9 @@ async function applyWorkoutModifications(
       await prisma.workout.update({
         where: { id: mod.workoutId },
         data: {
-          type: mod.modifiedWorkout.type as any,
+          type: mod.modifiedWorkout.type,
           duration: mod.modifiedWorkout.duration,
-          intensity: mod.modifiedWorkout.intensity as any,
+          intensity: mod.modifiedWorkout.intensity,
           coachNotes: mod.modifiedWorkout.notes,
           status: 'MODIFIED'
         }

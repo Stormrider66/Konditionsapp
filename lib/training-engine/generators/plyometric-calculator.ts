@@ -48,12 +48,16 @@ export interface PlyometricSession {
 /**
  * Contact volume limits by athlete level
  */
-const CONTACT_LIMITS = {
+const CONTACT_LIMITS: Record<'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE', {
+  min: number
+  max: number
+  allowedIntensities: PlyometricIntensity[]
+}> = {
   BEGINNER: { min: 60, max: 80, allowedIntensities: ['LOW'] },
   INTERMEDIATE: { min: 100, max: 120, allowedIntensities: ['LOW', 'MODERATE'] },
   ADVANCED: { min: 120, max: 140, allowedIntensities: ['LOW', 'MODERATE', 'HIGH'] },
   ELITE: { min: 150, max: 300, allowedIntensities: ['LOW', 'MODERATE', 'HIGH'] },
-} as const
+}
 
 /**
  * Maximum contacts for HIGH intensity plyometrics (depth jumps)
@@ -102,7 +106,7 @@ export async function selectPlyometricExercises(
   const availableExercises = await prisma.exercise.findMany({
     where: {
       category: 'PLYOMETRIC',
-      plyometricIntensity: { in: limits.allowedIntensities as any },
+      plyometricIntensity: { in: limits.allowedIntensities },
       isPublic: true,
       id: { notIn: excludeExerciseIds },
     },
@@ -292,7 +296,7 @@ export function validateExerciseAddition(
   }
 
   // Check intensity allowed for level
-  if (!(limits.allowedIntensities as readonly string[]).includes(newExercise.intensity)) {
+  if (!limits.allowedIntensities.includes(newExercise.intensity)) {
     return {
       canAdd: false,
       reason: `${newExercise.intensity} intensity not allowed for ${currentSession.athleteLevel} level`,

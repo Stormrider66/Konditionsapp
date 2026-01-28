@@ -14,7 +14,7 @@
  * - Deload every 4th week
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import {
   calculateNorwegianSinglesPaces,
   calculatePacesFromFieldTest
@@ -639,8 +639,8 @@ export async function saveNorwegianSinglesProgram(
       totalWeeks: program.weeks.length,
       currentWeek: 1,
       currentPhase: 'BASE',
-      periodization: periodization as any,
-      weeklyPlans: program.weeks as any,
+      periodization: periodization as Prisma.InputJsonValue,
+      weeklyPlans: program.weeks as Prisma.InputJsonValue,
       generatedBy: 'AUTO',
       methodologyConfig: {
         config: program.config,
