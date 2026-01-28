@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
-import type { AIModel as PrismaAIModel } from '@prisma/client'
+import type { AIModel as PrismaAIModel, AIProvider } from '@prisma/client'
 
 // Transform database model to match the expected interface in DefaultModelSelector
 function transformModel(dbModel: PrismaAIModel) {
@@ -53,7 +53,7 @@ export async function GET() {
 
     if (!effectiveModel && userSettings) {
       // Determine which providers the user has valid keys for
-      const validProviders: string[] = [];
+      const validProviders: AIProvider[] = [];
       if (userSettings.googleKeyValid) validProviders.push('GOOGLE');
       if (userSettings.anthropicKeyValid) validProviders.push('ANTHROPIC');
       if (userSettings.openaiKeyValid) validProviders.push('OPENAI');
@@ -62,7 +62,7 @@ export async function GET() {
         // Find a default model for an available provider
         effectiveModel = await prisma.aIModel.findFirst({
           where: {
-            provider: { in: validProviders as any },
+            provider: { in: validProviders },
             isActive: true,
           },
           orderBy: [

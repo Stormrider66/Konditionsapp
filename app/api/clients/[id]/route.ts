@@ -1,7 +1,7 @@
 // app/api/clients/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
-import { clientSchema } from '@/lib/validations/schemas'
+import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 
@@ -124,7 +124,7 @@ export async function PUT(
       )
     }
 
-    const data = validation.data
+    const data: ClientFormData = validation.data
 
     // Convert birthDate string to Date
     const updateData = {
@@ -136,7 +136,7 @@ export async function PUT(
       height: data.height,
       weight: data.weight,
       notes: data.notes || undefined,
-      teamId: (data as any).teamId || null,
+      teamId: data.teamId && data.teamId !== '' ? data.teamId : null,
     }
 
     // Check ownership before updating

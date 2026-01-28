@@ -1,6 +1,7 @@
 // app/api/templates/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
+import { TestType } from '@prisma/client'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 
@@ -25,10 +26,15 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const testType = searchParams.get('testType')
 
+    // Build filter with validated enum value
+    const testTypeFilter = testType && Object.values(TestType).includes(testType as TestType)
+      ? { testType: testType as TestType }
+      : {}
+
     const templates = await prisma.testTemplate.findMany({
       where: {
         userId: user.id,
-        ...(testType ? { testType: testType as any } : {}),
+        ...testTypeFilter,
       },
       orderBy: {
         name: 'asc',
