@@ -15,6 +15,29 @@ import {
   StravaActivity,
 } from './client';
 
+// Physiological parameters for training load calculations
+interface PhysiologicalParams {
+  restingHR: number;  // bpm
+  maxHR: number;      // bpm
+  gender: 'MALE' | 'FEMALE';
+}
+
+// Default values when client data unavailable
+const DEFAULT_PHYSIO_PARAMS: PhysiologicalParams = {
+  restingHR: 60,
+  maxHR: 185,
+  gender: 'MALE',
+};
+
+/**
+ * Estimate max HR from age using Tanaka formula: 208 - (0.7 * age)
+ * More accurate than 220 - age for endurance athletes
+ */
+function estimateMaxHRFromAge(birthDate: Date): number {
+  const age = Math.floor((Date.now() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+  return Math.round(208 - 0.7 * age);
+}
+
 // Map Strava activity types to our training types
 const ACTIVITY_TYPE_MAP: Record<string, { type: string; intensity: string }> = {
   Run: { type: 'RUNNING', intensity: 'MODERATE' },
@@ -39,7 +62,7 @@ const ACTIVITY_TYPE_MAP: Record<string, { type: string; intensity: string }> = {
 };
 
 // Calculate training stress score (simplified TSS)
-function calculateTSS(activity: StravaActivity): number {
+function calculateTSS(activity: StravaActivity, params: PhysiologicalParams = DEFAULT_PHYSIO_PARAMS): number {
   // TSS = (duration * IF^2 * 100) / 3600
   // Where IF = Intensity Factor
 
@@ -49,8 +72,8 @@ function calculateTSS(activity: StravaActivity): number {
   let intensityFactor = 0.7; // Default moderate
 
   if (activity.average_heartrate) {
-    // Estimate IF from HR (assuming max HR of 185)
-    const hrRatio = activity.average_heartrate / 185;
+    // Estimate IF from HR using client's actual max HR
+    const hrRatio = activity.average_heartrate / params.maxHR;
     intensityFactor = Math.min(1.2, Math.max(0.4, hrRatio));
   } else if (activity.average_speed && activity.type === 'Run') {
     // Estimate IF from pace for running
@@ -68,7 +91,7 @@ function calculateTSS(activity: StravaActivity): number {
 }
 
 // Calculate TRIMP (Training Impulse)
-function calculateTRIMP(activity: StravaActivity): number {
+function calculateTRIMP(activity: StravaActivity, params: PhysiologicalParams = DEFAULT_PHYSIO_PARAMS): number {
   if (!activity.average_heartrate) {
     // Estimate from duration and type
     const baseTrimp = activity.moving_time / 60; // 1 TRIMP per minute as base
@@ -85,12 +108,13 @@ function calculateTRIMP(activity: StravaActivity): number {
   // Where Y is a gender-specific exponential factor
 
   const duration = activity.moving_time / 60; // minutes
-  const restingHR = 60; // Assumed
-  const maxHR = 185; // Assumed
   const avgHR = activity.average_heartrate;
 
-  const deltaHR = (avgHR - restingHR) / (maxHR - restingHR);
-  const y = 0.64 * Math.exp(1.92 * deltaHR); // Male factor
+  const deltaHR = (avgHR - params.restingHR) / (params.maxHR - params.restingHR);
+  // Gender-specific exponential factor (Banister 1991)
+  const y = params.gender === 'FEMALE'
+    ? 0.86 * Math.exp(1.67 * deltaHR)
+    : 0.64 * Math.exp(1.92 * deltaHR);
 
   return Math.round(duration * deltaHR * y);
 }
@@ -133,6 +157,46 @@ export async function syncStravaActivities(
       return result;
     }
 
+    // Fetch client physiological data for accurate training load calculations
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: {
+        birthDate: true,
+        gender: true,
+        dailyMetrics: {
+          where: { restingHR: { not: null } },
+          orderBy: { date: 'desc' },
+          take: 7, // Average of last 7 days
+          select: { restingHR: true },
+        },
+        tests: {
+          where: { maxHR: { not: null } },
+          orderBy: { testDate: 'desc' },
+          take: 1,
+          select: { maxHR: true },
+        },
+      },
+    });
+
+    // Build physiological params from client data
+    const physioParams: PhysiologicalParams = { ...DEFAULT_PHYSIO_PARAMS };
+    if (client) {
+      physioParams.gender = client.gender as 'MALE' | 'FEMALE';
+
+      // Use tested maxHR or estimate from age
+      if (client.tests[0]?.maxHR) {
+        physioParams.maxHR = client.tests[0].maxHR;
+      } else if (client.birthDate) {
+        physioParams.maxHR = estimateMaxHRFromAge(client.birthDate);
+      }
+
+      // Average recent resting HR if available
+      if (client.dailyMetrics.length > 0) {
+        const avgRestingHR = client.dailyMetrics.reduce((sum, m) => sum + (m.restingHR || 0), 0) / client.dailyMetrics.length;
+        physioParams.restingHR = Math.round(avgRestingHR);
+      }
+    }
+
     // Calculate time range
     const after = forceResync
       ? Math.floor(Date.now() / 1000) - daysBack * 24 * 60 * 60
@@ -167,9 +231,9 @@ export async function syncStravaActivities(
           intensity: 'MODERATE',
         };
 
-        // Calculate training metrics
-        const tss = calculateTSS(detailedActivity);
-        const trimp = calculateTRIMP(detailedActivity);
+        // Calculate training metrics using client's physiological data
+        const tss = calculateTSS(detailedActivity, physioParams);
+        const trimp = calculateTRIMP(detailedActivity, physioParams);
 
         // Upsert activity
         await prisma.stravaActivity.upsert({
