@@ -1,9 +1,8 @@
 // app/api/clients/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { clientSchema } from '@/lib/validations/schemas'
+import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
-import type { CreateClientDTO } from '@/types'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
 import { logger } from '@/lib/logger'
 
@@ -96,7 +95,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const data = validation.data as CreateClientDTO
+    const data: ClientFormData = validation.data
 
     // Ensure user exists in database (create if needed from Supabase Auth)
     let dbUser = await prisma.user.findUnique({
@@ -129,7 +128,7 @@ export async function POST(request: NextRequest) {
         height: data.height,
         weight: data.weight,
         notes: data.notes || null,
-        teamId: (data as any).teamId ? (data as any).teamId : null,
+        teamId: data.teamId && data.teamId !== '' ? data.teamId : null,
       },
     })
 

@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { selectOptimalPaces, type RacePerformance, type AthleteProfileData, type LactateTestData } from '@/lib/training-engine/calculations/pace-selector'
 import { logger } from '@/lib/logger'
 
@@ -137,10 +138,10 @@ export async function GET(
           metabolicType: paceSelection.athleteClassification.metabolicType,
           metabolicTypeSource: paceSelection.lactateProfile ? 'LACTATE_PROFILE' : 'ESTIMATED',
           compressionFactor: paceSelection.athleteClassification.compressionFactor,
-          danielsZones: paceSelection.zones.daniels as any,
-          canovaZones: paceSelection.zones.canova as any,
-          norwegianZones: paceSelection.zones.norwegian as any,
-          hrZones: paceSelection.zones.hrBased as any,
+          danielsZones: paceSelection.zones.daniels as Prisma.InputJsonValue,
+          canovaZones: paceSelection.zones.canova as Prisma.InputJsonValue,
+          norwegianZones: paceSelection.zones.norwegian as Prisma.InputJsonValue,
+          hrZones: paceSelection.zones.hrBased as Prisma.InputJsonValue,
           zonesLastUpdated: new Date(),
           zonesPrimarySource: paceSelection.primarySource,
           category: paceSelection.athleteClassification.level,
@@ -164,10 +165,10 @@ export async function GET(
           metabolicType: paceSelection.athleteClassification.metabolicType,
           metabolicTypeSource: paceSelection.lactateProfile ? 'LACTATE_PROFILE' : 'ESTIMATED',
           compressionFactor: paceSelection.athleteClassification.compressionFactor,
-          danielsZones: paceSelection.zones.daniels as any,
-          canovaZones: paceSelection.zones.canova as any,
-          norwegianZones: paceSelection.zones.norwegian as any,
-          hrZones: paceSelection.zones.hrBased as any,
+          danielsZones: paceSelection.zones.daniels as Prisma.InputJsonValue,
+          canovaZones: paceSelection.zones.canova as Prisma.InputJsonValue,
+          norwegianZones: paceSelection.zones.norwegian as Prisma.InputJsonValue,
+          hrZones: paceSelection.zones.hrBased as Prisma.InputJsonValue,
           zonesLastUpdated: new Date(),
           zonesPrimarySource: paceSelection.primarySource,
         },
@@ -331,10 +332,10 @@ export async function POST(
           lactateConfidence: paceSelection.lactateProfile?.confidence,
           metabolicType: paceSelection.athleteClassification.metabolicType,
           compressionFactor: paceSelection.athleteClassification.compressionFactor,
-          danielsZones: paceSelection.zones.daniels as any,
-          canovaZones: paceSelection.zones.canova as any,
-          norwegianZones: paceSelection.zones.norwegian as any,
-          hrZones: paceSelection.zones.hrBased as any,
+          danielsZones: paceSelection.zones.daniels as Prisma.InputJsonValue,
+          canovaZones: paceSelection.zones.canova as Prisma.InputJsonValue,
+          norwegianZones: paceSelection.zones.norwegian as Prisma.InputJsonValue,
+          hrZones: paceSelection.zones.hrBased as Prisma.InputJsonValue,
           zonesLastUpdated: new Date(),
           zonesPrimarySource: paceSelection.primarySource,
           category: paceSelection.athleteClassification.level,

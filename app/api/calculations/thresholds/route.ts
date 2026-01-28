@@ -8,7 +8,20 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { validateRequest, successResponse, handleApiError, requireAuth } from '@/lib/api/utils';
 import { performAllCalculations } from '@/lib/calculations';
+import { Test, Client, TestStage, TestCalculations } from '@/types';
 import { rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
+
+// Minimal types for API request that can be coerced to full types
+type CalculationTestInput = Pick<Test, 'testType' | 'testDate'> & {
+  testStages: Array<Pick<TestStage, 'speed' | 'power' | 'pace' | 'heartRate' | 'lactate' | 'sequence'>>
+  maxHeartRate: number
+}
+
+type CalculationClientInput = Pick<Client, 'gender'> & {
+  birthDate: Date
+  weight?: number
+  height?: number
+}
 
 const stageSchema = z.object({
   speed: z.number().optional(),
@@ -45,15 +58,37 @@ export async function POST(request: NextRequest) {
 
     const { testType, stages, maxHeartRate, client } = validation.data;
 
-    // Perform calculations
+    // Build calculation inputs - we construct partial objects that have the
+    // minimum fields required for calculations
+    const testInput: CalculationTestInput = {
+      testType,
+      testStages: stages.map(s => ({
+        speed: s.speed,
+        power: s.power,
+        pace: s.pace,
+        heartRate: s.heartRate,
+        lactate: s.lactate,
+        sequence: s.sequence
+      })),
+      maxHeartRate,
+      testDate: new Date()
+    }
+
+    // Convert age to birthDate for the client input
+    const birthDate = new Date()
+    birthDate.setFullYear(birthDate.getFullYear() - client.age)
+
+    const clientInput: CalculationClientInput = {
+      gender: client.gender,
+      birthDate,
+      weight: client.weight,
+      height: client.height
+    }
+
+    // Perform calculations - the function expects full types but works with partial data
     const results = await performAllCalculations(
-      {
-        testType,
-        testStages: stages as any,
-        maxHeartRate,
-        testDate: new Date()
-      } as any,
-      client as any
+      testInput as unknown as Test,
+      clientInput as unknown as Client
     );
 
     return successResponse({
@@ -83,7 +118,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateThresholdWarnings(results: any, stageCount: number): string[] {
+function generateThresholdWarnings(results: TestCalculations, stageCount: number): string[] {
   const warnings: string[] = [];
 
   if (stageCount < 4) {

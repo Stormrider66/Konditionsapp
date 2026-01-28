@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
-import { Prisma } from '@prisma/client'
+import { Prisma, ExerciseCategory, BiomechanicalPillar, ProgressionLevel, PlyometricIntensity } from '@prisma/client'
 import { logger } from '@/lib/logger'
 
 // Allowed sort fields to prevent injection
@@ -75,15 +75,24 @@ export async function GET(request: NextRequest) {
     const filtersWhere: Prisma.ExerciseWhereInput = {}
 
     if (category && category !== 'ALL') {
-      filtersWhere.category = category as any // WorkoutType enum
+      // Validate category is a valid enum value
+      if (Object.values(ExerciseCategory).includes(category as ExerciseCategory)) {
+        filtersWhere.category = category as ExerciseCategory
+      }
     }
 
     if (pillar && pillar !== 'ALL') {
-      filtersWhere.biomechanicalPillar = pillar as any // BiomechanicalPillar enum
+      // Validate pillar is a valid enum value
+      if (Object.values(BiomechanicalPillar).includes(pillar as BiomechanicalPillar)) {
+        filtersWhere.biomechanicalPillar = pillar as BiomechanicalPillar
+      }
     }
 
     if (level && level !== 'ALL') {
-      filtersWhere.progressionLevel = level as any // ProgressionLevel enum
+      // Validate level is a valid enum value
+      if (Object.values(ProgressionLevel).includes(level as ProgressionLevel)) {
+        filtersWhere.progressionLevel = level as ProgressionLevel
+      }
     }
 
     if (difficulty && difficulty !== 'ALL') {
@@ -96,7 +105,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (intensity && intensity !== 'ALL') {
-      filtersWhere.plyometricIntensity = intensity as Prisma.EnumPlyometricIntensityNullableFilter
+      // Validate intensity is a valid enum value
+      if (Object.values(PlyometricIntensity).includes(intensity as PlyometricIntensity)) {
+        filtersWhere.plyometricIntensity = intensity as PlyometricIntensity
+      }
     }
 
     if (isPublic !== null && isPublic !== undefined) {

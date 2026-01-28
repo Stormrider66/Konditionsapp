@@ -9,6 +9,7 @@ import { requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { WorkoutType, WorkoutIntensity, SportType } from '@prisma/client'
 import { logDebug, logError } from '@/lib/logger-console'
+import { Client as AppClient, Test as AppTest } from '@/types'
 import {
   getGeneralFitnessProgram,
   getProgramDescription,
@@ -161,8 +162,8 @@ export async function POST(request: NextRequest) {
       // Generate program using sport router
       const programData = await generateSportProgram(
         sportParams,
-        client as any,
-        test as any
+        client as unknown as AppClient,
+        test as unknown as AppTest | undefined
       )
 
       // Save to database
@@ -378,7 +379,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify test has training zones (only for non-custom programs)
-      if (!isCustomProgram && (!test.trainingZones || (test.trainingZones as any[]).length === 0)) {
+      if (!isCustomProgram && (!test.trainingZones || !Array.isArray(test.trainingZones) || test.trainingZones.length === 0)) {
         return NextResponse.json(
           {
             success: false,
@@ -506,7 +507,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
         // Standard generation
-        programData = await generateBaseProgram(test as any, client as any, params)
+        programData = await generateBaseProgram(test as unknown as AppTest, client as unknown as AppClient, params)
     }
 
     // Validate program data

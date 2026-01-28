@@ -4,7 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
+import { Prisma } from '@prisma/client'
+import { calculateVDOTFromRace, type VDOTResult } from '@/lib/training-engine/calculations/vdot'
 import { logger } from '@/lib/logger'
 
 /**
@@ -107,8 +108,8 @@ export async function POST(req: NextRequest) {
         vdotAdjusted: vdotResult.vdot, // Same if adjustments applied
         confidence: vdotResult.confidence,
         ageInDays,
-        trainingPaces: vdotResult.trainingPaces as any,
-        equivalentTimes: vdotResult.equivalentTimes as any,
+        trainingPaces: vdotResult.trainingPaces as Prisma.InputJsonValue,
+        equivalentTimes: vdotResult.equivalentTimes as Prisma.InputJsonValue,
         goalTime,
         goalAchieved: goalAchieved || false,
         raceType,
@@ -224,7 +225,7 @@ function formatTime(timeMinutes: number): string {
 async function updateAthleteProfileFromRace(
   clientId: string,
   raceResultId: string,
-  vdotResult: any
+  vdotResult: VDOTResult
 ) {
   // Get or create athlete profile
   let profile = await prisma.athleteProfile.findUnique({
@@ -243,7 +244,7 @@ async function updateAthleteProfileFromRace(
         vdotLastUpdated: new Date(),
         vdotAgeAdjusted: vdotResult.adjustments.ageAdjusted,
         vdotGenderAdjusted: vdotResult.adjustments.genderAdjusted,
-        danielsZones: vdotResult.trainingPaces as any,
+        danielsZones: vdotResult.trainingPaces as Prisma.InputJsonValue,
         zonesLastUpdated: new Date(),
         zonesPrimarySource: 'VDOT',
       },
@@ -259,7 +260,7 @@ async function updateAthleteProfileFromRace(
         vdotLastUpdated: new Date(),
         vdotAgeAdjusted: vdotResult.adjustments.ageAdjusted,
         vdotGenderAdjusted: vdotResult.adjustments.genderAdjusted,
-        danielsZones: vdotResult.trainingPaces as any,
+        danielsZones: vdotResult.trainingPaces as Prisma.InputJsonValue,
         zonesLastUpdated: new Date(),
         zonesPrimarySource: 'VDOT',
       },

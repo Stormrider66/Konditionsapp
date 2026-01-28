@@ -1,10 +1,9 @@
 // app/api/tests/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
-import { createTestSchema } from '@/lib/validations/schemas'
+import { createTestSchema, type CreateTestFormData } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
-import type { CreateTestDTO } from '@/types'
 
 // GET /api/tests - Hämta alla tester för inloggad användare (med optional clientId filter)
 export async function GET(request: NextRequest) {
@@ -91,7 +90,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const data = validation.data as CreateTestDTO
+    const data: CreateTestFormData = validation.data
 
     // Ensure clientId is provided
     if (!data.clientId) {
@@ -136,9 +135,9 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         testDate: new Date(data.testDate),
         testType: data.testType,
-        location: (data as any).location || null,
-        testLeader: (data as any).testLeader || null,
-        inclineUnit: (data as any).inclineUnit || 'PERCENT',
+        location: data.location || null,
+        testLeader: data.testLeader || null,
+        inclineUnit: data.inclineUnit || 'PERCENT',
         notes: data.notes || null,
         testStages: {
           create: data.stages.map((stage, index) => ({
