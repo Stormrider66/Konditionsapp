@@ -67,7 +67,6 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                 const response = await fetch('/api/coach/admin/context')
                 if (response.ok) {
                     const result = await response.json()
-                    console.log('[BusinessContext]', result.data) // Debug log
                     if (result.data?.role) {
                         setBusinessRole(result.data.role as BusinessMemberRole)
                     }

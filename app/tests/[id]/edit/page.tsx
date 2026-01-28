@@ -185,18 +185,8 @@ export default function EditTestPage() {
         manualLT2Intensity: manualLT2Intensity ? parseFloat(manualLT2Intensity) : null,
       }
 
-      console.log('Starting recalculation...')
-      if (manualLT1Lactate || manualLT2Lactate) {
-        console.log('Manual overrides:', {
-          LT1: manualLT1Lactate ? `${manualLT1Lactate} mmol/L @ ${manualLT1Intensity}` : 'none',
-          LT2: manualLT2Lactate ? `${manualLT2Lactate} mmol/L @ ${manualLT2Intensity}` : 'none',
-        })
-      }
-
       // Perform calculations (will use manual overrides if provided)
       const calculations = await performAllCalculations(updatedTest, client)
-
-      console.log('Calculations completed:', calculations)
 
       // Update test in database with new stages and calculations
       const updateResponse = await fetch(`/api/tests/${id}`, {

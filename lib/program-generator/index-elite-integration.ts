@@ -2,6 +2,7 @@
 // Updated program generator with elite pace system integration
 // This file contains the updated generateBaseProgram function
 
+import { logger } from '@/lib/logger'
 import {
   fetchElitePaces,
   validateEliteZones,
@@ -32,47 +33,40 @@ export async function generateBaseProgramWithElitePaces(
   client: Client,
   params: ProgramGenerationParams
 ): Promise<CreateTrainingProgramDTO> {
-  console.log('=====================================')
-  console.log('ELITE PACE SYSTEM: Program Generation')
-  console.log('=====================================')
+  logger.debug('ELITE PACE SYSTEM: Program Generation started', { clientId: client.id })
 
   // Step 1: Fetch elite paces from API
-  console.log(`\n[1/5] Fetching elite paces for client: ${client.id}`)
+  logger.debug('Fetching elite paces', { step: '1/5', clientId: client.id })
   let elitePaces: EliteZonePaces | null = null
 
   try {
     elitePaces = await fetchElitePaces(client.id)
 
     if (elitePaces && validateEliteZones(elitePaces)) {
-      console.log('✓ Elite paces fetched successfully')
-      console.log('  Source:', elitePaces.source)
-      console.log('  Confidence:', elitePaces.confidence)
-      console.log('  Athlete Level:', elitePaces.athleteLevel)
-      console.log('  Metabolic Type:', elitePaces.metabolicType || 'N/A')
-      console.log('\n' + formatZoneSummary(elitePaces))
-
-      // Check for warnings
       const warnings = getZoneConfidenceWarnings(elitePaces)
-      if (warnings.length > 0) {
-        console.log('\n⚠️  Zone Confidence Warnings:')
-        warnings.forEach((w) => console.log('   -', w))
-      }
+      logger.debug('Elite paces fetched successfully', {
+        source: elitePaces.source,
+        confidence: elitePaces.confidence,
+        athleteLevel: elitePaces.athleteLevel,
+        metabolicType: elitePaces.metabolicType || 'N/A',
+        zoneSummary: formatZoneSummary(elitePaces),
+        warnings: warnings.length > 0 ? warnings : undefined,
+      })
     } else {
-      console.log('⚠️  Elite paces not available, falling back to legacy zone calculation')
+      logger.debug('Elite paces not available, falling back to legacy zone calculation')
     }
   } catch (error) {
-    console.error('❌ Error fetching elite paces:', error)
-    console.log('   Falling back to legacy zone calculation')
+    logger.error('Error fetching elite paces, falling back to legacy zone calculation', { clientId: client.id }, error)
   }
 
   // Step 2: Determine zones to use (elite or legacy)
-  console.log('\n[2/5] Determining training zones')
+  logger.debug('Determining training zones', { step: '2/5' })
   let zones: ZonePaces | ZonePowers
 
   if (elitePaces && validateEliteZones(elitePaces)) {
     // Use elite paces (converted to legacy format for compatibility)
     zones = elitePaces.legacy
-    console.log('✓ Using ELITE pace system')
+    logger.debug('Using ELITE pace system')
   } else {
     // Fallback to legacy calculation from test zones
     if (!test.trainingZones || test.trainingZones.length === 0) {
@@ -83,11 +77,11 @@ export async function generateBaseProgramWithElitePaces(
       ? calculateZonePowers(test.trainingZones)
       : calculateZonePaces(test.trainingZones)
 
-    console.log('✓ Using LEGACY zone calculation (from test)')
+    logger.debug('Using LEGACY zone calculation from test')
   }
 
   // Step 3: Auto-select methodology based on athlete classification
-  console.log('\n[3/5] Selecting training methodology')
+  logger.debug('Selecting training methodology', { step: '3/5' })
   let methodology = params.methodology
 
   if ((methodology as string) === 'AUTO' || !methodology) {
@@ -99,8 +93,10 @@ export async function generateBaseProgramWithElitePaces(
         params.goalType
       )
       methodology = recommended
-      console.log(`✓ Auto-selected methodology: ${methodology}`)
-      console.log(`   Reason: ${getMethodologyReason(elitePaces, params.goalType)}`)
+      logger.debug('Auto-selected methodology from elite paces', {
+        methodology,
+        reason: getMethodologyReason(elitePaces, params.goalType),
+      })
     } else {
       // Fallback to simple rule-based selection
       const athleteLevel = mapExperienceLevelToAthleteLevel(params.experienceLevel)
@@ -111,33 +107,40 @@ export async function generateBaseProgramWithElitePaces(
       } else {
         methodology = 'POLARIZED'
       }
-      console.log(`✓ Auto-selected methodology: ${methodology} (legacy rules)`)
+      logger.debug('Auto-selected methodology using legacy rules', { methodology })
     }
   } else {
-    console.log(`✓ Using specified methodology: ${methodology}`)
+    logger.debug('Using specified methodology', { methodology })
   }
 
   // Step 4: Log zone data being used
-  console.log('\n[4/5] Training zones for workouts:')
   if (elitePaces) {
-    console.log('  Easy:', elitePaces.core.easy)
-    console.log('  Marathon:', elitePaces.core.marathon)
-    console.log('  Threshold:', elitePaces.core.threshold)
-    console.log('  Interval:', elitePaces.core.interval)
+    logger.debug('Training zones for workouts (elite)', {
+      step: '4/5',
+      easy: elitePaces.core.easy,
+      marathon: elitePaces.core.marathon,
+      threshold: elitePaces.core.threshold,
+      interval: elitePaces.core.interval,
+    })
   } else {
-    console.log('  Zone 1 (Easy):', zones.zone1)
-    console.log('  Zone 2 (Marathon):', zones.zone2)
-    console.log('  Zone 3 (Threshold):', zones.zone3)
-    console.log('  Zone 4 (Interval):', zones.zone4)
-    console.log('  Zone 5 (Repetition):', zones.zone5)
+    logger.debug('Training zones for workouts (legacy)', {
+      step: '4/5',
+      zone1Easy: zones.zone1,
+      zone2Marathon: zones.zone2,
+      zone3Threshold: zones.zone3,
+      zone4Interval: zones.zone4,
+      zone5Repetition: zones.zone5,
+    })
   }
 
   // Step 5: Generate program (existing logic continues)
-  console.log('\n[5/5] Generating program structure')
-  console.log('  Duration:', params.durationWeeks, 'weeks')
-  console.log('  Training days per week:', params.trainingDaysPerWeek)
-  console.log('  Goal:', params.goalType)
-  console.log('  Methodology:', methodology)
+  logger.debug('Generating program structure', {
+    step: '5/5',
+    durationWeeks: params.durationWeeks,
+    trainingDaysPerWeek: params.trainingDaysPerWeek,
+    goal: params.goalType,
+    methodology,
+  })
 
   // NOTE: The rest of the function continues with existing logic
   // from the original generateBaseProgram function
@@ -148,8 +151,7 @@ export async function generateBaseProgramWithElitePaces(
   // The actual generateBaseProgram function in index.ts should be updated
   // to include these steps at the beginning
 
-  console.log('\n✓ Elite pace integration complete')
-  console.log('=====================================\n')
+  logger.debug('Elite pace integration complete', { clientId: client.id })
 
   // Return type annotation - actual implementation would return complete program
   return {} as CreateTrainingProgramDTO
@@ -206,6 +208,7 @@ function mapExperienceLevelToAthleteLevel(
  *
  * 1. At the TOP of generateBaseProgram(), add:
  *    ```typescript
+ *    import { logger } from '@/lib/logger'
  *    import { fetchElitePaces, validateEliteZones, formatZoneSummary } from './elite-pace-integration'
  *
  *    // Fetch elite paces
@@ -213,10 +216,10 @@ function mapExperienceLevelToAthleteLevel(
  *    try {
  *      elitePaces = await fetchElitePaces(client.id)
  *      if (elitePaces && validateEliteZones(elitePaces)) {
- *        console.log('Using elite pace system:', formatZoneSummary(elitePaces))
+ *        logger.debug('Using elite pace system', { zoneSummary: formatZoneSummary(elitePaces) })
  *      }
  *    } catch (error) {
- *      console.error('Error fetching elite paces, using legacy:', error)
+ *      logger.error('Error fetching elite paces, using legacy', { clientId: client.id }, error)
  *    }
  *    ```
  *

@@ -1,5 +1,6 @@
 // lib/calculations/index.ts
 import { Test, Client, TestCalculations } from '@/types'
+import { logger } from '@/lib/logger'
 import { calculateBMI, calculateAge } from './basic'
 import {
   calculateAerobicThreshold,
@@ -50,11 +51,10 @@ export async function performAllCalculations(
     : null
 
   if (lt1Override || lt2Override) {
-    console.log('╔══════════════════════════════════════════════════════════════╗')
-    console.log('║     MANUAL THRESHOLD OVERRIDES DETECTED                      ║')
-    console.log('╚══════════════════════════════════════════════════════════════╝')
-    if (lt1Override) console.log(`LT1 override: ${lt1Override.lactate} mmol/L @ ${lt1Override.intensity}`)
-    if (lt2Override) console.log(`LT2 override: ${lt2Override.lactate} mmol/L @ ${lt2Override.intensity}`)
+    logger.debug('Manual threshold overrides detected', {
+      lt1Override: lt1Override ? { lactate: lt1Override.lactate, intensity: lt1Override.intensity } : null,
+      lt2Override: lt2Override ? { lactate: lt2Override.lactate, intensity: lt2Override.intensity } : null
+    })
   }
 
   // Trösklar - use override functions that check for manual values first
@@ -68,12 +68,11 @@ export async function performAllCalculations(
   // Sanity check: LT1 (aerobic) should always be at lower intensity than LT2 (anaerobic)
   // If not, something went wrong - likely Standard D-max found LT1 instead of LT2
   if (aerobicThreshold.value >= anaerobicThreshold.value) {
-    console.warn('╔══════════════════════════════════════════════════════════════╗')
-    console.warn('║     THRESHOLD SANITY CHECK - LT1 >= LT2 DETECTED!           ║')
-    console.warn('╚══════════════════════════════════════════════════════════════╝')
-    console.warn(`LT1: ${aerobicThreshold.value} ${aerobicThreshold.unit}, LT2: ${anaerobicThreshold.value} ${anaerobicThreshold.unit}`)
-    console.warn('For elite athletes, Standard D-max often finds LT1 instead of LT2.')
-    console.warn('SWAPPING: D-max result becomes LT1, using UNIFIED LT2 DETECTION...')
+    logger.warn('Threshold sanity check failed - LT1 >= LT2 detected, swapping thresholds', {
+      lt1: { value: aerobicThreshold.value, unit: aerobicThreshold.unit },
+      lt2: { value: anaerobicThreshold.value, unit: anaerobicThreshold.unit },
+      action: 'D-max result becomes LT1, using unified LT2 detection'
+    })
 
     const sortedStages = [...stages].sort((a, b) => a.sequence - b.sequence)
 
@@ -111,12 +110,12 @@ export async function performAllCalculations(
         method: unifiedLT2.method // MOD_DMAX, EXPONENTIAL_RISE, or BASELINE_PLUS_1.0
       } as typeof anaerobicThreshold
 
-      console.log('┌── SWAPPED THRESHOLDS ──────────────────────────────────────┐')
-      console.log(`│ LT1 (from D-max): ${aerobicThreshold.value} ${aerobicThreshold.unit} @ ${aerobicThreshold.lactate} mmol/L`)
-      console.log(`│ LT2 (${unifiedLT2.method}): ${anaerobicThreshold.value} ${anaerobicThreshold.unit} @ ${anaerobicThreshold.lactate} mmol/L`)
-      console.log('└─────────────────────────────────────────────────────────────┘')
+      logger.debug('Thresholds swapped successfully', {
+        lt1: { value: aerobicThreshold.value, unit: aerobicThreshold.unit, lactate: aerobicThreshold.lactate, source: 'D-max' },
+        lt2: { value: anaerobicThreshold.value, unit: anaerobicThreshold.unit, lactate: anaerobicThreshold.lactate, method: unifiedLT2.method }
+      })
     } else {
-      console.warn('⚠️ Unified LT2 detection failed - keeping original thresholds')
+      logger.warn('Unified LT2 detection failed - keeping original thresholds')
     }
   }
 
@@ -140,9 +139,9 @@ export async function performAllCalculations(
 
   // Logga varning om estimerade zoner används
   if (zoneResult.confidence === 'LOW' && zoneResult.warning) {
-    console.warn('[Zone Calculation]', zoneResult.warning)
+    logger.warn('Zone calculation using estimated zones', { warning: zoneResult.warning, confidence: 'LOW' })
   } else if (zoneResult.confidence === 'HIGH') {
-    console.log('[Zone Calculation] Using individualized zones from lactate test (HIGH confidence)')
+    logger.debug('Zone calculation using individualized zones from lactate test', { confidence: 'HIGH' })
   }
 
   // Ekonomi (endast för löpning)

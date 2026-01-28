@@ -113,7 +113,8 @@ export function MorningBriefingCard() {
         router.push('/athlete/program')
         break
       default:
-        console.log('Unknown action:', action)
+        // Unknown action - no-op
+        break
     }
   }
 

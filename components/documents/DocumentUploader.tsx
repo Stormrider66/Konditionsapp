@@ -151,13 +151,6 @@ export function DocumentUploader({
         formData.append('description', description.trim())
       }
 
-      console.log('[DocumentUploader] Starting upload:', {
-        fileName: selectedFile.name,
-        fileType: fileTypeInfo?.type,
-        fileSize: selectedFile.size,
-        name: name.trim(),
-      })
-
       // Upload via the new upload endpoint
       const response = await fetch('/api/documents/upload', {
         method: 'POST',
@@ -165,7 +158,6 @@ export function DocumentUploader({
       })
 
       const data = await response.json()
-      console.log('[DocumentUploader] Upload response:', { ok: response.ok, status: response.status, data })
 
       if (!response.ok) {
         // Check for storage bucket not found error
@@ -228,7 +220,6 @@ export function DocumentUploader({
         })
       }
 
-      console.log('[DocumentUploader] Upload successful, calling onUploadComplete')
       onUploadComplete()
     } catch (error) {
       console.error('[DocumentUploader] Upload failed:', error)

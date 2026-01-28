@@ -166,11 +166,10 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
   }, [programId])
 
   const handleExerciseComplete = async (
-    exerciseId: string,
-    data: { painDuring: number; painAfter: number; notes?: string }
+    _exerciseId: string,
+    _data: { painDuring: number; painAfter: number; notes?: string }
   ) => {
     // Individual exercise completion could be tracked here
-    console.log('Exercise completed:', exerciseId, data)
   }
 
   const formatDate = (dateString: string) => {

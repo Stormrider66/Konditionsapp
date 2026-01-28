@@ -1,6 +1,7 @@
 // lib/program-generator/generators/swimming-generator.ts
 // Swimming program generator using CSS-based zones
 
+import { logger } from '@/lib/logger'
 import { Client, CreateTrainingProgramDTO } from '@/types'
 import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { get8WeekCssBuilder, get12WeekDistanceProgram, get8WeekSprintProgram, getOpenWaterPrep, SwimmingTemplateWorkout } from '../templates/swimming'
@@ -41,11 +42,12 @@ export async function generateSwimmingProgram(
   params: SwimmingProgramParams,
   client: Client
 ): Promise<CreateTrainingProgramDTO> {
-  console.log('[Swimming Generator] Starting program generation')
-  console.log(`  Goal: ${params.goal}`)
-  console.log(`  CSS: ${params.css || 'Not provided'}`)
-  console.log(`  Pool: ${params.poolLength || '25'}m`)
-  console.log(`  Weekly Distance: ${params.weeklyDistance || 15000}m`)
+  logger.debug('Starting swimming program generation', {
+    goal: params.goal,
+    css: params.css || 'Not provided',
+    poolLength: `${params.poolLength || '25'}m`,
+    weeklyDistance: `${params.weeklyDistance || 15000}m`,
+  })
 
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)

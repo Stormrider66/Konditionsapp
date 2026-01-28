@@ -3,6 +3,7 @@
 
 import { Client, CreateTrainingProgramDTO } from '@/types'
 import { getProgramStartDate, getProgramEndDate } from '../date-utils'
+import { logger } from '@/lib/logger'
 
 export interface StrengthProgramParams {
   clientId: string
@@ -22,10 +23,11 @@ export async function generateStrengthProgram(
   params: StrengthProgramParams,
   client: Client
 ): Promise<CreateTrainingProgramDTO> {
-  console.log('[Strength Generator] Starting program generation')
-  console.log(`  Goal: ${params.goal}`)
-  console.log(`  Duration: ${params.durationWeeks} weeks`)
-  console.log(`  Sessions/week: ${params.sessionsPerWeek}`)
+  logger.debug('Starting strength program generation', {
+    goal: params.goal,
+    durationWeeks: params.durationWeeks,
+    sessionsPerWeek: params.sessionsPerWeek,
+  })
 
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)

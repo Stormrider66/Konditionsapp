@@ -10,6 +10,7 @@ import { Resend } from 'resend'
 import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { logger } from '@/lib/logger'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -56,7 +57,7 @@ const HIGH_IMPACT_TRAINING_IMPACTS = ['NO_TRAINING', 'REDUCED']
  */
 export async function sendCalendarNotification(data: CalendarNotificationData): Promise<void> {
   if (!resend) {
-    console.log('Resend not configured, skipping email notification')
+    logger.debug('Resend not configured, skipping email notification')
     return
   }
 
@@ -177,7 +178,7 @@ async function sendNotificationEmail(
       subject,
       html,
     })
-    console.log(`Notification email sent to ${recipient.email}`)
+    logger.info('Notification email sent', { recipientEmail: recipient.email })
   } catch (error) {
     console.error('Failed to send notification email:', error)
   }

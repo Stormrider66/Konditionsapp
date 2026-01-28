@@ -13,6 +13,7 @@ import { selectReliableMarathonPace } from '../pace-validator'
 import { validateEliteZones } from '../elite-pace-integration'
 import { getCurrentFitnessPace, formatPace } from '../pace-progression'
 import { WorkoutSlot, WorkoutDistributionParams } from './types'
+import { logger } from '@/lib/logger'
 
 /**
  * Calculate marathon pace from available data sources
@@ -24,7 +25,7 @@ function calculateMarathonPaceForNorwegian(params: WorkoutDistributionParams): n
   // Try elite paces first
   if (elitePaces && validateEliteZones(elitePaces)) {
     marathonPaceKmh = elitePaces.canova?.marathon?.kmh || 12.0
-    console.log(`[Norwegian] Using elite pace: ${formatPace(marathonPaceKmh)}/km`)
+    logger.debug('[Norwegian] Using elite pace', { pace: formatPace(marathonPaceKmh) })
   } else {
     // Try test-based or race-based pace
     const paceValidation = selectReliableMarathonPace(
@@ -42,7 +43,7 @@ function calculateMarathonPaceForNorwegian(params: WorkoutDistributionParams): n
     )
 
     marathonPaceKmh = currentFitness.marathonPaceKmh
-    console.log(`[Norwegian] Using ${currentFitness.source} pace: ${formatPace(marathonPaceKmh)}/km`)
+    logger.debug('[Norwegian] Using calculated pace', { source: currentFitness.source, pace: formatPace(marathonPaceKmh) })
   }
 
   return marathonPaceKmh
@@ -52,8 +53,12 @@ export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionPa
   const { phase, trainingDays, weekInPhase, test } = params
   const workouts: WorkoutSlot[] = []
 
-  console.log(`[Workout Distribution] Using NORWEGIAN DOUBLES methodology for ${phase} phase, week ${weekInPhase}`)
-  console.log(`[Norwegian Doubles] Elite training: AM (2.0-3.0 mmol/L) + PM (3.0-4.0 mmol/L) sessions`)
+  logger.debug('[Norwegian Doubles] Distributing workouts', {
+    methodology: 'NORWEGIAN DOUBLES',
+    phase,
+    weekInPhase,
+    description: 'Elite training: AM (2.0-3.0 mmol/L) + PM (3.0-4.0 mmol/L) sessions'
+  })
 
   // Calculate marathon pace for distance calculations
   const marathonPaceKmh = calculateMarathonPaceForNorwegian(params)
@@ -70,16 +75,25 @@ export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionPa
           lactate: test.anaerobicThreshold.lactate || 4.0
         }
       )
-      console.log(`[Norwegian Doubles] Calculated individualized intensity:`)
-      console.log(`  AM (Low Zone 2): ${doublesIntensity.am.targetLactateLow.toFixed(1)}-${doublesIntensity.am.targetLactateHigh.toFixed(1)} mmol/L`)
-      console.log(`  AM Pace: ${doublesIntensity.am.paceLow.toFixed(1)}-${doublesIntensity.am.paceHigh.toFixed(1)} ${doublesIntensity.unit}`)
-      console.log(`  PM (High Zone 2): ${doublesIntensity.pm.targetLactateLow.toFixed(1)}-${doublesIntensity.pm.targetLactateHigh.toFixed(1)} mmol/L`)
-      console.log(`  PM Pace: ${doublesIntensity.pm.paceLow.toFixed(1)}-${doublesIntensity.pm.paceHigh.toFixed(1)} ${doublesIntensity.unit}`)
+      logger.debug('[Norwegian Doubles] Calculated individualized intensity', {
+        am: {
+          zone: 'Low Zone 2',
+          lactateMmolL: `${doublesIntensity.am.targetLactateLow.toFixed(1)}-${doublesIntensity.am.targetLactateHigh.toFixed(1)}`,
+          pace: `${doublesIntensity.am.paceLow.toFixed(1)}-${doublesIntensity.am.paceHigh.toFixed(1)}`,
+          unit: doublesIntensity.unit
+        },
+        pm: {
+          zone: 'High Zone 2',
+          lactateMmolL: `${doublesIntensity.pm.targetLactateLow.toFixed(1)}-${doublesIntensity.pm.targetLactateHigh.toFixed(1)}`,
+          pace: `${doublesIntensity.pm.paceLow.toFixed(1)}-${doublesIntensity.pm.paceHigh.toFixed(1)}`,
+          unit: doublesIntensity.unit
+        }
+      })
     } catch (error) {
-      console.warn('[Norwegian Doubles] Could not calculate individualized intensity, using zone-based approach:', error)
+      logger.warn('[Norwegian Doubles] Could not calculate individualized intensity, using zone-based approach', {}, error)
     }
   } else {
-    console.warn('[Norwegian Doubles] No lactate test data available, using zone-based approach')
+    logger.warn('[Norwegian Doubles] No lactate test data available, using zone-based approach')
   }
 
   // Norwegian Doubles: Tuesday and Thursday are double-threshold days
@@ -94,7 +108,10 @@ export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionPa
     )
     const amDetails = getNorwegianDoublesSession(amSessionType)
 
-    console.log(`[Norwegian Doubles] ${dayNum === 2 ? 'Tuesday' : 'Thursday'} AM: ${amDetails.description}`)
+    logger.debug('[Norwegian Doubles] AM session scheduled', {
+      day: dayNum === 2 ? 'Tuesday' : 'Thursday',
+      description: amDetails.description
+    })
 
     const amParams: any = {
       reps: amDetails.reps,
@@ -128,7 +145,10 @@ export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionPa
     )
     const pmDetails = getNorwegianDoublesSession(pmSessionType)
 
-    console.log(`[Norwegian Doubles] ${dayNum === 2 ? 'Tuesday' : 'Thursday'} PM: ${pmDetails.description}`)
+    logger.debug('[Norwegian Doubles] PM session scheduled', {
+      day: dayNum === 2 ? 'Tuesday' : 'Thursday',
+      description: pmDetails.description
+    })
 
     const pmParams: any = {
       reps: pmDetails.reps,
@@ -214,9 +234,13 @@ export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionPa
   const { phase, trainingDays, weekInPhase, test } = params
   const workouts: WorkoutSlot[] = []
 
-  console.log(`[Workout Distribution] Using NORWEGIAN_SINGLE methodology for ${phase} phase, week ${weekInPhase}`)
-  console.log(`[Norwegian Singles] SUB-threshold training at LT2 - 0.7 to 1.7 mmol/L`)
-  console.log(`[Norwegian Singles] Training days per week: ${trainingDays}`)
+  logger.debug('[Norwegian Singles] Distributing workouts', {
+    methodology: 'NORWEGIAN_SINGLE',
+    phase,
+    weekInPhase,
+    trainingDays,
+    description: 'SUB-threshold training at LT2 - 0.7 to 1.7 mmol/L'
+  })
 
   // Calculate marathon pace for distance calculations
   const marathonPaceKmh = calculateMarathonPaceForNorwegian(params)
@@ -234,15 +258,17 @@ export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionPa
           lactate: test.anaerobicThreshold.lactate || 4.0
         }
       )
-      console.log(`[Norwegian Singles] Calculated individualized intensity:`)
-      console.log(`  Target lactate: ${singlesIntensity.targetLactateLow.toFixed(1)}-${singlesIntensity.targetLactateHigh.toFixed(1)} mmol/L`)
-      console.log(`  Training pace: ${singlesIntensity.paceLow.toFixed(1)}-${singlesIntensity.paceHigh.toFixed(1)} ${singlesIntensity.unit}`)
-      console.log(`  Training HR: ${singlesIntensity.hrLow}-${singlesIntensity.hrHigh} bpm`)
+      logger.debug('[Norwegian Singles] Calculated individualized intensity', {
+        targetLactateMmolL: `${singlesIntensity.targetLactateLow.toFixed(1)}-${singlesIntensity.targetLactateHigh.toFixed(1)}`,
+        pace: `${singlesIntensity.paceLow.toFixed(1)}-${singlesIntensity.paceHigh.toFixed(1)}`,
+        unit: singlesIntensity.unit,
+        hrBpm: `${singlesIntensity.hrLow}-${singlesIntensity.hrHigh}`
+      })
     } catch (error) {
-      console.warn('[Norwegian Singles] Could not calculate individualized intensity, using zone-based approach:', error)
+      logger.warn('[Norwegian Singles] Could not calculate individualized intensity, using zone-based approach', {}, error)
     }
   } else {
-    console.warn('[Norwegian Singles] No lactate test data available, using zone-based approach')
+    logger.warn('[Norwegian Singles] No lactate test data available, using zone-based approach')
   }
 
   // Norwegian Singles uses 2-3 quality sessions per week
@@ -260,7 +286,11 @@ export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionPa
     )
     const sessionDetails = getNorwegianSinglesSession(sessionType)
 
-    console.log(`[Norwegian Singles] Session ${sessionNumber} (${['Tue', 'Thu', 'Sat'][i]}): ${sessionDetails.description}`)
+    logger.debug('[Norwegian Singles] Quality session scheduled', {
+      sessionNumber,
+      day: ['Tue', 'Thu', 'Sat'][i],
+      description: sessionDetails.description
+    })
 
     const workoutParams: any = {
       reps: sessionDetails.reps,

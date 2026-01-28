@@ -4,6 +4,7 @@
 
 import { PeriodPhase } from '@/types'
 import { calculateVDOT, predictTimeFromVDOT, RACE_DISTANCES } from '@/lib/calculations/race-predictions'
+import { logger } from '@/lib/logger'
 
 export interface PaceProgression {
   currentMarathonPaceKmh: number  // From test/race results
@@ -80,13 +81,16 @@ export function calculateProgressivePace(params: PaceProgression): ProgressivePa
 
   // Validate inputs
   if (currentMarathonPaceKmh <= 0 || targetMarathonPaceKmh <= 0) {
-    console.error('[Pace Progression] Invalid pace values')
+    logger.error('[Pace Progression] Invalid pace values', { currentMarathonPaceKmh, targetMarathonPaceKmh })
     return createDefaultPaces(currentMarathonPaceKmh || 12.0)
   }
 
   // If target is slower than current (unlikely but possible), just use current
   if (targetMarathonPaceKmh < currentMarathonPaceKmh) {
-    console.log('[Pace Progression] Target slower than current - using current fitness')
+    logger.debug('[Pace Progression] Target slower than current - using current fitness', {
+      currentMarathonPaceKmh,
+      targetMarathonPaceKmh
+    })
     return createDefaultPaces(currentMarathonPaceKmh)
   }
 
@@ -130,8 +134,13 @@ export function calculateProgressivePace(params: PaceProgression): ProgressivePa
   // No overall boost - let the phases dictate progression
   // This prevents BASE phase from creeping toward target pace
 
-  console.log(`[Pace Progression] Week ${weekNumber}/${totalWeeks}, Phase: ${phase}, Week in phase: ${weekInPhase}`)
-  console.log(`[Pace Progression] Progression: ${progressionPercent.toFixed(0)}% toward target`)
+  logger.debug('[Pace Progression] Calculating progressive pace', {
+    weekNumber,
+    totalWeeks,
+    phase,
+    weekInPhase,
+    progressionPercent: Math.round(progressionPercent)
+  })
 
   // Calculate blended marathon pace
   const blendFactor = progressionPercent / 100
@@ -145,8 +154,12 @@ export function calculateProgressivePace(params: PaceProgression): ProgressivePa
   // Format pace as min:sec/km
   const marathonPaceMinKm = formatPace(marathonPaceKmh)
 
-  console.log(`[Pace Progression] Current: ${formatPace(currentMarathonPaceKmh)}/km → Target: ${formatPace(targetMarathonPaceKmh)}/km`)
-  console.log(`[Pace Progression] This week: ${marathonPaceMinKm}/km (${marathonPaceKmh.toFixed(1)} km/h)`)
+  logger.debug('[Pace Progression] Calculated paces', {
+    currentPace: `${formatPace(currentMarathonPaceKmh)}/km`,
+    targetPace: `${formatPace(targetMarathonPaceKmh)}/km`,
+    thisWeekPace: `${marathonPaceMinKm}/km`,
+    marathonPaceKmh: Number(marathonPaceKmh.toFixed(1))
+  })
 
   return {
     marathonPaceKmh,
@@ -241,7 +254,11 @@ export function getTargetMarathonPace(
   if (targetTime) {
     const pace = parseGoalTime(targetTime, goalType)
     if (pace) {
-      console.log(`[Pace Progression] Target time ${targetTime} for ${goalType} = ${formatPace(pace)}/km`)
+      logger.debug('[Pace Progression] Parsed target time', {
+        targetTime,
+        goalType,
+        pacePerKm: `${formatPace(pace)}/km`
+      })
       return pace
     }
   }
@@ -283,14 +300,14 @@ export function calculateCurrentFitnessFromRace(
 
   const distanceMeters = distanceMap[raceDistance.toUpperCase()]
   if (!distanceMeters) {
-    console.warn(`[Pace Progression] Unknown race distance: ${raceDistance}`)
+    logger.warn('[Pace Progression] Unknown race distance', { raceDistance })
     return null
   }
 
   // Parse race time to seconds
   const timeSeconds = parseTimeToSeconds(raceTime)
   if (!timeSeconds || timeSeconds <= 0) {
-    console.warn(`[Pace Progression] Invalid race time: ${raceTime}`)
+    logger.warn('[Pace Progression] Invalid race time', { raceTime })
     return null
   }
 
@@ -310,10 +327,14 @@ export function calculateCurrentFitnessFromRace(
   const paceMinutes = Math.floor(minPerKm)
   const paceSeconds = Math.round((minPerKm - paceMinutes) * 60)
 
-  console.log(`[Pace Progression] Race result: ${raceDistance} in ${raceTime}`)
-  console.log(`[Pace Progression] → VDOT: ${vdot.toFixed(1)}`)
-  console.log(`[Pace Progression] → Predicted marathon: ${formatSecondsToTime(predictedMarathonSeconds)}`)
-  console.log(`[Pace Progression] → Marathon pace: ${paceMinutes}:${String(paceSeconds).padStart(2, '0')}/km (${marathonPaceKmh.toFixed(2)} km/h)`)
+  logger.debug('[Pace Progression] Calculated fitness from race', {
+    raceDistance,
+    raceTime,
+    vdot: Number(vdot.toFixed(1)),
+    predictedMarathon: formatSecondsToTime(predictedMarathonSeconds),
+    marathonPace: `${paceMinutes}:${String(paceSeconds).padStart(2, '0')}/km`,
+    marathonPaceKmh: Number(marathonPaceKmh.toFixed(2))
+  })
 
   return {
     marathonPaceKmh,
@@ -396,7 +417,10 @@ export function getCurrentFitnessPace(
   if (recentRaceDistance && recentRaceTime && recentRaceDistance !== 'NONE') {
     const raceResult = calculateCurrentFitnessFromRace(recentRaceDistance, recentRaceTime)
     if (raceResult) {
-      console.log(`[Current Fitness] Using race result (${raceResult.source}) - VDOT ${raceResult.vdot}`)
+      logger.debug('[Current Fitness] Using race result', {
+        source: raceResult.source,
+        vdot: raceResult.vdot
+      })
       return {
         marathonPaceKmh: raceResult.marathonPaceKmh,
         source: raceResult.source,
@@ -407,7 +431,9 @@ export function getCurrentFitnessPace(
 
   // Priority 2: D-max test result (individual threshold)
   if (testMarathonPace && testMarathonPace > 0 && testSource === 'DMAX') {
-    console.log(`[Current Fitness] Using D-max test result: ${formatPace(testMarathonPace)}/km`)
+    logger.debug('[Current Fitness] Using D-max test result', {
+      pacePerKm: `${formatPace(testMarathonPace)}/km`
+    })
     return {
       marathonPaceKmh: testMarathonPace,
       source: 'DMAX_TEST',
@@ -417,7 +443,10 @@ export function getCurrentFitnessPace(
 
   // Priority 3: Other test results (less reliable than race/D-max)
   if (testMarathonPace && testMarathonPace > 0) {
-    console.log(`[Current Fitness] Using test result (${testSource}): ${formatPace(testMarathonPace)}/km`)
+    logger.debug('[Current Fitness] Using test result', {
+      testSource,
+      pacePerKm: `${formatPace(testMarathonPace)}/km`
+    })
     return {
       marathonPaceKmh: testMarathonPace,
       source: testSource || 'TEST',
@@ -426,7 +455,9 @@ export function getCurrentFitnessPace(
   }
 
   // Priority 4: Default estimate (low confidence)
-  console.log('[Current Fitness] No reliable data - using default estimate')
+  logger.debug('[Current Fitness] No reliable data - using default estimate', {
+    defaultPaceKmh: 11.5
+  })
   return {
     marathonPaceKmh: 11.5, // ~5:13/km - conservative default
     source: 'DEFAULT_ESTIMATE',

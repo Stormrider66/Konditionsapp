@@ -5,6 +5,7 @@ import { Client, Test, CreateTrainingProgramDTO } from '@/types'
 import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { get8WeekThresholdBuilder, get12WeekPrepBuilder, get16WeekVasaloppetPrep, SkiingTemplateWorkout } from '../templates/skiing'
 import { mapSkiingWorkoutToDTO } from '../workout-mapper'
+import { logger } from '@/lib/logger'
 
 export interface SkiingProgramParams {
   clientId: string
@@ -28,10 +29,11 @@ export async function generateSkiingProgram(
   client: Client,
   test?: Test
 ): Promise<CreateTrainingProgramDTO> {
-  console.log('[Skiing Generator] Starting program generation')
-  console.log(`  Goal: ${params.goal}`)
-  console.log(`  Technique: ${params.technique || 'both'}`)
-  console.log(`  Weekly Hours: ${params.weeklyHours || 8}`)
+  logger.debug('Starting skiing program generation', {
+    goal: params.goal,
+    technique: params.technique || 'both',
+    weeklyHours: params.weeklyHours || 8,
+  })
 
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)

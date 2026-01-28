@@ -4,6 +4,7 @@
 import { MethodologyConfig } from '@/lib/training-engine/methodologies'
 import { PeriodPhase } from '@/types'
 import { WorkoutSlot, WorkoutDistributionParams, IntensityDistribution } from './types'
+import { logger } from '@/lib/logger'
 
 export function distributeDefaultWorkouts(params: WorkoutDistributionParams): WorkoutSlot[] {
   const {
@@ -16,7 +17,7 @@ export function distributeDefaultWorkouts(params: WorkoutDistributionParams): Wo
   const workouts: WorkoutSlot[] = []
   const isRecoveryWeek = volumePercentage < 80
 
-  console.log(`[Workout Distribution] Using DEFAULT logic for ${methodologyConfig.type} methodology`)
+  logger.debug('Using DEFAULT workout distribution logic', { methodology: methodologyConfig.type })
 
   // Calculate intensity distribution from methodology
   const intensityDist = calculateMethodologyIntensityDistribution(

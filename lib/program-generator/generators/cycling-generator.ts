@@ -5,6 +5,7 @@ import { Client, CreateTrainingProgramDTO } from '@/types'
 import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { get8WeekFtpBuilder, get12WeekBaseBuilder, getGranFondoPrep, CyclingTemplateWorkout } from '../templates/cycling'
 import { mapCyclingWorkoutToDTO } from '../workout-mapper'
+import { logger } from '@/lib/logger'
 
 export interface CyclingProgramParams {
   clientId: string
@@ -28,10 +29,11 @@ export async function generateCyclingProgram(
   params: CyclingProgramParams,
   client: Client
 ): Promise<CreateTrainingProgramDTO> {
-  console.log('[Cycling Generator] Starting program generation')
-  console.log(`  Goal: ${params.goal}`)
-  console.log(`  FTP: ${params.ftp || 'Not provided'}`)
-  console.log(`  Weekly Hours: ${params.weeklyHours || 8}`)
+  logger.debug('Starting cycling program generation', {
+    goal: params.goal,
+    ftp: params.ftp || 'Not provided',
+    weeklyHours: params.weeklyHours || 8,
+  })
 
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)

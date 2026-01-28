@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { processAllAthleteMilestones } from '@/lib/ai/milestone-detector'
+import { logger } from '@/lib/logger'
 
 // Verify cron secret to prevent unauthorized access
 function verifyCronSecret(request: Request): boolean {
@@ -32,13 +33,13 @@ export async function GET(request: Request) {
   const startTime = Date.now()
 
   try {
-    console.log('Starting milestone detection...')
+    logger.info('Starting milestone detection')
 
     const results = await processAllAthleteMilestones()
 
     const duration = Date.now() - startTime
 
-    console.log(`Milestone detection completed in ${duration}ms:`, results)
+    logger.info('Milestone detection completed', { duration: `${duration}ms`, ...results })
 
     return NextResponse.json({
       success: true,

@@ -310,8 +310,6 @@ export function VideoAnalysisCard({
 
   // Callback to receive pose analysis data from PoseAnalyzer
   const handlePoseAnalysisUpdate = (data: Record<string, unknown>) => {
-    console.log('[VideoAnalysisCard] handlePoseAnalysisUpdate called with:', data)
-    console.log('[VideoAnalysisCard] data has score:', (data as { score?: number })?.score)
     // Update both state and ref to ensure latest value is always available
     setPoseAnalysisData(data)
     poseAnalysisDataRef.current = data
@@ -492,12 +490,6 @@ export function VideoAnalysisCard({
 
     // Read from ref to avoid stale closure issues
     const currentAiPoseAnalysis = poseAnalysisDataRef.current
-
-    // Debug logging
-    console.log('[VideoAnalysisCard] Saving pose analysis...')
-    console.log('[VideoAnalysisCard] poseAnalysisData (state):', poseAnalysisData)
-    console.log('[VideoAnalysisCard] poseAnalysisDataRef.current:', currentAiPoseAnalysis)
-    console.log('[VideoAnalysisCard] Has AI analysis:', currentAiPoseAnalysis !== null)
 
     try {
       const response = await fetch(`/api/video-analysis/${analysis.id}/landmarks`, {

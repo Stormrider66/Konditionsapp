@@ -113,7 +113,6 @@ export default function WODExecutionPage({ params }: PageProps) {
           throw new Error('WOD data not found')
         }
 
-        console.log('WOD fetched, data.id:', data.id)
         setWorkout(data.workoutJson as WODWorkout)
         setWodId(data.id)
         setEstimatedDuration(data.requestedDuration || 45)
@@ -210,7 +209,6 @@ export default function WODExecutionPage({ params }: PageProps) {
 
   // Actually complete the WOD with RPE and duration data
   const handleFinalComplete = async (data: { sessionRPE: number; actualDuration: number }) => {
-    console.log('handleFinalComplete called, wodId:', wodId, 'data:', data)
     if (wodId) {
       try {
         // Build exercise logs from completed exercises
@@ -222,7 +220,7 @@ export default function WODExecutionPage({ params }: PageProps) {
           completed: completedExercises.has(index),
         }))
 
-        const response = await fetch('/api/ai/wod', {
+        await fetch('/api/ai/wod', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -233,13 +231,9 @@ export default function WODExecutionPage({ params }: PageProps) {
             exerciseLogs,
           }),
         })
-        const responseData = await response.json()
-        console.log('PATCH response:', response.status, responseData)
       } catch (err) {
         console.error('Failed to save WOD completion:', err)
       }
-    } else {
-      console.warn('No wodId available to save')
     }
     router.push(`${basePath}/athlete/dashboard`)
   }

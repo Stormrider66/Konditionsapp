@@ -1,6 +1,7 @@
 // lib/program-generator/elite-pace-integration.ts
 // Integration layer between elite pace selector and program generator
 
+import { logger } from '@/lib/logger'
 import {
   type PaceSelection,
   type RacePerformance,
@@ -68,7 +69,7 @@ export async function fetchElitePaces(clientId: string): Promise<EliteZonePaces 
     const response = await fetch(`/api/clients/${clientId}/paces`)
 
     if (!response.ok) {
-      console.error('Failed to fetch elite paces:', response.statusText)
+      logger.error('Failed to fetch elite paces', { statusText: response.statusText })
       return null
     }
 
@@ -76,7 +77,7 @@ export async function fetchElitePaces(clientId: string): Promise<EliteZonePaces 
 
     return convertPaceSelectionToEliteZones(paceData)
   } catch (error) {
-    console.error('Error fetching elite paces:', error)
+    logger.error('Error fetching elite paces', {}, error)
     return null
   }
 }
@@ -96,7 +97,7 @@ export async function fetchElitePacesServer(clientId: string): Promise<EliteZone
     })
 
     if (!client) {
-      console.error('[fetchElitePacesServer] Client not found:', clientId)
+      logger.error('Client not found for elite paces', { clientId })
       return null
     }
 
@@ -175,15 +176,17 @@ export async function fetchElitePacesServer(clientId: string): Promise<EliteZone
       lactateTest
     )
 
-    console.log(`[fetchElitePacesServer] Pace selection for ${client.name}:`)
-    console.log(`  Source: ${paceSelection.primarySource}`)
-    console.log(`  Confidence: ${paceSelection.confidence}`)
-    console.log(`  Has lactate test: ${!!lactateTest}`)
-    console.log(`  Has race results: ${races.length > 0}`)
+    logger.debug('Pace selection completed', {
+      clientName: client.name,
+      source: paceSelection.primarySource,
+      confidence: paceSelection.confidence,
+      hasLactateTest: !!lactateTest,
+      hasRaceResults: races.length > 0,
+    })
 
     return convertPaceSelectionToEliteZones(paceSelection)
   } catch (error) {
-    console.error('[fetchElitePacesServer] Error:', error)
+    logger.error('Error fetching elite paces from server', {}, error)
     return null
   }
 }

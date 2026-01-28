@@ -1,6 +1,7 @@
 // lib/program-generator/workout-distribution/index.ts
 // Main entry point for workout distribution module
 
+import { logger } from '@/lib/logger'
 import { WorkoutSlot, WorkoutDistributionParams } from './types'
 import { distributeCanovaWorkouts } from './canova'
 import { distributePolarizedWorkouts } from './polarized'
@@ -17,37 +18,41 @@ export function determineWorkoutDistribution(params: WorkoutDistributionParams):
   const { methodologyConfig, phase, trainingDays } = params
   const methodologyType = methodologyConfig?.type
 
-  console.log(`[Workout Distribution] Methodology type: ${methodologyType || 'undefined'}, phase: ${phase}, trainingDays: ${trainingDays}`)
+  logger.debug('Determining workout distribution', {
+    methodologyType: methodologyType || 'undefined',
+    phase,
+    trainingDays,
+  })
 
   // Validate methodology config
   if (!methodologyConfig || !methodologyType) {
-    console.warn('[Workout Distribution] ⚠️ No methodology config provided, using default')
+    logger.warn('No methodology config provided, using default')
     return distributeDefaultWorkouts(params)
   }
 
   switch (methodologyType) {
     case 'CANOVA':
-      console.log('[Workout Distribution] → Using CANOVA distribution')
+      logger.debug('Using CANOVA distribution')
       return distributeCanovaWorkouts(params)
 
     case 'POLARIZED':
-      console.log('[Workout Distribution] → Using POLARIZED distribution')
+      logger.debug('Using POLARIZED distribution')
       return distributePolarizedWorkouts(params)
 
     case 'NORWEGIAN':
-      console.log('[Workout Distribution] → Using NORWEGIAN doubles distribution')
+      logger.debug('Using NORWEGIAN doubles distribution')
       return distributeNorwegianDoublesWorkouts(params)
 
     case 'NORWEGIAN_SINGLE':
-      console.log('[Workout Distribution] → Using NORWEGIAN singles distribution')
+      logger.debug('Using NORWEGIAN singles distribution')
       return distributeNorwegianSinglesWorkouts(params)
 
     case 'PYRAMIDAL':
-      console.log('[Workout Distribution] → Using PYRAMIDAL distribution')
+      logger.debug('Using PYRAMIDAL distribution')
       return distributePyramidalWorkouts(params)
 
     default:
-      console.log(`[Workout Distribution] → Unknown methodology '${methodologyType}', using default`)
+      logger.debug('Unknown methodology, using default', { methodologyType })
       return distributeDefaultWorkouts(params)
   }
 }

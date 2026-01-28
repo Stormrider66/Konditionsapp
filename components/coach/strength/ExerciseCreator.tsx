@@ -59,8 +59,6 @@ export function ExerciseCreator({ onClose }: { onClose?: () => void }) {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500))
 
-    console.log('Submitting exercise:', formData)
-    
     toast({
       title: 'Exercise Created',
       description: `${formData.name} has been added to the library.`,

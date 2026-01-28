@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { processPostWorkoutCheckIns } from '@/lib/ai/post-workout-checkin'
+import { logger } from '@/lib/logger'
 
 // Verify cron secret to prevent unauthorized access
 function verifyCronSecret(request: Request): boolean {
@@ -32,14 +33,14 @@ export async function GET(request: Request) {
   const startTime = Date.now()
 
   try {
-    console.log('Starting post-workout check-in processing...')
+    logger.info('Starting post-workout check-in processing')
 
     // Look for workouts completed in the last 4 hours
     const results = await processPostWorkoutCheckIns(4)
 
     const duration = Date.now() - startTime
 
-    console.log(`Post-workout check-ins completed in ${duration}ms:`, results)
+    logger.info('Post-workout check-ins completed', { duration: `${duration}ms`, ...results })
 
     return NextResponse.json({
       success: true,

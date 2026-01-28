@@ -13,6 +13,7 @@
 
 import { fitPolynomial3, PolynomialCoefficients } from '../utils/polynomial-fit'
 import { interpolateHeartRate } from '../utils/interpolation'
+import { logger } from '@/lib/logger'
 
 export interface LactateTestData {
   intensity: number[];    // km/h, watts, or m/s
@@ -66,7 +67,7 @@ export function calculateDmax(data: LactateTestData): DmaxResult {
   // Check if lactate is generally increasing
   const isMonotonic = checkMonotonicity(lactate);
   if (!isMonotonic) {
-    console.warn('[D-max] Lactate curve is not monotonically increasing - results may be unreliable');
+    logger.warn('[D-max] Lactate curve is not monotonically increasing - results may be unreliable');
   }
 
   // Fit 3rd degree polynomial
@@ -295,7 +296,7 @@ export function calculateModDmax(data: LactateTestData): DmaxResult {
   const trimmedBaseline = sortedBaseline.slice(0, -1);
   const baselineAvg = trimmedBaseline.reduce((sum, v) => sum + v, 0) / trimmedBaseline.length;
 
-  console.log('[Bishop Mod-Dmax] Baseline calculation:', {
+  logger.debug('[Bishop Mod-Dmax] Baseline calculation', {
     baselineCount,
     baselineValues: baselineValues.map(v => v.toFixed(2)),
     trimmedBaseline: trimmedBaseline.map(v => v.toFixed(2)),
@@ -320,7 +321,7 @@ export function calculateModDmax(data: LactateTestData): DmaxResult {
   if (firstRiseIndex === -1) {
     // No rise detected - curve is completely flat
     // This is extremely unusual; fall back to using the midpoint
-    console.warn('[Bishop Mod-Dmax] No rise detected above baseline + 0.4. Using midpoint as start.');
+    logger.warn('[Bishop Mod-Dmax] No rise detected above baseline + 0.4. Using midpoint as start.');
     modifiedStartIndex = Math.floor(lactate.length / 2);
   } else if (firstRiseIndex === 0) {
     // Rise happens at first point - use first point
@@ -330,7 +331,7 @@ export function calculateModDmax(data: LactateTestData): DmaxResult {
     modifiedStartIndex = firstRiseIndex - 1;
   }
 
-  console.log('[Bishop Mod-Dmax] First rise detection:', {
+  logger.debug('[Bishop Mod-Dmax] First rise detection', {
     riseThreshold: RISE_THRESHOLD,
     baselinePlusThreshold: (baselineAvg + RISE_THRESHOLD).toFixed(2),
     firstRiseIndex,
@@ -359,7 +360,7 @@ export function calculateModDmax(data: LactateTestData): DmaxResult {
   const modifiedSlope = (y2 - y1) / (x2 - x1);
   const modifiedIntercept = y1 - modifiedSlope * x1;
 
-  console.log('[Bishop Mod-Dmax] Modified baseline:', {
+  logger.debug('[Bishop Mod-Dmax] Modified baseline', {
     startPoint: `(${x1.toFixed(1)}, ${y1.toFixed(2)})`,
     endPoint: `(${x2.toFixed(1)}, ${y2.toFixed(2)})`,
     slope: modifiedSlope.toFixed(4),
@@ -383,7 +384,7 @@ export function calculateModDmax(data: LactateTestData): DmaxResult {
   const lactateRange = Math.max(...lactate) - Math.min(...lactate);
   const relativeDistance = dmaxPoint.distance / lactateRange;
 
-  console.log('[Bishop Mod-Dmax] Confidence calculation:', {
+  logger.debug('[Bishop Mod-Dmax] Confidence calculation', {
     dmaxDistance: dmaxPoint.distance.toFixed(4),
     lactateRange: lactateRange.toFixed(2),
     relativeDistance: relativeDistance.toFixed(4),
@@ -394,7 +395,7 @@ export function calculateModDmax(data: LactateTestData): DmaxResult {
 
   const confidence = calculateConfidence(r2, dmaxPoint.distance, lactate);
 
-  console.log('[Bishop Mod-Dmax] ★★★ FINAL RESULT ★★★:', {
+  logger.debug('[Bishop Mod-Dmax] Final result', {
     intensity: dmaxPoint.intensity.toFixed(2),
     lactate: dmaxPoint.lactate.toFixed(2),
     heartRate: Math.round(dmaxHR),
@@ -432,8 +433,7 @@ export function calculateModDmax(data: LactateTestData): DmaxResult {
 export function calculateDmaxByHeartRate(data: LactateTestData): DmaxResult & { hrBasedMethod: boolean } {
   const { intensity, lactate, heartRate, unit } = data;
 
-  console.log('┌── D-max by Heart Rate ─────────────────────────────────────┐');
-  console.log(`│ Using HR as x-axis instead of ${unit}`);
+  logger.debug('[D-max by Heart Rate] Starting calculation', { unit, xAxis: 'heartRate' });
 
   // Validation
   if (heartRate.length < 4) {
@@ -450,19 +450,18 @@ export function calculateDmaxByHeartRate(data: LactateTestData): DmaxResult & { 
   }
 
   if (!hrIncreasing) {
-    console.log('│ ⚠ HR not monotonically increasing - may affect results');
+    logger.warn('[D-max by Heart Rate] HR not monotonically increasing - may affect results');
   }
 
   // Fit 3rd degree polynomial: lactate = f(heartRate)
   const regression = fitPolynomial3(heartRate, lactate);
   const { coefficients, r2 } = regression;
 
-  console.log(`│ Polynomial fit R²: ${r2.toFixed(4)}`);
+  logger.debug('[D-max by Heart Rate] Polynomial fit', { r2: r2.toFixed(4) });
 
   if (r2 < 0.85) {
     // Lower threshold for HR-based (HR can be noisy)
-    console.log('│ ✗ Poor fit - falling back to intensity-based D-max');
-    console.log('└──────────────────────────────────────────────────────────────┘');
+    logger.debug('[D-max by Heart Rate] Poor fit - falling back to intensity-based D-max', { r2: r2.toFixed(4) });
     const fallback = calculateDmax(data);
     return { ...fallback, hrBasedMethod: false };
   }
@@ -476,7 +475,11 @@ export function calculateDmaxByHeartRate(data: LactateTestData): DmaxResult & { 
   const baselineSlope = (lac2 - lac1) / (hr2 - hr1);
   const baselineIntercept = lac1 - baselineSlope * hr1;
 
-  console.log(`│ Baseline: lac = ${baselineSlope.toFixed(4)} × HR + ${baselineIntercept.toFixed(2)}`);
+  logger.debug('[D-max by Heart Rate] Baseline', {
+    equation: `lac = ${baselineSlope.toFixed(4)} × HR + ${baselineIntercept.toFixed(2)}`,
+    slope: baselineSlope.toFixed(4),
+    intercept: baselineIntercept.toFixed(2)
+  });
 
   // Find point of maximum perpendicular distance
   const dmaxPoint = findMaxPerpendicularDistance(
@@ -494,12 +497,12 @@ export function calculateDmaxByHeartRate(data: LactateTestData): DmaxResult & { 
   // Interpolate intensity (speed/power) from HR
   const thresholdIntensity = interpolateIntensityFromHR(heartRate, intensity, thresholdHR);
 
-  console.log(`│ ★ D-max (HR-based):`);
-  console.log(`│   HR at threshold: ${thresholdHR.toFixed(0)} bpm`);
-  console.log(`│   Lactate: ${thresholdLactate.toFixed(2)} mmol/L`);
-  console.log(`│   Intensity: ${thresholdIntensity.toFixed(1)} ${unit}`);
-  console.log(`│   D-max distance: ${dmaxPoint.distance.toFixed(4)}`);
-  console.log('└──────────────────────────────────────────────────────────────┘');
+  logger.debug('[D-max by Heart Rate] Result', {
+    hrAtThreshold: `${thresholdHR.toFixed(0)} bpm`,
+    lactate: `${thresholdLactate.toFixed(2)} mmol/L`,
+    intensity: `${thresholdIntensity.toFixed(1)} ${unit}`,
+    dmaxDistance: dmaxPoint.distance.toFixed(4)
+  });
 
   // Calculate confidence
   const confidence = calculateConfidence(r2, dmaxPoint.distance, lactate);
@@ -550,9 +553,7 @@ function interpolateIntensityFromHR(
  * 4. If both fail, use fallback
  */
 export function calculateSmartDmax(data: LactateTestData): DmaxResult & { selectedMethod: string; hrBasedMethod?: boolean } {
-  console.log('╔══════════════════════════════════════════════════════════════╗');
-  console.log('║     SMART D-MAX (HR vs Intensity Comparison)                ║');
-  console.log('╚══════════════════════════════════════════════════════════════╝');
+  logger.debug('[Smart D-max] Starting HR vs Intensity comparison');
 
   let hrResult: (DmaxResult & { hrBasedMethod: boolean }) | null = null;
   let intensityResult: DmaxResult | null = null;
@@ -560,17 +561,17 @@ export function calculateSmartDmax(data: LactateTestData): DmaxResult & { select
   // Try HR-based D-max
   try {
     hrResult = calculateDmaxByHeartRate(data);
-    console.log(`HR-based D-max: R²=${hrResult.r2.toFixed(4)}, confidence=${hrResult.confidence}`);
+    logger.debug('[Smart D-max] HR-based D-max result', { r2: hrResult.r2.toFixed(4), confidence: hrResult.confidence });
   } catch (error) {
-    console.log('HR-based D-max failed:', error);
+    logger.debug('[Smart D-max] HR-based D-max failed', {}, error);
   }
 
   // Try intensity-based D-max
   try {
     intensityResult = calculateDmax(data);
-    console.log(`Intensity-based D-max: R²=${intensityResult.r2.toFixed(4)}, confidence=${intensityResult.confidence}`);
+    logger.debug('[Smart D-max] Intensity-based D-max result', { r2: intensityResult.r2.toFixed(4), confidence: intensityResult.confidence });
   } catch (error) {
-    console.log('Intensity-based D-max failed:', error);
+    logger.debug('[Smart D-max] Intensity-based D-max failed', {}, error);
   }
 
   // Compare and select best result
@@ -579,29 +580,29 @@ export function calculateSmartDmax(data: LactateTestData): DmaxResult & { select
     const hrScore = hrResult.r2 * (hrResult.confidence === 'HIGH' ? 1.2 : hrResult.confidence === 'MEDIUM' ? 1.0 : 0.8);
     const intScore = intensityResult.r2 * (intensityResult.confidence === 'HIGH' ? 1.2 : intensityResult.confidence === 'MEDIUM' ? 1.0 : 0.8);
 
-    console.log(`\nComparison scores: HR=${hrScore.toFixed(3)}, Intensity=${intScore.toFixed(3)}`);
+    logger.debug('[Smart D-max] Comparison scores', { hrScore: hrScore.toFixed(3), intensityScore: intScore.toFixed(3) });
 
     if (hrScore >= intScore) {
-      console.log('★ Selected: HR-based D-max (better fit)');
+      logger.debug('[Smart D-max] Selected HR-based D-max (better fit)');
       return { ...hrResult, selectedMethod: 'DMAX_HR' };
     } else {
-      console.log('★ Selected: Intensity-based D-max (better fit)');
+      logger.debug('[Smart D-max] Selected Intensity-based D-max (better fit)');
       return { ...intensityResult, selectedMethod: 'DMAX_INTENSITY', hrBasedMethod: false };
     }
   }
 
   if (hrResult) {
-    console.log('★ Selected: HR-based D-max (intensity-based failed)');
+    logger.debug('[Smart D-max] Selected HR-based D-max (intensity-based failed)');
     return { ...hrResult, selectedMethod: 'DMAX_HR' };
   }
 
   if (intensityResult) {
-    console.log('★ Selected: Intensity-based D-max (HR-based failed)');
+    logger.debug('[Smart D-max] Selected Intensity-based D-max (HR-based failed)');
     return { ...intensityResult, selectedMethod: 'DMAX_INTENSITY', hrBasedMethod: false };
   }
 
   // Both failed - use fallback
-  console.log('★ Both methods failed - using 4.0 mmol/L fallback');
+  logger.debug('[Smart D-max] Both methods failed - using 4.0 mmol/L fallback');
   const fallback = calculateFallbackThreshold(data, { a: 0, b: 0, c: 0, d: 0 }, 0);
   return { ...fallback, selectedMethod: 'FALLBACK_4MMOL', hrBasedMethod: false };
 }

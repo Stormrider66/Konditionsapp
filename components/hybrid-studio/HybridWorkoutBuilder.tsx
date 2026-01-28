@@ -391,7 +391,6 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
   }
 
   function addMovement(exercise: Exercise) {
-    console.log('Adding movement:', exercise.name);
     const newMovement: WorkoutMovement = {
       id: `temp-${Date.now()}`,
       exerciseId: exercise.id,
@@ -404,7 +403,6 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
     setMovements((prev) => [...prev, newMovement]);
     setExercisePopoverOpen(false);
     setExerciseSearch('');
-    console.log('Movement added, new count:', movements.length + 1);
   }
 
   function removeMovement(id: string) {

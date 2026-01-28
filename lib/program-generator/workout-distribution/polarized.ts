@@ -12,12 +12,13 @@ import { selectReliableMarathonPace } from '../pace-validator'
 import { validateEliteZones } from '../elite-pace-integration'
 import { getCurrentFitnessPace, formatPace } from '../pace-progression'
 import { WorkoutSlot, WorkoutDistributionParams } from './types'
+import { logger } from '@/lib/logger'
 
 export function distributePolarizedWorkouts(params: WorkoutDistributionParams): WorkoutSlot[] {
   const { phase, trainingDays, weekInPhase, test, params: programParams, elitePaces, recentRaceResult } = params
   const workouts: WorkoutSlot[] = []
 
-  console.log(`[Workout Distribution] Using POLARIZED methodology (Seiler) for ${phase} phase, week ${weekInPhase}`)
+  logger.debug('Workout distribution using POLARIZED methodology (Seiler)', { phase, weekInPhase })
 
   // === CALCULATE MARATHON PACE FOR DISTANCE CALCULATIONS ===
   let marathonPaceKmh = 12.0 // Default ~5:00/km
@@ -26,7 +27,7 @@ export function distributePolarizedWorkouts(params: WorkoutDistributionParams): 
   if (elitePaces && validateEliteZones(elitePaces)) {
     marathonPaceKmh = elitePaces.canova?.marathon?.kmh || elitePaces.core?.marathon ?
       parseFloat(elitePaces.core.marathon.replace(/[^0-9.]/g, '')) || 12.0 : 12.0
-    console.log(`[Polarized] Using elite pace: ${formatPace(marathonPaceKmh)}/km`)
+    logger.debug('Polarized using elite pace', { marathonPaceKmh, formatted: formatPace(marathonPaceKmh) })
   } else {
     // Try test-based or race-based pace
     let testPaceKmh: number | undefined
@@ -49,21 +50,21 @@ export function distributePolarizedWorkouts(params: WorkoutDistributionParams): 
     )
 
     marathonPaceKmh = currentFitness.marathonPaceKmh
-    console.log(`[Polarized] Using ${currentFitness.source} pace: ${formatPace(marathonPaceKmh)}/km`)
+    logger.debug('Polarized using fitness-based pace', { source: currentFitness.source, marathonPaceKmh, formatted: formatPace(marathonPaceKmh) })
   }
 
   // Map periodization phases to Polarized phases
   const polarizedPhase: PolarizedPhase =
     phase === 'BASE' || phase === 'BUILD' ? 'BASE' : 'SPECIFIC'
 
-  console.log(`[Polarized] Mapped to Polarized phase: ${polarizedPhase}`)
+  logger.debug('Polarized phase mapping', { originalPhase: phase, polarizedPhase })
 
   // Calculate session distribution (80/20 by SESSION COUNT)
   const sessionDist = calculateSessionDistribution(trainingDays)
-  console.log(`[Polarized] Session distribution: ${sessionDist.distribution}`)
-  if (sessionDist.warning) {
-    console.log(`[Polarized] ⚠️  ${sessionDist.warning}`)
-  }
+  logger.debug('Polarized session distribution', {
+    distribution: sessionDist.distribution,
+    warning: sessionDist.warning || null
+  })
 
   // Generate advanced Polarized week structure
   const polarizedSchedule = generatePolarizedWeekAdvanced(
@@ -72,7 +73,7 @@ export function distributePolarizedWorkouts(params: WorkoutDistributionParams): 
     weekInPhase
   )
 
-  console.log(`[Polarized] Generated ${polarizedSchedule.length} sessions`)
+  logger.debug('Polarized schedule generated', { sessionCount: polarizedSchedule.length })
 
   // Convert Polarized schedule to WorkoutSlot format
   for (const session of polarizedSchedule) {
@@ -193,6 +194,6 @@ export function distributePolarizedWorkouts(params: WorkoutDistributionParams): 
     })
   }
 
-  console.log(`[Polarized] Generated ${workouts.length} workouts for ${polarizedPhase} phase`)
+  logger.debug('Polarized workouts generated', { workoutCount: workouts.length, polarizedPhase })
   return workouts
 }

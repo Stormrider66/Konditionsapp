@@ -112,10 +112,6 @@ export default function TestPage() {
   const selectedClient = clients.find((c) => c.id === selectedClientId)
 
   const handleSubmit = async (data: CreateTestFormData) => {
-    console.log('handleSubmit called with:', data)
-    console.log('Selected testType from state:', testType)
-    console.log('First stage data:', data.stages[0])
-
     if (!selectedClient) {
       toast({
         title: 'Fel',
@@ -176,12 +172,8 @@ export default function TestPage() {
         testStages,
       }
 
-      console.log('Test saved, starting calculations...')
-
       // Utför alla beräkningar
       const calculations = await performAllCalculations(test, selectedClient)
-
-      console.log('Calculations completed:', calculations)
 
       // Spara beräkningsresultaten till testet
       const updateResponse = await fetch(`/api/tests/${savedTest.id}`, {
@@ -200,10 +192,8 @@ export default function TestPage() {
         }),
       })
 
-      if (!updateResponse.ok) {
+      if (!updateResponse.ok && process.env.NODE_ENV === 'development') {
         console.warn('Could not update test with calculation results')
-      } else {
-        console.log('Calculation results saved to database')
       }
 
       setReportData({

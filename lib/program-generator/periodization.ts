@@ -2,6 +2,7 @@
 // Periodization logic for training programs
 
 import { PeriodPhase } from '@/types'
+import { logger } from '@/lib/logger'
 
 export interface PhaseDistribution {
   base: number // weeks
@@ -99,7 +100,7 @@ export function calculatePhases(totalWeeks: number, methodology?: string): Phase
     base = Math.max(2, base - diff)
   }
 
-  console.log(`[Periodization] ${methodology || 'POLARIZED'} ${totalWeeks}w → BASE: ${base}, BUILD: ${build}, PEAK: ${peak}, TAPER: ${taper}`)
+  logger.debug('Phase distribution calculated', { methodology: methodology || 'POLARIZED', totalWeeks, phases: { base, build, peak, taper } })
 
   return { base, build, peak, taper }
 }
@@ -173,7 +174,7 @@ export function calculateCanovaPhases(totalWeeks: number): PhaseDistribution {
     }
   }
 
-  console.log(`[Canova Phases] ${totalWeeks} weeks → BASE: ${base}, BUILD: ${build}, PEAK: ${peak}, TAPER: ${taper}`)
+  logger.debug('Canova phase distribution calculated', { totalWeeks, phases: { base, build, peak, taper } })
 
   return { base, build, peak, taper }
 }

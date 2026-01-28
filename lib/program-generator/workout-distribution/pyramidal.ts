@@ -15,6 +15,7 @@ import { selectReliableMarathonPace } from '../pace-validator'
 import { validateEliteZones } from '../elite-pace-integration'
 import { getCurrentFitnessPace, formatPace } from '../pace-progression'
 import { WorkoutSlot, WorkoutDistributionParams } from './types'
+import { logger } from '@/lib/logger'
 
 export function distributePyramidalWorkouts(params: WorkoutDistributionParams): WorkoutSlot[] {
   const {
@@ -29,7 +30,7 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
 
   const workouts: WorkoutSlot[] = []
 
-  console.log(`[Workout Distribution] Using PYRAMIDAL methodology (Daniels/Pfitzinger/Lydiard) for ${phase} phase, week ${weekInPhase}`)
+  logger.debug('[Workout Distribution] Using PYRAMIDAL methodology (Daniels/Pfitzinger/Lydiard)', { phase, weekInPhase })
 
   // === CALCULATE MARATHON PACE FOR DISTANCE CALCULATIONS ===
   let marathonPaceKmh = 12.0 // Default ~5:00/km
@@ -37,7 +38,7 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
   // Try elite paces first
   if (elitePaces && validateEliteZones(elitePaces)) {
     marathonPaceKmh = elitePaces.canova?.marathon?.kmh || 12.0
-    console.log(`[Pyramidal] Using elite pace: ${formatPace(marathonPaceKmh)}/km`)
+    logger.debug('[Pyramidal] Using elite pace', { pace: formatPace(marathonPaceKmh), paceKmh: marathonPaceKmh })
   } else {
     // Try test-based or race-based pace
     const paceValidation = selectReliableMarathonPace(
@@ -55,7 +56,7 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
     )
 
     marathonPaceKmh = currentFitness.marathonPaceKmh
-    console.log(`[Pyramidal] Using ${currentFitness.source} pace: ${formatPace(marathonPaceKmh)}/km`)
+    logger.debug('[Pyramidal] Using fitness-based pace', { source: currentFitness.source, pace: formatPace(marathonPaceKmh), paceKmh: marathonPaceKmh })
   }
 
   // Map periodization phases to Pyramidal (Lydiard) phases
@@ -73,8 +74,7 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
     programParams.goalType === '10k' ? '10K' :
     'HALF_MARATHON'
 
-  console.log(`[Pyramidal] Mapped to Pyramidal phase: ${pyramidalPhase}`)
-  console.log(`[Pyramidal] Event type: ${pyramidalEvent}`)
+  logger.debug('[Pyramidal] Phase and event mapping', { pyramidalPhase, pyramidalEvent })
 
   const weeklyMileage = trainingDays * 7
   const totalWeeks = programParams.durationWeeks
@@ -87,15 +87,17 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
     weeksToRace
   )
 
-  console.log(`[Pyramidal] Zone distribution: Z1=${eventDistribution.zone1Percent}%, Z2=${eventDistribution.zone2Percent}%, Z3=${eventDistribution.zone3Percent}%`)
+  logger.debug('[Pyramidal] Zone distribution', {
+    zone1Percent: eventDistribution.zone1Percent,
+    zone2Percent: eventDistribution.zone2Percent,
+    zone3Percent: eventDistribution.zone3Percent
+  })
 
   // Check for special cases
   if (pyramidalEvent === '5K' && weeksToRace <= 4) {
-    console.log(`[Pyramidal] ⚡ 5K POLARIZED SWITCH activated (${weeksToRace} weeks to race)`)
-    console.log(`[Pyramidal] Dropping Zone 2 work, maximizing VO2max sharpening`)
+    logger.debug('[Pyramidal] 5K POLARIZED SWITCH activated - Dropping Zone 2 work, maximizing VO2max sharpening', { weeksToRace })
   } else if (pyramidalEvent === 'MARATHON' && weeksToRace <= 8) {
-    console.log(`[Pyramidal] 🔒 MARATHON Z3 LOCK activated (${weeksToRace} weeks to race)`)
-    console.log(`[Pyramidal] Removing all VO2max work to prevent glycogen wastage`)
+    logger.debug('[Pyramidal] MARATHON Z3 LOCK activated - Removing all VO2max work to prevent glycogen wastage', { weeksToRace })
   }
 
   // === TUESDAY: THRESHOLD WORK (Key session) ===
@@ -106,8 +108,10 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
       const cruiseType = selectCruiseInterval(pyramidalPhase, weeklyMileage, weekInPhase)
       const cruiseSession = getCruiseIntervalSession(cruiseType, weeklyMileage)
 
-      console.log(`[Pyramidal] Tuesday: ${cruiseSession.description}`)
-      console.log(`[Pyramidal] ${cruiseSession.danielsRule}`)
+      logger.debug('[Pyramidal] Tuesday cruise interval session', {
+        description: cruiseSession.description,
+        danielsRule: cruiseSession.danielsRule
+      })
 
       workouts.push({
         dayNumber: 2,
@@ -126,8 +130,10 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
       const tempoType = selectContinuousTempo(pyramidalPhase, pyramidalEvent, weekInPhase)
       const tempoSession = getContinuousTempoSession(tempoType)
 
-      console.log(`[Pyramidal] Tuesday: ${tempoSession.description}`)
-      console.log(`[Pyramidal] ${tempoSession.pfitzingerNote}`)
+      logger.debug('[Pyramidal] Tuesday tempo session', {
+        description: tempoSession.description,
+        pfitzingerNote: tempoSession.pfitzingerNote
+      })
 
       workouts.push({
         dayNumber: 2,
@@ -206,8 +212,10 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
   // === SATURDAY: ADVANCED THRESHOLD WORK (Optional) ===
   if (pyramidalEvent === 'MARATHON' && (pyramidalPhase as string) === 'MARATHON_SPECIFIC') {
     const advancedSession = getAdvancedThresholdSession('FATIGUED_THRESHOLD')
-    console.log(`[Pyramidal] Saturday: ${advancedSession.description}`)
-    console.log(`[Pyramidal] Mechanism: ${advancedSession.mechanism}`)
+    logger.debug('[Pyramidal] Saturday advanced threshold session', {
+      description: advancedSession.description,
+      mechanism: advancedSession.mechanism
+    })
 
     workouts.push({
       dayNumber: 6,
@@ -279,6 +287,6 @@ export function distributePyramidalWorkouts(params: WorkoutDistributionParams): 
     })
   }
 
-  console.log(`[Pyramidal] Generated ${workouts.length} workouts for ${pyramidalPhase} phase`)
+  logger.debug('[Pyramidal] Generated workouts', { workoutCount: workouts.length, phase: pyramidalPhase })
   return workouts
 }

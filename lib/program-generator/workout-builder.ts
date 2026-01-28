@@ -1,6 +1,7 @@
 // lib/program-generator/workout-builder.ts
 // Build individual workout structures with segments
 
+import { logger } from '@/lib/logger'
 import {
   CreateWorkoutDTO,
   CreateWorkoutSegmentDTO,
@@ -727,7 +728,7 @@ export function buildStrengthWorkout(
   focus: 'upper' | 'lower' | 'full',
   exercises: string[] // Exercise IDs from database
 ): CreateWorkoutDTO {
-  console.log(`[buildStrengthWorkout] Building workout with ${exercises.length} exercises:`, exercises)
+  logger.debug('Building strength workout', { phase, focus, exerciseCount: exercises.length, exercises })
 
   const segments: CreateWorkoutSegmentDTO[] = []
 
@@ -745,7 +746,7 @@ export function buildStrengthWorkout(
 
   // If no exercises from database, use default exercises with descriptions
   if (exercises.length === 0) {
-    console.log(`[buildStrengthWorkout] No exercises from DB, using default ${focus} exercises`)
+    logger.debug('No exercises from DB, using default exercises', { focus })
     const defaultExercises = DEFAULT_STRENGTH_EXERCISES[focus] || DEFAULT_STRENGTH_EXERCISES.full
 
     defaultExercises.forEach((exercise, index) => {
@@ -800,13 +801,13 @@ const DEFAULT_CORE_EXERCISES = [
  * Build core workout
  */
 export function buildCoreWorkout(exercises: string[]): CreateWorkoutDTO {
-  console.log(`[buildCoreWorkout] Building workout with ${exercises.length} exercises:`, exercises)
+  logger.debug('Building core workout', { exerciseCount: exercises.length, exercises })
 
   const segments: CreateWorkoutSegmentDTO[] = []
 
   // If no exercises from database, use default core exercises
   if (exercises.length === 0) {
-    console.log('[buildCoreWorkout] No exercises from DB, using default core exercises')
+    logger.debug('No exercises from DB, using default core exercises')
 
     DEFAULT_CORE_EXERCISES.forEach((exercise, index) => {
       segments.push({
@@ -854,13 +855,13 @@ const DEFAULT_PLYOMETRIC_EXERCISES = [
  * Build plyometric workout
  */
 export function buildPlyometricWorkout(exercises: string[]): CreateWorkoutDTO {
-  console.log(`[buildPlyometricWorkout] Building workout with ${exercises.length} exercises:`, exercises)
+  logger.debug('Building plyometric workout', { exerciseCount: exercises.length, exercises })
 
   const segments: CreateWorkoutSegmentDTO[] = []
 
   // If no exercises from database, use default plyometric exercises
   if (exercises.length === 0) {
-    console.log('[buildPlyometricWorkout] No exercises from DB, using default plyometric exercises')
+    logger.debug('No exercises from DB, using default plyometric exercises')
 
     DEFAULT_PLYOMETRIC_EXERCISES.forEach((exercise, index) => {
       segments.push({

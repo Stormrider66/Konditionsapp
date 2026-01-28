@@ -17,6 +17,8 @@
  * - Manual: 1 (user input, least reliable for TSS)
  */
 
+import { logger } from '@/lib/logger'
+
 export type ActivitySource = 'strava' | 'garmin' | 'concept2' | 'manual' | 'ai' | 'adhoc'
 
 export interface NormalizedActivity {
@@ -131,9 +133,12 @@ export function deduplicateActivities(
       })
 
       if (opts.debug) {
-        console.log(
-          `[Dedup] Removed ${activity.source}:${activity.id} as duplicate of ${matchedWith.source}:${matchedWith.id} (${matchReason}, confidence: ${confidence.toFixed(2)})`
-        )
+        logger.debug('Removed duplicate activity', {
+          removed: { source: activity.source, id: activity.id },
+          keptAs: { source: matchedWith.source, id: matchedWith.id },
+          matchReason,
+          confidence: confidence.toFixed(2),
+        })
       }
     } else {
       kept.push(activity)

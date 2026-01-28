@@ -1,6 +1,7 @@
 // lib/calculations/save-dmax.ts
 import { prisma } from '@/lib/prisma'
 import { Threshold } from '@/types'
+import { logger } from '@/lib/logger'
 
 /**
  * Save threshold calculation results to ThresholdCalculation model
@@ -59,20 +60,20 @@ export async function saveDmaxResults(
         }
       }
 
-      console.log('Saving D-max results for LT2 (anaerobic threshold)')
+      logger.debug('Saving D-max results for LT2 (anaerobic threshold)')
     }
 
-    console.log('Saving threshold calculation:', thresholdData)
+    logger.debug('Saving threshold calculation', { testId, thresholdData })
 
     // Save to database
     const saved = await prisma.thresholdCalculation.create({
       data: thresholdData
     })
 
-    console.log('Threshold calculation saved successfully:', saved.id)
+    logger.debug('Threshold calculation saved successfully', { savedId: saved.id })
     return saved
   } catch (error) {
-    console.error('Error saving threshold calculation:', error)
+    logger.error('Error saving threshold calculation', { testId }, error)
     // Don't throw - we don't want to fail the whole test save if this fails
     return null
   }
@@ -90,7 +91,7 @@ export async function getDmaxResults(testId: string) {
 
     return results
   } catch (error) {
-    console.error('Error fetching D-max results:', error)
+    logger.error('Error fetching D-max results', { testId }, error)
     return []
   }
 }

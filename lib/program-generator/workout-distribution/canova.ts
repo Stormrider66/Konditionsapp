@@ -1,6 +1,7 @@
 // lib/program-generator/workout-distribution/canova.ts
 // CANOVA methodology workout distribution - Elite marathon training
 
+import { logger } from '@/lib/logger'
 import {
   getCanovaSpecialBlock,
   getCanovaLongFastRun,
@@ -32,8 +33,13 @@ export function distributeCanovaWorkouts(params: WorkoutDistributionParams): Wor
 
   const workouts: WorkoutSlot[] = []
 
-  console.log(`[Workout Distribution] Using CANOVA elite methodology for ${phase} phase, week ${weekInPhase}`)
-  console.log(`[Canova] Program week ${weekNumber}/${totalWeeks}`)
+  logger.debug('[Canova] Workout distribution started', {
+    methodology: 'CANOVA',
+    phase,
+    weekInPhase,
+    weekNumber,
+    totalWeeks
+  })
 
   // Map periodization phases to Canova phases
   const canovaPhase: CanovaPhase =
@@ -43,7 +49,7 @@ export function distributeCanovaWorkouts(params: WorkoutDistributionParams): Wor
     phase === 'PEAK' ? 'SPECIFIC' :
     'TAPER'
 
-  console.log(`[Canova] Mapped to Canova phase: ${canovaPhase}`)
+  logger.debug('[Canova] Phase mapping complete', { canovaPhase })
 
   // === PROGRESSIVE MARATHON PACE CALCULATION ===
   // Per Canova: "Current Fitness: 10k/HM PRs used to calculate baseline"
@@ -73,7 +79,7 @@ export function distributeCanovaWorkouts(params: WorkoutDistributionParams): Wor
     testPaceSource = paceValidation.source
 
     if (paceValidation.warnings.length > 0) {
-      console.warn(`[Canova] ⚠️ Test pace warnings:`, paceValidation.warnings)
+      logger.warn('[Canova] Test pace warnings', { warnings: paceValidation.warnings })
     }
   }
 
@@ -88,7 +94,12 @@ export function distributeCanovaWorkouts(params: WorkoutDistributionParams): Wor
   currentPaceKmh = currentFitness.marathonPaceKmh
   currentFitnessSource = currentFitness.source
 
-  console.log(`[Canova] ✓ Current fitness (${currentFitness.source}, ${currentFitness.confidence} confidence): ${formatPace(currentPaceKmh)}/km (${currentPaceKmh.toFixed(1)} km/h)`)
+  logger.debug('[Canova] Current fitness calculated', {
+    source: currentFitness.source,
+    confidence: currentFitness.confidence,
+    paceMinKm: formatPace(currentPaceKmh),
+    paceKmh: parseFloat(currentPaceKmh.toFixed(1))
+  })
 
   // Second, get TARGET pace from goal time
   let targetPaceKmh: number | null = null
@@ -96,7 +107,11 @@ export function distributeCanovaWorkouts(params: WorkoutDistributionParams): Wor
   if (programParams.targetTime) {
     targetPaceKmh = parseGoalTime(programParams.targetTime, programParams.goalType)
     if (targetPaceKmh) {
-      console.log(`[Canova] ✓ Target pace (${programParams.targetTime}): ${formatPace(targetPaceKmh)}/km (${targetPaceKmh.toFixed(1)} km/h)`)
+      logger.debug('[Canova] Target pace calculated', {
+        targetTime: programParams.targetTime,
+        paceMinKm: formatPace(targetPaceKmh),
+        paceKmh: parseFloat(targetPaceKmh.toFixed(1))
+      })
     }
   }
 
@@ -116,12 +131,15 @@ export function distributeCanovaWorkouts(params: WorkoutDistributionParams): Wor
     })
     marathonPaceKmh = progressivePaces.marathonPaceKmh
 
-    console.log(`[Canova] ✓ PROGRESSIVE pace for week ${weekNumber}: ${progressivePaces.marathonPaceMinKm}/km`)
-    console.log(`[Canova]   Progression: ${progressivePaces.progressionPercent.toFixed(0)}% toward target`)
+    logger.debug('[Canova] Progressive pace calculated', {
+      weekNumber,
+      paceMinKm: progressivePaces.marathonPaceMinKm,
+      progressionPercent: parseFloat(progressivePaces.progressionPercent.toFixed(0))
+    })
   } else {
     // No target or target is slower than current - use current fitness
     marathonPaceKmh = currentPaceKmh
-    console.log(`[Canova] Using current fitness pace: ${formatPace(marathonPaceKmh)}/km`)
+    logger.debug('[Canova] Using current fitness pace', { paceMinKm: formatPace(marathonPaceKmh) })
   }
 
   const canovaZones = calculateCanovaZones(marathonPaceKmh)
@@ -162,7 +180,7 @@ function distributeSpecialBlockWeek(
   marathonPaceKmh: number,
   programParams: any
 ): WorkoutSlot[] {
-  console.log(`[Canova] ⭐ SPECIAL BLOCK WEEK - Double workout day`)
+  logger.debug('[Canova] Special block week detected', { doubleWorkoutDay: true })
 
   const blockType: CanovaBlockType =
     canovaPhase === 'SPECIFIC' ? 'MIXED' :
@@ -171,9 +189,11 @@ function distributeSpecialBlockWeek(
 
   const specialBlock = getCanovaSpecialBlock(blockType, athleteLevel === 'ELITE' ? 'ELITE' : 'ADVANCED')
 
-  console.log(`[Canova] Block type: ${blockType}`)
-  console.log(`[Canova] Total volume: ${specialBlock.totalDailyVolume}km`)
-  console.log(`[Canova] Nutritional strategy: ${specialBlock.nutritionalStrategy}`)
+  logger.debug('[Canova] Special block configured', {
+    blockType,
+    totalVolumeKm: specialBlock.totalDailyVolume,
+    nutritionalStrategy: specialBlock.nutritionalStrategy
+  })
 
   // === TUESDAY: SPECIAL BLOCK DAY (AM + PM sessions) ===
   workouts.push({
@@ -432,7 +452,12 @@ function distributeNormalCanovaWeek(
     weekInPhase
   )
 
-  console.log(`[Canova] Week ${weekNumber} MP volume: tempo=${mpVolume.tempoAtMPMinutes}min, longFinish=${mpVolume.longRunMPFinishKm}km, pace=${mpVolume.pacePercentBase}%`)
+  logger.debug('[Canova] Weekly MP volume calculated', {
+    weekNumber,
+    tempoMinutes: mpVolume.tempoAtMPMinutes,
+    longFinishKm: mpVolume.longRunMPFinishKm,
+    pacePercent: mpVolume.pacePercentBase
+  })
 
   // === TUESDAY: Quality session 1 ===
   const quality1Type = selectCanovaWorkout(canovaPhase, weekInPhase, 'QUALITY_1')
@@ -609,7 +634,11 @@ function distributeNormalCanovaWeek(
   // How many more running sessions do we need?
   const runningSessionsNeeded = Math.max(0, targetRunningSessions - existingRunningSessions)
 
-  console.log(`[Canova] Running sessions: ${existingRunningSessions} existing, ${targetRunningSessions} target, need ${runningSessionsNeeded} more`)
+  logger.debug('[Canova] Running sessions planning', {
+    existing: existingRunningSessions,
+    target: targetRunningSessions,
+    needed: runningSessionsNeeded
+  })
 
   // Available days for easy runs (days not already used for quality sessions)
   const availableDays = [1, 3, 5, 6]
@@ -630,11 +659,13 @@ function distributeNormalCanovaWeek(
         }
       })
       addedSessions++
-      console.log(`[Canova] Added easy run on day ${dayNum}`)
+      logger.debug('[Canova] Easy run added', { dayNumber: dayNum })
     }
   }
 
-  console.log(`[Canova] Final running session count: ${existingRunningSessions + addedSessions}`)
+  logger.debug('[Canova] Running sessions finalized', {
+    totalSessions: existingRunningSessions + addedSessions
+  })
 
   // === STRENGTH SESSIONS ===
   addStrengthSessions(workouts, canovaPhase, programParams)
@@ -642,7 +673,10 @@ function distributeNormalCanovaWeek(
   // === CORE SESSIONS ===
   addCoreSessions(workouts, programParams)
 
-  console.log(`[Canova] Generated ${workouts.length} workouts for ${canovaPhase} phase`)
+  logger.debug('[Canova] Workout generation complete', {
+    workoutCount: workouts.length,
+    canovaPhase
+  })
   return workouts
 }
 

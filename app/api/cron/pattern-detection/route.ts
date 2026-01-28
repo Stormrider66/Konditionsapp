@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { analyzeAllAthletes } from '@/lib/ai/pattern-detector'
+import { logger } from '@/lib/logger'
 
 // Verify cron secret to prevent unauthorized access
 function verifyCronSecret(request: Request): boolean {
@@ -32,13 +33,13 @@ export async function GET(request: Request) {
   const startTime = Date.now()
 
   try {
-    console.log('Starting pattern detection analysis...')
+    logger.info('Starting pattern detection analysis')
 
     const results = await analyzeAllAthletes()
 
     const duration = Date.now() - startTime
 
-    console.log(`Pattern detection completed in ${duration}ms:`, results)
+    logger.info('Pattern detection completed', { duration: `${duration}ms`, ...results })
 
     return NextResponse.json({
       success: true,

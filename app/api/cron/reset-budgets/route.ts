@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 // ============================================
 // POST - Reset All Budgets
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Log the reset
-    console.log(`Reset ${result.count} budgets for ${monthStart.toISOString()}`)
+    logger.info('Reset budgets for new month', { count: result.count, monthStart: monthStart.toISOString() })
 
     return NextResponse.json({
       message: `Reset ${result.count} budgets`,

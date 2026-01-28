@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { findUpcomingWorkouts, createPreWorkoutNudge } from '@/lib/ai/preworkout-nudge-generator'
+import { logger } from '@/lib/logger'
 
 // Verify cron secret to prevent unauthorized access
 function verifyCronSecret(request: Request): boolean {
@@ -96,7 +97,7 @@ export async function GET(request: Request) {
 
         if (nudgeId) {
           results.nudgesCreated++
-          console.log(`Created pre-workout nudge for athlete ${athlete.id}: ${nudgeId}`)
+          logger.debug('Created pre-workout nudge', { athleteId: athlete.id, nudgeId })
         } else {
           results.skipped++ // Already sent or generation failed
         }

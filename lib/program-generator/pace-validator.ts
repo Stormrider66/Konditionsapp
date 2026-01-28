@@ -1,6 +1,7 @@
 // lib/program-generator/pace-validator.ts
 // Validation module for testing pace selection system with real athlete data
 
+import { logger } from '@/lib/logger'
 import { selectOptimalPaces, type RacePerformance, type AthleteProfileData, type LactateTestData } from '@/lib/training-engine/calculations/pace-selector'
 import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
 import { analyzeLactateProfile } from '@/lib/training-engine/calculations/lactate-profile-analyzer'
@@ -19,9 +20,9 @@ import { calculateVDOT } from '@/lib/calculations/race-predictions'
  * - Avg HR during HM: 181 bpm (93% max)
  */
 export function validateRealAthlete1() {
-  console.log('========================================')
-  console.log('TEST CASE 1: 1:28 Half Marathon Runner')
-  console.log('========================================\n')
+  logger.debug('========================================')
+  logger.debug('TEST CASE 1: 1:28 Half Marathon Runner')
+  logger.debug('========================================')
 
   // Athlete profile
   const profile: AthleteProfileData = {
@@ -62,87 +63,91 @@ export function validateRealAthlete1() {
   const result = selectOptimalPaces(profile, races, lactateTest)
 
   // Display results
-  console.log('PRIMARY SOURCE:', result.primarySource)
-  console.log('SECONDARY SOURCE:', result.secondarySource || 'None')
-  console.log('CONFIDENCE:', result.confidence)
-  console.log('\nATHLETE CLASSIFICATION:')
-  console.log('  Level:', result.athleteClassification.level)
-  console.log('  Metabolic Type:', result.athleteClassification.metabolicType)
-  console.log('  Compression Factor:', (result.athleteClassification.compressionFactor * 100).toFixed(1) + '%')
-  console.log('\nVDOT ANALYSIS:')
-  if (result.vdotResult) {
-    console.log('  VDOT:', result.vdotResult.vdot)
-    console.log('  Adjustments:', result.vdotResult.adjustments)
-  }
-  console.log('\nLACTATE PROFILE:')
-  if (result.lactateProfile) {
-    console.log('  Max Lactate:', result.lactateProfile.maxLactate.toFixed(1), 'mmol/L')
-    console.log('  LT2 Lactate:', result.lactateProfile.lt2.lactate.toFixed(1), 'mmol/L')
-    console.log('  LT2 Ratio:', (result.lactateProfile.lt2Ratio * 100).toFixed(1) + '%')
-    console.log('  LT2 Speed:', result.lactateProfile.lt2.speed.toFixed(1), 'km/h')
-    console.log('  LT2 HR:', result.lactateProfile.lt2.heartRate, 'bpm')
-  }
+  logger.debug('Pace selection result', {
+    primarySource: result.primarySource,
+    secondarySource: result.secondarySource || 'None',
+    confidence: result.confidence,
+    athleteClassification: {
+      level: result.athleteClassification.level,
+      metabolicType: result.athleteClassification.metabolicType,
+      compressionFactor: (result.athleteClassification.compressionFactor * 100).toFixed(1) + '%'
+    },
+    vdotResult: result.vdotResult ? {
+      vdot: result.vdotResult.vdot,
+      adjustments: result.vdotResult.adjustments
+    } : null,
+    lactateProfile: result.lactateProfile ? {
+      maxLactate: result.lactateProfile.maxLactate.toFixed(1) + ' mmol/L',
+      lt2Lactate: result.lactateProfile.lt2.lactate.toFixed(1) + ' mmol/L',
+      lt2Ratio: (result.lactateProfile.lt2Ratio * 100).toFixed(1) + '%',
+      lt2Speed: result.lactateProfile.lt2.speed.toFixed(1) + ' km/h',
+      lt2HR: result.lactateProfile.lt2.heartRate + ' bpm'
+    } : null
+  })
 
-  console.log('\n📊 CORE PACES:')
-  console.log('  Easy:', result.easyPace.minPace, '-', result.easyPace.maxPace)
-  console.log('  Marathon:', result.marathonPace.pace, `(${result.marathonPace.kmh.toFixed(1)} km/h)`)
-  console.log('  Threshold:', result.thresholdPace.pace, `(${result.thresholdPace.kmh.toFixed(1)} km/h)`)
-  console.log('  Interval:', result.intervalPace.pace, `(${result.intervalPace.kmh.toFixed(1)} km/h)`)
-  console.log('  Repetition:', result.repetitionPace.pace, `(${result.repetitionPace.kmh.toFixed(1)} km/h)`)
+  logger.debug('CORE PACES', {
+    easy: `${result.easyPace.minPace} - ${result.easyPace.maxPace}`,
+    marathon: `${result.marathonPace.pace} (${result.marathonPace.kmh.toFixed(1)} km/h)`,
+    threshold: `${result.thresholdPace.pace} (${result.thresholdPace.kmh.toFixed(1)} km/h)`,
+    interval: `${result.intervalPace.pace} (${result.intervalPace.kmh.toFixed(1)} km/h)`,
+    repetition: `${result.repetitionPace.pace} (${result.repetitionPace.kmh.toFixed(1)} km/h)`
+  })
 
-  console.log('\n🎯 DANIELS ZONES:')
-  console.log('  E:', result.zones.daniels.easy.minPace, '-', result.zones.daniels.easy.maxPace)
-  console.log('  M:', result.zones.daniels.marathon.pace)
-  console.log('  T:', result.zones.daniels.threshold.pace)
-  console.log('  I:', result.zones.daniels.interval.pace)
-  console.log('  R:', result.zones.daniels.repetition.pace)
+  logger.debug('DANIELS ZONES', {
+    E: `${result.zones.daniels.easy.minPace} - ${result.zones.daniels.easy.maxPace}`,
+    M: result.zones.daniels.marathon.pace,
+    T: result.zones.daniels.threshold.pace,
+    I: result.zones.daniels.interval.pace,
+    R: result.zones.daniels.repetition.pace
+  })
 
-  console.log('\n🇮🇹 CANOVA ZONES:')
-  console.log('  Fundamental:', result.zones.canova.fundamental.pace, `(${result.zones.canova.fundamental.percentOfMP}% MP)`)
-  console.log('  Progressive:', result.zones.canova.progressive.minPace, '-', result.zones.canova.progressive.maxPace, `(${result.zones.canova.progressive.percentOfMP} MP)`)
-  console.log('  Marathon:', result.zones.canova.marathon.pace, `(${result.zones.canova.marathon.percentOfMP}% MP)`)
-  console.log('  Specific:', result.zones.canova.specific.pace, `(${result.zones.canova.specific.percentOfMP}% MP)`)
-  console.log('  Threshold:', result.zones.canova.threshold.pace, `(${result.zones.canova.threshold.percentOfMP}% MP)`)
-  console.log('  5K:', result.zones.canova.fiveK.pace, `(${result.zones.canova.fiveK.percentOfMP}% MP)`)
+  logger.debug('CANOVA ZONES', {
+    fundamental: `${result.zones.canova.fundamental.pace} (${result.zones.canova.fundamental.percentOfMP}% MP)`,
+    progressive: `${result.zones.canova.progressive.minPace} - ${result.zones.canova.progressive.maxPace} (${result.zones.canova.progressive.percentOfMP} MP)`,
+    marathon: `${result.zones.canova.marathon.pace} (${result.zones.canova.marathon.percentOfMP}% MP)`,
+    specific: `${result.zones.canova.specific.pace} (${result.zones.canova.specific.percentOfMP}% MP)`,
+    threshold: `${result.zones.canova.threshold.pace} (${result.zones.canova.threshold.percentOfMP}% MP)`,
+    fiveK: `${result.zones.canova.fiveK.pace} (${result.zones.canova.fiveK.percentOfMP}% MP)`
+  })
 
-  console.log('\n🇳🇴 NORWEGIAN ZONES:')
-  console.log('  Green:', result.zones.norwegian.green.minPace, '-', result.zones.norwegian.green.maxPace, result.zones.norwegian.green.lactate)
-  console.log('  Threshold:', result.zones.norwegian.threshold.pace, result.zones.norwegian.threshold.lactate)
-  console.log('  Red:', result.zones.norwegian.red.minPace, '-', result.zones.norwegian.red.maxPace, result.zones.norwegian.red.lactate)
+  logger.debug('NORWEGIAN ZONES', {
+    green: `${result.zones.norwegian.green.minPace} - ${result.zones.norwegian.green.maxPace} ${result.zones.norwegian.green.lactate}`,
+    threshold: `${result.zones.norwegian.threshold.pace} ${result.zones.norwegian.threshold.lactate}`,
+    red: `${result.zones.norwegian.red.minPace} - ${result.zones.norwegian.red.maxPace} ${result.zones.norwegian.red.lactate}`
+  })
 
-  console.log('\n⚠️ WARNINGS:')
-  if (result.warnings.length > 0) {
-    result.warnings.forEach(w => console.log('  -', w))
-  } else {
-    console.log('  None')
-  }
+  logger.debug('WARNINGS', {
+    warnings: result.warnings.length > 0 ? result.warnings : ['None']
+  })
 
-  console.log('\n✅ VALIDATION:')
-  console.log('  Sources Available:')
-  console.log('    - VDOT:', result.validationResults.sourcesAvailable.vdot ? '✓' : '✗')
-  console.log('    - Lactate:', result.validationResults.sourcesAvailable.lactate ? '✓' : '✗')
-  console.log('    - HR Data:', result.validationResults.sourcesAvailable.hrData ? '✓' : '✗')
-  console.log('  Consistency:')
-  console.log('    - Marathon Pace:', result.validationResults.consistencyChecks.marathonPaceConsistent ? '✓' : '✗')
-  console.log('    - Threshold Pace:', result.validationResults.consistencyChecks.thresholdPaceConsistent ? '✓' : '✗')
-  if (result.validationResults.consistencyChecks.mismatchPercent) {
-    console.log('    - Mismatch:', result.validationResults.consistencyChecks.mismatchPercent.toFixed(1) + '%')
-  }
+  logger.debug('VALIDATION', {
+    sourcesAvailable: {
+      vdot: result.validationResults.sourcesAvailable.vdot,
+      lactate: result.validationResults.sourcesAvailable.lactate,
+      hrData: result.validationResults.sourcesAvailable.hrData
+    },
+    consistencyChecks: {
+      marathonPaceConsistent: result.validationResults.consistencyChecks.marathonPaceConsistent,
+      thresholdPaceConsistent: result.validationResults.consistencyChecks.thresholdPaceConsistent,
+      mismatchPercent: result.validationResults.consistencyChecks.mismatchPercent?.toFixed(1) + '%'
+    }
+  })
 
   // EXPECTED RESULT VALIDATION
-  console.log('\n🔬 EXPECTED vs ACTUAL:')
   const expectedMarathonPaceMin = 4.25 // 4:25/km
   const expectedMarathonPaceMax = 4.50 // 4:30/km
   const expectedMarathonKmhMin = 60 / expectedMarathonPaceMax // ~13.33 km/h
   const expectedMarathonKmhMax = 60 / expectedMarathonPaceMin // ~14.12 km/h
 
-  console.log('  Expected Marathon Pace: 4:25-4:30/km (13.3-14.1 km/h)')
-  console.log('  Actual Marathon Pace:', result.marathonPace.pace, `(${result.marathonPace.kmh.toFixed(1)} km/h)`)
-
   const withinRange = result.marathonPace.kmh >= expectedMarathonKmhMin && result.marathonPace.kmh <= expectedMarathonKmhMax
-  console.log('  ✓ Within Expected Range:', withinRange ? 'YES ✅' : 'NO ❌')
 
-  console.log('\n========================================\n')
+  logger.debug('EXPECTED vs ACTUAL', {
+    expectedMarathonPace: '4:25-4:30/km (13.3-14.1 km/h)',
+    actualMarathonPace: `${result.marathonPace.pace} (${result.marathonPace.kmh.toFixed(1)} km/h)`,
+    withinExpectedRange: withinRange
+  })
+
+  logger.debug('========================================')
 
   return {
     passed: withinRange,
@@ -160,9 +165,9 @@ export function validateRealAthlete1() {
  * - High compression factor (96-98%)
  */
 export function validateEliteSlowTwitch() {
-  console.log('========================================')
-  console.log('TEST CASE 2: Elite Slow Twitch (Paula Type)')
-  console.log('========================================\n')
+  logger.debug('========================================')
+  logger.debug('TEST CASE 2: Elite Slow Twitch (Paula Type)')
+  logger.debug('========================================')
 
   const profile: AthleteProfileData = {
     age: 28,
@@ -197,25 +202,28 @@ export function validateEliteSlowTwitch() {
 
   const result = selectOptimalPaces(profile, races, lactateTest)
 
-  console.log('PRIMARY SOURCE:', result.primarySource)
-  console.log('ATHLETE LEVEL:', result.athleteClassification.level)
-  console.log('METABOLIC TYPE:', result.athleteClassification.metabolicType)
-  console.log('COMPRESSION FACTOR:', (result.athleteClassification.compressionFactor * 100).toFixed(1) + '%')
-  console.log('\nVDOT:', result.vdotResult?.vdot)
-  console.log('MAX LACTATE:', result.lactateProfile?.maxLactate.toFixed(1), 'mmol/L')
-  console.log('LT2 LACTATE:', result.lactateProfile?.lt2.lactate.toFixed(1), 'mmol/L')
-  console.log('LT2 RATIO:', (result.lactateProfile?.lt2Ratio ?? 0 * 100).toFixed(1) + '%')
-
-  console.log('\nMARATHON PACE:', result.marathonPace.pace, `(${result.marathonPace.kmh.toFixed(1)} km/h)`)
-  console.log('THRESHOLD PACE:', result.thresholdPace.pace, `(${result.thresholdPace.kmh.toFixed(1)} km/h)`)
+  logger.debug('Elite slow twitch result', {
+    primarySource: result.primarySource,
+    athleteLevel: result.athleteClassification.level,
+    metabolicType: result.athleteClassification.metabolicType,
+    compressionFactor: (result.athleteClassification.compressionFactor * 100).toFixed(1) + '%',
+    vdot: result.vdotResult?.vdot,
+    maxLactate: result.lactateProfile?.maxLactate.toFixed(1) + ' mmol/L',
+    lt2Lactate: result.lactateProfile?.lt2.lactate.toFixed(1) + ' mmol/L',
+    lt2Ratio: (result.lactateProfile?.lt2Ratio ?? 0 * 100).toFixed(1) + '%',
+    marathonPace: `${result.marathonPace.pace} (${result.marathonPace.kmh.toFixed(1)} km/h)`,
+    thresholdPace: `${result.thresholdPace.pace} (${result.thresholdPace.kmh.toFixed(1)} km/h)`
+  })
 
   const expectedSlowTwitch = result.athleteClassification.metabolicType === 'SLOW_TWITCH'
   const expectedHighCompression = result.athleteClassification.compressionFactor >= 0.95
 
-  console.log('\n✓ Metabolic Type = SLOW_TWITCH:', expectedSlowTwitch ? 'YES ✅' : 'NO ❌')
-  console.log('✓ Compression Factor ≥ 95%:', expectedHighCompression ? 'YES ✅' : 'NO ❌')
+  logger.debug('Elite slow twitch validation', {
+    metabolicTypeSlowTwitch: expectedSlowTwitch,
+    compressionFactorAbove95: expectedHighCompression
+  })
 
-  console.log('\n========================================\n')
+  logger.debug('========================================')
 
   return {
     passed: expectedSlowTwitch && expectedHighCompression,
@@ -232,9 +240,9 @@ export function validateEliteSlowTwitch() {
  * - Lower compression factor (78-82%)
  */
 export function validateRecreationalRunner() {
-  console.log('========================================')
-  console.log('TEST CASE 3: Recreational Runner')
-  console.log('========================================\n')
+  logger.debug('========================================')
+  logger.debug('TEST CASE 3: Recreational Runner')
+  logger.debug('========================================')
 
   const profile: AthleteProfileData = {
     age: 45,
@@ -257,20 +265,24 @@ export function validateRecreationalRunner() {
 
   const result = selectOptimalPaces(profile, races)
 
-  console.log('PRIMARY SOURCE:', result.primarySource)
-  console.log('ATHLETE LEVEL:', result.athleteClassification.level)
-  console.log('COMPRESSION FACTOR:', (result.athleteClassification.compressionFactor * 100).toFixed(1) + '%')
-  console.log('\nVDOT:', result.vdotResult?.vdot)
-  console.log('MARATHON PACE:', result.marathonPace.pace, `(${result.marathonPace.kmh.toFixed(1)} km/h)`)
-  console.log('EASY PACE:', result.easyPace.minPace, '-', result.easyPace.maxPace)
+  logger.debug('Recreational runner result', {
+    primarySource: result.primarySource,
+    athleteLevel: result.athleteClassification.level,
+    compressionFactor: (result.athleteClassification.compressionFactor * 100).toFixed(1) + '%',
+    vdot: result.vdotResult?.vdot,
+    marathonPace: `${result.marathonPace.pace} (${result.marathonPace.kmh.toFixed(1)} km/h)`,
+    easyPace: `${result.easyPace.minPace} - ${result.easyPace.maxPace}`
+  })
 
   const expectedRecreational = result.athleteClassification.level === 'RECREATIONAL' || result.athleteClassification.level === 'INTERMEDIATE'
   const expectedLowCompression = result.athleteClassification.compressionFactor <= 0.88
 
-  console.log('\n✓ Level = RECREATIONAL/INTERMEDIATE:', expectedRecreational ? 'YES ✅' : 'NO ❌')
-  console.log('✓ Compression Factor ≤ 88%:', expectedLowCompression ? 'YES ✅' : 'NO ❌')
+  logger.debug('Recreational runner validation', {
+    levelRecreationalOrIntermediate: expectedRecreational,
+    compressionFactorBelow88: expectedLowCompression
+  })
 
-  console.log('\n========================================\n')
+  logger.debug('========================================')
 
   return {
     passed: expectedRecreational && expectedLowCompression,
@@ -282,26 +294,18 @@ export function validateRecreationalRunner() {
  * Run all validation tests
  */
 export function runAllValidationTests() {
-  console.log('\n\n')
-  console.log('╔════════════════════════════════════════╗')
-  console.log('║  PACE SELECTION VALIDATION TEST SUITE  ║')
-  console.log('╚════════════════════════════════════════╝')
-  console.log('\n')
+  logger.debug('PACE SELECTION VALIDATION TEST SUITE')
 
   const test1 = validateRealAthlete1()
   const test2 = validateEliteSlowTwitch()
   const test3 = validateRecreationalRunner()
 
-  console.log('╔════════════════════════════════════════╗')
-  console.log('║         TEST SUMMARY                   ║')
-  console.log('╚════════════════════════════════════════╝')
-  console.log('')
-  console.log('Test 1 (1:28 HM Runner):', test1.passed ? '✅ PASSED' : '❌ FAILED')
-  console.log('Test 2 (Elite Slow Twitch):', test2.passed ? '✅ PASSED' : '❌ FAILED')
-  console.log('Test 3 (Recreational):', test3.passed ? '✅ PASSED' : '❌ FAILED')
-  console.log('')
-  console.log('Overall:', test1.passed && test2.passed && test3.passed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED')
-  console.log('')
+  logger.debug('TEST SUMMARY', {
+    test1_128HMRunner: test1.passed ? 'PASSED' : 'FAILED',
+    test2_EliteSlowTwitch: test2.passed ? 'PASSED' : 'FAILED',
+    test3_Recreational: test3.passed ? 'PASSED' : 'FAILED',
+    overall: test1.passed && test2.passed && test3.passed ? 'ALL TESTS PASSED' : 'SOME TESTS FAILED'
+  })
 
   return {
     allPassed: test1.passed && test2.passed && test3.passed,
@@ -351,9 +355,11 @@ function calculateMarathonPaceFromRace(raceResult: RaceResultForPace): number {
 
   const marathonPaceKmh = velocity * 60 / 1000 // Convert m/min to km/h
 
-  console.log(`[Pace Validator] Race result: ${(raceResult.distanceMeters/1000).toFixed(1)}km in ${Math.floor(raceResult.timeSeconds/60)}:${String(raceResult.timeSeconds%60).padStart(2,'0')}`)
-  console.log(`[Pace Validator] Calculated VDOT: ${vdot.toFixed(1)}`)
-  console.log(`[Pace Validator] Predicted marathon pace: ${marathonPaceKmh.toFixed(1)} km/h`)
+  logger.debug('[Pace Validator] Marathon pace calculated from race', {
+    raceResult: `${(raceResult.distanceMeters/1000).toFixed(1)}km in ${Math.floor(raceResult.timeSeconds/60)}:${String(raceResult.timeSeconds%60).padStart(2,'0')}`,
+    calculatedVDOT: vdot.toFixed(1),
+    predictedMarathonPace: `${marathonPaceKmh.toFixed(1)} km/h`
+  })
 
   return marathonPaceKmh
 }
@@ -388,7 +394,11 @@ export function selectReliableMarathonPace(
   // Check LT2 status
   const lt2Status = classifyLT2Source(test)
 
-  console.log(`[Pace Validator] LT2 Status: ${lt2Status.source} (lactate: ${lt2Status.lactateAtLT2?.toFixed(1) || 'unknown'} mmol/L)`)
+  logger.debug('[Pace Validator] LT2 Status', {
+    source: lt2Status.source,
+    lactate: lt2Status.lactateAtLT2?.toFixed(1) || 'unknown',
+    unit: 'mmol/L'
+  })
 
   // ===== PRIORITY 1: Real D-max calculated LT2 =====
   // D-max from lactate test is the gold standard - individualized physiological data
@@ -402,9 +412,11 @@ export function selectReliableMarathonPace(
       if (lt2SpeedKmh > 0) {
         const marathonPaceKmh = lt2SpeedKmh * 0.90
 
-        console.log(`[Pace Validator] ✓ PRIORITY 1: Using D-max LT2: ${lt2SpeedKmh.toFixed(1)} km/h`)
-        console.log(`[Pace Validator]   LT2 lactate: ${lt2Status.lactateAtLT2?.toFixed(1)} mmol/L`)
-        console.log(`[Pace Validator]   Marathon pace: ${marathonPaceKmh.toFixed(1)} km/h (90% of LT2)`)
+        logger.debug('[Pace Validator] PRIORITY 1: Using D-max LT2', {
+          lt2Speed: `${lt2SpeedKmh.toFixed(1)} km/h`,
+          lt2Lactate: `${lt2Status.lactateAtLT2?.toFixed(1)} mmol/L`,
+          marathonPace: `${marathonPaceKmh.toFixed(1)} km/h (90% of LT2)`
+        })
 
         return {
           marathonPaceKmh,
@@ -425,8 +437,10 @@ export function selectReliableMarathonPace(
 
       if (lt2Stage && lt2Stage.speed) {
         const marathonPaceKmh = lt2Stage.speed * 0.90
-        console.log(`[Pace Validator] ✓ PRIORITY 1: D-max LT2 from HR match: ${lt2Stage.speed.toFixed(1)} km/h`)
-        console.log(`[Pace Validator]   Marathon pace: ${marathonPaceKmh.toFixed(1)} km/h`)
+        logger.debug('[Pace Validator] PRIORITY 1: D-max LT2 from HR match', {
+          lt2Speed: `${lt2Stage.speed.toFixed(1)} km/h`,
+          marathonPace: `${marathonPaceKmh.toFixed(1)} km/h`
+        })
 
         return {
           marathonPaceKmh,
@@ -445,7 +459,7 @@ export function selectReliableMarathonPace(
     const marathonPaceKmh = calculateMarathonPaceFromRace(recentRaceResult)
 
     if (marathonPaceKmh > 8 && marathonPaceKmh < 25) { // Sanity check: 2:24/km to 7:30/km pace
-      console.log('[Pace Validator] ✓ PRIORITY 2: Using race result (VDOT)')
+      logger.debug('[Pace Validator] PRIORITY 2: Using race result (VDOT)')
 
       if (lt2Status.source === 'DEFAULT') {
         warnings.push('D-max calculation failed - using race result instead')
@@ -473,8 +487,10 @@ export function selectReliableMarathonPace(
       if (lt2SpeedKmh > 0) {
         const marathonPaceKmh = lt2SpeedKmh * 0.90
 
-        console.log(`[Pace Validator] ✓ PRIORITY 3: Using coach manual LT2: ${lt2SpeedKmh.toFixed(1)} km/h`)
-        console.log(`[Pace Validator]   Marathon pace: ${marathonPaceKmh.toFixed(1)} km/h (90% of LT2)`)
+        logger.debug('[Pace Validator] PRIORITY 3: Using coach manual LT2', {
+          lt2Speed: `${lt2SpeedKmh.toFixed(1)} km/h`,
+          marathonPace: `${marathonPaceKmh.toFixed(1)} km/h (90% of LT2)`
+        })
 
         return {
           marathonPaceKmh,
@@ -499,13 +515,15 @@ export function selectReliableMarathonPace(
         const marathonPaceKmh = lt2SpeedKmh * 0.90
 
         // Add warning about default LT2
-        warnings.push('⚠️ LT2 based on default 4.0 mmol/L (D-max calculation failed)')
+        warnings.push('LT2 based on default 4.0 mmol/L (D-max calculation failed)')
         warnings.push('For high lactate producers, this may underestimate true threshold')
         warnings.push('Consider: 1) Adding race result, 2) Manually set LT2 on graph')
 
-        console.log(`[Pace Validator] ⚠️ PRIORITY 4: Using DEFAULT LT2: ${lt2SpeedKmh.toFixed(1)} km/h`)
-        console.log(`[Pace Validator]   WARNING: May be inaccurate for this athlete!`)
-        console.log(`[Pace Validator]   Marathon pace: ${marathonPaceKmh.toFixed(1)} km/h`)
+        logger.debug('[Pace Validator] PRIORITY 4: Using DEFAULT LT2', {
+          lt2Speed: `${lt2SpeedKmh.toFixed(1)} km/h`,
+          warning: 'May be inaccurate for this athlete!',
+          marathonPace: `${marathonPaceKmh.toFixed(1)} km/h`
+        })
 
         return {
           marathonPaceKmh,
@@ -558,7 +576,7 @@ function convertToKmh(value: number, unit: string): number {
   } else if (unit === 'min/km') {
     return 60 / value
   } else if (unit === 'watt') {
-    console.log('[Pace Validator] Power-based threshold, cannot convert to pace')
+    logger.debug('[Pace Validator] Power-based threshold, cannot convert to pace')
     return 0
   } else {
     return value // Assume km/h
@@ -617,7 +635,7 @@ function classifyLT2Source(test: any): {
 
   // If lactate at LT2 is exactly 4.0 or very close, it's likely a default OBLA value
   if (Math.abs(lactateAtLT2 - 4.0) < 0.2) {
-    console.log('[Pace Validator] ⚠️ LT2 lactate is ~4.0 mmol/L - likely default OBLA')
+    logger.debug('[Pace Validator] LT2 lactate is ~4.0 mmol/L - likely default OBLA')
     return { source: 'DEFAULT', lactateAtLT2 }
   }
 

@@ -1,6 +1,7 @@
 // lib/program-generator/index.ts
 // Main program generation orchestrator
 
+import { logger } from '@/lib/logger'
 import {
   Test,
   Client,
@@ -113,42 +114,37 @@ export async function generateBaseProgram(
   client: Client,
   params: ProgramGenerationParams
 ): Promise<CreateTrainingProgramDTO> {
-  console.log('=====================================')
-  console.log('PROGRAM GENERATION: Starting')
-  console.log('=====================================\n')
+  logger.debug('Program generation starting')
 
   // Step 0.5: Fetch recent race results for VDOT-based pace calculation
-  console.log('[0/6] Fetching recent race results...')
+  logger.debug('Fetching recent race results', { step: '0/6' })
   const recentRaceResult = await fetchRecentRaceResult(params.clientId)
 
   // Step 1: Fetch elite paces from comprehensive pace selector
-  console.log('[1/6] Fetching elite paces...')
+  logger.debug('Fetching elite paces', { step: '1/6' })
   let elitePaces: EliteZonePaces | null = null
 
   try {
     elitePaces = await fetchElitePaces(client.id)
 
     if (elitePaces && validateEliteZones(elitePaces)) {
-      console.log('✓ Elite paces fetched successfully')
-      console.log('  Source:', elitePaces.source)
-      console.log('  Confidence:', elitePaces.confidence)
-      console.log('  Athlete Level:', elitePaces.athleteLevel)
-      if (elitePaces.metabolicType) {
-        console.log('  Metabolic Type:', elitePaces.metabolicType)
-      }
+      logger.debug('Elite paces fetched successfully', {
+        source: elitePaces.source,
+        confidence: elitePaces.confidence,
+        athleteLevel: elitePaces.athleteLevel,
+        metabolicType: elitePaces.metabolicType,
+      })
 
       // Check for warnings
       const warnings = getZoneConfidenceWarnings(elitePaces)
       if (warnings.length > 0) {
-        console.log('\n⚠️  Zone Confidence Warnings:')
-        warnings.forEach((w) => console.log('   -', w))
+        logger.debug('Zone confidence warnings detected', { warnings })
       }
     } else {
-      console.log('⚠️  Elite paces not available, using legacy zone calculation')
+      logger.debug('Elite paces not available, using legacy zone calculation')
     }
   } catch (error) {
-    console.error('❌ Error fetching elite paces:', error)
-    console.log('   Using legacy zone calculation from test')
+    logger.error('Error fetching elite paces, using legacy zone calculation from test', {}, error)
   }
 
   // Validate inputs (updated to allow elite paces OR test zones)
@@ -161,7 +157,7 @@ export async function generateBaseProgram(
 
   // Get methodology configuration
   // Handle 'AUTO' by selecting appropriate methodology based on athlete profile
-  console.log('\n[2/6] Selecting training methodology...')
+  logger.debug('Selecting training methodology', { step: '2/6' })
   let methodology: MethodologyType = 'POLARIZED' // Default to safest methodology
 
   if (params.methodology === ('AUTO' as any) || !params.methodology) {
@@ -172,7 +168,7 @@ export async function generateBaseProgram(
         elitePaces.metabolicType,
         params.goalType
       )
-      console.log(`✓ Auto-selected: ${methodology} (from elite classification)`)
+      logger.debug('Auto-selected methodology from elite classification', { methodology })
     } else {
       // Fallback to legacy rule-based selection
       if (athleteLevel === 'ELITE' || athleteLevel === 'ADVANCED') {
@@ -184,27 +180,34 @@ export async function generateBaseProgram(
       } else {
         methodology = 'POLARIZED'
       }
-      console.log(`✓ Auto-selected: ${methodology} (legacy rules)`)
+      logger.debug('Auto-selected methodology using legacy rules', { methodology })
     }
   } else if (params.methodology === ('LYDIARD' as any)) {
     // LYDIARD not yet implemented, use CANOVA as closest equivalent
     methodology = 'CANOVA'
-    console.log(`✓ Using specified: ${methodology} (LYDIARD mapped to CANOVA)`)
+    logger.debug('Using CANOVA as LYDIARD mapping', { methodology, requestedMethodology: 'LYDIARD' })
   } else {
     // Use the specified methodology
     methodology = params.methodology as MethodologyType
-    console.log(`✓ Using specified: ${methodology}`)
+    logger.debug('Using specified methodology', { methodology })
   }
 
   const methodologyConfig = getMethodologyConfig(methodology, params.trainingDaysPerWeek)
 
-  console.log(`[Program Generator] Using methodology: ${methodology} (requested: ${params.methodology})`)
-  console.log(`[Program Generator] Methodology config type: ${methodologyConfig.type}`)
+  logger.debug('Methodology configuration resolved', {
+    methodology,
+    requestedMethodology: params.methodology,
+    configType: methodologyConfig.type,
+  })
 
   // Calculate periodization (methodology-aware for Canova)
   const phases = calculatePhases(params.durationWeeks, methodology)
-  console.log(`[Program Generator] Phase distribution for ${params.durationWeeks} weeks (${methodology}):`, phases)
-  console.log(`[Program Generator] Total phase weeks: ${phases.base + phases.build + phases.peak + phases.taper}`)
+  logger.debug('Phase distribution calculated', {
+    durationWeeks: params.durationWeeks,
+    methodology,
+    phases,
+    totalPhaseWeeks: phases.base + phases.build + phases.peak + phases.taper,
+  })
 
   // Determine volume based on experience and goal
   const { baseVolume, peakVolume } = calculateVolumeTargets(
@@ -218,10 +221,13 @@ export async function generateBaseProgram(
     baseVolume,
     peakVolume
   )
-  console.log(`[Program Generator] Volume progression length: ${volumeProgression.length} (expected: ${params.durationWeeks})`)
+  logger.debug('Volume progression calculated', {
+    volumeProgressionLength: volumeProgression.length,
+    expectedWeeks: params.durationWeeks,
+  })
 
   // Get training paces/powers (elite or legacy)
-  console.log('\n[3/6] Determining training zones...')
+  logger.debug('Determining training zones', { step: '3/6' })
   const zones = (elitePaces && validateEliteZones(elitePaces))
     ? elitePaces.legacy // Use elite-calculated paces
     : (test.testType === 'CYCLING'
@@ -229,13 +235,15 @@ export async function generateBaseProgram(
         : calculateZonePaces(test.trainingZones || []))
 
   if (elitePaces && validateEliteZones(elitePaces)) {
-    console.log('✓ Using ELITE pace system')
-    console.log('  Marathon pace:', elitePaces.core.marathon)
-    console.log('  Threshold pace:', elitePaces.core.threshold)
+    logger.debug('Using elite pace system', {
+      marathonPace: elitePaces.core.marathon,
+      thresholdPace: elitePaces.core.threshold,
+    })
   } else {
-    console.log('✓ Using LEGACY zone calculation')
-    console.log('  Zone 2 (Marathon):', zones.zone2)
-    console.log('  Zone 3 (Threshold):', zones.zone3)
+    logger.debug('Using legacy zone calculation', {
+      zone2: zones.zone2,
+      zone3: zones.zone3,
+    })
   }
 
   // Generate program name
@@ -285,7 +293,11 @@ export async function generateBaseProgram(
 
     // Safety check: ensure weekData exists
     if (!weekData) {
-      console.error(`❌ Missing week data for week ${weekNum + 1}. Volume progression length: ${volumeProgression.length}, expected: ${params.durationWeeks}`)
+      logger.error('Missing week data during program generation', {
+        weekNumber: weekNum + 1,
+        volumeProgressionLength: volumeProgression.length,
+        expectedWeeks: params.durationWeeks,
+      })
       throw new Error(`Program generation failed: Missing week ${weekNum + 1} data. Please check program duration.`)
     }
 
@@ -375,7 +387,11 @@ async function buildWeek(
 ): Promise<CreateTrainingWeekDTO> {
   // Log elite pace usage for this week
   if (elitePaces) {
-    console.log(`  Week ${weekNumber}: Using ${elitePaces.source} paces (${elitePaces.confidence} confidence)`)
+    logger.debug('Week using elite paces', {
+      weekNumber,
+      source: elitePaces.source,
+      confidence: elitePaces.confidence,
+    })
   }
   const days: CreateTrainingDayDTO[] = []
 
@@ -513,7 +529,7 @@ async function getDefaultExercises(category: string, focus?: string): Promise<st
   const { prisma } = await import('@/lib/prisma')
 
   try {
-    console.log(`[getDefaultExercises] Searching for category: ${category.toUpperCase()}, focus: ${focus}`)
+    logger.debug('Searching for default exercises', { category: category.toUpperCase(), focus })
 
     let exercises: any[] = []
 
@@ -564,16 +580,16 @@ async function getDefaultExercises(category: string, focus?: string): Promise<st
       })
     }
 
-    console.log(`[getDefaultExercises] Found ${exercises.length} exercises for ${category}/${focus}`)
+    logger.debug('Found default exercises', { count: exercises.length, category, focus })
 
     if (exercises.length === 0) {
-      console.warn(`❌ No exercises found for category: ${category}, focus: ${focus}. Make sure exercises are seeded!`)
+      logger.warn('No exercises found for category. Make sure exercises are seeded!', { category, focus })
       return []
     }
 
     return exercises.map(e => e.id)
   } catch (error) {
-    console.error('❌ Error fetching exercises:', error)
+    logger.error('Error fetching exercises', { category, focus }, error)
     return []
   }
 }
@@ -667,7 +683,7 @@ async function fetchRecentRaceResult(clientId: string): Promise<RaceResultForPac
     })
 
     if (!recentRace) {
-      console.log('[Program Generator] No race results found for client')
+      logger.debug('No race results found for client')
       return undefined
     }
 
@@ -680,14 +696,17 @@ async function fetchRecentRaceResult(clientId: string): Promise<RaceResultForPac
     }
 
     if (distanceMeters === 0) {
-      console.log(`[Program Generator] Unknown distance: ${recentRace.distance}`)
+      logger.debug('Unknown race distance', { distance: recentRace.distance })
       return undefined
     }
 
     // Convert timeMinutes to seconds
     const timeSeconds = recentRace.timeMinutes * 60
 
-    console.log(`[Program Generator] ✓ Found race result: ${(distanceMeters/1000).toFixed(1)}km in ${Math.floor(timeSeconds/60)}:${String(Math.round(timeSeconds%60)).padStart(2,'0')}`)
+    logger.debug('Found race result', {
+      distanceKm: (distanceMeters / 1000).toFixed(1),
+      timeFormatted: `${Math.floor(timeSeconds / 60)}:${String(Math.round(timeSeconds % 60)).padStart(2, '0')}`,
+    })
 
     return {
       distanceMeters,
@@ -695,7 +714,7 @@ async function fetchRecentRaceResult(clientId: string): Promise<RaceResultForPac
       date: recentRace.raceDate,
     }
   } catch (error) {
-    console.error('[Program Generator] Error fetching race result:', error)
+    logger.error('Error fetching race result', {}, error)
     return undefined
   }
 }

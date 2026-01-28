@@ -29,6 +29,7 @@
  */
 
 import type { MethodologyConfig, WeeklyStructure, ZoneDistribution3 } from './types'
+import { logger } from '@/lib/logger'
 
 /**
  * Get Norwegian methodology configuration
@@ -384,9 +385,11 @@ export function calculateNorwegianDoublesIntensity(
   const pmTargetLow = 3.0
   const pmTargetHigh = Math.min(4.0, anaerobicThreshold.lactate) // Don't exceed LT2
 
-  console.log(`[Norwegian Doubles] LT2 at ${anaerobicThreshold.lactate.toFixed(1)} mmol/L`)
-  console.log(`[Norwegian Doubles] AM target: ${amTargetLow.toFixed(1)}-${amTargetHigh.toFixed(1)} mmol/L (Low Zone 2)`)
-  console.log(`[Norwegian Doubles] PM target: ${pmTargetLow.toFixed(1)}-${pmTargetHigh.toFixed(1)} mmol/L (High Zone 2)`)
+  logger.debug('Norwegian Doubles intensity targets', {
+    lt2Lactate: anaerobicThreshold.lactate,
+    amTarget: { low: amTargetLow, high: amTargetHigh, zone: 'Low Zone 2' },
+    pmTarget: { low: pmTargetLow, high: pmTargetHigh, zone: 'High Zone 2' }
+  })
 
   // Find stages around target lactate values for interpolation
   const sortedStages = [...testStages].sort((a, b) => a.lactate - b.lactate)
@@ -430,8 +433,11 @@ export function calculateNorwegianDoublesIntensity(
   const pmLow = interpolateLactate(pmTargetLow)
   const pmHigh = interpolateLactate(pmTargetHigh)
 
-  console.log(`[Norwegian Doubles] AM intensity: ${amLow.pace.toFixed(1)}-${amHigh.pace.toFixed(1)} ${anaerobicThreshold.unit}, HR ${Math.round(amLow.hr)}-${Math.round(amHigh.hr)} bpm`)
-  console.log(`[Norwegian Doubles] PM intensity: ${pmLow.pace.toFixed(1)}-${pmHigh.pace.toFixed(1)} ${anaerobicThreshold.unit}, HR ${Math.round(pmLow.hr)}-${Math.round(pmHigh.hr)} bpm`)
+  logger.debug('Norwegian Doubles calculated intensities', {
+    am: { paceLow: amLow.pace, paceHigh: amHigh.pace, hrLow: Math.round(amLow.hr), hrHigh: Math.round(amHigh.hr) },
+    pm: { paceLow: pmLow.pace, paceHigh: pmHigh.pace, hrLow: Math.round(pmLow.hr), hrHigh: Math.round(pmHigh.hr) },
+    unit: anaerobicThreshold.unit
+  })
 
   return {
     am: {
@@ -480,8 +486,10 @@ export function calculateNorwegianSinglesIntensity(
   const targetLactateHigh = anaerobicThreshold.lactate - 0.7  // Upper bound (closer to threshold)
   const targetLactateLow = anaerobicThreshold.lactate - 1.7   // Lower bound (further from threshold)
 
-  console.log(`[Norwegian Singles] LT2 at ${anaerobicThreshold.lactate.toFixed(1)} mmol/L`)
-  console.log(`[Norwegian Singles] Target lactate range: ${targetLactateLow.toFixed(1)}-${targetLactateHigh.toFixed(1)} mmol/L`)
+  logger.debug('Norwegian Singles intensity targets', {
+    lt2Lactate: anaerobicThreshold.lactate,
+    targetLactate: { low: targetLactateLow, high: targetLactateHigh }
+  })
 
   // Find stages around target lactate values for interpolation
   const sortedStages = [...testStages].sort((a, b) => a.lactate - b.lactate)
@@ -522,8 +530,13 @@ export function calculateNorwegianSinglesIntensity(
   const lowIntensity = interpolateLactate(targetLactateLow)
   const highIntensity = interpolateLactate(targetLactateHigh)
 
-  console.log(`[Norwegian Singles] Training intensity: ${lowIntensity.pace.toFixed(1)}-${highIntensity.pace.toFixed(1)} ${anaerobicThreshold.unit}`)
-  console.log(`[Norwegian Singles] Training HR: ${Math.round(lowIntensity.hr)}-${Math.round(highIntensity.hr)} bpm`)
+  logger.debug('Norwegian Singles calculated intensities', {
+    paceLow: lowIntensity.pace,
+    paceHigh: highIntensity.pace,
+    hrLow: Math.round(lowIntensity.hr),
+    hrHigh: Math.round(highIntensity.hr),
+    unit: anaerobicThreshold.unit
+  })
 
   return {
     targetLactateLow,

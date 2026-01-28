@@ -238,24 +238,14 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       const diffWeeks = Math.ceil(diffDays / 7)
 
-      console.log('[Auto-calc] Today:', today.toLocaleDateString())
-      console.log('[Auto-calc] Race date:', raceDate.toLocaleDateString())
-      console.log('[Auto-calc] Days until race:', diffDays)
-      console.log('[Auto-calc] Weeks until race:', diffWeeks)
-
       // Clamp between 4 and 52 weeks
       const weeks = Math.max(4, Math.min(52, diffWeeks))
-      console.log('[Auto-calc] Final weeks (clamped):', weeks)
 
       // Only update if different from current value
       const currentWeeks = form.getValues('durationWeeks')
-      console.log('[Auto-calc] Current duration field value:', currentWeeks)
 
       if (weeks !== currentWeeks && weeks >= 4) {
-        console.log('[Auto-calc] ✓ Updating duration to:', weeks)
         form.setValue('durationWeeks', weeks, { shouldValidate: true, shouldDirty: true })
-      } else {
-        console.log('[Auto-calc] ✗ Not updating (same value or invalid)')
       }
     }
   }, [targetRaceDate, form])

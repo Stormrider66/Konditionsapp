@@ -169,12 +169,12 @@ export default function AgilityStudioClient({
             searchQuery={searchQuery}
             onEdit={(workout) => {
               // TODO: Open workout editor
-              console.log('Edit workout:', workout.id)
+              void workout.id
             }}
             onDelete={handleWorkoutDeleted}
             onDuplicate={(workout) => {
               // TODO: Duplicate workout
-              console.log('Duplicate workout:', workout.id)
+              void workout.id
             }}
           />
         </TabsContent>

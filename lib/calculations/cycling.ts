@@ -1,18 +1,19 @@
 // lib/calculations/cycling.ts
 import { Threshold, PowerZone, Gender, TestStage, CyclingData } from '@/types'
 import { calculateWattsPerKg } from './economy'
+import { logger } from '@/lib/logger'
 
 /**
  * Beräkna FTP (Functional Threshold Power) från anaerob tröskel
  * FTP motsvarar effekten vid 4 mmol/L laktat
  */
 export function calculateFTP(anaerobicThreshold: Threshold): number {
-  console.log('calculateFTP called with:', anaerobicThreshold)
+  logger.debug('calculateFTP called', { threshold: anaerobicThreshold })
   if (anaerobicThreshold.unit !== 'watt') {
     throw new Error('FTP kan endast beräknas för cykeltester')
   }
   const ftp = Math.round(anaerobicThreshold.value)
-  console.log('Calculated FTP:', ftp)
+  logger.debug('Calculated FTP', { ftp })
   return ftp
 }
 

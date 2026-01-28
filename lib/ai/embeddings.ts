@@ -8,6 +8,7 @@
 import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
+import { logger } from '@/lib/logger';
 
 // Default embedding model
 const EMBEDDING_MODEL = 'text-embedding-ada-002';
@@ -191,7 +192,7 @@ async function ensureVectorColumn(): Promise<void> {
     `;
 
     if (!columnCheck[0]?.exists) {
-      console.log('[Embeddings] Creating embedding column...');
+      logger.debug('Creating embedding column');
       // Try to add the column with extensions schema (Supabase default)
       try {
         await prisma.$executeRawUnsafe(`
@@ -205,12 +206,12 @@ async function ensureVectorColumn(): Promise<void> {
           ADD COLUMN IF NOT EXISTS embedding vector(1536)
         `);
       }
-      console.log('[Embeddings] Embedding column created');
+      logger.debug('Embedding column created');
     }
 
     vectorColumnInitialized = true;
   } catch (error) {
-    console.error('[Embeddings] Failed to ensure vector column:', error);
+    logger.error('Failed to ensure vector column', undefined, error);
     throw error;
   }
 }
@@ -270,7 +271,7 @@ export async function storeChunkEmbeddings(
         );
       } catch {
         // Fallback to public schema if extensions doesn't work
-        console.log('[Embeddings] extensions.vector failed, trying public.vector...');
+        logger.debug('extensions.vector failed, trying public.vector');
         await prisma.$executeRawUnsafe(
           `UPDATE "KnowledgeChunk" SET embedding = $1::vector WHERE id = $2`,
           embeddingArray,
@@ -290,7 +291,7 @@ export async function storeChunkEmbeddings(
 
     return { success: true, chunksStored: chunks.length };
   } catch (error) {
-    console.error('Error storing chunk embeddings:', error);
+    logger.error('Error storing chunk embeddings', { documentId }, error);
 
     await prisma.coachDocument.update({
       where: { id: documentId },
@@ -416,7 +417,7 @@ export async function searchSimilarChunks(
     }
   } catch {
     // Fallback to unqualified vector type
-    console.log('[Embeddings] Search fallback to unqualified vector type');
+    logger.debug('Search fallback to unqualified vector type');
     if (documentIds && documentIds.length > 0) {
       results = await prisma.$queryRawUnsafe<
         {

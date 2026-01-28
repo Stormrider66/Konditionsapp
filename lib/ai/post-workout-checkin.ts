@@ -11,6 +11,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { generateAIResponse } from '@/lib/ai/ai-service'
+import { logger } from '@/lib/logger'
 
 // Types for completed workouts
 export interface CompletedWorkout {
@@ -409,7 +410,7 @@ export async function savePostWorkoutFeedback(
     // If there was pain/discomfort, we might want to flag it for the coach
     if (feedback.painOrDiscomfort && feedback.painOrDiscomfort.trim().length > 0) {
       // Could create a coach notification here
-      console.log(`Athlete reported discomfort: ${feedback.painOrDiscomfort}`)
+      logger.info('Athlete reported discomfort', { discomfort: feedback.painOrDiscomfort })
     }
 
     return true

@@ -12,6 +12,8 @@
  * @module elite-threshold-detection
  */
 
+import { logger } from '@/lib/logger'
+
 export interface LactateDataPoint {
   intensity: number;  // km/h, watts, or pace
   lactate: number;    // mmol/L
@@ -61,7 +63,10 @@ export function preprocessData(data: LactateDataPoint[]): LactateDataPoint[] {
   // Startle Filter: If first reading is elevated due to nervousness
   // Rule: If Lac_Step1 > Lac_Step2 + 0.2, use Lac_Step2 for baseline
   if (processed[0].lactate > processed[1].lactate + 0.2) {
-    console.log('[Elite Detection] Startle filter: First reading elevated, adjusting baseline');
+    logger.debug('Startle filter applied - first reading elevated, adjusting baseline', {
+      originalLactate: data[0].lactate,
+      adjustedLactate: processed[1].lactate
+    });
     // Don't discard, but flag it
     processed[0] = { ...processed[0], lactate: processed[1].lactate };
   }
@@ -134,18 +139,13 @@ export function classifyAthleteProfile(data: LactateDataPoint[]): AthleteProfile
     type = 'RECREATIONAL';
   }
 
-  console.log('[Elite Detection] Profile classified:', {
+  logger.debug('Elite detection profile classified', {
     type,
-    baselineAvg: baselineAvg.toFixed(2),
-    baselineSlope: baselineSlope.toFixed(4),
-    maxLactate: maxLactate.toFixed(2),
-    lactateRange: lactateRange.toFixed(2),
-    criteria: {
-      traditionalElite,
-      highRangeElite,
-      veryLowBaseline,
-      relaxedElite
-    }
+    baselineAvg,
+    baselineSlope,
+    maxLactate,
+    lactateRange,
+    criteria: { traditionalElite, highRangeElite, veryLowBaseline, relaxedElite }
   });
 
   return { type, baselineAvg, baselineSlope, maxLactate, lactateRange };
@@ -167,7 +167,7 @@ export function calculateLogLogThreshold(
   data: LactateDataPoint[]
 ): ThresholdResult | null {
   if (data.length < 5) {
-    console.log('[Log-Log] Insufficient data points');
+    logger.debug('Log-Log threshold calculation skipped - insufficient data points', { dataLength: data.length });
     return null;
   }
 
@@ -220,18 +220,18 @@ export function calculateLogLogThreshold(
   // For elite athletes, we use a lower threshold since the change can be subtle
   const slopeRatio = bestSlope2 / Math.max(0.01, Math.abs(bestSlope1));
 
-  console.log('[Log-Log] Breakpoint analysis:', {
+  logger.debug('Log-Log breakpoint analysis', {
     breakpoint: bestBreakpoint,
-    slope1: bestSlope1.toFixed(4),
-    slope2: bestSlope2.toFixed(4),
-    slopeRatio: slopeRatio.toFixed(2),
-    sse: bestSSE.toFixed(4)
+    slope1: bestSlope1,
+    slope2: bestSlope2,
+    slopeRatio,
+    sse: bestSSE
   });
 
   // For elite flat curves, even a small positive change is significant
   // Require slope2 > slope1 (any positive increase indicates the turn)
   if (bestSlope2 <= bestSlope1) {
-    console.log('[Log-Log] No significant slope change detected');
+    logger.debug('Log-Log no significant slope change detected', { slope1: bestSlope1, slope2: bestSlope2 });
     return null;
   }
 
@@ -298,11 +298,11 @@ export function calculateBaselinePlusThreshold(
 
   const threshold = baseline + delta;
 
-  console.log('[Baseline Plus] Detection parameters:', {
-    baseline: baseline.toFixed(2),
+  logger.debug('Baseline Plus detection parameters', {
+    baseline,
     delta,
-    threshold: threshold.toFixed(2),
-    profile: profile.type
+    threshold,
+    profileType: profile.type
   });
 
   // Scan from left to right
@@ -413,9 +413,9 @@ export function detectEliteThresholds(data: LactateDataPoint[]): EnsembleResult 
   const logLogResult = calculateLogLogThreshold(processedData);
   const baselinePlusResult = calculateBaselinePlusThreshold(processedData, profile);
 
-  console.log('[Ensemble] Method results:', {
-    logLog: logLogResult ? `${logLogResult.intensity.toFixed(1)} @ ${logLogResult.lactate.toFixed(2)}` : 'null',
-    baselinePlus: baselinePlusResult ? `${baselinePlusResult.intensity.toFixed(1)} @ ${baselinePlusResult.lactate.toFixed(2)}` : 'null'
+  logger.debug('Ensemble detection method results', {
+    logLog: logLogResult ? { intensity: logLogResult.intensity, lactate: logLogResult.lactate } : null,
+    baselinePlus: baselinePlusResult ? { intensity: baselinePlusResult.intensity, lactate: baselinePlusResult.lactate } : null
   });
 
   // Heuristic selection based on profile
@@ -429,14 +429,14 @@ export function detectEliteThresholds(data: LactateDataPoint[]): EnsembleResult 
       if (divergence <= 1.5) {
         // Methods agree - use Log-Log (more precise for elites)
         selectedLT1 = logLogResult;
-        console.log('[Ensemble] Methods agree, using Log-Log result');
+        logger.debug('Ensemble methods agree, using Log-Log result', { divergence });
       } else {
         // Divergence - use more conservative (lower intensity) as LT1
         selectedLT1 = logLogResult.intensity < baselinePlusResult.intensity
           ? logLogResult
           : baselinePlusResult;
         selectedLT1.confidence = 'MEDIUM';
-        console.log('[Ensemble] Methods diverge, using conservative estimate');
+        logger.debug('Ensemble methods diverge, using conservative estimate', { divergence });
       }
     } else {
       selectedLT1 = logLogResult || baselinePlusResult;

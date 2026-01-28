@@ -267,7 +267,6 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   }
 
   const onSubmitHandler = async (data: CreateTestFormData) => {
-    console.log('Form submitted with data:', data)
     try {
       await onSubmit(data)
     } catch (error) {
@@ -275,12 +274,6 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     }
   }
 
-  // Debug: Log form errors when they change
-  useEffect(() => {
-    if (Object.keys(errors).length > 0) {
-      console.log('Form validation errors:', errors)
-    }
-  }, [errors])
 
   return (
     <form onSubmit={handleSubmit(onSubmitHandler)} className="space-y-6">

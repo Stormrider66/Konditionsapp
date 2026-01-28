@@ -11,6 +11,7 @@
 
 import { PrismaClient } from '@prisma/client'
 import { calculate1RMTrend } from './rm-estimation'
+import { logger } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
@@ -348,10 +349,13 @@ export async function createPlateauNotification(
 
   // In a real system, this would create a notification
   // For now, we'll log it
-  console.log(`[PLATEAU NOTIFICATION] ${client.name} - ${exercise.name}`)
-  console.log(`Recommendation: ${analysis.recommendation}`)
-  console.log(`Reasoning: ${analysis.reasoning}`)
-  console.log(`Actions: ${analysis.suggestedActions.join(', ')}`)
+  logger.debug('Plateau notification created', {
+    clientName: client.name,
+    exerciseName: exercise.name,
+    recommendation: analysis.recommendation,
+    reasoning: analysis.reasoning,
+    suggestedActions: analysis.suggestedActions,
+  })
 
   // TODO: Create actual notification in Message table or notification system
 }

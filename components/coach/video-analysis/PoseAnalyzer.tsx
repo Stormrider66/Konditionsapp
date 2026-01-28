@@ -757,7 +757,6 @@ export function PoseAnalyzer({
               const detected = detectCameraAngle(landmarks)
               if (detected !== 'UNKNOWN') {
                 setDetectedCameraAngle(detected)
-                console.log(`[PoseAnalyzer] Camera angle detected: ${detected}`)
               }
             }
 
@@ -901,15 +900,8 @@ export function PoseAnalyzer({
       setAiPoseAnalysis(data.analysis)
 
       // Notify parent about the AI analysis for page context
-      console.log('[PoseAnalyzer] Gemini analysis complete, notifying parent...')
-      console.log('[PoseAnalyzer] onAIPoseAnalysis callback exists:', !!onAIPoseAnalysis)
-      console.log('[PoseAnalyzer] data.analysis:', data.analysis)
       if (onAIPoseAnalysis) {
-        console.log('[PoseAnalyzer] Calling onAIPoseAnalysis...')
         onAIPoseAnalysis(data.analysis)
-        console.log('[PoseAnalyzer] onAIPoseAnalysis called successfully')
-      } else {
-        console.warn('[PoseAnalyzer] onAIPoseAnalysis callback is undefined!')
       }
 
       toast({

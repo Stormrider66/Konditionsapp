@@ -22,7 +22,6 @@ export default function CyclingTestPage() {
   }
 
   const handleGenerateReport = async () => {
-    console.log('Genererar cykeltestreport...')
 
     // Realistisk FTP-test data för en vältränad kvinnlig cyklist
     const testStages: TestStage[] = [
@@ -105,16 +104,7 @@ export default function CyclingTestPage() {
     }
 
     try {
-      console.log('Startar cykelberäkningar...')
       const calculations = await performAllCalculations(test, sampleClient)
-      console.log('Cykelberäkningar klara:', calculations)
-
-      // Logga FTP för kontroll
-      if (calculations.cyclingData) {
-        console.log('FTP:', calculations.cyclingData.ftp, 'W')
-        console.log('W/kg:', calculations.cyclingData.wattsPerKg)
-        console.log('Bedömning:', calculations.cyclingData.evaluation)
-      }
 
       setReportData({
         client: sampleClient,

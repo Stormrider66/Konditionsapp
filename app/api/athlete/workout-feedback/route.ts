@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 const feedbackSchema = z.object({
   notificationId: z.string().uuid(),
@@ -88,9 +89,10 @@ export async function POST(request: Request) {
 
     // If pain/discomfort was reported, consider creating a flag for the coach
     if (feedback.painOrDiscomfort && feedback.painOrDiscomfort.trim().length > 0) {
-      console.log(
-        `Athlete ${athleteAccount.clientId} reported discomfort after workout: ${feedback.painOrDiscomfort}`
-      )
+      logger.info('Athlete reported discomfort after workout', {
+        clientId: athleteAccount.clientId,
+        discomfort: feedback.painOrDiscomfort,
+      })
       // Could trigger additional coach notification here
     }
 

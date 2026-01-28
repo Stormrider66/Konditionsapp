@@ -28,7 +28,6 @@ export default function SimpleTestPage() {
   }
 
   const handleGenerateReport = async () => {
-    console.log('Button clicked!')
 
     const testStages: TestStage[] = [
       {
@@ -94,9 +93,7 @@ export default function SimpleTestPage() {
     }
 
     try {
-      console.log('Starting calculations...')
       const calculations = await performAllCalculations(test, sampleClient)
-      console.log('Calculations completed:', calculations)
 
       setReportData({
         client: sampleClient,

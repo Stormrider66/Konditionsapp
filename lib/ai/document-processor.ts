@@ -12,6 +12,7 @@ import 'server-only'
 import { DocumentType } from '@prisma/client';
 import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import ExcelJS from 'exceljs';
+import { logger } from '@/lib/logger';
 
 export interface ProcessedDocument {
   content: string;
@@ -634,7 +635,7 @@ Format the output as a structured document suitable for search and reference.`,
       };
     }
 
-    console.log('[Document Processor] Video transcription complete, length:', content.length);
+    logger.debug('Video transcription complete', { contentLength: content.length });
 
     return {
       content,

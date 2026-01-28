@@ -1,6 +1,7 @@
 // lib/program-generator/generators/hyrox-generator.ts
 // HYROX program generator (Functional Fitness Racing)
 
+import { logger } from '@/lib/logger'
 import { Client, CreateTrainingProgramDTO, CreateWorkoutSegmentDTO, PeriodPhase, CreateWorkoutDTO } from '@/types'
 import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { HYROX_BEGINNER_12_WEEK, HYROX_INTERMEDIATE_16_WEEK, HYROXTemplateWeek, HYROXTemplateWorkout } from '../templates/hyrox'
@@ -94,11 +95,12 @@ export async function generateHyroxProgram(
   params: HyroxProgramParams,
   client: Client
 ): Promise<CreateTrainingProgramDTO> {
-  console.log('[HYROX Generator] Starting program generation')
-  console.log(`  Goal: ${params.goal}`)
-  console.log(`  Experience Level: ${params.experienceLevel || 'beginner'}`)
-  console.log(`  Division: ${params.hyroxDivision || 'open'}`)
-  console.log(`  Gender: ${params.hyroxGender || 'not specified'}`)
+  logger.debug('[HYROX Generator] Starting program generation', {
+    goal: params.goal,
+    experienceLevel: params.experienceLevel || 'beginner',
+    division: params.hyroxDivision || 'open',
+    gender: params.hyroxGender || 'not specified',
+  })
 
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)
@@ -128,7 +130,7 @@ export async function generateHyroxProgram(
     const hasAnyTimes = Object.values(stationTimes).some(t => t !== null)
 
     if (hasAnyTimes) {
-      console.log('[HYROX Generator] ===== STATION TIMES ANALYSIS =====')
+      logger.debug('[HYROX Generator] Station times analysis started')
 
       // Determine target level based on experience
       const targetLevel: PerformanceLevel =
@@ -143,14 +145,17 @@ export async function generateHyroxProgram(
         targetLevel
       )
 
-      console.log(`  Target Level: ${targetLevel}`)
-      console.log(`  Weak Stations: ${weaknessAnalysis.weakStations.join(', ') || 'None identified'}`)
-      console.log(`  Strong Stations: ${weaknessAnalysis.strongStations.join(', ') || 'None identified'}`)
+      logger.debug('[HYROX Generator] Weakness analysis completed', {
+        targetLevel,
+        weakStations: weaknessAnalysis.weakStations.join(', ') || 'None identified',
+        strongStations: weaknessAnalysis.strongStations.join(', ') || 'None identified',
+      })
 
       // Log recommendations
       if (weaknessAnalysis.recommendations.length > 0) {
-        console.log('  Recommendations:')
-        weaknessAnalysis.recommendations.forEach(rec => console.log(`    - ${rec}`))
+        logger.debug('[HYROX Generator] Recommendations', {
+          recommendations: weaknessAnalysis.recommendations,
+        })
       }
 
       // Estimate race time
@@ -159,17 +164,22 @@ export async function generateHyroxProgram(
           stationTimes,
           params.hyroxStationTimes.averageRunPace
         )
-        console.log(`  Estimated Race Time: ${raceTimeEstimate.formatted}`)
-        console.log(`    Running: ${formatTime(raceTimeEstimate.breakdown.running)}`)
-        console.log(`    Stations: ${formatTime(raceTimeEstimate.breakdown.stations)}`)
-        console.log(`    Transitions: ${formatTime(raceTimeEstimate.breakdown.transitions)}`)
 
         // Determine performance level from estimated time
         const performanceLevel = getPerformanceLevel(
           raceTimeEstimate.totalTime,
           params.hyroxGender as Gender
         )
-        console.log(`  Current Performance Level: ${performanceLevel}`)
+
+        logger.debug('[HYROX Generator] Race time estimate', {
+          estimatedRaceTime: raceTimeEstimate.formatted,
+          breakdown: {
+            running: formatTime(raceTimeEstimate.breakdown.running),
+            stations: formatTime(raceTimeEstimate.breakdown.stations),
+            transitions: formatTime(raceTimeEstimate.breakdown.transitions),
+          },
+          currentPerformanceLevel: performanceLevel,
+        })
       }
 
       // Add analysis to program notes
@@ -192,7 +202,7 @@ export async function generateHyroxProgram(
         programNotes.push(`📊 Beräknad tävlingstid: ${raceTimeEstimate.formatted}`)
       }
 
-      console.log('[HYROX Generator] ===== END STATION ANALYSIS =====')
+      logger.debug('[HYROX Generator] Station analysis completed')
     }
   }
 
@@ -206,32 +216,43 @@ export async function generateHyroxProgram(
       params.hyroxBodyweight
     )
 
-    console.log('[HYROX Generator] ===== STRENGTH REQUIREMENTS =====')
-    console.log(`  Division: ${params.hyroxDivision || 'open'}`)
-    console.log(`  Bodyweight: ${params.hyroxBodyweight} kg`)
-    console.log(`  Min Deadlift: ${Math.round(strengthRequirements.deadliftMin)} kg`)
-    console.log(`  Min Squat: ${Math.round(strengthRequirements.squatMin)} kg`)
-    console.log(`  ${strengthRequirements.recommendation}`)
+    const strengthLogContext: Record<string, unknown> = {
+      division: params.hyroxDivision || 'open',
+      bodyweight: params.hyroxBodyweight,
+      minDeadlift: Math.round(strengthRequirements.deadliftMin),
+      minSquat: Math.round(strengthRequirements.squatMin),
+      recommendation: strengthRequirements.recommendation,
+    }
 
     // Check athlete's PRs against requirements
     if (params.strengthPRs) {
-      console.log('  Athlete PRs:')
+      const prStatus: Record<string, unknown> = {}
       if (params.strengthPRs.deadlift) {
-        const deadliftStatus = params.strengthPRs.deadlift >= strengthRequirements.deadliftMin ? '✓' : '⚠️'
-        console.log(`    ${deadliftStatus} Deadlift: ${params.strengthPRs.deadlift} kg (min: ${Math.round(strengthRequirements.deadliftMin)} kg)`)
-        if (params.strengthPRs.deadlift < strengthRequirements.deadliftMin) {
+        const meetsDeadlift = params.strengthPRs.deadlift >= strengthRequirements.deadliftMin
+        prStatus.deadlift = {
+          current: params.strengthPRs.deadlift,
+          min: Math.round(strengthRequirements.deadliftMin),
+          meetsRequirement: meetsDeadlift,
+        }
+        if (!meetsDeadlift) {
           programNotes.push(`💪 Öka marklyft: ${params.strengthPRs.deadlift} → ${Math.round(strengthRequirements.deadliftMin)} kg`)
         }
       }
       if (params.strengthPRs.backSquat) {
-        const squatStatus = params.strengthPRs.backSquat >= strengthRequirements.squatMin ? '✓' : '⚠️'
-        console.log(`    ${squatStatus} Squat: ${params.strengthPRs.backSquat} kg (min: ${Math.round(strengthRequirements.squatMin)} kg)`)
-        if (params.strengthPRs.backSquat < strengthRequirements.squatMin) {
+        const meetsSquat = params.strengthPRs.backSquat >= strengthRequirements.squatMin
+        prStatus.squat = {
+          current: params.strengthPRs.backSquat,
+          min: Math.round(strengthRequirements.squatMin),
+          meetsRequirement: meetsSquat,
+        }
+        if (!meetsSquat) {
           programNotes.push(`💪 Öka knäböj: ${params.strengthPRs.backSquat} → ${Math.round(strengthRequirements.squatMin)} kg`)
         }
       }
+      strengthLogContext.athletePRs = prStatus
     }
-    console.log('[HYROX Generator] ===== END STRENGTH REQUIREMENTS =====')
+
+    logger.debug('[HYROX Generator] Strength requirements analysis', strengthLogContext)
   }
 
   // ========================================
@@ -240,7 +261,7 @@ export async function generateHyroxProgram(
   let athleteProfile: HyroxAthleteProfile | null = null
 
   if (params.hyroxGender) {
-    console.log('[HYROX Generator] ===== ATHLETE PROFILE ANALYSIS =====')
+    logger.debug('[HYROX Generator] Starting athlete profile analysis')
 
     const profileInput: AthleteProfileInput = {
       gender: params.hyroxGender as Gender,
@@ -269,22 +290,26 @@ export async function generateHyroxProgram(
 
     athleteProfile = analyzeAthleteProfile(profileInput)
 
-    console.log(`  Athlete Type: ${athleteProfile.athleteType}`)
-    console.log(`  Runner Type: ${athleteProfile.runnerType}`)
-    console.log(`  Station Type: ${athleteProfile.stationType}`)
-    console.log(`  VDOT: ${athleteProfile.vdot || 'Not calculated'}`)
-    console.log(`  Volume Scale Factor: ${athleteProfile.volumeScaleFactor}`)
-    console.log(`  Recommended Weekly km: ${athleteProfile.recommendedWeeklyKm}`)
+    const profileLogContext: Record<string, unknown> = {
+      athleteType: athleteProfile.athleteType,
+      runnerType: athleteProfile.runnerType,
+      stationType: athleteProfile.stationType,
+      vdot: athleteProfile.vdot || 'Not calculated',
+      volumeScaleFactor: athleteProfile.volumeScaleFactor,
+      recommendedWeeklyKm: athleteProfile.recommendedWeeklyKm,
+      trainingFocus: athleteProfile.trainingFocus,
+    }
+
     if (athleteProfile.paceDegradation) {
-      console.log(`  Pace Degradation: ${athleteProfile.paceDegradation.toFixed(1)}% (${athleteProfile.paceDegradationLevel})`)
+      profileLogContext.paceDegradation = `${athleteProfile.paceDegradation.toFixed(1)}% (${athleteProfile.paceDegradationLevel})`
     }
     if (athleteProfile.goalTimeSeconds) {
-      console.log(`  Goal Time: ${formatTime(athleteProfile.goalTimeSeconds)}`)
-      console.log(`  Current Estimated: ${athleteProfile.currentEstimatedTime ? formatTime(athleteProfile.currentEstimatedTime) : 'N/A'}`)
-      console.log(`  Goal Assessment: ${athleteProfile.goalAssessment}`)
+      profileLogContext.goalTime = formatTime(athleteProfile.goalTimeSeconds)
+      profileLogContext.currentEstimated = athleteProfile.currentEstimatedTime ? formatTime(athleteProfile.currentEstimatedTime) : 'N/A'
+      profileLogContext.goalAssessment = athleteProfile.goalAssessment
     }
-    console.log(`  Training Focus:`)
-    athleteProfile.trainingFocus.forEach(focus => console.log(`    - ${focus}`))
+
+    logger.debug('[HYROX Generator] Athlete profile analysis completed', profileLogContext)
 
     // Add profile insights to program notes
     programNotes.push(`🏃 Atletprofil: ${getAthleteTypeLabel(athleteProfile.athleteType)}`)
@@ -297,8 +322,6 @@ export async function generateHyroxProgram(
     if (athleteProfile.goalTimeSeconds && athleteProfile.currentEstimatedTime) {
       programNotes.push(`🎯 ${athleteProfile.goalAssessment}`)
     }
-
-    console.log('[HYROX Generator] ===== END ATHLETE PROFILE ANALYSIS =====')
   }
 
   // ========================================
@@ -312,37 +335,41 @@ export async function generateHyroxProgram(
     const vdotFromWizard = calculateVDOTFromWizardRace(params.recentRaceDistance, params.recentRaceTime)
     if (vdotFromWizard) {
       elitePaces = convertVDOTToEliteZones(vdotFromWizard.vdot, vdotFromWizard.paces)
-      console.log('[HYROX Generator] ✓ Paces calculated from wizard race result (VDOT)')
-      console.log(`  Race: ${params.recentRaceDistance} in ${params.recentRaceTime}`)
-      console.log(`  VDOT: ${vdotFromWizard.vdot}`)
-      console.log(`  Core paces:`)
-      console.log(`    Easy: ${elitePaces.core.easy}`)
-      console.log(`    Marathon: ${elitePaces.core.marathon}`)
-      console.log(`    Threshold: ${elitePaces.core.threshold}`)
-      console.log(`    Interval: ${elitePaces.core.interval}`)
+      logger.debug('[HYROX Generator] Paces calculated from wizard race result (VDOT)', {
+        race: `${params.recentRaceDistance} in ${params.recentRaceTime}`,
+        vdot: vdotFromWizard.vdot,
+        corePaces: {
+          easy: elitePaces.core.easy,
+          marathon: elitePaces.core.marathon,
+          threshold: elitePaces.core.threshold,
+          interval: elitePaces.core.interval,
+        },
+      })
     }
   }
 
   // Second try: Fetch from database (if no wizard race result)
   if (!elitePaces) {
     try {
-      console.log('[HYROX Generator] Fetching elite paces from database for client:', client.id)
+      logger.debug('[HYROX Generator] Fetching elite paces from database', { clientId: client.id })
       elitePaces = await fetchElitePacesServer(client.id)
 
       if (elitePaces && validateEliteZones(elitePaces)) {
-        console.log('[HYROX Generator] ✓ Elite paces fetched from database')
-        console.log(`  Source: ${elitePaces.source}`)
-        console.log(`  Confidence: ${elitePaces.confidence}`)
-        console.log(`  Core paces:`)
-        console.log(`    Easy: ${elitePaces.core.easy}`)
-        console.log(`    Marathon: ${elitePaces.core.marathon}`)
-        console.log(`    Threshold: ${elitePaces.core.threshold}`)
-        console.log(`    Interval: ${elitePaces.core.interval}`)
+        logger.debug('[HYROX Generator] Elite paces fetched from database', {
+          source: elitePaces.source,
+          confidence: elitePaces.confidence,
+          corePaces: {
+            easy: elitePaces.core.easy,
+            marathon: elitePaces.core.marathon,
+            threshold: elitePaces.core.threshold,
+            interval: elitePaces.core.interval,
+          },
+        })
       } else {
-        console.log('[HYROX Generator] ⚠ No elite paces available - workouts will not include pace targets')
+        logger.debug('[HYROX Generator] No elite paces available - workouts will not include pace targets')
       }
     } catch (error) {
-      console.error('[HYROX Generator] Error fetching elite paces:', error)
+      logger.error('[HYROX Generator] Error fetching elite paces', { clientId: client.id }, error)
     }
   }
 
@@ -382,15 +409,19 @@ export async function generateHyroxProgram(
   const templateLength = template.weeks.length
   const totalWeeks = targetWeeks
 
-  console.log(`[HYROX Generator] Duration: ${targetWeeks} weeks (template has ${templateLength} weeks)`)
+  logger.debug('[HYROX Generator] Program duration set', {
+    targetWeeks,
+    templateLength,
+  })
 
   // Log volume scaling info
   if (athleteProfile) {
-    console.log('[HYROX Generator] ===== VOLUME SCALING =====')
-    console.log(`  Athlete Type: ${currentAthleteType}`)
-    console.log(`  Volume Scale Factor: ${volumeScaleFactor}`)
-    console.log(`  Current Weekly km: ${athleteProfile.currentWeeklyKm || 'Not provided'}`)
-    console.log(`  Recommended Weekly km: ${athleteProfile.recommendedWeeklyKm}`)
+    logger.debug('[HYROX Generator] Volume scaling applied', {
+      athleteType: currentAthleteType,
+      volumeScaleFactor,
+      currentWeeklyKm: athleteProfile.currentWeeklyKm || 'Not provided',
+      recommendedWeeklyKm: athleteProfile.recommendedWeeklyKm,
+    })
   }
 
   // Create weeks array based on target duration, not template length
@@ -414,7 +445,7 @@ export async function generateHyroxProgram(
           // Keep all non-strength workouts
           // Only filter out strength workouts if using detailed strength
           if (useDetailedStrength && w.type === 'strength') {
-            console.log(`[HYROX Generator] Filtering out template strength: ${w.name}`)
+            logger.debug('[HYROX Generator] Filtering out template strength workout', { workoutName: w.name })
             return false
           }
           return true
@@ -508,14 +539,14 @@ export async function generateHyroxProgram(
   // Add Strength Workouts
   // ========================================
   if (params.includeStrength && params.strengthSessionsPerWeek && params.strengthSessionsPerWeek > 0) {
-    console.log('[HYROX Generator] ===== ADDING STRENGTH WORKOUTS =====')
-    console.log(`  Sessions per week: ${params.strengthSessionsPerWeek}`)
-
     const strengthPRs: StrengthPRs = params.strengthPRs || {}
     const weakStationsList = weaknessAnalysis?.weakStations || []
 
-    console.log(`  Strength PRs provided:`, Object.keys(strengthPRs).filter(k => strengthPRs[k as keyof StrengthPRs]))
-    console.log(`  Weak stations to prioritize: ${weakStationsList.join(', ') || 'None'}`)
+    logger.debug('[HYROX Generator] Adding strength workouts', {
+      sessionsPerWeek: params.strengthSessionsPerWeek,
+      strengthPRsProvided: Object.keys(strengthPRs).filter(k => strengthPRs[k as keyof StrengthPRs]),
+      weakStationsToPrioritize: weakStationsList.length > 0 ? weakStationsList : 'None',
+    })
 
     addStrengthWorkoutsToProgram(
       weeks,
@@ -524,7 +555,7 @@ export async function generateHyroxProgram(
       weakStationsList
     )
 
-    console.log('[HYROX Generator] ===== STRENGTH WORKOUTS ADDED =====')
+    logger.debug('[HYROX Generator] Strength workouts added')
 
     // Add note about strength training
     programNotes.push(`💪 Styrketräning: ${params.strengthSessionsPerWeek}x/vecka med ${
@@ -1746,16 +1777,21 @@ function calculateVDOTFromWizardRace(
   const timeMinutes = parseTimeToMinutes(timeStr)
 
   if (distanceMeters === 0 || timeMinutes <= 0) {
-    console.log('[HYROX Generator] Invalid race data for VDOT calculation')
+    logger.debug('[HYROX Generator] Invalid race data for VDOT calculation', {
+      distanceMeters,
+      timeMinutes,
+    })
     return null
   }
 
   const vdot = calculateVDOT(distanceMeters, timeMinutes)
   const paces = getTrainingPaces(vdot)
 
-  console.log(`[HYROX Generator] VDOT calculated: ${vdot}`)
-  console.log(`  Distance: ${distance} (${distanceMeters}m)`)
-  console.log(`  Time: ${timeStr} (${timeMinutes.toFixed(2)} min)`)
+  logger.debug('[HYROX Generator] VDOT calculated', {
+    vdot,
+    distance: `${distance} (${distanceMeters}m)`,
+    time: `${timeStr} (${timeMinutes.toFixed(2)} min)`,
+  })
 
   return { vdot, paces }
 }

@@ -244,8 +244,7 @@ export function MilestoneCelebrationCard() {
                   size="sm"
                   className={cn('h-8 opacity-60 hover:opacity-100', colors.textColor)}
                   onClick={() => {
-                    // Future: implement sharing
-                    console.log('Share milestone:', notification.title)
+                    // TODO: implement sharing
                   }}
                 >
                   <Share2 className="h-4 w-4 mr-1" />

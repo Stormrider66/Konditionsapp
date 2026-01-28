@@ -1,6 +1,7 @@
 // lib/program-generator/generators/triathlon-generator.ts
 // Triathlon program generator (Swim/Bike/Run)
 
+import { logger } from '@/lib/logger'
 import { Client, Test, CreateTrainingProgramDTO } from '@/types'
 import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { getSprintTriathlonPlan, getOlympicTriathlonPlan, getHalfIronmanPlan, TriathlonTemplateWorkout } from '../templates/triathlon'
@@ -30,12 +31,13 @@ export async function generateTriathlonProgram(
   client: Client,
   test?: Test
 ): Promise<CreateTrainingProgramDTO> {
-  console.log('[Triathlon Generator] Starting program generation')
-  console.log(`  Goal: ${params.goal}`)
-  console.log(`  FTP: ${params.ftp || 'Not provided'}`)
-  console.log(`  CSS: ${params.css || 'Not provided'}`)
-  console.log(`  VDOT: ${params.vdot || 'Not provided'}`)
-  console.log(`  Weekly Hours: ${params.weeklyHours || 8}`)
+  logger.debug('Starting triathlon program generation', {
+    goal: params.goal,
+    ftp: params.ftp || 'Not provided',
+    css: params.css || 'Not provided',
+    vdot: params.vdot || 'Not provided',
+    weeklyHours: params.weeklyHours || 8,
+  })
 
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)

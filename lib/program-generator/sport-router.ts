@@ -1,6 +1,7 @@
 // lib/program-generator/sport-router.ts
 // Sport router - routes program generation to sport-specific generators
 
+import { logger } from '@/lib/logger'
 import { SportType } from '@prisma/client'
 import { Client, Test, CreateTrainingProgramDTO } from '@/types'
 import { getProgramStartDate, getProgramEndDate } from './date-utils'
@@ -136,7 +137,7 @@ function extractVO2maxFromTest(test?: Test): { vo2max: number | null; hasLabTest
   const vo2max = (test as any).vo2max as number | null | undefined
 
   if (vo2max && vo2max > 0) {
-    console.log(`[extractVO2maxFromTest] Found actual VO2max from lab test: ${vo2max} ml/kg/min`)
+    logger.debug('[extractVO2maxFromTest] Found actual VO2max from lab test', { vo2max, unit: 'ml/kg/min' })
     return { vo2max, hasLabTest: true }
   }
 
@@ -156,7 +157,7 @@ function vo2maxToVdot(vo2max: number, experienceLevel?: string): number {
                             experienceLevel === 'intermediate' ? 0.97 : 0.95
 
   const vdot = vo2max * efficiencyFactor
-  console.log(`[vo2maxToVdot] VO2max ${vo2max} → VDOT ${vdot.toFixed(1)} (efficiency ${(efficiencyFactor * 100).toFixed(0)}%)`)
+  logger.debug('[vo2maxToVdot] Converted VO2max to VDOT', { vo2max, vdot: vdot.toFixed(1), efficiencyPercent: (efficiencyFactor * 100).toFixed(0) })
   return vdot
 }
 
@@ -189,9 +190,12 @@ function extractVLT2FromTest(test?: Test): {
     // The 'value' is the velocity at LT2 (D-max calculated)
     const vLT2Kmh = threshold.value
 
-    console.log(`[extractVLT2FromTest] ★ vLT2 from D-max: ${vLT2Kmh.toFixed(2)} km/h (${formatPaceMinKm(vLT2Kmh)}/km)`)
-    console.log(`[extractVLT2FromTest]   Lactate at LT2: ${threshold.lactate?.toFixed(2) || 'N/A'} mmol/L`)
-    console.log(`[extractVLT2FromTest]   HR at LT2: ${threshold.hr || 'N/A'} bpm`)
+    logger.debug('[extractVLT2FromTest] vLT2 from D-max extracted', {
+      vLT2Kmh: vLT2Kmh.toFixed(2),
+      paceMinKm: formatPaceMinKm(vLT2Kmh),
+      lt2Lactate: threshold.lactate?.toFixed(2) || 'N/A',
+      lt2HR: threshold.hr || 'N/A'
+    })
 
     return {
       vLT2Kmh,
@@ -200,7 +204,7 @@ function extractVLT2FromTest(test?: Test): {
       hasLactateTest: true
     }
   } catch (error) {
-    console.warn('[extractVLT2FromTest] Failed to parse test data:', error)
+    logger.warn('[extractVLT2FromTest] Failed to parse test data', {}, error)
     return { vLT2Kmh: null, lt2Lactate: null, lt2HR: null, hasLactateTest: false }
   }
 }
@@ -237,7 +241,7 @@ function extractRunningEconomy(test?: Test): { economyCr: number | null; hasEcon
     )
 
     if (economyStages.length === 0) {
-      console.log('[extractRunningEconomy] No valid economy stages found (need VO2 + speed + lactate < 2.5)')
+      logger.debug('[extractRunningEconomy] No valid economy stages found (need VO2 + speed + lactate < 2.5)')
       return { economyCr: null, hasEconomy: false }
     }
 
@@ -251,13 +255,15 @@ function extractRunningEconomy(test?: Test): { economyCr: number | null; hasEcon
     // Average C_r across aerobic stages
     const avgCr = crValues.reduce((a, b) => a + b, 0) / crValues.length
 
-    console.log(`[extractRunningEconomy] Running Economy (C_r): ${avgCr.toFixed(1)} ml/kg/km`)
-    console.log(`[extractRunningEconomy]   Stages used: ${economyStages.length}`)
-    console.log(`[extractRunningEconomy]   Quality: ${avgCr < 200 ? 'Excellent' : avgCr < 210 ? 'Good' : avgCr < 230 ? 'Average' : 'Below Average'}`)
+    logger.debug('[extractRunningEconomy] Running Economy calculated', {
+      crMlKgKm: avgCr.toFixed(1),
+      stagesUsed: economyStages.length,
+      quality: avgCr < 200 ? 'Excellent' : avgCr < 210 ? 'Good' : avgCr < 230 ? 'Average' : 'Below Average'
+    })
 
     return { economyCr: avgCr, hasEconomy: true }
   } catch (error) {
-    console.warn('[extractRunningEconomy] Failed to calculate economy:', error)
+    logger.warn('[extractRunningEconomy] Failed to calculate economy', {}, error)
     return { economyCr: null, hasEconomy: false }
   }
 }
@@ -272,8 +278,12 @@ function calculateVVO2max(vo2max: number, economyCr: number): number {
   // vVO2max (km/h) = VO2max (ml/kg/min) / C_r (ml/kg/km) × 60 (min/h)
   const vVO2maxKmh = (vo2max / economyCr) * 60
 
-  console.log(`[calculateVVO2max] vVO2max = ${vo2max} / ${economyCr.toFixed(0)} × 60 = ${vVO2maxKmh.toFixed(2)} km/h`)
-  console.log(`[calculateVVO2max]   That's ${formatPaceMinKm(vVO2maxKmh)}/km pace`)
+  logger.debug('[calculateVVO2max] Calculated vVO2max', {
+    vo2max,
+    economyCr: economyCr.toFixed(0),
+    vVO2maxKmh: vVO2maxKmh.toFixed(2),
+    paceMinKm: formatPaceMinKm(vVO2maxKmh)
+  })
 
   return vVO2maxKmh
 }
@@ -291,19 +301,18 @@ function calculateVVO2max(vo2max: number, economyCr: number): number {
  * a higher % of vLT2 for marathon (92-94%) vs recreational (80-85%)
  */
 function classifyAthleteByVLT2(vLT2Kmh: number): AthleteLevelFromVLT2 {
+  let level: AthleteLevelFromVLT2
   if (vLT2Kmh >= 16) {
-    console.log(`[classifyAthleteByVLT2] ELITE (vLT2 ${vLT2Kmh.toFixed(1)} km/h >= 16, ≤3:45/km)`)
-    return 'ELITE'
+    level = 'ELITE'
   } else if (vLT2Kmh >= 13) {
-    console.log(`[classifyAthleteByVLT2] ADVANCED (vLT2 ${vLT2Kmh.toFixed(1)} km/h, 13-16 range)`)
-    return 'ADVANCED'
+    level = 'ADVANCED'
   } else if (vLT2Kmh >= 10) {
-    console.log(`[classifyAthleteByVLT2] INTERMEDIATE (vLT2 ${vLT2Kmh.toFixed(1)} km/h, 10-13 range)`)
-    return 'INTERMEDIATE'
+    level = 'INTERMEDIATE'
   } else {
-    console.log(`[classifyAthleteByVLT2] RECREATIONAL (vLT2 ${vLT2Kmh.toFixed(1)} km/h < 10)`)
-    return 'RECREATIONAL'
+    level = 'RECREATIONAL'
   }
+  logger.debug('[classifyAthleteByVLT2] Athlete level classified', { level, vLT2Kmh: vLT2Kmh.toFixed(1) })
+  return level
 }
 
 /**
@@ -436,11 +445,16 @@ function calculateRacePacesFromVLT2(
   const vHalfMarathonKmh = vLT2Kmh * ((coefficients.vHalfMarathon.min + coefficients.vHalfMarathon.max) / 2)
   const vMarathonKmh = vLT2Kmh * ((coefficients.vMarathon.min + coefficients.vMarathon.max) / 2)
 
-  console.log(`[calculateRacePacesFromVLT2] Race paces from vLT2 ${vLT2Kmh.toFixed(1)} km/h (${level}):`)
-  console.log(`  5K:   ${v5kKmh.toFixed(2)} km/h (${formatPaceMinKm(v5kKmh)}/km) - ${((coefficients.v5k.min + coefficients.v5k.max) / 2 * 100).toFixed(0)}% of vLT2`)
-  console.log(`  10K:  ${v10kKmh.toFixed(2)} km/h (${formatPaceMinKm(v10kKmh)}/km) - ${((coefficients.v10k.min + coefficients.v10k.max) / 2 * 100).toFixed(0)}% of vLT2`)
-  console.log(`  Half: ${vHalfMarathonKmh.toFixed(2)} km/h (${formatPaceMinKm(vHalfMarathonKmh)}/km) - ${((coefficients.vHalfMarathon.min + coefficients.vHalfMarathon.max) / 2 * 100).toFixed(0)}% of vLT2`)
-  console.log(`  Mara: ${vMarathonKmh.toFixed(2)} km/h (${formatPaceMinKm(vMarathonKmh)}/km) - ${((coefficients.vMarathon.min + coefficients.vMarathon.max) / 2 * 100).toFixed(0)}% of vLT2`)
+  logger.debug('[calculateRacePacesFromVLT2] Race paces calculated from vLT2', {
+    vLT2Kmh: vLT2Kmh.toFixed(1),
+    level,
+    paces: {
+      v5k: { kmh: v5kKmh.toFixed(2), pace: formatPaceMinKm(v5kKmh), percentVLT2: ((coefficients.v5k.min + coefficients.v5k.max) / 2 * 100).toFixed(0) },
+      v10k: { kmh: v10kKmh.toFixed(2), pace: formatPaceMinKm(v10kKmh), percentVLT2: ((coefficients.v10k.min + coefficients.v10k.max) / 2 * 100).toFixed(0) },
+      vHalf: { kmh: vHalfMarathonKmh.toFixed(2), pace: formatPaceMinKm(vHalfMarathonKmh), percentVLT2: ((coefficients.vHalfMarathon.min + coefficients.vHalfMarathon.max) / 2 * 100).toFixed(0) },
+      vMarathon: { kmh: vMarathonKmh.toFixed(2), pace: formatPaceMinKm(vMarathonKmh), percentVLT2: ((coefficients.vMarathon.min + coefficients.vMarathon.max) / 2 * 100).toFixed(0) }
+    }
+  })
 
   return { v5kKmh, v10kKmh, vHalfMarathonKmh, vMarathonKmh }
 }
@@ -472,9 +486,7 @@ function calculateMethodologyPaces(
   recentRaceTime?: string,
   goalMarathonPaceKmh?: number
 ): MethodologyPaces {
-  console.log('╔══════════════════════════════════════════════════════════════════════╗')
-  console.log('║       vLT2-PRIMARY PACE CALCULATION (Scientific Framework)          ║')
-  console.log('╚══════════════════════════════════════════════════════════════════════╝')
+  logger.debug('[calculateMethodologyPaces] vLT2-PRIMARY PACE CALCULATION starting')
 
   // =========================================================================
   // PRIORITY 1: vLT2 from D-max - THE PRIMARY ANCHOR
@@ -499,7 +511,7 @@ function calculateMethodologyPaces(
   if (recentRaceDistance && recentRaceTime && recentRaceDistance !== 'NONE') {
     vdot = calculateVdotFromRace(recentRaceDistance, recentRaceTime)
     if (vdot) {
-      console.log(`[calculateMethodologyPaces] Race VDOT: ${vdot.toFixed(1)} (for validation)`)
+      logger.debug('[calculateMethodologyPaces] Race VDOT calculated', { vdot: vdot.toFixed(1), purpose: 'validation' })
     }
   }
 
@@ -514,8 +526,11 @@ function calculateMethodologyPaces(
     // PRIORITY 1: Use D-max vLT2 as primary anchor
     primaryVLT2Kmh = vLT2Kmh
     dataSource = 'VLT2_DMAX'
-    console.log(`\n★★★ PRIMARY ANCHOR: vLT2 from D-max = ${primaryVLT2Kmh.toFixed(2)} km/h (${formatPaceMinKm(primaryVLT2Kmh)}/km)`)
-    console.log(`    This already integrates running economy!`)
+    logger.debug('[calculateMethodologyPaces] PRIMARY ANCHOR: vLT2 from D-max', {
+      primaryVLT2Kmh: primaryVLT2Kmh.toFixed(2),
+      paceMinKm: formatPaceMinKm(primaryVLT2Kmh),
+      note: 'This already integrates running economy'
+    })
   } else if (vVO2maxKmh && vo2max) {
     // PRIORITY 2: Estimate vLT2 from vVO2max
     // vLT2 ≈ 85-90% of vVO2max for trained runners
@@ -523,14 +538,17 @@ function calculateMethodologyPaces(
                                   experienceLevel === 'intermediate' ? 0.87 : 0.85
     primaryVLT2Kmh = vVO2maxKmh * estimatedVLT2Percent
     dataSource = 'VVO2MAX'
-    console.log(`\n★ SECONDARY: vLT2 estimated from vVO2max = ${primaryVLT2Kmh.toFixed(2)} km/h`)
-    console.log(`    vVO2max ${vVO2maxKmh.toFixed(2)} × ${(estimatedVLT2Percent * 100).toFixed(0)}% = vLT2`)
+    logger.debug('[calculateMethodologyPaces] SECONDARY: vLT2 estimated from vVO2max', {
+      primaryVLT2Kmh: primaryVLT2Kmh.toFixed(2),
+      vVO2maxKmh: vVO2maxKmh.toFixed(2),
+      estimatedVLT2Percent: (estimatedVLT2Percent * 100).toFixed(0)
+    })
   } else if (vdot) {
     // PRIORITY 3: Use race VDOT to estimate vLT2
     const danielsPaces = getTrainingPacesDaniels(vdot)
     primaryVLT2Kmh = danielsPaces.threshold.kmh
     dataSource = 'RACE_TIME'
-    console.log(`\n★ TERTIARY: vLT2 from race VDOT = ${primaryVLT2Kmh.toFixed(2)} km/h`)
+    logger.debug('[calculateMethodologyPaces] TERTIARY: vLT2 from race VDOT', { primaryVLT2Kmh: primaryVLT2Kmh.toFixed(2) })
   } else {
     // PRIORITY 4: Estimate from experience level
     const estimatedPaces = estimateTrainingPaces(
@@ -541,8 +559,10 @@ function calculateMethodologyPaces(
     )
     primaryVLT2Kmh = estimatedPaces.thresholdPaceKmh
     dataSource = 'ESTIMATION'
-    console.log(`\n⚠ FALLBACK: vLT2 from experience estimation = ${primaryVLT2Kmh.toFixed(2)} km/h`)
-    console.log(`    WARNING: No lactate test data - recommend testing for accurate paces`)
+    logger.debug('[calculateMethodologyPaces] FALLBACK: vLT2 from experience estimation', {
+      primaryVLT2Kmh: primaryVLT2Kmh.toFixed(2),
+      warning: 'No lactate test data - recommend testing for accurate paces'
+    })
   }
 
   // Classify athlete by vLT2 speed
@@ -562,17 +582,24 @@ function calculateMethodologyPaces(
     // Use actual vVO2max for interval pacing
     intervalPaceKmh = vVO2maxKmh * 0.98  // ~98-100% of vVO2max
     repetitionPaceKmh = vVO2maxKmh * 1.05  // ~105% of vVO2max
-    console.log(`\n  Interval paces from vVO2max ${vVO2maxKmh.toFixed(2)} km/h:`)
-    console.log(`    Interval:   ${intervalPaceKmh.toFixed(2)} km/h (${formatPaceMinKm(intervalPaceKmh)}/km)`)
-    console.log(`    Repetition: ${repetitionPaceKmh.toFixed(2)} km/h (${formatPaceMinKm(repetitionPaceKmh)}/km)`)
+    logger.debug('[calculateMethodologyPaces] Interval paces from vVO2max', {
+      vVO2maxKmh: vVO2maxKmh.toFixed(2),
+      intervalPaceKmh: intervalPaceKmh.toFixed(2),
+      intervalPaceMinKm: formatPaceMinKm(intervalPaceKmh),
+      repetitionPaceKmh: repetitionPaceKmh.toFixed(2),
+      repetitionPaceMinKm: formatPaceMinKm(repetitionPaceKmh)
+    })
   } else {
     // Estimate from vLT2 (vVO2max ≈ vLT2 / 0.87 for intermediate)
     const estimatedVVO2max = primaryVLT2Kmh / 0.87
     intervalPaceKmh = estimatedVVO2max * 0.98
     repetitionPaceKmh = estimatedVVO2max * 1.05
-    console.log(`\n  Interval paces estimated (no vVO2max data):`)
-    console.log(`    Interval:   ${intervalPaceKmh.toFixed(2)} km/h (${formatPaceMinKm(intervalPaceKmh)}/km)`)
-    console.log(`    Repetition: ${repetitionPaceKmh.toFixed(2)} km/h (${formatPaceMinKm(repetitionPaceKmh)}/km)`)
+    logger.debug('[calculateMethodologyPaces] Interval paces estimated (no vVO2max data)', {
+      intervalPaceKmh: intervalPaceKmh.toFixed(2),
+      intervalPaceMinKm: formatPaceMinKm(intervalPaceKmh),
+      repetitionPaceKmh: repetitionPaceKmh.toFixed(2),
+      repetitionPaceMinKm: formatPaceMinKm(repetitionPaceKmh)
+    })
   }
 
   const normalizedMethodology = methodology?.toUpperCase() || 'POLARIZED'
@@ -589,14 +616,20 @@ function calculateMethodologyPaces(
     const norwegianAmPaceKmh = primaryVLT2Kmh * 0.94  // ~6% slower (2-3 mmol/L)
     const norwegianPmPaceKmh = primaryVLT2Kmh * 0.97  // ~3% slower (3-4 mmol/L)
 
-    console.log(`\n[${normalizedMethodology}] Training paces from vLT2 ${primaryVLT2Kmh.toFixed(1)} km/h:`)
-    console.log(`  vLT2 (reference):  ${formatPaceMinKm(primaryVLT2Kmh)}/km ${dataSource === 'VLT2_DMAX' ? '(D-max ★)' : `(${dataSource})`}`)
-    console.log(`  Sub-threshold:     ${formatPaceMinKm(subThresholdPaceKmh)}/km (97% vLT2)`)
-    if (normalizedMethodology === 'NORWEGIAN_DOUBLES') {
-      console.log(`  AM session:        ${formatPaceMinKm(norwegianAmPaceKmh)}/km (94% vLT2)`)
-      console.log(`  PM session:        ${formatPaceMinKm(norwegianPmPaceKmh)}/km (97% vLT2)`)
-    }
-    console.log(`  Easy:              ${formatPaceMinKm(easyPaceKmh)}/km (72% vLT2)`)
+    logger.debug(`[${normalizedMethodology}] Training paces from vLT2`, {
+      methodology: normalizedMethodology,
+      primaryVLT2Kmh: primaryVLT2Kmh.toFixed(1),
+      dataSource,
+      paces: {
+        vLT2: { pace: formatPaceMinKm(primaryVLT2Kmh), source: dataSource === 'VLT2_DMAX' ? 'D-max' : dataSource },
+        subThreshold: { pace: formatPaceMinKm(subThresholdPaceKmh), percentVLT2: 97 },
+        ...(normalizedMethodology === 'NORWEGIAN_DOUBLES' && {
+          amSession: { pace: formatPaceMinKm(norwegianAmPaceKmh), percentVLT2: 94 },
+          pmSession: { pace: formatPaceMinKm(norwegianPmPaceKmh), percentVLT2: 97 }
+        }),
+        easy: { pace: formatPaceMinKm(easyPaceKmh), percentVLT2: 72 }
+      }
+    })
 
     return {
       methodology: 'NORWEGIAN',
@@ -640,14 +673,19 @@ function calculateMethodologyPaces(
     const canovaSpecificKmh = mpKmh
     const canovaSpecialSpeedKmh = mpKmh * 1.075
 
-    console.log(`\n[CANOVA] Training paces from vLT2 ${primaryVLT2Kmh.toFixed(1)} km/h → MP ${mpKmh.toFixed(1)} km/h:`)
-    console.log(`  Marathon Pace (ref): ${formatPaceMinKm(mpKmh)}/km`)
-    console.log(`  Regeneration:        ${formatPaceMinKm(canovaRegenerationKmh)}/km (65% MP)`)
-    console.log(`  Fundamental:         ${formatPaceMinKm(canovaFundamentalKmh)}/km (80% MP)`)
-    console.log(`  General Endurance:   ${formatPaceMinKm(canovaGeneralEnduranceKmh)}/km (87.5% MP - active recovery!)`)
-    console.log(`  Special Endurance:   ${formatPaceMinKm(canovaSpecialEnduranceKmh)}/km (92.5% MP)`)
-    console.log(`  Specific:            ${formatPaceMinKm(canovaSpecificKmh)}/km (100% MP)`)
-    console.log(`  Special Speed:       ${formatPaceMinKm(canovaSpecialSpeedKmh)}/km (107.5% MP)`)
+    logger.debug('[CANOVA] Training paces from vLT2', {
+      primaryVLT2Kmh: primaryVLT2Kmh.toFixed(1),
+      mpKmh: mpKmh.toFixed(1),
+      paces: {
+        marathonPace: { pace: formatPaceMinKm(mpKmh), percentMP: 100 },
+        regeneration: { pace: formatPaceMinKm(canovaRegenerationKmh), percentMP: 65 },
+        fundamental: { pace: formatPaceMinKm(canovaFundamentalKmh), percentMP: 80 },
+        generalEndurance: { pace: formatPaceMinKm(canovaGeneralEnduranceKmh), percentMP: 87.5, note: 'active recovery' },
+        specialEndurance: { pace: formatPaceMinKm(canovaSpecialEnduranceKmh), percentMP: 92.5 },
+        specific: { pace: formatPaceMinKm(canovaSpecificKmh), percentMP: 100 },
+        specialSpeed: { pace: formatPaceMinKm(canovaSpecialSpeedKmh), percentMP: 107.5 }
+      }
+    })
 
     return {
       methodology: 'CANOVA',
@@ -682,13 +720,19 @@ function calculateMethodologyPaces(
   // =========================================================================
   // DANIELS/POLARIZED/PYRAMIDAL - vLT2-based pacing (default)
   // =========================================================================
-  console.log(`\n[${normalizedMethodology}] Training paces from vLT2 ${primaryVLT2Kmh.toFixed(1)} km/h:`)
-  console.log(`  vLT2 (anchor):    ${formatPaceMinKm(primaryVLT2Kmh)}/km ${dataSource === 'VLT2_DMAX' ? '(D-max ★)' : `(${dataSource})`}`)
-  console.log(`  Easy:             ${formatPaceMinKm(easyPaceKmh)}/km (72% vLT2)`)
-  console.log(`  Marathon:         ${formatPaceMinKm(racePaces.vMarathonKmh)}/km (from vLT2 coefficients)`)
-  console.log(`  Threshold:        ${formatPaceMinKm(primaryVLT2Kmh)}/km (= vLT2)`)
-  console.log(`  Interval:         ${formatPaceMinKm(intervalPaceKmh)}/km`)
-  console.log(`  Repetition:       ${formatPaceMinKm(repetitionPaceKmh)}/km`)
+  logger.debug(`[${normalizedMethodology}] Training paces from vLT2`, {
+    methodology: normalizedMethodology,
+    primaryVLT2Kmh: primaryVLT2Kmh.toFixed(1),
+    dataSource,
+    paces: {
+      vLT2: { pace: formatPaceMinKm(primaryVLT2Kmh), source: dataSource === 'VLT2_DMAX' ? 'D-max' : dataSource },
+      easy: { pace: formatPaceMinKm(easyPaceKmh), percentVLT2: 72 },
+      marathon: { pace: formatPaceMinKm(racePaces.vMarathonKmh), source: 'vLT2 coefficients' },
+      threshold: { pace: formatPaceMinKm(primaryVLT2Kmh), note: '= vLT2' },
+      interval: { pace: formatPaceMinKm(intervalPaceKmh) },
+      repetition: { pace: formatPaceMinKm(repetitionPaceKmh) }
+    }
+  })
 
   return {
     methodology: 'DANIELS',
@@ -908,14 +952,15 @@ export async function generateSportProgram(
   client: Client,
   test?: Test
 ): Promise<CreateTrainingProgramDTO> {
-  console.log('=====================================')
-  console.log(`SPORT ROUTER: Generating ${params.sport} program`)
-  console.log(`Goal: ${params.goal}`)
-  console.log(`Data Source: ${params.dataSource}`)
-  if (params.calendarConstraints) {
-    console.log(`Calendar: ${params.calendarConstraints.blockedDates.length} blocked, ${params.calendarConstraints.reducedDates.length} reduced`)
-  }
-  console.log('=====================================\n')
+  logger.debug('[SPORT ROUTER] Generating program', {
+    sport: params.sport,
+    goal: params.goal,
+    dataSource: params.dataSource,
+    ...(params.calendarConstraints && {
+      calendarBlockedDates: params.calendarConstraints.blockedDates.length,
+      calendarReducedDates: params.calendarConstraints.reducedDates.length
+    })
+  })
 
   let program: CreateTrainingProgramDTO
 
@@ -989,7 +1034,7 @@ export async function generateSportProgram(
 
   // Apply calendar constraints - remove workouts from blocked dates
   if (params.calendarConstraints) {
-    console.log('Applying calendar constraints to program...')
+    logger.debug('[SPORT ROUTER] Applying calendar constraints to program')
     program = applyCalendarConstraints(program, params.calendarConstraints)
   }
 
@@ -1098,30 +1143,34 @@ function createCustomRunningProgram(
   const methodology = params.methodology?.toUpperCase() || 'POLARIZED'
   const previewPhases = calculatePhases(params.durationWeeks, methodology)
 
-  console.log(`[Custom Running] Methodology: ${methodology}`)
-  console.log(`[Custom Running] Sessions per week: ${params.sessionsPerWeek}`)
-  console.log(`[Custom Running] ═══════════════════════════════════════════`)
-  console.log(`[Custom Running] PHASE DISTRIBUTION (${methodology}):`)
-  console.log(`[Custom Running]   BASE:  ${previewPhases.base} weeks`)
-  console.log(`[Custom Running]   BUILD: ${previewPhases.build} weeks`)
-  console.log(`[Custom Running]   PEAK:  ${previewPhases.peak} weeks`)
-  console.log(`[Custom Running]   TAPER: ${previewPhases.taper} weeks`)
-  console.log(`[Custom Running] ═══════════════════════════════════════════`)
-  console.log(`[Custom Running] PROGRESSIVE PACE PLAN:`)
-  console.log(`[Custom Running]   Current fitness: ${formatPaceMinKm(currentFitnessPaceKmh)}/km`)
+  const progressivePaceContext: Record<string, unknown> = {
+    currentFitness: formatPaceMinKm(currentFitnessPaceKmh)
+  }
   if (targetPaceKmh && targetPaceKmh !== currentFitnessPaceKmh) {
-    console.log(`[Custom Running]   Target goal:     ${formatPaceMinKm(targetPaceKmh)}/km`)
     const gapSeconds = (60 / currentFitnessPaceKmh - 60 / targetPaceKmh) * 60
-    console.log(`[Custom Running]   Gap to close:    ${gapSeconds.toFixed(0)} sec/km over ${params.durationWeeks} weeks`)
-    console.log(`[Custom Running]   Week 1 (BASE):   ${formatPaceMinKm(currentFitnessPaceKmh)}/km`)
-    // Calculate mid-point of BUILD phase for preview
     const buildMidWeek = Math.floor(previewPhases.build / 2)
     const midPace = calculateProgressivePace(paceProgression, buildMidWeek, previewPhases.build, 'BUILD')
     const midWeekOverall = previewPhases.base + buildMidWeek
-    console.log(`[Custom Running]   Week ${midWeekOverall} (BUILD mid): ${formatPaceMinKm(midPace)}/km`)
-    console.log(`[Custom Running]   Week ${params.durationWeeks - previewPhases.taper} (PEAK):  ${formatPaceMinKm(targetPaceKmh)}/km`)
+    progressivePaceContext.targetGoal = formatPaceMinKm(targetPaceKmh)
+    progressivePaceContext.gapToCloseSeconds = gapSeconds.toFixed(0)
+    progressivePaceContext.weeks = params.durationWeeks
+    progressivePaceContext.week1BasePace = formatPaceMinKm(currentFitnessPaceKmh)
+    progressivePaceContext.buildMidWeek = midWeekOverall
+    progressivePaceContext.buildMidPace = formatPaceMinKm(midPace)
+    progressivePaceContext.peakWeek = params.durationWeeks - previewPhases.taper
+    progressivePaceContext.peakPace = formatPaceMinKm(targetPaceKmh)
   }
-  console.log(`[Custom Running] ═══════════════════════════════════════════`)
+  logger.debug('[Custom Running] Creating program', {
+    methodology,
+    sessionsPerWeek: params.sessionsPerWeek,
+    phaseDistribution: {
+      base: previewPhases.base,
+      build: previewPhases.build,
+      peak: previewPhases.peak,
+      taper: previewPhases.taper
+    },
+    progressivePacePlan: progressivePaceContext
+  })
 
   return {
     clientId: params.clientId,
@@ -1274,8 +1323,10 @@ function createProgressiveWeeks(
     paceProgression.targetPaceKmh  // Goal marathon pace for Canova
   )
 
-  console.log(`[Progressive Weeks] Methodology: ${methodologyPaces.methodology}`)
-  console.log(`[Progressive Weeks] LT2 test data: ${methodologyPaces.hasLactateTestData ? 'YES ✓' : 'NO (using estimates)'}`)
+  logger.debug('[Progressive Weeks] Starting generation', {
+    methodology: methodologyPaces.methodology,
+    hasLT2TestData: methodologyPaces.hasLactateTestData
+  })
 
   // Use methodology-specific phase distribution from periodization.ts
   const phaseDistribution = calculatePhases(durationWeeks, methodology)
@@ -1284,10 +1335,14 @@ function createProgressiveWeeks(
   const peakWeeks = phaseDistribution.peak
   // taperWeeks is calculated as remainder
 
-  console.log(`[Progressive Weeks] ${methodology}: BASE ${baseWeeks}w, BUILD ${buildWeeks}w, PEAK ${peakWeeks}w, TAPER ${phaseDistribution.taper}w`)
-  if (targetRaceDate) {
-    console.log(`[Progressive Weeks] Target race date: ${targetRaceDate.toISOString().split('T')[0]}`)
-  }
+  logger.debug('[Progressive Weeks] Phase distribution', {
+    methodology,
+    baseWeeks,
+    buildWeeks,
+    peakWeeks,
+    taperWeeks: phaseDistribution.taper,
+    ...(targetRaceDate && { targetRaceDate: targetRaceDate.toISOString().split('T')[0] })
+  })
 
   for (let i = 0; i < durationWeeks; i++) {
     let phase: 'BASE' | 'BUILD' | 'PEAK' | 'TAPER'
@@ -1350,7 +1405,7 @@ function createProgressiveWeeks(
         const dayDate = new Date(weekStartDate.getTime() + (days[dayIdx].dayNumber - 1) * 24 * 60 * 60 * 1000)
         // Compare dates (ignoring time)
         if (dayDate.toDateString() === targetRaceDate.toDateString()) {
-          console.log(`[Progressive Weeks] Found race day in week ${i + 1}, day ${days[dayIdx].dayNumber}`)
+          logger.debug('[Progressive Weeks] Found race day', { week: i + 1, day: days[dayIdx].dayNumber })
           // Replace this day with race day marker
           days[dayIdx] = {
             dayNumber: days[dayIdx].dayNumber,
@@ -1567,11 +1622,13 @@ function estimateTrainingPaces(
       // Get proper Daniels training paces (calculated as % of VDOT velocity)
       const danielsPaces = getTrainingPacesDaniels(vdot)
 
-      console.log(`[estimateTrainingPaces] VDOT: ${vdot}`)
-      console.log(`[estimateTrainingPaces] Marathon: ${danielsPaces.marathon.pace}`)
-      console.log(`[estimateTrainingPaces] Threshold: ${danielsPaces.threshold.pace}`)
-      console.log(`[estimateTrainingPaces] Interval: ${danielsPaces.interval.pace}`)
-      console.log(`[estimateTrainingPaces] Easy: ${danielsPaces.easy.minPace} - ${danielsPaces.easy.maxPace}`)
+      logger.debug('[estimateTrainingPaces] Training paces from VDOT', {
+        vdot,
+        marathon: danielsPaces.marathon.pace,
+        threshold: danielsPaces.threshold.pace,
+        interval: danielsPaces.interval.pace,
+        easyRange: `${danielsPaces.easy.minPace} - ${danielsPaces.easy.maxPace}`
+      })
 
       return {
         marathonPaceKmh: danielsPaces.marathon.kmh,
@@ -1668,7 +1725,7 @@ function calculateVdotFromRace(distance: string, timeStr: string): number | null
   // Use proper Daniels VDOT formula
   const vdot = calculateVDOTDaniels(meters, totalMinutes)
 
-  console.log(`[calculateVdotFromRace] ${distance} in ${timeStr} → VDOT ${vdot}`)
+  logger.debug('[calculateVdotFromRace] VDOT calculated', { distance, time: timeStr, vdot })
 
   return vdot
 }
@@ -1730,9 +1787,12 @@ function calculateTargetPace(goal: string, targetTime: string): number | null {
   const factor = marathonEquivalentFactors[goal.toLowerCase()] || 1.0
   const equivalentMarathonPaceKmh = targetPaceKmh * factor
 
-  console.log(`[Target Pace] Goal: ${goal}, Target time: ${targetTime}`)
-  console.log(`[Target Pace] Target race pace: ${formatPaceMinKm(targetPaceKmh)}/km`)
-  console.log(`[Target Pace] Equivalent marathon pace: ${formatPaceMinKm(equivalentMarathonPaceKmh)}/km`)
+  logger.debug('[Target Pace] Calculated target pace', {
+    goal,
+    targetTime,
+    targetRacePace: formatPaceMinKm(targetPaceKmh),
+    equivalentMarathonPace: formatPaceMinKm(equivalentMarathonPaceKmh)
+  })
 
   return equivalentMarathonPaceKmh
 }
@@ -2250,14 +2310,18 @@ function createNorwegianSinglesWorkout(
     subThresholdPaceKmh = methodologyPaces.subThresholdPaceKmh
     thresholdPaceKmh = methodologyPaces.thresholdPaceKmh
     easyPaceKmh = methodologyPaces.easyPaceKmh
-    console.log(`[Norwegian Singles] Using LT2 from test: ${formatPaceMinKm(thresholdPaceKmh)}/km`)
-    console.log(`[Norwegian Singles] Sub-threshold pace: ${formatPaceMinKm(subThresholdPaceKmh)}/km`)
+    logger.debug('[Norwegian Singles] Using LT2 from test', {
+      thresholdPace: formatPaceMinKm(thresholdPaceKmh),
+      subThresholdPace: formatPaceMinKm(subThresholdPaceKmh)
+    })
   } else {
     // Fallback: estimate from marathon pace (less accurate)
     thresholdPaceKmh = marathonPaceKmh * 1.05  // Threshold ~105% marathon
     subThresholdPaceKmh = thresholdPaceKmh * 0.97  // Sub-threshold ~97% of LT2
     easyPaceKmh = marathonPaceKmh * 0.78  // Much slower for Norwegian easy
-    console.log(`[Norwegian Singles] Estimated sub-threshold: ${formatPaceMinKm(subThresholdPaceKmh)}/km (no LT2 test data)`)
+    logger.debug('[Norwegian Singles] Estimated sub-threshold (no LT2 test data)', {
+      subThresholdPace: formatPaceMinKm(subThresholdPaceKmh)
+    })
   }
 
   let reps: number, workMin: number, restMin: number, name: string, description: string
@@ -2445,16 +2509,20 @@ function createNorwegianDoublesDays(
     lowThresholdPace = methodologyPaces.norwegianAmPaceKmh   // 94% of LT2
     highThresholdPace = methodologyPaces.norwegianPmPaceKmh  // 97% of LT2
     easyPaceKmh = methodologyPaces.easyPaceKmh
-    console.log(`[Norwegian Doubles] Using LT2 from test: ${formatPaceMinKm(thresholdPaceKmh)}/km`)
-    console.log(`[Norwegian Doubles] AM pace (2-3 mmol/L): ${formatPaceMinKm(lowThresholdPace)}/km`)
-    console.log(`[Norwegian Doubles] PM pace (3-4 mmol/L): ${formatPaceMinKm(highThresholdPace)}/km`)
+    logger.debug('[Norwegian Doubles] Using LT2 from test', {
+      thresholdPace: formatPaceMinKm(thresholdPaceKmh),
+      amPace: formatPaceMinKm(lowThresholdPace),
+      amLactate: '2-3 mmol/L',
+      pmPace: formatPaceMinKm(highThresholdPace),
+      pmLactate: '3-4 mmol/L'
+    })
   } else {
     // Fallback: estimate from marathon pace
     thresholdPaceKmh = marathonPaceKmh * 1.05
     lowThresholdPace = thresholdPaceKmh * 0.94   // AM: ~6% slower than LT2
     highThresholdPace = thresholdPaceKmh * 0.97  // PM: ~3% slower than LT2
     easyPaceKmh = marathonPaceKmh * 0.78  // Norwegian easy (very slow)
-    console.log(`[Norwegian Doubles] Estimated paces (no LT2 test data)`)
+    logger.debug('[Norwegian Doubles] Estimated paces (no LT2 test data)')
   }
 
   // Double-threshold days: Tuesday (2) and Thursday (4)
@@ -2676,10 +2744,11 @@ function createCanovaDays(
     specificPaceKmh = methodologyPaces.canovaSpecificKmh!  // 100% MP
     specialSpeedKmh = methodologyPaces.canovaSpecialSpeedKmh!  // 107.5% MP
 
-    console.log(`[Canova] Using MP-based zones:`)
-    console.log(`  MP: ${formatPaceMinKm(mpPaceKmh)}/km`)
-    console.log(`  Regeneration: ${formatPaceMinKm(regenerationPaceKmh)}/km (65% MP)`)
-    console.log(`  Active Recovery: ${formatPaceMinKm(generalEnduranceKmh)}/km (87.5% MP - NOT jogging!)`)
+    logger.debug('[Canova] Using MP-based zones', {
+      marathonPace: formatPaceMinKm(mpPaceKmh),
+      regeneration: { pace: formatPaceMinKm(regenerationPaceKmh), percentMP: 65 },
+      activeRecovery: { pace: formatPaceMinKm(generalEnduranceKmh), percentMP: 87.5, note: 'NOT jogging' }
+    })
   } else {
     // Fallback: calculate from marathon pace
     mpPaceKmh = marathonPaceKmh
