@@ -16,9 +16,10 @@ interface UpcomingWorkoutsProps {
   workouts: DashboardWorkoutWithContext[]
   className?: string
   variant?: 'default' | 'glass'
+  basePath?: string
 }
 
-function WorkoutRow({ workout, theme, variant = 'default' }: { workout: DashboardWorkoutWithContext; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass' }) {
+function WorkoutRow({ workout, theme, variant = 'default', basePath = '' }: { workout: DashboardWorkoutWithContext; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', basePath?: string }) {
   if (variant === 'glass') {
     return (
       <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-black/20 hover:bg-white/5 transition-colors">
@@ -36,7 +37,7 @@ function WorkoutRow({ workout, theme, variant = 'default' }: { workout: Dashboar
             {workout.duration && <span>• {workout.duration} min</span>}
           </div>
         </div>
-        <Link href={`/athlete/workouts/${workout.id}/log`}>
+        <Link href={`${basePath}/athlete/workouts/${workout.id}/log`}>
           <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/10">
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -88,7 +89,7 @@ function WorkoutRow({ workout, theme, variant = 'default' }: { workout: Dashboar
   )
 }
 
-export function UpcomingWorkouts({ workouts, className, variant = 'default' }: UpcomingWorkoutsProps) {
+export function UpcomingWorkouts({ workouts, className, variant = 'default', basePath = '' }: UpcomingWorkoutsProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -148,7 +149,7 @@ export function UpcomingWorkouts({ workouts, className, variant = 'default' }: U
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
           {workouts.slice(0, 5).map((workout) => (
-            <WorkoutRow key={workout.id} workout={workout} theme={theme} variant="glass" />
+            <WorkoutRow key={workout.id} workout={workout} theme={theme} variant="glass" basePath={basePath} />
           ))}
         </GlassCardContent>
       </GlassCard>

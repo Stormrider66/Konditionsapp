@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
 
 export default async function NewLactateEntryPage() {
+  const basePath = '' // Standard athlete route
   const { clientId } = await requireAthleteOrCoachInAthleteMode();
 
   return (
@@ -40,7 +41,7 @@ export default async function NewLactateEntryPage() {
         </AlertDescription>
       </Alert>
 
-      <SelfReportedLactateForm clientId={clientId} />
+      <SelfReportedLactateForm clientId={clientId} basePath={basePath} />
     </div>
   );
 }

@@ -52,9 +52,10 @@ interface IntegrationStatusWidgetProps {
   clientId: string
   compact?: boolean
   variant?: 'default' | 'glass'
+  basePath?: string
 }
 
-export function IntegrationStatusWidget({ clientId, compact = false, variant = 'default' }: IntegrationStatusWidgetProps) {
+export function IntegrationStatusWidget({ clientId, compact = false, variant = 'default', basePath = '' }: IntegrationStatusWidgetProps) {
   const { toast } = useToast()
   const [stravaStatus, setStravaStatus] = useState<IntegrationStatus | null>(null)
   const [garminStatus, setGarminStatus] = useState<IntegrationStatus | null>(null)
@@ -331,7 +332,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
             </Badge>
           )}
           {!hasAnyConnection && (
-            <Link href="/athlete/settings">
+            <Link href={`${basePath}/athlete/settings`}>
               <Badge variant="outline" className="text-slate-400 border-white/10 cursor-pointer hover:bg-white/10 hover:text-white">
                 <Link2 className="h-3 w-3 mr-1" />
                 Anslut appar
@@ -389,7 +390,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
           </Badge>
         )}
         {!hasAnyConnection && (
-          <Link href="/athlete/settings">
+          <Link href={`${basePath}/athlete/settings`}>
             <Badge variant="outline" className="text-muted-foreground cursor-pointer hover:bg-gray-100">
               <Link2 className="h-3 w-3 mr-1" />
               Anslut appar

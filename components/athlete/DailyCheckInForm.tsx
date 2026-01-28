@@ -115,6 +115,7 @@ interface DailyCheckInFormProps {
   sport?: SportType // Primary sport for injury type filtering
   onSuccess?: () => void
   variant?: 'default' | 'glass'
+  basePath?: string
 }
 
 // Audio recording result type
@@ -138,7 +139,7 @@ interface AudioJournalResult {
   };
 }
 
-export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, variant = 'default' }: DailyCheckInFormProps) {
+export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, variant = 'default', basePath = '' }: DailyCheckInFormProps) {
   const isGlass = variant === 'glass'
   const router = useRouter()
   const { toast } = useToast()
@@ -397,7 +398,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
         router.refresh()
         // Redirect to athlete dashboard after a short delay to show success feedback
         setTimeout(() => {
-          router.push('/athlete/dashboard')
+          router.push(`${basePath}/athlete/dashboard`)
         }, 1500)
       }
     } catch (error) {
@@ -472,7 +473,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
       router.refresh()
       // Redirect to athlete dashboard after a short delay to show success feedback
       setTimeout(() => {
-        router.push('/athlete/dashboard')
+        router.push(`${basePath}/athlete/dashboard`)
       }, 1500)
     }
   }

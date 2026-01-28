@@ -56,6 +56,7 @@ interface WODHistoryClientProps {
     completed: number
     totalMinutes: number
   }
+  basePath?: string
 }
 
 const STATUS_CONFIG = {
@@ -91,7 +92,7 @@ const MODE_LABELS: Record<string, string> = {
   FUN: 'Bara kul!',
 }
 
-export function WODHistoryClient({ wods, stats }: WODHistoryClientProps) {
+export function WODHistoryClient({ wods, stats, basePath = '' }: WODHistoryClientProps) {
   const [filter, setFilter] = useState<'all' | 'completed' | 'pending'>('all')
   const [repeating, setRepeating] = useState<string | null>(null)
 
@@ -112,7 +113,7 @@ export function WODHistoryClient({ wods, stats }: WODHistoryClientProps) {
       }
 
       const data = await response.json()
-      window.location.href = `/athlete/wod/${data.newWodId}`
+      window.location.href = `${basePath}/athlete/wod/${data.newWodId}`
     } catch (err) {
       console.error('Failed to repeat WOD:', err)
       setRepeating(null)
@@ -136,7 +137,7 @@ export function WODHistoryClient({ wods, stats }: WODHistoryClientProps) {
       {/* Header */}
       <div className="bg-white/70 dark:bg-black/40 backdrop-blur-md border-b border-slate-200 dark:border-white/5 sticky top-0 z-20">
         <div className="container max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/athlete/dashboard">
+          <Link href={`${basePath}/athlete/dashboard`}>
             <Button variant="ghost" size="icon" className="rounded-full">
               <ChevronLeft className="h-5 w-5" />
             </Button>
@@ -231,7 +232,7 @@ export function WODHistoryClient({ wods, stats }: WODHistoryClientProps) {
                     ? 'Inga slutförda pass ännu.'
                     : 'Inga pågående pass.'}
               </p>
-              <Link href="/athlete/dashboard">
+              <Link href={`${basePath}/athlete/dashboard`}>
                 <Button>
                   <Zap className="h-4 w-4 mr-2" />
                   Skapa ett pass
@@ -248,7 +249,7 @@ export function WODHistoryClient({ wods, stats }: WODHistoryClientProps) {
               const exerciseCount = workout?.sections?.reduce((sum, s) => sum + s.exercises.length, 0) || 0
 
               return (
-                <Link key={wod.id} href={`/athlete/wod/${wod.id}`}>
+                <Link key={wod.id} href={`${basePath}/athlete/wod/${wod.id}`}>
                   <GlassCard className="hover:ring-2 hover:ring-orange-500/50 transition-all cursor-pointer">
                     <GlassCardContent className="p-4">
                       <div className="flex items-start gap-3">

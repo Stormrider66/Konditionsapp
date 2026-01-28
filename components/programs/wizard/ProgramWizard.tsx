@@ -44,9 +44,10 @@ interface Client {
 
 interface ProgramWizardProps {
   clients: Client[]
+  basePath?: string
 }
 
-export function ProgramWizard({ clients }: ProgramWizardProps) {
+export function ProgramWizard({ clients, basePath = '/coach' }: ProgramWizardProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedSport, setSelectedSport] = useState<SportType | null>(null)
@@ -218,7 +219,7 @@ export function ProgramWizard({ clients }: ProgramWizardProps) {
 
       const result = await response.json()
       toast.success('Program skapat!')
-      router.push(`/coach/programs/${result.data.id}`)
+      router.push(`${basePath}/programs/${result.data.id}`)
     } catch (error: any) {
       toast.error(error.message || 'Ett fel uppstod')
       setIsSubmitting(false)
@@ -226,7 +227,7 @@ export function ProgramWizard({ clients }: ProgramWizardProps) {
   }
 
   const handleCancel = () => {
-    router.push('/coach/programs')
+    router.push(`${basePath}/programs`)
   }
 
   // Transform clients for ConfigurationForm

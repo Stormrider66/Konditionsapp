@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { MatchesPageClient } from './MatchesPageClient'
 
 export default async function MatchesPage() {
+  const basePath = '' // Standard athlete route
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Get client with sport profile
@@ -40,6 +41,7 @@ export default async function MatchesPage() {
       stats={stats}
       clientId={clientId}
       sportType={client?.sportProfile?.primarySport}
+      basePath={basePath}
     />
   )
 }

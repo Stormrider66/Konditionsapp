@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface StravaActivity {
   id: string
@@ -42,6 +43,7 @@ interface StravaActivity {
 }
 
 export default function StravaImportPage() {
+  const basePath = useBasePath()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [importing, setImporting] = useState<string | null>(null)
@@ -93,7 +95,7 @@ export default function StravaImportPage() {
       toast.success('Aktivitet importerad!')
 
       // Redirect to review page
-      router.push(`/athlete/log-workout/${data.data.id}/review`)
+      router.push(`${basePath}/athlete/log-workout/${data.data.id}/review`)
     } catch (error) {
       console.error('Error importing activity:', error)
       toast.error(error instanceof Error ? error.message : 'Det gick inte att importera')
@@ -121,7 +123,7 @@ export default function StravaImportPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/athlete/log-workout">
+            <Link href={`${basePath}/athlete/log-workout`}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>

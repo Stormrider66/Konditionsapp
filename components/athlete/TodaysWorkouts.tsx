@@ -17,9 +17,10 @@ interface TodaysWorkoutsProps {
   workouts: DashboardWorkoutWithContext[]
   variant?: 'default' | 'glass'
   clientId?: string
+  basePath?: string
 }
 
-export function TodaysWorkouts({ workouts, variant = 'default', clientId }: TodaysWorkoutsProps) {
+export function TodaysWorkouts({ workouts, variant = 'default', clientId, basePath = '' }: TodaysWorkoutsProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -89,7 +90,7 @@ export function TodaysWorkouts({ workouts, variant = 'default', clientId }: Toda
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
           {workouts.map((workout) => (
-            <WorkoutCard key={workout.id} workout={workout} theme={theme} variant="glass" clientId={clientId} />
+            <WorkoutCard key={workout.id} workout={workout} theme={theme} variant="glass" clientId={clientId} basePath={basePath} />
           ))}
         </GlassCardContent>
       </GlassCard>
@@ -114,14 +115,14 @@ export function TodaysWorkouts({ workouts, variant = 'default', clientId }: Toda
       </CardHeader>
       <CardContent className="space-y-4">
         {workouts.map((workout) => (
-          <WorkoutCard key={workout.id} workout={workout} theme={theme} clientId={clientId} />
+          <WorkoutCard key={workout.id} workout={workout} theme={theme} clientId={clientId} basePath={basePath} />
         ))}
       </CardContent>
     </Card>
   )
 }
 
-function WorkoutCard({ workout, theme, variant = 'default', clientId }: { workout: DashboardWorkoutWithContext; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', clientId?: string }) {
+function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath = '' }: { workout: DashboardWorkoutWithContext; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', clientId?: string, basePath?: string }) {
   const isCompleted = workout.logs && workout.logs.length > 0 && workout.logs[0].completed
 
   if (variant === 'glass') {
@@ -207,7 +208,7 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId }: { workou
 
         {isCompleted ? (
           <div className="flex flex-col sm:flex-row gap-2">
-            <Link href={`/athlete/workouts/${workout.id}`} className="flex-1">
+            <Link href={`${basePath}/athlete/workouts/${workout.id}`} className="flex-1">
               <Button variant="outline" size="sm" className="w-full min-h-[40px] border-white/10 text-white hover:bg-white/10">
                 Visa logg
               </Button>
@@ -215,7 +216,7 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId }: { workou
           </div>
         ) : (
           <div className="flex flex-col sm:flex-row gap-2">
-            <Link href={`/athlete/workouts/${workout.id}/log`} className="flex-1">
+            <Link href={`${basePath}/athlete/workouts/${workout.id}/log`} className="flex-1">
               <Button className="w-full min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border-0">
                 Logga pass
               </Button>
@@ -337,12 +338,12 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId }: { workou
 
       {isCompleted ? (
         <div className="flex flex-col sm:flex-row gap-2">
-          <Link href={`/athlete/workouts/${workout.id}`} className="flex-1">
+          <Link href={`${basePath}/athlete/workouts/${workout.id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full min-h-[40px]">
               Visa logg
             </Button>
           </Link>
-          <Link href={`/athlete/workouts/${workout.id}/log`} className="flex-1">
+          <Link href={`${basePath}/athlete/workouts/${workout.id}/log`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full min-h-[40px]">
               Redigera
             </Button>
@@ -350,7 +351,7 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId }: { workou
         </div>
       ) : (
         <div className="flex flex-col sm:flex-row gap-2">
-          <Link href={`/athlete/workouts/${workout.id}/log`} className="flex-1">
+          <Link href={`${basePath}/athlete/workouts/${workout.id}/log`} className="flex-1">
             <Button
               className="w-full min-h-[44px]"
               style={{

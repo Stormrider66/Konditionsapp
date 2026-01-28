@@ -37,9 +37,10 @@ import { convertDatabaseProgramToParsed } from '@/lib/exports/program-converter'
 
 interface ProgramOverviewProps {
   program: ProgramWithWeeks
+  basePath?: string
 }
 
-export function ProgramOverview({ program }: ProgramOverviewProps) {
+export function ProgramOverview({ program, basePath = '/coach' }: ProgramOverviewProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isDeleting, setIsDeleting] = useState(false)
@@ -71,7 +72,7 @@ export function ProgramOverview({ program }: ProgramOverviewProps) {
         title: 'Program raderat',
         description: 'Träningsprogrammet har tagits bort',
       })
-      router.push('/coach/programs')
+      router.push(`${basePath}/programs`)
     } catch (error: any) {
       toast({
         title: 'Något gick fel',

@@ -41,9 +41,10 @@ interface WODHistorySummaryProps {
     totalCompleted: number
     totalMinutes: number
   }
+  basePath?: string
 }
 
-export function WODHistorySummary({ recentWods, stats }: WODHistorySummaryProps) {
+export function WODHistorySummary({ recentWods, stats, basePath = '' }: WODHistorySummaryProps) {
   // Only show completed WODs in summary
   const completedWods = recentWods.filter(w => w.status === 'COMPLETED').slice(0, 3)
 
@@ -59,7 +60,7 @@ export function WODHistorySummary({ recentWods, stats }: WODHistorySummaryProps)
             <Sparkles className="h-4 w-4 text-orange-500" />
             AI-pass Historik
           </GlassCardTitle>
-          <Link href="/athlete/wod/history">
+          <Link href={`${basePath}/athlete/wod/history`}>
             <Button variant="ghost" size="sm" className="text-xs h-7">
               Se alla
               <ChevronRight className="h-3 w-3 ml-1" />
@@ -89,7 +90,7 @@ export function WODHistorySummary({ recentWods, stats }: WODHistorySummaryProps)
         {completedWods.length > 0 ? (
           <div className="space-y-2">
             {completedWods.map(wod => (
-              <Link key={wod.id} href={`/athlete/wod/${wod.id}`}>
+              <Link key={wod.id} href={`${basePath}/athlete/wod/${wod.id}`}>
                 <div className="flex items-center justify-between p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                   <div className="flex items-center gap-2 min-w-0">
                     <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />

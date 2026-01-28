@@ -26,6 +26,7 @@ interface AthleteProfileClientProps {
   viewMode: 'coach' | 'athlete'
   initialTab: string
   currentUserId: string
+  basePath?: string
 }
 
 const PROFILE_TABS = [
@@ -44,6 +45,7 @@ export function AthleteProfileClient({
   viewMode,
   initialTab,
   currentUserId,
+  basePath = '',
 }: AthleteProfileClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -52,7 +54,7 @@ export function AthleteProfileClient({
   const [isAIPreferencesOpen, setIsAIPreferencesOpen] = useState(false)
 
   const client = data.identity.client!
-  const backLink = viewMode === 'coach' ? `/clients/${client.id}` : '/athlete/dashboard'
+  const backLink = viewMode === 'coach' ? `/clients/${client.id}` : `${basePath}/athlete/dashboard`
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -124,7 +126,7 @@ export function AthleteProfileClient({
               {/* Tab Content */}
               <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <TabsContent value="physiology" className="mt-0">
-                  <PhysiologyTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
+                  <PhysiologyTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} basePath={basePath} />
                 </TabsContent>
 
                 <TabsContent value="performance" className="mt-0">
@@ -132,7 +134,7 @@ export function AthleteProfileClient({
                 </TabsContent>
 
                 <TabsContent value="body" className="mt-0">
-                  <BodyCompositionTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
+                  <BodyCompositionTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} basePath={basePath} />
                 </TabsContent>
 
                 <TabsContent value="training" className="mt-0">
@@ -148,7 +150,7 @@ export function AthleteProfileClient({
                 </TabsContent>
 
                 <TabsContent value="technique" className="mt-0">
-                  <TechniqueTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
+                  <TechniqueTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} basePath={basePath} />
                 </TabsContent>
 
                 <TabsContent value="goals" className="mt-0">

@@ -9,6 +9,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
+import type { AIModel as PrismaAIModel } from '@prisma/client'
+
+// Transform database model to match the expected interface in DefaultModelSelector
+function transformModel(dbModel: PrismaAIModel) {
+  return {
+    id: dbModel.id,
+    provider: dbModel.provider,
+    modelId: dbModel.modelId,
+    displayName: dbModel.displayName,
+    name: dbModel.displayName,
+    description: dbModel.description,
+    capabilities: {
+      reasoning: 'excellent' as const,
+      speed: 'medium' as const,
+      contextWindow: dbModel.maxTokens || 128000,
+      maxOutputTokens: dbModel.maxOutputTokens || 8192,
+    },
+    pricing: {
+      // Convert from per 1K tokens to per 1M tokens
+      input: (dbModel.inputCostPer1k || 0) * 1000,
+      output: (dbModel.outputCostPer1k || 0) * 1000,
+    },
+    recommended: dbModel.isDefault,
+    bestForLongOutput: (dbModel.maxOutputTokens || 0) >= 32000,
+  }
+}
 
 // GET - Get user's default AI model
 export async function GET() {
@@ -49,7 +75,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      defaultModel: effectiveModel,
+      defaultModel: effectiveModel ? transformModel(effectiveModel) : null,
       isExplicitlySet: !!userSettings?.defaultModelId,
     });
   } catch (error) {
@@ -75,9 +101,40 @@ export async function PUT(request: NextRequest) {
 
     // Validate model exists and is active
     if (modelId) {
-      const model = await prisma.aIModel.findUnique({
+      // Try to find by database ID first, then by modelId (string identifier)
+      let model = await prisma.aIModel.findUnique({
         where: { id: modelId },
       });
+
+      if (!model) {
+        // Try by exact modelId (e.g., "gemini-3-flash-preview")
+        model = await prisma.aIModel.findUnique({
+          where: { modelId: modelId },
+        });
+      }
+
+      if (!model) {
+        // Try by modelId starting with the input (e.g., "gemini-3-flash" matches "gemini-3-flash-preview")
+        model = await prisma.aIModel.findFirst({
+          where: {
+            modelId: { startsWith: modelId },
+            isActive: true,
+          },
+        });
+      }
+
+      if (!model) {
+        // Final attempt: search by display name or partial match
+        model = await prisma.aIModel.findFirst({
+          where: {
+            OR: [
+              { displayName: { contains: modelId, mode: 'insensitive' } },
+              { modelId: { contains: modelId, mode: 'insensitive' } },
+            ],
+            isActive: true,
+          },
+        });
+      }
 
       if (!model) {
         return NextResponse.json(
@@ -109,19 +166,31 @@ export async function PUT(request: NextRequest) {
           { status: 400 }
         );
       }
-    }
 
-    // Update or create user settings
-    await prisma.userApiKey.upsert({
-      where: { userId: user.id },
-      create: {
-        userId: user.id,
-        defaultModelId: modelId || null,
-      },
-      update: {
-        defaultModelId: modelId || null,
-      },
-    });
+      // Update or create user settings with the database UUID
+      await prisma.userApiKey.upsert({
+        where: { userId: user.id },
+        create: {
+          userId: user.id,
+          defaultModelId: model.id, // Use database UUID, not input string
+        },
+        update: {
+          defaultModelId: model.id, // Use database UUID, not input string
+        },
+      });
+    } else {
+      // Clear the default model
+      await prisma.userApiKey.upsert({
+        where: { userId: user.id },
+        create: {
+          userId: user.id,
+          defaultModelId: null,
+        },
+        update: {
+          defaultModelId: null,
+        },
+      });
+    }
 
     // Fetch the updated model
     const updatedSettings = await prisma.userApiKey.findUnique({
@@ -133,7 +202,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      defaultModel: updatedSettings?.defaultModel,
+      defaultModel: updatedSettings?.defaultModel ? transformModel(updatedSettings.defaultModel) : null,
       message: modelId
         ? 'Standardmodell sparad'
         : 'Standardmodell återställd',

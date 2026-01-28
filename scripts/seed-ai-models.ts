@@ -93,17 +93,17 @@ const AI_MODELS = [
     isDefault: false,
   },
   // OpenAI Models (December 2025)
-  // Source: https://platform.openai.com/docs/models
+  // Source: https://platform.openai.com/docs/models, https://openai.com/index/introducing-gpt-5-2/
   {
     provider: 'OPENAI' as const,
-    modelId: 'gpt-5.2-thinking',
-    displayName: 'GPT-5.2 Thinking',
-    description: 'Avancerad resonemangsmodell med steg-för-steg-tänkande',
+    modelId: 'gpt-5.2-pro',
+    displayName: 'GPT-5.2 Pro',
+    description: 'Mest kraftfulla modellen med xhigh reasoning för avancerad forskning',
     capabilities: ['text', 'code', 'vision', 'reasoning', 'thinking'],
-    maxTokens: 256000,
-    maxOutputTokens: 65536,
-    inputCostPer1k: 0.010,
-    outputCostPer1k: 0.030,
+    maxTokens: 400000,
+    maxOutputTokens: 128000,
+    inputCostPer1k: 0.021,  // $21/1M tokens
+    outputCostPer1k: 0.168, // $168/1M tokens
     isActive: true,
     isDefault: false,
   },
@@ -111,12 +111,12 @@ const AI_MODELS = [
     provider: 'OPENAI' as const,
     modelId: 'gpt-5.2',
     displayName: 'GPT-5.2',
-    description: 'OpenAIs senaste flaggskeppsmodell',
+    description: 'OpenAIs flaggskeppsmodell med 128K output - bäst för långa program',
     capabilities: ['text', 'code', 'vision', 'reasoning'],
-    maxTokens: 256000,
-    maxOutputTokens: 32768,
-    inputCostPer1k: 0.005,
-    outputCostPer1k: 0.015,
+    maxTokens: 400000,
+    maxOutputTokens: 128000,
+    inputCostPer1k: 0.00175, // $1.75/1M tokens
+    outputCostPer1k: 0.014,  // $14/1M tokens
     isActive: true,
     isDefault: false,
   },
@@ -124,7 +124,7 @@ const AI_MODELS = [
     provider: 'OPENAI' as const,
     modelId: 'gpt-5.2-instant',
     displayName: 'GPT-5.2 Instant',
-    description: 'Snabbare version av GPT-5.2, bra för vardagsuppgifter',
+    description: 'Snabb och billig för vardagsuppgifter',
     capabilities: ['text', 'code', 'vision'],
     maxTokens: 128000,
     maxOutputTokens: 16384,

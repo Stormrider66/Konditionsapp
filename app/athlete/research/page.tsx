@@ -9,6 +9,7 @@ export const metadata = {
 }
 
 export default async function AthleteResearchPage() {
+  const basePath = '' // Standard athlete route
   const user = await getCurrentUser()
 
   if (!user) {
@@ -35,7 +36,7 @@ export default async function AthleteResearchPage() {
   })
 
   if (!athleteAccount?.client) {
-    redirect('/athlete/dashboard')
+    redirect(`${basePath}/athlete/dashboard`)
   }
 
   // Fetch shared research for this athlete
@@ -81,7 +82,7 @@ export default async function AthleteResearchPage() {
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
-      <SharedResearchList research={research} coachName={athleteAccount.client.user.name || 'Your Coach'} />
+      <SharedResearchList research={research} coachName={athleteAccount.client.user.name || 'Your Coach'} basePath={basePath} />
     </div>
   )
 }

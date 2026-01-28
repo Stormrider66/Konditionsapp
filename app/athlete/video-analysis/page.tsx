@@ -32,6 +32,7 @@ type VideoAnalysisWithVideo = Omit<VideoAnalysisRow, 'videoUrl'> & {
 }
 
 export default async function AthleteVideoAnalysisPage() {
+  const basePath = '' // Standard athlete route
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Prisma typings can appear stale locally (especially on Windows) if `prisma generate` didn’t fully run.
@@ -122,7 +123,7 @@ export default async function AthleteVideoAnalysisPage() {
     <div className="container mx-auto py-4 sm:py-6 px-4 sm:px-6 max-w-3xl">
       {/* Header */}
       <div className="mb-6">
-        <Link href="/athlete/profile?tab=technique">
+        <Link href={`${basePath}/athlete/profile?tab=technique`}>
           <Button variant="ghost" size="sm" className="gap-2 mb-4">
             <ArrowLeft className="h-4 w-4" />
             Tillbaka till profil

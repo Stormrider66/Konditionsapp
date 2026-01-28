@@ -30,6 +30,7 @@ interface ReadinessPanelProps {
   muscularFatigue: MuscularFatigueData[]
   hasCheckedInToday: boolean
   activeInjuries?: ActiveInjury[] // Active injuries to display
+  basePath?: string
 }
 
 // Convert 1-10 readiness to percentage
@@ -126,6 +127,7 @@ export function ReadinessPanel({
   muscularFatigue,
   hasCheckedInToday,
   activeInjuries = [],
+  basePath = '',
 }: ReadinessPanelProps) {
   const readinessPercentage = readinessScore ? readinessToPercentage(readinessScore) : null
   const readinessColors = readinessScore ? getReadinessColor(readinessScore) : null
@@ -155,7 +157,7 @@ export function ReadinessPanel({
                 </p>
               </div>
             </div>
-            <Link href="/athlete/check-in">
+            <Link href={`${basePath}/athlete/check-in`}>
               <Button
                 size="sm"
                 className="w-full mt-3 bg-orange-600 hover:bg-orange-700 text-white border-0 shadow-sm"

@@ -28,6 +28,7 @@ interface RestDayHeroCardProps {
   athleteName?: string
   wodRemainingCount?: number
   wodIsUnlimited?: boolean
+  basePath?: string
 }
 
 // Recovery messages based on readiness score
@@ -127,6 +128,7 @@ export function RestDayHeroCard({
   athleteName,
   wodRemainingCount = 3,
   wodIsUnlimited = false,
+  basePath = '',
 }: RestDayHeroCardProps) {
   const message = useMemo(() => getRecoveryMessage(readinessScore), [readinessScore])
   const MessageIcon = message.icon
@@ -148,7 +150,7 @@ export function RestDayHeroCard({
 
     // Navigate to WOD execution page
     if (wodResponse?.metadata?.requestId) {
-      const url = `/athlete/wod/${wodResponse.metadata.requestId}`
+      const url = `${basePath}/athlete/wod/${wodResponse.metadata.requestId}`
       console.log('Navigating to:', url)
       window.location.href = url
     } else {
@@ -244,7 +246,7 @@ export function RestDayHeroCard({
               Nästa pass
             </h3>
 
-            <Link href={`/athlete/workouts/${nextWorkout.id}`}>
+            <Link href={`${basePath}/athlete/workouts/${nextWorkout.id}`}>
               <div className="group/next p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 hover:border-orange-500/30 dark:hover:border-orange-500/30 hover:bg-slate-100 dark:hover:bg-slate-900/70 transition-all cursor-pointer">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
@@ -286,7 +288,7 @@ export function RestDayHeroCard({
             <p className="text-sm text-slate-500 text-center">
               Inga kommande pass schemalagda
             </p>
-            <Link href="/athlete/calendar">
+            <Link href={`${basePath}/athlete/calendar`}>
               <Button
                 variant="outline"
                 className="w-full mt-3 border-slate-200 dark:border-white/20 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all"

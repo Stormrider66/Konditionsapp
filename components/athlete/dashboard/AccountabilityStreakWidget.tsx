@@ -24,11 +24,12 @@ import type { StreakResponse } from '@/types/streak'
 interface AccountabilityStreakWidgetProps {
   clientId?: string
   className?: string
+  basePath?: string
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-export function AccountabilityStreakWidget({ className }: AccountabilityStreakWidgetProps) {
+export function AccountabilityStreakWidget({ className, basePath = '' }: AccountabilityStreakWidgetProps) {
   const { data, error, isLoading } = useSWR<StreakResponse>(
     '/api/athlete/streaks',
     fetcher,
@@ -130,7 +131,7 @@ export function AccountabilityStreakWidget({ className }: AccountabilityStreakWi
 
         {/* Check-in CTA if not done today */}
         {!hasCheckedInToday && (
-          <Link href="/athlete/check-in" className="block">
+          <Link href={`${basePath}/athlete/check-in`} className="block">
             <Button
               variant="default"
               size="sm"

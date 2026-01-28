@@ -15,12 +15,14 @@ import { WorkoutReview } from '@/components/athlete/adhoc/WorkoutReview'
 import { ProcessingStatus } from '@/components/athlete/adhoc/ProcessingStatus'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { toast } from 'sonner'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface ReviewPageProps {
   params: Promise<{ id: string }>
 }
 
 export default function ReviewPage({ params }: ReviewPageProps) {
+  const basePath = useBasePath()
   const { id } = use(params)
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -45,7 +47,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
       if (data.data.status === 'CONFIRMED') {
         // Already confirmed, redirect to athlete dashboard
         toast.info('Detta pass är redan bekräftat')
-        router.push('/athlete/dashboard')
+        router.push(`${basePath}/athlete/dashboard`)
         return
       }
 
@@ -60,7 +62,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
     } finally {
       setLoading(false)
     }
-  }, [id, router])
+  }, [id, router, basePath])
 
   useEffect(() => {
     fetchWorkoutData()
@@ -87,7 +89,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
       }
 
       toast.success('Passet har sparats!')
-      router.push('/athlete/dashboard')
+      router.push(`${basePath}/athlete/dashboard`)
     } catch (error) {
       console.error('Error confirming workout:', error)
       toast.error(error instanceof Error ? error.message : 'Det gick inte att spara passet')
@@ -97,7 +99,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
   }
 
   const handleCancel = () => {
-    router.push('/athlete/log-workout')
+    router.push(`${basePath}/athlete/log-workout`)
   }
 
   if (loading) {
@@ -115,7 +117,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
       <div className="container max-w-2xl py-8 space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/athlete/log-workout">
+            <Link href={`${basePath}/athlete/log-workout`}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
@@ -138,7 +140,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/athlete/log-workout">
+          <Link href={`${basePath}/athlete/log-workout`}>
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>

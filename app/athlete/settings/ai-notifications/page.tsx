@@ -29,6 +29,7 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import Link from 'next/link'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface Preferences {
   morningBriefingEnabled: boolean
@@ -80,6 +81,7 @@ const leadTimeOptions = [
 ]
 
 export default function AINotificationSettingsPage() {
+  const basePath = useBasePath()
   const router = useRouter()
   const [preferences, setPreferences] = useState<Preferences>(defaultPreferences)
   const [isLoading, setIsLoading] = useState(true)
@@ -154,7 +156,7 @@ export default function AINotificationSettingsPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/athlete/dashboard">
+          <Link href={`${basePath}/athlete/dashboard`}>
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>

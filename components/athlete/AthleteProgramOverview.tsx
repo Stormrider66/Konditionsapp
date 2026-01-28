@@ -18,9 +18,10 @@ import { cn } from '@/lib/utils'
 
 interface AthleteProgramOverviewProps {
   program: any
+  basePath?: string
 }
 
-export function AthleteProgramOverview({ program }: AthleteProgramOverviewProps) {
+export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgramOverviewProps) {
   const currentWeek = getCurrentWeek(program)
   const totalWeeks = program.weeks?.length || 0
   const progressPercent = Math.round((currentWeek / totalWeeks) * 100)

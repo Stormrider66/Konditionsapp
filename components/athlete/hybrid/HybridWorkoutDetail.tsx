@@ -121,6 +121,7 @@ interface HybridWorkoutDetailProps {
   workout: HybridWorkout;
   clientId: string;
   personalBest: HybridWorkoutResult | null;
+  basePath?: string;
 }
 
 const formatLabels: Record<string, { label: string; labelSv: string; icon: React.ReactNode }> = {
@@ -162,7 +163,7 @@ function getTimerMode(format: string): 'FOR_TIME' | 'AMRAP' | 'EMOM' | 'TABATA' 
   }
 }
 
-export function HybridWorkoutDetail({ workout, clientId, personalBest }: HybridWorkoutDetailProps) {
+export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath = '' }: HybridWorkoutDetailProps) {
   const router = useRouter();
   const [isLoggingOpen, setIsLoggingOpen] = useState(false);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
@@ -180,7 +181,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest }: HybridW
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/athlete/hybrid">
+        <Link href={`${basePath}/athlete/hybrid`}>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-5 w-5" />
           </Button>

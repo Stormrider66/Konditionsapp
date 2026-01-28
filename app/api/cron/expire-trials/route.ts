@@ -13,8 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { sendEmail } from '@/lib/email/resend'
-import { getTrialExpiredEmailTemplate } from '@/lib/email/templates'
+import { sendEmail, getTrialExpiredEmailTemplate } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {

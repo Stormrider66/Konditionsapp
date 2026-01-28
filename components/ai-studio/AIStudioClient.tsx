@@ -123,6 +123,7 @@ interface AIStudioClientProps {
   defaultModel: AIModel | null
   initialMode?: string
   initialClientId?: string
+  basePath?: string
 }
 
 export function AIStudioClient({
@@ -134,6 +135,7 @@ export function AIStudioClient({
   defaultModel,
   initialMode,
   initialClientId,
+  basePath = '/coach',
 }: AIStudioClientProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -419,7 +421,7 @@ export function AIStudioClient({
 
   // Handle "Back to wizard" button
   function handleBackToWizard() {
-    router.push('/coach/programs/new')
+    router.push(`${basePath}/programs/new`)
   }
 
   // Exit program mode
@@ -658,7 +660,7 @@ export function AIStudioClient({
               </div>
             </div>
             <Button asChild className="w-full">
-              <Link href="/coach/settings/ai">
+              <Link href={`${basePath}/settings/ai`}>
                 <Settings className="h-4 w-4 mr-2" />
                 Gå till Inställningar
               </Link>
@@ -1003,7 +1005,7 @@ export function AIStudioClient({
                     athleteName={selectedAthleteData?.name}
                     conversationId={currentConversationId}
                     onProgramSaved={(programId) => {
-                      router.push(`/coach/programs/${programId}`)
+                      router.push(`${basePath}/programs/${programId}`)
                     }}
                     onPublishProgram={(content) => {
                       setPublishContent(content)
@@ -1115,7 +1117,7 @@ export function AIStudioClient({
           existingProgramName={existingProgramName}
           onSuccess={(programId) => {
             setPublishDialogOpen(false)
-            router.push(`/coach/programs/${programId}`)
+            router.push(`${basePath}/programs/${programId}`)
           }}
         />
       )}

@@ -66,6 +66,7 @@ interface OnboardingWizardProps {
   clientName: string
   locale?: 'en' | 'sv'
   onComplete?: () => void
+  basePath?: string
 }
 
 // Race distances for VDOT calculation
@@ -298,6 +299,7 @@ export function OnboardingWizard({
   clientName,
   locale = 'sv',
   onComplete,
+  basePath = '',
 }: OnboardingWizardProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -587,7 +589,7 @@ export function OnboardingWizard({
       if (onComplete) {
         onComplete()
       } else {
-        router.push('/athlete/dashboard')
+        router.push(`${basePath}/athlete/dashboard`)
       }
     } catch (error) {
       toast({

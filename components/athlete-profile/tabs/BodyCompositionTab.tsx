@@ -23,6 +23,7 @@ interface BodyCompositionTabProps {
   data: AthleteProfileData
   viewMode: 'coach' | 'athlete'
   variant?: 'default' | 'glass'
+  basePath?: string
 }
 
 import {
@@ -34,7 +35,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
 
-export function BodyCompositionTab({ data, viewMode, variant = 'default' }: BodyCompositionTabProps) {
+export function BodyCompositionTab({ data, viewMode, variant = 'default', basePath = '' }: BodyCompositionTabProps) {
   const isGlass = variant === 'glass'
   const { measurements } = data.bodyComposition
   const client = data.identity.client!
@@ -55,7 +56,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default' }: Body
             Registrera bioimpedansmätningar för att se data här.
           </p>
           {viewMode === 'athlete' && (
-            <Link href="/athlete/body-composition">
+            <Link href={`${basePath}/athlete/body-composition`}>
               <Button className={isGlass ? "bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest text-xs h-12 px-8 rounded-xl" : ""}>
                 <Plus className="h-4 w-4 mr-2" />
                 Lägg till mätning
@@ -90,7 +91,7 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default' }: Body
       {/* Header with Add Button for Athletes */}
       {viewMode === 'athlete' && (
         <div className="flex justify-end">
-          <Link href="/athlete/body-composition">
+          <Link href={`${basePath}/athlete/body-composition`}>
             <Button className={cn(
               "h-11 px-6 rounded-xl font-black uppercase tracking-widest text-[10px]",
               isGlass ? "bg-blue-600 hover:bg-blue-700 text-white" : ""

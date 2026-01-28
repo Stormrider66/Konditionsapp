@@ -15,9 +15,10 @@ import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME, type WorkoutTheme } fr
 interface ActiveProgramsProps {
   programs: ActiveProgramSummary[]
   variant?: 'default' | 'glass'
+  basePath?: string
 }
 
-export function ActivePrograms({ programs, variant = 'default' }: ActiveProgramsProps) {
+export function ActivePrograms({ programs, variant = 'default', basePath = '' }: ActiveProgramsProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -50,7 +51,7 @@ export function ActivePrograms({ programs, variant = 'default' }: ActivePrograms
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
           {programs.map((program) => (
-            <ProgramCard key={program.id} program={program} theme={theme} variant="glass" />
+            <ProgramCard key={program.id} program={program} theme={theme} variant="glass" basePath={basePath} />
           ))}
         </GlassCardContent>
       </GlassCard>
@@ -102,14 +103,14 @@ export function ActivePrograms({ programs, variant = 'default' }: ActivePrograms
       </CardHeader>
       <CardContent className="space-y-4">
         {programs.map((program) => (
-          <ProgramCard key={program.id} program={program} theme={theme} />
+          <ProgramCard key={program.id} program={program} theme={theme} basePath={basePath} />
         ))}
       </CardContent>
     </Card>
   )
 }
 
-function ProgramCard({ program, theme, variant = 'default' }: { program: ActiveProgramSummary; theme: WorkoutTheme, variant?: 'default' | 'glass' }) {
+function ProgramCard({ program, theme, variant = 'default', basePath = '' }: { program: ActiveProgramSummary; theme: WorkoutTheme, variant?: 'default' | 'glass', basePath?: string }) {
   const currentWeek = getCurrentWeek(program)
   const totalWeeks = program.weeks?.length || 0
   const progressPercent = totalWeeks > 0 ? Math.round((currentWeek / totalWeeks) * 100) : 0
@@ -144,7 +145,7 @@ function ProgramCard({ program, theme, variant = 'default' }: { program: ActiveP
           />
         </div>
 
-        <Link href={`/athlete/programs/${program.id}`}>
+        <Link href={`${basePath}/athlete/programs/${program.id}`}>
           <Button variant="outline" size="sm" className="w-full border-white/10 text-white hover:bg-white/5">
             Visa program
           </Button>
@@ -196,7 +197,7 @@ function ProgramCard({ program, theme, variant = 'default' }: { program: ActiveP
         />
       </div>
 
-      <Link href={`/athlete/programs/${program.id}`}>
+      <Link href={`${basePath}/athlete/programs/${program.id}`}>
         <Button variant="outline" size="sm" className="w-full">
           Visa program
         </Button>

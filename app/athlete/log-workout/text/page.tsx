@@ -14,10 +14,12 @@ import { ArrowLeft } from 'lucide-react'
 import { TextInput } from '@/components/athlete/adhoc/TextInput'
 import { ProcessingStatus } from '@/components/athlete/adhoc/ProcessingStatus'
 import { toast } from 'sonner'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 type PageState = 'input' | 'processing' | 'error'
 
 export default function TextInputPage() {
+  const basePath = useBasePath()
   const router = useRouter()
   const [state, setState] = useState<PageState>('input')
   const [errorMessage, setErrorMessage] = useState<string>()
@@ -61,7 +63,7 @@ export default function TextInputPage() {
       }
 
       // Success - redirect to review page
-      router.push(`/athlete/log-workout/${workoutId}/review`)
+      router.push(`${basePath}/athlete/log-workout/${workoutId}/review`)
     } catch (error) {
       console.error('Error submitting workout:', error)
       setState('error')
@@ -115,7 +117,7 @@ export default function TextInputPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/athlete/log-workout">
+          <Link href={`${basePath}/athlete/log-workout`}>
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>

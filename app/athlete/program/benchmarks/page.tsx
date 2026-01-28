@@ -19,6 +19,7 @@ interface BenchmarkSchedulePageProps {
 }
 
 export default async function BenchmarkSchedulePage({ searchParams }: BenchmarkSchedulePageProps) {
+  const basePath = '' // Standard athlete route - business routes have their own implementation
   const { clientId } = await requireAthleteOrCoachInAthleteMode();
   const resolvedParams = await searchParams;
 
@@ -64,7 +65,7 @@ export default async function BenchmarkSchedulePage({ searchParams }: BenchmarkS
         </p>
       </div>
 
-      <BenchmarkSchedule programId={programId} />
+      <BenchmarkSchedule programId={programId} basePath={basePath} />
     </div>
   );
 }

@@ -52,9 +52,10 @@ type LactateFormData = z.infer<typeof lactateFormSchema>;
 
 interface SelfReportedLactateFormProps {
   clientId: string;
+  basePath?: string;
 }
 
-export function SelfReportedLactateForm({ clientId }: SelfReportedLactateFormProps) {
+export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReportedLactateFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -110,7 +111,7 @@ export function SelfReportedLactateForm({ clientId }: SelfReportedLactateFormPro
       });
 
       if (result.data.validation.isValid) {
-        router.push('/athlete/dashboard');
+        router.push(`${basePath}/athlete/dashboard`);
         router.refresh();
       }
     } catch (error: any) {

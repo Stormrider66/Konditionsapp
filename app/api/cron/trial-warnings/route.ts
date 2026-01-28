@@ -13,8 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { sendEmail } from '@/lib/email/resend'
-import { getTrialWarningEmailTemplate } from '@/lib/email/templates'
+import { sendEmail, getTrialWarningEmailTemplate } from '@/lib/email'
 
 // Warning thresholds in days
 const WARNING_THRESHOLDS = [7, 3]

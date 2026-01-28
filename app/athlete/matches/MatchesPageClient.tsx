@@ -62,6 +62,7 @@ interface MatchesPageClientProps {
   stats: SeasonStats
   clientId: string
   sportType?: string
+  basePath?: string
 }
 
 function getDateLabel(date: Date): string {
@@ -75,6 +76,7 @@ export function MatchesPageClient({
   stats,
   clientId,
   sportType,
+  basePath = '',
 }: MatchesPageClientProps) {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -88,9 +90,9 @@ export function MatchesPageClient({
     if (searchParams.get('action') === 'add') {
       setShowAddDialog(true)
       // Clean up URL
-      router.replace('/athlete/matches')
+      router.replace(`${basePath}/athlete/matches`)
     }
-  }, [searchParams, router])
+  }, [searchParams, router, basePath])
 
   const upcomingMatches = matches.filter(m => !m.result && new Date(m.scheduledDate) >= new Date())
   const pastMatches = matches.filter(m => m.result || new Date(m.scheduledDate) < new Date())

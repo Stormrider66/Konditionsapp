@@ -10,10 +10,12 @@ import type { User } from '@supabase/supabase-js'
 
 interface CoachSettingsClientProps {
     user: User
+    businessSlug?: string
 }
 
-export function CoachSettingsClient({ user }: CoachSettingsClientProps) {
+export function CoachSettingsClient({ user, businessSlug }: CoachSettingsClientProps) {
     const displayName = user.email || 'Coach'
+    const basePath = businessSlug ? `/${businessSlug}/coach` : '/coach'
 
     return (
         <div className="min-h-screen text-slate-900 dark:text-slate-200 pb-20 selection:bg-orange-500/30 transition-colors">
@@ -22,7 +24,7 @@ export function CoachSettingsClient({ user }: CoachSettingsClientProps) {
             {/* Header - Sticky below the main nav bar */}
             <div className="bg-white/70 dark:bg-black/40 backdrop-blur-md border-b border-slate-200 dark:border-white/5 sticky top-16 z-20 transition-colors">
                 <div className="container max-w-lg mx-auto px-4 py-4 flex items-center gap-4">
-                    <Link href="/coach/dashboard">
+                    <Link href={`${basePath}/dashboard`}>
                         <Button variant="ghost" size="icon" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-all">
                             <ChevronLeft className="h-5 w-5" />
                         </Button>
@@ -72,7 +74,7 @@ export function CoachSettingsClient({ user }: CoachSettingsClientProps) {
                         <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">AI Inställningar</h3>
                     </div>
-                    <Link href="/coach/settings/ai">
+                    <Link href={`${basePath}/settings/ai`}>
                         <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">

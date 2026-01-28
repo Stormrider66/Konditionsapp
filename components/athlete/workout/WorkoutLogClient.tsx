@@ -39,6 +39,7 @@ interface WorkoutLogClientProps {
   workout: any
   athleteId: string
   existingLog?: any
+  basePath?: string
 }
 
 type ViewMode = 'choosing' | 'focus' | 'quicklog'
@@ -78,6 +79,7 @@ export function WorkoutLogClient({
   workout,
   athleteId,
   existingLog,
+  basePath = '',
 }: WorkoutLogClientProps) {
   const router = useRouter()
   const [viewMode, setViewMode] = useState<ViewMode>('choosing')
@@ -157,7 +159,7 @@ export function WorkoutLogClient({
         progress={focusModeData.progress}
         onClose={() => setViewMode('choosing')}
         onComplete={() => {
-          router.push('/athlete/dashboard')
+          router.push(`${basePath}/athlete/dashboard`)
           router.refresh()
         }}
       />

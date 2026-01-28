@@ -16,6 +16,21 @@ import { IntegrationStatusWidget } from '@/components/athlete/IntegrationStatusW
 import { ActivePrograms } from '@/components/athlete/ActivePrograms'
 import { AISuggestionsBanner } from '@/components/athlete/ai/AISuggestionsBanner'
 import { AthleteStats } from '@/components/athlete/AthleteStats'
+import { CyclingDashboard } from '@/components/athlete/CyclingDashboard'
+import { SkiingDashboard } from '@/components/athlete/SkiingDashboard'
+import { SwimmingDashboard } from '@/components/athlete/SwimmingDashboard'
+import { TriathlonDashboard } from '@/components/athlete/TriathlonDashboard'
+import { HYROXDashboard } from '@/components/athlete/HYROXDashboard'
+import { GeneralFitnessDashboard } from '@/components/athlete/GeneralFitnessDashboard'
+import { FunctionalFitnessDashboard } from '@/components/athlete/FunctionalFitnessDashboard'
+import { HockeyDashboard } from '@/components/athlete/HockeyDashboard'
+import { FootballDashboard } from '@/components/athlete/FootballDashboard'
+import { HandballDashboard } from '@/components/athlete/HandballDashboard'
+import { FloorballDashboard } from '@/components/athlete/FloorballDashboard'
+import { BasketballDashboard } from '@/components/athlete/BasketballDashboard'
+import { VolleyballDashboard } from '@/components/athlete/VolleyballDashboard'
+import { TennisDashboard } from '@/components/athlete/TennisDashboard'
+import { PadelDashboard } from '@/components/athlete/PadelDashboard'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import {
@@ -28,6 +43,7 @@ import {
   Calendar,
   Stethoscope
 } from 'lucide-react'
+import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget } from '@/components/athlete/dashboard'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
@@ -36,7 +52,16 @@ import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero
 import { WODHistorySummary } from '@/components/athlete/wod'
 import { LogWorkoutButton } from '@/components/athlete/adhoc'
 import { MorningBriefingCard } from '@/components/athlete/MorningBriefingCard'
+import { PreWorkoutNudgeCard } from '@/components/athlete/PreWorkoutNudgeCard'
+import { PatternAlertCard } from '@/components/athlete/PatternAlertCard'
+import { PostWorkoutCheckCard } from '@/components/athlete/PostWorkoutCheckCard'
+import { MilestoneCelebrationCard } from '@/components/athlete/MilestoneCelebrationCard'
+import { MentalPrepCard } from '@/components/athlete/MentalPrepCard'
+import { NutritionTimingCard } from '@/components/athlete/NutritionTimingCard'
 import { WeeklyTrainingSummaryCard } from '@/components/athlete/WeeklyTrainingSummaryCard'
+import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
+import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary'
+import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 
@@ -85,280 +110,581 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     ? activeSportCookie
     : sportProfile?.primarySport
 
-  const today = new Date()
-  const startOfToday = startOfDay(today)
-  const endOfToday = endOfDay(today)
-
-  // Get today's workouts
-  const todaysWorkouts = await prisma.workout.findMany({
-    where: {
-      day: {
-        date: {
-          gte: startOfToday,
-          lte: endOfToday,
-        },
-        week: {
-          program: {
-            is: {
-              clientId: clientId,
-              isActive: true,
-            },
-          },
-        },
-      },
-    },
-    include: {
-      day: {
-        include: {
-          week: {
-            include: {
-              program: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
-      },
-      segments: {
-        include: {
-          exercise: true,
-        },
-      },
-      logs: {
-        where: {
-          athleteId: user.id,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        take: 1,
-      },
-    },
-    orderBy: {
-      order: 'asc',
-    },
-  })
-
-  // Get active programs
-  const activePrograms = await prisma.trainingProgram.findMany({
-    where: {
-      clientId: clientId,
-      isActive: true,
-    },
-    include: {
-      _count: {
-        select: {
-          weeks: true,
-        },
-      },
-    },
-    orderBy: {
-      startDate: 'desc',
-    },
-    take: 3,
-  })
-
-  // Get upcoming workouts (next 7 days)
-  const endOfWeek = addDays(today, 7)
-  const upcomingWorkouts = await prisma.workout.findMany({
-    where: {
-      day: {
-        date: {
-          gt: endOfToday,
-          lte: endOfWeek,
-        },
-        week: {
-          program: {
-            is: {
-              clientId: clientId,
-              isActive: true,
-            },
-          },
-        },
-      },
-    },
-    include: {
-      day: {
-        include: {
-          week: {
-            include: {
-              program: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    orderBy: [
-      { day: { date: 'asc' } },
-      { order: 'asc' },
-    ],
-    take: 5,
-  })
-
-  // Readiness check-in placeholder (model not yet implemented)
-  const latestReadiness = null
-
-  // Get recent workout logs for muscular fatigue calculation
-  const recentLogs = await prisma.workoutLog.findMany({
-    where: {
-      athleteId: user.id,
-      completedAt: {
-        gte: subDays(today, 7),
-      },
-    },
-    include: {
-      setLogs: true,
-      workout: {
-        select: {
-          type: true,
-          name: true,
-          intensity: true,
-        },
-      },
-    },
-    orderBy: {
-      completedAt: 'desc',
-    },
-  })
-
-  // Calculate muscular fatigue
-  const muscularFatigue = calculateMuscularFatigue(recentLogs as WorkoutLogWithSetLogs[])
-
-  // Get intensity targets for the athlete
+  // Get sport-specific intensity targets
   const intensityTargets = sportProfile && primarySport
     ? getTargetsForAthlete(sportProfile as Parameters<typeof getTargetsForAthlete>[0], primarySport)
     : undefined
 
-  // Get hero workout (first uncompleted workout today, or first workout if all completed)
-  const heroWorkout = todaysWorkouts.find(w => !w.logs.length || !w.logs[0]?.completed)
-    || todaysWorkouts[0]
-    || null
+  // Helper function to render sport-specific dashboard
+  const clientName = client.name
+  const renderSportDashboard = () => {
+    if (!sportProfile) return null
 
-  const isRestDay = todaysWorkouts.length === 0
+    switch (primarySport) {
+      case 'CYCLING':
+        return (
+          <CyclingDashboard
+            cyclingSettings={sportProfile.cyclingSettings as any}
+            experience={sportProfile.cyclingExperience}
+            clientName={clientName}
+          />
+        )
+      case 'SKIING':
+        return (
+          <SkiingDashboard
+            skiingSettings={sportProfile.skiingSettings as any}
+            experience={sportProfile.runningExperience}
+            clientName={clientName}
+          />
+        )
+      case 'SWIMMING':
+        return (
+          <SwimmingDashboard
+            swimmingSettings={sportProfile.swimmingSettings as any}
+            experience={sportProfile.swimmingExperience}
+            clientName={clientName}
+          />
+        )
+      case 'TRIATHLON':
+        return (
+          <TriathlonDashboard
+            triathlonSettings={sportProfile.triathlonSettings as any}
+            experience={sportProfile.runningExperience}
+            clientName={clientName}
+          />
+        )
+      case 'HYROX':
+        return <HYROXDashboard settings={sportProfile.hyroxSettings as any} />
+      case 'GENERAL_FITNESS':
+        return <GeneralFitnessDashboard settings={sportProfile.generalFitnessSettings as any} />
+      case 'FUNCTIONAL_FITNESS':
+        return <FunctionalFitnessDashboard settings={sportProfile.functionalFitnessSettings as any} />
+      case 'TEAM_ICE_HOCKEY':
+        return <HockeyDashboard settings={sportProfile.hockeySettings as any} />
+      case 'TEAM_FOOTBALL':
+        return <FootballDashboard settings={sportProfile.footballSettings as any} />
+      case 'TEAM_HANDBALL':
+        return <HandballDashboard settings={sportProfile.handballSettings as any} />
+      case 'TEAM_FLOORBALL':
+        return <FloorballDashboard settings={sportProfile.floorballSettings as any} />
+      case 'TEAM_BASKETBALL':
+        return <BasketballDashboard settings={sportProfile.basketballSettings as any} />
+      case 'TEAM_VOLLEYBALL':
+        return <VolleyballDashboard settings={sportProfile.volleyballSettings as any} />
+      case 'TENNIS':
+        return <TennisDashboard settings={sportProfile.tennisSettings as any} />
+      case 'PADEL':
+        return <PadelDashboard settings={sportProfile.padelSettings as any} />
+      case 'RUNNING':
+      default:
+        return null // Running uses default dashboard widgets
+    }
+  }
+
+  const now = new Date()
+  const todayStart = startOfDay(now)
+  const todayEnd = endOfDay(now)
+  const upcomingStart = startOfDay(addDays(now, 1))
+  const upcomingEnd = endOfDay(addDays(now, 7))
+
+  // Parallel data fetching for better performance
+  const [
+    activePrograms,
+    recentLogs,
+    plannedStats,
+    latestMetrics,
+    recentLogsWithSetLogs,
+    weeklyTrainingLoad,
+    activeInjuries,
+    wodHistory
+  ] = await Promise.all([
+    // 1. Active Programs
+    prisma.trainingProgram.findMany({
+      where: {
+        clientId: clientId,
+        startDate: { lte: now },
+        endDate: { gte: now },
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        startDate: true,
+        endDate: true,
+        weeks: {
+          select: {
+            id: true,
+            weekNumber: true,
+            phase: true
+          },
+          orderBy: { weekNumber: 'asc' }
+        }
+      },
+    }),
+
+    // 2. Recent Activity
+    prisma.workoutLog.findMany({
+      where: {
+        athleteId: user.id,
+        completedAt: {
+          gte: subDays(now, 7),
+        },
+      },
+      include: {
+        workout: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            intensity: true,
+          },
+        },
+      },
+      orderBy: {
+        completedAt: 'desc',
+      },
+      take: 10,
+    }),
+
+    // 3. Planned Stats (this week)
+    prisma.workout.findMany({
+      where: {
+        day: {
+          date: {
+            gte: startOfDay(addDays(now, -now.getDay() + 1)), // Monday
+            lte: endOfDay(addDays(now, -now.getDay() + 7)),   // Sunday
+          },
+          week: {
+            program: {
+              clientId: clientId
+            }
+          }
+        }
+      },
+      select: {
+        distance: true,
+        duration: true,
+      }
+    }),
+
+    // 4. Latest DailyMetrics for readiness score
+    prisma.dailyMetrics.findFirst({
+      where: {
+        clientId: clientId,
+        date: { gte: todayStart },
+      },
+      orderBy: { date: 'desc' },
+      select: {
+        readinessScore: true,
+        date: true,
+      },
+    }),
+
+    // 5. Recent workout logs with SetLogs for fatigue calculation
+    prisma.workoutLog.findMany({
+      where: {
+        athleteId: user.id,
+        completed: true,
+        completedAt: { gte: subDays(now, 7) },
+      },
+      include: {
+        workout: {
+          select: {
+            type: true,
+            intensity: true,
+          },
+        },
+        setLogs: {
+          include: {
+            exercise: {
+              select: {
+                muscleGroup: true,
+                biomechanicalPillar: true,
+                category: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { completedAt: 'desc' },
+    }),
+
+    // 6. Weekly training load (sum of dailyLoad for last 7 days)
+    prisma.trainingLoad.findMany({
+      where: {
+        clientId: clientId,
+        date: { gte: subDays(now, 7) },
+      },
+      select: {
+        dailyLoad: true,
+      },
+    }),
+
+    // 7. Active injuries (not fully recovered)
+    prisma.injuryAssessment.findMany({
+      where: {
+        clientId: clientId,
+        status: { not: 'FULLY_RECOVERED' },
+      },
+      select: {
+        painLocation: true,
+        painLevel: true,
+      },
+    }),
+
+    // 8. WOD (AI-generated workout) history
+    prisma.aIGeneratedWOD.findMany({
+      where: {
+        clientId: clientId,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        requestedDuration: true,
+        actualDuration: true,
+        createdAt: true,
+        completedAt: true,
+      },
+    }),
+  ])
+
+  // Fetch workouts with program info
+  const todaysWorkoutsWithProgram = await prisma.workout.findMany({
+    where: {
+      day: {
+        date: { gte: todayStart, lte: todayEnd },
+        week: { program: { clientId: clientId, isActive: true } }
+      }
+    },
+    include: {
+      day: {
+        include: {
+          week: {
+            include: {
+              program: {
+                select: { id: true, name: true }
+              }
+            }
+          }
+        }
+      },
+      segments: { include: { exercise: true } },
+      logs: { where: { athleteId: user.id }, take: 1 }
+    }
+  }) as any[]
+
+  const upcomingWorkoutsWithProgram = await prisma.workout.findMany({
+    where: {
+      day: {
+        date: { gte: upcomingStart, lte: upcomingEnd },
+        week: { program: { clientId: clientId, isActive: true } }
+      }
+    },
+    include: {
+      day: {
+        include: {
+          week: {
+            include: {
+              program: {
+                select: { id: true, name: true }
+              }
+            }
+          }
+        }
+      },
+      segments: { include: { exercise: true } },
+      logs: { where: { athleteId: user.id }, take: 1 }
+    },
+    orderBy: { day: { date: 'asc' } }
+  }) as any[]
+
+  // Map to DashboardWorkoutWithContext
+  const todaysWorkouts: DashboardWorkoutWithContext[] = todaysWorkoutsWithProgram.map(w => ({
+    ...w,
+    programId: w.day.week.program.id,
+    programName: w.day.week.program.name,
+    dayDate: w.day.date
+  }))
+
+  const upcomingWorkouts: DashboardWorkoutWithContext[] = upcomingWorkoutsWithProgram.map(w => ({
+    ...w,
+    programId: w.day.week.program.id,
+    programName: w.day.week.program.name,
+    dayDate: w.day.date
+  }))
+
+  // Current Phase / Week
+  const currentProgram = activePrograms[0]
+  const currentWeekInfo = currentProgram?.weeks.find(w => true)
+  const currentPhase = currentWeekInfo?.phase || "General Preparation"
+
+  // Calculate muscular fatigue from recent logs
+  const muscularFatigue = calculateMuscularFatigue(
+    recentLogsWithSetLogs.map((log) => ({
+      id: log.id,
+      completedAt: log.completedAt,
+      completed: log.completed,
+      perceivedEffort: log.perceivedEffort,
+      workout: log.workout
+        ? {
+          type: log.workout.type,
+          intensity: log.workout.intensity,
+        }
+        : null,
+      setLogs: log.setLogs.map((sl) => ({
+        id: sl.id,
+        exerciseId: sl.exerciseId,
+        weight: sl.weight,
+        repsCompleted: sl.repsCompleted,
+        rpe: sl.rpe,
+        completedAt: sl.completedAt,
+        exercise: sl.exercise
+          ? {
+            muscleGroup: sl.exercise.muscleGroup,
+            biomechanicalPillar: sl.exercise.biomechanicalPillar,
+            category: sl.exercise.category,
+          }
+          : null,
+      })),
+    })) as WorkoutLogWithSetLogs[]
+  )
+
+  // Get readiness data
+  const readinessScore = latestMetrics?.readinessScore ?? null
+  const hasCheckedInToday = latestMetrics !== null
+  const weeklyTSS = weeklyTrainingLoad.reduce((sum, load) => sum + (load.dailyLoad || 0), 0)
+  const weeklyTSSTarget = 1000 // Default target, could be from athlete profile
+
+  // Get next workout for rest day card
+  const nextWorkout = upcomingWorkouts.length > 0 ? upcomingWorkouts[0] : null
+
+  // Calculate WOD stats
+  const startOfWeek = startOfDay(addDays(now, -now.getDay() + 1)) // Monday
+  const wodStats = {
+    thisWeek: wodHistory.filter(w => w.status === 'COMPLETED' && w.completedAt && new Date(w.completedAt) >= startOfWeek).length,
+    totalCompleted: wodHistory.filter(w => w.status === 'COMPLETED').length,
+    totalMinutes: wodHistory
+      .filter(w => w.status === 'COMPLETED')
+      .reduce((sum, w) => sum + (w.actualDuration || w.requestedDuration || 0), 0),
+  }
+
+  // Quick links based on sport
+  const getQuickLinks = () => {
+    const baseLinks = [
+      { href: `${basePath}/athlete/tests`, icon: ClipboardList, label: t('testsAndReports'), color: 'text-red-500' },
+      { href: `${basePath}/athlete/history`, icon: TrendingUp, label: t('trainingHistory'), color: 'text-blue-500' },
+      { href: `${basePath}/athlete/programs`, icon: Calendar, label: t('allPrograms'), color: 'text-green-500' },
+      { href: `${basePath}/athlete/rehab`, icon: Stethoscope, label: 'Rehabilitering', color: 'text-teal-500' },
+      { href: `${basePath}/athlete/settings/nutrition`, icon: Utensils, label: t('nutritionSettings'), color: 'text-emerald-500' },
+      { href: `${basePath}/athlete/profile`, icon: User, label: t('myProfile'), color: 'text-purple-500' },
+    ]
+    return baseLinks
+  }
+
+  // Hero Card Data - prioritize incomplete workouts
+  const sortedTodaysWorkouts = [...todaysWorkouts].sort((a, b) => {
+    const aCompleted = a.logs && a.logs.length > 0 && a.logs[0].completed
+    const bCompleted = b.logs && b.logs.length > 0 && b.logs[0].completed
+    // Incomplete workouts come first
+    if (aCompleted && !bCompleted) return 1
+    if (!aCompleted && bCompleted) return -1
+    return 0
+  })
+  const heroWorkout = sortedTodaysWorkouts[0] || null
+  const remainingTodaysWorkouts = sortedTodaysWorkouts.slice(1)
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-7xl">
-      {/* Business-branded header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          {t('welcomeBack', { name: client.name || user.name })}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          {membership.business.name} - {format(today, 'EEEE d MMMM')}
-        </p>
+    <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
+
+      {/* Welcome Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
+            Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500">{client.name.split(' ')[0]}</span>
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2 transition-colors">
+            <CalendarDays className="w-4 h-4 text-orange-600 dark:text-orange-500" />
+            <span className="capitalize">{format(now, 'EEEE, d MMMM')}</span>
+            <span className="text-slate-400 dark:text-slate-600">•</span>
+            <span className="text-orange-600 dark:text-orange-400 font-medium">{membership.business.name}</span>
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <LogWorkoutButton variant="button" className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border-0 h-10 px-4 transition-all" />
+          <Link href={heroWorkout ? `${basePath}/athlete/workouts/${heroWorkout.id}/log` : `${basePath}/athlete/programs`}>
+            <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 h-10 px-6 transition-all">
+              <Zap className="w-4 h-4 mr-2" /> {heroWorkout ? 'Start Session' : 'Find Workout'}
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      {/* AI Suggestions Banner */}
-      <AISuggestionsBanner />
+      {/* Milestone Celebrations */}
+      <div className="mb-6">
+        <MilestoneCelebrationCard />
+      </div>
 
-      {/* Morning Briefing */}
+      {/* Morning Briefing Card */}
       <div className="mb-6">
         <MorningBriefingCard />
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Hero Card & Today's Workouts */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Hero Workout Card */}
-          {isRestDay ? (
-            <RestDayHeroCard
-              nextWorkout={null}
-              readinessScore={null}
-            />
-          ) : heroWorkout ? (
-            <HeroWorkoutCard
-              workout={heroWorkout as unknown as DashboardWorkoutWithContext}
-            />
-          ) : null}
+      {/* Pre-Workout Nudges */}
+      <div className="mb-6">
+        <PreWorkoutNudgeCard />
+      </div>
 
-          {/* Today's Workouts */}
-          {!isRestDay && todaysWorkouts.length > 1 && (
-            <TodaysWorkouts
-              workouts={todaysWorkouts as unknown as DashboardWorkoutWithContext[]}
-            />
+      {/* Pattern Alerts */}
+      <div className="mb-6">
+        <PatternAlertCard />
+      </div>
+
+      {/* Mental Prep (Pre-Competition) */}
+      <div className="mb-6">
+        <MentalPrepCard />
+      </div>
+
+      {/* Nutrition Timing */}
+      <div className="mb-6">
+        <NutritionTimingCard />
+      </div>
+
+      {/* Post-Workout Check-ins */}
+      <div className="mb-6">
+        <PostWorkoutCheckCard />
+      </div>
+
+      {/* AI Suggestions Banner */}
+      <div className="mb-8">
+        <AISuggestionsBanner />
+      </div>
+
+      {/* Sport-Specific Dashboard */}
+      {renderSportDashboard() && (
+        <div className="mb-8">
+          {renderSportDashboard()}
+        </div>
+      )}
+
+      {/* Main Grid - Hero Card + Readiness Panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* HERO CARD (Left 2/3) */}
+        {heroWorkout ? (
+          <HeroWorkoutCard
+            workout={heroWorkout}
+            athleteName={client.name.split(' ')[0]}
+            basePath={basePath}
+          />
+        ) : (
+          <RestDayHeroCard
+            nextWorkout={nextWorkout}
+            readinessScore={readinessScore}
+            athleteName={client.name.split(' ')[0]}
+            basePath={basePath}
+          />
+        )}
+
+        {/* READINESS PANEL (Right 1/3) */}
+        <ReadinessPanel
+          readinessScore={readinessScore}
+          weeklyTSS={weeklyTSS}
+          weeklyTSSTarget={weeklyTSSTarget}
+          muscularFatigue={muscularFatigue}
+          hasCheckedInToday={hasCheckedInToday}
+          activeInjuries={activeInjuries.filter((injury): injury is { painLocation: string; painLevel: number } => injury.painLocation !== null)}
+          basePath={basePath}
+        />
+      </div>
+
+      {/* Secondary Grid (Widget Layout) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Left Column (2/3) */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Today's Workouts (If more than 1, show the rest) */}
+          {remainingTodaysWorkouts.length > 0 && (
+            <TodaysWorkouts workouts={remainingTodaysWorkouts} variant="glass" clientId={clientId} basePath={basePath} />
           )}
 
           {/* Upcoming Workouts */}
-          <UpcomingWorkouts
-            workouts={upcomingWorkouts as unknown as DashboardWorkoutWithContext[]}
-          />
+          <UpcomingWorkouts workouts={upcomingWorkouts} variant="glass" basePath={basePath} />
 
-          {/* Active Programs */}
-          <ActivePrograms programs={activePrograms as unknown as Parameters<typeof ActivePrograms>[0]['programs']} />
+          {/* Training Load Widget */}
+          <TrainingLoadWidget clientId={clientId} variant="glass" />
+
+          {/* Training Trend Chart */}
+          <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
+
+          {/* Zone Distribution Chart */}
+          <ZoneDistributionChart clientId={clientId} variant="glass" />
+
+          {/* Nutrition Dashboard */}
+          <NutritionDashboard clientId={clientId} />
+
+          {/* Integrated Recent Activity */}
+          <IntegratedRecentActivity clientId={clientId} variant="glass" />
         </div>
 
-        {/* Right Column - Stats & Widgets */}
+        {/* Right Column (1/3) */}
         <div className="space-y-6">
-          {/* Readiness Panel */}
-          <ReadinessPanel
-            readinessScore={null}
-            weeklyTSS={null}
-            weeklyTSSTarget={0}
-            muscularFatigue={muscularFatigue}
-            hasCheckedInToday={false}
+          {/* Weekly Training Summary */}
+          <WeeklyTrainingSummaryCard
+            clientId={clientId}
+            variant="glass"
+            activeSport={primarySport || 'RUNNING'}
+            intensityTargets={intensityTargets}
           />
 
-          {/* Weekly Summary */}
-          <WeeklyTrainingSummaryCard clientId={clientId} />
+          {/* Weekly Zone Summary */}
+          <WeeklyZoneSummary clientId={clientId} variant="glass" />
 
-          {/* Training Load */}
-          <TrainingLoadWidget clientId={clientId} />
+          {/* Log Ad-Hoc Workout */}
+          <LogWorkoutButton variant="card" />
 
-          {/* Quick Actions */}
-          <GlassCard>
-            <GlassCardHeader className="pb-3">
-              <GlassCardTitle className="text-base">{t('quickActions')}</GlassCardTitle>
-            </GlassCardHeader>
-            <GlassCardContent className="space-y-2">
-              <Link href={`${basePath}/athlete/check-in`} className="block">
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
-                  <Zap className="h-4 w-4 text-yellow-500" />
-                  <span className="text-sm dark:text-slate-300">{t('dailyCheckIn')}</span>
-                </div>
-              </Link>
-              <Link href={`${basePath}/athlete/calendar`} className="block">
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
-                  <Calendar className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm dark:text-slate-300">{t('calendar')}</span>
-                </div>
-              </Link>
-              <Link href={`${basePath}/athlete/messages`} className="block">
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
-                  <ClipboardList className="h-4 w-4 text-green-500" />
-                  <span className="text-sm dark:text-slate-300">{t('messages')}</span>
-                </div>
-              </Link>
-              <Link href={`${basePath}/athlete/rehab`} className="block">
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
-                  <Stethoscope className="h-4 w-4 text-teal-500" />
-                  <span className="text-sm dark:text-slate-300">Rehabilitering</span>
-                </div>
-              </Link>
-              <Link href={`${basePath}/athlete/profile`} className="block">
-                <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted dark:hover:bg-white/5 transition">
-                  <User className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm dark:text-slate-300">{t('profile')}</span>
-                </div>
-              </Link>
-            </GlassCardContent>
-          </GlassCard>
+          {/* Accountability Streak Widget */}
+          <AccountabilityStreakWidget basePath={basePath} />
 
-          {/* Active Training Restrictions (shown only when restrictions exist) */}
+          {/* Active Training Restrictions */}
           <ActiveRestrictionsCard clientId={clientId} />
 
-          {/* Log Workout Button */}
-          <LogWorkoutButton />
+          {/* Injury Prevention Widget */}
+          <InjuryPreventionWidget />
+
+          {/* Race Predictions Widget */}
+          <RacePredictionWidget clientId={clientId} />
+
+          {/* Active Programs */}
+          <ActivePrograms programs={activePrograms} variant="glass" basePath={basePath} />
+
+          {/* WOD History Summary */}
+          <WODHistorySummary recentWods={wodHistory} stats={wodStats} basePath={basePath} />
+
+          {/* Integration Status */}
+          <IntegrationStatusWidget clientId={clientId} variant="glass" basePath={basePath} />
+
+          {/* Quick Links */}
+          <GlassCard>
+            <GlassCardHeader className="pb-3">
+              <GlassCardTitle className="text-base">{t('quickLinks')}</GlassCardTitle>
+            </GlassCardHeader>
+            <GlassCardContent className="space-y-2">
+              {getQuickLinks().map((link) => (
+                <Link key={link.href} href={link.href} className="block">
+                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+                    <link.icon className={`h-4 w-4 ${link.color}`} />
+                    <span className="text-sm">{link.label}</span>
+                  </div>
+                </Link>
+              ))}
+            </GlassCardContent>
+          </GlassCard>
         </div>
+
       </div>
+
     </div>
   )
 }

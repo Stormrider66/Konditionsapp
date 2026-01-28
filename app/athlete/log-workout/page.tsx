@@ -23,6 +23,7 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface InputMethod {
   id: 'photo' | 'voice' | 'text' | 'strava' | 'garmin' | 'manual'
@@ -30,7 +31,7 @@ interface InputMethod {
   description: string
   icon: React.ReactNode
   color: string
-  href: string
+  path: string
 }
 
 const INPUT_METHODS: InputMethod[] = [
@@ -40,7 +41,7 @@ const INPUT_METHODS: InputMethod[] = [
     description: 'Skriv en beskrivning av passet',
     icon: <FileText className="h-6 w-6" />,
     color: 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20',
-    href: '/athlete/log-workout/text',
+    path: '/athlete/log-workout/text',
   },
   {
     id: 'photo',
@@ -48,7 +49,7 @@ const INPUT_METHODS: InputMethod[] = [
     description: 'Ta en bild av whiteboard eller papper',
     icon: <Camera className="h-6 w-6" />,
     color: 'bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20',
-    href: '/athlete/log-workout/photo',
+    path: '/athlete/log-workout/photo',
   },
   {
     id: 'voice',
@@ -56,7 +57,7 @@ const INPUT_METHODS: InputMethod[] = [
     description: 'Beskriv passet med ett röstmeddelande',
     icon: <Mic className="h-6 w-6" />,
     color: 'bg-purple-500/10 text-purple-500 border-purple-500/20 hover:bg-purple-500/20',
-    href: '/athlete/log-workout/voice',
+    path: '/athlete/log-workout/voice',
   },
   {
     id: 'strava',
@@ -64,7 +65,7 @@ const INPUT_METHODS: InputMethod[] = [
     description: 'Importera från din Strava-aktivitet',
     icon: <Activity className="h-6 w-6" />,
     color: 'bg-orange-500/10 text-orange-500 border-orange-500/20 hover:bg-orange-500/20',
-    href: '/athlete/log-workout/import/strava',
+    path: '/athlete/log-workout/import/strava',
   },
   {
     id: 'garmin',
@@ -72,7 +73,7 @@ const INPUT_METHODS: InputMethod[] = [
     description: 'Importera från din Garmin-aktivitet',
     icon: <Watch className="h-6 w-6" />,
     color: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20 hover:bg-cyan-500/20',
-    href: '/athlete/log-workout/import/garmin',
+    path: '/athlete/log-workout/import/garmin',
   },
   {
     id: 'manual',
@@ -80,17 +81,18 @@ const INPUT_METHODS: InputMethod[] = [
     description: 'Fyll i ett strukturerat formulär',
     icon: <ClipboardList className="h-6 w-6" />,
     color: 'bg-gray-500/10 text-gray-500 border-gray-500/20 hover:bg-gray-500/20',
-    href: '/athlete/log-workout/manual',
+    path: '/athlete/log-workout/manual',
   },
 ]
 
 export default function LogWorkoutPage() {
+  const basePath = useBasePath()
   return (
     <div className="container max-w-2xl py-8 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/athlete">
+          <Link href={`${basePath}/athlete`}>
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>
@@ -105,7 +107,7 @@ export default function LogWorkoutPage() {
       {/* Input methods grid */}
       <div className="grid gap-3">
         {INPUT_METHODS.map((method) => (
-          <Link key={method.id} href={method.href}>
+          <Link key={method.id} href={`${basePath}${method.path}`}>
             <Card className="hover:border-primary/50 transition-all cursor-pointer group">
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">

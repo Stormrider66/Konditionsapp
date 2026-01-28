@@ -36,6 +36,7 @@ interface SharedResearchItem {
 interface SharedResearchListProps {
   research: SharedResearchItem[]
   coachName: string
+  basePath?: string
 }
 
 // ============================================
@@ -80,7 +81,7 @@ const formatProvider = (provider: string) => {
 // Component
 // ============================================
 
-export function SharedResearchList({ research, coachName }: SharedResearchListProps) {
+export function SharedResearchList({ research, coachName, basePath = '' }: SharedResearchListProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -94,7 +95,7 @@ export function SharedResearchList({ research, coachName }: SharedResearchListPr
             Research reports shared with you by {coachName}
           </p>
         </div>
-        <Link href="/athlete/dashboard">
+        <Link href={`${basePath}/athlete/dashboard`}>
           <Button variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Dashboard
@@ -118,7 +119,7 @@ export function SharedResearchList({ research, coachName }: SharedResearchListPr
           {research.map((item) => (
             <Link
               key={item.shareId}
-              href={`/athlete/research/${item.sessionId}`}
+              href={`${basePath}/athlete/research/${item.sessionId}`}
             >
               <Card className="hover:bg-muted/50 transition-colors cursor-pointer group">
                 <CardContent className="py-4">

@@ -19,9 +19,10 @@ import { ProgramWithWeeks, WeekWithDays, DayWithWorkouts, WorkoutWithSegments } 
 
 interface ProgramCalendarProps {
   program: ProgramWithWeeks
+  basePath?: string
 }
 
-export function ProgramCalendar({ program }: ProgramCalendarProps) {
+export function ProgramCalendar({ program, basePath = '/coach' }: ProgramCalendarProps) {
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
 
   const toggleWeek = (weekId: string) => {
@@ -62,13 +63,13 @@ export function ProgramCalendar({ program }: ProgramCalendarProps) {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Programkalender</h2>
         <div className="flex gap-2">
-          <Link href="/coach/strength">
+          <Link href={`${basePath}/strength`}>
             <Button variant="outline" size="sm" className="hidden md:flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
               <Dumbbell className="mr-2 h-4 w-4" />
               Strength Studio
             </Button>
           </Link>
-          <Link href={`/coach/cardio?programId=${program.id}`}>
+          <Link href={`${basePath}/cardio?programId=${program.id}`}>
             <Button variant="outline" size="sm" className="hidden md:flex bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
               <Activity className="mr-2 h-4 w-4" />
               Cardio Studio

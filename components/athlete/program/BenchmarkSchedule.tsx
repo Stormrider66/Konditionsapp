@@ -22,9 +22,10 @@ import { sv } from 'date-fns/locale';
 
 interface BenchmarkScheduleProps {
   programId: string;
+  basePath?: string;
 }
 
-export function BenchmarkSchedule({ programId }: BenchmarkScheduleProps) {
+export function BenchmarkSchedule({ programId, basePath = '' }: BenchmarkScheduleProps) {
   const [loading, setLoading] = useState(true);
   const [tests, setTests] = useState<any[]>([]);
 
@@ -105,7 +106,7 @@ export function BenchmarkSchedule({ programId }: BenchmarkScheduleProps) {
           <CardContent>
             <div className="space-y-3">
               {upcomingTests.map((test, i) => (
-                <TestCard key={i} test={test} isCompleted={false} />
+                <TestCard key={i} test={test} isCompleted={false} basePath={basePath} />
               ))}
             </div>
           </CardContent>
@@ -124,7 +125,7 @@ export function BenchmarkSchedule({ programId }: BenchmarkScheduleProps) {
           <CardContent>
             <div className="space-y-3">
               {completedTests.map((test, i) => (
-                <TestCard key={i} test={test} isCompleted={true} />
+                <TestCard key={i} test={test} isCompleted={true} basePath={basePath} />
               ))}
             </div>
           </CardContent>
@@ -134,7 +135,7 @@ export function BenchmarkSchedule({ programId }: BenchmarkScheduleProps) {
   );
 }
 
-function TestCard({ test, isCompleted }: { test: any; isCompleted: boolean }) {
+function TestCard({ test, isCompleted, basePath = '' }: { test: any; isCompleted: boolean; basePath?: string }) {
   const isCritical = !isCompleted && test.daysUntil !== undefined && test.daysUntil < 7 && test.required;
 
   return (
@@ -208,13 +209,13 @@ function TestCard({ test, isCompleted }: { test: any; isCompleted: boolean }) {
       {/* Action Button */}
       {!isCompleted ? (
         <Button className="w-full" asChild>
-          <Link href={`/athlete/tests/new?type=${test.testType}`}>
+          <Link href={`${basePath}/athlete/tests/new?type=${test.testType}`}>
             Genomför test
           </Link>
         </Button>
       ) : (
         <Button variant="outline" className="w-full" asChild>
-          <Link href={`/athlete/tests/${test.id}`}>
+          <Link href={`${basePath}/athlete/tests/${test.id}`}>
             Visa resultat
           </Link>
         </Button>

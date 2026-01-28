@@ -24,7 +24,11 @@
       "WebSearch",
       "Bash(npm run lint)",
       "Bash(find:*)",
-      "Bash(npx next lint:*)"
+      "Bash(npx next lint:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(dir \"C:\\\\Users\\\\Henrik\\\\Documents\\\\konditionstest-app\\\\app\\\\\\(business\\)\\\\[businessSlug]\\\\athlete\")",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=8192\" npm run build:*)"
     ],
     "deny": [],
     "ask": []

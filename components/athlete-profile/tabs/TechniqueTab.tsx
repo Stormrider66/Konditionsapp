@@ -16,9 +16,10 @@ interface TechniqueTabProps {
   data: AthleteProfileData
   viewMode: 'coach' | 'athlete'
   variant?: 'default' | 'glass'
+  basePath?: string
 }
 
-export function TechniqueTab({ data, viewMode, variant = 'default' }: TechniqueTabProps) {
+export function TechniqueTab({ data, viewMode, variant = 'default', basePath = '' }: TechniqueTabProps) {
   const { videoAnalyses, gaitAnalyses } = data.technique
 
   const hasData = videoAnalyses.length > 0 || gaitAnalyses.length > 0
@@ -44,7 +45,7 @@ export function TechniqueTab({ data, viewMode, variant = 'default' }: TechniqueT
             </Link>
           )}
           {viewMode === 'athlete' && (
-            <Link href="/athlete/video-analysis">
+            <Link href={`${basePath}/athlete/video-analysis`}>
               <Button>
                 <Video className="h-4 w-4 mr-2" />
                 Ladda upp video
@@ -248,7 +249,7 @@ export function TechniqueTab({ data, viewMode, variant = 'default' }: TechniqueT
               </Link>
             )}
             {viewMode === 'athlete' && (
-              <Link href="/athlete/video-analysis">
+              <Link href={`${basePath}/athlete/video-analysis`}>
                 <Button size="sm">
                   <Video className="h-4 w-4 mr-2" />
                   Ladda upp video

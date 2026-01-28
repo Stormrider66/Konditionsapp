@@ -57,12 +57,14 @@ interface AthleteStrengthClientProps {
   selfServiceEnabled: boolean
   subscriptionTier: string
   upcomingAssignments: Assignment[]
+  basePath?: string
 }
 
 export function AthleteStrengthClient({
   selfServiceEnabled,
   subscriptionTier,
   upcomingAssignments,
+  basePath = '',
 }: AthleteStrengthClientProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<string>(
@@ -133,7 +135,7 @@ export function AthleteStrengthClient({
                     key={assignment.id}
                     className="cursor-pointer hover:border-blue-300 dark:hover:border-blue-500/50 transition-all duration-300 group hover:shadow-lg dark:border-white/5 border-slate-200"
                     onClick={() =>
-                      router.push(`/athlete/workout/${assignment.sessionId}`)
+                      router.push(`${basePath}/athlete/workout/${assignment.sessionId}`)
                     }
                   >
                     <GlassCardContent className="p-5">
@@ -220,7 +222,7 @@ export function AthleteStrengthClient({
                   </Badge>
                 </div>
                 <Button variant="outline" asChild className="font-bold border-slate-200 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5">
-                  <Link href="/athlete/subscription">
+                  <Link href={`${basePath}/athlete/subscription`}>
                     Uppgradera nu
                   </Link>
                 </Button>

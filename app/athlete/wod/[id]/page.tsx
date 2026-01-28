@@ -32,6 +32,7 @@ import {
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { WODCompletionModal } from '@/components/athlete/wod/WODCompletionModal'
 import { cn } from '@/lib/utils'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import type { WODWorkout, WODSection, WODExercise, WODSectionType } from '@/types/wod'
 
 interface PageProps {
@@ -61,6 +62,7 @@ interface FlattenedExercise extends WODExercise {
 
 export default function WODExecutionPage({ params }: PageProps) {
   const { id } = use(params)
+  const basePath = useBasePath()
   const router = useRouter()
 
   const [loading, setLoading] = useState(true)
@@ -198,7 +200,7 @@ export default function WODExecutionPage({ params }: PageProps) {
         }),
       })
     }
-    router.push('/athlete/dashboard')
+    router.push(`${basePath}/athlete/dashboard`)
   }
 
   // Show completion modal instead of completing directly
@@ -239,7 +241,7 @@ export default function WODExecutionPage({ params }: PageProps) {
     } else {
       console.warn('No wodId available to save')
     }
-    router.push('/athlete/dashboard')
+    router.push(`${basePath}/athlete/dashboard`)
   }
 
   // Cancel completion modal
@@ -268,7 +270,7 @@ export default function WODExecutionPage({ params }: PageProps) {
       }
 
       const data = await response.json()
-      router.push(`/athlete/wod/${data.newWodId}`)
+      router.push(`${basePath}/athlete/wod/${data.newWodId}`)
     } catch (err) {
       console.error('Failed to repeat WOD:', err)
     }
@@ -295,7 +297,7 @@ export default function WODExecutionPage({ params }: PageProps) {
             <X className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-xl font-bold mb-2">Kunde inte ladda passet</h2>
             <p className="text-muted-foreground mb-4">{error || 'Okänt fel'}</p>
-            <Button onClick={() => router.push('/athlete/dashboard')}>
+            <Button onClick={() => router.push(`${basePath}/athlete/dashboard`)}>
               Tillbaka till dashboard
             </Button>
           </GlassCardContent>

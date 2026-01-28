@@ -10,13 +10,35 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+// getDecryptedUserApiKeys no longer needed - using userKeys.xxxKeyValid flags
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
-import {
-  getAvailableModels,
-  getDefaultModel,
-} from '@/types/ai-models'
+import type { AIModel as PrismaAIModel, AIProvider } from '@prisma/client'
+
+// Transform database model to match the expected interface
+function transformDbModel(dbModel: PrismaAIModel) {
+  return {
+    id: dbModel.id,
+    provider: dbModel.provider,
+    modelId: dbModel.modelId,
+    displayName: dbModel.displayName,
+    name: dbModel.displayName,
+    description: dbModel.description,
+    capabilities: {
+      reasoning: 'excellent' as const,
+      speed: 'medium' as const,
+      contextWindow: dbModel.maxTokens || 128000,
+      maxOutputTokens: dbModel.maxOutputTokens || 8192,
+    },
+    pricing: {
+      // Convert from per 1K tokens to per 1M tokens
+      input: (dbModel.inputCostPer1k || 0) * 1000,
+      output: (dbModel.outputCostPer1k || 0) * 1000,
+    },
+    recommended: dbModel.isDefault,
+    bestForLongOutput: (dbModel.maxOutputTokens || 0) >= 32000,
+  }
+}
 
 export async function GET() {
   try {
@@ -57,17 +79,12 @@ export async function GET() {
       coachUserId = user.id
     }
 
-    // Get coach's API keys
-    let apiKeys: {
-      anthropicKey: string | null
-      googleKey: string | null
-      openaiKey: string | null
-    }
+    // Get coach's API keys and valid providers
+    const userKeys = await prisma.userApiKey.findUnique({
+      where: { userId: coachUserId },
+    })
 
-    try {
-      apiKeys = await getDecryptedUserApiKeys(coachUserId)
-    } catch {
-      // No API keys configured
+    if (!userKeys) {
       return NextResponse.json({
         success: true,
         models: [],
@@ -76,10 +93,13 @@ export async function GET() {
       })
     }
 
-    // Get all models available based on API keys
-    const availableModels = getAvailableModels(apiKeys)
+    // Determine which providers have valid keys
+    const validProviders: AIProvider[] = []
+    if (userKeys.googleKeyValid) validProviders.push('GOOGLE')
+    if (userKeys.anthropicKeyValid) validProviders.push('ANTHROPIC')
+    if (userKeys.openaiKeyValid) validProviders.push('OPENAI')
 
-    if (availableModels.length === 0) {
+    if (validProviders.length === 0) {
       return NextResponse.json({
         success: true,
         models: [],
@@ -88,52 +108,60 @@ export async function GET() {
       })
     }
 
-    // If athlete, filter by coach's allowed models
-    let filteredModels = availableModels
+    // Get all active models from database for valid providers
+    const dbModels = await prisma.aIModel.findMany({
+      where: {
+        provider: { in: validProviders },
+        isActive: true,
+      },
+      orderBy: [
+        { isDefault: 'desc' },
+        { displayName: 'asc' },
+      ],
+    })
 
-    if (isAthlete) {
-      // Get coach's athlete settings
-      const coachSettings = await prisma.userApiKey.findUnique({
-        where: { userId: coachUserId },
-        select: {
-          allowedAthleteModelIds: true,
-          athleteDefaultModelId: true,
-        },
+    // Transform to expected format
+    let availableModels = dbModels.map(transformDbModel)
+
+    if (availableModels.length === 0) {
+      return NextResponse.json({
+        success: true,
+        models: [],
+        defaultModelId: null,
+        message: 'No active models found for configured providers',
       })
+    }
 
-      if (coachSettings?.allowedAthleteModelIds?.length) {
-        // Filter to only allowed models
-        filteredModels = availableModels.filter(model =>
-          coachSettings.allowedAthleteModelIds.includes(model.id)
-        )
-      }
-
-      // If no models allowed after filter, use all available
-      if (filteredModels.length === 0) {
-        filteredModels = availableModels
+    // If athlete, filter by coach's allowed models
+    if (isAthlete) {
+      if (userKeys.allowedAthleteModelIds?.length) {
+        const allowedIds = userKeys.allowedAthleteModelIds
+        const filtered = availableModels.filter(model => allowedIds.includes(model.id))
+        if (filtered.length > 0) {
+          availableModels = filtered
+        }
       }
 
       // Determine default model for athlete
-      let defaultModelId = coachSettings?.athleteDefaultModelId
-      if (!defaultModelId || !filteredModels.find(m => m.id === defaultModelId)) {
-        // Use first recommended or first available
-        const defaultModel = filteredModels.find(m => m.recommended) || filteredModels[0]
+      let defaultModelId = userKeys.athleteDefaultModelId
+      if (!defaultModelId || !availableModels.find(m => m.id === defaultModelId)) {
+        const defaultModel = availableModels.find(m => m.recommended) || availableModels[0]
         defaultModelId = defaultModel?.id || null
       }
 
       return NextResponse.json({
         success: true,
-        models: filteredModels,
+        models: availableModels,
         defaultModelId,
       })
     }
 
     // Coach - return all available models
-    const defaultModel = getDefaultModel(apiKeys)
+    const defaultModel = availableModels.find(m => m.recommended) || availableModels[0]
 
     return NextResponse.json({
       success: true,
-      models: filteredModels,
+      models: availableModels,
       defaultModelId: defaultModel?.id || null,
     })
   } catch (error) {

@@ -12,6 +12,7 @@ interface PageProps {
 }
 
 export default async function AthleteResearchViewPage({ params }: PageProps) {
+  const basePath = '' // Standard athlete route
   const { sessionId } = await params
   const user = await getCurrentUser()
 
@@ -19,5 +20,5 @@ export default async function AthleteResearchViewPage({ params }: PageProps) {
     redirect('/login')
   }
 
-  return <SharedResearchView sessionId={sessionId} />
+  return <SharedResearchView sessionId={sessionId} basePath={basePath} />
 }

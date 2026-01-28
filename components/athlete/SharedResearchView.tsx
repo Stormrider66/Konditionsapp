@@ -58,6 +58,7 @@ interface SharedResearch {
 interface SharedResearchViewProps {
   sessionId: string
   onDiscussWithCoach?: () => void
+  basePath?: string
 }
 
 // ============================================
@@ -67,6 +68,7 @@ interface SharedResearchViewProps {
 export function SharedResearchView({
   sessionId,
   onDiscussWithCoach,
+  basePath = '',
 }: SharedResearchViewProps) {
   const { toast } = useToast()
 
@@ -157,7 +159,7 @@ export function SharedResearchView({
             <p className="text-muted-foreground mb-4">
               {error || 'This research report is not available.'}
             </p>
-            <Link href="/athlete/dashboard">
+            <Link href={`${basePath}/athlete/dashboard`}>
               <Button variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard

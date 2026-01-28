@@ -30,9 +30,10 @@ interface PhysiologyTabProps {
   data: AthleteProfileData
   viewMode: 'coach' | 'athlete'
   variant?: 'default' | 'glass'
+  basePath?: string
 }
 
-export function PhysiologyTab({ data, viewMode, variant = 'default' }: PhysiologyTabProps) {
+export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = '' }: PhysiologyTabProps) {
   const [expandedTestId, setExpandedTestId] = useState<string | null>(null)
   const isGlass = variant === 'glass'
 
@@ -185,7 +186,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default' }: Physiolog
               </CardDescriptionWrapper>
             </div>
             {viewMode === 'coach' && (
-              <Link href="/athlete/tests">
+              <Link href={`${basePath}/athlete/tests`}>
                 <Button size="sm" variant={isGlass ? "ghost" : "outline"} className={cn(isGlass && "bg-white/5 border-white/10 hover:bg-white/10")}>+ Nytt test</Button>
               </Link>
             )}

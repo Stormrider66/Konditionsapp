@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star by Thomson - Affärscase</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            overflow: hidden;
+        }
+
+        .slide {
+            display: none;
+            min-height: 100vh;
+            padding: 60px 80px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .slide.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 40px;
+            color: #e2e8f0;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #a78bfa;
+        }
+
+        p {
+            font-size: 1.4rem;
+            line-height: 1.8;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+        }
+
+        .subtitle {
+            font-size: 1.8rem;
+            color: #94a3b8;
+            margin-bottom: 60px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-radius: 16px;
+            padding: 30px;
+            border: 1px solid #475569;
+        }
+
+        .card.highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+
+        .card h3 {
+            color: #f8fafc;
+        }
+
+        .card p {
+            color: #e2e8f0;
+            font-size: 1.1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            font-size: 1.2rem;
+        }
+
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+
+        th {
+            background: #1e293b;
+            color: #a78bfa;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #1e293b;
+        }
+
+        .big-number {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            margin-top: 60px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-top: 10px;
+        }
+
+        .progress-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #1e293b;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .nav {
+            position: fixed;
+            bottom: 30px;
+            right: 40px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav button {
+            background: #334155;
+            border: none;
+            color: #f8fafc;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .nav button:hover {
+            background: #475569;
+        }
+
+        .slide-number {
+            position: fixed;
+            bottom: 35px;
+            left: 40px;
+            color: #64748b;
+            font-size: 1rem;
+        }
+
+        ul {
+            list-style: none;
+            margin: 20px 0;
+        }
+
+        ul li {
+            font-size: 1.3rem;
+            color: #cbd5e1;
+            padding: 12px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        ul li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #a78bfa;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .highlight-box .big-number {
+            background: none;
+            -webkit-text-fill-color: #fff;
+            color: #fff;
+        }
+
+        .highlight-box p {
+            color: #fff;
+        }
+
+        .warning-box {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+
+        .center {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-slide h1 {
+            font-size: 5rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            color: #64748b;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Slide 1: Title -->
+    <div class="slide active title-slide">
+        <div class="logo">★ STAR BY THOMSON</div>
+        <h1>Digital Träningsplattform</h1>
+        <p class="subtitle">Affärscase för [Organisationsnamn]</p>
+    </div>
+
+    <!-- Slide 2: Problem -->
+    <div class="slide">
+        <h2>Problemet Idag</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>⏱️ Testrapporter</h3>
+                <p>1 timme per test i manuellt rapportarbete</p>
+            </div>
+            <div class="card">
+                <h3>📉 Ingen uppföljning</h3>
+                <p>PT-kunder tappar motivation mellan sessioner</p>
+            </div>
+            <div class="card">
+                <h3>📁 Data i silos</h3>
+                <p>Resultat i pärmar, Excel, eller ingenstans</p>
+            </div>
+            <div class="card">
+                <h3>🔄 Hög churn</h3>
+                <p>Medlemmar ser inte sitt värde</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: Solution -->
+    <div class="slide">
+        <h2>Lösningen</h2>
+        <p class="subtitle">En plattform – tre användningsområden</p>
+        <div class="grid">
+            <div class="card highlight">
+                <h3>🧪 Konditionstester</h3>
+                <p>VO2max & laktat med automatisk rapport. 5 minuter istället för 60.</p>
+            </div>
+            <div class="card highlight">
+                <h3>💪 PT & Program</h3>
+                <p>Skapa program, dela i appen, följ upp progression.</p>
+            </div>
+            <div class="card highlight">
+                <h3>📊 Uppföljning</h3>
+                <p>Träningslogg, check-ins, videoanalys, AI-assistent.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: Hockey Club Stats -->
+    <div class="slide">
+        <h2>Hockeyklubben: Tidsbesparing</h2>
+        <div class="two-col">
+            <div>
+                <table>
+                    <tr>
+                        <th>Mått</th>
+                        <th>Idag</th>
+                        <th>Med appen</th>
+                    </tr>
+                    <tr>
+                        <td>Tester per år</td>
+                        <td>400</td>
+                        <td>400</td>
+                    </tr>
+                    <tr>
+                        <td>Tid per rapport</td>
+                        <td>60 min</td>
+                        <td>5 min</td>
+                    </tr>
+                    <tr>
+                        <td>Total tid</td>
+                        <td>400 tim</td>
+                        <td>33 tim</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="center">
+                <div class="highlight-box">
+                    <div class="big-number">367</div>
+                    <p>timmar sparade per år</p>
+                    <p style="font-size: 1.5rem; margin-top: 20px;">= 146 800 kr</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: Hockey Training -->
+    <div class="slide">
+        <h2>Hockeyklubben: Träningsövervakning</h2>
+        <p class="subtitle">100 spelare × 5 träningar/vecka = 500 pass att övervaka</p>
+        <div class="grid">
+            <div class="card">
+                <h3>📱 Träningslogg</h3>
+                <p>Se vem som tränar – och vem som inte gör det</p>
+            </div>
+            <div class="card">
+                <h3>⚠️ Belastning</h3>
+                <p>ACWR-övervakning förebygger skador</p>
+            </div>
+            <div class="card">
+                <h3>😴 Check-in</h3>
+                <p>Sömn, energi, sjukdom – tidiga varningar</p>
+            </div>
+            <div class="card">
+                <h3>🎥 Videoanalys</h3>
+                <p>Teknikutveckling med AI-feedback</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: Gym Opportunity -->
+    <div class="slide">
+        <h2>Gymmet: PT-verktyget</h2>
+        <p class="subtitle">Den stora möjligheten: 500 aktiva användare</p>
+        <div class="two-col">
+            <div>
+                <h3>För PT:n</h3>
+                <ul>
+                    <li>Alla kunder samlade på ett ställe</li>
+                    <li>Skicka program direkt till mobilen</li>
+                    <li>Se träningsfrekvens mellan sessioner</li>
+                    <li>Data för uppföljningssamtal</li>
+                </ul>
+            </div>
+            <div>
+                <h3>För kunden</h3>
+                <ul>
+                    <li>Programmet alltid i fickan</li>
+                    <li>Logga träning, vikt, mått</li>
+                    <li>Se sin progression i grafer</li>
+                    <li>Känna sig sedd och följd</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: ROI -->
+    <div class="slide">
+        <h2>ROI-Sammanfattning</h2>
+        <table>
+            <tr>
+                <th>Organisation</th>
+                <th>Huvudvärde</th>
+                <th>Årlig investering</th>
+                <th>Uppskattat värde</th>
+            </tr>
+            <tr>
+                <td>Stora Gymmet</td>
+                <td>PT-verktyg + 500 användare</td>
+                <td>120 000 kr</td>
+                <td>300 000+ kr</td>
+            </tr>
+            <tr>
+                <td>Mellanstora Gymmet</td>
+                <td>PT-verktyg</td>
+                <td>60 000 kr</td>
+                <td>100 000+ kr</td>
+            </tr>
+            <tr>
+                <td>Hockeyklubben</td>
+                <td>Tidsbesparing + övervakning</td>
+                <td>96 000 kr</td>
+                <td>200 000+ kr</td>
+            </tr>
+        </table>
+        <div class="highlight-box" style="margin-top: 40px;">
+            <div class="big-number">459</div>
+            <p>timmar sparade per år i testrapporter</p>
+        </div>
+    </div>
+
+    <!-- Slide 8: Why Now -->
+    <div class="slide">
+        <h2>Varför Nu?</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>🆓 Ingen ersättning</h3>
+                <p>Ni startar från noll – ingen dyr migration eller omställning</p>
+            </div>
+            <div class="card">
+                <h3>👨‍💻 Insider-support</h3>
+                <p>Jag jobbar redan här – inget externt konsultarvode</p>
+            </div>
+            <div class="card">
+                <h3>💰 Grundarpriser</h3>
+                <p>30-40% rabatt låst i 24 månader</p>
+            </div>
+            <div class="card">
+                <h3>🏆 First mover</h3>
+                <p>Var först i området med denna digitala upplevelse</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 9: Next Steps -->
+    <div class="slide center">
+        <h2>Nästa Steg</h2>
+        <div class="grid" style="max-width: 800px; margin-top: 60px;">
+            <div class="card highlight" style="text-align: center;">
+                <h3 style="font-size: 4rem; margin-bottom: 20px;">1</h3>
+                <p style="font-size: 1.4rem;"><strong>Kostnadsfri pilot</strong><br>2 månader, utvalda tränare</p>
+            </div>
+            <div class="card" style="text-align: center;">
+                <h3 style="font-size: 4rem; margin-bottom: 20px;">2</h3>
+                <p style="font-size: 1.4rem;"><strong>Utvärdering</strong><br>Mät verklig tidsbesparing</p>
+            </div>
+            <div class="card" style="text-align: center;">
+                <h3 style="font-size: 4rem; margin-bottom: 20px;">3</h3>
+                <p style="font-size: 1.4rem;"><strong>Beslut</strong><br>Baserat på resultat</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: End -->
+    <div class="slide title-slide">
+        <div class="logo">★ STAR BY THOMSON</div>
+        <h1>Frågor?</h1>
+        <p class="subtitle" style="margin-top: 60px;">Henrik Thomson<br>Star by Thomson</p>
+    </div>
+
+    <div class="progress-container">
+        <div class="progress-bar" id="progress"></div>
+    </div>
+
+    <div class="slide-number" id="slideNumber">1 / 10</div>
+
+    <div class="nav">
+        <button onclick="prevSlide()">← Föregående</button>
+        <button onclick="nextSlide()">Nästa →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            document.getElementById('progress').style.width = ((currentSlide + 1) / totalSlides * 100) + '%';
+            document.getElementById('slideNumber').textContent = (currentSlide + 1) + ' / ' + totalSlides;
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        // Touch support
+        let touchStartX = 0;
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        });
+        document.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) nextSlide();
+                else prevSlide();
+            }
+        });
+    </script>
+</body>
+</html>

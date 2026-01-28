@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konditionstest Platform - Pitch Deck</title>
+    <!-- NOTE: "Star Performance Lab" is a placeholder name. Replace with actual platform name when decided. -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #0ea5e9;
+            --accent: #10b981;
+            --dark: #0f172a;
+            --gray: #64748b;
+            --light: #f8fafc;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--dark);
+            color: var(--dark);
+            line-height: 1.5;
+        }
+
+        .slide {
+            width: 1280px;
+            height: 720px;
+            background: var(--white);
+            margin: 20px auto;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            page-break-after: always;
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+        }
+
+        /* Slide 1: Title */
+        .slide-title {
+            background: linear-gradient(135deg, var(--dark) 0%, #1e293b 100%);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .slide-title::before {
+            display: none;
+        }
+
+        .slide-title .logo {
+            font-size: 72px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .slide-title .tagline {
+            font-size: 28px;
+            color: var(--gray);
+            font-weight: 300;
+            margin-bottom: 60px;
+        }
+
+        .slide-title .subtitle {
+            font-size: 20px;
+            color: var(--secondary);
+            font-weight: 500;
+            padding: 12px 32px;
+            border: 2px solid var(--secondary);
+            border-radius: 50px;
+        }
+
+        .slide-title .footer-info {
+            position: absolute;
+            bottom: 60px;
+            color: var(--gray);
+            font-size: 16px;
+        }
+
+        /* Common styles */
+        h1 {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 40px;
+        }
+
+        h1 span {
+            color: var(--primary);
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray);
+            margin-bottom: 12px;
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 30px;
+            right: 60px;
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        /* Grid layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--light);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .card-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--white);
+        }
+
+        .card-dark {
+            background: var(--dark);
+            color: var(--white);
+        }
+
+        /* Pain points */
+        .pain-point {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .pain-icon {
+            width: 48px;
+            height: 48px;
+            background: #fef2f2;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .pain-point h3 {
+            color: #dc2626;
+            margin-bottom: 4px;
+        }
+
+        .pain-point p {
+            color: var(--gray);
+            font-size: 15px;
+        }
+
+        /* Quote */
+        .quote {
+            background: linear-gradient(135deg, var(--light), #e2e8f0);
+            border-left: 4px solid var(--primary);
+            padding: 24px 32px;
+            border-radius: 0 16px 16px 0;
+            margin-top: 30px;
+        }
+
+        .quote p {
+            font-size: 20px;
+            font-style: italic;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .quote cite {
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        /* Solution boxes */
+        .solution-box {
+            background: var(--light);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .solution-box .icon {
+            font-size: 40px;
+            margin-bottom: 16px;
+        }
+
+        .solution-box h3 {
+            color: var(--dark);
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .solution-box ul {
+            list-style: none;
+            text-align: left;
+        }
+
+        .solution-box li {
+            font-size: 14px;
+            color: var(--gray);
+            padding: 4px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .solution-box li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: var(--dark);
+            color: var(--white);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        th:first-child {
+            border-radius: 8px 0 0 0;
+        }
+
+        th:last-child {
+            border-radius: 0 8px 0 0;
+        }
+
+        td {
+            font-size: 15px;
+            color: var(--dark);
+        }
+
+        tr:hover {
+            background: var(--light);
+        }
+
+        /* Metrics */
+        .metric {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .metric-value {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .metric-label {
+            font-size: 14px;
+            color: var(--gray);
+            margin-top: 8px;
+        }
+
+        .metric-change {
+            font-size: 14px;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Market circles */
+        .market-visual {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .market-circle {
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
+        }
+
+        .tam {
+            width: 220px;
+            height: 220px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        }
+
+        .sam {
+            width: 170px;
+            height: 170px;
+            background: linear-gradient(135deg, var(--secondary), #0284c7);
+        }
+
+        .som {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--accent), #059669);
+        }
+
+        .market-circle .value {
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .market-circle .label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .som .value {
+            font-size: 22px;
+        }
+
+        /* Pricing table */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+        }
+
+        .pricing-card {
+            background: var(--light);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .pricing-card.featured {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .pricing-card h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .pricing-card.featured h3 {
+            color: white;
+        }
+
+        .pricing-card .price {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--dark);
+        }
+
+        .pricing-card.featured .price {
+            color: white;
+        }
+
+        .pricing-card .period {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .pricing-card.featured .period {
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Timeline */
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin: 40px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 24px;
+            left: 60px;
+            right: 60px;
+            height: 4px;
+            background: #e2e8f0;
+        }
+
+        .timeline-item {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .timeline-dot {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+        }
+
+        .timeline-item.completed .timeline-dot {
+            background: var(--accent);
+        }
+
+        /* Team */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+
+        .team-card {
+            text-align: center;
+        }
+
+        .team-avatar {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            color: white;
+        }
+
+        .team-card h3 {
+            color: var(--dark);
+            font-size: 20px;
+        }
+
+        .team-card .role {
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .team-card .bio {
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        /* Competitive */
+        .competitive-matrix {
+            position: relative;
+            width: 500px;
+            height: 400px;
+            margin: 0 auto;
+            border-left: 2px solid var(--dark);
+            border-bottom: 2px solid var(--dark);
+        }
+
+        .axis-label {
+            position: absolute;
+            font-size: 12px;
+            color: var(--gray);
+            font-weight: 600;
+        }
+
+        .competitor-dot {
+            position: absolute;
+            width: 100px;
+            text-align: center;
+        }
+
+        .competitor-dot .dot {
+            width: 16px;
+            height: 16px;
+            background: var(--gray);
+            border-radius: 50%;
+            margin: 0 auto 8px;
+        }
+
+        .competitor-dot.us .dot {
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+        }
+
+        /* Ask slide */
+        .ask-box {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .ask-amount {
+            font-size: 64px;
+            font-weight: 800;
+        }
+
+        .ask-type {
+            font-size: 24px;
+            opacity: 0.9;
+        }
+
+        .use-of-funds {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .fund-item {
+            text-align: center;
+        }
+
+        .fund-percent {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .fund-label {
+            font-size: 14px;
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        .fund-amount {
+            font-size: 12px;
+            color: var(--gray);
+        }
+
+        /* Vision slide */
+        .slide-vision {
+            background: linear-gradient(135deg, var(--dark) 0%, #1e293b 100%);
+            color: var(--white);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide-vision::before {
+            background: linear-gradient(90deg, var(--accent), var(--secondary), var(--primary));
+        }
+
+        .slide-vision h1 {
+            color: var(--white);
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        .vision-statement {
+            font-size: 48px;
+            font-weight: 300;
+            color: var(--secondary);
+            margin-bottom: 60px;
+        }
+
+        .vision-timeline {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+        }
+
+        .vision-year {
+            text-align: center;
+        }
+
+        .vision-year .year {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .vision-year .goal {
+            font-size: 16px;
+            color: var(--gray);
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            .slide {
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+                page-break-inside: avoid;
+            }
+        }
+
+        @page {
+            size: 1280px 720px;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Slide 1: Title -->
+    <div class="slide slide-title">
+        <div class="logo">Star Performance Lab</div>
+        <div class="tagline">The Operating System for Elite Athletic Performance</div>
+        <div class="subtitle">Seed Round - $2.5M</div>
+        <div class="footer-info">January 2026 | Confidential</div>
+    </div>
+
+    <!-- Slide 2: Problem -->
+    <div class="slide">
+        <h1>The <span>Problem</span></h1>
+        <div class="grid-2">
+            <div>
+                <div class="pain-point">
+                    <div class="pain-icon">📊</div>
+                    <div>
+                        <h3>Fragmented Data</h3>
+                        <p>Coaches juggle 5-8 different apps to track athlete performance</p>
+                    </div>
+                </div>
+                <div class="pain-point">
+                    <div class="pain-icon">⏱️</div>
+                    <div>
+                        <h3>Manual Reporting</h3>
+                        <p>4+ hours spent creating each athlete performance report</p>
+                    </div>
+                </div>
+                <div class="pain-point">
+                    <div class="pain-icon">🔌</div>
+                    <div>
+                        <h3>No Integration</h3>
+                        <p>Garmin, Strava, and lab data exist in separate silos</p>
+                    </div>
+                </div>
+                <div class="pain-point">
+                    <div class="pain-icon">📋</div>
+                    <div>
+                        <h3>Generic Programs</h3>
+                        <p>Cookie-cutter training plans ignore individual physiology</p>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="card card-dark" style="height: 100%;">
+                    <h2 style="color: white; margin-bottom: 30px;">The Real Cost</h2>
+                    <div class="metric">
+                        <div class="metric-value" style="color: #f87171;">68%</div>
+                        <div class="metric-label" style="color: #94a3b8;">of coaches feel overwhelmed by admin tasks</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" style="color: #f87171;">$15K+</div>
+                        <div class="metric-label" style="color: #94a3b8;">annual spend on disconnected software tools</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="quote">
+            <p>"I spend more time in spreadsheets than with my athletes"</p>
+            <cite>— Olympic Cycling Coach</cite>
+        </div>
+        <div class="slide-number">2</div>
+    </div>
+
+    <!-- Slide 3: Solution -->
+    <div class="slide">
+        <h1>The <span>Solution</span></h1>
+        <p style="font-size: 20px; color: var(--gray); margin-bottom: 30px;">One unified platform for the complete athlete performance journey</p>
+        <div class="grid-4">
+            <div class="solution-box">
+                <div class="icon">🔬</div>
+                <h3>Lab Testing</h3>
+                <ul>
+                    <li>VO2max analysis</li>
+                    <li>Lactate profiling</li>
+                    <li>Threshold detection</li>
+                    <li>PDF reports</li>
+                </ul>
+            </div>
+            <div class="solution-box">
+                <div class="icon">📈</div>
+                <h3>Training Programs</h3>
+                <ul>
+                    <li>17 sports supported</li>
+                    <li>Periodized plans</li>
+                    <li>Strength training</li>
+                    <li>Ergometer protocols</li>
+                </ul>
+            </div>
+            <div class="solution-box">
+                <div class="icon">📡</div>
+                <h3>Live Monitoring</h3>
+                <ul>
+                    <li>Garmin sync</li>
+                    <li>Strava integration</li>
+                    <li>HRV tracking</li>
+                    <li>Readiness scores</li>
+                </ul>
+            </div>
+            <div class="solution-box">
+                <div class="icon">🤖</div>
+                <h3>AI Insights</h3>
+                <ul>
+                    <li>Auto zone calculation</li>
+                    <li>Program generation</li>
+                    <li>Video analysis</li>
+                    <li>Injury prevention</li>
+                </ul>
+            </div>
+        </div>
+        <div style="text-align: center; margin-top: 40px;">
+            <div style="display: inline-block; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 16px 40px; border-radius: 12px; font-size: 18px; font-weight: 600;">
+                Lab-Quality Insights → Personalized Training → Measurable Outcomes
+            </div>
+        </div>
+        <div class="slide-number">3</div>
+    </div>
+
+    <!-- Slide 4: Product -->
+    <div class="slide">
+        <h1>The <span>Product</span></h1>
+        <div class="grid-2" style="gap: 30px;">
+            <div>
+                <div class="card" style="margin-bottom: 20px; background: linear-gradient(135deg, #f0f9ff, #e0f2fe);">
+                    <h3 style="color: var(--secondary);">Coach Dashboard</h3>
+                    <p style="font-size: 14px; color: var(--gray);">Complete athlete overview with performance metrics, training load, and readiness indicators</p>
+                </div>
+                <div class="card" style="margin-bottom: 20px; background: linear-gradient(135deg, #f0fdf4, #dcfce7);">
+                    <h3 style="color: var(--accent);">Lab Reports</h3>
+                    <p style="font-size: 14px; color: var(--gray);">Professional PDF reports with VO2max curves, lactate thresholds, and personalized training zones</p>
+                </div>
+                <div class="card" style="background: linear-gradient(135deg, #faf5ff, #f3e8ff);">
+                    <h3 style="color: #9333ea;">AI Program Builder</h3>
+                    <p style="font-size: 14px; color: var(--gray);">Generate periodized training programs based on athlete physiology and goals</p>
+                </div>
+            </div>
+            <div>
+                <div class="card card-dark" style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                    <div style="font-size: 120px; margin-bottom: 20px;">📱</div>
+                    <h3 style="color: white; font-size: 20px;">Athlete Mobile Portal</h3>
+                    <p style="color: var(--gray); text-align: center; font-size: 14px;">Athletes view workouts, log sessions, and track progress from any device</p>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 30px; display: flex; justify-content: center; gap: 40px;">
+            <div style="text-align: center;">
+                <div style="font-size: 14px; color: var(--gray);">Integrations</div>
+                <div style="display: flex; gap: 16px; margin-top: 8px;">
+                    <span style="background: var(--light); padding: 8px 16px; border-radius: 8px; font-weight: 600;">Garmin</span>
+                    <span style="background: var(--light); padding: 8px 16px; border-radius: 8px; font-weight: 600;">Strava</span>
+                    <span style="background: var(--light); padding: 8px 16px; border-radius: 8px; font-weight: 600;">Concept2</span>
+                    <span style="background: var(--light); padding: 8px 16px; border-radius: 8px; font-weight: 600;">VBT Devices</span>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">4</div>
+    </div>
+
+    <!-- Slide 5: Market -->
+    <div class="slide">
+        <h1>Market <span>Opportunity</span></h1>
+        <div class="grid-2">
+            <div>
+                <div class="market-visual">
+                    <div class="market-circle tam">
+                        <div class="value">$12B</div>
+                        <div class="label">TAM</div>
+                    </div>
+                    <div class="market-circle sam">
+                        <div class="value">$2.4B</div>
+                        <div class="label">SAM</div>
+                    </div>
+                    <div class="market-circle som">
+                        <div class="value">$240M</div>
+                        <div class="label">SOM</div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 16px; height: 16px; background: var(--primary); border-radius: 50%;"></div>
+                        <span style="font-size: 14px;"><strong>TAM:</strong> Global sports technology market</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <div style="width: 16px; height: 16px; background: var(--secondary); border-radius: 50%;"></div>
+                        <span style="font-size: 14px;"><strong>SAM:</strong> Performance tracking & coaching software</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 16px; height: 16px; background: var(--accent); border-radius: 50%;"></div>
+                        <span style="font-size: 14px;"><strong>SOM:</strong> Premium coach/federation segment</span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h2>Market Drivers</h2>
+                <div class="card" style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Sports tech CAGR</span>
+                        <span style="color: var(--accent); font-weight: 700;">↑ 18%</span>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Data-driven training adoption</span>
+                        <span style="color: var(--accent); font-weight: 700;">↑ High</span>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Wearable device proliferation</span>
+                        <span style="color: var(--accent); font-weight: 700;">↑ 25%</span>
+                    </div>
+                </div>
+                <h2 style="margin-top: 24px;">Target Segments</h2>
+                <table>
+                    <tr><td>Professional coaches</td><td style="text-align: right; font-weight: 600;">500K+</td></tr>
+                    <tr><td>Sports clubs & academies</td><td style="text-align: right; font-weight: 600;">50K+</td></tr>
+                    <tr><td>National federations</td><td style="text-align: right; font-weight: 600;">200+</td></tr>
+                    <tr><td>University programs</td><td style="text-align: right; font-weight: 600;">5K+</td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="slide-number">5</div>
+    </div>
+
+    <!-- Slide 6: Business Model -->
+    <div class="slide">
+        <h1>Business <span>Model</span></h1>
+        <p style="font-size: 18px; color: var(--gray); margin-bottom: 30px;">SaaS Subscription + Usage-Based AI</p>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Free</h3>
+                <div class="price">$0</div>
+                <div class="period">/month</div>
+                <p style="font-size: 12px; color: var(--gray); margin-top: 12px;">3 athletes<br>Basic features</p>
+            </div>
+            <div class="pricing-card">
+                <h3>Coach</h3>
+                <div class="price">$49</div>
+                <div class="period">/month</div>
+                <p style="font-size: 12px; color: var(--gray); margin-top: 12px;">15 athletes<br>Reports & zones</p>
+            </div>
+            <div class="pricing-card featured">
+                <h3>Pro</h3>
+                <div class="price">$149</div>
+                <div class="period">/month</div>
+                <p style="font-size: 12px; margin-top: 12px; opacity: 0.9;">50 athletes<br>All integrations</p>
+            </div>
+            <div class="pricing-card">
+                <h3>Team</h3>
+                <div class="price">$499</div>
+                <div class="period">/month</div>
+                <p style="font-size: 12px; color: var(--gray); margin-top: 12px;">200 athletes<br>AI & video</p>
+            </div>
+            <div class="pricing-card">
+                <h3>Enterprise</h3>
+                <div class="price">Custom</div>
+                <div class="period">pricing</div>
+                <p style="font-size: 12px; color: var(--gray); margin-top: 12px;">Unlimited<br>White-label</p>
+            </div>
+        </div>
+        <div style="margin-top: 40px;">
+            <h2>Unit Economics Target</h2>
+            <div class="grid-4">
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: var(--primary);">$2,400</div>
+                    <div style="font-size: 14px; color: var(--gray);">LTV (24mo avg)</div>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: var(--primary);">$400</div>
+                    <div style="font-size: 14px; color: var(--gray);">CAC</div>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: var(--accent);">6:1</div>
+                    <div style="font-size: 14px; color: var(--gray);">LTV:CAC Ratio</div>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 32px; font-weight: 800; color: var(--accent);">80%+</div>
+                    <div style="font-size: 14px; color: var(--gray);">Gross Margin</div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">6</div>
+    </div>
+
+    <!-- Slide 7: Traction -->
+    <div class="slide">
+        <h1>Traction & <span>Milestones</span></h1>
+        <div class="grid-2">
+            <div>
+                <h2>Key Metrics</h2>
+                <div class="grid-2" style="gap: 16px;">
+                    <div class="card" style="text-align: center;">
+                        <div style="font-size: 36px; font-weight: 800; color: var(--primary);">$12K</div>
+                        <div style="font-size: 14px; color: var(--gray);">MRR</div>
+                        <div style="font-size: 12px; color: var(--accent);">+25% MoM</div>
+                    </div>
+                    <div class="card" style="text-align: center;">
+                        <div style="font-size: 36px; font-weight: 800; color: var(--primary);">180</div>
+                        <div style="font-size: 14px; color: var(--gray);">Active Coaches</div>
+                        <div style="font-size: 12px; color: var(--accent);">+30% MoM</div>
+                    </div>
+                    <div class="card" style="text-align: center;">
+                        <div style="font-size: 36px; font-weight: 800; color: var(--primary);">2,400</div>
+                        <div style="font-size: 14px; color: var(--gray);">Athletes</div>
+                    </div>
+                    <div class="card" style="text-align: center;">
+                        <div style="font-size: 36px; font-weight: 800; color: var(--primary);">8,500</div>
+                        <div style="font-size: 14px; color: var(--gray);">Tests Processed</div>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 20px; background: linear-gradient(135deg, #fef3c7, #fde68a);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600;">Enterprise Pipeline</span>
+                        <span style="font-size: 24px; font-weight: 800; color: #d97706;">$180K ACV</span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h2>Milestones</h2>
+                <div style="margin-top: 16px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">✓</div>
+                        <span>Product-market fit validated</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">✓</div>
+                        <span>4 paying federation pilots</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">✓</div>
+                        <span>Garmin & Strava integrations live</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">✓</div>
+                        <span>AI program generator launched</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 32px; height: 32px; background: var(--secondary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">→</div>
+                        <span>Enterprise pipeline: $180K ACV</span>
+                    </div>
+                </div>
+                <div class="card card-dark" style="margin-top: 24px;">
+                    <h3 style="color: white; margin-bottom: 12px;">Customer Logos</h3>
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 6px; font-size: 12px;">Norwegian Ski Fed</span>
+                        <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 6px; font-size: 12px;">Elite Cycling Academy</span>
+                        <span style="background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 6px; font-size: 12px;">Olympic Training Center</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">7</div>
+    </div>
+
+    <!-- Slide 8: Competition -->
+    <div class="slide">
+        <h1>Competitive <span>Landscape</span></h1>
+        <div class="grid-2">
+            <div>
+                <div style="position: relative; width: 100%; height: 400px; border-left: 2px solid var(--dark); border-bottom: 2px solid var(--dark); margin-top: 20px;">
+                    <!-- Axis labels -->
+                    <div style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--gray); font-weight: 600;">Enterprise Features</div>
+                    <div style="position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%); font-size: 12px; color: var(--gray); font-weight: 600;">Multi-Sport ←→ Single Sport</div>
+
+                    <!-- Competitors -->
+                    <div style="position: absolute; top: 60px; left: 80px; text-align: center;">
+                        <div style="width: 16px; height: 16px; background: var(--gray); border-radius: 50%; margin: 0 auto 8px;"></div>
+                        <span style="font-size: 12px;">TrainingPeaks</span>
+                    </div>
+                    <div style="position: absolute; top: 40px; right: 60px; text-align: center;">
+                        <div style="width: 24px; height: 24px; background: var(--primary); border-radius: 50%; margin: 0 auto 8px;"></div>
+                        <span style="font-size: 12px; font-weight: 700; color: var(--primary);">Star Performance</span>
+                    </div>
+                    <div style="position: absolute; bottom: 80px; left: 100px; text-align: center;">
+                        <div style="width: 16px; height: 16px; background: var(--gray); border-radius: 50%; margin: 0 auto 8px;"></div>
+                        <span style="font-size: 12px;">Strava</span>
+                    </div>
+                    <div style="position: absolute; bottom: 100px; right: 80px; text-align: center;">
+                        <div style="width: 16px; height: 16px; background: var(--gray); border-radius: 50%; margin: 0 auto 8px;"></div>
+                        <span style="font-size: 12px;">TrainHeroic</span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h2>Our Advantages</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Us</th>
+                            <th>Competitors</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="color: var(--accent);">✓ Lab + training unified</td>
+                            <td style="color: #dc2626;">✗ Separate tools</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent);">✓ 17 sports supported</td>
+                            <td style="color: #dc2626;">✗ 1-3 sports only</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent);">✓ AI-powered programs</td>
+                            <td style="color: #dc2626;">✗ Manual templates</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent);">✓ Real physiological zones</td>
+                            <td style="color: #dc2626;">✗ Generic HR zones</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent);">✓ Video analysis included</td>
+                            <td style="color: #dc2626;">✗ $500+/mo add-on</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="card" style="margin-top: 20px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white;">
+                    <h3 style="color: white;">Defensible Moat</h3>
+                    <p style="font-size: 14px; opacity: 0.9;">Proprietary algorithms for threshold detection, training load optimization, and AI-driven periodization</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">8</div>
+    </div>
+
+    <!-- Slide 9: Go-to-Market -->
+    <div class="slide">
+        <h1>Go-to-Market <span>Strategy</span></h1>
+        <div class="timeline">
+            <div class="timeline-item completed">
+                <div class="timeline-dot">1</div>
+                <h3>Phase 1: Niche</h3>
+                <p style="font-size: 12px; color: var(--gray);">Nordic sports focus<br>Direct federation sales</p>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot">2</div>
+                <h3>Phase 2: Expand</h3>
+                <p style="font-size: 12px; color: var(--gray);">Cycling, triathlon, rowing<br>Partner channels</p>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot">3</div>
+                <h3>Phase 3: Scale</h3>
+                <p style="font-size: 12px; color: var(--gray);">Team sports<br>University programs</p>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot">4</div>
+                <h3>Phase 4: Platform</h3>
+                <p style="font-size: 12px; color: var(--gray);">White-label<br>API ecosystem</p>
+            </div>
+        </div>
+        <div class="grid-2" style="margin-top: 30px;">
+            <div>
+                <h2>Distribution Channels</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Channel</th>
+                            <th>% Revenue</th>
+                            <th>CAC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Organic / Content</td>
+                            <td>40%</td>
+                            <td style="color: var(--accent);">$150</td>
+                        </tr>
+                        <tr>
+                            <td>Direct Sales</td>
+                            <td>35%</td>
+                            <td>$600</td>
+                        </tr>
+                        <tr>
+                            <td>Partnerships</td>
+                            <td>20%</td>
+                            <td>$300</td>
+                        </tr>
+                        <tr>
+                            <td>Paid Ads</td>
+                            <td>5%</td>
+                            <td>$450</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <h2>Key Activities</h2>
+                <div class="card" style="margin-bottom: 12px;">
+                    <strong>Content Marketing</strong>
+                    <p style="font-size: 13px; color: var(--gray);">Training science blog, YouTube, podcasts</p>
+                </div>
+                <div class="card" style="margin-bottom: 12px;">
+                    <strong>Conference Presence</strong>
+                    <p style="font-size: 13px; color: var(--gray);">NSCA, ACSM, sports science events</p>
+                </div>
+                <div class="card">
+                    <strong>Strategic Partnerships</strong>
+                    <p style="font-size: 13px; color: var(--gray);">Equipment manufacturers, sports retailers</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">9</div>
+    </div>
+
+    <!-- Slide 10: Team -->
+    <div class="slide">
+        <h1>The <span>Team</span></h1>
+        <div class="team-grid">
+            <div class="team-card">
+                <div class="team-avatar">👤</div>
+                <div class="role">CEO</div>
+                <h3>[Founder Name]</h3>
+                <p class="bio">10 years in sports science. Former national team coach. MSc Exercise Physiology.</p>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar">👤</div>
+                <div class="role">CTO</div>
+                <h3>[Founder Name]</h3>
+                <p class="bio">Ex-[Tech Company]. Built scalable platforms serving 1M+ users. CS from [University].</p>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar">👤</div>
+                <div class="role">CPO</div>
+                <h3>[Founder Name]</h3>
+                <p class="bio">Former elite athlete. Product at [Company]. Deep domain expertise.</p>
+            </div>
+        </div>
+        <div style="margin-top: 40px;">
+            <h2>Advisors</h2>
+            <div class="grid-3" style="gap: 20px;">
+                <div class="card">
+                    <h3 style="font-size: 16px;">[Advisor Name]</h3>
+                    <p style="font-size: 13px; color: var(--gray);">3x Olympic medalist coach</p>
+                </div>
+                <div class="card">
+                    <h3 style="font-size: 16px;">[Advisor Name]</h3>
+                    <p style="font-size: 13px; color: var(--gray);">PhD, VO2max researcher</p>
+                </div>
+                <div class="card">
+                    <h3 style="font-size: 16px;">[Advisor Name]</h3>
+                    <p style="font-size: 13px; color: var(--gray);">Former VP Sales, [SaaS Co]</p>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top: 30px;">
+            <h2>Hiring Plan</h2>
+            <div style="display: flex; gap: 20px;">
+                <span style="background: var(--light); padding: 10px 20px; border-radius: 8px;">Head of Sales (Q2)</span>
+                <span style="background: var(--light); padding: 10px 20px; border-radius: 8px;">Senior Engineers x2 (Q2-Q3)</span>
+                <span style="background: var(--light); padding: 10px 20px; border-radius: 8px;">Customer Success (Q3)</span>
+            </div>
+        </div>
+        <div class="slide-number">10</div>
+    </div>
+
+    <!-- Slide 11: Financials -->
+    <div class="slide">
+        <h1>Financial <span>Projections</span></h1>
+        <div class="grid-2">
+            <div>
+                <h2>5-Year Revenue Forecast</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>ARR</th>
+                            <th>Users</th>
+                            <th>Growth</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2024</td>
+                            <td>$150K</td>
+                            <td>400</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>2025</td>
+                            <td>$600K</td>
+                            <td>1,200</td>
+                            <td style="color: var(--accent);">+300%</td>
+                        </tr>
+                        <tr>
+                            <td>2026</td>
+                            <td>$2M</td>
+                            <td>3,500</td>
+                            <td style="color: var(--accent);">+233%</td>
+                        </tr>
+                        <tr>
+                            <td>2027</td>
+                            <td>$5M</td>
+                            <td>8,000</td>
+                            <td style="color: var(--accent);">+150%</td>
+                        </tr>
+                        <tr style="background: var(--light);">
+                            <td><strong>2028</strong></td>
+                            <td><strong>$10M</strong></td>
+                            <td><strong>15,000</strong></td>
+                            <td style="color: var(--accent);"><strong>+100%</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <h2>Path to Profitability</h2>
+                <div class="card" style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Break-even ARR</span>
+                        <strong>~$4M</strong>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Gross Margins</span>
+                        <strong style="color: var(--accent);">75%+</strong>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Capital Efficiency</span>
+                        <strong style="color: var(--accent);">$1 → $4 ARR</strong>
+                    </div>
+                </div>
+                <div class="card card-primary" style="margin-top: 24px;">
+                    <h3 style="color: white;">Projected 2028</h3>
+                    <div style="display: flex; justify-content: space-around; margin-top: 16px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 28px; font-weight: 800;">$10M</div>
+                            <div style="font-size: 12px; opacity: 0.8;">ARR</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 28px; font-weight: 800;">75%</div>
+                            <div style="font-size: 12px; opacity: 0.8;">Margin</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 28px; font-weight: 800;">Profitable</div>
+                            <div style="font-size: 12px; opacity: 0.8;">Status</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">11</div>
+    </div>
+
+    <!-- Slide 12: The Ask -->
+    <div class="slide">
+        <h1>The <span>Ask</span></h1>
+        <div class="ask-box">
+            <div class="ask-amount">$2.5M</div>
+            <div class="ask-type">Seed Round</div>
+        </div>
+        <h2>Use of Funds</h2>
+        <div class="use-of-funds">
+            <div class="fund-item">
+                <div class="fund-percent">45%</div>
+                <div class="fund-label">Engineering</div>
+                <div class="fund-amount">$1.1M</div>
+                <p style="font-size: 12px; color: var(--gray); margin-top: 8px;">Team expansion, AI features, infrastructure</p>
+            </div>
+            <div class="fund-item">
+                <div class="fund-percent">30%</div>
+                <div class="fund-label">Sales & Marketing</div>
+                <div class="fund-amount">$750K</div>
+                <p style="font-size: 12px; color: var(--gray); margin-top: 8px;">Go-to-market, content, partnerships</p>
+            </div>
+            <div class="fund-item">
+                <div class="fund-percent">15%</div>
+                <div class="fund-label">Operations</div>
+                <div class="fund-amount">$375K</div>
+                <p style="font-size: 12px; color: var(--gray); margin-top: 8px;">Customer success, support</p>
+            </div>
+            <div class="fund-item">
+                <div class="fund-percent">10%</div>
+                <div class="fund-label">G&A</div>
+                <div class="fund-amount">$250K</div>
+                <p style="font-size: 12px; color: var(--gray); margin-top: 8px;">Legal, admin, buffer</p>
+            </div>
+        </div>
+        <div class="card" style="margin-top: 30px; background: var(--light);">
+            <h3>Milestones This Round Unlocks</h3>
+            <div style="display: flex; justify-content: space-around; margin-top: 16px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 800; color: var(--primary);">$1.5M</div>
+                    <div style="font-size: 12px; color: var(--gray);">ARR Target</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 800; color: var(--primary);">3,000+</div>
+                    <div style="font-size: 12px; color: var(--gray);">Paying Users</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 800; color: var(--primary);">10+</div>
+                    <div style="font-size: 12px; color: var(--gray);">Federation Contracts</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: 800; color: var(--accent);">Series A</div>
+                    <div style="font-size: 12px; color: var(--gray);">Ready</div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">12</div>
+    </div>
+
+    <!-- Slide 13: Vision -->
+    <div class="slide slide-vision">
+        <h1>Our <span style="color: var(--secondary);">Vision</span></h1>
+        <div class="vision-statement">"Every athlete deserves world-class sports science"</div>
+        <div class="vision-timeline">
+            <div class="vision-year">
+                <div class="year">2024</div>
+                <div class="goal">Best-in-class testing<br>& programming platform</div>
+            </div>
+            <div class="vision-year">
+                <div class="year">2026</div>
+                <div class="goal">The Salesforce of<br>sports performance</div>
+            </div>
+            <div class="vision-year">
+                <div class="year">2028</div>
+                <div class="goal">Global standard for<br>elite athletic development</div>
+            </div>
+        </div>
+        <div style="margin-top: 60px;">
+            <h3 style="color: var(--gray); margin-bottom: 20px;">Exit Comparables</h3>
+            <div style="display: flex; justify-content: center; gap: 40px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700;">Firstbeat → Garmin</div>
+                    <div style="color: var(--accent); font-size: 24px; font-weight: 800;">$70M</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700;">Today's Plan → Zwift</div>
+                    <div style="color: var(--accent); font-size: 24px; font-weight: 800;">$30M+</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 20px; font-weight: 700;">WHOOP</div>
+                    <div style="color: var(--accent); font-size: 24px; font-weight: 800;">$3.6B</div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number" style="color: var(--gray);">13</div>
+    </div>
+
+    <!-- Slide 14: Thank You -->
+    <div class="slide slide-title">
+        <div class="logo">Thank You</div>
+        <div class="tagline">Let's build the future of athletic performance together</div>
+        <div style="margin-top: 60px;">
+            <p style="color: var(--gray); margin-bottom: 20px;">Contact</p>
+            <p style="font-size: 24px; color: var(--secondary);">[founder@starperformance.com]</p>
+            <p style="font-size: 18px; color: var(--gray); margin-top: 12px;">[www.starperformancelab.com]</p>
+        </div>
+    </div>
+
+</body>
+</html>

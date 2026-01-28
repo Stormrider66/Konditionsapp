@@ -28,12 +28,14 @@ interface AthleteSettingsClientProps {
   clientId: string
   clientName: string
   sportProfile: SportProfile | null
+  basePath?: string
 }
 
 export function AthleteSettingsClient({
   clientId,
   clientName,
   sportProfile,
+  basePath = '',
 }: AthleteSettingsClientProps) {
   const { toast } = useToast()
   const primarySport = (sportProfile?.primarySport || 'RUNNING') as SportType
@@ -194,7 +196,7 @@ export function AthleteSettingsClient({
             <div className="w-1.5 h-4 bg-amber-500 rounded-full" />
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">AI-notifikationer</h3>
           </div>
-          <Link href="/athlete/settings/ai-notifications">
+          <Link href={`${basePath}/athlete/settings/ai-notifications`}>
             <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

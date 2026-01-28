@@ -32,6 +32,7 @@ interface HeroWorkoutCardProps {
   athleteName?: string
   /** Workout modification from injury/readiness system (Gap 4 fix) */
   modification?: WorkoutModification
+  basePath?: string
 }
 
 // Map category/pillar to image paths
@@ -287,7 +288,7 @@ function formatVolume(volume: number): string {
   return `${Math.round(volume)} kg`
 }
 
-export function HeroWorkoutCard({ workout, athleteName, modification }: HeroWorkoutCardProps) {
+export function HeroWorkoutCard({ workout, athleteName, modification, basePath = '' }: HeroWorkoutCardProps) {
   // Generate focus if not already set
   const focus: WorkoutFocus = useMemo(() => {
     if (workout.heroTitle && workout.heroDescription && workout.heroCategory) {
@@ -415,7 +416,7 @@ export function HeroWorkoutCard({ workout, athleteName, modification }: HeroWork
         {/* Action Button */}
         <div className="mt-6">
           {isCompleted ? (
-            <Link href={`/athlete/workouts/${workout.id}`}>
+            <Link href={`${basePath}/athlete/workouts/${workout.id}`}>
               <Button
                 variant="outline"
                 className="w-full sm:w-auto min-h-[48px] border-slate-200 dark:border-white/20 text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/30 transition-all"
@@ -425,7 +426,7 @@ export function HeroWorkoutCard({ workout, athleteName, modification }: HeroWork
               </Button>
             </Link>
           ) : (
-            <Link href={`/athlete/workouts/${workout.id}/log`}>
+            <Link href={`${basePath}/athlete/workouts/${workout.id}/log`}>
               <Button className="w-full sm:w-auto min-h-[48px] bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 transition-all">
                 <Play className="w-4 h-4 mr-2" />
                 Starta pass

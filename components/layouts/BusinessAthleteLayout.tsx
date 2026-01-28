@@ -11,6 +11,7 @@ import { WorkoutThemeProvider, useWorkoutThemeOptional } from '@/lib/themes/Them
 import type { ThemePreferences } from '@/lib/themes/types'
 import { DEFAULT_THEME_PREFERENCES } from '@/lib/themes/types'
 import { cn } from '@/lib/utils'
+import { BasePathProvider } from '@/lib/contexts/BasePathContext'
 
 interface SportProfile {
   id: string
@@ -94,12 +95,36 @@ export function BusinessAthleteLayout({
   const themePreferences: ThemePreferences =
     (athleteInfo?.sportProfile?.themePreferences as ThemePreferences) || DEFAULT_THEME_PREFERENCES
 
+  const basePath = `/${businessSlug}`
+
   if (!user) {
     return (
-      <WorkoutThemeProvider initialPreferences={DEFAULT_THEME_PREFERENCES}>
+      <BasePathProvider basePath={basePath}>
+        <WorkoutThemeProvider initialPreferences={DEFAULT_THEME_PREFERENCES}>
+          <ThemedContent
+            user={null}
+            athleteInfo={null}
+            businessSlug={businessSlug}
+            businessName={businessName}
+            businessLogo={businessLogo}
+            businessColor={businessColor}
+          >
+            {children}
+          </ThemedContent>
+        </WorkoutThemeProvider>
+      </BasePathProvider>
+    )
+  }
+
+  return (
+    <BasePathProvider basePath={basePath}>
+      <WorkoutThemeProvider
+        clientId={athleteInfo?.clientId}
+        initialPreferences={themePreferences}
+      >
         <ThemedContent
-          user={null}
-          athleteInfo={null}
+          user={user}
+          athleteInfo={athleteInfo}
           businessSlug={businessSlug}
           businessName={businessName}
           businessLogo={businessLogo}
@@ -108,25 +133,7 @@ export function BusinessAthleteLayout({
           {children}
         </ThemedContent>
       </WorkoutThemeProvider>
-    )
-  }
-
-  return (
-    <WorkoutThemeProvider
-      clientId={athleteInfo?.clientId}
-      initialPreferences={themePreferences}
-    >
-      <ThemedContent
-        user={user}
-        athleteInfo={athleteInfo}
-        businessSlug={businessSlug}
-        businessName={businessName}
-        businessLogo={businessLogo}
-        businessColor={businessColor}
-      >
-        {children}
-      </ThemedContent>
-    </WorkoutThemeProvider>
+    </BasePathProvider>
   )
 }
 

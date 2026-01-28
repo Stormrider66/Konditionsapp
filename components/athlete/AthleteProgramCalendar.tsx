@@ -30,9 +30,10 @@ interface AthleteProgramCalendarProps {
   program: any
   athleteId: string
   variant?: 'default' | 'glass'
+  basePath?: string
 }
 
-export function AthleteProgramCalendar({ program, athleteId, variant = 'glass' }: AthleteProgramCalendarProps) {
+export function AthleteProgramCalendar({ program, athleteId, variant = 'glass', basePath = '' }: AthleteProgramCalendarProps) {
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
   const isGlass = variant === 'glass';
 
@@ -118,6 +119,7 @@ export function AthleteProgramCalendar({ program, athleteId, variant = 'glass' }
             athleteId={athleteId}
             isDark={isDark}
             isGlass={isGlass}
+            basePath={basePath}
           />
         ))}
       </div>
@@ -134,6 +136,7 @@ interface WeekCardProps {
   athleteId: string
   isDark: boolean
   isGlass?: boolean
+  basePath?: string
 }
 
 function WeekCard({
@@ -145,6 +148,7 @@ function WeekCard({
   athleteId,
   isDark,
   isGlass = false,
+  basePath = '',
 }: WeekCardProps) {
   const weekStartDate = addDays(new Date(programStartDate), (week.weekNumber - 1) * 7)
   const weekEndDate = addDays(weekStartDate, 6)
@@ -278,6 +282,7 @@ function WeekCard({
                     athleteId={athleteId}
                     isDark={isDark}
                     isGlass={isGlass}
+                    basePath={basePath}
                   />
                 ))
               ) : (
@@ -299,9 +304,10 @@ interface DayCardProps {
   athleteId: string
   isDark: boolean
   isGlass?: boolean
+  basePath?: string
 }
 
-function DayCard({ day, date, athleteId, isDark, isGlass = false }: DayCardProps) {
+function DayCard({ day, date, athleteId, isDark, isGlass = false, basePath = '' }: DayCardProps) {
   const dayNames = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
   const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
 
@@ -392,13 +398,13 @@ function DayCard({ day, date, athleteId, isDark, isGlass = false }: DayCardProps
 
                 <div className="flex md:flex-col items-center md:items-end gap-2">
                   {isCompleted ? (
-                    <Link href={`/athlete/workouts/${workout.id}`}>
+                    <Link href={`${basePath}/athlete/workouts/${workout.id}`}>
                       <Button variant="ghost" size="sm" className="rounded-xl h-10 px-5 font-black uppercase tracking-widest text-[10px] bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 dark:text-white transition-colors">
                         Visa logg
                       </Button>
                     </Link>
                   ) : (
-                    <Link href={`/athlete/workouts/${workout.id}`}>
+                    <Link href={`${basePath}/athlete/workouts/${workout.id}`}>
                       <Button size="sm" className="rounded-xl h-10 px-6 font-black uppercase tracking-widest text-[10px] bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/10">
                         Starta pass
                       </Button>
