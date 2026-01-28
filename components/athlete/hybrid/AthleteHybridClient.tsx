@@ -94,6 +94,7 @@ interface AthleteResult {
 interface AthleteHybridClientProps {
   clientId: string;
   canAccessTemplates?: boolean;
+  basePath?: string;
 }
 
 const formatLabels: Record<string, { label: string; labelSv: string; icon: React.ReactNode }> = {
@@ -115,7 +116,7 @@ const scalingLabels: Record<string, { label: string; color: string }> = {
   CUSTOM: { label: 'Custom', color: 'bg-purple-500' },
 };
 
-export function AthleteHybridClient({ clientId, canAccessTemplates = false }: AthleteHybridClientProps) {
+export function AthleteHybridClient({ clientId, canAccessTemplates = false, basePath = '' }: AthleteHybridClientProps) {
   const [workouts, setWorkouts] = useState<HybridWorkout[]>([]);
   const [results, setResults] = useState<AthleteResult[]>([]);
   const [prs, setPrs] = useState<AthleteResult[]>([]);
@@ -329,6 +330,7 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false }: At
             formatWorkoutDescription={formatWorkoutDescription}
             getMovementSummary={getMovementSummary}
             results={results}
+            basePath={basePath}
           />
         </TabsContent>
 
@@ -355,6 +357,7 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false }: At
                     formatWorkoutDescription={formatWorkoutDescription}
                     getMovementSummary={getMovementSummary}
                     results={results}
+                    basePath={basePath}
                   />
                 </div>
               );
@@ -363,11 +366,11 @@ export function AthleteHybridClient({ clientId, canAccessTemplates = false }: At
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
-          <ResultsList results={results} formatScore={formatScore} scalingLabels={scalingLabels} />
+          <ResultsList results={results} formatScore={formatScore} scalingLabels={scalingLabels} basePath={basePath} />
         </TabsContent>
 
         <TabsContent value="prs" className="mt-6">
-          <PRBoard prs={prs} formatScore={formatScore} scalingLabels={scalingLabels} />
+          <PRBoard prs={prs} formatScore={formatScore} scalingLabels={scalingLabels} basePath={basePath} />
         </TabsContent>
       </Tabs>
     </div>
@@ -382,6 +385,7 @@ interface WorkoutGridProps {
   formatWorkoutDescription: (workout: HybridWorkout) => string;
   getMovementSummary: (movements: HybridMovement[]) => string;
   results: AthleteResult[];
+  basePath: string;
 }
 
 function WorkoutGrid({
@@ -392,6 +396,7 @@ function WorkoutGrid({
   formatWorkoutDescription,
   getMovementSummary,
   results,
+  basePath,
 }: WorkoutGridProps) {
   if (loading) {
     return (
@@ -434,7 +439,7 @@ function WorkoutGrid({
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {workouts.map((workout) => (
-        <Link key={workout.id} href={`/athlete/hybrid/${workout.id}`}>
+        <Link key={workout.id} href={`${basePath}/athlete/hybrid/${workout.id}`}>
           <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-2">
@@ -488,9 +493,10 @@ interface ResultsListProps {
   results: AthleteResult[];
   formatScore: (result: AthleteResult) => string;
   scalingLabels: Record<string, { label: string; color: string }>;
+  basePath: string;
 }
 
-function ResultsList({ results, formatScore, scalingLabels }: ResultsListProps) {
+function ResultsList({ results, formatScore, scalingLabels, basePath }: ResultsListProps) {
   if (results.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -506,7 +512,7 @@ function ResultsList({ results, formatScore, scalingLabels }: ResultsListProps) 
   return (
     <div className="space-y-3">
       {results.map((result) => (
-        <Link key={result.id} href={`/athlete/hybrid/${result.workoutId}`}>
+        <Link key={result.id} href={`${basePath}/athlete/hybrid/${result.workoutId}`}>
           <Card className="hover:border-primary/50 transition-colors cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -541,9 +547,10 @@ interface PRBoardProps {
   prs: AthleteResult[];
   formatScore: (result: AthleteResult) => string;
   scalingLabels: Record<string, { label: string; color: string }>;
+  basePath: string;
 }
 
-function PRBoard({ prs, formatScore, scalingLabels }: PRBoardProps) {
+function PRBoard({ prs, formatScore, scalingLabels, basePath }: PRBoardProps) {
   if (prs.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -559,7 +566,7 @@ function PRBoard({ prs, formatScore, scalingLabels }: PRBoardProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {prs.map((pr) => (
-        <Link key={pr.id} href={`/athlete/hybrid/${pr.workoutId}`}>
+        <Link key={pr.id} href={`${basePath}/athlete/hybrid/${pr.workoutId}`}>
           <Card className="hover:border-yellow-500/50 transition-colors cursor-pointer bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
             <CardContent className="p-4">
               <div className="flex items-start justify-between">

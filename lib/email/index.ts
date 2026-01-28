@@ -186,5 +186,25 @@ export async function sendReferralInviteEmail(
   return sendEmail(to, subject, html);
 }
 
+// ==================== GENERIC SEND EMAIL ====================
+
+/**
+ * Generic send email function for custom emails
+ */
+export async function sendGenericEmail({
+  to,
+  subject,
+  html,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<SendEmailResult> {
+  return sendEmail(to, subject, html);
+}
+
+// Alias for backward compatibility
+export { sendGenericEmail as sendEmail };
+
 // Export templates for testing
 export * from './templates';

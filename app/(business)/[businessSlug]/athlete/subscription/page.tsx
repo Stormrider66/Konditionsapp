@@ -1,20 +1,27 @@
+// app/(business)/[businessSlug]/athlete/subscription/page.tsx
 /**
- * Athlete Subscription Page
+ * Business Athlete Subscription Page
  *
- * Allows athletes to view and manage their subscription.
+ * Allows athletes to view and manage their subscription within business context.
  */
 
-import { redirect } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { SubscriptionClient } from './SubscriptionClient'
+import { validateBusinessMembership } from '@/lib/business-context'
+import { SubscriptionClient } from '@/app/athlete/subscription/SubscriptionClient'
 
 export const metadata = {
   title: 'Prenumeration | Atlet',
   description: 'Hantera din prenumeration',
 }
 
-export default async function SubscriptionPage() {
+interface BusinessSubscriptionPageProps {
+  params: Promise<{ businessSlug: string }>
+}
+
+export default async function BusinessSubscriptionPage({ params }: BusinessSubscriptionPageProps) {
+  const { businessSlug } = await params
   const supabase = await createClient()
   const {
     data: { user },
@@ -23,6 +30,14 @@ export default async function SubscriptionPage() {
   if (!user) {
     redirect('/login')
   }
+
+  // Validate business membership
+  const membership = await validateBusinessMembership(user.id, businessSlug)
+  if (!membership) {
+    notFound()
+  }
+
+  const basePath = `/${businessSlug}`
 
   // Get athlete account with subscription
   const athleteAccount = await prisma.athleteAccount.findUnique({
@@ -64,6 +79,7 @@ export default async function SubscriptionPage() {
     <SubscriptionClient
       clientId={athleteAccount.clientId}
       subscription={serializedSubscription}
+      basePath={basePath}
     />
   )
 }
