@@ -1,6 +1,7 @@
 // app/api/tests/[id]/recalculate/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { performAllCalculations, ManualThresholdOverrides } from '@/lib/calculations'
@@ -102,9 +103,9 @@ export async function POST(
         vo2max: calculations.vo2max,
         maxHR: calculations.maxHR,
         maxLactate: calculations.maxLactate,
-        aerobicThreshold: calculations.aerobicThreshold as any,
-        anaerobicThreshold: calculations.anaerobicThreshold as any,
-        trainingZones: calculations.trainingZones as any,
+        aerobicThreshold: calculations.aerobicThreshold as Prisma.InputJsonValue,
+        anaerobicThreshold: calculations.anaerobicThreshold as Prisma.InputJsonValue,
+        trainingZones: calculations.trainingZones as Prisma.InputJsonValue,
       },
     })
 

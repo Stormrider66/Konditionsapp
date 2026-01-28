@@ -4,7 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
+import { Prisma } from '@prisma/client'
+import { calculateVDOTFromRace, type VDOTResult } from '@/lib/training-engine/calculations/vdot'
 import { logger } from '@/lib/logger'
 
 /**
@@ -120,7 +121,7 @@ export async function PUT(
       (body.timeMinutes && body.timeMinutes !== existingResult.timeMinutes) ||
       (body.customDistanceKm && body.customDistanceKm !== existingResult.customDistanceKm)
 
-    let vdotResult: any = null
+    let vdotResult: VDOTResult | null = null
     if (needsRecalculation) {
       // Recalculate VDOT
       const raceDateObj = body.raceDate ? new Date(body.raceDate) : new Date(existingResult.raceDate)
@@ -157,8 +158,8 @@ export async function PUT(
         vdot: vdotResult?.vdot,
         vdotAdjusted: vdotResult?.vdot,
         confidence: vdotResult?.confidence,
-        trainingPaces: vdotResult?.trainingPaces as any,
-        equivalentTimes: vdotResult?.equivalentTimes as any,
+        trainingPaces: vdotResult?.trainingPaces as Prisma.InputJsonValue | undefined,
+        equivalentTimes: vdotResult?.equivalentTimes as Prisma.InputJsonValue | undefined,
         goalTime: body.goalTime,
         goalAchieved: body.goalAchieved,
         raceType: body.raceType,
@@ -270,7 +271,7 @@ export async function DELETE(
 async function updateAthleteProfileFromRace(
   clientId: string,
   raceResultId: string,
-  vdotResult: any
+  vdotResult: VDOTResult
 ) {
   // Get or create athlete profile
   let profile = await prisma.athleteProfile.findUnique({
@@ -289,7 +290,7 @@ async function updateAthleteProfileFromRace(
         vdotLastUpdated: new Date(),
         vdotAgeAdjusted: vdotResult.adjustments.ageAdjusted,
         vdotGenderAdjusted: vdotResult.adjustments.genderAdjusted,
-        danielsZones: vdotResult.trainingPaces as any,
+        danielsZones: vdotResult.trainingPaces as Prisma.InputJsonValue,
         zonesLastUpdated: new Date(),
         zonesPrimarySource: 'VDOT',
       },
@@ -305,7 +306,7 @@ async function updateAthleteProfileFromRace(
         vdotLastUpdated: new Date(),
         vdotAgeAdjusted: vdotResult.adjustments.ageAdjusted,
         vdotGenderAdjusted: vdotResult.adjustments.genderAdjusted,
-        danielsZones: vdotResult.trainingPaces as any,
+        danielsZones: vdotResult.trainingPaces as Prisma.InputJsonValue,
         zonesLastUpdated: new Date(),
         zonesPrimarySource: 'VDOT',
       },

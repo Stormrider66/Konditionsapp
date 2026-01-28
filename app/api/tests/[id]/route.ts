@@ -1,10 +1,11 @@
 // app/api/tests/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { performAllCalculations, ManualThresholdOverrides } from '@/lib/calculations'
-import type { TestStatus, Threshold, TrainingZone, Test, Client } from '@/types'
+import type { TestStatus, Threshold, TrainingZone, Test, Client, TestStage } from '@/types'
 
 type RouteParams = {
   params: Promise<{
@@ -84,9 +85,9 @@ export async function GET(
                 vo2max: fullCalculations.vo2max,
                 maxHR: fullCalculations.maxHR,
                 maxLactate: fullCalculations.maxLactate,
-                aerobicThreshold: fullCalculations.aerobicThreshold as any,
-                anaerobicThreshold: fullCalculations.anaerobicThreshold as any,
-                trainingZones: fullCalculations.trainingZones as any,
+                aerobicThreshold: fullCalculations.aerobicThreshold as Prisma.InputJsonValue,
+                anaerobicThreshold: fullCalculations.anaerobicThreshold as Prisma.InputJsonValue,
+                trainingZones: fullCalculations.trainingZones as Prisma.InputJsonValue,
               },
             })
             logger.info('Auto-saved fresh calculations to database', { testId: id })
@@ -154,8 +155,8 @@ export async function PUT(
       )
     }
 
-    // Build update data - cast as 'any' to work with Prisma JSON fields
-    const updateData: Record<string, any> = {}
+    // Build update data using Prisma's UpdateInput type
+    const updateData: Prisma.TestUpdateInput = {}
 
     if (body.status) updateData.status = body.status
     if (body.maxHR !== undefined) updateData.maxHR = body.maxHR
@@ -166,7 +167,7 @@ export async function PUT(
     if (body.trainingZones !== undefined) updateData.trainingZones = body.trainingZones
     if (body.notes !== undefined) updateData.notes = body.notes
 
-    const test = await prisma.test.update({ where: { id }, data: updateData as any })
+    const test = await prisma.test.update({ where: { id }, data: updateData })
 
     return NextResponse.json({
       success: true,
@@ -224,8 +225,8 @@ export async function PATCH(
       )
     }
 
-    // Build update data
-    const updateData: Record<string, any> = {}
+    // Build update data using Prisma's UpdateInput type
+    const updateData: Prisma.TestUpdateInput = {}
 
     if (body.testDate !== undefined) updateData.testDate = new Date(body.testDate)
     if (body.notes !== undefined) updateData.notes = body.notes
@@ -254,7 +255,7 @@ export async function PATCH(
 
       // Create new test stages
       await prisma.testStage.createMany({
-        data: body.stages.map((stage: any, index: number) => ({
+        data: body.stages.map((stage: Partial<TestStage>, index: number) => ({
           testId: id,
           sequence: index,
           duration: stage.duration,
@@ -272,7 +273,7 @@ export async function PATCH(
     // Update test with calculations
     const test = await prisma.test.update({
       where: { id },
-      data: updateData as any,
+      data: updateData,
       include: {
         testStages: { orderBy: { sequence: 'asc' } },
         client: true,
