@@ -5,7 +5,7 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { SportType } from '@prisma/client'
-import { addDays, startOfDay, endOfDay, subDays, format } from 'date-fns'
+import { addDays, startOfDay, endOfDay, subDays, format, differenceInWeeks } from 'date-fns'
 import Link from 'next/link'
 import { getTranslations } from '@/i18n/server'
 import { TodaysWorkouts } from '@/components/athlete/TodaysWorkouts'
@@ -416,9 +416,12 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     dayDate: w.day.date
   }))
 
-  // Current Phase / Week
+  // Current Phase / Week - calculate based on actual date
   const currentProgram = activePrograms[0]
-  const currentWeekInfo = currentProgram?.weeks.find(w => true)
+  const currentWeekNumber = currentProgram
+    ? Math.min(differenceInWeeks(now, currentProgram.startDate) + 1, currentProgram.weeks.length)
+    : 0
+  const currentWeekInfo = currentProgram?.weeks.find(w => w.weekNumber === currentWeekNumber)
   const currentPhase = currentWeekInfo?.phase || "General Preparation"
 
   // Calculate muscular fatigue from recent logs
