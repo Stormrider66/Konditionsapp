@@ -418,10 +418,16 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
   // Current Phase / Week - calculate based on actual date
   const currentProgram = activePrograms[0]
-  const currentWeekNumber = currentProgram
-    ? Math.min(differenceInWeeks(now, currentProgram.startDate) + 1, currentProgram.weeks.length)
-    : 0
-  const currentWeekInfo = currentProgram?.weeks.find(w => w.weekNumber === currentWeekNumber)
+  const currentWeekIndex = currentProgram
+    ? Math.max(0, Math.min(differenceInWeeks(now, currentProgram.startDate), (currentProgram.weeks?.length ?? 1) - 1))
+    : -1
+  // `weeks` are already ordered by `weekNumber`, but week numbers may be non-sequential (e.g. 1,3,5).
+  // Use the calculated week index to pick the corresponding program week instead of assuming weekNumber === index+1.
+  const currentWeekInfo =
+    currentProgram && currentWeekIndex >= 0 && currentProgram.weeks?.length
+      ? currentProgram.weeks[currentWeekIndex]
+      : undefined
+  const currentWeekNumber = currentWeekInfo?.weekNumber ?? 0
   const currentPhase = currentWeekInfo?.phase || "General Preparation"
 
   // Calculate muscular fatigue from recent logs
