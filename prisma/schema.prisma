@@ -594,6 +594,7 @@ model User {
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
+  @@index([selfAthleteClientId])
 }
 
 // ==================== TEAM SPORTS SYSTEM ====================
@@ -702,6 +703,10 @@ model TeamWorkoutBroadcast {
   @@index([coachId])
   @@index([assignedDate])
   @@index([locationId])
+  @@index([strengthSessionId])
+  @@index([cardioSessionId])
+  @@index([hybridWorkoutId])
+  @@index([agilityWorkoutId])
 }
 
 model Client {
@@ -1108,6 +1113,7 @@ model Referral {
   @@index([referredUserId])
   @@index([referredEmail])
   @@index([status])
+  @@index([referralCodeId])
 }
 
 /// Rewards granted for successful referrals
@@ -2183,6 +2189,8 @@ model Exercise {
   @@index([isHybridMovement])
   @@index([movementCategory])
   @@index([isRehabExercise])
+  @@index([progressionExerciseId])
+  @@index([regressionExerciseId])
 }
 
 // ==================== WORKOUT LOGGING ====================
@@ -3122,6 +3130,7 @@ model Race {
 
   @@index([clientId, date])
   @@index([classification, date])
+  @@index([calendarId])
 }
 
 // ============================================
@@ -3199,6 +3208,8 @@ model InjuryAssessment {
   rehabPrograms     RehabProgram[]
   acuteInjuryReports AcuteInjuryReport[]
   careTeamThreads   CareTeamThread[] @relation("InjuryCareTeamThreads")
+
+  @@index([assessedById])
 }
 
 // ============================================
@@ -4640,6 +4651,7 @@ model UserApiKey {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([defaultModelId])
 }
 
 /// Available AI models (admin-configurable)
@@ -5178,6 +5190,7 @@ model HybridWorkout {
   @@index([format])
   @@index([scalingLevel])
   @@index([parentId])
+  @@index([rxVersionId])
 }
 
 /// Version history for workout changes
@@ -5340,6 +5353,7 @@ model HybridWorkoutAssignment {
   @@index([status])
   @@index([teamBroadcastId])
   @@index([locationId])
+  @@index([calendarEventId])
 }
 
 enum AssignmentStatus {
@@ -5529,6 +5543,7 @@ model StrengthSessionAssignment {
   @@index([teamBroadcastId])
   @@index([locationId])
   @@index([startTime])
+  @@index([calendarEventId])
 }
 
 /// Pre-built strength program templates for quick program generation
@@ -5673,6 +5688,7 @@ model CardioSessionAssignment {
   @@index([teamBroadcastId])
   @@index([locationId])
   @@index([startTime])
+  @@index([calendarEventId])
 }
 
 /// Cardio session log - tracks Focus Mode execution
@@ -6109,6 +6125,7 @@ model CalendarEvent {
   @@index([externalCalendarId, externalCalendarType])
   @@index([createdById])
   @@index([status])
+  @@index([lastModifiedById])
 }
 
 /// Change history for calendar events (for notifications and audit trail)
@@ -6985,6 +7002,7 @@ model HabitLog {
 
   @@unique([habitId, date])
   @@index([date])
+  @@index([habitId])
 }
 
 // ==================== TEAM SPORTS - MATCH SCHEDULE ====================
@@ -7106,6 +7124,7 @@ model SportTest {
   @@index([sport, category])
   @@index([clientId, protocol])
   @@index([benchmarkTier])
+  @@index([userId])
 }
 
 /// Benchmark reference data for sport-specific tests
@@ -7281,6 +7300,7 @@ model EnterpriseContractChange {
   createdAt DateTime @default(now())
 
   @@index([contractId, createdAt])
+  @@index([changedById])
 }
 
 // ==================== ADMIN SYSTEM - PRICING MANAGEMENT ====================
@@ -7342,6 +7362,8 @@ model PricingOverride {
   updatedAt DateTime @updatedAt
 
   @@unique([tierId, businessId])
+  @@index([tierId])
+  @@index([businessId])
 }
 
 // ==================== ADMIN SYSTEM - MONITORING ====================
@@ -7377,6 +7399,7 @@ model SystemError {
   @@index([level, createdAt])
   @@index([isResolved, createdAt])
   @@index([route])
+  @@index([resolvedById])
 }
 
 /// System metrics for dashboard
@@ -7529,6 +7552,8 @@ model CoachDecision {
   @@index([createdAt])
   @@index([aiSuggestionType])
   @@index([validated])
+  @@index([workoutId])
+  @@index([programId])
 }
 
 /// Logs AI predictions for later validation and accuracy tracking
@@ -8147,6 +8172,8 @@ model AIFeedbackLoop {
   @@index([coachDecisionId])
   @@index([predictionId])
   @@index([modelVersionId])
+  @@index([trainingOutcomeId])
+  @@index([patternId])
 }
 
 /// Tracks AI model versions and their performance
@@ -8212,6 +8239,7 @@ model AIModelVersion {
   @@index([status])
   @@index([deployedAt])
   @@index([versionName])
+  @@index([previousVersionId])
 }
 
 /// Periodic snapshots of prediction accuracy for the dashboard
@@ -8257,6 +8285,7 @@ model AccuracySnapshot {
   @@index([snapshotType])
   @@index([createdAt])
   @@index([isPublic])
+  @@index([previousSnapshotId])
 }
 
 /// Stores AI prompt templates with version history
@@ -8305,6 +8334,7 @@ model AIPromptTemplate {
   @@index([promptName])
   @@index([promptCategory])
   @@index([isActive])
+  @@index([previousVersionId])
 }
 
 // ==================== AGILITY STUDIO SYSTEM ====================
@@ -8374,6 +8404,8 @@ model AgilityDrill {
   @@index([isSystemDrill])
   @@index([difficultyLevel])
   @@index([minDevelopmentStage])
+  @@index([progressionDrillId])
+  @@index([regressionDrillId])
 }
 
 /// Agility workout template
@@ -8500,6 +8532,7 @@ model AgilityWorkoutAssignment {
   @@index([teamBroadcastId])
   @@index([locationId])
   @@index([startTime])
+  @@index([calendarEventId])
 }
 
 /// Result from completed agility workout
@@ -8660,4 +8693,7 @@ model VoiceWorkoutSession {
   @@index([coachId])
   @@index([status])
   @@index([createdAt])
+  @@index([strengthSessionId])
+  @@index([cardioSessionId])
+  @@index([hybridWorkoutId])
 }
