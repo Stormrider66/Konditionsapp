@@ -1,18 +1,19 @@
 /**
  * Today's Appointments API
  *
- * GET - Fetch all scheduled workouts for today
+ * GET - Fetch all scheduled workouts for today, including external calendar events (Bokadirekt, Zoezi, etc.)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, format, parseISO, isWithinInterval } from 'date-fns';
 import { logError } from '@/lib/logger-console';
+import { fetchAndParseICalUrl } from '@/lib/calendar/ical-parser';
 
 export interface TodaysAppointment {
   id: string;
-  type: 'strength' | 'cardio' | 'agility' | 'hybrid';
+  type: 'strength' | 'cardio' | 'agility' | 'hybrid' | 'external';
   workoutName: string;
   startTime: string;
   endTime: string | null;
@@ -22,6 +23,10 @@ export interface TodaysAppointment {
   teamName: string | null;
   assignedDate: Date;
   status: string;
+  // External calendar fields
+  source?: string; // 'BOKADIREKT', 'ZOEZI', etc.
+  description?: string;
+  color?: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -254,6 +259,99 @@ export async function GET(request: NextRequest) {
           teamName: assignment.teamBroadcast?.team?.name || null,
           assignedDate: assignment.assignedDate,
           status: assignment.status,
+        });
+      }
+    }
+
+    // Fetch external calendar events (Bokadirekt, Zoezi, etc.)
+    const externalConnections = await prisma.externalCalendarConnection.findMany({
+      where: {
+        userId: user.id,
+        syncEnabled: true,
+        icalUrl: { not: null },
+      },
+      select: {
+        id: true,
+        provider: true,
+        calendarName: true,
+        icalUrl: true,
+        color: true,
+      },
+    });
+
+    // Fetch and parse external calendar events for today
+    for (const connection of externalConnections) {
+      if (!connection.icalUrl) continue;
+
+      try {
+        const parseResult = await fetchAndParseICalUrl(connection.icalUrl);
+
+        if (parseResult.success || parseResult.events.length > 0) {
+          // Filter events for the target date
+          for (const event of parseResult.events) {
+            const eventStart = new Date(event.startDate);
+            const eventEnd = event.endDate ? new Date(event.endDate) : eventStart;
+
+            // Check if event falls on the target day
+            const eventFallsOnDay =
+              isWithinInterval(dayStart, { start: eventStart, end: eventEnd }) ||
+              isWithinInterval(eventStart, { start: dayStart, end: dayEnd }) ||
+              (eventStart <= dayStart && eventEnd >= dayEnd);
+
+            if (eventFallsOnDay) {
+              // Extract time from the event
+              let startTime = '00:00';
+              let endTime: string | null = null;
+
+              if (!event.allDay) {
+                startTime = format(eventStart, 'HH:mm');
+                if (event.endDate) {
+                  endTime = format(new Date(event.endDate), 'HH:mm');
+                }
+              }
+
+              const key = `external-${connection.id}-${event.uid}`;
+
+              if (!groupedAppointments.has(key)) {
+                groupedAppointments.set(key, {
+                  id: `ext-${event.uid}`,
+                  type: 'external',
+                  workoutName: event.summary || 'Unnamed event',
+                  startTime,
+                  endTime,
+                  location: null,
+                  locationName: event.location || null,
+                  athletes: [],
+                  teamName: null,
+                  assignedDate: eventStart,
+                  status: 'SCHEDULED',
+                  source: connection.provider,
+                  description: event.description || undefined,
+                  color: connection.color || undefined,
+                });
+              }
+            }
+          }
+
+          // Update last sync time
+          await prisma.externalCalendarConnection.update({
+            where: { id: connection.id },
+            data: {
+              lastSyncAt: new Date(),
+              lastSyncError: null,
+            },
+          });
+        }
+      } catch (error) {
+        // Log error but don't fail the whole request
+        logError(`Error fetching external calendar ${connection.calendarName}:`, error);
+
+        // Update connection with error
+        await prisma.externalCalendarConnection.update({
+          where: { id: connection.id },
+          data: {
+            lastSyncError: error instanceof Error ? error.message : 'Unknown error',
+          },
         });
       }
     }

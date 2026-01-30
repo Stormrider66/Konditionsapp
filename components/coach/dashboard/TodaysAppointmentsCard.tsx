@@ -33,13 +33,14 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  CalendarCheck,
 } from 'lucide-react';
 import { format, addDays, subDays, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { sv } from 'date-fns/locale';
 
 interface TodaysAppointment {
   id: string;
-  type: 'strength' | 'cardio' | 'agility' | 'hybrid';
+  type: 'strength' | 'cardio' | 'agility' | 'hybrid' | 'external';
   workoutName: string;
   startTime: string;
   endTime: string | null;
@@ -49,6 +50,10 @@ interface TodaysAppointment {
   teamName: string | null;
   assignedDate: Date;
   status: string;
+  // External calendar fields
+  source?: string;
+  description?: string;
+  color?: string;
 }
 
 interface TodaysAppointmentsCardProps {
@@ -56,25 +61,37 @@ interface TodaysAppointmentsCardProps {
   variant?: 'default' | 'compact';
 }
 
-const TYPE_ICONS = {
+const TYPE_ICONS: Record<string, typeof Dumbbell> = {
   strength: Dumbbell,
   cardio: Heart,
   agility: Zap,
   hybrid: Flame,
+  external: CalendarCheck,
 };
 
-const TYPE_COLORS = {
+const TYPE_COLORS: Record<string, string> = {
   strength: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
   cardio: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   agility: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   hybrid: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  external: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 };
 
-const TYPE_LABELS = {
+const TYPE_LABELS: Record<string, string> = {
   strength: 'Styrka',
   cardio: 'Kondition',
   agility: 'Agility',
   hybrid: 'Hybrid',
+  external: 'Extern',
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  BOKADIREKT: 'Bokadirekt',
+  ZOEZI: 'Zoezi',
+  APPLE: 'Apple',
+  GOOGLE: 'Google',
+  OUTLOOK: 'Outlook',
+  ICAL_URL: 'Kalender',
 };
 
 function getDateLabel(date: Date): string {
@@ -169,7 +186,15 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           ) : (
             <div className="space-y-2">
               {appointments.slice(0, 3).map((appointment) => {
-                const Icon = TYPE_ICONS[appointment.type];
+                const Icon = TYPE_ICONS[appointment.type] || CalendarCheck;
+                const isExternal = appointment.type === 'external';
+                const subText = isExternal
+                  ? `${appointment.startTime}${appointment.source ? ` • ${SOURCE_LABELS[appointment.source] || appointment.source}` : ''}`
+                  : `${appointment.startTime} • ${appointment.athletes.length === 1
+                      ? appointment.athletes[0].name
+                      : appointment.athletes.length > 0
+                        ? `${appointment.athletes.length} atleter`
+                        : appointment.locationName || ''}`;
                 return (
                   <div
                     key={`${appointment.type}-${appointment.id}`}
@@ -180,12 +205,13 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
                         {appointment.workoutName}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {appointment.startTime} • {appointment.athletes.length === 1
-                          ? appointment.athletes[0].name
-                          : `${appointment.athletes.length} atleter`}
+                        {subText}
                       </p>
                     </div>
-                    <Badge className={`text-xs ${TYPE_COLORS[appointment.type]}`}>
+                    <Badge
+                      className={`text-xs ${TYPE_COLORS[appointment.type] || TYPE_COLORS.external}`}
+                      style={appointment.color ? { backgroundColor: appointment.color + '20', color: appointment.color } : undefined}
+                    >
                       <Icon className="h-3 w-3" />
                     </Badge>
                   </div>

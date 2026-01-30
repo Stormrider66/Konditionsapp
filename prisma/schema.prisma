@@ -588,6 +588,9 @@ model User {
   // Voice Workout Creation
   voiceWorkoutSessions VoiceWorkoutSession[] @relation("CoachVoiceWorkouts")
 
+  // External Calendar Connections (Bokadirekt, Zoezi, etc.)
+  externalCalendarConnections ExternalCalendarConnection[] @relation("UserCalendarConnections")
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -6139,13 +6142,14 @@ model CalendarEventChange {
   @@index([changedById])
 }
 
-/// External calendar connections (Google, Outlook, Apple iCal)
+/// External calendar connections (Google, Outlook, Apple iCal, Bokadirekt, Zoezi)
 model ExternalCalendarConnection {
-  id       String @id @default(uuid())
-  clientId String
+  id       String  @id @default(uuid())
+  clientId String? // For athlete connections
+  userId   String? // For coach connections (Bokadirekt, Zoezi, etc.)
 
   // Provider info
-  provider     String // GOOGLE, OUTLOOK, APPLE, ICAL_URL
+  provider     String // GOOGLE, OUTLOOK, APPLE, ICAL_URL, BOKADIREKT, ZOEZI
   calendarName String // Display name
   calendarId   String // External calendar ID
 
@@ -6154,7 +6158,7 @@ model ExternalCalendarConnection {
   refreshToken String?   @db.Text
   expiresAt    DateTime?
 
-  // iCal URL (Apple/generic)
+  // iCal URL (Apple/generic/Bokadirekt)
   icalUrl String? @db.Text
 
   // Sync settings
@@ -6173,10 +6177,13 @@ model ExternalCalendarConnection {
   updatedAt DateTime @updatedAt
 
   // Relations
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User?   @relation("UserCalendarConnections", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([clientId, provider, calendarId])
+  @@unique([userId, provider, calendarId])
   @@index([clientId])
+  @@index([userId])
   @@index([provider])
 }
 
