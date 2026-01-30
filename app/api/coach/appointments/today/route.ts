@@ -27,17 +27,22 @@ export interface TodaysAppointment {
 export async function GET(request: NextRequest) {
   try {
     const user = await requireCoach();
-    const today = new Date();
-    const todayStart = startOfDay(today);
-    const todayEnd = endOfDay(today);
+
+    // Support date parameter for viewing other days
+    const { searchParams } = new URL(request.url);
+    const dateParam = searchParams.get('date');
+    const targetDate = dateParam ? new Date(dateParam) : new Date();
+
+    const dayStart = startOfDay(targetDate);
+    const dayEnd = endOfDay(targetDate);
 
     // Fetch all four types of assignments with scheduling info for today
     const [strengthAssignments, cardioAssignments, agilityAssignments, hybridAssignments] = await Promise.all([
       prisma.strengthSessionAssignment.findMany({
         where: {
           assignedDate: {
-            gte: todayStart,
-            lte: todayEnd,
+            gte: dayStart,
+            lte: dayEnd,
           },
           startTime: { not: null },
           session: {
@@ -66,8 +71,8 @@ export async function GET(request: NextRequest) {
       prisma.cardioSessionAssignment.findMany({
         where: {
           assignedDate: {
-            gte: todayStart,
-            lte: todayEnd,
+            gte: dayStart,
+            lte: dayEnd,
           },
           startTime: { not: null },
           session: {
@@ -96,8 +101,8 @@ export async function GET(request: NextRequest) {
       prisma.agilityWorkoutAssignment.findMany({
         where: {
           assignedDate: {
-            gte: todayStart,
-            lte: todayEnd,
+            gte: dayStart,
+            lte: dayEnd,
           },
           startTime: { not: null },
           workout: {
@@ -126,8 +131,8 @@ export async function GET(request: NextRequest) {
       prisma.hybridWorkoutAssignment.findMany({
         where: {
           assignedDate: {
-            gte: todayStart,
-            lte: todayEnd,
+            gte: dayStart,
+            lte: dayEnd,
           },
           startTime: { not: null },
           workout: {

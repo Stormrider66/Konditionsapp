@@ -339,51 +339,8 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
 
         {/* Performance Insights Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Recent Tests */}
-          <GlassCard>
-            <GlassCardHeader className="pb-2">
-              <GlassCardTitle className="text-sm flex items-center gap-2">
-                <Gauge className="h-4 w-4 text-cyan-500" />
-                Senaste tester
-              </GlassCardTitle>
-            </GlassCardHeader>
-            <GlassCardContent>
-              {recentTests.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Inga tester senaste 30 dagarna
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {recentTests.slice(0, 3).map(test => (
-                    <Link
-                      key={test.id}
-                      href={`${basePath}/coach/clients/${test.client.id}/tests/${test.id}`}
-                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 dark:hover:bg-white/5 transition"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate dark:text-slate-200">
-                          {test.client.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {test.testType} • {format(new Date(test.testDate), 'd MMM', { locale: dateLocale })}
-                        </p>
-                      </div>
-                      {test.vo2max && (
-                        <Badge className="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-0">
-                          {test.vo2max.toFixed(1)} ml/kg
-                        </Badge>
-                      )}
-                    </Link>
-                  ))}
-                  <Link href={`${basePath}/coach/test`} className="block text-center">
-                    <Button variant="ghost" size="sm" className="text-xs w-full">
-                      Skapa nytt test <ArrowRight className="h-3 w-3 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </GlassCardContent>
-          </GlassCard>
+          {/* Today's Appointments */}
+          <TodaysAppointmentsCard basePath={basePath} variant="compact" />
 
           {/* Readiness Overview */}
           <GlassCard>
@@ -583,8 +540,51 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
             {/* AI Assistant Panel */}
             <CoachAIAssistantPanel />
 
-            {/* Today's Appointments */}
-            <TodaysAppointmentsCard basePath={basePath} />
+            {/* Recent Tests */}
+            <GlassCard>
+              <GlassCardHeader className="pb-2">
+                <GlassCardTitle className="text-sm flex items-center gap-2">
+                  <Gauge className="h-4 w-4 text-cyan-500" />
+                  Senaste tester
+                </GlassCardTitle>
+              </GlassCardHeader>
+              <GlassCardContent>
+                {recentTests.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Inga tester senaste 30 dagarna
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {recentTests.slice(0, 3).map(test => (
+                      <Link
+                        key={test.id}
+                        href={`${basePath}/coach/clients/${test.client.id}/tests/${test.id}`}
+                        className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 dark:hover:bg-white/5 transition"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate dark:text-slate-200">
+                            {test.client.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {test.testType} • {format(new Date(test.testDate), 'd MMM', { locale: dateLocale })}
+                          </p>
+                        </div>
+                        {test.vo2max && (
+                          <Badge className="bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-0">
+                            {test.vo2max.toFixed(1)} ml/kg
+                          </Badge>
+                        )}
+                      </Link>
+                    ))}
+                    <Link href={`${basePath}/coach/test`} className="block text-center">
+                      <Button variant="ghost" size="sm" className="text-xs w-full">
+                        Skapa nytt test <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </GlassCardContent>
+            </GlassCard>
 
             {/* Upcoming Events & Races */}
             <GlassCard>

@@ -9,7 +9,7 @@
  * - Links to workout details
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   GlassCard,
@@ -31,7 +31,11 @@ import {
   ArrowRight,
   Calendar,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+import { format, addDays, subDays, isToday, isTomorrow, isYesterday } from 'date-fns';
+import { sv } from 'date-fns/locale';
 
 interface TodaysAppointment {
   id: string;
@@ -49,6 +53,7 @@ interface TodaysAppointment {
 
 interface TodaysAppointmentsCardProps {
   basePath?: string;
+  variant?: 'default' | 'compact';
 }
 
 const TYPE_ICONS = {
@@ -72,17 +77,23 @@ const TYPE_LABELS = {
   hybrid: 'Hybrid',
 };
 
-export function TodaysAppointmentsCard({ basePath = '' }: TodaysAppointmentsCardProps) {
+function getDateLabel(date: Date): string {
+  if (isToday(date)) return 'Idag';
+  if (isTomorrow(date)) return 'Imorgon';
+  if (isYesterday(date)) return 'Igår';
+  return format(date, 'd MMM', { locale: sv });
+}
+
+export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: TodaysAppointmentsCardProps) {
   const [appointments, setAppointments] = useState<TodaysAppointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
-
-  async function fetchAppointments() {
+  const fetchAppointments = useCallback(async (date: Date) => {
+    setLoading(true);
     try {
-      const response = await fetch('/api/coach/appointments/today');
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const response = await fetch(`/api/coach/appointments/today?date=${dateStr}`);
       if (response.ok) {
         const data = await response.json();
         setAppointments(data.appointments || []);
@@ -92,16 +103,152 @@ export function TodaysAppointmentsCard({ basePath = '' }: TodaysAppointmentsCard
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchAppointments(selectedDate);
+  }, [selectedDate, fetchAppointments]);
+
+  const goToPreviousDay = () => setSelectedDate(prev => subDays(prev, 1));
+  const goToNextDay = () => setSelectedDate(prev => addDays(prev, 1));
+  const goToToday = () => setSelectedDate(new Date());
+
+  // Compact variant for Performance Insights Row
+  if (variant === 'compact') {
+    const dateLabel = getDateLabel(selectedDate);
+    const showTodayButton = !isToday(selectedDate);
+
+    return (
+      <GlassCard>
+        <GlassCardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <GlassCardTitle className="text-sm flex items-center gap-2">
+              <Clock className="h-4 w-4 text-emerald-500" />
+              Bokningar
+            </GlassCardTitle>
+            {/* Date Navigation */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={goToPreviousDay}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <button
+                onClick={showTodayButton ? goToToday : undefined}
+                className={`text-xs font-medium min-w-[60px] text-center ${
+                  showTodayButton
+                    ? 'text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer'
+                    : 'text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                {dateLabel}
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={goToNextDay}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </GlassCardHeader>
+        <GlassCardContent>
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : appointments.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Inga schemalagda pass {isToday(selectedDate) ? 'idag' : ''}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {appointments.slice(0, 3).map((appointment) => {
+                const Icon = TYPE_ICONS[appointment.type];
+                return (
+                  <div
+                    key={`${appointment.type}-${appointment.id}`}
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 dark:hover:bg-white/5 transition"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate dark:text-slate-200">
+                        {appointment.workoutName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {appointment.startTime} • {appointment.athletes.length === 1
+                          ? appointment.athletes[0].name
+                          : `${appointment.athletes.length} atleter`}
+                      </p>
+                    </div>
+                    <Badge className={`text-xs ${TYPE_COLORS[appointment.type]}`}>
+                      <Icon className="h-3 w-3" />
+                    </Badge>
+                  </div>
+                );
+              })}
+              <Link href={`${basePath}/coach/calendar`} className="block text-center">
+                <Button variant="ghost" size="sm" className="text-xs w-full">
+                  {appointments.length > 3 ? `+${appointments.length - 3} fler` : 'Visa kalender'} <ArrowRight className="h-3 w-3 ml-1" />
+                </Button>
+              </Link>
+            </div>
+          )}
+        </GlassCardContent>
+      </GlassCard>
+    );
   }
+
+  // Default variant
+  const dateLabel = getDateLabel(selectedDate);
+  const showTodayButton = !isToday(selectedDate);
+
+  const DateNavigation = () => (
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        onClick={goToPreviousDay}
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <button
+        onClick={showTodayButton ? goToToday : undefined}
+        className={`text-sm font-medium min-w-[70px] text-center ${
+          showTodayButton
+            ? 'text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer'
+            : 'text-slate-700 dark:text-slate-300'
+        }`}
+      >
+        {dateLabel}
+      </button>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7"
+        onClick={goToNextDay}
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
 
   if (loading) {
     return (
       <GlassCard>
         <GlassCardHeader className="pb-3">
-          <GlassCardTitle className="text-base flex items-center gap-2">
-            <Clock className="h-4 w-4 text-emerald-500" />
-            Dagens bokningar
-          </GlassCardTitle>
+          <div className="flex items-center justify-between">
+            <GlassCardTitle className="text-base flex items-center gap-2">
+              <Clock className="h-4 w-4 text-emerald-500" />
+              Bokningar
+            </GlassCardTitle>
+            <DateNavigation />
+          </div>
         </GlassCardHeader>
         <GlassCardContent>
           <div className="flex items-center justify-center py-8">
@@ -116,15 +263,18 @@ export function TodaysAppointmentsCard({ basePath = '' }: TodaysAppointmentsCard
     return (
       <GlassCard>
         <GlassCardHeader className="pb-3">
-          <GlassCardTitle className="text-base flex items-center gap-2">
-            <Clock className="h-4 w-4 text-emerald-500" />
-            Dagens bokningar
-          </GlassCardTitle>
+          <div className="flex items-center justify-between">
+            <GlassCardTitle className="text-base flex items-center gap-2">
+              <Clock className="h-4 w-4 text-emerald-500" />
+              Bokningar
+            </GlassCardTitle>
+            <DateNavigation />
+          </div>
         </GlassCardHeader>
         <GlassCardContent>
           <div className="text-center py-6 text-muted-foreground">
             <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Inga schemalagda pass idag</p>
+            <p className="text-sm">Inga schemalagda pass {isToday(selectedDate) ? 'idag' : ''}</p>
             <p className="text-xs mt-1">
               Schemalägg pass genom att ange tid vid tilldelning
             </p>
@@ -140,11 +290,14 @@ export function TodaysAppointmentsCard({ basePath = '' }: TodaysAppointmentsCard
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base flex items-center gap-2">
             <Clock className="h-4 w-4 text-emerald-500" />
-            Dagens bokningar
+            Bokningar
           </GlassCardTitle>
-          <Badge variant="secondary" className="text-xs">
-            {appointments.length}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <DateNavigation />
+            <Badge variant="secondary" className="text-xs">
+              {appointments.length}
+            </Badge>
+          </div>
         </div>
       </GlassCardHeader>
       <GlassCardContent className="space-y-3">
