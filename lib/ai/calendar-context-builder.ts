@@ -474,6 +474,7 @@ function translateEventType(type: CalendarEventType): string {
     EXTERNAL_EVENT: 'Extern händelse',
     ALTITUDE_CAMP: 'Höghöjdsläger',
     TRAINING_CAMP: 'Träningsläger',
+    SCHEDULED_WORKOUT: 'Schemalagt pass',
   }
   return translations[type] || type
 }

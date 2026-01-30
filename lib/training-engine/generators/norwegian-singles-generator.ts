@@ -639,8 +639,8 @@ export async function saveNorwegianSinglesProgram(
       totalWeeks: program.weeks.length,
       currentWeek: 1,
       currentPhase: 'BASE',
-      periodization: periodization as Prisma.InputJsonValue,
-      weeklyPlans: program.weeks as Prisma.InputJsonValue,
+      periodization: periodization as unknown as Prisma.InputJsonValue,
+      weeklyPlans: program.weeks as unknown as Prisma.InputJsonValue,
       generatedBy: 'AUTO',
       methodologyConfig: {
         config: program.config,

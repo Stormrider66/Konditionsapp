@@ -25,11 +25,11 @@ export async function saveDmaxResults(
       testId: string
       testDate: Date
       lt1Intensity: number
-      lt1Lactate?: number
+      lt1Lactate: number
       lt1Hr: number
       lt1Method: string
       lt2Intensity: number
-      lt2Lactate?: number
+      lt2Lactate: number
       lt2Hr: number
       method: string
       confidence: string
@@ -44,13 +44,13 @@ export async function saveDmaxResults(
 
       // LT1 (Aerobic) data
       lt1Intensity: aerobicThreshold.value,
-      lt1Lactate: aerobicThreshold.lactate,
+      lt1Lactate: aerobicThreshold.lactate ?? 0,
       lt1Hr: aerobicThreshold.heartRate,
       lt1Method: aerobicDmax ? (aerobicThreshold.method ?? 'LINEAR_INTERPOLATION') : 'LINEAR_INTERPOLATION',
 
       // LT2 (Anaerobic) data
       lt2Intensity: anaerobicThreshold.value,
-      lt2Lactate: anaerobicThreshold.lactate,
+      lt2Lactate: anaerobicThreshold.lactate ?? 0,
       lt2Hr: anaerobicThreshold.heartRate,
 
       // Primary method (use D-max if either threshold used it)

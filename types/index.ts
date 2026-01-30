@@ -885,7 +885,7 @@ export interface Threshold {
   lactate?: number
   percentOfMax: number
   // D-max specific fields (optional)
-  method?: 'DMAX' | 'MOD_DMAX' | 'LINEAR_INTERPOLATION' | 'FIXED_4MMOL'
+  method?: 'DMAX' | 'MOD_DMAX' | 'LINEAR_INTERPOLATION' | 'FIXED_4MMOL' | 'DMAX_LT1' | 'EXPONENTIAL_RISE' | (string & {})
   confidence?: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW'
   r2?: number
   coefficients?: {

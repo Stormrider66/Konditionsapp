@@ -563,7 +563,7 @@ export function calculateSmartDmax(data: LactateTestData): DmaxResult & { select
     hrResult = calculateDmaxByHeartRate(data);
     logger.debug('[Smart D-max] HR-based D-max result', { r2: hrResult.r2.toFixed(4), confidence: hrResult.confidence });
   } catch (error) {
-    logger.debug('[Smart D-max] HR-based D-max failed', {}, error);
+    logger.debug('[Smart D-max] HR-based D-max failed', { error: String(error) });
   }
 
   // Try intensity-based D-max
@@ -571,7 +571,7 @@ export function calculateSmartDmax(data: LactateTestData): DmaxResult & { select
     intensityResult = calculateDmax(data);
     logger.debug('[Smart D-max] Intensity-based D-max result', { r2: intensityResult.r2.toFixed(4), confidence: intensityResult.confidence });
   } catch (error) {
-    logger.debug('[Smart D-max] Intensity-based D-max failed', {}, error);
+    logger.debug('[Smart D-max] Intensity-based D-max failed', { error: String(error) });
   }
 
   // Compare and select best result

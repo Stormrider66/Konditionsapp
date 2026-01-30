@@ -311,10 +311,10 @@ function generateWorkoutModifications(
             action: 'CONVERT_TO_CROSS_TRAINING',
             reasoning: `Convert to cross-training (pain level ${injury.painLevel}/10, ${injury.injuryType})`,
             modifiedWorkout: {
-              type: 'CROSS_TRAINING',
+              type: 'ALTERNATIVE',
               duration: workout.totalDuration * 1.2, // 20% longer for equivalent stimulus
               intensity: workout.intensityType,
-              notes: `Original: ${workout.type}. Converted due to ${injury.injuryType}.`
+              notes: `Original: ${workout.type}. Converted to cross-training due to ${injury.injuryType}.`
             }
           };
           break;

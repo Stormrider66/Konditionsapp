@@ -538,7 +538,7 @@ export function findExponentialRisePoint(
   heartRate: number;
   unit: 'km/h' | 'watt' | 'min/km';
   method: string;
-  confidence: string;
+  confidence: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
 } | null {
   logger.debug('findExponentialRisePoint - start', { deltaThreshold })
 
