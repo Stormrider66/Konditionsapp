@@ -1,5 +1,5 @@
 // app/api/agility-workouts/[id]/assign/route.ts
-// API route for assigning agility workouts to athletes
+// API route for assigning agility workouts to athletes with optional scheduling
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -9,7 +9,13 @@ import { z } from 'zod'
 const assignWorkoutSchema = z.object({
   athleteIds: z.array(z.string().uuid()).min(1),
   assignedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  // Scheduling fields
+  startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),  // "HH:mm" format
+  endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),    // "HH:mm" format
+  locationId: z.string().uuid().optional(),
+  locationName: z.string().optional(),
+  createCalendarEvent: z.boolean().optional().default(true),
 })
 
 interface RouteParams {
@@ -40,7 +46,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Verify workout exists
     const workout = await prisma.agilityWorkout.findUnique({
       where: { id },
-      select: { id: true, coachId: true, isPublic: true }
+      select: { id: true, name: true, coachId: true, isPublic: true }
     })
 
     if (!workout) {
@@ -53,7 +59,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json()
-    const { athleteIds, assignedDate, notes } = assignWorkoutSchema.parse(body)
+    const {
+      athleteIds,
+      assignedDate,
+      notes,
+      startTime,
+      endTime,
+      locationId,
+      locationName,
+      createCalendarEvent,
+    } = assignWorkoutSchema.parse(body)
 
     // Verify all athletes exist and belong to the coach
     const athletes = await prisma.client.findMany({
@@ -71,11 +86,53 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Verify location if provided
+    if (locationId) {
+      const location = await prisma.location.findUnique({
+        where: { id: locationId },
+        select: { id: true },
+      })
+      if (!location) {
+        return NextResponse.json(
+          { error: 'Location not found' },
+          { status: 400 }
+        )
+      }
+    }
+
     const parsedDate = new Date(assignedDate)
+    const hasScheduling = !!startTime
 
     // Create assignments (upsert to handle duplicates)
     const assignments = await Promise.all(
       athleteIds.map(async (athleteId) => {
+        // Create calendar event if scheduling is enabled
+        let calendarEventId: string | undefined
+
+        if (hasScheduling && createCalendarEvent) {
+          const locationDisplay = locationName || (locationId ? 'Scheduled location' : undefined)
+
+          const calendarEvent = await prisma.calendarEvent.create({
+            data: {
+              clientId: athleteId,
+              type: 'SCHEDULED_WORKOUT',
+              title: `Agility: ${workout.name || 'Agility workout'}`,
+              description: locationDisplay
+                ? `Plats: ${locationDisplay}${notes ? `\n\n${notes}` : ''}`
+                : notes || undefined,
+              status: 'SCHEDULED',
+              startDate: parsedDate,
+              endDate: parsedDate,
+              allDay: false,
+              startTime,
+              endTime,
+              trainingImpact: 'NORMAL',
+              createdById: user.id,
+            },
+          })
+          calendarEventId = calendarEvent.id
+        }
+
         return prisma.agilityWorkoutAssignment.upsert({
           where: {
             workoutId_athleteId_assignedDate: {
@@ -90,14 +147,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             assignedDate: parsedDate,
             assignedBy: user.id,
             notes,
-            status: 'ASSIGNED'
+            status: 'ASSIGNED',
+            startTime,
+            endTime,
+            locationId,
+            locationName,
+            scheduledBy: hasScheduling ? user.id : undefined,
+            calendarEventId,
           },
           update: {
             notes,
-            status: 'ASSIGNED'
+            status: 'ASSIGNED',
+            startTime,
+            endTime,
+            locationId,
+            locationName,
+            scheduledBy: hasScheduling ? user.id : undefined,
+            calendarEventId,
           },
           include: {
             athlete: {
+              select: { id: true, name: true }
+            },
+            location: {
               select: { id: true, name: true }
             }
           }

@@ -88,6 +88,11 @@ export type DashboardWorkoutWithContext = DashboardWorkout & {
   programId: string
   programName: string
   dayDate: Date // Populated by the fetcher logic (day.date)
+  // Optional scheduling fields (from assignment models)
+  startTime?: string | null
+  endTime?: string | null
+  locationName?: string | null
+  location?: { id: string; name: string } | null
 }
 
 /**

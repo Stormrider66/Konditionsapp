@@ -27,7 +27,7 @@ export async function GET(
       )
     }
 
-    // Fetch assignments with session details
+    // Fetch assignments with session details and scheduling info
     const assignments = await prisma.cardioSessionAssignment.findMany({
       where: { athleteId: clientId },
       include: {
@@ -42,6 +42,12 @@ export async function GET(
             totalDistance: true,
             avgZone: true,
             tags: true,
+          },
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },

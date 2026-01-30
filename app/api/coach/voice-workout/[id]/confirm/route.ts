@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { StrengthPhase, SportType, HybridWorkoutFormat } from '@prisma/client'
+import { StrengthPhase, SportType, HybridFormat } from '@prisma/client'
 import { voiceWorkoutConfirmSchema } from '@/lib/validations/voice-workout-schemas'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
@@ -284,7 +284,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             coachId: user.id,
             name: workoutData.hybridData.name,
             description: workoutData.hybridData.description,
-            format: (workoutData.hybridData.format as HybridWorkoutFormat) || HybridWorkoutFormat.AMRAP,
+            format: (workoutData.hybridData.format as HybridFormat) || HybridFormat.AMRAP,
             timeCap: workoutData.hybridData.timeCap,
             totalMinutes: workoutData.hybridData.totalMinutes,
             repScheme: workoutData.hybridData.repScheme,

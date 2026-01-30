@@ -13,6 +13,7 @@ import { calculateCriticalVelocity, type CriticalVelocityData, type CriticalVelo
 import { analyzeTwentyMinTT, type TwentyMinTTData, type TwentyMinTTResult } from '@/lib/training-engine/field-tests/twenty-min-tt';
 import { estimateRaceBasedThreshold, type RaceBasedEstimationResult } from '@/lib/training-engine/field-tests/race-based';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Union type for all field test results
 type FieldTestResult = ThirtyMinTTResult | HRDriftResult | CriticalVelocityResult | TwentyMinTTResult | RaceBasedEstimationResult;
@@ -166,16 +167,16 @@ export async function POST(request: NextRequest) {
         clientId: data.athleteId,
         testType: data.testType,
         date: new Date(),
-        conditions: conditions ?? undefined,
-        results: result,
+        conditions: conditions as Prisma.InputJsonValue ?? undefined,
+        results: result as unknown as Prisma.InputJsonValue,
         lt1Pace: thresholds.lt1Pace,
         lt1HR: thresholds.lt1HR,
         lt2Pace: thresholds.lt2Pace,
         lt2HR: thresholds.lt2HR,
         confidence,
         valid: validationSummary.valid,
-        warnings: validationSummary.warnings ?? undefined,
-        errors: validationSummary.errors ?? undefined,
+        warnings: validationSummary.warnings as Prisma.InputJsonValue ?? undefined,
+        errors: validationSummary.errors as Prisma.InputJsonValue ?? undefined,
       },
     });
 

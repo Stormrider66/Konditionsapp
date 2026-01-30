@@ -192,6 +192,7 @@ enum CalendarEventType {
   WORK_BLOCKER // Work commitments blocking training
   PERSONAL_BLOCKER // Personal events (weddings, family, etc.)
   EXTERNAL_EVENT // Imported from external calendar
+  SCHEDULED_WORKOUT // Coach-scheduled workout session with time/location
 }
 
 enum CalendarEventStatus {
@@ -665,6 +666,12 @@ model TeamWorkoutBroadcast {
   assignedDate DateTime @db.Date
   notes        String?  @db.Text
 
+  // Scheduling fields (optional appointment info for team sessions)
+  startTime    String? // "HH:mm" format
+  endTime      String? // "HH:mm" format
+  locationId   String? // FK to Location
+  locationName String? // Fallback text if no Location record
+
   // Cached stats for dashboard
   totalAssigned  Int @default(0)
   totalCompleted Int @default(0)
@@ -679,6 +686,9 @@ model TeamWorkoutBroadcast {
   hybridWorkout   HybridWorkout?   @relation(fields: [hybridWorkoutId], references: [id])
   agilityWorkout  AgilityWorkout?  @relation("AgilityWorkoutBroadcasts", fields: [agilityWorkoutId], references: [id])
 
+  // Relations for scheduling
+  location Location? @relation("TeamBroadcastLocation", fields: [locationId], references: [id])
+
   // Individual assignments from this broadcast
   strengthAssignments StrengthSessionAssignment[]
   cardioAssignments   CardioSessionAssignment[]
@@ -688,6 +698,7 @@ model TeamWorkoutBroadcast {
   @@index([teamId])
   @@index([coachId])
   @@index([assignedDate])
+  @@index([locationId])
 }
 
 model Client {
@@ -1432,6 +1443,13 @@ model Location {
 
   // Agility Studio relations
   timingGateSessions TimingGateSession[] @relation("TimingGateSessionLocation")
+
+  // Appointment scheduling relations
+  strengthAssignments StrengthSessionAssignment[] @relation("StrengthAssignmentLocation")
+  cardioAssignments   CardioSessionAssignment[]   @relation("CardioAssignmentLocation")
+  agilityAssignments  AgilityWorkoutAssignment[]  @relation("AgilityAssignmentLocation")
+  hybridAssignments   HybridWorkoutAssignment[]   @relation("HybridAssignmentLocation")
+  teamBroadcasts      TeamWorkoutBroadcast[]      @relation("TeamBroadcastLocation")
 
   @@unique([businessId, slug])
   @@index([businessId])
@@ -5297,6 +5315,18 @@ model HybridWorkoutAssignment {
   teamBroadcastId String?
   teamBroadcast   TeamWorkoutBroadcast? @relation(fields: [teamBroadcastId], references: [id], onDelete: SetNull)
 
+  // Scheduling fields
+  startTime       String?   // "HH:mm" format
+  endTime         String?   // "HH:mm" format
+  locationId      String?   // FK to Location
+  locationName    String?   // Fallback text if no Location
+  scheduledBy     String?   // Coach who scheduled (if different from assignedBy)
+  calendarEventId String?   // Link to created CalendarEvent
+
+  // Relations for scheduling
+  location      Location?      @relation("HybridAssignmentLocation", fields: [locationId], references: [id])
+  calendarEvent CalendarEvent? @relation("HybridAssignmentCalendar", fields: [calendarEventId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -5306,6 +5336,7 @@ model HybridWorkoutAssignment {
   @@index([assignedDate])
   @@index([status])
   @@index([teamBroadcastId])
+  @@index([locationId])
 }
 
 enum AssignmentStatus {
@@ -5454,6 +5485,16 @@ model StrengthSessionAssignment {
   assignedBy   String // Coach user ID
   notes        String?  @db.Text
 
+  // Scheduling fields (optional appointment info)
+  startTime    String? // "HH:mm" format
+  endTime      String? // "HH:mm" format
+  locationId   String? // FK to Location
+  locationName String? // Fallback text if no Location record
+  scheduledBy  String? // Coach who scheduled (if different from assignedBy)
+
+  // Calendar integration
+  calendarEventId String? // Link to created CalendarEvent
+
   // Status tracking
   status      AssignmentStatus @default(PENDING)
   completedAt DateTime?
@@ -5470,6 +5511,10 @@ model StrengthSessionAssignment {
   teamBroadcastId String?
   teamBroadcast   TeamWorkoutBroadcast? @relation(fields: [teamBroadcastId], references: [id], onDelete: SetNull)
 
+  // Relations for scheduling
+  location      Location?      @relation("StrengthAssignmentLocation", fields: [locationId], references: [id])
+  calendarEvent CalendarEvent? @relation("StrengthAssignmentCalendar", fields: [calendarEventId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -5479,6 +5524,8 @@ model StrengthSessionAssignment {
   @@index([assignedDate])
   @@index([status])
   @@index([teamBroadcastId])
+  @@index([locationId])
+  @@index([startTime])
 }
 
 /// Pre-built strength program templates for quick program generation
@@ -5584,6 +5631,16 @@ model CardioSessionAssignment {
   assignedBy   String // Coach user ID
   notes        String?  @db.Text
 
+  // Scheduling fields (optional appointment info)
+  startTime    String? // "HH:mm" format
+  endTime      String? // "HH:mm" format
+  locationId   String? // FK to Location
+  locationName String? // Fallback text if no Location record
+  scheduledBy  String? // Coach who scheduled (if different from assignedBy)
+
+  // Calendar integration
+  calendarEventId String? // Link to created CalendarEvent
+
   // Status tracking
   status      AssignmentStatus @default(PENDING)
   completedAt DateTime?
@@ -5598,6 +5655,10 @@ model CardioSessionAssignment {
   teamBroadcastId String?
   teamBroadcast   TeamWorkoutBroadcast? @relation(fields: [teamBroadcastId], references: [id], onDelete: SetNull)
 
+  // Relations for scheduling
+  location      Location?      @relation("CardioAssignmentLocation", fields: [locationId], references: [id])
+  calendarEvent CalendarEvent? @relation("CardioAssignmentCalendar", fields: [calendarEventId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -5607,6 +5668,8 @@ model CardioSessionAssignment {
   @@index([assignedDate])
   @@index([status])
   @@index([teamBroadcastId])
+  @@index([locationId])
+  @@index([startTime])
 }
 
 /// Cardio session log - tracks Focus Mode execution
@@ -6031,6 +6094,12 @@ model CalendarEvent {
   createdBy      User                  @relation("CreatedCalendarEvents", fields: [createdById], references: [id])
   lastModifiedBy User?                 @relation("ModifiedCalendarEvents", fields: [lastModifiedById], references: [id])
   changeHistory  CalendarEventChange[]
+
+  // Scheduled workout assignment links (for linking calendar events to assignments)
+  strengthAssignments StrengthSessionAssignment[] @relation("StrengthAssignmentCalendar")
+  cardioAssignments   CardioSessionAssignment[]   @relation("CardioAssignmentCalendar")
+  agilityAssignments  AgilityWorkoutAssignment[]  @relation("AgilityAssignmentCalendar")
+  hybridAssignments   HybridWorkoutAssignment[]   @relation("HybridAssignmentCalendar")
 
   @@index([clientId, startDate, endDate])
   @@index([clientId, type])
@@ -8390,6 +8459,16 @@ model AgilityWorkoutAssignment {
   assignedBy   String   // Coach user ID
   notes        String?  @db.Text
 
+  // Scheduling fields (optional appointment info)
+  startTime    String? // "HH:mm" format
+  endTime      String? // "HH:mm" format
+  locationId   String? // FK to Location
+  locationName String? // Fallback text if no Location record
+  scheduledBy  String? // Coach who scheduled (if different from assignedBy)
+
+  // Calendar integration
+  calendarEventId String? // Link to created CalendarEvent
+
   // Status tracking
   status      String   @default("ASSIGNED") // ASSIGNED, IN_PROGRESS, COMPLETED, SKIPPED
   startedAt   DateTime?
@@ -8398,6 +8477,10 @@ model AgilityWorkoutAssignment {
   // Team broadcast link (if assigned via team)
   teamBroadcast   TeamWorkoutBroadcast? @relation(fields: [teamBroadcastId], references: [id], onDelete: SetNull)
   teamBroadcastId String?
+
+  // Relations for scheduling
+  location      Location?      @relation("AgilityAssignmentLocation", fields: [locationId], references: [id])
+  calendarEvent CalendarEvent? @relation("AgilityAssignmentCalendar", fields: [calendarEventId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -8408,6 +8491,8 @@ model AgilityWorkoutAssignment {
   @@index([assignedDate])
   @@index([status])
   @@index([teamBroadcastId])
+  @@index([locationId])
+  @@index([startTime])
 }
 
 /// Result from completed agility workout

@@ -17,6 +17,8 @@ import {
   Zap,
   CheckCircle2,
   SkipForward,
+  MapPin,
+  Timer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -37,6 +39,11 @@ interface CardioSessionCardProps {
   completedSegments?: number
   segmentTypes?: SegmentType[]
   notes?: string
+  // Scheduling fields
+  startTime?: string | null
+  endTime?: string | null
+  locationName?: string | null
+  location?: { id: string; name: string } | null
   onStartFocusMode: (assignmentId: string) => void
 }
 
@@ -79,6 +86,10 @@ export function CardioSessionCard({
   completedSegments = 0,
   segmentTypes = [],
   notes,
+  startTime,
+  endTime,
+  locationName,
+  location,
   onStartFocusMode,
 }: CardioSessionCardProps) {
   const isCompleted = status === 'COMPLETED'
@@ -157,6 +168,24 @@ export function CardioSessionCard({
       </GlassCardHeader>
 
       <GlassCardContent className="space-y-4">
+        {/* Scheduled time and location */}
+        {(startTime || locationName || location?.name) && (
+          <div className="flex items-center gap-3 flex-wrap">
+            {startTime && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                <Timer className="h-3.5 w-3.5" />
+                {startTime}{endTime && ` - ${endTime}`}
+              </span>
+            )}
+            {(locationName || location?.name) && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-bold">
+                <MapPin className="h-3.5 w-3.5" />
+                {locationName || location?.name}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Quick stats */}
         <div className="flex items-center gap-4 text-xs font-medium flex-wrap">
           {totalDuration && (

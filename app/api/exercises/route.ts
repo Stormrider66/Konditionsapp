@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
-import { Prisma, ExerciseCategory, BiomechanicalPillar, ProgressionLevel, PlyometricIntensity } from '@prisma/client'
+import { Prisma, WorkoutType, BiomechanicalPillar, ProgressionLevel, PlyometricIntensity } from '@prisma/client'
 import { logger } from '@/lib/logger'
 
 // Allowed sort fields to prevent injection
@@ -76,8 +76,8 @@ export async function GET(request: NextRequest) {
 
     if (category && category !== 'ALL') {
       // Validate category is a valid enum value
-      if (Object.values(ExerciseCategory).includes(category as ExerciseCategory)) {
-        filtersWhere.category = category as ExerciseCategory
+      if (Object.values(WorkoutType).includes(category as WorkoutType)) {
+        filtersWhere.category = category as WorkoutType
       }
     }
 

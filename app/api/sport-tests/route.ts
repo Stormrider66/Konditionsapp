@@ -16,6 +16,7 @@ import {
   estimateVO2maxFromYoYoIR1,
   calculateYoYoDistance,
   classifyStationPerformance,
+  type HYROXStation,
 } from '@/lib/calculations/sport-tests'
 
 // GET /api/sport-tests - Get all sport tests for logged in user (with optional clientId filter)
@@ -374,7 +375,7 @@ function calculateDerivedMetrics(
     case 'HYROX_WALL_BALLS': {
       const time = rawData.time as number
       if (time) {
-        const station = protocol.replace('HYROX_', '')
+        const station = protocol.replace('HYROX_', '') as HYROXStation
         const division = gender === 'MALE' ? 'MEN' : 'WOMEN'
         metrics.primaryResult = time
         metrics.primaryUnit = 's'

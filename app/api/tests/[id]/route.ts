@@ -85,9 +85,9 @@ export async function GET(
                 vo2max: fullCalculations.vo2max,
                 maxHR: fullCalculations.maxHR,
                 maxLactate: fullCalculations.maxLactate,
-                aerobicThreshold: fullCalculations.aerobicThreshold as Prisma.InputJsonValue,
-                anaerobicThreshold: fullCalculations.anaerobicThreshold as Prisma.InputJsonValue,
-                trainingZones: fullCalculations.trainingZones as Prisma.InputJsonValue,
+                aerobicThreshold: fullCalculations.aerobicThreshold as unknown as Prisma.InputJsonValue,
+                anaerobicThreshold: fullCalculations.anaerobicThreshold as unknown as Prisma.InputJsonValue,
+                trainingZones: fullCalculations.trainingZones as unknown as Prisma.InputJsonValue,
               },
             })
             logger.info('Auto-saved fresh calculations to database', { testId: id })

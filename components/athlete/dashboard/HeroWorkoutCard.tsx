@@ -12,7 +12,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Activity, Flame, Timer, Dumbbell, Play, Zap, Route, TrendingUp } from 'lucide-react'
+import { Activity, Flame, Timer, Dumbbell, Play, Zap, Route, TrendingUp, Clock, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
@@ -362,6 +362,24 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
           <p className="text-slate-600 dark:text-slate-400 max-w-sm text-sm md:text-base transition-colors">
             {focus.description}
           </p>
+
+          {/* Scheduling info */}
+          {(workout.startTime || workout.locationName || workout.location?.name) && (
+            <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-slate-600 dark:text-slate-400">
+              {workout.startTime && (
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                  <Clock className="h-3.5 w-3.5" />
+                  {workout.startTime}
+                </span>
+              )}
+              {(workout.locationName || workout.location?.name) && (
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {workout.locationName || workout.location?.name}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Completed badge */}
           {isCompleted && (

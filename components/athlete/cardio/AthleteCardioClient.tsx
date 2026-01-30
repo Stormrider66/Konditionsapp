@@ -61,6 +61,12 @@ interface CardioAssignment {
   assignedDate: string
   status: 'PENDING' | 'SCHEDULED' | 'COMPLETED' | 'SKIPPED' | 'MODIFIED'
   notes?: string
+  // Scheduling fields
+  startTime?: string | null
+  endTime?: string | null
+  locationId?: string | null
+  locationName?: string | null
+  location?: { id: string; name: string } | null
   session: {
     id: string
     name: string
@@ -426,6 +432,10 @@ export function AthleteCardioClient({
                   totalDistance={assignment.session.totalDistance}
                   segmentCount={assignment.session.segments.length}
                   notes={assignment.notes}
+                  startTime={assignment.startTime}
+                  endTime={assignment.endTime}
+                  locationName={assignment.locationName}
+                  location={assignment.location}
                   onStartFocusMode={handleStartFocusMode}
                 />
               ))}

@@ -147,6 +147,13 @@ export const EVENT_TYPE_CONFIG: Record<
     bgColor: 'bg-slate-100',
     icon: '📅',
   },
+  SCHEDULED_WORKOUT: {
+    label: 'Scheduled Workout',
+    labelSv: 'Schemalagt pass',
+    color: 'text-emerald-700',
+    bgColor: 'bg-emerald-100',
+    icon: '🏋️',
+  },
 }
 
 // Training impact display configuration

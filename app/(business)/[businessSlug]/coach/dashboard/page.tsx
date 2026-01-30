@@ -38,6 +38,7 @@ import { sv, enUS } from 'date-fns/locale'
 import { getTranslations, getLocale } from '@/i18n/server'
 import { CoachAIAssistantPanel } from '@/components/coach/CoachAIAssistantPanel'
 import { VoiceWorkoutButton } from '@/components/coach/voice-workout'
+import { TodaysAppointmentsCard } from '@/components/coach/dashboard/TodaysAppointmentsCard'
 import { cn } from '@/lib/utils'
 import { notFound } from 'next/navigation'
 
@@ -581,6 +582,9 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           <div className="space-y-6">
             {/* AI Assistant Panel */}
             <CoachAIAssistantPanel />
+
+            {/* Today's Appointments */}
+            <TodaysAppointmentsCard basePath={basePath} />
 
             {/* Upcoming Events & Races */}
             <GlassCard>

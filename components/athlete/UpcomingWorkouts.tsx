@@ -4,7 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
-import { CalendarDays, Clock, MapPin, Calendar, ChevronRight } from 'lucide-react'
+import { CalendarDays, Clock, MapPin, Calendar, ChevronRight, Timer } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
@@ -34,6 +34,18 @@ function WorkoutRow({ workout, theme, variant = 'default', basePath = '' }: { wo
           </div>
           <div className="flex items-center gap-3 text-xs text-slate-400">
             <span className="truncate">{workout.programName}</span>
+            {workout.startTime && (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
+                <Timer className="h-3 w-3" />
+                {workout.startTime}
+              </span>
+            )}
+            {(workout.locationName || workout.location?.name) && (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">
+                <MapPin className="h-3 w-3" />
+                {workout.locationName || workout.location?.name}
+              </span>
+            )}
             {workout.duration && <span>• {workout.duration} min</span>}
           </div>
         </div>
@@ -216,9 +228,21 @@ export function UpcomingWorkouts({ workouts, className, variant = 'default', bas
                     </Badge>
                   </div>
                   <div
-                    className="flex items-center gap-3 text-xs"
+                    className="flex flex-wrap items-center gap-2 text-xs"
                     style={{ color: theme.colors.textMuted }}
                   >
+                    {workout.startTime && (
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-500">
+                        <Timer className="h-3 w-3" />
+                        {workout.startTime}
+                      </span>
+                    )}
+                    {(workout.locationName || workout.location?.name) && (
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-500">
+                        <MapPin className="h-3 w-3" />
+                        {workout.locationName || workout.location?.name}
+                      </span>
+                    )}
                     {workout.duration && (
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />

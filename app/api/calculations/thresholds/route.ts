@@ -132,7 +132,7 @@ function generateThresholdWarnings(results: TestCalculations, stageCount: number
     }
   }
 
-  if (results.vo2max && !results.vo2max.relative) {
+  if (!results.vo2max) {
     warnings.push('VO2max calculated from estimation - lab test recommended');
   }
 

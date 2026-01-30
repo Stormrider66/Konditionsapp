@@ -80,6 +80,12 @@ export async function GET(request: NextRequest) {
             email: true,
           },
         },
+        location: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { assignedDate: 'asc' },
     });
@@ -95,13 +101,26 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/hybrid-assignments - Create assignment(s)
-// Body: { workoutId, athleteIds, assignedDate, notes?, customScaling?, scalingNotes? }
+// Body: { workoutId, athleteIds, assignedDate, notes?, customScaling?, scalingNotes?, startTime?, endTime?, locationId?, locationName?, createCalendarEvent? }
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
 
     const body = await request.json();
-    const { workoutId, athleteIds, assignedDate, notes, customScaling, scalingNotes } = body;
+    const {
+      workoutId,
+      athleteIds,
+      assignedDate,
+      notes,
+      customScaling,
+      scalingNotes,
+      // Scheduling fields
+      startTime,
+      endTime,
+      locationId,
+      locationName,
+      createCalendarEvent = true,
+    } = body;
 
     if (!workoutId || !athleteIds || !Array.isArray(athleteIds) || athleteIds.length === 0) {
       return NextResponse.json(
@@ -129,6 +148,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Resolve location name if locationId is provided
+    let resolvedLocationName = locationName;
+    if (locationId && !locationName) {
+      const location = await prisma.location.findUnique({
+        where: { id: locationId },
+        select: { name: true },
+      });
+      resolvedLocationName = location?.name || undefined;
+    }
+
     // Create assignments for all athletes
     const assignments = await prisma.$transaction(
       athleteIds.map((athleteId: string) =>
@@ -146,6 +175,12 @@ export async function POST(request: NextRequest) {
             scalingNotes,
             assignedBy: user.id,
             status: 'PENDING',
+            // Scheduling fields
+            startTime: startTime || null,
+            endTime: endTime || null,
+            locationId: locationId || null,
+            locationName: resolvedLocationName || null,
+            scheduledBy: startTime ? user.id : null,
           },
           create: {
             workoutId,
@@ -155,10 +190,51 @@ export async function POST(request: NextRequest) {
             notes,
             customScaling,
             scalingNotes,
+            // Scheduling fields
+            startTime: startTime || null,
+            endTime: endTime || null,
+            locationId: locationId || null,
+            locationName: resolvedLocationName || null,
+            scheduledBy: startTime ? user.id : null,
           },
         })
       )
     );
+
+    // Create calendar events if startTime is provided and createCalendarEvent is true
+    if (startTime && createCalendarEvent) {
+      const assignedDateObj = new Date(assignedDate);
+      for (const assignment of assignments) {
+        // Get athlete info for calendar event
+        const athlete = await prisma.client.findUnique({
+          where: { id: assignment.athleteId },
+          select: { id: true, name: true },
+        });
+
+        if (athlete) {
+          // Create calendar event
+          const calendarEvent = await prisma.calendarEvent.create({
+            data: {
+              clientId: athlete.id,
+              title: workout.name,
+              description: notes || `Hybrid workout: ${workout.name}`,
+              type: 'SCHEDULED_WORKOUT',
+              startDate: assignedDateObj,
+              endDate: assignedDateObj,
+              startTime: startTime,
+              endTime: endTime || undefined,
+              createdById: user.id,
+            },
+          });
+
+          // Link calendar event to assignment
+          await prisma.hybridWorkoutAssignment.update({
+            where: { id: assignment.id },
+            data: { calendarEventId: calendarEvent.id },
+          });
+        }
+      }
+    }
 
     return NextResponse.json({
       message: `Assigned workout to ${assignments.length} athlete(s)`,

@@ -2,7 +2,7 @@
  * Cardio Session Assignment API
  *
  * GET  - List assignments for a session
- * POST - Assign session to athlete(s)
+ * POST - Assign session to athlete(s) with optional scheduling
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -12,6 +12,18 @@ import { logError } from '@/lib/logger-console'
 
 interface RouteContext {
   params: Promise<{ id: string }>;
+}
+
+interface AssignmentRequest {
+  athleteIds: string[];
+  assignedDate: string;
+  notes?: string;
+  // Scheduling fields
+  startTime?: string;      // "HH:mm" format
+  endTime?: string;        // "HH:mm" format
+  locationId?: string;
+  locationName?: string;
+  createCalendarEvent?: boolean;  // default true if startTime provided
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -47,6 +59,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
             email: true,
           },
         },
+        location: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { assignedDate: 'desc' },
     });
@@ -65,9 +83,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
     const { id } = await context.params;
-    const body = await request.json();
+    const body: AssignmentRequest = await request.json();
 
-    const { athleteIds, assignedDate, notes } = body;
+    const {
+      athleteIds,
+      assignedDate,
+      notes,
+      startTime,
+      endTime,
+      locationId,
+      locationName,
+      createCalendarEvent = true,
+    } = body;
 
     // Validate input
     if (!athleteIds || !Array.isArray(athleteIds) || athleteIds.length === 0) {
@@ -98,7 +125,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         id: { in: athleteIds },
         userId: user.id,
       },
-      select: { id: true },
+      select: { id: true, name: true },
     });
 
     if (athletes.length !== athleteIds.length) {
@@ -108,12 +135,54 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
+    // Verify location if provided
+    if (locationId) {
+      const location = await prisma.location.findUnique({
+        where: { id: locationId },
+        select: { id: true },
+      });
+      if (!location) {
+        return NextResponse.json(
+          { error: 'Location not found' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Create assignments
     const date = assignedDate ? new Date(assignedDate) : new Date();
+    const hasScheduling = !!startTime;
 
     const assignments = await Promise.all(
-      athleteIds.map((athleteId: string) =>
-        prisma.cardioSessionAssignment.upsert({
+      athleteIds.map(async (athleteId: string) => {
+        // Create calendar event if scheduling is enabled
+        let calendarEventId: string | undefined;
+
+        if (hasScheduling && createCalendarEvent) {
+          const locationDisplay = locationName || (locationId ? 'Scheduled location' : undefined);
+
+          const calendarEvent = await prisma.calendarEvent.create({
+            data: {
+              clientId: athleteId,
+              type: 'SCHEDULED_WORKOUT',
+              title: `Kondition: ${session.name}`,
+              description: locationDisplay
+                ? `Plats: ${locationDisplay}${notes ? `\n\n${notes}` : ''}`
+                : notes || undefined,
+              status: 'SCHEDULED',
+              startDate: date,
+              endDate: date,
+              allDay: false,
+              startTime,
+              endTime,
+              trainingImpact: 'NORMAL',
+              createdById: user.id,
+            },
+          });
+          calendarEventId = calendarEvent.id;
+        }
+
+        return prisma.cardioSessionAssignment.upsert({
           where: {
             sessionId_athleteId_assignedDate: {
               sessionId: id,
@@ -124,6 +193,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
           update: {
             notes,
             status: 'PENDING',
+            startTime,
+            endTime,
+            locationId,
+            locationName,
+            scheduledBy: hasScheduling ? user.id : undefined,
+            calendarEventId,
           },
           create: {
             sessionId: id,
@@ -132,6 +207,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
             assignedBy: user.id,
             notes,
             status: 'PENDING',
+            startTime,
+            endTime,
+            locationId,
+            locationName,
+            scheduledBy: hasScheduling ? user.id : undefined,
+            calendarEventId,
           },
           include: {
             athlete: {
@@ -140,9 +221,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
                 name: true,
               },
             },
+            location: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
-        })
-      )
+        });
+      })
     );
 
     return NextResponse.json({ assignments }, { status: 201 });

@@ -19,6 +19,7 @@ import {
   Timer,
   Flame,
   Target,
+  MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -50,6 +51,11 @@ interface HybridWorkoutCardProps {
   isBenchmark: boolean
   benchmarkSource?: string
   notes?: string
+  // Scheduling fields
+  startTime?: string | null
+  endTime?: string | null
+  locationName?: string | null
+  location?: { id: string; name: string } | null
   onStartFocusMode: (assignmentId: string) => void
 }
 
@@ -127,6 +133,10 @@ export function HybridWorkoutCard({
   isBenchmark,
   benchmarkSource,
   notes,
+  startTime,
+  endTime,
+  locationName,
+  location,
   onStartFocusMode,
 }: HybridWorkoutCardProps) {
   const isCompleted = status === 'COMPLETED'
@@ -185,11 +195,23 @@ export function HybridWorkoutCard({
             </div>
             <CardTitle className="text-lg">{workoutName}</CardTitle>
           </div>
-          <div className="text-right">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+          <div className="text-right space-y-1">
+            <div className="flex items-center gap-1 text-sm text-muted-foreground justify-end">
               <Calendar className="h-3 w-3" />
               {formatDate(assignedDate)}
             </div>
+            {startTime && (
+              <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 justify-end">
+                <Timer className="h-3 w-3" />
+                {startTime}{endTime && ` - ${endTime}`}
+              </div>
+            )}
+            {(locationName || location?.name) && (
+              <div className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 justify-end">
+                <MapPin className="h-3 w-3" />
+                {locationName || location?.name}
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>

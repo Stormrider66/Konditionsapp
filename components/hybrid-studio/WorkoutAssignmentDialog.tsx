@@ -23,6 +23,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -34,7 +39,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { CalendarIcon, Users, Dumbbell, Send, Check } from 'lucide-react';
+import { CalendarIcon, Users, Dumbbell, Send, Check, Clock, ChevronDown } from 'lucide-react';
+import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
 import { format } from 'date-fns';
 import { sv } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -78,6 +84,14 @@ export function WorkoutAssignmentDialog({
   const [notes, setNotes] = useState('');
   const [customScaling, setCustomScaling] = useState<string>('');
   const [scalingNotes, setScalingNotes] = useState('');
+
+  // Scheduling state
+  const [schedulingOpen, setSchedulingOpen] = useState(false);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [locationId, setLocationId] = useState('');
+  const [locationName, setLocationName] = useState('');
+  const [createCalendarEvent, setCreateCalendarEvent] = useState(true);
 
   useEffect(() => {
     if (open) {
@@ -132,6 +146,14 @@ export function WorkoutAssignmentDialog({
           notes: notes || undefined,
           customScaling: customScaling || undefined,
           scalingNotes: scalingNotes || undefined,
+          // Include scheduling fields if time is set
+          ...(startTime && {
+            startTime,
+            endTime: endTime || undefined,
+            locationId: locationId || undefined,
+            locationName: locationName || undefined,
+            createCalendarEvent,
+          }),
         }),
       });
 
@@ -143,6 +165,13 @@ export function WorkoutAssignmentDialog({
         setNotes('');
         setCustomScaling('');
         setScalingNotes('');
+        // Reset scheduling
+        setSchedulingOpen(false);
+        setStartTime('');
+        setEndTime('');
+        setLocationId('');
+        setLocationName('');
+        setCreateCalendarEvent(true);
         onAssigned?.();
       } else {
         const error = await response.json();
@@ -279,6 +308,39 @@ export function WorkoutAssignmentDialog({
               />
             </div>
           )}
+
+          {/* Scheduling Section */}
+          <Collapsible open={schedulingOpen} onOpenChange={setSchedulingOpen}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-between text-muted-foreground hover:text-foreground"
+              >
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Schemalägg tid (valfritt)
+                </span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${schedulingOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2 pb-4">
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <AppointmentSchedulingFields
+                  startTime={startTime}
+                  endTime={endTime}
+                  locationId={locationId}
+                  locationName={locationName}
+                  createCalendarEvent={createCalendarEvent}
+                  onStartTimeChange={setStartTime}
+                  onEndTimeChange={setEndTime}
+                  onLocationIdChange={setLocationId}
+                  onLocationNameChange={setLocationName}
+                  onCreateCalendarEventChange={setCreateCalendarEvent}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Notes */}
           <div className="space-y-2">

@@ -31,6 +31,8 @@ import {
   ChevronRight,
   Library,
   CalendarDays,
+  MapPin,
+  Timer,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -51,6 +53,11 @@ interface Assignment {
   estimatedDuration: number | null
   assignedDate: string
   status: string
+  // Scheduling fields
+  startTime?: string | null
+  endTime?: string | null
+  locationName?: string | null
+  location?: { id: string; name: string } | null
 }
 
 interface AthleteStrengthClientProps {
@@ -162,13 +169,25 @@ export function AthleteStrengthClient({
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex-wrap">
                               <span className="flex items-center gap-1.5">
                                 <Calendar className="h-3.5 w-3.5" />
                                 {format(assignedDate, 'EEEE d MMMM', {
                                   locale: sv,
                                 })}
                               </span>
+                              {assignment.startTime && (
+                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 normal-case">
+                                  <Timer className="h-3.5 w-3.5" />
+                                  {assignment.startTime}
+                                </span>
+                              )}
+                              {(assignment.locationName || assignment.location?.name) && (
+                                <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 normal-case">
+                                  <MapPin className="h-3.5 w-3.5" />
+                                  {assignment.locationName || assignment.location?.name}
+                                </span>
+                              )}
                               {assignment.estimatedDuration && (
                                 <span className="flex items-center gap-1.5">
                                   <Clock className="h-3.5 w-3.5" />

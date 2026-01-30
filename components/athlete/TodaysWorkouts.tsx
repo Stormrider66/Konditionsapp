@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, CheckCircle2, Clock, MapPin } from 'lucide-react'
+import { Calendar, CheckCircle2, Clock, MapPin, Timer } from 'lucide-react'
 import { formatPace } from '@/lib/utils'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
@@ -189,9 +189,20 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
           </div>
         )}
 
-        {/* Footer Actions same as default roughly but styled */}
-        {/* ... */}
+        {/* Footer - Duration, Distance, Scheduling info */}
         <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
+          {workout.startTime && (
+            <span className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">
+              <Timer className="h-3 w-3 sm:h-4 sm:w-4" />
+              {workout.startTime}
+            </span>
+          )}
+          {(workout.locationName || workout.location?.name) && (
+            <span className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400">
+              <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
+              {workout.locationName || workout.location?.name}
+            </span>
+          )}
           {workout.duration && (
             <span className="flex items-center gap-1 flex-shrink-0">
               <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -321,7 +332,20 @@ function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath =
         </div>
       )}
 
+      {/* Footer - Duration, Distance, Scheduling info */}
       <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm" style={{ color: theme.colors.textMuted }}>
+        {workout.startTime && (
+          <span className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-500">
+            <Timer className="h-3 w-3 sm:h-4 sm:w-4" />
+            {workout.startTime}
+          </span>
+        )}
+        {(workout.locationName || workout.location?.name) && (
+          <span className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-500">
+            <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
+            {workout.locationName || workout.location?.name}
+          </span>
+        )}
         {workout.duration && (
           <span className="flex items-center gap-1 flex-shrink-0">
             <Clock className="h-3 w-3 sm:h-4 sm:w-4" />

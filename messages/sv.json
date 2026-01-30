@@ -813,7 +813,8 @@
       "deleteConfirmMessage": "Är du säker på att du vill ta bort \"{name}\"? Denna åtgärd kan inte ångras.",
       "deleting": "Tar bort...",
       "drillsCount": "{count} övningar",
-      "assignedCount": "{count} tilldelade"
+      "assignedCount": "{count} tilldelade",
+      "scheduleTime": "Schemalägg tid (valfritt)"
     },
     "builder": {
       "title": "Skapa snabbhetspass",

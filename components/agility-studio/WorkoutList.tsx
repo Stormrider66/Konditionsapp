@@ -36,8 +36,15 @@ import {
   Clock,
   Dumbbell,
   CalendarIcon,
-  Zap
+  Zap,
+  ChevronDown
 } from 'lucide-react'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { AgilityWorkout } from '@/types'
@@ -77,6 +84,14 @@ export function WorkoutList({
   const [isAssigning, setIsAssigning] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // Scheduling state
+  const [schedulingOpen, setSchedulingOpen] = useState(false)
+  const [startTime, setStartTime] = useState('')
+  const [endTime, setEndTime] = useState('')
+  const [locationId, setLocationId] = useState('')
+  const [locationName, setLocationName] = useState('')
+  const [createCalendarEvent, setCreateCalendarEvent] = useState(true)
+
   const filteredWorkouts = workouts.filter(workout => {
     if (!searchQuery) return true
     const query = searchQuery.toLowerCase()
@@ -97,7 +112,15 @@ export function WorkoutList({
         body: JSON.stringify({
           athleteIds: selectedAthletes,
           assignedDate: format(assignDate, 'yyyy-MM-dd'),
-          notes: assignNotes || undefined
+          notes: assignNotes || undefined,
+          // Include scheduling fields if time is set
+          ...(startTime && {
+            startTime,
+            endTime: endTime || undefined,
+            locationId: locationId || undefined,
+            locationName: locationName || undefined,
+            createCalendarEvent,
+          }),
         })
       })
 
@@ -106,6 +129,13 @@ export function WorkoutList({
       setAssignDialogOpen(false)
       setSelectedAthletes([])
       setAssignNotes('')
+      // Reset scheduling
+      setSchedulingOpen(false)
+      setStartTime('')
+      setEndTime('')
+      setLocationId('')
+      setLocationName('')
+      setCreateCalendarEvent(true)
     } catch (error) {
       console.error('Error assigning workout:', error)
     } finally {
@@ -315,6 +345,39 @@ export function WorkoutList({
                 {t('workout.selectedOf', { selected: selectedAthletes.length, total: athletes.length })}
               </p>
             </div>
+
+            {/* Scheduling Section */}
+            <Collapsible open={schedulingOpen} onOpenChange={setSchedulingOpen}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-between text-muted-foreground hover:text-foreground"
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    {t('workout.scheduleTime')}
+                  </span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${schedulingOpen ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2 pb-4">
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <AppointmentSchedulingFields
+                    startTime={startTime}
+                    endTime={endTime}
+                    locationId={locationId}
+                    locationName={locationName}
+                    createCalendarEvent={createCalendarEvent}
+                    onStartTimeChange={setStartTime}
+                    onEndTimeChange={setEndTime}
+                    onLocationIdChange={setLocationId}
+                    onLocationNameChange={setLocationName}
+                    onCreateCalendarEventChange={setCreateCalendarEvent}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* Notes */}
             <div className="space-y-2">

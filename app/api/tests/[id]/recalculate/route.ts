@@ -103,9 +103,9 @@ export async function POST(
         vo2max: calculations.vo2max,
         maxHR: calculations.maxHR,
         maxLactate: calculations.maxLactate,
-        aerobicThreshold: calculations.aerobicThreshold as Prisma.InputJsonValue,
-        anaerobicThreshold: calculations.anaerobicThreshold as Prisma.InputJsonValue,
-        trainingZones: calculations.trainingZones as Prisma.InputJsonValue,
+        aerobicThreshold: calculations.aerobicThreshold as unknown as Prisma.InputJsonValue,
+        anaerobicThreshold: calculations.anaerobicThreshold as unknown as Prisma.InputJsonValue,
+        trainingZones: calculations.trainingZones as unknown as Prisma.InputJsonValue,
       },
     })
 

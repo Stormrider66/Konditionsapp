@@ -46,7 +46,7 @@ async function getAthleteData(userId: string) {
     where: { userId },
   })
 
-  // Get assigned strength sessions
+  // Get assigned strength sessions with scheduling info
   const assignments = await prisma.strengthSessionAssignment.findMany({
     where: {
       athleteId: athleteAccount.clientId,
@@ -61,6 +61,12 @@ async function getAthleteData(userId: string) {
           name: true,
           phase: true,
           estimatedDuration: true,
+        },
+      },
+      location: {
+        select: {
+          id: true,
+          name: true,
         },
       },
     },
@@ -125,6 +131,10 @@ export default async function BusinessStrengthPage({ params }: BusinessStrengthP
             estimatedDuration: a.session.estimatedDuration,
             assignedDate: a.assignedDate.toISOString(),
             status: a.status,
+            startTime: a.startTime,
+            endTime: a.endTime,
+            locationName: a.locationName,
+            location: a.location,
           }))}
           basePath={basePath}
         />

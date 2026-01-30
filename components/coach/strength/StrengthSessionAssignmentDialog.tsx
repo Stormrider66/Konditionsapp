@@ -6,6 +6,7 @@
  * Dialog for assigning strength sessions to athletes:
  * - Multi-select athletes
  * - Optional scheduled date
+ * - Optional scheduling (time, location)
  * - Optional notes
  */
 
@@ -19,14 +20,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Calendar, Loader2 } from 'lucide-react';
+import { Users, Calendar, Loader2, Clock, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
 
 interface Athlete {
   id: string;
@@ -59,6 +66,14 @@ export function StrengthSessionAssignmentDialog({
   const [loading, setLoading] = useState(false);
   const [loadingAthletes, setLoadingAthletes] = useState(false);
 
+  // Scheduling state
+  const [schedulingOpen, setSchedulingOpen] = useState(false);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [locationId, setLocationId] = useState('');
+  const [locationName, setLocationName] = useState('');
+  const [createCalendarEvent, setCreateCalendarEvent] = useState(true);
+
   // Support both controlled and uncontrolled modes
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
@@ -71,6 +86,13 @@ export function StrengthSessionAssignmentDialog({
       setSelectedAthletes([]);
       setAssignedDate(new Date().toISOString().split('T')[0]);
       setNotes('');
+      // Reset scheduling
+      setSchedulingOpen(false);
+      setStartTime('');
+      setEndTime('');
+      setLocationId('');
+      setLocationName('');
+      setCreateCalendarEvent(true);
     }
   }, [open]);
 
@@ -117,6 +139,14 @@ export function StrengthSessionAssignmentDialog({
           athleteIds: selectedAthletes,
           assignedDate,
           notes: notes || undefined,
+          // Include scheduling fields if time is set
+          ...(startTime && {
+            startTime,
+            endTime: endTime || undefined,
+            locationId: locationId || undefined,
+            locationName: locationName || undefined,
+            createCalendarEvent,
+          }),
         }),
       });
 
@@ -216,6 +246,39 @@ export function StrengthSessionAssignmentDialog({
             </p>
           )}
         </div>
+
+        {/* Scheduling Section */}
+        <Collapsible open={schedulingOpen} onOpenChange={setSchedulingOpen}>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-between text-muted-foreground hover:text-foreground"
+            >
+              <span className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Schemalägg tid (valfritt)
+              </span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${schedulingOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2 pb-4">
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <AppointmentSchedulingFields
+                startTime={startTime}
+                endTime={endTime}
+                locationId={locationId}
+                locationName={locationName}
+                createCalendarEvent={createCalendarEvent}
+                onStartTimeChange={setStartTime}
+                onEndTimeChange={setEndTime}
+                onLocationIdChange={setLocationId}
+                onLocationNameChange={setLocationName}
+                onCreateCalendarEventChange={setCreateCalendarEvent}
+              />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Notes */}
         <div className="space-y-2">
