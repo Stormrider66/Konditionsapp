@@ -20,5 +20,5 @@ export default async function BusinessStrengthPage({ params }: PageProps) {
     notFound()
   }
 
-  return <StrengthDashboard />
+  return <StrengthDashboard businessId={membership.businessId} />
 }

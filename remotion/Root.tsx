@@ -11,6 +11,7 @@ import { WDrillAnimation } from "./agility/compositions/WDrillAnimation";
 import { StarDrillAnimation } from "./agility/compositions/StarDrillAnimation";
 import { ConeZigZagAnimation } from "./agility/compositions/ConeZigZagAnimation";
 import { LadderDrillAnimation } from "./agility/compositions/LadderDrillAnimation";
+import { ExerciseAnimation } from "./exercises/ExerciseAnimation";
 
 // Type helper to cast animation components for Remotion Composition
 type AnyComponent = React.ComponentType<Record<string, unknown>>;
@@ -262,6 +263,23 @@ export const RemotionRoot: React.FC = () => {
           athleteTime: 5.5,
           benchmarkTier: "average" as const,
           locale: "sv" as const,
+        }}
+      />
+
+      {/* Exercise Animation (Loop) */}
+      <Composition
+        id="ExerciseAnimation"
+        component={ExerciseAnimation as unknown as AnyComponent}
+        durationInFrames={300} // Example loop length
+        fps={30}
+        width={1080} // Vertical format
+        height={1920}
+        defaultProps={{
+          imageUrls: [
+            "/images/knee-dominance/burpee-1.png",
+            "/images/knee-dominance/burpee-2.png",
+            "/images/knee-dominance/burpee-3.png"
+          ]
         }}
       />
     </>

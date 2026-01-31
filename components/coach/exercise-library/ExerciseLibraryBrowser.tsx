@@ -97,6 +97,7 @@ export function ExerciseLibraryBrowser({
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(24)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
   // Data state
   const [exercises, setExercises] = useState<Exercise[]>([])
@@ -135,6 +136,7 @@ export function ExerciseLibraryBrowser({
       const data = await response.json()
       setExercises(data.exercises || [])
       setTotalPages(data.pagination?.totalPages || 1)
+      setTotalCount(data.pagination?.totalCount || 0)
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -249,7 +251,7 @@ export function ExerciseLibraryBrowser({
           <div className="aspect-[3/4] bg-muted/30 flex items-center justify-center">
             <div className="text-muted-foreground/50 text-4xl">
               {exercise.category === 'PLYOMETRIC' ? '🦘' :
-               exercise.category === 'CORE' ? '🎯' : '💪'}
+                exercise.category === 'CORE' ? '🎯' : '💪'}
             </div>
           </div>
         )}
@@ -493,7 +495,7 @@ export function ExerciseLibraryBrowser({
         <div>
           <h2 className="text-2xl font-bold">Exercise Library</h2>
           <p className="text-sm text-gray-500">
-            {exercises.length} exercises {searchTerm && `matching "${searchTerm}"`}
+            {totalCount} övningar {searchTerm && `matchar "${searchTerm}"`}
           </p>
         </div>
         <div className="flex items-center gap-2">

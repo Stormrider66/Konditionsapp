@@ -57,7 +57,9 @@ export function getExerciseImagePublicUrl(path: string): string {
   if (!supabaseUrl) {
     throw new Error('NEXT_PUBLIC_SUPABASE_URL is not defined')
   }
-  return `${supabaseUrl}/storage/v1/object/public/${EXERCISE_IMAGES_BUCKET}/${path}`
+  // Remove leading slash if present to avoid double slashes in URL
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path
+  return `${supabaseUrl}/storage/v1/object/public/${EXERCISE_IMAGES_BUCKET}/${normalizedPath}`
 }
 
 /**

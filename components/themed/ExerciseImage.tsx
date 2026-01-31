@@ -15,7 +15,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ExerciseIcon } from './ExerciseIcon';
-import { getExerciseImagePublicUrl } from '@/lib/storage/supabase-storage';
+import { getExerciseImagePublicUrl, isHttpUrl } from '@/lib/storage/supabase-storage';
 import { cn } from '@/lib/utils';
 
 // Size variants for 9:16 aspect ratio (vertical, mobile-first)
@@ -68,9 +68,26 @@ export function ExerciseImage({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Resolve paths to full URLs
-  const resolvedUrls = imageUrls?.filter(Boolean).map(path => getExerciseImagePublicUrl(path)) || [];
+  // - If path starts with /images/ -> local static file, use directly
+  // - If path is already a full URL -> use directly
+  // - Otherwise -> Supabase storage path, construct full URL
+  const resolvedUrls = imageUrls?.filter(Boolean).map(path => {
+    if (path.startsWith('/images/') || path.startsWith('/images\\')) {
+      // Local static file in public/images/
+      return path;
+    }
+    if (isHttpUrl(path)) {
+      // Already a full URL
+      return path;
+    }
+    // Supabase storage path
+    return getExerciseImagePublicUrl(path);
+  }) || [];
   const hasImages = resolvedUrls.length > 0;
   const hasMultipleImages = resolvedUrls.length > 1;
+
+  // Check if className contains width/height classes (should fill parent instead of fixed size)
+  const shouldFillContainer = className.includes('w-full') || className.includes('h-full');
 
   // Minimum swipe distance to trigger navigation
   const minSwipeDistance = 50;
@@ -154,7 +171,7 @@ export function ExerciseImage({
           'flex items-center justify-center bg-muted/30 rounded-lg',
           className
         )}
-        style={{
+        style={shouldFillContainer ? undefined : {
           width: dimensions.width,
           height: dimensions.height,
           aspectRatio: '9/16'
@@ -180,7 +197,7 @@ export function ExerciseImage({
           enableLightbox && 'cursor-pointer',
           className
         )}
-        style={{
+        style={shouldFillContainer ? undefined : {
           width: dimensions.width,
           height: dimensions.height,
           aspectRatio: '9/16'
