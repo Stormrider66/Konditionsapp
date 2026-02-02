@@ -47,7 +47,14 @@ export async function POST(
       select: { clientId: true },
     })
 
-    if (athleteAccount?.clientId !== action.clientId) {
+    if (!athleteAccount) {
+      return NextResponse.json(
+        { error: 'No athlete profile found' },
+        { status: 404 }
+      )
+    }
+
+    if (athleteAccount.clientId !== action.clientId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

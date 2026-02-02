@@ -64,11 +64,16 @@ import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
 import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary'
 import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
+import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 
 export default async function AthleteDashboardPage() {
   const t = await getTranslations('athlete')
   const tNav = await getTranslations('nav')
   const { user, clientId, isCoachInAthleteMode } = await requireAthleteOrCoachInAthleteMode()
+
+  // Ensure widgets that build URLs can route correctly in business-scoped setups
+  const businessSlug = await getUserPrimaryBusinessSlug(user.id)
+  const basePath = businessSlug ? `/${businessSlug}` : ''
 
   // Get client with sport profile using clientId (works for both athletes and coaches in athlete mode)
   const client = await prisma.client.findUnique({
@@ -671,10 +676,10 @@ export default async function AthleteDashboardPage() {
           <LogWorkoutButton variant="card" />
 
           {/* Accountability Streak Widget */}
-          <AccountabilityStreakWidget />
+          <AccountabilityStreakWidget basePath={basePath} />
 
           {/* AI Agent Recommendations */}
-          <AgentRecommendationsPanel basePath="" />
+          <AgentRecommendationsPanel basePath={basePath} />
 
           {/* Active Training Restrictions (shown only when restrictions exist) */}
           <ActiveRestrictionsCard clientId={clientId} />
