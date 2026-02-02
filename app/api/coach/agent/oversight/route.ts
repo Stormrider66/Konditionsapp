@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { safeParseInt } from '@/lib/utils/parse'
 import type { AgentActionStatus, Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const clientId = searchParams.get('clientId')
     const status = searchParams.get('status') || 'PROPOSED'
-    const limit = parseInt(searchParams.get('limit') || '50', 10)
+    const limit = safeParseInt(searchParams.get('limit'), 50, 1, 100)
 
     // Get coach's user record
     const coachUser = await prisma.user.findUnique({

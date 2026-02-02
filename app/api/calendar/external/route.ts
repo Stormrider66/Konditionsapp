@@ -16,7 +16,8 @@ import {
   convertToCalendarEvents,
 } from '@/lib/calendar/ical-parser'
 import { CalendarEventType, EventImpact } from '@prisma/client'
-import { logError } from '@/lib/logger-console'
+import { logger } from '@/lib/logger'
+import { generateOAuthState, clearOAuthState } from '@/lib/auth/oauth-state'
 
 const createConnectionSchema = z.object({
   clientId: z.string().uuid(),
@@ -235,8 +236,9 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      // Return OAuth URL for the provider
-      const oauthUrl = getOAuthUrl(data.provider, connection.id)
+      // Clear any existing OAuth state and generate new secure state token
+      await clearOAuthState()
+      const oauthUrl = await getOAuthUrl(data.provider, connection.id)
 
       return NextResponse.json(
         {
@@ -250,7 +252,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid provider' }, { status: 400 })
   } catch (error) {
-    logError('Error creating external calendar connection:', error)
+    logger.error('Error creating external calendar connection', {}, error)
     return NextResponse.json(
       { error: 'Failed to create connection' },
       { status: 500 }
@@ -333,7 +335,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(connectionsWithCounts)
   } catch (error) {
-    logError('Error fetching external calendar connections:', error)
+    logger.error('Error fetching external calendar connections', {}, error)
     return NextResponse.json(
       { error: 'Failed to fetch connections' },
       { status: 500 }
@@ -342,10 +344,13 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Get OAuth URL for a provider
+ * Get OAuth URL for a provider with secure CSRF state token
  */
-function getOAuthUrl(provider: string, connectionId: string): string {
+async function getOAuthUrl(provider: string, connectionId: string): Promise<string> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+  // Generate secure state token that includes connection ID
+  const stateToken = await generateOAuthState(connectionId)
 
   switch (provider) {
     case 'GOOGLE':
@@ -360,7 +365,7 @@ function getOAuthUrl(provider: string, connectionId: string): string {
         scope: 'https://www.googleapis.com/auth/calendar.readonly',
         access_type: 'offline',
         prompt: 'consent',
-        state: connectionId,
+        state: stateToken, // Secure CSRF token
       })
       return `https://accounts.google.com/o/oauth2/v2/auth?${googleParams}`
 
@@ -374,7 +379,7 @@ function getOAuthUrl(provider: string, connectionId: string): string {
         redirect_uri: `${baseUrl}/api/auth/outlook/callback`,
         response_type: 'code',
         scope: 'Calendars.Read offline_access',
-        state: connectionId,
+        state: stateToken, // Secure CSRF token
       })
       return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${outlookParams}`
 

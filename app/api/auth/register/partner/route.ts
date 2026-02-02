@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { handleApiError } from '@/lib/api-error'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
 const registerSchema = z.object({
@@ -13,13 +14,6 @@ const registerSchema = z.object({
   referralSource: z.enum(['link', 'code', 'api', 'manual']).default('link'),
   referralCode: z.string().optional(),
 })
-
-// Create Supabase admin client for user creation
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,11 +61,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user in Supabase Auth
+    // Create user in Supabase Auth using server-only admin client
+    const supabaseAdmin = createAdminSupabaseClient()
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
       password: data.password,
-      email_confirm: true, // Auto-confirm email for partner registrations
+      email_confirm: false, // Require email verification for security
       user_metadata: {
         name: data.name,
         language: data.language,
@@ -80,7 +75,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (authError || !authData?.user) {
-      console.error('Supabase auth error:', authError)
+      logger.error('Partner registration auth error', { email: data.email }, authError)
       return NextResponse.json(
         { success: false, error: 'Failed to create account' },
         { status: 500 }

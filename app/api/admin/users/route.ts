@@ -3,8 +3,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin } from '@/lib/auth-utils';
+import { requireAdmin, getCurrentUser } from '@/lib/auth-utils';
 import { logger } from '@/lib/logger';
+import { parsePagination } from '@/lib/utils/parse';
+import { logRoleChange, logAuditEvent, getIpFromRequest, getUserAgentFromRequest } from '@/lib/audit/log';
 import { z } from 'zod';
 
 const updateUserSchema = z.object({
@@ -18,12 +20,13 @@ export async function GET(request: NextRequest) {
     await requireAdmin();
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const { page, limit, skip } = parsePagination(
+      searchParams.get('page'),
+      searchParams.get('limit'),
+      { defaultLimit: 20, maxLimit: 100 }
+    );
     const search = searchParams.get('search') || '';
     const role = searchParams.get('role') || '';
-
-    const skip = (page - 1) * limit;
 
     const where = {
       ...(search ? {
@@ -94,7 +97,8 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    await requireAdmin();
+    const adminUser = await requireAdmin();
+    const currentUser = await getCurrentUser();
 
     const body = await request.json();
     const validation = updateUserSchema.safeParse(body);
@@ -108,16 +112,44 @@ export async function PUT(request: NextRequest) {
 
     const { userId, role, tier } = validation.data;
 
+    // Get current user state for audit log
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: true,
+        subscription: { select: { tier: true } },
+      },
+    });
+
+    if (!targetUser) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     // Update user role if provided
-    if (role) {
+    if (role && role !== targetUser.role) {
       await prisma.user.update({
         where: { id: userId },
         data: { role },
       });
+
+      // SECURITY: Log role change for audit trail
+      if (currentUser) {
+        await logRoleChange(
+          currentUser.id,
+          userId,
+          targetUser.role,
+          role,
+          request
+        );
+      }
     }
 
     // Update subscription tier if provided
     if (tier) {
+      const oldTier = targetUser.subscription?.tier;
       const maxAthletes = {
         FREE: 1,
         BASIC: 20,
@@ -138,6 +170,20 @@ export async function PUT(request: NextRequest) {
           status: 'ACTIVE',
         },
       });
+
+      // SECURITY: Log subscription tier change
+      if (currentUser && tier !== oldTier) {
+        await logAuditEvent({
+          action: 'SUBSCRIPTION_CHANGE',
+          userId: currentUser.id,
+          targetId: userId,
+          targetType: 'Subscription',
+          oldValue: { tier: oldTier },
+          newValue: { tier },
+          ipAddress: getIpFromRequest(request),
+          userAgent: getUserAgentFromRequest(request),
+        });
+      }
     }
 
     const updatedUser = await prisma.user.findUnique({

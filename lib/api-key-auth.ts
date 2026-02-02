@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createHash } from 'crypto'
 import { logger } from '@/lib/logger'
+import { checkRateLimitRedis, isRedisConfigured } from '@/lib/rate-limit-redis'
 
-// In-memory rate limit store (use Redis in production for multi-instance)
+// In-memory rate limit store (fallback when Redis is not configured)
 const rateLimitStore = new Map<string, { minute: number; day: number; minuteReset: number; dayReset: number }>()
 
 export interface ApiKeyContext {
@@ -77,8 +78,12 @@ export async function validateApiKey(request: NextRequest): Promise<ApiKeyValida
     return { valid: false, error: 'Business is inactive', statusCode: 403 }
   }
 
-  // Check rate limits
-  const rateLimitResult = checkRateLimit(storedKey.id, storedKey.requestsPerMinute, storedKey.requestsPerDay)
+  // Check rate limits - use Redis in production, in-memory fallback otherwise
+  const rateLimitResult = await checkApiKeyRateLimit(
+    storedKey.id,
+    storedKey.requestsPerMinute,
+    storedKey.requestsPerDay
+  )
   if (!rateLimitResult.allowed) {
     return {
       valid: false,
@@ -142,9 +147,56 @@ export function hasAnyScope(context: ApiKeyContext, requiredScopes: string[]): b
 }
 
 /**
- * In-memory rate limiter
+ * Check API key rate limits
+ * Uses Redis in production for distributed rate limiting,
+ * falls back to in-memory for development/single-instance deployments.
  */
-function checkRateLimit(
+async function checkApiKeyRateLimit(
+  keyId: string,
+  maxPerMinute: number,
+  maxPerDay: number
+): Promise<{ allowed: boolean; error?: string }> {
+  // Use Redis if configured (production multi-instance)
+  if (isRedisConfigured()) {
+    // Check minute limit
+    const minuteResult = await checkRateLimitRedis(
+      `apikey:minute:${keyId}`,
+      { limit: maxPerMinute, windowSeconds: 60 }
+    )
+
+    if (!minuteResult.success) {
+      const retryAfter = Math.ceil((minuteResult.resetTime - Date.now()) / 1000)
+      return {
+        allowed: false,
+        error: `Rate limit exceeded. Max ${maxPerMinute} requests per minute. Retry after ${retryAfter}s`
+      }
+    }
+
+    // Check day limit
+    const dayResult = await checkRateLimitRedis(
+      `apikey:day:${keyId}`,
+      { limit: maxPerDay, windowSeconds: 86400 }
+    )
+
+    if (!dayResult.success) {
+      const retryAfter = Math.ceil((dayResult.resetTime - Date.now()) / 1000)
+      return {
+        allowed: false,
+        error: `Daily limit exceeded. Max ${maxPerDay} requests per day. Retry after ${retryAfter}s`
+      }
+    }
+
+    return { allowed: true }
+  }
+
+  // Fallback to in-memory rate limiting
+  return checkInMemoryRateLimit(keyId, maxPerMinute, maxPerDay)
+}
+
+/**
+ * In-memory rate limiter (fallback for development/single-instance)
+ */
+function checkInMemoryRateLimit(
   keyId: string,
   maxPerMinute: number,
   maxPerDay: number

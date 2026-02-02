@@ -1,10 +1,13 @@
 // lib/athlete-account-utils.ts
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
+import { logger } from '@/lib/logger'
+import type { AthleteAccount, Client, User } from '@prisma/client'
 
 export interface CreateAthleteAccountResult {
   success: boolean
-  athleteAccount?: any
+  athleteAccount?: AthleteAccount & { client: Client; user: User }
+  /** @deprecated Passwords are no longer returned - sent via email only */
   temporaryPassword?: string
   error?: string
 }
@@ -31,7 +34,11 @@ export async function createAthleteAccountForClient(
   coachId: string,
   options?: {
     temporaryPassword?: string
-    notificationPrefs?: any
+    notificationPrefs?: {
+      email?: boolean
+      push?: boolean
+      workoutReminders?: boolean
+    }
   }
 ): Promise<CreateAthleteAccountResult> {
   try {
@@ -79,12 +86,12 @@ export async function createAthleteAccountForClient(
     // Generate temporary password
     const password = options?.temporaryPassword || generateTemporaryPassword()
 
-    // Create user account in Supabase
-    const supabase = await createClient()
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    // Create user account in Supabase using server-only admin client
+    const supabaseAdmin = createAdminSupabaseClient()
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: client.email,
       password,
-      email_confirm: true, // Auto-confirm email
+      email_confirm: true, // Auto-confirm email for accounts created by coaches
       user_metadata: {
         name: client.name,
         role: 'ATHLETE',
@@ -92,7 +99,7 @@ export async function createAthleteAccountForClient(
     })
 
     if (authError || !authData.user) {
-      console.error('Supabase auth error:', authError)
+      logger.error('Athlete account creation auth error', { email: client.email, clientId }, authError)
       return { success: false, error: `Failed to create athlete account: ${authError?.message}` }
     }
 
@@ -140,13 +147,14 @@ export async function createAthleteAccountForClient(
       })
     }
 
+    // Note: Password is NOT returned in the result for security
+    // It should only be sent via email
     return {
       success: true,
       athleteAccount,
-      temporaryPassword: password,
     }
   } catch (error) {
-    console.error('Error creating athlete account:', error)
+    logger.error('Error creating athlete account', { clientId, coachId }, error)
     return {
       success: false,
       error: 'Internal server error while creating athlete account',

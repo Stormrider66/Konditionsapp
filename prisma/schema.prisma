@@ -597,6 +597,9 @@ model User {
   // External Calendar Connections (Bokadirekt, Zoezi, etc.)
   externalCalendarConnections ExternalCalendarConnection[] @relation("UserCalendarConnections")
 
+  // Security Audit Logs
+  auditLogs AuditLog[]
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -8989,4 +8992,36 @@ model AgentAuditLog {
   @@index([clientId, createdAt])
   @@index([action])
   @@index([clientId])
+}
+
+/// General audit log for security-sensitive operations
+/// Tracks admin actions, role changes, data deletions, etc.
+model AuditLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  // Action
+  action String // USER_ROLE_CHANGE, DATA_DELETE, SETTINGS_CHANGE, etc.
+
+  // Actor (who performed the action)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Target (what was affected)
+  targetId   String? // ID of the affected resource
+  targetType String? // Type of resource (User, Business, etc.)
+
+  // Change tracking
+  oldValue Json? // Previous state
+  newValue Json? // New state
+  metadata Json? // Additional context
+
+  // Request context
+  ipAddress String?
+  userAgent String?
+
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([targetId, targetType])
+  @@index([createdAt])
 }

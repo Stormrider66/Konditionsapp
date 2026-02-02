@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { requireAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
+import { parsePagination, safeParseBoolean } from '@/lib/utils/parse'
 import { z } from 'zod'
 
 // Validation schema for creating a business
@@ -32,9 +33,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
     const hasContract = searchParams.get('hasContract')
-    const includeInactive = searchParams.get('includeInactive') === 'true'
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const includeInactive = safeParseBoolean(searchParams.get('includeInactive'))
+    const { page, limit, skip } = parsePagination(
+      searchParams.get('page'),
+      searchParams.get('limit'),
+      { defaultLimit: 20, maxLimit: 100 }
+    )
 
     const where: Record<string, unknown> = {}
 
@@ -85,7 +89,7 @@ export async function GET(request: NextRequest) {
           },
         },
         orderBy: { name: 'asc' },
-        skip: (page - 1) * limit,
+        skip,
         take: limit,
       }),
       prisma.business.count({ where }),

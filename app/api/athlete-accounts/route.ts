@@ -88,18 +88,9 @@ export async function POST(request: NextRequest) {
     // Generate temporary password if not provided
     const password = temporaryPassword || generateTemporaryPassword()
 
-    // Create user account in Supabase using service role for admin operations
-    const { createClient: createSupabaseClient } = await import('@supabase/supabase-js')
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    // Create user account in Supabase using server-only admin client
+    const { createAdminSupabaseClient } = await import('@/lib/supabase/admin')
+    const supabaseAdmin = createAdminSupabaseClient()
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -196,11 +187,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // SECURITY: Never return passwords in API responses
+    // Credentials are sent via email only
     return NextResponse.json(
       {
         athleteAccount,
-        temporaryPassword: password,
-        message: 'Athlete account created successfully',
+        message: 'Athlete account created successfully. Login credentials have been sent to the athlete\'s email.',
       },
       { status: 201 }
     )

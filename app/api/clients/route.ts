@@ -133,15 +133,12 @@ export async function POST(request: NextRequest) {
     })
 
     // Automatically create athlete account if client has an email
-    let athleteCredentials = null
+    let athleteAccountCreated = false
     if (client.email) {
       const athleteResult = await createAthleteAccountForClient(client.id, dbUser.id)
 
       if (athleteResult.success) {
-        athleteCredentials = {
-          email: client.email,
-          temporaryPassword: athleteResult.temporaryPassword,
-        }
+        athleteAccountCreated = true
         logger.info('Athlete account created automatically for client', { clientName: client.name })
       } else {
         logger.warn('Could not create athlete account automatically', { error: athleteResult.error })
@@ -149,14 +146,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // SECURITY: Never return passwords in API responses
+    // Credentials are sent via email only
     return NextResponse.json(
       {
         success: true,
         data: client,
-        athleteCredentials, // Include credentials if athlete account was created
-        message: client.email
-          ? 'Client and athlete account created successfully'
-          : 'Client created successfully (no email provided for athlete account)',
+        athleteAccountCreated, // Boolean flag instead of credentials
+        message: athleteAccountCreated
+          ? 'Client and athlete account created successfully. Login credentials have been sent to the athlete\'s email.'
+          : client.email
+            ? 'Client created successfully (athlete account creation failed)'
+            : 'Client created successfully (no email provided for athlete account)',
       },
       { status: 201 }
     )

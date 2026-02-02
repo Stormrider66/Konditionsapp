@@ -2,6 +2,8 @@
  * Google OAuth Callback
  *
  * GET /api/auth/google/callback - Handle Google OAuth callback for calendar access
+ *
+ * SECURITY: Validates CSRF state token before processing the callback.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -9,6 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { encryptIntegrationSecret } from '@/lib/integrations/crypto'
 import { logger } from '@/lib/logger'
+import { validateOAuthState } from '@/lib/auth/oauth-state'
 
 interface GoogleTokenResponse {
   access_token: string
@@ -41,7 +44,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
-    const state = searchParams.get('state') // Connection ID
+    const stateToken = searchParams.get('state')
     const error = searchParams.get('error')
 
     if (error) {
@@ -51,9 +54,22 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    if (!code || !state) {
+    if (!code || !stateToken) {
       return NextResponse.redirect(
         `${baseUrl}/athlete/settings/calendars?error=missing_params`
+      )
+    }
+
+    // SECURITY: Validate CSRF state token before processing
+    const connectionId = await validateOAuthState(stateToken)
+
+    if (!connectionId) {
+      logger.warn('Invalid OAuth state token - potential CSRF attack', {
+        hasCode: !!code,
+        stateLength: stateToken?.length,
+      })
+      return NextResponse.redirect(
+        `${baseUrl}/athlete/settings/calendars?error=invalid_state`
       )
     }
 
@@ -67,9 +83,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/login?redirect=/athlete/settings/calendars`)
     }
 
-    // Find the connection
+    // Find the connection using the validated connection ID
     const connection = await prisma.externalCalendarConnection.findUnique({
-      where: { id: state },
+      where: { id: connectionId },
       include: {
         client: {
           include: { athleteAccount: true },

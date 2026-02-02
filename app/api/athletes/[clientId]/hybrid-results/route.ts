@@ -7,7 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-utils';
-import { logError } from '@/lib/logger-console'
+import { canAccessAthlete } from '@/lib/auth/athlete-access';
+import { logger } from '@/lib/logger';
 
 interface RouteContext {
   params: Promise<{ clientId: string }>;
@@ -22,21 +23,25 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     const { clientId } = await context.params;
 
-    // Verify access - either the athlete themselves or their coach
+    // Verify the client exists
     const client = await prisma.client.findUnique({
       where: { id: clientId },
-      select: { userId: true },
+      select: { id: true },
     });
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    // Check if user is the athlete or their coach
-    const isAthlete = client.userId === user.id;
-    const isCoach = user.role === 'COACH' || user.role === 'ADMIN';
+    // SECURITY: Use proper authorization check that verifies coach-athlete relationship
+    const accessResult = await canAccessAthlete(user.id, clientId);
 
-    if (!isAthlete && !isCoach) {
+    if (!accessResult.allowed) {
+      logger.warn('Unauthorized athlete data access attempt', {
+        userId: user.id,
+        clientId,
+        reason: accessResult.reason,
+      });
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -100,7 +105,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       stats,
     });
   } catch (error) {
-    logError('Failed to fetch athlete hybrid results:', error);
+    logger.error('Failed to fetch athlete hybrid results', {}, error);
     return NextResponse.json(
       { error: 'Failed to fetch results' },
       { status: 500 }

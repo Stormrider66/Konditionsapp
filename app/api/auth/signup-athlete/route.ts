@@ -33,11 +33,12 @@ const signupSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limit signup attempts per IP
+    // SECURITY: Strict rate limit for signup attempts per IP
+    // 5 attempts per hour to prevent abuse
     const ip = getRequestIp(request)
     const rateLimited = await rateLimitJsonResponse('auth:signup-athlete', ip, {
-      limit: 10,
-      windowSeconds: 60,
+      limit: 5,
+      windowSeconds: 3600, // 1 hour
     })
     if (rateLimited) return rateLimited
 
@@ -152,35 +153,36 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Create subscription - AI-coached gets enhanced tier with AI features
+      // SECURITY: All signups start with FREE tier
+      // PRO/AI features require payment verification - aiCoached flag from request is IGNORED
+      // This prevents tier bypass where users could self-select PRO without paying
       const subscription = await tx.athleteSubscription.create({
         data: {
           clientId: client.id,
-          tier: aiCoached ? 'PRO' : 'FREE', // AI-coached gets PRO tier
+          tier: 'FREE', // Always start FREE - upgrade requires payment
           status: 'ACTIVE',
           paymentSource: 'DIRECT',
-          // AI-coached athletes get full AI access
-          aiChatEnabled: aiCoached || false,
-          videoAnalysisEnabled: aiCoached || false,
-          garminEnabled: aiCoached || false,
-          stravaEnabled: aiCoached || false,
+          // All premium features disabled by default - require subscription upgrade
+          aiChatEnabled: false,
+          videoAnalysisEnabled: false,
+          garminEnabled: false,
+          stravaEnabled: false,
         },
       });
 
-      // Create agent preferences for AI-coached athletes
-      if (aiCoached) {
-        await tx.agentPreferences.create({
-          data: {
-            clientId: client.id,
-            autonomyLevel: 'SUPERVISED', // Higher autonomy for AI-coached
-            allowWorkoutModification: true,
-            allowRestDayInjection: true,
-            maxIntensityReduction: 30,
-            dailyBriefingEnabled: true,
-            proactiveNudgesEnabled: true,
-          },
-        });
-      }
+      // Agent preferences created with minimal defaults
+      // Full AI coaching features enabled after subscription upgrade
+      await tx.agentPreferences.create({
+        data: {
+          clientId: client.id,
+          autonomyLevel: 'MINIMAL', // Minimal until subscription upgrade
+          allowWorkoutModification: false,
+          allowRestDayInjection: false,
+          maxIntensityReduction: 10,
+          dailyBriefingEnabled: false,
+          proactiveNudgesEnabled: false,
+        },
+      });
 
       // Create sport profile for onboarding
       const sportProfile = await tx.sportProfile.create({
@@ -221,15 +223,14 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // AI-coached athletes go to AI assessment, others to regular onboarding
-    const redirectUrl = aiCoached
-      ? '/athlete/onboarding/ai-assessment'
-      : '/athlete/onboarding';
+    // All athletes go to standard onboarding
+    // AI-coached upgrade happens after payment
+    const redirectUrl = '/athlete/onboarding';
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Account created successfully',
+        message: 'Account created successfully. Please check your email to verify your account.',
         user: {
           id: result.user.id,
           email: result.user.email,
@@ -240,7 +241,6 @@ export async function POST(request: NextRequest) {
           id: result.client.id,
           name: result.client.name,
           isDirect: result.client.isDirect,
-          isAICoached: aiCoached || false,
         },
         subscription: {
           id: result.subscription.id,
