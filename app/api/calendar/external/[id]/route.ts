@@ -73,6 +73,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
     }
 
+    if (!connection.client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+
     // Verify access
     const isCoach = connection.client.userId === dbUser.id
     const isAthlete = connection.client.athleteAccount?.userId === dbUser.id
@@ -84,7 +88,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Get event count
     const eventCount = await prisma.calendarEvent.count({
       where: {
-        clientId: connection.clientId,
+        clientId: connection.client.id,
         externalCalendarType: connection.provider,
         externalCalendarName: connection.calendarName,
       },
@@ -139,6 +143,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (!connection) {
       return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
+    }
+
+    if (!connection.client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
     // Verify access
@@ -222,6 +230,10 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
     }
 
+    if (!connection.client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+
     // Verify access
     const isCoach = connection.client.userId === dbUser.id
     const isAthlete = connection.client.athleteAccount?.userId === dbUser.id
@@ -233,7 +245,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Delete imported events first
     const deletedEvents = await prisma.calendarEvent.deleteMany({
       where: {
-        clientId: connection.clientId,
+        clientId: connection.client.id,
         externalCalendarType: connection.provider,
         externalCalendarName: connection.calendarName,
         isReadOnly: true,

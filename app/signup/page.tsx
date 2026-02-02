@@ -42,8 +42,9 @@ function SignupForm() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
-  // Get invite code from URL if present
+  // Get invite code and mode from URL if present
   const inviteCodeFromUrl = searchParams.get('invite') || ''
+  const isAICoached = searchParams.get('mode') === 'ai-coached'
 
   const {
     register,
@@ -71,6 +72,7 @@ function SignupForm() {
           password: data.password,
           gender: data.gender,
           inviteCode: data.inviteCode || undefined,
+          aiCoached: isAICoached,
         }),
       })
 

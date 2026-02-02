@@ -45,6 +45,7 @@ import {
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget } from '@/components/athlete/dashboard'
+import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
 import { RacePredictionWidget } from '@/components/athlete/RacePredictionWidget'
@@ -671,6 +672,9 @@ export default async function AthleteDashboardPage() {
 
           {/* Accountability Streak Widget */}
           <AccountabilityStreakWidget />
+
+          {/* AI Agent Recommendations */}
+          <AgentRecommendationsPanel basePath="" />
 
           {/* Active Training Restrictions (shown only when restrictions exist) */}
           <ActiveRestrictionsCard clientId={clientId} />

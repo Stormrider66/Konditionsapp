@@ -32,11 +32,14 @@ import {
   Target,
   Loader2,
   Info,
+  Play,
 } from 'lucide-react'
 import { SetLoggingForm, SetLogData } from './SetLoggingForm'
 import { RestTimer } from './RestTimer'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { ExerciseHeader } from '@/components/themed/ExerciseHeader'
+import { Player } from '@remotion/player'
+import { ExerciseAnimation } from '@/remotion/exercises/ExerciseAnimation'
 import { useToast } from '@/hooks/use-toast'
 
 interface FocusModeExercise {
@@ -375,13 +378,12 @@ export function WorkoutFocusMode({
             <button
               key={ex.id}
               onClick={() => setCurrentIndex(idx)}
-              className={`w-2 h-2 rounded-full transition-all ${
-                isCurrent
-                  ? 'w-4 bg-primary'
-                  : isComplete
+              className={`w-2 h-2 rounded-full transition-all ${isCurrent
+                ? 'w-4 bg-primary'
+                : isComplete
                   ? 'bg-green-500'
                   : 'bg-muted-foreground/30'
-              }`}
+                }`}
             />
           )
         })}
@@ -423,15 +425,42 @@ export function WorkoutFocusMode({
                       showSubtitle={!!currentExercise.nameSv && currentExercise.nameSv !== currentExercise.name}
                       className="rounded-b-none"
                     />
-                    {/* Exercise Image */}
-                    <ExerciseImage
-                      imageUrls={currentExercise.imageUrls}
-                      exerciseId={currentExercise.exerciseId}
-                      size="xl"
-                      showCarousel={currentExercise.imageUrls.length > 1}
-                      enableLightbox={true}
-                      className="rounded-t-none"
-                    />
+                    {/* Exercise Image or Remotion Animation */}
+                    {currentExercise.imageUrls && currentExercise.imageUrls.length > 1 ? (
+                      <div className="w-full aspect-[9/16] bg-black rounded-lg overflow-hidden relative">
+                        <div className="absolute inset-0">
+                          <Player
+                            component={ExerciseAnimation}
+                            inputProps={{ imageUrls: currentExercise.imageUrls }}
+                            durationInFrames={300}
+                            fps={30}
+                            compositionWidth={1080}
+                            compositionHeight={1920}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                            }}
+                            controls
+                            loop
+                            autoPlay
+                          />
+                        </div>
+                        {/* Badge indicating animation */}
+                        <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 backdrop-blur-md">
+                          <Play className="w-3 h-3 fill-white" />
+                          <span>Live Animation</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <ExerciseImage
+                        imageUrls={currentExercise.imageUrls}
+                        exerciseId={currentExercise.exerciseId}
+                        size="xl"
+                        showCarousel={false}
+                        enableLightbox={true}
+                        className="rounded-t-none"
+                      />
+                    )}
                     {/* Exercise details below image */}
                     <div className="mt-3 text-center">
                       <p className="text-muted-foreground">
@@ -488,13 +517,12 @@ export function WorkoutFocusMode({
                     return (
                       <div
                         key={setNum}
-                        className={`p-3 rounded-lg border text-center ${
-                          isCompleted
-                            ? 'bg-green-50 dark:bg-green-500/10 border-green-300 dark:border-green-500/30'
-                            : isCurrent
+                        className={`p-3 rounded-lg border text-center ${isCompleted
+                          ? 'bg-green-50 dark:bg-green-500/10 border-green-300 dark:border-green-500/30'
+                          : isCurrent
                             ? 'bg-primary/10 border-primary'
                             : 'bg-muted/30'
-                        }`}
+                          }`}
                       >
                         <p className="text-sm font-medium">Set {setNum}</p>
                         {isCompleted ? (
@@ -655,10 +683,10 @@ export function WorkoutFocusMode({
               {sessionRPE <= 6
                 ? 'Lätt'
                 : sessionRPE <= 7
-                ? 'Måttligt'
-                : sessionRPE <= 8
-                ? 'Svårt'
-                : 'Mycket svårt'}
+                  ? 'Måttligt'
+                  : sessionRPE <= 8
+                    ? 'Svårt'
+                    : 'Mycket svårt'}
             </p>
           </div>
 

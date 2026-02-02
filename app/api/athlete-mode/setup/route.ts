@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = setupAthleteProfileSchema.parse(body)
 
-    // Create the Client record and link it to the user
+    // Create the Client record, AthleteAccount, and link to user
     const result = await prisma.$transaction(async (tx) => {
       // Create Client record for the coach's personal athlete profile
       const client = await tx.client.create({
@@ -65,6 +65,14 @@ export async function POST(request: NextRequest) {
           height: validatedData.height,
           weight: validatedData.weight,
           isDirect: false, // This is a self-coaching profile, not a direct athlete
+        },
+      })
+
+      // Create AthleteAccount to link User to Client (needed for athlete APIs)
+      await tx.athleteAccount.create({
+        data: {
+          userId: user.id,
+          clientId: client.id,
         },
       })
 
@@ -97,6 +105,74 @@ export async function POST(request: NextRequest) {
     logger.error('Error setting up athlete profile', {}, error)
     return NextResponse.json(
       { success: false, error: 'Failed to create athlete profile' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * PATCH /api/athlete-mode/setup
+ * Fix existing coach athlete profile by creating missing AthleteAccount
+ */
+export async function PATCH() {
+  try {
+    const user = await getCurrentUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Check if user has a selfAthleteClientId but no AthleteAccount
+    const existingUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { selfAthleteClientId: true },
+    })
+
+    if (!existingUser?.selfAthleteClientId) {
+      return NextResponse.json(
+        { success: false, error: 'No athlete profile found. Use POST to create one.' },
+        { status: 400 }
+      )
+    }
+
+    // Check if AthleteAccount already exists
+    const existingAccount = await prisma.athleteAccount.findUnique({
+      where: { userId: user.id },
+    })
+
+    if (existingAccount) {
+      return NextResponse.json({
+        success: true,
+        message: 'AthleteAccount already exists',
+        data: { clientId: existingAccount.clientId },
+      })
+    }
+
+    // Create the missing AthleteAccount
+    const athleteAccount = await prisma.athleteAccount.create({
+      data: {
+        userId: user.id,
+        clientId: existingUser.selfAthleteClientId,
+      },
+    })
+
+    logger.info('Fixed coach athlete profile - created AthleteAccount', {
+      userId: user.id,
+      clientId: athleteAccount.clientId,
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'AthleteAccount created successfully',
+      data: { clientId: athleteAccount.clientId },
+    })
+  } catch (error) {
+    logger.error('Error fixing athlete profile', {}, error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to fix athlete profile' },
       { status: 500 }
     )
   }

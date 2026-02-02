@@ -50,9 +50,10 @@ export async function GET(request: NextRequest) {
             lte: dayEnd,
           },
           startTime: { not: null },
-          session: {
-            coachId: user.id,
-          },
+          OR: [
+            { session: { coachId: user.id } },
+            { responsibleCoachId: user.id },
+          ],
         },
         include: {
           session: {

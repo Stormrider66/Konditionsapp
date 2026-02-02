@@ -94,6 +94,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    if (!connection.client) {
+      return NextResponse.redirect(
+        `${baseUrl}/athlete/settings/calendars?error=client_not_found`
+      )
+    }
+
     const isCoach = connection.client.userId === dbUser.id
     const isAthlete = connection.client.athleteAccount?.userId === dbUser.id
 

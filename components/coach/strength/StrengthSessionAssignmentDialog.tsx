@@ -31,11 +31,24 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Calendar, Loader2, Clock, ChevronDown } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Users, Calendar, Loader2, Clock, ChevronDown, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
 
 interface Athlete {
+  id: string;
+  name: string;
+  email?: string;
+}
+
+interface Coach {
   id: string;
   name: string;
   email?: string;
@@ -48,6 +61,7 @@ interface StrengthSessionAssignmentDialogProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onAssigned?: () => void;
+  businessId?: string;
 }
 
 export function StrengthSessionAssignmentDialog({
@@ -57,6 +71,7 @@ export function StrengthSessionAssignmentDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
   onAssigned,
+  businessId,
 }: StrengthSessionAssignmentDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -65,6 +80,11 @@ export function StrengthSessionAssignmentDialog({
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingAthletes, setLoadingAthletes] = useState(false);
+
+  // Coach selection state
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [selectedCoach, setSelectedCoach] = useState<string>('');
+  const [loadingCoaches, setLoadingCoaches] = useState(false);
 
   // Scheduling state
   const [schedulingOpen, setSchedulingOpen] = useState(false);
@@ -82,10 +102,12 @@ export function StrengthSessionAssignmentDialog({
   useEffect(() => {
     if (open) {
       fetchAthletes();
+      fetchCoaches();
       // Reset form
       setSelectedAthletes([]);
       setAssignedDate(new Date().toISOString().split('T')[0]);
       setNotes('');
+      setSelectedCoach('');
       // Reset scheduling
       setSchedulingOpen(false);
       setStartTime('');
@@ -99,15 +121,53 @@ export function StrengthSessionAssignmentDialog({
   async function fetchAthletes() {
     setLoadingAthletes(true);
     try {
-      const response = await fetch('/api/clients?limit=100');
+      // Use business-scoped API if businessId is provided
+      const url = businessId
+        ? `/api/business/${businessId}/clients`
+        : '/api/clients?limit=100';
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setAthletes(data.clients || []);
+        // Handle both response formats
+        const clientsList = data.clients || data.data || [];
+        setAthletes(clientsList);
       }
     } catch (error) {
       console.error('Failed to fetch athletes:', error);
     } finally {
       setLoadingAthletes(false);
+    }
+  }
+
+  async function fetchCoaches() {
+    setLoadingCoaches(true);
+    try {
+      if (businessId) {
+        // Business context: fetch list of coaches from the business
+        const response = await fetch(`/api/business/${businessId}/coaches`);
+        if (response.ok) {
+          const data = await response.json();
+          const coachesList = data.coaches || [];
+          setCoaches(coachesList);
+        }
+      } else {
+        // Standard context: fetch current user info
+        const response = await fetch('/api/users/me');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setCoaches([{
+              id: data.data.id,
+              name: data.data.name || 'Jag',
+              email: data.data.email,
+            }]);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch coaches:', error);
+    } finally {
+      setLoadingCoaches(false);
     }
   }
 
@@ -139,6 +199,7 @@ export function StrengthSessionAssignmentDialog({
           athleteIds: selectedAthletes,
           assignedDate,
           notes: notes || undefined,
+          responsibleCoachId: selectedCoach || undefined,
           // Include scheduling fields if time is set
           ...(startTime && {
             startTime,
@@ -279,6 +340,40 @@ export function StrengthSessionAssignmentDialog({
             </div>
           </CollapsibleContent>
         </Collapsible>
+
+        {/* Responsible Coach Selection */}
+        {coaches.length > 0 && (
+          <div className="space-y-2">
+            <Label htmlFor="coach" className="flex items-center gap-2">
+              <UserCircle className="h-4 w-4" />
+              Ansvarig coach (valfritt)
+            </Label>
+            <Select
+              value={selectedCoach || 'none'}
+              onValueChange={(val) => setSelectedCoach(val === 'none' ? '' : val)}
+            >
+              <SelectTrigger id="coach">
+                <SelectValue placeholder="Välj coach för kalender..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Ingen vald</SelectItem>
+                {coaches.map((coach) => (
+                  <SelectItem key={coach.id} value={coach.id}>
+                    {coach.name}
+                    {coach.email && (
+                      <span className="text-muted-foreground ml-2 text-xs">
+                        ({coach.email})
+                      </span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Passet visas i den valda coachens kalender
+            </p>
+          </div>
+        )}
 
         {/* Notes */}
         <div className="space-y-2">

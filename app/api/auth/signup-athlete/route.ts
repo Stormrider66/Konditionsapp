@@ -27,6 +27,8 @@ const signupSchema = z.object({
   gender: z.enum(['MALE', 'FEMALE']).optional(),
   // Optional invitation code
   inviteCode: z.string().optional(),
+  // AI-coached mode - athlete uses AI as primary coach
+  aiCoached: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -50,7 +52,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, name, birthDate, gender, inviteCode } = validationResult.data;
+    const { email, password, name, birthDate, gender, inviteCode, aiCoached } = validationResult.data;
 
     // Check if email is already registered
     const existingUser = await prisma.user.findUnique({
@@ -146,22 +148,39 @@ export async function POST(request: NextRequest) {
           height: 170, // Default values, will be updated during onboarding
           weight: 70,
           isDirect: true,
+          isAICoached: aiCoached || false,
         },
       });
 
-      // Create free tier subscription
+      // Create subscription - AI-coached gets enhanced tier with AI features
       const subscription = await tx.athleteSubscription.create({
         data: {
           clientId: client.id,
-          tier: 'FREE',
+          tier: aiCoached ? 'PRO' : 'FREE', // AI-coached gets PRO tier
           status: 'ACTIVE',
           paymentSource: 'DIRECT',
-          aiChatEnabled: false,
-          videoAnalysisEnabled: false,
-          garminEnabled: false,
-          stravaEnabled: false,
+          // AI-coached athletes get full AI access
+          aiChatEnabled: aiCoached || false,
+          videoAnalysisEnabled: aiCoached || false,
+          garminEnabled: aiCoached || false,
+          stravaEnabled: aiCoached || false,
         },
       });
+
+      // Create agent preferences for AI-coached athletes
+      if (aiCoached) {
+        await tx.agentPreferences.create({
+          data: {
+            clientId: client.id,
+            autonomyLevel: 'SUPERVISED', // Higher autonomy for AI-coached
+            allowWorkoutModification: true,
+            allowRestDayInjection: true,
+            maxIntensityReduction: 30,
+            dailyBriefingEnabled: true,
+            proactiveNudgesEnabled: true,
+          },
+        });
+      }
 
       // Create sport profile for onboarding
       const sportProfile = await tx.sportProfile.create({
@@ -202,6 +221,11 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    // AI-coached athletes go to AI assessment, others to regular onboarding
+    const redirectUrl = aiCoached
+      ? '/athlete/onboarding/ai-assessment'
+      : '/athlete/onboarding';
+
     return NextResponse.json(
       {
         success: true,
@@ -216,13 +240,14 @@ export async function POST(request: NextRequest) {
           id: result.client.id,
           name: result.client.name,
           isDirect: result.client.isDirect,
+          isAICoached: aiCoached || false,
         },
         subscription: {
           id: result.subscription.id,
           tier: result.subscription.tier,
         },
         needsOnboarding: true,
-        redirectUrl: '/athlete/onboarding',
+        redirectUrl,
       },
       { status: 201 }
     );

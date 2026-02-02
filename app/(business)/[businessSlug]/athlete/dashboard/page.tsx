@@ -45,6 +45,7 @@ import {
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget } from '@/components/athlete/dashboard'
+import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
 import { RacePredictionWidget } from '@/components/athlete/RacePredictionWidget'
@@ -655,6 +656,9 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
           {/* Accountability Streak Widget */}
           <AccountabilityStreakWidget basePath={basePath} />
+
+          {/* AI Agent Recommendations */}
+          <AgentRecommendationsPanel basePath={basePath} />
 
           {/* Active Training Restrictions */}
           <ActiveRestrictionsCard clientId={clientId} />

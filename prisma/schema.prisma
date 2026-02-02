@@ -725,6 +725,9 @@ model Client {
   // Direct athlete flag (not onboarded via coach)
   isDirect Boolean @default(false)
 
+  // AI-coached mode (no human coach, AI agent is primary coach)
+  isAICoached Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -873,6 +876,14 @@ model Client {
   movementScreens       MovementScreen[]       @relation("ClientMovementScreens")
   acuteInjuryReports    AcuteInjuryReport[]    @relation("ClientAcuteInjuryReports")
   careTeamThreads       CareTeamThread[]       @relation("ClientCareTeamThreads")
+
+  // Autonomous AI Agent System relations
+  agentPreferences    AgentPreferences?
+  agentConsent        AgentConsent?
+  agentPerceptions    AgentPerception[]
+  agentActions        AgentAction[]
+  agentLearningEvents AgentLearningEvent[]
+  agentAuditLogs      AgentAuditLog[]
 
   @@index([userId])
   @@index([teamId])
@@ -5503,11 +5514,12 @@ model StrengthSessionAssignment {
   notes        String?  @db.Text
 
   // Scheduling fields (optional appointment info)
-  startTime    String? // "HH:mm" format
-  endTime      String? // "HH:mm" format
-  locationId   String? // FK to Location
-  locationName String? // Fallback text if no Location record
-  scheduledBy  String? // Coach who scheduled (if different from assignedBy)
+  startTime          String? // "HH:mm" format
+  endTime            String? // "HH:mm" format
+  locationId         String? // FK to Location
+  locationName       String? // Fallback text if no Location record
+  scheduledBy        String? // Coach who scheduled (if different from assignedBy)
+  responsibleCoachId String? // Coach responsible for session (shows in their calendar)
 
   // Calendar integration
   calendarEventId String? // Link to created CalendarEvent
@@ -5544,6 +5556,7 @@ model StrengthSessionAssignment {
   @@index([locationId])
   @@index([startTime])
   @@index([calendarEventId])
+  @@index([responsibleCoachId])
 }
 
 /// Pre-built strength program templates for quick program generation
@@ -8696,4 +8709,269 @@ model VoiceWorkoutSession {
   @@index([strengthSessionId])
   @@index([cardioSessionId])
   @@index([hybridWorkoutId])
+}
+
+// ============================================================================
+// AUTONOMOUS AI AGENT SYSTEM
+// ============================================================================
+
+enum AgentAutonomyLevel {
+  ADVISORY   // Recommendations only, athlete decides
+  LIMITED    // Auto-adjust within narrow bounds
+  SUPERVISED // Actions with coach notification
+  AUTONOMOUS // Full autonomy, critical escalations only
+}
+
+enum AgentActionType {
+  WORKOUT_INTENSITY_REDUCTION
+  WORKOUT_DURATION_REDUCTION
+  WORKOUT_SUBSTITUTION
+  WORKOUT_SKIP_RECOMMENDATION
+  REST_DAY_INJECTION
+  RECOVERY_ACTIVITY_SUGGESTION
+  PROGRAM_ADJUSTMENT
+  ESCALATE_TO_COACH
+  ESCALATE_TO_SUPPORT
+  MOTIVATIONAL_NUDGE
+  CHECK_IN_REQUEST
+}
+
+enum AgentActionStatus {
+  PROPOSED        // Action proposed, waiting for response
+  ACCEPTED        // Athlete accepted recommendation
+  REJECTED        // Athlete rejected recommendation
+  AUTO_APPLIED    // Automatically applied within autonomy bounds
+  COACH_OVERRIDDEN // Coach overrode the action
+  EXPIRED         // Action expired without response
+}
+
+enum AgentConfidence {
+  LOW       // <60% confidence
+  MEDIUM    // 60-80% confidence
+  HIGH      // 80-95% confidence
+  VERY_HIGH // >95% confidence
+}
+
+/// Agent preferences per athlete - controls autonomy and communication
+model AgentPreferences {
+  id       String @id @default(uuid())
+  clientId String @unique
+
+  // Autonomy settings
+  autonomyLevel            AgentAutonomyLevel @default(ADVISORY)
+  allowWorkoutModification Boolean            @default(false)
+  allowRestDayInjection    Boolean            @default(false)
+  maxIntensityReduction    Int                @default(20) // Max % intensity can be reduced
+
+  // Communication preferences
+  dailyBriefingEnabled   Boolean @default(true)
+  proactiveNudgesEnabled Boolean @default(true)
+  preferredContactMethod String  @default("IN_APP") // IN_APP, EMAIL, SMS
+
+  // Safety bounds
+  minRestDaysPerWeek     Int @default(1) // Minimum rest days per week
+  maxConsecutiveHardDays Int @default(3) // Max high-intensity consecutive days
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+/// GDPR consent for AI agent data processing
+model AgentConsent {
+  id       String @id @default(uuid())
+  clientId String @unique
+
+  // Required consents for agent operation
+  dataProcessingConsent       Boolean @default(false) // Required for any agent operation
+  automatedDecisionConsent    Boolean @default(false) // Required for auto-applied actions
+  healthDataProcessingConsent Boolean @default(false) // Required for processing readiness/injury data
+
+  // Optional consents
+  learningContributionConsent Boolean @default(true) // Use decisions for model improvement
+  anonymizedResearchConsent   Boolean @default(true) // Use data in anonymized research
+
+  // Consent metadata
+  consentVersion     String    @default("1.0") // Version for tracking consent changes
+  consentGivenAt     DateTime? // When consent was granted
+  consentWithdrawnAt DateTime? // When consent was withdrawn (null = active)
+  ipAddress          String?   // IP address when consent was given
+  userAgent          String?   // Browser/app info when consent was given
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+/// Agent perception snapshot - captures athlete state at a point in time
+model AgentPerception {
+  id          String   @id @default(uuid())
+  clientId    String
+  perceivedAt DateTime @default(now())
+
+  // Readiness scores (0-100 scale)
+  readinessScore Float? // Overall readiness
+  fatigueScore   Float? // Fatigue level
+  sleepScore     Float? // Sleep quality
+  stressScore    Float? // Stress level
+
+  // Training load metrics
+  acuteLoad   Float?  // 7-day rolling load
+  chronicLoad Float?  // 28-day rolling load
+  acwr        Float?  // Acute:Chronic Workload Ratio
+  acwrZone    String? // OPTIMAL, CAUTION, DANGER, CRITICAL
+
+  // Status flags
+  hasActiveInjury Boolean @default(false) // Any active injury
+  hasRestrictions Boolean @default(false) // Any training restrictions
+
+  // Behavioral metrics
+  checkInStreak    Int @default(0) // Consecutive check-in days
+  missedWorkouts7d Int @default(0) // Missed workouts in last 7 days
+
+  // Detected patterns
+  detectedPatterns Json?   // Array of detected training patterns
+  patternSeverity  String? // NONE, LOW, MEDIUM, HIGH, CRITICAL
+
+  // Full context snapshot (for debugging/learning)
+  contextSnapshot Json? // Snapshot of all data used in perception
+
+  createdAt DateTime @default(now())
+
+  client  Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  actions AgentAction[]
+
+  @@index([clientId, perceivedAt])
+  @@index([clientId])
+}
+
+/// Agent action/decision - tracks all agent recommendations and actions
+model AgentAction {
+  id           String  @id @default(uuid())
+  clientId     String
+  perceptionId String? // Link to perception that triggered this action
+
+  // Action details
+  actionType AgentActionType
+  actionData Json   // Action-specific data (workout changes, etc.)
+  reasoning  String @db.Text // AI reasoning for the action
+
+  // Confidence
+  confidence      AgentConfidence
+  confidenceScore Float  // Numeric confidence (0-1)
+  priority        String @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+
+  // Target (optional - not all actions target specific workouts)
+  targetWorkoutId String?   // ID of workout being modified
+  targetDate      DateTime? // Date the action applies to
+
+  // Status tracking
+  status     AgentActionStatus @default(PROPOSED)
+  proposedAt DateTime          @default(now())
+  decidedAt  DateTime?         // When athlete/coach decided
+  decidedBy  String?           // User ID who decided (or "SYSTEM" for auto)
+
+  // Feedback
+  athleteFeedback     String?  @db.Text // Athlete's feedback on the action
+  coachOverride       Boolean  @default(false) // Coach overrode this action
+  coachOverrideReason String?  @db.Text // Reason for coach override
+
+  // Outcome tracking (for learning)
+  outcomeTracked Boolean  @default(false) // Whether outcome was tracked
+  outcomeSuccess Boolean? // Whether the action led to good outcome
+
+  // Expiration
+  expiresAt DateTime? // When the action expires if not acted upon
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client        Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  perception    AgentPerception?     @relation(fields: [perceptionId], references: [id])
+  oversightItem AgentOversightItem?
+
+  @@index([clientId, status])
+  @@index([status, expiresAt])
+  @@index([clientId])
+  @@index([perceptionId])
+}
+
+/// Coach oversight queue - items requiring coach review
+model AgentOversightItem {
+  id       String @id @default(uuid())
+  coachId  String // Coach who should review
+  clientId String // Athlete the action affects
+  actionId String @unique // The agent action requiring review
+
+  // Categorization
+  priority String @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  category String // SAFETY, MODIFICATION, ESCALATION
+
+  // Review status
+  status     String    @default("PENDING") // PENDING, APPROVED, REJECTED, MODIFIED
+  reviewedAt DateTime?
+  reviewNote String?   @db.Text // Coach's review notes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  action AgentAction @relation(fields: [actionId], references: [id], onDelete: Cascade)
+
+  @@index([coachId, status])
+  @@index([coachId])
+  @@index([clientId])
+}
+
+/// Learning events for model improvement
+model AgentLearningEvent {
+  id        String  @id @default(uuid())
+  clientId  String
+  actionId  String? // Optional link to source action
+
+  // Event data
+  eventType         String // OUTCOME_POSITIVE, OUTCOME_NEGATIVE, COACH_OVERRIDE, ATHLETE_FEEDBACK
+  agentDecision     Json   // What the agent decided
+  actualOutcome     Json   // What actually happened
+  contextAtDecision Json   // Context when decision was made
+
+  // Processing
+  processedForTraining Boolean @default(false) // Whether used for model training
+
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([eventType])
+  @@index([processedForTraining])
+  @@index([clientId])
+}
+
+/// GDPR audit log - tracks all agent data access and actions
+model AgentAuditLog {
+  id       String @id @default(uuid())
+  clientId String
+
+  // Action details
+  action   String // DATA_ACCESS, DECISION_MADE, ACTION_TAKEN, CONSENT_CHANGED
+  resource String // What resource was accessed (perception, action, etc.)
+  details  Json   // Action-specific details
+
+  // Actor
+  actorType String  // AGENT, ATHLETE, COACH, SYSTEM
+  actorId   String? // User ID if human actor
+  ipAddress String? // IP address if web request
+
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([action])
+  @@index([clientId])
 }

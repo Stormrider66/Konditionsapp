@@ -57,6 +57,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
     }
 
+    if (!connection.client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+
     // Verify access
     const isCoach = connection.client.userId === dbUser.id
     const isAthlete = connection.client.athleteAccount?.userId === dbUser.id
@@ -72,19 +76,25 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Prepare connection with verified clientId
+    const syncConnection = {
+      ...connection,
+      clientId: connection.client.id, // Use verified client id
+    }
+
     // Handle iCal URL sync
     if (connection.icalUrl) {
-      return await syncICalConnection(connection, dbUser.id)
+      return await syncICalConnection(syncConnection, dbUser.id)
     }
 
     // Handle Google Calendar sync (requires OAuth token)
     if (connection.provider === 'GOOGLE' && connection.accessToken) {
-      return await syncGoogleCalendar(connection, dbUser.id)
+      return await syncGoogleCalendar(syncConnection, dbUser.id)
     }
 
     // Handle Outlook Calendar sync (requires OAuth token)
     if (connection.provider === 'OUTLOOK' && connection.accessToken) {
-      return await syncOutlookCalendar(connection, dbUser.id)
+      return await syncOutlookCalendar(syncConnection, dbUser.id)
     }
 
     return NextResponse.json(

@@ -96,6 +96,7 @@ const LEVEL_LABELS: Record<string, string> = {
 interface StrengthSessionLibraryProps {
   onNewSession?: () => void;
   onEditSession?: (session: StrengthSessionData) => void;
+  businessId?: string;
 }
 
 const phaseLabels: Record<string, { label: string; color: string }> = {
@@ -109,6 +110,7 @@ const phaseLabels: Record<string, { label: string; color: string }> = {
 export function StrengthSessionLibrary({
   onNewSession,
   onEditSession,
+  businessId,
 }: StrengthSessionLibraryProps) {
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
@@ -639,6 +641,7 @@ export function StrengthSessionLibrary({
           fetchSessions();
           setIsAssignOpen(false);
         }}
+        businessId={businessId}
       />
 
       {/* Team Assignment Dialog */}

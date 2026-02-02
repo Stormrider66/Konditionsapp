@@ -18,6 +18,7 @@ interface AssignmentRequest {
   athleteIds: string[];
   assignedDate: string;
   notes?: string;
+  responsibleCoachId?: string; // Coach who should see this in their calendar
   // Scheduling fields
   startTime?: string;      // "HH:mm" format
   endTime?: string;        // "HH:mm" format
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       athleteIds,
       assignedDate,
       notes,
+      responsibleCoachId,
       startTime,
       endTime,
       locationId,
@@ -199,6 +201,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             locationId,
             locationName,
             scheduledBy: hasScheduling ? user.id : undefined,
+            responsibleCoachId: responsibleCoachId || undefined,
             calendarEventId,
           },
           create: {
@@ -213,6 +216,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             locationId,
             locationName,
             scheduledBy: hasScheduling ? user.id : undefined,
+            responsibleCoachId: responsibleCoachId || undefined,
             calendarEventId,
           },
           include: {

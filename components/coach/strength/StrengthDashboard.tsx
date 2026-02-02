@@ -318,6 +318,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
               setEditSession(session)
               setActiveTab('builder')
             }}
+            businessId={businessId}
           />
         </TabsContent>
 

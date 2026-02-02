@@ -305,7 +305,7 @@ export function CoachCalendarSettingsClient() {
               <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>Inga kalendrar anslutna</p>
               <p className="text-sm mt-1">
-                Klicka på "Lägg till kalender" för att komma igång
+                Klicka på &quot;Lägg till kalender&quot; för att komma igång
               </p>
             </div>
           ) : (
