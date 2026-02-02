@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin, getCurrentUser } from '@/lib/auth-utils';
+import { requireAdmin } from '@/lib/auth-utils';
 import { logger } from '@/lib/logger';
 import { parsePagination } from '@/lib/utils/parse';
 import { logRoleChange, logAuditEvent, getIpFromRequest, getUserAgentFromRequest } from '@/lib/audit/log';
@@ -98,7 +98,6 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const adminUser = await requireAdmin();
-    const currentUser = await getCurrentUser();
 
     const body = await request.json();
     const validation = updateUserSchema.safeParse(body);
@@ -136,15 +135,13 @@ export async function PUT(request: NextRequest) {
       });
 
       // SECURITY: Log role change for audit trail
-      if (currentUser) {
-        await logRoleChange(
-          currentUser.id,
-          userId,
-          targetUser.role,
-          role,
-          request
-        );
-      }
+      await logRoleChange(
+        adminUser.id,
+        userId,
+        targetUser.role,
+        role,
+        request
+      );
     }
 
     // Update subscription tier if provided
@@ -172,10 +169,10 @@ export async function PUT(request: NextRequest) {
       });
 
       // SECURITY: Log subscription tier change
-      if (currentUser && tier !== oldTier) {
+      if (tier !== oldTier) {
         await logAuditEvent({
           action: 'SUBSCRIPTION_CHANGE',
-          userId: currentUser.id,
+          userId: adminUser.id,
           targetId: userId,
           targetType: 'Subscription',
           oldValue: { tier: oldTier },

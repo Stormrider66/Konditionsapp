@@ -349,15 +349,14 @@ export async function GET(request: NextRequest) {
 async function getOAuthUrl(provider: string, connectionId: string): Promise<string> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-  // Generate secure state token that includes connection ID
-  const stateToken = await generateOAuthState(connectionId)
-
   switch (provider) {
     case 'GOOGLE':
       const googleClientId = process.env.GOOGLE_CLIENT_ID
       if (!googleClientId) {
         return `${baseUrl}/settings/calendars?error=google_not_configured`
       }
+      // Generate state ONLY after confirming provider config, to avoid orphaned state cookies
+      const googleStateToken = await generateOAuthState(connectionId)
       const googleParams = new URLSearchParams({
         client_id: googleClientId,
         redirect_uri: `${baseUrl}/api/auth/google/callback`,
@@ -365,7 +364,7 @@ async function getOAuthUrl(provider: string, connectionId: string): Promise<stri
         scope: 'https://www.googleapis.com/auth/calendar.readonly',
         access_type: 'offline',
         prompt: 'consent',
-        state: stateToken, // Secure CSRF token
+        state: googleStateToken, // Secure CSRF token
       })
       return `https://accounts.google.com/o/oauth2/v2/auth?${googleParams}`
 
@@ -374,12 +373,14 @@ async function getOAuthUrl(provider: string, connectionId: string): Promise<stri
       if (!outlookClientId) {
         return `${baseUrl}/settings/calendars?error=outlook_not_configured`
       }
+      // Generate state ONLY after confirming provider config, to avoid orphaned state cookies
+      const outlookStateToken = await generateOAuthState(connectionId)
       const outlookParams = new URLSearchParams({
         client_id: outlookClientId,
         redirect_uri: `${baseUrl}/api/auth/outlook/callback`,
         response_type: 'code',
         scope: 'Calendars.Read offline_access',
-        state: stateToken, // Secure CSRF token
+        state: outlookStateToken, // Secure CSRF token
       })
       return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${outlookParams}`
 
