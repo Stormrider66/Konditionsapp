@@ -5343,12 +5343,13 @@ model HybridWorkoutAssignment {
   teamBroadcast   TeamWorkoutBroadcast? @relation(fields: [teamBroadcastId], references: [id], onDelete: SetNull)
 
   // Scheduling fields
-  startTime       String?   // "HH:mm" format
-  endTime         String?   // "HH:mm" format
-  locationId      String?   // FK to Location
-  locationName    String?   // Fallback text if no Location
-  scheduledBy     String?   // Coach who scheduled (if different from assignedBy)
-  calendarEventId String?   // Link to created CalendarEvent
+  startTime          String?   // "HH:mm" format
+  endTime            String?   // "HH:mm" format
+  locationId         String?   // FK to Location
+  locationName       String?   // Fallback text if no Location
+  scheduledBy        String?   // Coach who scheduled (if different from assignedBy)
+  responsibleCoachId String?   // Coach responsible for session (shows in their calendar)
+  calendarEventId    String?   // Link to created CalendarEvent
 
   // Relations for scheduling
   location      Location?      @relation("HybridAssignmentLocation", fields: [locationId], references: [id])
@@ -5365,6 +5366,7 @@ model HybridWorkoutAssignment {
   @@index([teamBroadcastId])
   @@index([locationId])
   @@index([calendarEventId])
+  @@index([responsibleCoachId])
 }
 
 enum AssignmentStatus {
@@ -5667,7 +5669,8 @@ model CardioSessionAssignment {
   endTime      String? // "HH:mm" format
   locationId   String? // FK to Location
   locationName String? // Fallback text if no Location record
-  scheduledBy  String? // Coach who scheduled (if different from assignedBy)
+  scheduledBy        String? // Coach who scheduled (if different from assignedBy)
+  responsibleCoachId String? // Coach responsible for session (shows in their calendar)
 
   // Calendar integration
   calendarEventId String? // Link to created CalendarEvent
@@ -5702,6 +5705,7 @@ model CardioSessionAssignment {
   @@index([locationId])
   @@index([startTime])
   @@index([calendarEventId])
+  @@index([responsibleCoachId])
 }
 
 /// Cardio session log - tracks Focus Mode execution
@@ -8516,7 +8520,8 @@ model AgilityWorkoutAssignment {
   endTime      String? // "HH:mm" format
   locationId   String? // FK to Location
   locationName String? // Fallback text if no Location record
-  scheduledBy  String? // Coach who scheduled (if different from assignedBy)
+  scheduledBy        String? // Coach who scheduled (if different from assignedBy)
+  responsibleCoachId String? // Coach responsible for session (shows in their calendar)
 
   // Calendar integration
   calendarEventId String? // Link to created CalendarEvent
@@ -8546,6 +8551,7 @@ model AgilityWorkoutAssignment {
   @@index([locationId])
   @@index([startTime])
   @@index([calendarEventId])
+  @@index([responsibleCoachId])
 }
 
 /// Result from completed agility workout
