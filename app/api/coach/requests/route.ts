@@ -75,28 +75,34 @@ export async function GET(request: NextRequest) {
 
     // Format and check for expiring requests
     const now = new Date()
-    const formattedRequests = requests.map(req => ({
-      id: req.id,
-      status: req.status,
-      message: req.message,
-      requestedAt: req.requestedAt,
-      respondedAt: req.respondedAt,
-      expiresAt: req.expiresAt,
-      isExpiringSoon: req.status === 'PENDING' && req.expiresAt.getTime() - now.getTime() < 3 * 24 * 60 * 60 * 1000, // 3 days
-      athlete: {
-        id: req.athlete.id,
-        name: req.athlete.name,
-        email: req.athlete.email,
-        gender: req.athlete.gender,
-        age: Math.floor((now.getTime() - req.athlete.birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)),
-        sport: req.athlete.sportProfile?.primarySport,
-        goal: req.athlete.sportProfile?.currentGoal,
-        subscription: req.athlete.athleteSubscription ? {
-          tier: req.athlete.athleteSubscription.tier,
-          status: req.athlete.athleteSubscription.status,
-        } : null,
-      },
-    }))
+    const formattedRequests = requests.map((req) => {
+      const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000
+      const expiresInMs = req.expiresAt.getTime() - now.getTime()
+
+      return {
+        id: req.id,
+        status: req.status,
+        message: req.message,
+        requestedAt: req.requestedAt,
+        respondedAt: req.respondedAt,
+        expiresAt: req.expiresAt,
+        // Only "expiring soon" if it hasn't already expired
+        isExpiringSoon: req.status === 'PENDING' && expiresInMs > 0 && expiresInMs < THREE_DAYS_MS,
+        athlete: {
+          id: req.athlete.id,
+          name: req.athlete.name,
+          email: req.athlete.email,
+          gender: req.athlete.gender,
+          age: Math.floor((now.getTime() - req.athlete.birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)),
+          sport: req.athlete.sportProfile?.primarySport,
+          goal: req.athlete.sportProfile?.currentGoal,
+          subscription: req.athlete.athleteSubscription ? {
+            tier: req.athlete.athleteSubscription.tier,
+            status: req.athlete.athleteSubscription.status,
+          } : null,
+        },
+      }
+    })
 
     return NextResponse.json({
       success: true,
