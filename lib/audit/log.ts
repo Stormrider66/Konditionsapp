@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
 
 export type AuditAction =
@@ -81,9 +82,9 @@ export async function logAuditEvent(entry: AuditLogEntry): Promise<void> {
         userId: entry.userId,
         targetId: entry.targetId,
         targetType: entry.targetType,
-        oldValue: entry.oldValue ?? undefined,
-        newValue: entry.newValue ?? undefined,
-        metadata: entry.metadata ?? undefined,
+        oldValue: entry.oldValue as Prisma.InputJsonValue | undefined,
+        newValue: entry.newValue as Prisma.InputJsonValue | undefined,
+        metadata: entry.metadata as Prisma.InputJsonValue | undefined,
         ipAddress: entry.ipAddress,
         userAgent: entry.userAgent,
       },

@@ -71,16 +71,16 @@ export async function canAccessAthlete(
       return { allowed: true, reason: 'Client owner', clientId }
     }
 
-    // Check 2: Assigned coach relationship
-    const assignedCoach = await prisma.assignedCoach.findFirst({
+    // Check 2: Coach agreement relationship
+    const coachAgreement = await prisma.coachAgreement.findFirst({
       where: {
-        clientId,
-        coachId: userId,
-        isActive: true
+        athleteClientId: clientId,
+        coachUserId: userId,
+        status: 'ACTIVE'
       }
     })
 
-    if (assignedCoach) {
+    if (coachAgreement) {
       return { allowed: true, reason: 'Assigned coach', clientId }
     }
 
@@ -111,22 +111,21 @@ export async function canAccessAthlete(
       }
     }
 
-    // Check 4: Team assignment (coach assigned to manage athlete's team)
+    // Check 4: Team ownership (coach owns the athlete's team)
     const clientWithTeam = await prisma.client.findUnique({
       where: { id: clientId },
       select: { teamId: true }
     })
 
     if (clientWithTeam?.teamId) {
-      const teamCoach = await prisma.teamCoach.findFirst({
+      const team = await prisma.team.findFirst({
         where: {
-          teamId: clientWithTeam.teamId,
-          coachId: userId,
-          isActive: true
+          id: clientWithTeam.teamId,
+          userId: userId
         }
       })
 
-      if (teamCoach) {
+      if (team) {
         return { allowed: true, reason: 'Team coach', clientId }
       }
     }

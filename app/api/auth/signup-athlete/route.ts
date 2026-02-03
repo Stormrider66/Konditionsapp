@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
       await tx.agentPreferences.create({
         data: {
           clientId: client.id,
-          autonomyLevel: 'MINIMAL', // Minimal until subscription upgrade
+          autonomyLevel: 'ADVISORY', // Advisory only until subscription upgrade
           allowWorkoutModification: false,
           allowRestDayInjection: false,
           maxIntensityReduction: 10,
