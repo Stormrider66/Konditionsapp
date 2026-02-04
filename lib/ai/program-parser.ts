@@ -140,6 +140,90 @@ function extractJsonFromText(text: string): string | null {
 }
 
 /**
+ * Normalize JSON field names to handle common variations from different AI models
+ */
+function normalizeProgram(json: Record<string, unknown>): Record<string, unknown> {
+  const normalized: Record<string, unknown> = { ...json };
+
+  // Handle totalWeeks variations
+  if (!normalized.totalWeeks) {
+    if (json.weeks && typeof json.weeks === 'number') {
+      normalized.totalWeeks = json.weeks;
+    } else if (json.duration && typeof json.duration === 'number') {
+      normalized.totalWeeks = json.duration;
+    } else if (json.durationWeeks && typeof json.durationWeeks === 'number') {
+      normalized.totalWeeks = json.durationWeeks;
+    } else if (json.antal_veckor && typeof json.antal_veckor === 'number') {
+      normalized.totalWeeks = json.antal_veckor;
+    } else if (json.antalVeckor && typeof json.antalVeckor === 'number') {
+      normalized.totalWeeks = json.antalVeckor;
+    }
+  }
+
+  // Handle phases variations (Swedish: faser, perioder)
+  if (!normalized.phases || !Array.isArray(normalized.phases)) {
+    if (Array.isArray(json.faser)) {
+      normalized.phases = json.faser;
+    } else if (Array.isArray(json.perioder)) {
+      normalized.phases = json.perioder;
+    } else if (Array.isArray(json.trainingPhases)) {
+      normalized.phases = json.trainingPhases;
+    }
+  }
+
+  // Handle description variations
+  if (!normalized.description) {
+    if (json.beskrivning && typeof json.beskrivning === 'string') {
+      normalized.description = json.beskrivning;
+    } else if (json.summary && typeof json.summary === 'string') {
+      normalized.description = json.summary;
+    } else {
+      normalized.description = '';
+    }
+  }
+
+  // Normalize phases array
+  if (Array.isArray(normalized.phases)) {
+    normalized.phases = (normalized.phases as Record<string, unknown>[]).map(phase => {
+      const normalizedPhase: Record<string, unknown> = { ...phase };
+
+      // Handle phase name variations
+      if (!normalizedPhase.name) {
+        if (phase.namn && typeof phase.namn === 'string') normalizedPhase.name = phase.namn;
+        else if (phase.title && typeof phase.title === 'string') normalizedPhase.name = phase.title;
+        else if (phase.phaseName && typeof phase.phaseName === 'string') normalizedPhase.name = phase.phaseName;
+      }
+
+      // Handle weeks variations
+      if (!normalizedPhase.weeks) {
+        if (phase.veckor && typeof phase.veckor === 'string') normalizedPhase.weeks = phase.veckor;
+        else if (phase.weekRange && typeof phase.weekRange === 'string') normalizedPhase.weeks = phase.weekRange;
+      }
+
+      // Handle focus variations
+      if (!normalizedPhase.focus) {
+        if (phase.fokus && typeof phase.fokus === 'string') normalizedPhase.focus = phase.fokus;
+        else if (phase.mål && typeof phase.mål === 'string') normalizedPhase.focus = phase.mål;
+        else if (phase.goal && typeof phase.goal === 'string') normalizedPhase.focus = phase.goal;
+        else normalizedPhase.focus = '';
+      }
+
+      // Handle weeklyTemplate variations
+      if (!normalizedPhase.weeklyTemplate) {
+        if (phase.veckomall) normalizedPhase.weeklyTemplate = phase.veckomall;
+        else if (phase.template) normalizedPhase.weeklyTemplate = phase.template;
+        else if (phase.schedule) normalizedPhase.weeklyTemplate = phase.schedule;
+        else if (phase.workouts) normalizedPhase.weeklyTemplate = phase.workouts;
+      }
+
+      return normalizedPhase;
+    });
+  }
+
+  return normalized;
+}
+
+/**
  * Parse AI output and extract structured program data
  */
 export function parseAIProgram(aiOutput: string): ParseResult {
@@ -165,20 +249,27 @@ export function parseAIProgram(aiOutput: string): ParseResult {
       };
     }
 
+    // Normalize field names to handle different AI model outputs
+    const normalizedJson = typeof rawJson === 'object' && rawJson !== null
+      ? normalizeProgram(rawJson as Record<string, unknown>)
+      : rawJson;
+
     // Validate against schema
-    const parseResult = ProgramSchema.safeParse(rawJson);
+    const parseResult = ProgramSchema.safeParse(normalizedJson);
     if (!parseResult.success) {
+      // Create more helpful error message
+      const issues = parseResult.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
       return {
         success: false,
-        error: `Validation error: ${parseResult.error.message}`,
-        rawJson
+        error: `Validation error: ${issues}`,
+        rawJson: normalizedJson
       };
     }
 
     return {
       success: true,
       program: parseResult.data,
-      rawJson
+      rawJson: normalizedJson
     };
   } catch (error) {
     return {

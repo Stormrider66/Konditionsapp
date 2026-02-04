@@ -229,6 +229,9 @@ export function EnhancedProgramPreview({
     return null
   }
 
+  // Check if program data is incomplete
+  const isIncomplete = draft.totalWeeks === 0 || draft.phases.length === 0
+
   const togglePhase = (phaseName: string) => {
     setExpandedPhases((prev) =>
       prev.includes(phaseName)
@@ -786,7 +789,7 @@ export function EnhancedProgramPreview({
                 </Button>
                 <Button
                   onClick={onPublish}
-                  disabled={!athleteId}
+                  disabled={!athleteId || isIncomplete}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Send className="h-4 w-4 mr-2" />
@@ -797,7 +800,19 @@ export function EnhancedProgramPreview({
           </div>
         </div>
 
-        {!athleteId && (
+        {isIncomplete && (
+          <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-200">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
+              <div className="text-sm text-red-700">
+                <strong>Programmet är ofullständigt.</strong> AI:n genererade inte korrekt JSON-format.
+                Be AI:n att generera programmet igen med rätt struktur (veckor, faser, veckoschemat).
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!athleteId && !isIncomplete && (
           <p className="text-xs text-muted-foreground text-center mt-2">
             Välj en atlet i kontextpanelen för att kunna publicera programmet
           </p>

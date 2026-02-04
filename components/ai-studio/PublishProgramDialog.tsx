@@ -104,11 +104,18 @@ export function PublishProgramDialog({
         onSuccess(data.program.id)
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Okänt fel'
+      // Try to parse detailed errors from the response
+      let detailedMessage = errorMessage
+      if (errorMessage.includes('validation failed')) {
+        detailedMessage = 'Programmet saknar obligatoriska fält (veckor, faser). AI:n genererade inte korrekt JSON-format.'
+      }
       toast({
         title: 'Kunde inte publicera program',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        description: detailedMessage,
         variant: 'destructive',
       })
+      console.error('Publish error:', error)
     } finally {
       setPublishing(false)
     }
