@@ -121,6 +121,77 @@ export type ParseResult = {
 };
 
 /**
+ * Try to parse key-value format that some AI models output
+ * Format:
+ *   fieldName
+ *   value
+ *   fieldName2
+ *   value2
+ */
+function parseKeyValueFormat(text: string): Record<string, unknown> | null {
+  // Known field names for program schema
+  const knownFields = ['name', 'description', 'totalWeeks', 'methodology', 'weeklySchedule', 'phases', 'notes'];
+
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const result: Record<string, unknown> = {};
+
+  let currentField: string | null = null;
+  let currentValue: string[] = [];
+
+  for (const line of lines) {
+    // Check if this line is a field name
+    if (knownFields.includes(line.toLowerCase()) || knownFields.includes(line)) {
+      // Save previous field if exists
+      if (currentField && currentValue.length > 0) {
+        const valueStr = currentValue.join('\n').trim();
+        result[currentField] = parseFieldValue(valueStr);
+      }
+      currentField = line.toLowerCase() === 'totalweeks' ? 'totalWeeks' :
+                     line.toLowerCase() === 'weeklyschedule' ? 'weeklySchedule' :
+                     line.toLowerCase();
+      currentValue = [];
+    } else if (currentField) {
+      currentValue.push(line);
+    }
+  }
+
+  // Save last field
+  if (currentField && currentValue.length > 0) {
+    const valueStr = currentValue.join('\n').trim();
+    result[currentField] = parseFieldValue(valueStr);
+  }
+
+  // Must have at least name and phases
+  if (result.name && result.phases) {
+    return result;
+  }
+
+  return null;
+}
+
+/**
+ * Parse a field value, attempting to parse JSON for complex types
+ */
+function parseFieldValue(value: string): unknown {
+  // Try to parse as number
+  if (/^\d+$/.test(value)) {
+    return parseInt(value, 10);
+  }
+
+  // Try to parse as JSON (for arrays and objects)
+  if (value.startsWith('[') || value.startsWith('{')) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      // If JSON parsing fails, return as string
+      return value;
+    }
+  }
+
+  return value;
+}
+
+/**
  * Extract JSON from AI response text
  */
 function extractJsonFromText(text: string): string | null {
@@ -134,6 +205,12 @@ function extractJsonFromText(text: string): string | null {
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     return jsonMatch[0];
+  }
+
+  // Try to parse key-value format (GPT-5.2 sometimes outputs this)
+  const kvResult = parseKeyValueFormat(text);
+  if (kvResult) {
+    return JSON.stringify(kvResult);
   }
 
   return null;
