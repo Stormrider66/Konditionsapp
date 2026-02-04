@@ -25,9 +25,11 @@ interface ChatMessageProps {
   conversationId?: string | null
   onProgramSaved?: (programId: string) => void
   onPublishProgram?: (content: string) => void
+  onFixFormat?: (messageContent: string) => void
+  isFixingFormat?: boolean
 }
 
-export function ChatMessage({ message, athleteId, athleteName, coachName, conversationId, onProgramSaved, onPublishProgram }: ChatMessageProps) {
+export function ChatMessage({ message, athleteId, athleteName, coachName, conversationId, onProgramSaved, onPublishProgram, onFixFormat, isFixingFormat }: ChatMessageProps) {
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
@@ -194,6 +196,8 @@ export function ChatMessage({ message, athleteId, athleteName, coachName, conver
             conversationId={conversationId}
             onProgramSaved={onProgramSaved}
             onPublish={() => onPublishProgram?.(message.content)}
+            onFixFormat={() => onFixFormat?.(message.content)}
+            isFixingFormat={isFixingFormat}
           />
         )}
       </div>

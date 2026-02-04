@@ -203,6 +203,9 @@ export function AIStudioClient({
   const [multiPartGenerating, setMultiPartGenerating] = useState(false)
   const [multiPartProgram, setMultiPartProgram] = useState<MergedProgram | null>(null)
 
+  // Fix format state
+  const [isFixingFormat, setIsFixingFormat] = useState(false)
+
   // Manual input state (AI SDK 5 no longer manages input state)
   const [input, setInput] = useState('')
 
@@ -242,6 +245,69 @@ export function AIStudioClient({
     webSearchEnabled,
     deepThinkEnabled: deepThinkEnabled && currentModel?.provider === 'GOOGLE',
   })
+
+  // Handler for fixing format - asks AI to reformat the program as proper JSON
+  const handleFixFormat = async (messageContent: string) => {
+    if (isLoading || isFixingFormat) return
+
+    setIsFixingFormat(true)
+    try {
+      const fixFormatPrompt = `Din senaste programutdata hade inte korrekt JSON-format. Konvertera programmet till exakt detta JSON-format i ett kodblock:
+
+\`\`\`json
+{
+  "name": "Programnamn",
+  "description": "Beskrivning",
+  "totalWeeks": 8,
+  "methodology": "METODOLOGI",
+  "weeklySchedule": {"sessionsPerWeek": 5, "restDays": [4]},
+  "phases": [
+    {
+      "name": "Fasnamn",
+      "weeks": "1-2",
+      "focus": "Fokus för fasen",
+      "weeklyTemplate": {
+        "monday": {"type": "RUNNING", "name": "Passnamn", "duration": 45, "zone": "2", "description": "Beskrivning", "intensity": "easy"},
+        "tuesday": {"type": "RUNNING", "name": "...", "duration": 60, "zone": "4", "description": "...", "intensity": "threshold"},
+        "wednesday": {"type": "STRENGTH", "name": "...", "duration": 40, "description": "...", "intensity": "moderate"},
+        "thursday": {"type": "RUNNING", "name": "...", "duration": 70, "zone": "3", "description": "...", "intensity": "race_pace"},
+        "friday": {"type": "REST", "description": "Vila"},
+        "saturday": {"type": "RUNNING", "name": "...", "duration": 40, "zone": "2", "description": "...", "intensity": "easy"},
+        "sunday": {"type": "RUNNING", "name": "...", "duration": 130, "zone": "2", "description": "...", "intensity": "easy"}
+      },
+      "keyWorkouts": ["Nyckelpass 1", "Nyckelpass 2"],
+      "volumeGuidance": "Volymvägledning"
+    }
+  ],
+  "notes": "Anteckningar"
+}
+\`\`\`
+
+VIKTIGT:
+- Använd exakt fältnamnen ovan (name, totalWeeks, phases, weeklyTemplate osv)
+- Inkludera ALLA faser från programmet
+- Inkludera weeklyTemplate för VARJE fas med alla 7 veckodagar
+- Hela JSON måste vara i ett \`\`\`json kodblock
+- Giltiga type: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
+- Giltiga intensity: easy, moderate, hard, threshold, interval, recovery, race_pace
+
+Här är programdata som ska konverteras:
+${messageContent}`
+
+      await sendMessage({
+        message: fixFormatPrompt,
+        body: getCurrentBodyParams(),
+      })
+    } catch (error) {
+      toast({
+        title: 'Kunde inte fixa format',
+        description: error instanceof Error ? error.message : 'Okänt fel',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsFixingFormat(false)
+    }
+  }
 
   const isLoading = status === 'streaming' || status === 'submitted'
 
@@ -1038,6 +1104,8 @@ export function AIStudioClient({
                       setPublishContent(content)
                       setPublishDialogOpen(true)
                     }}
+                    onFixFormat={handleFixFormat}
+                    isFixingFormat={isFixingFormat}
                   />
                 )
               })}

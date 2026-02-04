@@ -39,6 +39,7 @@ import {
   X,
   Check,
   Plus,
+  Wand2,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { parseAIProgram, extractProgramMetadata, type ParsedProgram, type ParsedPhase, type ParsedWorkout } from '@/lib/ai/program-parser'
@@ -55,6 +56,8 @@ interface EnhancedProgramPreviewProps {
   conversationId?: string | null
   onProgramSaved?: (programId: string) => void
   onPublish?: () => void
+  onFixFormat?: () => void
+  isFixingFormat?: boolean
 }
 
 // Workout type to icon mapping
@@ -116,6 +119,8 @@ export function EnhancedProgramPreview({
   conversationId,
   onProgramSaved,
   onPublish,
+  onFixFormat,
+  isFixingFormat,
 }: EnhancedProgramPreviewProps) {
   const { toast } = useToast()
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list')
@@ -802,12 +807,34 @@ export function EnhancedProgramPreview({
 
         {isIncomplete && (
           <div className="mt-2 p-3 bg-red-50 rounded-lg border border-red-200">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
-              <div className="text-sm text-red-700">
-                <strong>Programmet är ofullständigt.</strong> AI:n genererade inte korrekt JSON-format.
-                Be AI:n att generera programmet igen med rätt struktur (veckor, faser, veckoschemat).
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
+                <div className="text-sm text-red-700">
+                  <strong>Programmet är ofullständigt.</strong> AI:n genererade inte korrekt JSON-format.
+                </div>
               </div>
+              {onFixFormat && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onFixFormat}
+                  disabled={isFixingFormat}
+                  className="shrink-0 border-red-300 text-red-700 hover:bg-red-100"
+                >
+                  {isFixingFormat ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      Fixar...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-4 w-4 mr-1" />
+                      Fixa format
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         )}
