@@ -275,8 +275,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/register', '/signup', '/']
-  const isPublicRoute = publicRoutes.some((route) => pathname === route)
+  const publicRoutes = ['/login', '/register', '/signup', '/', '/pricing']
+  const isPublicRoute = publicRoutes.some((route) => pathname === route) || pathname.startsWith('/coaches')
 
   // If not authenticated and trying to access protected route
   if (!supabaseUser && !isPublicRoute) {

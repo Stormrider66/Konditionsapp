@@ -1,7 +1,7 @@
 // app/api/tests/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
-import { createTestSchema, type CreateTestFormData } from '@/lib/validations/schemas'
+import { createTestApiSchema, type CreateTestApiData } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Validate input
-    const validation = createTestSchema.safeParse(body)
+    const validation = createTestApiSchema.safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
         {
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const data: CreateTestFormData = validation.data
+    const data: CreateTestApiData = validation.data
 
     // Ensure clientId is provided
     if (!data.clientId) {
@@ -139,6 +139,10 @@ export async function POST(request: NextRequest) {
         testLeader: data.testLeader || null,
         inclineUnit: data.inclineUnit || 'PERCENT',
         notes: data.notes || null,
+        // New fields
+        restingLactate: data.restingLactate || null,
+        postTestMeasurements: data.postTestMeasurements || null,
+        recommendedNextTestDate: data.recommendedNextTestDate ? new Date(data.recommendedNextTestDate) : null,
         testStages: {
           create: data.stages.map((stage, index) => ({
             sequence: index,

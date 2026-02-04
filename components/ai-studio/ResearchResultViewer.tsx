@@ -320,7 +320,7 @@ export function ResearchResultViewer({
               <span>{session.tokensUsed.toLocaleString()} tokens</span>
             </div>
           )}
-          {session.estimatedCost !== undefined && (
+          {session.estimatedCost != null && (
             <div className="flex items-center gap-1">
               <DollarSign className="h-3 w-3" />
               <span>${session.estimatedCost.toFixed(4)}</span>

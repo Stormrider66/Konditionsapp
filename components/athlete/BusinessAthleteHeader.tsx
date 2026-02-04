@@ -44,6 +44,7 @@ import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
 import { SportSwitcher } from './SportSwitcher'
 import { SportType } from '@prisma/client'
+import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
 
 interface SportProfile {
     primarySport: SportType
@@ -285,6 +286,8 @@ export function BusinessAthleteHeader({
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-white/10" />
+                                <AthleteModeToggle variant="dropdown" />
+                                <DropdownMenuSeparator className="bg-white/10" />
                                 <DropdownMenuItem onClick={handleSignOut} className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>Log out</span>
@@ -348,13 +351,14 @@ export function BusinessAthleteHeader({
                                 <div className="h-px bg-white/10 my-2" />
 
                                 {/* Mobile User Actions */}
-                                <div className="flex flex-col gap-2">
+                                <div className="flex flex-col gap-2 px-4">
+                                    <AthleteModeToggle variant="button" className="w-full justify-start" />
                                     <button
                                         onClick={() => {
                                             setIsOpen(false)
                                             handleSignOut()
                                         }}
-                                        className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-left"
+                                        className="flex items-center gap-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-left"
                                     >
                                         <LogOut className="w-5 h-5" />
                                         Log out

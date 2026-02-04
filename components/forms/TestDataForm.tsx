@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2, Save, Download, Info, Camera, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays } from 'lucide-react'
 import { createTestSchema, CreateTestFormData } from '@/lib/validations/schemas'
 import { TestType, TestTemplate } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -43,9 +43,17 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
       testType,
       testDate: new Date().toISOString().split('T')[0],
       inclineUnit: 'PERCENT',
+      restingLactate: undefined,
+      postTestMeasurements: [
+        { timeMinutes: 1, timeSeconds: 0, lactate: undefined as unknown as number },
+        { timeMinutes: 3, timeSeconds: 0, lactate: undefined as unknown as number },
+        { timeMinutes: 5, timeSeconds: 0, lactate: undefined as unknown as number },
+      ],
+      recommendedNextTestDate: undefined,
       stages: [
         {
-          duration: 4,
+          durationMinutes: 4,
+          durationSeconds: 0,
           heartRate: 120,
           lactate: 1.0,
           vo2: undefined,
@@ -54,7 +62,8 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           pace: testType === 'SKIING' ? 7.5 : undefined,
         },
         {
-          duration: 4,
+          durationMinutes: 4,
+          durationSeconds: 0,
           heartRate: 130,
           lactate: 1.3,
           vo2: undefined,
@@ -63,7 +72,8 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           pace: testType === 'SKIING' ? 6.5 : undefined,
         },
         {
-          duration: 4,
+          durationMinutes: 4,
+          durationSeconds: 0,
           heartRate: 140,
           lactate: 1.8,
           vo2: undefined,
@@ -72,7 +82,8 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           pace: testType === 'SKIING' ? 5.5 : undefined,
         },
         {
-          duration: 4,
+          durationMinutes: 4,
+          durationSeconds: 0,
           heartRate: 150,
           lactate: 2.5,
           vo2: undefined,
@@ -81,7 +92,8 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           pace: testType === 'SKIING' ? 5.0 : undefined,
         },
         {
-          duration: 4,
+          durationMinutes: 4,
+          durationSeconds: 0,
           heartRate: 160,
           lactate: 3.5,
           vo2: undefined,
@@ -90,7 +102,8 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           pace: testType === 'SKIING' ? 4.5 : undefined,
         },
         {
-          duration: 4,
+          durationMinutes: 4,
+          durationSeconds: 0,
           heartRate: 170,
           lactate: 5.0,
           vo2: undefined,
@@ -105,6 +118,15 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   const { fields, append, remove, replace } = useFieldArray({
     control,
     name: 'stages',
+  })
+
+  const {
+    fields: postMeasurementFields,
+    append: appendPostMeasurement,
+    remove: removePostMeasurement
+  } = useFieldArray({
+    control,
+    name: 'postTestMeasurements',
   })
 
   const inclineUnit = watch('inclineUnit') || 'PERCENT'
@@ -199,13 +221,25 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     const newLactate = lastStage?.lactate ? Math.round((lastStage.lactate * 1.4) * 10) / 10 : 1.0
 
     append({
-      duration: 4,
+      durationMinutes: 4,
+      durationSeconds: 0,
       heartRate: newHeartRate,
       lactate: newLactate,
       vo2: undefined,
       speed: newSpeed,
       power: newPower,
       pace: newPace,
+    })
+  }
+
+  const addPostMeasurement = () => {
+    const measurements = getValues('postTestMeasurements') || []
+    const lastMeasurement = measurements[measurements.length - 1]
+    const nextTime = lastMeasurement ? lastMeasurement.timeMinutes + 2 : 1
+    appendPostMeasurement({
+      timeMinutes: nextTime,
+      timeSeconds: 0,
+      lactate: undefined as unknown as number,
     })
   }
 
@@ -285,6 +319,20 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           {...register('testDate')}
         />
         {errors.testDate && <p className="text-sm text-red-600">{errors.testDate.message}</p>}
+      </div>
+
+      {/* Resting Lactate */}
+      <div className="space-y-2">
+        <Label htmlFor="restingLactate">Vilolaktat (mmol/L)</Label>
+        <Input
+          id="restingLactate"
+          type="number"
+          step="0.1"
+          placeholder="T.ex. 0.8"
+          className="max-w-[200px]"
+          {...register('restingLactate', { valueAsNumber: true })}
+        />
+        <p className="text-xs text-gray-500">Laktatvärde före testet (valfritt)</p>
       </div>
 
       {/* Incline Unit Selector (only for running tests) */}
@@ -517,15 +565,28 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor={`stages.${index}.duration`} className="text-xs">
-                    Tid (min)
-                  </Label>
-                  <Input
-                    id={`stages.${index}.duration`}
-                    type="number"
-                    step="0.5"
-                    {...register(`stages.${index}.duration`, { valueAsNumber: true })}
-                  />
+                  <Label className="text-xs">Tid (min:sek)</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      id={`stages.${index}.durationMinutes`}
+                      type="number"
+                      min="0"
+                      max="60"
+                      className="w-16 text-center"
+                      placeholder="min"
+                      {...register(`stages.${index}.durationMinutes`, { valueAsNumber: true })}
+                    />
+                    <span className="text-muted-foreground font-medium">:</span>
+                    <Input
+                      id={`stages.${index}.durationSeconds`}
+                      type="number"
+                      min="0"
+                      max="59"
+                      className="w-16 text-center"
+                      placeholder="sek"
+                      {...register(`stages.${index}.durationSeconds`, { valueAsNumber: true })}
+                    />
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -544,6 +605,98 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
             Lägg till steg
           </Button>
         </div>
+      </div>
+
+      {/* Post-Max Lactate Measurements Section */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h3 className="text-lg font-semibold">Eftermätningar (post-max laktat)</h3>
+            <p className="text-sm text-muted-foreground">
+              Mätningar efter maxbelastning för att fånga topp-laktat
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={addPostMeasurement}
+            variant="outline"
+            size="sm"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Lägg till mätning
+          </Button>
+        </div>
+
+        <div className="grid gap-3">
+          {postMeasurementFields.map((field, index) => (
+            <Card key={field.id} className="bg-orange-50/50 border-orange-200">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs whitespace-nowrap">Tid efter max:</Label>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="30"
+                        className="w-14 text-center"
+                        placeholder="min"
+                        {...register(`postTestMeasurements.${index}.timeMinutes`, { valueAsNumber: true })}
+                      />
+                      <span className="text-muted-foreground font-medium">:</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="59"
+                        className="w-14 text-center"
+                        placeholder="sek"
+                        {...register(`postTestMeasurements.${index}.timeSeconds`, { valueAsNumber: true })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs whitespace-nowrap">Laktat:</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      className="w-20"
+                      placeholder="mmol/L"
+                      {...register(`postTestMeasurements.${index}.lactate`, { valueAsNumber: true })}
+                    />
+                  </div>
+                  {postMeasurementFields.length > 1 && (
+                    <Button
+                      type="button"
+                      onClick={() => removePostMeasurement(index)}
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Recommended Next Test Date */}
+      <div className="space-y-2">
+        <Label htmlFor="recommendedNextTestDate" className="flex items-center gap-2">
+          <CalendarDays className="w-4 h-4" />
+          Rekommenderat nästa testdatum
+        </Label>
+        <Input
+          id="recommendedNextTestDate"
+          type="date"
+          className="max-w-[250px]"
+          {...register('recommendedNextTestDate')}
+        />
+        <p className="text-xs text-gray-500">
+          Föreslå ett datum för nästa laktattest (valfritt)
+        </p>
       </div>
 
       <div className="space-y-2">

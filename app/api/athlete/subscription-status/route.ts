@@ -109,6 +109,8 @@ export async function GET() {
         // Billing info (if applicable)
         billingCycle: subscription.billingCycle,
         stripeSubscriptionId: subscription.stripeSubscriptionId ? true : false,
+        // Coach assignment (for AI program generation eligibility)
+        assignedCoachId: subscription.assignedCoachId || null,
       },
     })
   } catch (error) {

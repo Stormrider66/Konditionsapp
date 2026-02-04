@@ -16,19 +16,66 @@ export interface MemoryContext {
 }
 
 /**
+ * Capabilities context for the athlete
+ */
+export interface AthleteCapabilities {
+  /** Whether the athlete can generate AI programs (STANDARD+, no coach) */
+  canGenerateProgram: boolean
+  /** Whether the athlete has an active training program */
+  hasActiveProgram: boolean
+  /** Subscription tier */
+  subscriptionTier: 'FREE' | 'STANDARD' | 'PRO' | null
+  /** Whether the athlete is self-coached (no assigned coach) */
+  isSelfCoached: boolean
+}
+
+/**
  * Build the system prompt for athlete AI chat
  * @param athleteContext - The compiled context from buildAthleteOwnContext()
  * @param athleteName - The athlete's name for personalization
  * @param memoryContext - Optional memory context for personalization
+ * @param capabilities - Optional capabilities context for the athlete
  */
 export function buildAthleteSystemPrompt(
   athleteContext: string,
   athleteName?: string,
-  memoryContext?: MemoryContext
+  memoryContext?: MemoryContext,
+  capabilities?: AthleteCapabilities
 ): string {
   const greeting = athleteName ? `Du hjälper ${athleteName}` : 'Du hjälper en atlet'
 
+  // Build capabilities section for self-coached athletes
+  let capabilitiesSection = ''
+  if (capabilities?.isSelfCoached) {
+    capabilitiesSection = `
+## DINA FÖRMÅGOR SOM AI-COACH
+
+Som självtränad atlet har ${athleteName || 'du'} tillgång till AI-coachning:
+`
+    if (capabilities.canGenerateProgram) {
+      capabilitiesSection += `
+- **Programgenerering**: Du kan hjälpa till att skapa ett personligt träningsprogram baserat på atletens mål, tillgänglighet och konditionsnivå.
+- **Programmjustering**: Du kan föreslå anpassningar till befintligt program baserat på dagsform, skador eller ändrade mål.
+`
+    } else if (capabilities.subscriptionTier === 'FREE') {
+      capabilitiesSection += `
+- **OBS**: Programgenerering kräver STANDARD- eller PRO-prenumeration. Uppmuntra atleten att uppgradera för att låsa upp denna funktion.
+`
+    }
+
+    if (capabilities.hasActiveProgram) {
+      capabilitiesSection += `
+- Atleten har ett aktivt träningsprogram. Du kan analysera och förklara det, samt föreslå anpassningar vid behov.
+`
+    } else {
+      capabilitiesSection += `
+- Atleten har inget aktivt program. ${capabilities.canGenerateProgram ? 'Du kan hjälpa till att skapa ett nytt.' : ''}
+`
+    }
+  }
+
   return `Du är en personlig AI-träningsassistent. ${greeting} med deras träning och prestation.
+${capabilitiesSection}
 
 ## DINA KUNSKAPSOMRÅDEN
 
@@ -45,12 +92,8 @@ export function buildAthleteSystemPrompt(
 1. **Svara ALLTID på svenska** - Använd korrekt svensk terminologi
 2. **Basera svar på atletens data** - Referera till specifika värden och resultat
 3. **Var uppmuntrande men ärlig** - Ge realistiska förväntningar
-4. **Respektera coachrelationen** - Du kan INTE ändra träningsprogrammet
-5. **Rekommendera kontakt med coach** för:
-   - Programändringar
-   - Nya målsättningar
-   - Allvarliga skador eller smärta
-   - Osäkerhet kring träningsbelastning
+4. **${capabilities?.isSelfCoached && capabilities?.canGenerateProgram ? 'Du KAN hjälpa till att skapa och anpassa träningsprogram' : 'Respektera coachrelationen - Du kan INTE ändra träningsprogrammet'}**
+5. **${capabilities?.isSelfCoached ? 'Som AI-coach kan du ge fullständig vägledning. Vid allvarliga skador, rekommendera läkare.' : 'Rekommendera kontakt med coach för: Programändringar, Nya målsättningar, Allvarliga skador, Osäkerhet kring belastning'}**
 6. **Var försiktig med medicinska råd** - Hänvisa till läkare vid behov
 7. **Håll svar koncisa** - Max 3-4 stycken om inte detaljerad analys begärs
 
@@ -75,9 +118,28 @@ När du svarar:
 4. Föreslå konkreta nästa steg när lämpligt
 5. Flagga eventuella varningssignaler (låg beredskap, skador, överträning)
 
-Om atleten frågar om något som kräver programändring, säg:
-"Det här är något du bör diskutera med din coach så att de kan anpassa ditt program."
+${capabilities?.isSelfCoached && capabilities?.canGenerateProgram
+    ? `Om atleten vill skapa ett nytt träningsprogram, fråga om:
+- Deras huvudmål (t.ex. tävling, kondition, styrka)
+- Mållopp eller event (om relevant)
+- Måldatum
+- Hur många dagar i veckan de kan träna
+- Passlängd de föredrar
+- Tillgång till gym/utrustning
+
+Baserat på deras svar, hjälp dem skapa ett personligt program. Använd informationen i deras profil för att anpassa.`
+    : `Om atleten frågar om något som kräver programändring, säg:
+"Det här är något du bör diskutera med din coach så att de kan anpassa ditt program."`}
 `
+}
+
+/**
+ * Quick prompt for program generation (only for self-coached athletes with STANDARD+)
+ */
+const PROGRAM_GENERATION_PROMPT = {
+  id: 'create-program',
+  label: 'Skapa träningsprogram',
+  prompt: 'Jag vill skapa ett nytt träningsprogram. Kan du hjälpa mig baserat på mina mål och tillgänglighet?',
 }
 
 /**
@@ -126,6 +188,21 @@ export const ATHLETE_QUICK_PROMPTS = [
     prompt: 'Hur har min utveckling sett ut den senaste tiden baserat på mina träningsdata?',
   },
 ]
+
+/**
+ * Get quick prompts with program generation option for self-coached athletes
+ */
+export function getAthleteQuickPrompts(capabilities?: AthleteCapabilities) {
+  const prompts = [...ATHLETE_QUICK_PROMPTS]
+
+  // Add program generation prompt for self-coached athletes with subscription
+  if (capabilities?.isSelfCoached && capabilities?.canGenerateProgram) {
+    // Add at the beginning for visibility
+    prompts.unshift(PROGRAM_GENERATION_PROMPT)
+  }
+
+  return prompts
+}
 
 /**
  * Context-specific prompts based on page type

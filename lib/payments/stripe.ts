@@ -11,6 +11,8 @@ import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
 import { AthleteSubscriptionTier, SubscriptionStatus } from '@prisma/client';
 import { getTierFeatures } from '@/lib/auth/tier-utils';
+import { calculateAndRecordRevenueShare } from '@/lib/coach/revenue-share';
+import { logger } from '@/lib/logger';
 
 // Lazy initialize Stripe client to avoid build-time errors
 let _stripe: Stripe | null = null;
@@ -359,16 +361,53 @@ async function handleInvoicePaymentSucceeded(
     : null;
 
   if (subscription?.metadata?.clientId) {
+    const clientId = subscription.metadata.clientId;
+
+    // Reset monthly AI chat usage counter
     await prisma.athleteSubscription.update({
-      where: { clientId: subscription.metadata.clientId },
+      where: { clientId },
       data: {
         aiChatMessagesUsed: 0, // Reset monthly counter
       },
     });
 
+    // Calculate and record revenue share for coach (if applicable)
+    // This only creates a record if the athlete has an assigned coach
+    // and the revenue share start date has been reached
+    try {
+      const totalAmount = invoice.amount_paid; // Amount in smallest currency unit (öre/cents)
+      const periodStart = invoice.period_start ? new Date(invoice.period_start * 1000) : new Date();
+      const periodEnd = invoice.period_end ? new Date(invoice.period_end * 1000) : new Date();
+
+      const revenueShareResult = await calculateAndRecordRevenueShare({
+        athleteClientId: clientId,
+        subscriptionId: subscriptionId || invoice.id,
+        totalAmount,
+        periodStart,
+        periodEnd,
+      });
+
+      if (revenueShareResult.recorded) {
+        logger.info('Revenue share recorded for invoice', {
+          invoiceId: invoice.id,
+          clientId,
+          totalAmount,
+        });
+      } else {
+        logger.debug('Revenue share not recorded', {
+          invoiceId: invoice.id,
+          clientId,
+          reason: revenueShareResult.reason,
+        });
+      }
+    } catch (error) {
+      // Log error but don't fail the webhook - payment succeeded
+      logger.error('Error recording revenue share', { invoiceId: invoice.id, clientId }, error);
+    }
+
     return {
       handled: true,
-      message: `Payment succeeded and usage reset for client ${subscription.metadata.clientId}`,
+      message: `Payment succeeded and usage reset for client ${clientId}`,
     };
   }
 

@@ -157,6 +157,22 @@ enum ReferralStatus {
   REVOKED // Referral was revoked (e.g., refund, fraud)
 }
 
+// ==================== COACH MARKETPLACE ====================
+
+enum CoachRequestStatus {
+  PENDING // Request sent, awaiting coach response
+  ACCEPTED // Coach accepted, agreement created
+  REJECTED // Coach rejected the request
+  EXPIRED // Request expired (14 days without response)
+  CANCELLED // Athlete cancelled their request
+}
+
+enum CoachAgreementStatus {
+  ACTIVE // Active coaching relationship
+  PAUSED // Temporarily paused (e.g., injury, vacation)
+  ENDED // Relationship ended
+}
+
 enum ReferralRewardType {
   FREE_MONTH // One month free subscription
   DISCOUNT_PERCENT // Percentage discount on next billing
@@ -600,6 +616,13 @@ model User {
   // Security Audit Logs
   auditLogs AuditLog[]
 
+  // Coach Marketplace relations
+  coachProfile               CoachProfile?
+  coachRequestsReceived      CoachRequest[]          @relation("CoachRequestsReceived")
+  coachAgreementsAsCoach     CoachAgreement[]        @relation("CoachAgreementsAsCoach")
+  coachEarnings              CoachEarnings[]         @relation("CoachEarnings")
+  athleteSubscriptionsCoached AthleteSubscription[]  @relation("CoachAthleteSubscriptions")
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -894,6 +917,12 @@ model Client {
   agentLearningEvents AgentLearningEvent[]
   agentAuditLogs      AgentAuditLog[]
 
+  // Coach Marketplace relations
+  coachRequests       CoachRequest[]   @relation("AthleteCoachRequests")
+  coachAgreements     CoachAgreement[] @relation("AthleteCoachAgreements")
+  coachReviews        CoachReview[]    @relation("AthleteCoachReviews")
+  coachEarningsSource CoachEarnings[]  @relation("AthleteCoachEarnings")
+
   @@index([userId])
   @@index([teamId])
   @@index([name])
@@ -928,6 +957,9 @@ model Test {
 
   // Post-test measurements (to capture peak lactate, 1-5 min after test)
   postTestMeasurements Json? // Array of {timeMin: number, lactate: number, heartRate?: number}
+
+  // Recommended next test date
+  recommendedNextTestDate DateTime?
 
   // BerÃ¤knade vÃ¤rden
   maxHR      Int?
@@ -1183,6 +1215,11 @@ model AthleteSubscription {
   businessId          String?
   revenueSharePercent Float? // Platform's share (e.g., 20 = 20%)
 
+  // Coach marketplace - assigned coach (independent of business)
+  assignedCoachId            String? // Coach user ID from marketplace connection
+  coachRevenueSharePercent   Float? // Coach's share (e.g., 75 = 75% to coach)
+  coachRevenueShareStartDate DateTime? // When coach revenue share kicks in (next billing cycle)
+
   // Feature flags (cached for performance)
   aiChatEnabled         Boolean @default(false)
   aiChatMessagesUsed    Int     @default(0)
@@ -1200,14 +1237,16 @@ model AthleteSubscription {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  client        Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  business      Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  assignedCoach User?     @relation("CoachAthleteSubscriptions", fields: [assignedCoachId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
   @@index([tier])
   @@index([status])
   @@index([businessId])
   @@index([paymentSource])
+  @@index([assignedCoachId])
 }
 
 // ==================== BUSINESS & ORGANIZATION ====================
@@ -1912,6 +1951,16 @@ model AthleteAccount {
   // Athlete preferences
   notificationPrefs   Json? // { email: boolean, push: boolean, workoutReminders: boolean }
   preferredLocationId String? // Preferred gym location for WOD generation
+
+  // Athlete self-description (for AI personalization)
+  trainingBackground    String? @db.Text // Training history and story
+  longTermAmbitions     String? @db.Text // Dreams and big goals
+  seasonalFocus         String? @db.Text // Current season priorities
+  personalMotivations   String? @db.Text // Why they train
+  trainingPreferences   String? @db.Text // Likes and dislikes
+  constraints           String? @db.Text // Limitations (schedule, equipment, etc.)
+  dietaryNotes          String? @db.Text // Nutrition preferences/restrictions
+  profileLastUpdated    DateTime? // Track when athlete last updated their profile
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -9024,4 +9073,152 @@ model AuditLog {
   @@index([action])
   @@index([targetId, targetType])
   @@index([createdAt])
+}
+
+// ==================== COACH MARKETPLACE SYSTEM ====================
+
+/// Public profile for coaches in the marketplace
+model CoachProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  slug   String @unique // URL: /coaches/john-doe
+
+  // Public profile
+  headline      String? // "Marathon Coach & Exercise Physiologist"
+  bio           String? @db.Text
+  imageUrl      String?
+  coverImageUrl String?
+
+  // Specializations
+  specialties     SportType[] // RUNNING, CYCLING, TRIATHLON, etc.
+  methodologies   String[] // Polarized, Norwegian, Canova, etc.
+  experienceYears Int?
+  credentials     String[] // Certifications
+
+  // Marketplace settings
+  isPublic           Boolean @default(false)
+  isVerified         Boolean @default(false)
+  isAcceptingClients Boolean @default(true)
+
+  // Location & availability
+  location  String? // "Stockholm, Sweden"
+  timezone  String? // "Europe/Stockholm"
+  languages String[] @default(["sv", "en"])
+
+  // Stats (calculated, updated by triggers/cron)
+  totalClients  Int    @default(0)
+  activeClients Int    @default(0)
+  averageRating Float?
+  reviewCount   Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews CoachReview[]
+
+  @@index([slug])
+  @@index([isPublic, isAcceptingClients])
+  @@index([isVerified])
+}
+
+/// Request from athlete to connect with a coach
+model CoachRequest {
+  id              String @id @default(uuid())
+  athleteClientId String
+  coachUserId     String
+
+  status        CoachRequestStatus @default(PENDING)
+  message       String?            @db.Text // Athlete's intro message
+  coachResponse String?            @db.Text
+
+  requestedAt DateTime  @default(now())
+  respondedAt DateTime?
+  expiresAt   DateTime // Auto-expire after 14 days
+
+  athlete Client @relation("AthleteCoachRequests", fields: [athleteClientId], references: [id], onDelete: Cascade)
+  coach   User   @relation("CoachRequestsReceived", fields: [coachUserId], references: [id], onDelete: Cascade)
+
+  @@unique([athleteClientId, coachUserId])
+  @@index([coachUserId, status])
+  @@index([expiresAt])
+  @@index([athleteClientId])
+}
+
+/// Active coaching relationship between athlete and coach
+model CoachAgreement {
+  id              String @id @default(uuid())
+  athleteClientId String
+  coachUserId     String
+
+  status    CoachAgreementStatus @default(ACTIVE)
+  startedAt DateTime             @default(now())
+  endedAt   DateTime?
+  endReason String?
+
+  // Revenue share tracking
+  revenueSharePercent   Float     @default(75) // Coach gets 75%
+  revenueShareStartDate DateTime? // When share kicks in (next billing)
+
+  // What happens to existing program
+  programAction String? // 'KEPT', 'MODIFIED', 'REPLACED'
+
+  athlete Client @relation("AthleteCoachAgreements", fields: [athleteClientId], references: [id], onDelete: Cascade)
+  coach   User   @relation("CoachAgreementsAsCoach", fields: [coachUserId], references: [id], onDelete: Cascade)
+
+  @@unique([athleteClientId, coachUserId])
+  @@index([coachUserId, status])
+  @@index([athleteClientId])
+}
+
+/// Review of a coach by an athlete
+model CoachReview {
+  id              String @id @default(uuid())
+  coachProfileId  String
+  athleteClientId String
+
+  rating  Int     // 1-5
+  title   String?
+  comment String? @db.Text
+
+  isPublic   Boolean @default(true)
+  isVerified Boolean @default(false) // Had active agreement
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coachProfile CoachProfile @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
+  athlete      Client       @relation("AthleteCoachReviews", fields: [athleteClientId], references: [id], onDelete: Cascade)
+
+  @@unique([coachProfileId, athleteClientId])
+  @@index([coachProfileId, isPublic])
+  @@index([athleteClientId])
+}
+
+/// Earnings from athlete subscriptions (coach revenue share)
+model CoachEarnings {
+  id              String @id @default(uuid())
+  coachUserId     String
+  athleteClientId String
+  subscriptionId  String
+
+  periodStart DateTime
+  periodEnd   DateTime
+
+  totalAmount    Int   // Total payment in öre (cents)
+  coachAmount    Int   // Coach's share
+  platformAmount Int   // Platform's share
+  sharePercent   Float // Share % at time of payment
+
+  status    String    @default("PENDING") // PENDING, PAID_OUT
+  paidOutAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  coach   User   @relation("CoachEarnings", fields: [coachUserId], references: [id])
+  athlete Client @relation("AthleteCoachEarnings", fields: [athleteClientId], references: [id])
+
+  @@index([coachUserId, status])
+  @@index([periodStart])
+  @@index([athleteClientId])
 }

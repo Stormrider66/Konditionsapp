@@ -122,6 +122,20 @@ export default function TestPage() {
     }
 
     try {
+      // Convert stages with durationMinutes/durationSeconds to duration (in minutes)
+      const transformedStages = data.stages.map((stage) => ({
+        ...stage,
+        duration: (stage.durationMinutes || 0) + ((stage.durationSeconds || 0) / 60),
+      }))
+
+      // Convert post-test measurements with timeMinutes/timeSeconds to timeMin
+      const transformedPostMeasurements = data.postTestMeasurements
+        ?.filter((m) => m.lactate !== undefined && !isNaN(m.lactate))
+        .map((m) => ({
+          timeMin: (m.timeMinutes || 0) + ((m.timeSeconds || 0) / 60),
+          lactate: m.lactate,
+        }))
+
       // Spara testet till databasen först
       const saveResponse = await fetch('/api/tests', {
         method: 'POST',
@@ -130,10 +144,14 @@ export default function TestPage() {
         },
         body: JSON.stringify({
           ...data,
+          stages: transformedStages,
           testType: testType, // Include the test type from state
           location: location,
           testLeader: testLeader,
           clientId: selectedClient.id,
+          restingLactate: data.restingLactate,
+          postTestMeasurements: transformedPostMeasurements?.length ? transformedPostMeasurements : undefined,
+          recommendedNextTestDate: data.recommendedNextTestDate || undefined,
         }),
       })
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,7 @@ import { TennisOnboarding, DEFAULT_TENNIS_SETTINGS, type TennisSettings } from '
 import { PadelOnboarding, DEFAULT_PADEL_SETTINGS, type PadelSettings } from './PadelOnboarding'
 import { BiometricsStep, DEFAULT_BIOMETRICS_DATA, type BiometricsData } from './BiometricsStep'
 import { FitnessSummary } from './FitnessSummary'
+import { AIProgramOfferStep } from './AIProgramOfferStep'
 import { SportType } from '@prisma/client'
 import { useToast } from '@/hooks/use-toast'
 
@@ -109,7 +110,7 @@ interface OnboardingData {
 }
 
 // Step definitions for different sports
-type StepId = 'sport' | 'experience' | 'biometrics' | 'sport_specific' | 'availability' | 'equipment' | 'goals' | 'summary'
+type StepId = 'sport' | 'experience' | 'biometrics' | 'sport_specific' | 'availability' | 'equipment' | 'goals' | 'ai_program' | 'summary'
 
 interface StepDefinition {
   id: StepId
@@ -263,6 +264,14 @@ const PADEL_STEP: StepDefinition = {
   descriptionSv: 'Konfigurera din position, partnerinformation och fysiska tester.',
 }
 
+const AI_PROGRAM_STEP: StepDefinition = {
+  id: 'ai_program',
+  titleEn: 'AI Training Program',
+  titleSv: 'AI-träningsprogram',
+  descriptionEn: 'Would you like AI to create a personalized training program for you?',
+  descriptionSv: 'Vill du att AI skapar ett personligt träningsprogram åt dig?',
+}
+
 const COMMON_STEPS: StepDefinition[] = [
   {
     id: 'availability',
@@ -305,6 +314,14 @@ export function OnboardingWizard({
   const { toast } = useToast()
   const [stepIndex, setStepIndex] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // AI Program generation state
+  const [subscriptionTier, setSubscriptionTier] = useState<'FREE' | 'STANDARD' | 'PRO' | null>(null)
+  const [hasAssignedCoach, setHasAssignedCoach] = useState(false)
+  const [isGeneratingProgram, setIsGeneratingProgram] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState(0)
+  const [programGenerated, setProgramGenerated] = useState(false)
+
   const [data, setData] = useState<OnboardingData>({
     primarySport: null,
     secondarySports: [],
@@ -335,6 +352,92 @@ export function OnboardingWizard({
     tennisSettings: DEFAULT_TENNIS_SETTINGS,
     padelSettings: DEFAULT_PADEL_SETTINGS,
   })
+
+  // Fetch subscription tier and coach status for AI program step
+  useEffect(() => {
+    const fetchSubscriptionAndCoachStatus = async () => {
+      try {
+        // Fetch athlete subscription status
+        const response = await fetch('/api/athlete/subscription-status')
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success && result.data) {
+            setSubscriptionTier(result.data.tier || 'FREE')
+            setHasAssignedCoach(!!result.data.assignedCoachId)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch subscription status:', error)
+        setSubscriptionTier('FREE')
+      }
+    }
+
+    fetchSubscriptionAndCoachStatus()
+  }, [clientId])
+
+  // Handle AI program generation
+  const handleGenerateProgram = async () => {
+    setIsGeneratingProgram(true)
+    setGenerationProgress(0)
+
+    try {
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return prev
+          }
+          return prev + 10
+        })
+      }, 500)
+
+      const response = await fetch('/api/athlete/generate-program', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId,
+          sport: data.primarySport,
+          experience: data.experience,
+          goal: data.currentGoal,
+          targetDate: data.targetDate,
+          weeklyAvailability: data.weeklyAvailability,
+          preferredSessionLength: data.preferredSessionLength,
+          equipment: data.equipment,
+        }),
+      })
+
+      clearInterval(progressInterval)
+      setGenerationProgress(100)
+
+      if (!response.ok) {
+        throw new Error('Failed to generate program')
+      }
+
+      setProgramGenerated(true)
+      toast({
+        title: locale === 'sv' ? 'Program skapat!' : 'Program created!',
+        description: locale === 'sv'
+          ? 'Ditt AI-träningsprogram har skapats.'
+          : 'Your AI training program has been created.',
+      })
+
+      // Move to next step after short delay
+      setTimeout(() => {
+        handleNext()
+      }, 1500)
+    } catch (error) {
+      toast({
+        title: locale === 'sv' ? 'Fel' : 'Error',
+        description: locale === 'sv'
+          ? 'Kunde inte skapa programmet. Du kan försöka igen senare från din dashboard.'
+          : 'Could not create program. You can try again later from your dashboard.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsGeneratingProgram(false)
+    }
+  }
 
   // Compute steps based on selected sport
   const steps = useMemo(() => {
@@ -389,8 +492,14 @@ export function OnboardingWizard({
         break
     }
 
-    // Add common steps
-    allSteps.push(...COMMON_STEPS)
+    // Add common steps (availability, equipment, goals)
+    allSteps.push(...COMMON_STEPS.slice(0, 3))
+
+    // Add AI program step before summary
+    allSteps.push(AI_PROGRAM_STEP)
+
+    // Add summary step
+    allSteps.push(COMMON_STEPS[3])
 
     return allSteps
   }, [data.primarySport])
@@ -472,6 +581,8 @@ export function OnboardingWizard({
         return true // Equipment is optional
       case 'goals':
         return true // Goal is optional
+      case 'ai_program':
+        return true // AI program step can always proceed (it's optional)
       case 'summary':
         return true // Summary is just review
       default:
@@ -1102,6 +1213,19 @@ export function OnboardingWizard({
             </div>
           )}
 
+          {/* Step: AI Program Generation Offer */}
+          {currentStep.id === 'ai_program' && (
+            <AIProgramOfferStep
+              locale={locale}
+              subscriptionTier={subscriptionTier}
+              onGenerate={handleGenerateProgram}
+              onSkip={handleNext}
+              isGenerating={isGeneratingProgram}
+              generationProgress={generationProgress}
+              hasAssignedCoach={hasAssignedCoach}
+            />
+          )}
+
           {/* Step: Summary */}
           {currentStep.id === 'summary' && (
             <FitnessSummary
@@ -1123,32 +1247,35 @@ export function OnboardingWizard({
           )}
         </CardContent>
 
-        <CardFooter className="flex justify-between">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            disabled={stepIndex === 0}
-          >
-            {t('Back', 'Tillbaka')}
-          </Button>
-          {stepIndex < totalSteps - 1 ? (
+        {/* Hide footer during AI program step - it has its own buttons */}
+        {currentStep.id !== 'ai_program' && (
+          <CardFooter className="flex justify-between">
             <Button
-              onClick={handleNext}
-              disabled={!canProceed()}
+              variant="outline"
+              onClick={handleBack}
+              disabled={stepIndex === 0}
             >
-              {t('Next', 'Nästa')}
+              {t('Back', 'Tillbaka')}
             </Button>
-          ) : (
-            <Button
-              onClick={handleComplete}
-              disabled={isSubmitting}
-            >
-              {isSubmitting
-                ? t('Saving...', 'Sparar...')
-                : t('Complete Setup', 'Slutför inställning')}
-            </Button>
-          )}
-        </CardFooter>
+            {stepIndex < totalSteps - 1 ? (
+              <Button
+                onClick={handleNext}
+                disabled={!canProceed()}
+              >
+                {t('Next', 'Nästa')}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleComplete}
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? t('Saving...', 'Sparar...')
+                  : t('Complete Setup', 'Slutför inställning')}
+              </Button>
+            )}
+          </CardFooter>
+        )}
       </Card>
     </div>
   )

@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { Settings, ChevronLeft, Bot, Bell, ChevronRight, Target } from 'lucide-react'
+import { Settings, ChevronLeft, Bot, Bell, ChevronRight, Target, User } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
@@ -16,6 +16,7 @@ import { IntegrationsSettings } from '@/components/athlete/settings/Integrations
 import { AIModelSettings } from '@/components/athlete/settings/AIModelSettings'
 import { IntensityTargetsEditor } from '@/components/athlete/settings/IntensityTargetsEditor'
 import { LocationSettings } from '@/components/athlete/settings/LocationSettings'
+import { AboutMeSettings } from '@/components/athlete/settings/AboutMeSettings'
 import type { SportProfile } from '@prisma/client'
 import { SportType, IntensityTargets } from '@/types'
 import { getTargetsFromSettings } from '@/lib/training/intensity-targets'
@@ -147,6 +148,15 @@ export function AthleteSettingsClient({
             </div>
           </GlassCardContent>
         </GlassCard>
+
+        {/* About Me Settings */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-2">
+            <div className="w-1.5 h-4 bg-pink-500 rounded-full" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Om mig</h3>
+          </div>
+          <AboutMeSettings variant="glass" />
+        </div>
 
         {/* Theme Settings */}
         <div className="space-y-4">

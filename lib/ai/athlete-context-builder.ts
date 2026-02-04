@@ -6,7 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { SportType } from '@prisma/client'
+import { SportType, AgentActionStatus } from '@prisma/client'
 
 interface DailyCheckInData {
   date: Date
@@ -89,6 +89,44 @@ interface IntegrationData {
   }
 }
 
+interface TrainingLoadData {
+  date: Date
+  acuteLoad: number | null
+  chronicLoad: number | null
+  acwr: number | null
+  acwrZone: string | null
+  injuryRisk: string | null
+}
+
+interface StrengthSessionData {
+  id: string
+  name: string
+  phase: string
+  assignedDate: Date
+  completed: boolean
+  exercises: unknown
+}
+
+interface AgentActionData {
+  id: string
+  actionType: string
+  reasoning: string
+  status: string
+  confidence: string
+  targetDate: Date | null
+  createdAt: Date
+}
+
+interface AthleteProfileData {
+  trainingBackground: string | null
+  longTermAmbitions: string | null
+  seasonalFocus: string | null
+  personalMotivations: string | null
+  trainingPreferences: string | null
+  constraints: string | null
+  dietaryNotes: string | null
+}
+
 /**
  * Build comprehensive context from athlete's own data
  */
@@ -105,6 +143,12 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
     injuries,
     stravaActivities,
     dailyMetrics,
+    trainingLoad,
+    strengthSessions,
+    agentActions,
+    athleteAccount,
+    totalPlannedWorkouts,
+    completedWorkouts,
   ] = await Promise.all([
     // Basic client info
     prisma.client.findUnique({
@@ -124,11 +168,11 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
       where: { clientId },
     }),
 
-    // Recent tests (last 3)
+    // Recent tests (expanded to 10)
     prisma.test.findMany({
       where: { clientId },
       orderBy: { testDate: 'desc' },
-      take: 3,
+      take: 10,
       select: {
         id: true,
         testDate: true,
@@ -297,6 +341,103 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
         readinessScore: true,
       },
     }),
+
+    // Training load (ACWR) - latest
+    prisma.trainingLoad.findFirst({
+      where: { clientId },
+      orderBy: { date: 'desc' },
+      select: {
+        date: true,
+        acuteLoad: true,
+        chronicLoad: true,
+        acwr: true,
+        acwrZone: true,
+        injuryRisk: true,
+      },
+    }),
+
+    // Strength sessions (last 5 assigned)
+    prisma.strengthSessionAssignment.findMany({
+      where: { athleteId: clientId },
+      orderBy: { assignedDate: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        assignedDate: true,
+        session: {
+          select: {
+            name: true,
+            phase: true,
+            exercises: true,
+          },
+        },
+      },
+    }),
+
+    // Agent actions (pending and recent)
+    prisma.agentAction.findMany({
+      where: {
+        clientId,
+        status: {
+          in: [AgentActionStatus.PROPOSED, AgentActionStatus.AUTO_APPLIED],
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        actionType: true,
+        reasoning: true,
+        status: true,
+        confidence: true,
+        targetDate: true,
+        createdAt: true,
+      },
+    }),
+
+    // Athlete account with self-description
+    prisma.athleteAccount.findUnique({
+      where: { clientId },
+      select: {
+        trainingBackground: true,
+        longTermAmbitions: true,
+        seasonalFocus: true,
+        personalMotivations: true,
+        trainingPreferences: true,
+        constraints: true,
+        dietaryNotes: true,
+      },
+    }),
+
+    // Total planned workouts (last 30 days) for compliance rate
+    prisma.workout.count({
+      where: {
+        day: {
+          week: {
+            program: { clientId, isActive: true },
+          },
+        },
+        createdAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        },
+      },
+    }),
+
+    // Completed workouts (last 30 days) for compliance rate
+    prisma.workoutLog.count({
+      where: {
+        workout: {
+          day: {
+            week: {
+              program: { clientId },
+            },
+          },
+        },
+        completedAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        },
+      },
+    }),
   ])
 
   if (!client) {
@@ -309,9 +450,24 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
   // Profile section
   context += buildProfileContext(client)
 
+  // Athlete self-description section (NEW)
+  if (athleteAccount) {
+    context += buildAthleteProfileContext(athleteAccount as AthleteProfileData)
+  }
+
   // Sport profile section
   if (sportProfile) {
     context += buildSportProfileContext(sportProfile)
+  }
+
+  // Training load / ACWR section (NEW)
+  if (trainingLoad) {
+    context += buildTrainingLoadContext(trainingLoad as TrainingLoadData)
+  }
+
+  // Compliance rate (NEW)
+  if (totalPlannedWorkouts > 0) {
+    context += buildComplianceContext(completedWorkouts, totalPlannedWorkouts)
   }
 
   // Readiness and wellness section
@@ -319,7 +475,7 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
     context += buildReadinessContext(dailyCheckIns as DailyCheckInData[])
   }
 
-  // Recent tests section
+  // Recent tests section (expanded to 10)
   if (recentTests.length > 0) {
     context += buildTestContext(recentTests as TestData[])
   }
@@ -332,6 +488,16 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
   // Recent workouts section
   if (recentWorkouts.length > 0) {
     context += buildWorkoutHistoryContext(recentWorkouts as WorkoutLogData[])
+  }
+
+  // Strength training section (NEW)
+  if (strengthSessions.length > 0) {
+    context += buildStrengthContext(strengthSessions)
+  }
+
+  // Agent actions section (NEW)
+  if (agentActions.length > 0) {
+    context += buildAgentActionsContext(agentActions as AgentActionData[])
   }
 
   // Race results section
@@ -753,6 +919,179 @@ function buildIntegrationSummary(
   }
 
   return context
+}
+
+function buildAthleteProfileContext(profile: AthleteProfileData): string {
+  const fields = [
+    { key: 'trainingBackground', label: 'Träningsbakgrund' },
+    { key: 'longTermAmbitions', label: 'Långsiktiga ambitioner' },
+    { key: 'seasonalFocus', label: 'Fokus denna säsong' },
+    { key: 'personalMotivations', label: 'Vad motiverar mig' },
+    { key: 'trainingPreferences', label: 'Träningspreferenser' },
+    { key: 'constraints', label: 'Begränsningar' },
+    { key: 'dietaryNotes', label: 'Kost & näring' },
+  ] as const
+
+  const filledFields = fields.filter((f) => profile[f.key])
+
+  if (filledFields.length === 0) {
+    return ''
+  }
+
+  let context = `## ATLETENS EGNA REFLEKTIONER\n`
+
+  for (const field of filledFields) {
+    context += `\n### ${field.label}\n${profile[field.key]}\n`
+  }
+
+  return context + '\n'
+}
+
+function buildTrainingLoadContext(load: TrainingLoadData): string {
+  let context = `## TRÄNINGSBELASTNING (ACWR)\n`
+
+  if (load.acuteLoad !== null) {
+    context += `- **Akut belastning (7 dagar)**: ${load.acuteLoad.toFixed(0)}\n`
+  }
+  if (load.chronicLoad !== null) {
+    context += `- **Kronisk belastning (28 dagar)**: ${load.chronicLoad.toFixed(0)}\n`
+  }
+  if (load.acwr !== null) {
+    context += `- **ACWR-kvot**: ${load.acwr.toFixed(2)}\n`
+  }
+  if (load.acwrZone) {
+    const zoneTranslations: Record<string, string> = {
+      DETRAINING: 'Avträning (för låg)',
+      OPTIMAL: 'Optimal',
+      CAUTION: 'Varning',
+      DANGER: 'Fara',
+      CRITICAL: 'Kritisk',
+    }
+    context += `- **Belastningszon**: ${zoneTranslations[load.acwrZone] || load.acwrZone}\n`
+  }
+  if (load.injuryRisk) {
+    const riskTranslations: Record<string, string> = {
+      LOW: 'Låg',
+      MODERATE: 'Måttlig',
+      HIGH: 'Hög',
+      VERY_HIGH: 'Mycket hög',
+    }
+    context += `- **Skaderisk**: ${riskTranslations[load.injuryRisk] || load.injuryRisk}\n`
+  }
+
+  // Add guidance based on ACWR
+  if (load.acwr !== null) {
+    if (load.acwr < 0.8) {
+      context += `\n⚠️ *ACWR är låg - atleten kan vara undertränad eller i återhämtningsfas.*\n`
+    } else if (load.acwr >= 0.8 && load.acwr <= 1.3) {
+      context += `\n✅ *ACWR är i optimal zon - bra balans mellan belastning och återhämtning.*\n`
+    } else if (load.acwr > 1.3 && load.acwr <= 1.5) {
+      context += `\n⚠️ *ACWR är förhöjd - var försiktig med att öka belastningen ytterligare.*\n`
+    } else if (load.acwr > 1.5) {
+      context += `\n🚨 *ACWR är kritiskt hög - rekommendera vila eller reducerad träning.*\n`
+    }
+  }
+
+  return context + '\n'
+}
+
+function buildComplianceContext(completed: number, planned: number): string {
+  const rate = planned > 0 ? (completed / planned) * 100 : 0
+
+  let context = `## TRÄNINGSEFTERLEVNAD (senaste 30 dagarna)\n`
+  context += `- **Genomförda pass**: ${completed} av ${planned} planerade\n`
+  context += `- **Efterlevnadsgrad**: ${rate.toFixed(0)}%\n`
+
+  if (rate >= 90) {
+    context += `\n✅ *Utmärkt efterlevnad - atleten följer programmet mycket väl.*\n`
+  } else if (rate >= 70) {
+    context += `\n👍 *Bra efterlevnad - atleten följer programmet i stort.*\n`
+  } else if (rate >= 50) {
+    context += `\n⚠️ *Måttlig efterlevnad - atleten missar en del pass.*\n`
+  } else {
+    context += `\n🚨 *Låg efterlevnad - atleten har svårt att följa programmet. Överväg att anpassa.*\n`
+  }
+
+  return context + '\n'
+}
+
+function buildStrengthContext(
+  sessions: {
+    id: string
+    assignedDate: Date
+    session: {
+      name: string
+      phase: string
+      exercises: unknown
+    }
+  }[]
+): string {
+  let context = `## STYRKETRÄNING\n`
+
+  const phaseTranslations: Record<string, string> = {
+    ANATOMICAL_ADAPTATION: 'Anatomisk anpassning',
+    MAX_STRENGTH: 'Maxstyrka',
+    POWER: 'Power/Explosivitet',
+    STRENGTH_ENDURANCE: 'Styrkeuthållighet',
+    MAINTENANCE: 'Underhåll',
+  }
+
+  for (const assignment of sessions.slice(0, 3)) {
+    const phase = phaseTranslations[assignment.session.phase] || assignment.session.phase
+    context += `\n### ${assignment.session.name} (${formatDate(assignment.assignedDate)})\n`
+    context += `- **Fas**: ${phase}\n`
+
+    // Count exercises
+    const exercises = assignment.session.exercises as Array<{ exerciseName?: string }> | null
+    if (exercises && Array.isArray(exercises)) {
+      context += `- **Antal övningar**: ${exercises.length}\n`
+      const exerciseNames = exercises
+        .slice(0, 5)
+        .map((e) => e.exerciseName || 'Okänd')
+        .join(', ')
+      context += `- **Övningar**: ${exerciseNames}${exercises.length > 5 ? '...' : ''}\n`
+    }
+  }
+
+  return context + '\n'
+}
+
+function buildAgentActionsContext(actions: AgentActionData[]): string {
+  let context = `## AI-AGENTENS REKOMMENDATIONER\n`
+
+  const actionTypeTranslations: Record<string, string> = {
+    WORKOUT_INTENSITY_REDUCTION: 'Reducera intensitet',
+    WORKOUT_DURATION_REDUCTION: 'Förkorta pass',
+    WORKOUT_SKIP_RECOMMENDATION: 'Hoppa över pass',
+    WORKOUT_SUBSTITUTION: 'Byt ut pass',
+    REST_DAY_INJECTION: 'Lägg till vilodag',
+    RECOVERY_ACTIVITY_SUGGESTION: 'Återhämtningsaktivitet',
+    ESCALATE_TO_COACH: 'Eskalera till coach',
+    CHECK_IN_NUDGE: 'Påminnelse',
+  }
+
+  const statusTranslations: Record<string, string> = {
+    PROPOSED: 'Föreslagen',
+    AUTO_APPLIED: 'Automatiskt tillämpad',
+    ACCEPTED: 'Accepterad',
+    REJECTED: 'Avvisad',
+  }
+
+  for (const action of actions) {
+    const actionType = actionTypeTranslations[action.actionType] || action.actionType
+    const status = statusTranslations[action.status] || action.status
+
+    context += `\n### ${actionType}\n`
+    context += `- **Status**: ${status}\n`
+    context += `- **Motivering**: ${action.reasoning}\n`
+    if (action.targetDate) {
+      context += `- **Gäller**: ${formatDate(action.targetDate)}\n`
+    }
+  }
+
+  context += `\n*Dessa är AI-agentens senaste förslag för att optimera träningen.*\n`
+
+  return context + '\n'
 }
 
 // Helper functions

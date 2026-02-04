@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { canUseAthleteMode, getCoachSelfAthleteClient, isAthleteModeActive } from '@/lib/athlete-mode'
 import { logger } from '@/lib/logger'
+import { prisma } from '@/lib/prisma'
 
 /**
  * GET /api/athlete-mode/status
@@ -28,14 +29,21 @@ export async function GET() {
           hasAthleteProfile: false,
           isAthleteModeActive: false,
           athleteProfile: null,
+          businessSlug: null,
         },
       })
     }
 
-    const [hasProfile, athleteProfile, isActive] = await Promise.all([
+    const [hasProfile, athleteProfile, isActive, businessMembership] = await Promise.all([
       canUseAthleteMode(user.id),
       getCoachSelfAthleteClient(user.id),
       isAthleteModeActive(),
+      // Get the coach's primary business (first active membership)
+      prisma.businessMember.findFirst({
+        where: { userId: user.id },
+        include: { business: { select: { slug: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
     ])
 
     return NextResponse.json({
@@ -45,6 +53,7 @@ export async function GET() {
         hasAthleteProfile: hasProfile,
         isAthleteModeActive: isActive && hasProfile,
         athleteProfile,
+        businessSlug: businessMembership?.business?.slug || null,
       },
     })
   } catch (error) {

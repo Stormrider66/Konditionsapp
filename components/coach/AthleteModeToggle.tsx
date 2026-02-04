@@ -18,6 +18,7 @@ interface AthleteModeStatus {
     id: string
     name: string
   } | null
+  businessSlug: string | null
 }
 
 interface AthleteModeToggleProps {
@@ -52,6 +53,9 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
   const [isFetching, setIsFetching] = useState(true)
 
   // Extract business slug from current path
+  // We only use the URL-based slug to keep routes consistent:
+  // - Business-scoped routes (/star-by-thomson/...) stay business-scoped
+  // - Legacy routes (/coach/..., /athlete/...) stay legacy
   const businessSlug = extractBusinessSlug(pathname)
 
   // Determine if we're currently on an athlete route
@@ -79,6 +83,7 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
           hasAthleteProfile: false,
           isAthleteModeActive: false,
           athleteProfile: null,
+          businessSlug: null,
         })
       }
     } catch (error) {
@@ -89,6 +94,7 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
         hasAthleteProfile: false,
         isAthleteModeActive: false,
         athleteProfile: null,
+        businessSlug: null,
       })
     } finally {
       setIsFetching(false)
@@ -175,6 +181,11 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
         Loading...
       </Button>
     )
+  }
+
+  // Don't show anything if user can't use athlete mode (not a coach)
+  if (!status?.canUseAthleteMode) {
+    return null
   }
 
   // Determine button text based on current route
