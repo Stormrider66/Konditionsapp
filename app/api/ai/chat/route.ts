@@ -440,6 +440,7 @@ Detta gör att en "Publicera"-knapp visas så coachen kan spara programmet direk
 
 Använd EXAKT detta JSON-format i ett \`\`\`json kodblock:
 
+\`\`\`json
 {
   "name": "Programnamn",
   "description": "Kort beskrivning av programmet",
@@ -496,6 +497,7 @@ Använd EXAKT detta JSON-format i ett \`\`\`json kodblock:
   ],
   "notes": "Generella kommentarer om programmet"
 }
+\`\`\`
 
 Giltiga type-värden: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
 Giltiga intensity-värden: easy, moderate, hard, threshold, interval, recovery, race_pace
