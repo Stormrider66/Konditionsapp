@@ -431,9 +431,76 @@ ${pageContext}
 - När du föreslår träningsprogram, var specifik med intensiteter, volymer och frekvenser
 - Använd etablerade träningszoner och metodiker
 - Anpassa råden efter atletens nivå och mål
-- När du genererar ett program, inkludera JSON-format som kan sparas
 - Om videoanalysdata finns tillgänglig, integrera löpteknikrekommendationer i programmet
 - Vid hög asymmetri eller skaderisk, inkludera preventiva övningar och styrketräning
+
+## PROGRAMGENERERING - VIKTIGT!
+När coachen ber dig skapa ett träningsprogram MÅSTE du inkludera programmet i JSON-format i ett kodblock.
+Detta gör att en "Publicera"-knapp visas så coachen kan spara programmet direkt till atletens profil.
+
+Använd EXAKT detta JSON-format i ett \`\`\`json kodblock:
+
+{
+  "name": "Programnamn",
+  "description": "Kort beskrivning av programmet",
+  "totalWeeks": 12,
+  "methodology": "POLARIZED",
+  "weeklySchedule": {
+    "sessionsPerWeek": 5,
+    "restDays": [0, 3]
+  },
+  "phases": [
+    {
+      "name": "Basperiod",
+      "weeks": "1-4",
+      "focus": "Aerob bas och teknik",
+      "weeklyTemplate": {
+        "monday": { "type": "REST", "description": "Vila" },
+        "tuesday": {
+          "type": "RUNNING",
+          "name": "Grundträning",
+          "duration": 60,
+          "zone": "2",
+          "description": "Lugn löpning i Zon 2",
+          "intensity": "easy"
+        },
+        "wednesday": {
+          "type": "STRENGTH",
+          "name": "Styrka",
+          "duration": 45,
+          "description": "Grundläggande styrkepass",
+          "intensity": "moderate"
+        },
+        "thursday": { "type": "REST", "description": "Vila" },
+        "friday": {
+          "type": "RUNNING",
+          "name": "Intervaller",
+          "duration": 50,
+          "zone": "4",
+          "description": "6x4 min i Z4 med 2 min vila",
+          "intensity": "hard"
+        },
+        "saturday": {
+          "type": "RUNNING",
+          "name": "Långpass",
+          "duration": 90,
+          "zone": "2",
+          "description": "Lugnt långpass",
+          "intensity": "easy"
+        },
+        "sunday": { "type": "REST", "description": "Vila" }
+      },
+      "keyWorkouts": ["Tröskelintervaller", "Långpass"],
+      "volumeGuidance": "Gradvis ökning av volym med 10% per vecka"
+    }
+  ],
+  "notes": "Generella kommentarer om programmet"
+}
+
+Giltiga type-värden: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
+Giltiga intensity-värden: easy, moderate, hard, threshold, interval, recovery, race_pace
+
+Efter att du genererat JSON-programmet, informera coachen att de kan klicka på "Publicera"-knappen som visas för att spara programmet till atletens kalender.
 ${webSearchEnabled ? '- Du kan referera till aktuell forskning och trender inom träningsvetenskap' : ''}
 ${calendarContext ? `
 ## KALENDERMEDVETEN PLANERING
