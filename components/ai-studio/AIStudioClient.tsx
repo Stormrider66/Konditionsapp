@@ -92,10 +92,22 @@ interface AIModel {
   id: string
   provider: AIProvider
   modelId: string
-  displayName: string
+  displayName?: string
+  name?: string
   description: string | null
-  capabilities: string[]
-  isDefault: boolean
+  capabilities: string[] | {
+    reasoning?: string
+    speed?: string
+    contextWindow?: number
+    maxOutputTokens?: number
+  }
+  isDefault?: boolean
+  recommended?: boolean
+  bestForLongOutput?: boolean
+  pricing?: {
+    input: number
+    output: number
+  }
 }
 
 interface Conversation {

@@ -1,5 +1,6 @@
 // app/api/tests/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from "@/lib/prisma"
 import { createTestApiSchema, type CreateTestApiData } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
         notes: data.notes || null,
         // New fields
         restingLactate: data.restingLactate || null,
-        postTestMeasurements: data.postTestMeasurements || null,
+        postTestMeasurements: data.postTestMeasurements || Prisma.JsonNull,
         recommendedNextTestDate: data.recommendedNextTestDate ? new Date(data.recommendedNextTestDate) : null,
         testStages: {
           create: data.stages.map((stage, index) => ({

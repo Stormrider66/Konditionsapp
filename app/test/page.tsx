@@ -168,7 +168,7 @@ export default function TestPage() {
         id: `stage-${index}`,
         testId: savedTest.id,
         sequence: index,
-        duration: stage.duration,
+        duration: stage.durationSeconds,
         heartRate: stage.heartRate,
         lactate: stage.lactate,
         vo2: stage.vo2,
