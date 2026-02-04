@@ -15,7 +15,7 @@ import { checkAthleteFeatureAccess, incrementAIChatUsage } from '@/lib/subscript
 import { searchSimilarChunks } from '@/lib/ai/embeddings';
 import { buildSportSpecificContext, type AthleteData } from '@/lib/ai/sport-context-builder';
 import { buildAthleteOwnContext } from '@/lib/ai/athlete-context-builder';
-import { buildAthleteSystemPrompt, MemoryContext } from '@/lib/ai/athlete-prompts';
+import { buildAthleteSystemPrompt, MemoryContext, AthleteCapabilities } from '@/lib/ai/athlete-prompts';
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
 import { extractMemoriesFromConversation, saveMemories } from '@/lib/ai/memory-extractor';
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
@@ -111,6 +111,8 @@ export async function POST(request: NextRequest) {
     // Date range for calendar constraints (prefer active/current program window)
     let calendarProgramStartDate: Date | undefined;
     let calendarProgramEndDate: Date | undefined;
+    // Athlete capabilities for AI chat (self-coached athletes)
+    let athleteCapabilities: AthleteCapabilities | undefined;
 
     if (isAthleteChat) {
       // Athlete chat mode
@@ -157,18 +159,40 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Get current program window for calendar constraints (if available)
+      // Get current program window and subscription info for capabilities
       try {
-        const program = await prisma.trainingProgram.findFirst({
-          where: {
-            clientId: athleteClientId,
-            isActive: true,
-          },
-          orderBy: { createdAt: 'desc' },
-          select: { startDate: true, endDate: true },
-        });
-        calendarProgramStartDate = program?.startDate;
-        calendarProgramEndDate = program?.endDate;
+        const [program, subscription] = await Promise.all([
+          prisma.trainingProgram.findFirst({
+            where: {
+              clientId: athleteClientId,
+              isActive: true,
+            },
+            orderBy: { createdAt: 'desc' },
+            select: { startDate: true, endDate: true },
+          }),
+          prisma.athleteSubscription.findUnique({
+            where: { clientId: athleteClientId },
+            select: {
+              tier: true,
+              assignedCoachId: true,
+            },
+          }),
+        ])
+
+        calendarProgramStartDate = program?.startDate
+        calendarProgramEndDate = program?.endDate
+
+        // Build athlete capabilities for self-coached athletes
+        const isSelfCoached = !subscription?.assignedCoachId
+        const subscriptionTier = (subscription?.tier || 'FREE') as 'FREE' | 'STANDARD' | 'PRO'
+        const canGenerateProgram = isSelfCoached && (subscriptionTier === 'STANDARD' || subscriptionTier === 'PRO')
+
+        athleteCapabilities = {
+          canGenerateProgram,
+          hasActiveProgram: !!program,
+          subscriptionTier,
+          isSelfCoached,
+        }
       } catch (error) {
         logger.warn('Error fetching training program dates for calendar context', {}, error)
       }
@@ -211,339 +235,86 @@ export async function POST(request: NextRequest) {
     if (isAthleteChat && athleteClientId) {
       try {
         athleteContext = await buildAthleteOwnContext(athleteClientId);
-        athleteSystemPrompt = buildAthleteSystemPrompt(athleteContext, athleteName, memoryContext);
+        athleteSystemPrompt = buildAthleteSystemPrompt(athleteContext, athleteName, memoryContext, athleteCapabilities);
       } catch (error) {
         logger.warn('Error building athlete context', { athleteClientId }, error)
       }
     }
-    // Coach chat mode: Use full context with athlete data
+    // Coach chat mode: Use full context with athlete data (same as athlete's floating chat)
     else if (athleteId) {
-      const athlete = await prisma.client.findFirst({
+      // First verify that the athlete belongs to this coach
+      const athleteCheck = await prisma.client.findFirst({
         where: { id: athleteId, userId: userId },
-        include: {
-          sportProfile: true,
-          tests: {
-            orderBy: { testDate: 'desc' },
-            take: 3,
-            include: { testStages: true },
-          },
+        select: {
+          id: true,
           trainingPrograms: {
+            where: { isActive: true },
             orderBy: { createdAt: 'desc' },
             take: 1,
-            select: {
-              id: true,
-              name: true,
-              goalType: true,
-              goalRace: true,
-              startDate: true,
-              endDate: true,
-            },
+            select: { startDate: true, endDate: true },
           },
-          raceResults: {
-            orderBy: { raceDate: 'desc' },
-            take: 5,
-            select: {
-              id: true,
-              raceName: true,
-              raceDate: true,
-              distance: true,
-              timeFormatted: true,
-              vdot: true,
-            },
-          },
-          injuryAssessments: {
-            where: { status: { not: 'FULLY_RECOVERED' } },
-            orderBy: { date: 'desc' },
-            take: 3,
-          },
-          fieldTests: {
-            orderBy: { date: 'desc' },
-            take: 5,
-            select: {
-              id: true,
-              testType: true,
-              date: true,
-              results: true,
-            },
-          },
-          dailyCheckIns: {
-            orderBy: { date: 'desc' },
-            take: 7,
-            select: {
-              date: true,
-              sleepQuality: true,
-              sleepHours: true,
-              fatigue: true,
-              soreness: true,
-              mood: true,
-              restingHR: true,
-              hrv: true,
-            },
-          },
-          bodyCompositions: {
-            orderBy: { measurementDate: 'desc' },
-            take: 1,
-            select: {
-              measurementDate: true,
-              weightKg: true,
-              bodyFatPercent: true,
-              muscleMassKg: true,
-              visceralFat: true,
-              boneMassKg: true,
-              waterPercent: true,
-              bmrKcal: true,
-              metabolicAge: true,
-            },
-          },
-          videoAnalyses: {
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-            where: { status: 'COMPLETED' },
-            select: {
-              id: true,
-              createdAt: true,
-              videoType: true,
-              cameraAngle: true,
-              formScore: true,
-              issuesDetected: true,
-              recommendations: true,
-              aiPoseAnalysis: true,
-              runningGaitAnalysis: true,
-            },
-          },
+          sportProfile: true,
         },
       });
 
-      if (athlete) {
-        // Calculate age
-        const age = athlete.birthDate
-          ? Math.floor((Date.now() - new Date(athlete.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-          : null;
-
-        // Create anonymous athlete reference (GDPR compliance - no PII sent to AI)
-        const athleteRef = `Atlet-${athlete.id.slice(0, 8)}`;
-
-        // Build basic info - NO personal identifiers sent to AI
-        let basicInfo = `## ATLET INFORMATION
-- **Referens**: ${athleteRef}
-- **Kön**: ${athlete.gender || 'Ej angivet'}
-- **Ålder**: ${age ? `${age} år` : 'Okänd'}
-- **Längd**: ${athlete.height ? `${athlete.height} cm` : 'Ej angivet'}
-- **Vikt**: ${athlete.weight ? `${athlete.weight} kg` : 'Ej angivet'}`;
-
-        // Sport profile info
-        let sportInfo = '';
-        if (athlete.sportProfile) {
-          const sp = athlete.sportProfile;
-          sportInfo = `
-### Sportprofil
-- **Primärsport**: ${sp.primarySport}
-${sp.secondarySports?.length ? `- **Sekundärsporter**: ${(sp.secondarySports as string[]).join(', ')}` : ''}`;
-
-          // Add sport-specific settings
-          const settings = sp.primarySport === 'RUNNING' ? sp.runningSettings :
-                          sp.primarySport === 'CYCLING' ? sp.cyclingSettings :
-                          sp.primarySport === 'SWIMMING' ? sp.swimmingSettings :
-                          sp.primarySport === 'HYROX' ? sp.hyroxSettings :
-                          sp.primarySport === 'TRIATHLON' ? sp.triathlonSettings : null;
-
-          if (settings && typeof settings === 'object') {
-            const settingsObj = settings as Record<string, unknown>;
-            const settingsLines: string[] = [];
-
-            // Running settings
-            if ('targetRace' in settingsObj) settingsLines.push(`- **Mållopp**: ${settingsObj.targetRace}`);
-            if ('weeklyVolume' in settingsObj) settingsLines.push(`- **Veckovolym**: ${settingsObj.weeklyVolume} km`);
-            if ('preferredMethodology' in settingsObj) settingsLines.push(`- **Träningsmetodik**: ${settingsObj.preferredMethodology}`);
-
-            // Cycling settings
-            if ('currentFtp' in settingsObj) settingsLines.push(`- **FTP**: ${settingsObj.currentFtp}W`);
-            if ('primaryDiscipline' in settingsObj) settingsLines.push(`- **Disciplin**: ${settingsObj.primaryDiscipline}`);
-
-            // Swimming settings
-            if ('currentCss' in settingsObj) settingsLines.push(`- **CSS**: ${settingsObj.currentCss}`);
-            if ('primaryStroke' in settingsObj) settingsLines.push(`- **Huvudsimsätt**: ${settingsObj.primaryStroke}`);
-
-            // HYROX settings
-            if ('targetCategory' in settingsObj) settingsLines.push(`- **Kategori**: ${settingsObj.targetCategory}`);
-            if ('targetTime' in settingsObj) settingsLines.push(`- **Måltid**: ${settingsObj.targetTime}`);
-
-            if (settingsLines.length > 0) {
-              sportInfo += '\n' + settingsLines.join('\n');
-            }
-          }
+      if (athleteCheck) {
+        // Set calendar date range from active program
+        if (athleteCheck.trainingPrograms[0]) {
+          calendarProgramStartDate = athleteCheck.trainingPrograms[0].startDate;
+          calendarProgramEndDate = athleteCheck.trainingPrograms[0].endDate;
         }
 
-        // Latest test data
-        let testInfo = '';
-        if (athlete.tests?.[0]) {
-          const test = athlete.tests[0];
-          testInfo = `
-### Senaste laktattest (${new Date(test.testDate).toLocaleDateString('sv-SE')})
-- **Testtyp**: ${test.testType}
-- **Max HR**: ${test.maxHR ? `${test.maxHR} bpm` : 'Ej uppmätt'}
-- **VO2max**: ${test.vo2max ? `${test.vo2max.toFixed(1)} ml/kg/min` : 'Ej uppmätt'}`;
-
-          // Add threshold info if available
-          const aerobicThreshold = test.aerobicThreshold as { hr?: number; value?: number; unit?: string } | null;
-          const anaerobicThreshold = test.anaerobicThreshold as { hr?: number; value?: number; unit?: string } | null;
-
-          if (aerobicThreshold) {
-            testInfo += `
-- **Aerob tröskel (LT1)**: ${aerobicThreshold.value} ${aerobicThreshold.unit || ''} @ ${aerobicThreshold.hr} bpm`;
-          }
-          if (anaerobicThreshold) {
-            testInfo += `
-- **Anaerob tröskel (LT2)**: ${anaerobicThreshold.value} ${anaerobicThreshold.unit || ''} @ ${anaerobicThreshold.hr} bpm`;
-          }
+        // Use the same comprehensive context builder as athlete's floating chat
+        // This includes: test results, workout history, check-ins, injuries, ACWR,
+        // Strava/Garmin data, compliance rates, training programs, strength sessions,
+        // race results, and agent recommendations
+        try {
+          athleteContext = await buildAthleteOwnContext(athleteId);
+        } catch (error) {
+          logger.warn('Error building full athlete context for coach', { athleteId }, error);
         }
 
-        // Race results with VDOT
-        let raceInfo = '';
-        if (athlete.raceResults?.length) {
-          const races = athlete.raceResults.slice(0, 3);
-          raceInfo = `
-### Tävlingshistorik`;
-          for (const race of races) {
-            raceInfo += `
-- **${race.raceName || race.distance}** (${new Date(race.raceDate).toLocaleDateString('sv-SE')}): ${race.timeFormatted}${race.vdot ? ` (VDOT: ${race.vdot.toFixed(1)})` : ''}`;
-          }
+        // Also build sport-specific context for detailed training methodology guidance
+        if (athleteCheck.sportProfile) {
+          // Fetch additional data for sport context
+          const [trainingLoad, strengthData, plannedCount, completedCount] = await Promise.all([
+            prisma.trainingLoad.findFirst({
+              where: { clientId: athleteId },
+              orderBy: { date: 'desc' },
+            }),
+            prisma.strengthSessionAssignment.findMany({
+              where: { athleteId },
+              orderBy: { assignedDate: 'desc' },
+              take: 5,
+              include: { session: true },
+            }),
+            prisma.workout.count({
+              where: {
+                day: { week: { program: { clientId: athleteId, isActive: true } } },
+                createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+              },
+            }),
+            prisma.workoutLog.count({
+              where: {
+                workout: { day: { week: { program: { clientId: athleteId } } } },
+                completedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+              },
+            }),
+          ]);
+
+          const athleteWithExtendedContext = {
+            sportProfile: athleteCheck.sportProfile,
+            trainingLoad,
+            strengthSessions: strengthData.map(s => ({
+              name: s.session.name,
+              phase: s.session.phase,
+              assignedDate: s.assignedDate,
+              exercises: s.session.exercises,
+            })),
+            complianceRate: plannedCount > 0 ? (completedCount / plannedCount) * 100 : undefined,
+          };
+          sportSpecificContext = buildSportSpecificContext(athleteWithExtendedContext as unknown as AthleteData);
         }
-
-        // Current program
-        let programInfo = '';
-        if (athlete.trainingPrograms?.[0]) {
-          const prog = athlete.trainingPrograms[0];
-          calendarProgramStartDate = prog.startDate;
-          calendarProgramEndDate = prog.endDate;
-          programInfo = `
-### Pågående träningsprogram
-- **Program**: ${prog.name}
-- **Måltyp**: ${prog.goalType || 'Ej specificerad'}
-${prog.goalRace ? `- **Mållopp**: ${prog.goalRace}` : ''}
-- **Period**: ${new Date(prog.startDate).toLocaleDateString('sv-SE')} - ${new Date(prog.endDate).toLocaleDateString('sv-SE')}`;
-        }
-
-        // Active injuries
-        let injuryInfo = '';
-        if (athlete.injuryAssessments?.length) {
-          injuryInfo = `
-### Aktiva skador/begränsningar`;
-          for (const injury of athlete.injuryAssessments) {
-            injuryInfo += `
-- **${injury.injuryType}**: ${injury.status} (smärta: ${injury.painLevel}/10)`;
-          }
-        }
-
-        // Body composition (bioimpedance data)
-        let bodyCompInfo = '';
-        if (athlete.bodyCompositions?.[0]) {
-          const bc = athlete.bodyCompositions[0];
-          bodyCompInfo = `
-### Kroppssammansättning (${new Date(bc.measurementDate).toLocaleDateString('sv-SE')})`;
-          if (bc.weightKg) bodyCompInfo += `
-- **Vikt**: ${bc.weightKg} kg`;
-          if (bc.bodyFatPercent) bodyCompInfo += `
-- **Kroppsfett**: ${bc.bodyFatPercent}%`;
-          if (bc.muscleMassKg) bodyCompInfo += `
-- **Muskelmassa**: ${bc.muscleMassKg} kg`;
-          if (bc.waterPercent) bodyCompInfo += `
-- **Vätska**: ${bc.waterPercent}%`;
-          if (bc.visceralFat) bodyCompInfo += `
-- **Visceralt fett**: ${bc.visceralFat}`;
-          if (bc.bmrKcal) bodyCompInfo += `
-- **BMR (mätt)**: ${bc.bmrKcal} kcal`;
-          if (bc.metabolicAge) bodyCompInfo += `
-- **Metabolisk ålder**: ${bc.metabolicAge} år`;
-        }
-
-        // Video analysis (running gait analysis)
-        let videoAnalysisInfo = '';
-        if (athlete.videoAnalyses?.length) {
-          videoAnalysisInfo = `
-### Videoanalyser`;
-          for (const video of athlete.videoAnalyses) {
-            const date = new Date(video.createdAt).toLocaleDateString('sv-SE');
-            const angleLabel = video.cameraAngle === 'FRONT' ? 'Framifrån' :
-                               video.cameraAngle === 'SIDE' ? 'Från sidan' :
-                               video.cameraAngle === 'BACK' ? 'Bakifrån' : null;
-            const angleInfo = angleLabel ? ` - ${angleLabel}` : '';
-            videoAnalysisInfo += `
-
-#### Videoanalys (${date}${angleInfo})`;
-            if (video.cameraAngle) {
-              const viewFocus = video.cameraAngle === 'FRONT' ? 'armsving, symmetri, knäspårning' :
-                                video.cameraAngle === 'SIDE' ? 'fotisättning, lutning, oscillation' :
-                                video.cameraAngle === 'BACK' ? 'höftfall, hälpiska, gluteal' : '';
-              if (viewFocus) {
-                videoAnalysisInfo += `
-- **Kameravy fokus**: ${viewFocus}`;
-              }
-            }
-            if (video.formScore) {
-              videoAnalysisInfo += `
-- **Formpoäng**: ${video.formScore}/100`;
-            }
-            if (video.issuesDetected && Array.isArray(video.issuesDetected) && video.issuesDetected.length > 0) {
-              videoAnalysisInfo += `
-- **Identifierade problem**: ${(video.issuesDetected as string[]).join(', ')}`;
-            }
-            if (video.recommendations && Array.isArray(video.recommendations) && video.recommendations.length > 0) {
-              videoAnalysisInfo += `
-- **Rekommendationer**: ${(video.recommendations as string[]).join(', ')}`;
-            }
-
-            // Running gait analysis details
-            const gait = video.runningGaitAnalysis;
-            if (gait) {
-              videoAnalysisInfo += `
-
-##### Löpstilsanalys`;
-              if (gait.cadence) videoAnalysisInfo += `
-- **Kadans**: ${gait.cadence} steg/min`;
-              if (gait.groundContactTime) videoAnalysisInfo += `
-- **Markkontakttid**: ${gait.groundContactTime} ms`;
-              if (gait.verticalOscillation) videoAnalysisInfo += `
-- **Vertikal oscillation**: ${gait.verticalOscillation} cm`;
-              if (gait.strideLength) videoAnalysisInfo += `
-- **Steglängd**: ${gait.strideLength} m`;
-              if (gait.footStrikePattern) videoAnalysisInfo += `
-- **Fotisättning**: ${gait.footStrikePattern}`;
-              if (gait.asymmetryPercent) videoAnalysisInfo += `
-- **Asymmetri**: ${gait.asymmetryPercent}%`;
-              if (gait.leftContactTime && gait.rightContactTime) videoAnalysisInfo += `
-- **Markkontakt vänster/höger**: ${gait.leftContactTime}/${gait.rightContactTime} ms`;
-              if (gait.injuryRiskLevel) videoAnalysisInfo += `
-- **Skaderisk**: ${gait.injuryRiskLevel}${gait.injuryRiskScore ? ` (${gait.injuryRiskScore}/100)` : ''}`;
-              if (gait.injuryRiskFactors && Array.isArray(gait.injuryRiskFactors) && gait.injuryRiskFactors.length > 0) {
-                videoAnalysisInfo += `
-- **Riskfaktorer**: ${(gait.injuryRiskFactors as string[]).join(', ')}`;
-              }
-              if (gait.runningEfficiency) videoAnalysisInfo += `
-- **Löpeffektivitet**: ${gait.runningEfficiency}%`;
-              if (gait.energyLeakages && Array.isArray(gait.energyLeakages) && gait.energyLeakages.length > 0) {
-                videoAnalysisInfo += `
-- **Energiläckage**: ${(gait.energyLeakages as string[]).join(', ')}`;
-              }
-              if (gait.coachingCues && Array.isArray(gait.coachingCues) && gait.coachingCues.length > 0) {
-                videoAnalysisInfo += `
-- **Coachingråd**: ${(gait.coachingCues as string[]).join('; ')}`;
-              }
-              if (gait.drillRecommendations && Array.isArray(gait.drillRecommendations) && gait.drillRecommendations.length > 0) {
-                videoAnalysisInfo += `
-- **Rekommenderade övningar**: ${(gait.drillRecommendations as string[]).join(', ')}`;
-              }
-              if (gait.summary) videoAnalysisInfo += `
-- **Sammanfattning**: ${gait.summary}`;
-            }
-          }
-        }
-
-        athleteContext = `${basicInfo}${sportInfo}${testInfo}${raceInfo}${programInfo}${injuryInfo}${bodyCompInfo}${videoAnalysisInfo}
-`;
-
-        // Build sport-specific context with detailed training data
-        sportSpecificContext = buildSportSpecificContext(athlete as unknown as AthleteData);
       }
     }
 

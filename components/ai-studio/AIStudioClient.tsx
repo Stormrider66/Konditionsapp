@@ -54,7 +54,8 @@ import {
   type ProgramContext,
 } from '@/lib/ai/program-context-builder'
 import { ContextPanel } from './ContextPanel'
-import { GlobalModelDisplay } from './GlobalModelDisplay'
+import { ModelSelector } from './ModelSelector'
+import { ChatHistoryPanel } from './ChatHistoryPanel'
 import { ChatMessage } from './ChatMessage'
 import { CostEstimate, SessionCostSummary } from './CostEstimate'
 import { PublishProgramDialog } from './PublishProgramDialog'
@@ -154,6 +155,7 @@ export function AIStudioClient({
   const [deepThinkEnabled, setDeepThinkEnabled] = useState(false)
   const [conversations, setConversations] = useState(initialConversations)
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
+  const [currentModel, setCurrentModel] = useState<AIModel | null>(defaultModel)
 
   // Publish dialog state
   const [publishDialogOpen, setPublishDialogOpen] = useState(false)
@@ -167,6 +169,7 @@ export function AIStudioClient({
   const [researchHistoryOpen, setResearchHistoryOpen] = useState(false)
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
   const [budgetSettingsOpen, setBudgetSettingsOpen] = useState(false)
+  const [chatHistoryOpen, setChatHistoryOpen] = useState(false)
   const [viewingResearchSession, setViewingResearchSession] = useState<{
     id: string
     provider: string
@@ -220,12 +223,12 @@ export function AIStudioClient({
   // Helper to get current body params for sendMessage
   const getCurrentBodyParams = () => ({
     conversationId: currentConversationId,
-    model: defaultModel?.modelId,
-    provider: defaultModel?.provider,
+    model: currentModel?.modelId,
+    provider: currentModel?.provider,
     athleteId: selectedAthlete,
     documentIds: selectedDocuments,
     webSearchEnabled,
-    deepThinkEnabled: deepThinkEnabled && defaultModel?.provider === 'GOOGLE',
+    deepThinkEnabled: deepThinkEnabled && currentModel?.provider === 'GOOGLE',
   })
 
   const isLoading = status === 'streaming' || status === 'submitted'
@@ -328,7 +331,7 @@ export function AIStudioClient({
 
   // Start multi-part program generation for long programs
   async function startMultiPartGeneration() {
-    if (!programContext || !defaultModel) return
+    if (!programContext || !currentModel) return
 
     try {
       setMultiPartGenerating(true)
@@ -357,8 +360,8 @@ export function AIStudioClient({
           },
           totalWeeks: programContext.wizardData.durationWeeks,
           sport: programContext.wizardData.sport,
-          provider: defaultModel.provider,
-          modelId: defaultModel.modelId,
+          provider: currentModel.provider,
+          modelId: currentModel.modelId,
         }),
       })
 
@@ -435,10 +438,10 @@ export function AIStudioClient({
 
   // Create new conversation
   async function createConversation() {
-    if (!defaultModel) {
+    if (!currentModel) {
       toast({
-        title: 'Ingen AI-modell konfigurerad',
-        description: 'Gå till Inställningar → AI för att välja en standardmodell.',
+        title: 'Ingen AI-modell vald',
+        description: 'Välj en AI-modell i verktygsfältet ovan.',
         variant: 'destructive',
       })
       return null
@@ -449,8 +452,8 @@ export function AIStudioClient({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          modelUsed: defaultModel.modelId,
-          provider: defaultModel.provider,
+          modelUsed: currentModel.modelId,
+          provider: currentModel.provider,
           athleteId: selectedAthlete,
           contextDocuments: selectedDocuments,
           webSearchEnabled,
@@ -676,10 +679,10 @@ export function AIStudioClient({
       {/* Left Sidebar - Context Panel */}
       <div
         className={`${
-          sidebarOpen ? 'w-80' : 'w-0'
+          sidebarOpen ? 'w-96' : 'w-0'
         } transition-all duration-300 border-r bg-muted/30 overflow-hidden flex-shrink-0`}
       >
-        <div className="w-80 h-full flex flex-col">
+        <div className="w-96 h-full flex flex-col">
           <ContextPanel
             clients={clients}
             documents={documents}
@@ -697,7 +700,7 @@ export function AIStudioClient({
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-background border rounded-r-lg p-1 hover:bg-muted transition"
-        style={{ left: sidebarOpen ? '320px' : '0' }}
+        style={{ left: sidebarOpen ? '384px' : '0' }}
       >
         {sidebarOpen ? (
           <ChevronLeft className="h-4 w-4" />
@@ -757,7 +760,7 @@ export function AIStudioClient({
                 Webbsökning
               </Badge>
             )}
-            {deepThinkEnabled && defaultModel?.provider === 'GOOGLE' && (
+            {deepThinkEnabled && currentModel?.provider === 'GOOGLE' && (
               <Badge variant="outline" className="flex items-center gap-1 bg-purple-50 border-purple-200 text-purple-700">
                 <BrainCircuit className="h-3 w-3" />
                 Deep Think
@@ -766,7 +769,7 @@ export function AIStudioClient({
           </div>
           <div className="flex items-center gap-3">
             {/* Deep Think Toggle - Only for Gemini */}
-            {defaultModel?.provider === 'GOOGLE' && (
+            {currentModel?.provider === 'GOOGLE' && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -792,7 +795,11 @@ export function AIStudioClient({
                 </Tooltip>
               </TooltipProvider>
             )}
-            <GlobalModelDisplay model={defaultModel} />
+            <ModelSelector
+              currentModel={currentModel}
+              apiKeyStatus={apiKeyStatus}
+              onModelChange={setCurrentModel}
+            />
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -822,6 +829,14 @@ export function AIStudioClient({
             >
               <FlaskConical className="h-4 w-4 mr-1" />
               Deep Research
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setChatHistoryOpen(true)}
+            >
+              <History className="h-4 w-4 mr-1" />
+              Historik
             </Button>
             <Button variant="outline" size="sm" onClick={startNewChat}>
               <Plus className="h-4 w-4 mr-1" />
@@ -1064,7 +1079,7 @@ export function AIStudioClient({
             </div>
             <div className="flex items-center justify-between mt-2">
               <p className="text-xs text-muted-foreground">
-                {defaultModel?.displayName || 'Ingen modell vald'} -{' '}
+                {currentModel?.displayName || currentModel?.name || 'Ingen modell vald'} -{' '}
                 {input.length} tecken
                 {isLoading && ' - Streamar svar...'}
               </p>
@@ -1073,7 +1088,7 @@ export function AIStudioClient({
                 {input.length > 0 && (
                   <CostEstimate
                     inputText={input}
-                    model={defaultModel?.modelId}
+                    model={currentModel?.modelId}
                   />
                 )}
                 {/* Session total */}
@@ -1087,7 +1102,7 @@ export function AIStudioClient({
                       return acc + textLength / 4
                     }, 0)}
                     messageCount={messages.length}
-                    model={defaultModel?.modelId}
+                    model={currentModel?.modelId}
                   />
                 )}
               </div>
@@ -1181,6 +1196,14 @@ export function AIStudioClient({
       <AIBudgetSettings
         open={budgetSettingsOpen}
         onOpenChange={setBudgetSettingsOpen}
+      />
+
+      {/* Chat History Panel */}
+      <ChatHistoryPanel
+        open={chatHistoryOpen}
+        onOpenChange={setChatHistoryOpen}
+        currentConversationId={currentConversationId}
+        onLoadConversation={loadConversation}
       />
     </div>
   )

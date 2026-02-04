@@ -173,7 +173,6 @@ export async function POST(request: NextRequest) {
       const athlete = await prisma.client.findUnique({
         where: { id: athleteId },
         select: {
-          name: true,
           gender: true,
           birthDate: true,
           height: true,
@@ -196,8 +195,8 @@ export async function POST(request: NextRequest) {
             )
           : null
 
+        // GDPR: Do not include name or birthDate - only anonymized data
         athleteContext = {
-          name: athlete.name,
           gender: athlete.gender,
           age,
           height: athlete.height,
