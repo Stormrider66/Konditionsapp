@@ -26,25 +26,35 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams
     const clientId = searchParams.get('clientId')
+    const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 200)
+    const offset = parseInt(searchParams.get('offset') || '0')
 
-    const tests = await prisma.test.findMany({
-      where: {
-        userId: user.id,
-        ...(clientId ? { clientId } : {}),
-      },
-      include: {
-        testStages: {
-          orderBy: { sequence: 'asc' },
+    const where = {
+      userId: user.id,
+      ...(clientId ? { clientId } : {}),
+    }
+
+    const [tests, total] = await Promise.all([
+      prisma.test.findMany({
+        where,
+        include: {
+          testStages: {
+            orderBy: { sequence: 'asc' },
+          },
         },
-      },
-      orderBy: {
-        testDate: 'desc',
-      },
-    })
+        orderBy: {
+          testDate: 'desc',
+        },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.test.count({ where }),
+    ])
 
     return NextResponse.json({
       success: true,
       data: tests,
+      pagination: { total, limit, offset, hasMore: offset + tests.length < total },
     })
   } catch (error) {
     logger.error('Error fetching tests', {}, error)

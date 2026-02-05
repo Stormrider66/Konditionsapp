@@ -9272,3 +9272,16 @@ model KnowledgeSkill {
   @@index([category])
   @@index([isActive])
 }
+
+/// Tracks processed Stripe webhook events for idempotency and auditing
+model StripeWebhookEvent {
+  id        String   @id // Stripe event ID (evt_xxx) - natural key for deduplication
+  type      String // Event type (e.g. "checkout.session.completed")
+  handled   Boolean  @default(false)
+  message   String? // Handler result message
+  metadata  Json? // Event metadata snapshot for debugging
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}

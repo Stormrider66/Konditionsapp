@@ -1237,6 +1237,32 @@ export async function canCreateRestrictions(userId: string, clientId: string): P
  * Check if current user can modify training programs
  * Returns true if user is ADMIN or PHYSIO with permission
  */
+/**
+ * Verify that a client belongs to the given coach (userId).
+ * Returns the client if ownership is confirmed.
+ * Throws an error with appropriate HTTP-friendly message if not.
+ *
+ * Usage in API routes:
+ *   const client = await requireClientOwnership(clientId, user.id)
+ */
+export async function requireClientOwnership(
+  clientId: string,
+  userId: string
+): Promise<{ id: string; name: string; userId: string }> {
+  const client = await prisma.client.findFirst({
+    where: { id: clientId, userId },
+    select: { id: true, name: true, userId: true },
+  })
+
+  if (!client) {
+    const error = new Error('Client not found or access denied')
+    ;(error as Error & { statusCode: number }).statusCode = 403
+    throw error
+  }
+
+  return client
+}
+
 export async function canModifyProgramsAsPhysio(userId: string, clientId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({
     where: { id: userId },

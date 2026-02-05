@@ -15,6 +15,7 @@ import {
   sendSubscriptionCancelledEmail,
   sendPaymentFailedEmail,
 } from '@/lib/email';
+import { logger } from '@/lib/logger';
 
 // Lazy initialize Stripe client to avoid build-time errors
 let _stripe: Stripe | null = null;
@@ -352,12 +353,26 @@ async function handleCoachSubscriptionUpdated(
     case 'trialing':
       status = SubscriptionStatus.TRIAL;
       break;
+    case 'past_due':
+      // Fail closed: suspend access while Stripe is retrying payment
+      status = SubscriptionStatus.EXPIRED;
+      logger.warn('Coach subscription payment past due - access suspended', {
+        userId,
+        stripeStatus: subscription.status,
+      });
+      break;
     case 'canceled':
     case 'unpaid':
+    case 'incomplete_expired':
       status = SubscriptionStatus.CANCELLED;
       break;
+    case 'incomplete':
+      // Checkout not yet completed - don't change status
+      return { handled: true, message: `Coach subscription incomplete for user ${userId}, awaiting payment` };
     default:
-      status = SubscriptionStatus.ACTIVE;
+      logger.warn('Unknown Stripe subscription status', { userId, stripeStatus: subscription.status });
+      // Fail closed on unknown status to avoid accidental free access
+      status = SubscriptionStatus.EXPIRED;
   }
 
   const subscriptionTier = (tier as SubscriptionTier) || 'FREE';

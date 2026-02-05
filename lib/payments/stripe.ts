@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma';
 import { AthleteSubscriptionTier, SubscriptionStatus } from '@prisma/client';
 import { getTierFeatures } from '@/lib/auth/tier-utils';
 import { calculateAndRecordRevenueShare } from '@/lib/coach/revenue-share';
+import { sendPaymentFailedEmail } from '@/lib/email';
 import { logger } from '@/lib/logger';
 
 // Lazy initialize Stripe client to avoid build-time errors
@@ -294,12 +295,26 @@ async function handleSubscriptionUpdated(
     case 'trialing':
       status = SubscriptionStatus.TRIAL;
       break;
+    case 'past_due':
+      // Fail closed: suspend access while Stripe is retrying payment
+      status = SubscriptionStatus.EXPIRED;
+      logger.warn('Athlete subscription payment past due - access suspended', {
+        clientId,
+        stripeStatus: subscription.status,
+      });
+      break;
     case 'canceled':
     case 'unpaid':
+    case 'incomplete_expired':
       status = SubscriptionStatus.CANCELLED;
       break;
+    case 'incomplete':
+      // Checkout not yet completed - don't change status
+      return { handled: true, message: `Subscription incomplete for client ${clientId}, awaiting payment` };
     default:
-      status = SubscriptionStatus.ACTIVE;
+      logger.warn('Unknown Stripe subscription status', { clientId, stripeStatus: subscription.status });
+      // Fail closed on unknown status to avoid accidental free access
+      status = SubscriptionStatus.EXPIRED;
   }
 
   const subscriptionTier = (tier as AthleteSubscriptionTier) || 'FREE';
@@ -421,7 +436,11 @@ async function handleInvoicePaymentFailed(
   invoice: Stripe.Invoice
 ): Promise<{ handled: boolean; message: string }> {
   // Access subscription via parent in newer API versions
-  const invoiceAny = invoice as unknown as { subscription?: string | null };
+  const invoiceAny = invoice as unknown as {
+    subscription?: string | null;
+    amount_due?: number;
+    next_payment_attempt?: number | null;
+  };
   const subscriptionId = invoiceAny.subscription;
 
   const subscription = subscriptionId
@@ -429,11 +448,46 @@ async function handleInvoicePaymentFailed(
     : null;
 
   if (subscription?.metadata?.clientId) {
-    // Could send notification, update status, etc.
-    console.error(`Payment failed for client ${subscription.metadata.clientId}`);
+    const clientId = subscription.metadata.clientId;
+    logger.error('Athlete payment failed', { clientId, invoiceId: invoice.id });
+
+    // Send payment failure email to athlete
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        include: {
+          athleteAccount: {
+            include: { user: { select: { email: true, name: true } } },
+          },
+        },
+      });
+
+      const athleteEmail = client?.athleteAccount?.user?.email || client?.email;
+      const athleteName = client?.athleteAccount?.user?.name || client?.name || 'Athlete';
+
+      if (athleteEmail) {
+        const amount = invoiceAny.amount_due
+          ? `${(invoiceAny.amount_due / 100).toFixed(0)} kr`
+          : 'Okänt belopp';
+        const retryDate = invoiceAny.next_payment_attempt
+          ? new Date(invoiceAny.next_payment_attempt * 1000).toLocaleDateString('sv-SE')
+          : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE');
+
+        await sendPaymentFailedEmail(
+          athleteEmail,
+          athleteName,
+          amount,
+          retryDate,
+          'sv'
+        );
+      }
+    } catch (emailError) {
+      logger.error('Failed to send athlete payment failed email', { clientId }, emailError);
+    }
+
     return {
       handled: true,
-      message: `Payment failed for client ${subscription.metadata.clientId}`,
+      message: `Payment failed for client ${clientId}`,
     };
   }
 

@@ -7,7 +7,8 @@ import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
 import { logger } from '@/lib/logger'
 
 // GET /api/clients - Hämta alla klienter för inloggad användare
-export async function GET() {
+// Supports pagination: ?limit=50&offset=0 (defaults: limit=500, offset=0)
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
     const {
@@ -24,31 +25,41 @@ export async function GET() {
       )
     }
 
-    const clients = await prisma.client.findMany({
-      where: {
-        userId: user.id,
-      },
-      include: {
-        team: true,
-        athleteAccount: {
-          select: {
-            id: true,
-            user: {
-              select: {
-                email: true,
+    const searchParams = request.nextUrl.searchParams
+    const limit = Math.min(parseInt(searchParams.get('limit') || '500'), 500)
+    const offset = parseInt(searchParams.get('offset') || '0')
+
+    const where = { userId: user.id }
+
+    const [clients, total] = await Promise.all([
+      prisma.client.findMany({
+        where,
+        include: {
+          team: true,
+          athleteAccount: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  email: true,
+                }
               }
             }
           }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.client.count({ where }),
+    ])
 
     return NextResponse.json({
       success: true,
       data: clients,
+      pagination: { total, limit, offset, hasMore: offset + clients.length < total },
     })
   } catch (error) {
     logger.error('Error fetching clients', {}, error)
