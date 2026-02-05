@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       customStartDate // Pass custom start date
     );
 
-    // Save to database in a transaction
+    // Save to database in a transaction (large programs create many rows)
     const savedProgram = await prisma.$transaction(async (tx) => {
       // Handle existing programs based on action
       if (existingProgramAction && existingProgramAction !== 'KEEP') {
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
       }
 
       return program;
-    });
+    }, { timeout: 30000 });
 
     // Return the saved program with summary
     const programWithDetails = await prisma.trainingProgram.findUnique({
