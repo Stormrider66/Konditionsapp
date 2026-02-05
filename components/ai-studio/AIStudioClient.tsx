@@ -252,6 +252,22 @@ export function AIStudioClient({
 
     setIsFixingFormat(true)
     try {
+      // Ensure we have API keys
+      if (!hasApiKeys) {
+        toast({
+          title: 'API-nycklar saknas',
+          description: 'Konfigurera dina API-nycklar i Inställningar.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Create conversation if needed
+      if (!currentConversationId) {
+        const convId = await createConversation()
+        if (!convId) return
+      }
+
       const fixFormatPrompt = `Din senaste programutdata hade inte korrekt JSON-format. Konvertera programmet till exakt detta JSON-format i ett kodblock:
 
 \`\`\`json
@@ -294,10 +310,7 @@ VIKTIGT:
 Här är programdata som ska konverteras:
 ${messageContent}`
 
-      await sendMessage({
-        message: fixFormatPrompt,
-        body: getCurrentBodyParams(),
-      })
+      sendMessage({ text: fixFormatPrompt }, { body: getCurrentBodyParams() })
     } catch (error) {
       toast({
         title: 'Kunde inte fixa format',
