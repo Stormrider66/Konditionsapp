@@ -574,7 +574,7 @@ ${pageContext}
     // Set max output tokens per provider
     const maxTokensByProvider: Record<string, number> = {
       OPENAI: 128000,    // GPT-5.2 supports 128k output
-      ANTHROPIC: 16384,  // Claude Sonnet
+      ANTHROPIC: 64000,  // Claude Opus 4.5 & Sonnet 4.5 support 64k output
       GOOGLE: 65536,     // Gemini
     };
     const maxOutputTokens = maxTokensByProvider[provider] || 16384;
