@@ -593,11 +593,13 @@ ${messageContent}`
         throw new Error(data.error || 'Failed to load conversation')
       }
 
-      // Convert to useChat format
-      const chatMessages = data.messages.map((msg: { id: string; role: string; content: string }) => ({
+      // Convert to useChat format (AI SDK v5 uses parts array)
+      const chatMessages = data.messages.map((msg: { id: string; role: string; content: string; createdAt?: string }) => ({
         id: msg.id,
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
+        parts: [{ type: 'text' as const, text: msg.content || '' }],
+        createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
       }))
 
       setMessages(chatMessages)
@@ -1080,11 +1082,11 @@ ${messageContent}`
           ) : (
             <div className="space-y-4 max-w-4xl mx-auto">
               {messages.map((message) => {
-                // AI SDK 5: Extract text from message parts
+                // AI SDK 5: Extract text from message parts, fall back to content for loaded history
                 const textContent = message.parts
                   ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
                   .map((part) => part.text)
-                  .join('') || ''
+                  .join('') || (typeof message.content === 'string' ? message.content : '') || ''
                 return (
                   <ChatMessage
                     key={message.id}

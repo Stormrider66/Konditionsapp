@@ -600,29 +600,32 @@ ${pageContext}
         // Save to database if we have a conversation
         if (conversationId) {
           try {
-            // Save user message
+            // Save user message (only if content is not empty)
             const lastUserMessage = messages.filter(m => m.role === 'user').pop();
-            if (lastUserMessage) {
+            const userContent = lastUserMessage ? getMessageContent(lastUserMessage) : '';
+            if (userContent) {
               await prisma.aIMessage.create({
                 data: {
                   conversationId,
                   role: 'user',
-                  content: getMessageContent(lastUserMessage),
+                  content: userContent,
                 },
               });
             }
 
-            // Save assistant message
-            await prisma.aIMessage.create({
-              data: {
-                conversationId,
-                role: 'assistant',
-                content: text,
-                inputTokens: usage?.inputTokens,
-                outputTokens: usage?.outputTokens,
-                modelUsed: model,
-              },
-            });
+            // Save assistant message (only if content is not empty)
+            if (text) {
+              await prisma.aIMessage.create({
+                data: {
+                  conversationId,
+                  role: 'assistant',
+                  content: text,
+                  inputTokens: usage?.inputTokens,
+                  outputTokens: usage?.outputTokens,
+                  modelUsed: model,
+                },
+              });
+            }
 
             // Update conversation
             await prisma.aIConversation.update({
