@@ -140,10 +140,22 @@ Extremt hög skaderisk. Akut belastning är mer än dubbelt mot den kroniska.
 
 ## Age-Specific Injury Risk Factors and Modified Thresholds
 
+Standardzonerna ovan (OPTIMAL 0.8–1.3, CAUTION 1.3–1.5, DANGER >1.5) är en bra utgångspunkt för vuxna idrottare. För ungdomar och veteraner rekommenderas ofta mer konservativa gränser eftersom toleransen för snabba belastningsökningar är lägre.
+
+### Rekommenderade zon-gränser per grupp
+
+| Grupp | OPTIMAL | CAUTION | DANGER | CRITICAL |
+|---|---:|---:|---:|---:|
+| Vuxna (standard) | 0.8–1.3 | 1.3–1.5 | > 1.5 | > 2.0 |
+| Ungdom (< 18 år) | 0.8–1.2 | 1.2–1.4 | > 1.4 | > 2.0 |
+| Veteran (> 40 år) | 0.8–1.2 | 1.2–1.4 | > 1.4 | > 2.0 |
+
+**Notera:** Underdosering (ACWR < 0.8) gäller oförändrat för alla grupper. Dessa gränser är heuristiker och bör vägas mot symptom (smärta, trötthet, sömn/HRV) och idrottens krav.
+
 ### Ungdomsidrottare (< 18 år)
 
 - Tillväxtspurten ökar skaderisken (apofysiter, epifysplattor)
-- ACWR-trösklar bör vara konservativare: CAUTION redan vid 1.2, DANGER vid 1.4
+- Använd de mer konservativa zon-gränserna i tabellen ovan (OPTIMAL 0.8–1.2, CAUTION 1.2–1.4, DANGER > 1.4)
 - Undvik hög belastningsmonotoni - variation är extra skyddande
 - Tillväxtrelaterade skador (Osgood-Schlatter, Severs sjukdom) kräver belastningsanpassning snarare än total vila
 
@@ -151,7 +163,7 @@ Extremt hög skaderisk. Akut belastning är mer än dubbelt mot den kroniska.
 
 - Längre återhämtningstid kräver mer konservativa belastningsökningar (max 5-8% per vecka)
 - Ökad risk för senskador (achilles, patella) pga minskad kollagensyntes
-- ACWR-trösklar: CAUTION vid 1.2, DANGER vid 1.4 (likt ungdomar men av andra skäl)
+- Använd de mer konservativa zon-gränserna i tabellen ovan (OPTIMAL 0.8–1.2, CAUTION 1.2–1.4, DANGER > 1.4)
 - Regelbunden excentrisk senträning som prevention
 - Styrketräning för att motverka sarkopenirelaterad skaderisk
 

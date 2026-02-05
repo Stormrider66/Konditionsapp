@@ -34,7 +34,9 @@
       "Bash(git add:*)",
       "Bash(git restore:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nFix TypeScript ''as any'' usages in API routes\n\n- exercises/route.ts: Validate enums before using \\(ExerciseCategory, \n  BiomechanicalPillar, ProgressionLevel, PlyometricIntensity\\)\n- paces/route.ts: Use Prisma.InputJsonValue for JSON zone fields\n- programs/generate/route.ts: Explicit type assertions for Client/Test,\n  use Array.isArray\\(\\) instead of as any[] cast\n- race-results/route.ts: Proper Prisma.InputJsonValue and VDOTResult type\n- calculations/thresholds/route.ts: Define CalculationTestInput and\n  CalculationClientInput types for API inputs\n- tests/route.ts: Use Zod-inferred CreateTestFormData type\n- clients/route.ts: Use Zod-inferred ClientFormData type\n\nReduces ''as any'' in API routes from 76 to 46.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npx prisma db execute:*)",
+      "Bash(1 <<'SQL'\nSELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'KnowledgeChunk' AND indexname LIKE '%embedding%';\nSQL)"
     ],
     "deny": [],
     "ask": []

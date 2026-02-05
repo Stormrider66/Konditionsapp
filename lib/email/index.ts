@@ -151,14 +151,29 @@ export async function sendPaymentFailedEmail(
   recipientName: string,
   amount: string,
   retryDate: string,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'sv',
+  options?: {
+    /**
+     * Full URL for where the recipient updates their payment method.
+     * If omitted, `updatePaymentPath` (or the coach default) is used.
+     */
+    updatePaymentUrl?: string
+    /**
+     * Path relative to NEXT_PUBLIC_APP_URL, e.g. "/athlete/subscription".
+     * Defaults to "/coach/subscription" for backward compatibility.
+     */
+    updatePaymentPath?: string
+  }
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const updatePaymentUrl =
+    options?.updatePaymentUrl ||
+    new URL(options?.updatePaymentPath || '/coach/subscription', baseUrl).toString()
   const { subject, html } = getPaymentFailedEmailTemplate({
     recipientName,
     amount,
     retryDate,
-    updatePaymentUrl: `${baseUrl}/coach/subscription`,
+    updatePaymentUrl,
     locale,
   });
   return sendEmail(to, subject, html);
