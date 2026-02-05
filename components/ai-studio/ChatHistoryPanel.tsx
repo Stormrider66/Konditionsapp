@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -55,6 +55,11 @@ export function ChatHistoryPanel({
   onLoadConversation,
 }: ChatHistoryPanelProps) {
   const { toast } = useToast()
+  const toastRef = useRef(toast)
+
+  useEffect(() => {
+    toastRef.current = toast
+  }, [toast])
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -71,7 +76,7 @@ export function ChatHistoryPanel({
       }
     } catch (err) {
       console.error('Failed to fetch conversations:', err)
-      toast({
+      toastRef.current({
         title: 'Kunde inte hämta historik',
         description: 'Försök igen senare',
         variant: 'destructive',
@@ -79,7 +84,7 @@ export function ChatHistoryPanel({
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [])
 
   useEffect(() => {
     if (open) {

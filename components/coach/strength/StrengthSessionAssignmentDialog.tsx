@@ -10,7 +10,7 @@
  * - Optional notes
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -99,6 +99,10 @@ export function StrengthSessionAssignmentDialog({
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
 
+  // Track open transitions to avoid resetting the form on dependency churn
+  const prevOpenRef = useRef(false);
+  const prevBusinessIdRef = useRef<string | undefined>(businessId);
+
   const fetchAthletes = useCallback(async () => {
     setLoadingAthletes(true);
     try {
@@ -153,10 +157,16 @@ export function StrengthSessionAssignmentDialog({
   }, [businessId]);
 
   useEffect(() => {
-    if (open) {
+    const wasOpen = prevOpenRef.current;
+    const prevBusinessId = prevBusinessIdRef.current;
+
+    const justOpened = open && !wasOpen;
+    const businessChangedWhileOpen = open && wasOpen && prevBusinessId !== businessId;
+
+    if (justOpened) {
       fetchAthletes();
       fetchCoaches();
-      // Reset form
+      // Reset form (only when dialog opens)
       setSelectedAthletes([]);
       setAssignedDate(new Date().toISOString().split('T')[0]);
       setNotes('');
@@ -168,8 +178,15 @@ export function StrengthSessionAssignmentDialog({
       setLocationId('');
       setLocationName('');
       setCreateCalendarEvent(true);
+    } else if (businessChangedWhileOpen) {
+      // If context changes while open, refresh lists but keep user input intact
+      fetchAthletes();
+      fetchCoaches();
     }
-  }, [open, fetchAthletes, fetchCoaches]);
+
+    prevOpenRef.current = open;
+    prevBusinessIdRef.current = businessId;
+  }, [open, businessId, fetchAthletes, fetchCoaches]);
 
   function toggleAthlete(athleteId: string) {
     setSelectedAthletes((prev) =>
