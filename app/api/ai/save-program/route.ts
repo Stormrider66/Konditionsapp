@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
         ? `[Kompletterande] ${programData.description || ''}`
         : programData.description;
 
-      // Create the training program
+      // Create the entire program hierarchy in a single nested create
       const program = await tx.trainingProgram.create({
         data: {
           name: programData.name,
@@ -142,67 +142,45 @@ export async function POST(request: NextRequest) {
           goalType: programData.goalType,
           generatedFromTest: false,
           isActive: true,
+          weeks: {
+            create: weeksData.map((weekData) => ({
+              weekNumber: weekData.weekNumber,
+              startDate: weekData.startDate,
+              endDate: weekData.endDate,
+              phase: weekData.phase,
+              focus: weekData.focus,
+              notes: weekData.notes,
+              days: {
+                create: weekData.daysData.map((dayData) => ({
+                  dayNumber: dayData.dayNumber,
+                  date: dayData.date,
+                  workouts: {
+                    create: dayData.plannedWorkouts.map((workout) => ({
+                      name: workout.name,
+                      type: workout.type,
+                      intensity: workout.intensity,
+                      duration: workout.duration,
+                      description: workout.description,
+                      segments: workout.segments ? {
+                        create: workout.segments.map((segment) => ({
+                          order: segment.order,
+                          type: segment.type,
+                          duration: segment.duration,
+                          zone: segment.zone,
+                          description: segment.description,
+                        })),
+                      } : undefined,
+                    })),
+                  },
+                })),
+              },
+            })),
+          },
         },
       });
 
-      // Create weeks with days and workouts
-      for (const weekData of weeksData) {
-        const week = await tx.trainingWeek.create({
-          data: {
-            programId: program.id,
-            weekNumber: weekData.weekNumber,
-            startDate: weekData.startDate,
-            endDate: weekData.endDate,
-            phase: weekData.phase,
-            focus: weekData.focus,
-            notes: weekData.notes,
-          },
-        });
-
-        for (const dayData of weekData.daysData) {
-          const day = await tx.trainingDay.create({
-            data: {
-              weekId: week.id,
-              dayNumber: dayData.dayNumber,
-              date: dayData.date,
-            },
-          });
-
-          // Create workouts for this day
-          for (const workout of dayData.plannedWorkouts) {
-            const createdWorkout = await tx.workout.create({
-              data: {
-                dayId: day.id,
-                name: workout.name,
-                type: workout.type,
-                intensity: workout.intensity,
-                duration: workout.duration,
-                description: workout.description,
-              },
-            });
-
-            // Create workout segments if any
-            if (workout.segments) {
-              for (const segment of workout.segments) {
-                await tx.workoutSegment.create({
-                  data: {
-                    workoutId: createdWorkout.id,
-                    order: segment.order,
-                    type: segment.type,
-                    duration: segment.duration,
-                    zone: segment.zone,
-                    description: segment.description,
-                  },
-                });
-              }
-            }
-          }
-        }
-      }
-
       // Link to AI conversation if provided
       if (conversationId) {
-        // Verify conversation exists before creating the link
         const conversation = await tx.aIConversation.findUnique({
           where: { id: conversationId },
           select: { id: true },
@@ -220,7 +198,7 @@ export async function POST(request: NextRequest) {
       }
 
       return program;
-    }, { timeout: 30000 });
+    }, { timeout: 15000 });
 
     // Return the saved program with summary
     const programWithDetails = await prisma.trainingProgram.findUnique({
