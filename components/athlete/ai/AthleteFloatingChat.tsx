@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,7 @@ import {
   Sparkles,
   MessageSquare,
   Lock,
+  BookOpen,
 } from 'lucide-react'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
 import { cn } from '@/lib/utils'
@@ -114,6 +115,23 @@ export function AthleteFloatingChat({
   // Manual input state
   const [input, setInput] = useState('')
 
+  // Track auto-retrieved knowledge skills
+  const [knowledgeSkills, setKnowledgeSkills] = useState<string[]>([])
+
+  // Custom fetch to capture X-Knowledge-Skills header
+  const skillCapturingFetch = useCallback(async (url: RequestInfo | URL, init?: RequestInit) => {
+    const response = await fetch(url, init)
+    const skillsHeader = response.headers.get('X-Knowledge-Skills')
+    if (skillsHeader) {
+      try {
+        setKnowledgeSkills(JSON.parse(skillsHeader))
+      } catch { /* ignore parse errors */ }
+    } else {
+      setKnowledgeSkills([])
+    }
+    return response
+  }, [])
+
   // Vercel AI SDK useChat hook
   const {
     messages,
@@ -123,6 +141,7 @@ export function AthleteFloatingChat({
   } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/ai/chat',
+      fetch: skillCapturingFetch,
     }),
     onError: (error) => {
       // Check for subscription error (403)
@@ -485,6 +504,16 @@ export function AthleteFloatingChat({
                 />
               )
             })}
+            {knowledgeSkills.length > 0 && !isLoading && (
+              <div className="flex items-center gap-1.5 flex-wrap px-1 py-1">
+                <BookOpen className="h-3 w-3 text-muted-foreground shrink-0" />
+                {knowledgeSkills.map((skill) => (
+                  <Badge key={skill} variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-normal">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
         )}

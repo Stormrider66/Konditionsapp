@@ -9222,3 +9222,46 @@ model CoachEarnings {
   @@index([periodStart])
   @@index([athleteClientId])
 }
+
+// ============================================================================
+// Knowledge Skills - Auto-retrieval system for curated expert knowledge
+// ============================================================================
+
+enum KnowledgeCategory {
+  METHODOLOGY // Training methodologies (Polarized, Norwegian, etc.)
+  PHYSIOLOGY // VO2max, lactate, thresholds
+  TESTING // Test protocols, field tests, ergometer
+  STRENGTH // Strength training, periodization, 1RM
+  INJURY_PREVENTION // ACWR, Delaware rules, rehab
+  NUTRITION // Fueling, race nutrition
+  SPORT_SPECIFIC // HYROX, cycling, swimming, skiing, triathlon
+  PROGRAMMING // Periodization, program structure
+  RECOVERY // Recovery methods, overtraining
+}
+
+/// Curated knowledge skills for automatic RAG retrieval
+/// The AI auto-retrieves relevant skills based on user query keywords/embeddings
+model KnowledgeSkill {
+  id          String            @id @default(uuid())
+  name        String // "Polariserad Träning", "Skadeförebyggande"
+  nameEn      String? // English name for matching
+  description String            @db.Text // Detailed description (used for embedding match)
+  category    KnowledgeCategory
+  keywords    String[] // Trigger keywords: ["polarized", "80/20", "polariserad"]
+  priority    Int               @default(0) // Higher = preferred when multiple match
+  isActive    Boolean           @default(true)
+
+  // Which system documents belong to this skill
+  documentIds String[] // CoachDocument IDs where isSystem=true
+
+  // Embedding of description stored via raw SQL (pgvector)
+  // embedding vector(1536)
+
+  maxChunks Int @default(3) // Max chunks to retrieve for this skill
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}

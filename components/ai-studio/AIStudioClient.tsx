@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useChat } from '@ai-sdk/react'
@@ -46,6 +46,7 @@ import {
   FlaskConical,
   DollarSign,
   Layers,
+  BookOpen,
 } from 'lucide-react'
 import {
   getProgramContext,
@@ -209,6 +210,23 @@ export function AIStudioClient({
   // Manual input state (AI SDK 5 no longer manages input state)
   const [input, setInput] = useState('')
 
+  // Track auto-retrieved knowledge skills
+  const [knowledgeSkills, setKnowledgeSkills] = useState<string[]>([])
+
+  // Custom fetch to capture X-Knowledge-Skills header
+  const skillCapturingFetch = useCallback(async (url: RequestInfo | URL, init?: RequestInit) => {
+    const response = await fetch(url, init)
+    const skillsHeader = response.headers.get('X-Knowledge-Skills')
+    if (skillsHeader) {
+      try {
+        setKnowledgeSkills(JSON.parse(skillsHeader))
+      } catch { /* ignore parse errors */ }
+    } else {
+      setKnowledgeSkills([])
+    }
+    return response
+  }, [])
+
   // Vercel AI SDK useChat hook (v5 API)
   // Note: Dynamic values (athleteId, model, etc.) are passed via sendMessage options
   // because DefaultChatTransport body is captured at initialization time
@@ -222,6 +240,7 @@ export function AIStudioClient({
   } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/ai/chat',
+      fetch: skillCapturingFetch,
     }),
     onError: (error) => {
       toast({
@@ -1099,7 +1118,7 @@ ${messageContent}`
                 const textContent = message.parts
                   ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
                   .map((part) => part.text)
-                  .join('') || (typeof message.content === 'string' ? message.content : '') || ''
+                  .join('') || (typeof (message as unknown as Record<string, unknown>).content === 'string' ? (message as unknown as Record<string, unknown>).content as string : '') || ''
                 return (
                   <ChatMessage
                     key={message.id}
@@ -1132,6 +1151,17 @@ ${messageContent}`
                     <StopCircle className="h-4 w-4 mr-1" />
                     Stoppa
                   </Button>
+                </div>
+              )}
+              {knowledgeSkills.length > 0 && !isLoading && (
+                <div className="flex items-center gap-2 flex-wrap py-1">
+                  <BookOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-xs text-muted-foreground">Expertkunskap:</span>
+                  {knowledgeSkills.map((skill) => (
+                    <Badge key={skill} variant="secondary" className="text-xs px-2 py-0 h-5 font-normal">
+                      {skill}
+                    </Badge>
+                  ))}
                 </div>
               )}
               <div ref={messagesEndRef} />

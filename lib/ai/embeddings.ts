@@ -463,4 +463,45 @@ export async function searchSimilarChunks(
   }));
 }
 
+/**
+ * Search system document chunks for knowledge skills auto-retrieval.
+ * Looks up the system user (system@konditionstest.se) and searches their documents.
+ */
+let cachedSystemUserId: string | null = null;
+
+async function getSystemUserId(): Promise<string | null> {
+  if (cachedSystemUserId) return cachedSystemUserId;
+  const user = await prisma.user.findFirst({
+    where: { email: 'system@konditionstest.se' },
+    select: { id: true },
+  });
+  if (user) cachedSystemUserId = user.id;
+  return cachedSystemUserId;
+}
+
+export async function searchSystemChunks(
+  query: string,
+  apiKey: string,
+  options: {
+    matchThreshold?: number;
+    matchCount?: number;
+    documentIds?: string[];
+  } = {}
+): Promise<
+  {
+    id: string;
+    documentId: string;
+    content: string;
+    metadata: Record<string, unknown> | null;
+    similarity: number;
+  }[]
+> {
+  const systemUserId = await getSystemUserId();
+  if (!systemUserId) {
+    logger.warn('No system user found for knowledge search');
+    return [];
+  }
+  return searchSimilarChunks(query, systemUserId, apiKey, options);
+}
+
 export { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS };

@@ -21,6 +21,7 @@ import { extractMemoriesFromConversation, saveMemories } from '@/lib/ai/memory-e
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
 import { buildCalendarContext } from '@/lib/ai/calendar-context-builder';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { matchKnowledgeSkills, fetchSkillContext } from '@/lib/ai/knowledge-skills';
 import { logger } from '@/lib/logger'
 
 // Allow longer execution time for AI streaming responses (60 seconds)
@@ -336,6 +337,34 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Auto-retrieve relevant system knowledge (Knowledge Skills)
+    let skillContext = '';
+    let skillsUsed: string[] = [];
+    if (decryptedKeys.openaiKey) {
+      const lastUserMsg = messages.filter(m => m.role === 'user').pop();
+      if (lastUserMsg) {
+        try {
+          const userContent = getMessageContent(lastUserMsg);
+          const matched = await matchKnowledgeSkills(
+            userContent,
+            decryptedKeys.openaiKey,
+            { maxSkills: 3 }
+          );
+          if (matched.length > 0) {
+            const result = await fetchSkillContext(
+              userContent,
+              matched,
+              decryptedKeys.openaiKey
+            );
+            skillContext = result.context;
+            skillsUsed = result.skillsUsed;
+          }
+        } catch (error) {
+          logger.warn('Error fetching knowledge skills context', {}, error);
+        }
+      }
+    }
+
     // Build context from documents using RAG
     let documentContext = '';
     if (documentIds.length > 0 && decryptedKeys.openaiKey) {
@@ -516,6 +545,7 @@ ${calendarContext ? `
 ${athleteContext}
 ${sportSpecificContext}
 ${calendarContext}
+${skillContext}
 ${documentContext}
 ${webSearchContext}
 ${pageContext}
@@ -698,6 +728,12 @@ ${pageContext}
     try {
       // AI SDK 5: Use toUIMessageStreamResponse for DefaultChatTransport compatibility
       const response = result.toUIMessageStreamResponse();
+
+      // Add knowledge skills metadata to response headers
+      if (skillsUsed.length > 0) {
+        response.headers.set('X-Knowledge-Skills', JSON.stringify(skillsUsed));
+      }
+
       logger.debug('Stream response created successfully')
       return response;
     } catch (streamError) {
