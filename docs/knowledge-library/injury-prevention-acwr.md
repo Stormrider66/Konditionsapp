@@ -1,10 +1,10 @@
-# Skadeforebyggande & ACWR / Injury Prevention & ACWR
+# Skadeförebyggande & ACWR / Injury Prevention & ACWR
 
 ## Introduction
 
-Skadeforebyggande arbete ar en av de mest vardeskapande insatserna en tranare eller idrottsfysiolog kan gora. Att forstora en hel sasong pa grund av en overbelastningsskada ar inte bara fysiskt utan aven psykiskt devastrerande for en idrottare. Modern belastningsmonitorering, framfor allt genom Acute:Chronic Workload Ratio (ACWR), ger oss verktyg att objektivt bedoma skaderisk och fatta datadrivna beslut om traningsbelastning.
+Skadeförebyggande arbete är en av de mest värdeskapande insatserna en tränare eller idrottsfysiolog kan göra. Att förstöra en hel säsong på grund av en överbelastningsskada är inte bara fysiskt utan även psykiskt förödande för en idrottare. Modern belastningsmonitorering, framför allt genom Acute:Chronic Workload Ratio (ACWR), ger oss verktyg att objektivt bedöma skaderisk och fatta datadrivna beslut om träningsbelastning.
 
-Denna kunskapsbas tacker principerna bakom ACWR, praktiska implementeringsriktlinjer, Delaware pain rules for rehabilitering, och load management-strategier for olika idrotter.
+Denna kunskapsbas täcker principerna bakom ACWR (inklusive EWMA vs rolling average, coupled vs uncoupled modeller), praktiska implementeringsriktlinjer, Delaware pain rules för rehabilitering, screeningverktyg, psykologiska faktorer, åldersspecifika hänsyn, teknologi för monitorering, och load management-strategier för olika idrotter.
 
 ---
 
@@ -12,7 +12,7 @@ Denna kunskapsbas tacker principerna bakom ACWR, praktiska implementeringsriktli
 
 ### Grundprincip
 
-ACWR ar ett forhallande mellan den akuta traningsbelastningen (senaste 7 dagarna) och den kroniska traningsbelastningen (senaste 28 dagarna). Konceptet bygger pa ideen att kroppen anpassar sig till den belastning den vants vid (kronisk), och att plotsliga okning ar utover denna anpassningsniva (akut) okar skaderisken.
+ACWR är ett förhållande mellan den akuta träningsbelastningen (senaste 7 dagarna) och den kroniska träningsbelastningen (senaste 28 dagarna). Konceptet bygger på idén att kroppen anpassar sig till den belastning den vants vid (kronisk), och att plötsliga ökningar utöver denna anpassningsnivå (akut) ökar skaderisken.
 
 **Formel (Rolling Average):**
 ```
@@ -20,25 +20,72 @@ ACWR = Akut belastning (7-dagars summa / 7) / Kronisk belastning (28-dagars summ
 ```
 
 **Exponentially Weighted Moving Average (EWMA):**
-En mer sofistikerad metod dar nyligare traningspass vags tyngre an aldre. EWMA-modellen anses ge battre prognostisk validitet an den enkla rolling average-modellen:
+En mer sofistikerad metod där nyligare träningspass vägs tyngre än äldre. EWMA-modellen anses ge bättre prognostisk validitet än den enkla rolling average-modellen:
 
 ```
-EWMA_idag = Belastning_idag * lambda + (1 - lambda) * EWMA_igar
+EWMA_idag = Belastning_idag * lambda + (1 - lambda) * EWMA_igår
 
 lambda_akut = 2 / (7 + 1) = 0.25
 lambda_kronisk = 2 / (28 + 1) = 0.069
 ```
 
-### Belastningsmatt (Load Metrics)
+### EWMA vs Rolling Average: When to Use Each
 
-Belastning kan kvantifieras pa flera satt:
+**Rolling Average (RA):**
+- Enklare att beräkna och förstå
+- Alla dagar inom fönstret viktas lika
+- Reagerar långsammare på plötsliga belastningsförändringar
+- Lämplig för grundläggande monitorering av motionärer och amatöridrottare
+
+**Praktiskt beräkningsexempel (Rolling Average):**
+Om en löpare tränar följande sRPE-belastning under 7 dagar: 300, 0, 400, 200, 0, 500, 300:
+- Akut belastning = (300+0+400+200+0+500+300) / 7 = 243 AU/dag
+- Om kronisk belastning (28-dagars) = 200 AU/dag
+- ACWR = 243 / 200 = 1.21 (OPTIMAL zon)
+
+**EWMA:**
+- Nyligare dagar viktas exponentiellt tyngre
+- Reagerar snabbare på belastningsförändringar
+- Bättre prognostisk validitet enligt Williams et al. (2017)
+- Rekommenderas för elitidrottare och lagidrotter med varierande matchscheman
+
+**Praktiskt beräkningsexempel (EWMA):**
+```
+Dag 1: EWMA_akut = 300 (startvärde)
+Dag 2: EWMA_akut = 0 * 0.25 + 0.75 * 300 = 225
+Dag 3: EWMA_akut = 400 * 0.25 + 0.75 * 225 = 269
+Dag 4: EWMA_akut = 200 * 0.25 + 0.75 * 269 = 252
+...
+```
+
+EWMA-modellen fångar bättre upp den akuta belastningstoppen och ger en mer realistisk bild av kroppens aktuella belastningsstatus.
+
+### Coupled vs Uncoupled ACWR Models
+
+**Coupled model (traditionell):**
+- Den akuta belastningen (7 dagar) ingår i den kroniska beräkningen (28 dagar)
+- Problem: matematisk koppling gör att ACWR aldrig kan nå extremvärden
+- Vid konstant belastning tenderar ACWR alltid mot 1.0
+- Kan dölja verkliga risksignaler
+
+**Uncoupled model (rekommenderad):**
+- Kronisk belastning beräknas från dag 8-35 (exkluderar den akuta perioden)
+- Eliminerar den matematiska kopplingen
+- Ger mer känsliga och kliniskt relevanta värden
+- Lolli et al. (2019) visade att uncoupled-modellen hade bättre prognostisk validitet
+
+**Rekommendation för AI-motorn:** Använd uncoupled EWMA-modellen som standard, med möjlighet att jämföra med coupled rolling average för transparens.
+
+### Belastningsmått (Load Metrics)
+
+Belastning kan kvantifieras på flera sätt:
 
 - **sRPE (session Rating of Perceived Exertion):** RPE (1-10) x duration (min). Enkel, billig, validerad.
-- **Traning Impulse (TRIMP):** Baserat pa hjarfrekvens och duration. Edward's TRIMP eller Banister's TRIMP.
+- **Träning Impulse (TRIMP):** Baserat på hjärtfrekvens och duration. Edward's TRIMP eller Banister's TRIMP.
 - **External load:** GPS-baserad distance, accelerationer, high-speed running meters, antal hopp.
-- **Power-baserad:** TSS (Training Stress Score) for cykling, rTSS for lopning.
+- **Power-baserad:** TSS (Training Stress Score) för cykling, rTSS för löpning.
 
-For lagidrotter ar kombinationen av intern (sRPE) och extern belastning (GPS) optimal. For uthallighet racker ofta sRPE eller TRIMP.
+För lagidrotter är kombinationen av intern (sRPE) och extern belastning (GPS) optimal. För uthållighet räcker ofta sRPE eller TRIMP.
 
 ---
 
@@ -46,48 +93,112 @@ For lagidrotter ar kombinationen av intern (sRPE) och extern belastning (GPS) op
 
 ### OPTIMAL Zone (0.8 - 1.3)
 
-Denna zon representerar den "sweet spot" dar idrottaren tranar tillrackligt for att stimulera anpassning utan att overstiga kroppens aterhamtningskapacitet. Forskning av Gabbett (2016) visar att idrottare i denna zon har lagst skaderisk.
+Denna zon representerar den "sweet spot" där idrottaren tränar tillräckligt för att stimulera anpassning utan att överstiga kroppens återhämtningskapacitet. Forskning av Gabbett (2016) visar att idrottare i denna zon har lägst skaderisk.
 
-- Traningsbelastningen ar i linje med vad kroppen ar van vid
-- Tillater progressiv overbelastning inom sakra gränser
-- Optimal for bade prestationsutveckling och skadefrihet
+- Träningsbelastningen är i linje med vad kroppen är van vid
+- Tillåter progressiv överbelastning inom säkra gränser
+- Optimal för både prestationsutveckling och skadefrihet
 
 ### CAUTION Zone (1.3 - 1.5)
 
-Forhojd skaderisk. Idrottaren tranar markbart mer an vanligt.
+Förhöjd skaderisk. Idrottaren tränar markbart mer än vanligt.
 
-- Kan vara acceptabelt under korta perioder (t.ex. traningslager)
-- Kraver okad monitorering: somn, HRV, subjektiv troetthet
-- Traningsanpassningar bor overvagas: reducera intensitet eller volym
-- Extra fokus pa aterhamtning: naring, somn, kompression
+- Kan vara acceptabelt under korta perioder (t.ex. träningsläger)
+- Kräver ökad monitorering: sömn, HRV, subjektiv trötthet
+- Träningsanpassningar bör övervägas: reducera intensitet eller volym
+- Extra fokus på återhämtning: näring, sömn, kompression
 
 ### DANGER Zone (> 1.5)
 
-Betydande skaderisk. Belastningsokning ar for snabb.
+Betydande skaderisk. Belastningsökning är för snabb.
 
-- 2-4 ganger forhojd skaderisk jamfort med optimal zon
-- Omedelbar justering av traningsplan kravs
+- 2-4 gånger förhöjd skaderisk jämfört med optimal zon
+- Omedelbar justering av träningsplan krävs
 - Minska volym och/eller intensitet
 - Monitorera symptom dagligen
-- Overväg att ta bort hogintensiva pass helt tillfälligt
+- Överväg att ta bort högintensiva pass helt tillfälligt
 
 ### CRITICAL Zone (> 2.0)
 
-Extremt hog skaderisk. Akut belastning ar mer an dubbelt mot den kroniska.
+Extremt hög skaderisk. Akut belastning är mer än dubbelt mot den kroniska.
 
-- Scenariot uppstar ofta vid: atergang fran skada/sjukdom, plotslig traningsstart, turneringsperioder
-- Omedelbar reduktion av traningsbelastning
-- Fokusera enbart pa laginteniva aktivitet
-- Krav daglig symptommonitorering
+- Scenariot uppstår ofta vid: återgång från skada/sjukdom, plötslig träningsstart, turneringsperioder
+- Omedelbar reduktion av träningsbelastning
+- Fokusera enbart på lågintensiv aktivitet
+- Kräver daglig symptommonitorering
 
 ### Underdosering (ACWR < 0.8)
 
-Aven for lag belastning ar problematisk:
+Även för låg belastning är problematisk:
 
-- Kronisk belastning sjunker over tid, vilket gor idrottaren mer sarbar for framtida belastningsokning
+- Kronisk belastning sjunker över tid, vilket gör idrottaren mer sårbar för framtida belastningsökning
 - "Detraining effect" minskar kroppens tolerans
-- Vid atergang till normal traning kan ACWR spikas snabbt
-- Sarskilt riskabelt under skaderehab dar traningsvolymen ofta ar lag
+- Vid återgång till normal träning kan ACWR spikas snabbt
+- Särskilt riskabelt under skaderehab där träningsvolymen ofta är låg
+
+---
+
+## Age-Specific Injury Risk Factors and Modified Thresholds
+
+### Ungdomsidrottare (< 18 år)
+
+- Tillväxtspurten ökar skaderisken (apofysiter, epifysplattor)
+- ACWR-trösklar bör vara konservativare: CAUTION redan vid 1.2, DANGER vid 1.4
+- Undvik hög belastningsmonotoni - variation är extra skyddande
+- Tillväxtrelaterade skador (Osgood-Schlatter, Severs sjukdom) kräver belastningsanpassning snarare än total vila
+
+### Veteranidrottare (> 40 år)
+
+- Längre återhämtningstid kräver mer konservativa belastningsökningar (max 5-8% per vecka)
+- Ökad risk för senskador (achilles, patella) pga minskad kollagensyntes
+- ACWR-trösklar: CAUTION vid 1.2, DANGER vid 1.4 (likt ungdomar men av andra skäl)
+- Regelbunden excentrisk senträning som prevention
+- Styrketräning för att motverka sarkopenirelaterad skaderisk
+
+---
+
+## Travel, Jet Lag, and Injury Risk
+
+### Reserelaterade riskfaktorer
+
+Resor och tidszonsförflyttning ökar skaderisken genom flera mekanismer:
+
+- **Sömnstörning:** Varje tidszon som korsas kräver ~1 dag för anpassning
+- **Stillasittande:** Långa flygresor → muskelstyvhet, minskad neuromuskulär kontroll
+- **Dehydrering:** Flygplansmiljöns låga luftfuktighet → ökad vätskeförlust
+- **Immunsuppression:** Stresshormon + trångt utrymme → ökad infektionsrisk
+
+### Praktiska riktlinjer
+
+- Räkna med 20-30% reducerad träningskapacitet de första 1-2 dagarna efter lång resa (>3 tidszoner)
+- Inkludera resetid i ACWR-beräkningar som vilodag eller mycket låg belastning
+- Östlig resa (framåt i tid) är svårare att anpassa till än västlig
+- Planera lättare träning vid ankomst, öka gradvis över 2-3 dagar
+- Exponering för naturligt ljus vid rätt tidpunkt hjälper cirkadisk anpassning
+
+---
+
+## Psychological Factors in Injury Prevention
+
+### Stressrelaterad skaderisk
+
+Williams & Andersens stressskademodell (1998) visar att psykologisk stress är en oberoende riskfaktor för idrottsskador:
+
+- **Livsbelastning:** Stora livshändelser (flytt, separation, ekonomisk stress) ökar skaderisken med 2-5 gånger
+- **Sömnbrist:** < 7 timmars sömn per natt ökar skaderisken med 1.7 gånger (Milewski et al., 2014)
+- **Psykologisk trötthet:** Mental utbrändhet minskar uppmärksamhet och reaktionsförmåga
+- **Rädsla för återskada:** Efter skada kan rädsla leda till förändrad rörelsemeknik och kompensationsmönster
+
+### Monitorering av psykologiska faktorer
+
+Inkludera i daglig wellness-enkät:
+- Sömnkvalitet (1-10)
+- Stressnivå (1-10)
+- Humör/motivation (1-10)
+- Upplevd energi (1-10)
+- Livshändelser (ja/nej med fritext)
+
+**AI-motorns uppgift:** Vikta psykologiska faktorer i beredskapsberäkningen. En idrottare med ACWR 1.2 + hög livsstress + dålig sömn bör behandlas som CAUTION snarare än OPTIMAL.
 
 ---
 
@@ -95,47 +206,47 @@ Aven for lag belastning ar problematisk:
 
 ### Koncept
 
-Banisters fitness-fatigue-modell (1975) ar en tvakompnentmodell som forklarar hur traning paverkar prestation over tid:
+Banisters fitness-fatigue-modell (1975) är en tvåkomponentmodell som förklarar hur träning påverkar prestation över tid:
 
 **Performance = Fitness - Fatigue**
 
-- **Fitness (positiv komponent):** Byggs upp langsammare, varar langre. Representerar traningsanpassningar (aerob kapacitet, styrka, muskeluthallighet).
-- **Fatigue (negativ komponent):** Byggs upp snabbare, forsvinner snabbare. Representerar akut troetthet (muskelskada, glykogenuttomning, CNS-troetthet).
+- **Fitness (positiv komponent):** Byggs upp långsammare, varar längre. Representerar träningsanpassningar (aerob kapacitet, styrka, muskeluthållighet).
+- **Fatigue (negativ komponent):** Byggs upp snabbare, försvinner snabbare. Representerar akut trötthet (muskelskada, glykogenuttömning, CNS-trötthet).
 
-### Praktisk tillampning
+### Praktisk tillämpning
 
-Modellen forklarar varfor tapering fungerar: genom att minska traningen fore tavling minskar fatigue snabbare an fitness, vilket ger en prestandatopp. Den forklarar aven overtraning: nar fatigue ackumuleras snabbare an fitness byggs upp.
+Modellen förklarar varför tapering fungerar: genom att minska träningen före tävling minskar fatigue snabbare än fitness, vilket ger en prestandatopp. Den förklarar även överträning: när fatigue ackumuleras snabbare än fitness byggs upp.
 
-For ACWR-sammanhanget: en hog ACWR indikerar att fatigue-komponenten ar oproportionerligt hog relativt fitness, vilket okar skaderisken.
+För ACWR-sammanhanget: en hög ACWR indikerar att fatigue-komponenten är oproportionerligt hög relativt fitness, vilket ökar skaderisken.
 
 ---
 
 ## Monotony Index and Strain
 
-### Berakning
+### Beräkning
 
-**Monotoni** mattar hur enformig traningen ar:
+**Monotoni** mäter hur enformig träningen är:
 
 ```
 Monotoni = Veckans medelbelastning / Standardavvikelse av daglig belastning
 ```
 
-Hog monotoni (>2.0) indikerar att varje dag ar liknande, vilket paradoxalt okar risken for overtraning. Variation ar skyddande.
+Hög monotoni (>2.0) indikerar att varje dag är liknande, vilket paradoxalt ökar risken för överträning. Variation är skyddande.
 
-**Strain** ar produkten av total belastning och monotoni:
+**Strain** är produkten av total belastning och monotoni:
 
 ```
 Strain = Veckobelastning * Monotoni
 ```
 
-Hog strain (hog belastning OCH hog monotoni) ar starkt associerat med sjukdom och skada. Foster et al. visade att sjukdomsincidens okade kraftigt nar strain oversteg kritiska nivåer.
+Hög strain (hög belastning OCH hög monotoni) är starkt associerat med sjukdom och skada. Foster et al. visade att sjukdomsincidens ökade kraftigt när strain översteg kritiska nivåer.
 
 ### Praktisk riktlinje
 
-- Variera traningsintensitet och typ over veckan
-- Inkludera minst 1-2 latta dagar per vecka
-- Undvik att kora samma pass dag efter dag
-- Eftersträva en blandning av laga, måttliga och hoga belastningar
+- Variera träningsintensitet och typ över veckan
+- Inkludera minst 1-2 lätta dagar per vecka
+- Undvik att köra samma pass dag efter dag
+- Eftersträva en blandning av låga, måttliga och höga belastningar
 
 ---
 
@@ -143,29 +254,29 @@ Hog strain (hog belastning OCH hog monotoni) ar starkt associerat med sjukdom oc
 
 ### Principer
 
-Delaware pain rules ar ett evidensbaserat ramverk for att styra rehabilitering baserat pa smartrespons:
+Delaware pain rules är ett evidensbaserat ramverk för att styra rehabilitering baserat på smärtrespons:
 
-**Regel 1: Smartnivå under aktivitet**
-- 0-2/10: Acceptabelt. Fortatt med nuvarande belastning eller oka.
-- 3-4/10: Varningssignal. Behall nuvarande belastning, oka inte.
+**Regel 1: Smärtnivå under aktivitet**
+- 0-2/10: Acceptabelt. Fortsätt med nuvarande belastning eller öka.
+- 3-4/10: Varningssignal. Behåll nuvarande belastning, öka inte.
 - 5+/10: Oacceptabelt. Minska belastningen.
 
-**Regel 2: Smarta 24 timmar efter aktivitet**
-- Om smartan atergår till baslinjenivå inom 24 timmar: OK att fortsatta.
-- Om smartan ar forhojd >24 timmar efter aktivitet: Belastningen var for hog, backa ett steg.
+**Regel 2: Smärta 24 timmar efter aktivitet**
+- Om smärtan återgår till baslinjenivå inom 24 timmar: OK att fortsätta.
+- Om smärtan är förhöjd >24 timmar efter aktivitet: Belastningen var för hög, backa ett steg.
 
-**Regel 3: Svallnad/inflammation**
-- Nytillkommen svallnad efter aktivitet indikerar for hog belastning
-- Krav reduktion och eventuell medicinsk bedomning
+**Regel 3: Svullnad/inflammation**
+- Nytillkommen svullnad efter aktivitet indikerar för hög belastning
+- Kräver reduktion och eventuell medicinsk bedömning
 
-### Implementering i traningsprogram
+### Implementering i träningsprogram
 
-Skalan bor registreras dagligen av idrottaren:
-- Fore traning: baslinjesmart
-- Under traning: maxsmart
-- 24 timmar efter: residualsmart
+Skalan bör registreras dagligen av idrottaren:
+- Före träning: baslinjesmart
+- Under träning: maxsmärta
+- 24 timmar efter: residualsmärta
 
-Om 24-timmars smartan ar hogre an baslinjen tva traning i rad: automatisk varning till tranare.
+Om 24-timmars smärtan är högre än baslinjen två träningar i rad: automatisk varning till tränare.
 
 ---
 
@@ -173,21 +284,144 @@ Om 24-timmars smartan ar hogre an baslinjen tva traning i rad: automatisk varnin
 
 ### Fasindelning
 
-Atergang till idrott foljer en progressiv modell:
+Återgång till idrott följer en progressiv modell:
 
-1. **ACUTE:** Skyddad belastning, smarthantering, ROM-aterhamtning
+1. **ACUTE:** Skyddad belastning, smärthantering, ROM-återhämtning
 2. **SUBACUTE:** Progressiv belastning, funktionell styrka, neuromuskulär kontroll
-3. **REMODELING:** Idrottsspecifika rorelsemonster, accelererande belastning
-4. **FUNCTIONAL:** Full traningsvolym, reaktiv traning, sport-specifik testning
-5. **RETURN TO SPORT:** Tavlingsbelastning, psykologisk beredskap
+3. **REMODELING:** Idrottsspecifika rörelsemönster, accelererande belastning
+4. **FUNCTIONAL:** Full träningsvolym, reaktiv träning, sport-specifik testning
+5. **RETURN TO SPORT:** Tävlingsbelastning, psykologisk beredskap
 
 ### Objektiva kriterier
 
 - **Styrka:** >90% av friska sidan (isokinetisk testning eller 1RM)
 - **Power:** Hop-test >90% av friska sidan (single-leg hop, triple hop, crossover hop)
-- **Uthallighet:** Klarar fullstandig traningsession utan smartrespons
+- **Uthållighet:** Klarar fullständig träningssession utan smärtrespons
 - **Funktionell testning:** Sport-specifika agility-tester, reaktionstester
-- **Psykologisk beredskap:** ACL-RSI score >56/100 (for knaligament), inga undvikandebeteenden
+- **Psykologisk beredskap:** ACL-RSI score >56/100 (för knäligament), inga undvikandebeteenden
+
+---
+
+## Specific Rehabilitation Protocols for Common Running Injuries
+
+### Achillestendinopati
+
+**Fas 1 (vecka 1-2): Isometrisk belastning**
+- 5x45 sek isometrisk vadpress vid 70% av max, 2 gånger/dag
+- Undvik stretching av senan
+- Fortsätt med smärtfri aktivitet (cykling, simning)
+
+**Fas 2 (vecka 3-6): Isotonisk progressiv belastning**
+- Excentrisk-koncentrisk vadmuskelövningar (Alfredson-protokoll: 3x15 reps, 2 ggr/dag)
+- Gradvis introduktion av gång → jogg (från vecka 4 om smärta <3/10)
+- Bibehåll alternativträning
+
+**Fas 3 (vecka 6-12): Energilagring och belastningsökning**
+- Plyometriska övningar (hoppträning) med progressiv belastning
+- Återgång till löpning med ACWR-styrd volymökning (max 10%/vecka)
+- Styrkemål: enbensvadpress >90% av friska sidan
+
+### Löparknä (Patellofemoral smärta)
+
+**Protokoll:**
+- Quadriceps-stärkande övningar (isometrisk → koncentrisk → excentrisk)
+- Höftabduktions- och utåtrotationsstyrka (clamshells, sidliggande höftlyft)
+- Knäböj med biofeedback (undvik valgusposition)
+- Gradvis återgång till löpning: börja med platt underlag, undvik utförsbackar
+
+### Tibialt stresssyndrom (Shin splints)
+
+- Initialt: viloperiod 2-4 veckor, alternativträning (simning, cykling)
+- Gradvis återgång med "walk-run"-program
+- Excentrisk tålyftning och vadmuskelstärkande
+- Gånganalys för att identifiera biomekaniska riskfaktorer
+
+---
+
+## Pre-Hab Programs: Structured Warm-Up Routines by Sport
+
+### Löpning: Pre-Run Activation (10-15 min)
+
+1. Gångövningar med höga knälyft (2x20 m)
+2. Höftkretsar (10/sida)
+3. Clamshells med band (15/sida)
+4. Enbensstående knäböj (8/sida)
+5. Vadpressade tåhävningar (15 reps)
+6. Dynamisk stretch: lårsträckare, höftböjare
+7. Steg med gradvis ökande fart (4x80 m: 60%, 70%, 80%, 90%)
+
+### Lagidrott: FIFA 11+ (20 min)
+
+Trestegsuppvärmning med bevisad effekt:
+1. **Löpning:** 6 löpövningar (rakt framåt, sidleds, parvis)
+2. **Styrka/balans/plyometrik:** 6 övningar med 3 svårighetsnivåer (plankor, nordiska hamstrings, enbensstående)
+3. **Löpning:** 3 snabba löpövningar (riktningsförändringar, studs, sprint)
+
+### Simning: Skulderaktivering (10 min)
+
+1. Bandade utåtrotationer (15 reps)
+2. Y-T-W-L i bukläge (8 reps/position)
+3. Skulderbladsretraktioner (15 reps)
+4. Thorakal rotation (10/sida)
+5. Bandad pull-apart (15 reps)
+
+---
+
+## Screening Tools for Injury Risk Assessment
+
+### Functional Movement Screen (FMS)
+
+FMS är ett standardiserat screeningverktyg med 7 rörelsemönster, poängsatta 0-3:
+1. Djup knäböj
+2. Häcköverkliv
+3. Inline lunge
+4. Skulderrörlighet
+5. Aktiv rakt benlyft
+6. Trunk stability push-up
+7. Rotationsstabilitet
+
+**Tolkning:** Total poäng <14/21 eller asymmetrier >1 poäng mellan sidor → ökad skaderisk. Identifiera svaga länkar och åtgärda med specifika korrigerande övningar.
+
+### Y-Balance Test
+
+Dynamisk balanstest som mäter räckvidd i tre riktningar (anterior, posteromedial, posterolateral) stående på ett ben:
+- Asymmetri >4 cm mellan höger/vänster → förhöjd skaderisk
+- Anteriort räckvidd <65% av benlängd → 2.5x ökad risk för nedre extremitetsskador
+- Används för att identifiera neuromuskulära underskott efter skada
+
+### Single-Leg Hop Battery
+
+Fyra hopptester som mäter kraftutveckling, stabilitet och kontroll:
+1. **Single hop for distance:** Max hopp framåt, landa stabilt
+2. **Triple hop for distance:** Tre sammanlänkade hopp
+3. **Crossover hop:** Hopp diagonalt över en linje
+4. **6-meter timed hop:** Tid för att hoppa 6 meter på ett ben
+
+**Return-to-sport-kriterium:** Limb Symmetry Index (LSI) >90% för alla fyra tester.
+
+---
+
+## Technology for Injury Monitoring
+
+### GPS och accelerometri
+
+- **GPS-enheter (10 Hz+):** Mäter distans, hastighet, accelerationer, dekelerationer, high-speed running (>19.8 km/h)
+- **Accelerometrer:** Player Load (Catapult), Body Load - mäter total mekanisk belastning
+- **Tillämpning:** Kombinera GPS-data med sRPE för komplett intern + extern belastningsbild
+
+### Kraftplattor och belastningsmätning
+
+- **Kraftplattor:** Mäter ground reaction forces, asymmetrier vid hopp, isometrisk styrka
+- **Countermovement jump (CMJ):** Daglig/veckovis CMJ-höjd som neuromuskulär beredskapsmarkör
+- CMJ-reduktion >10% från baslinje → varningssignal för ackumulerad trötthet
+- Asymmetri >10% mellan ben → förhöjd skaderisk
+
+### Wearable-enheter
+
+- **HRV-mätare:** WHOOP, Oura Ring, Garmin - daglig autonom beredskap
+- **Sömntracking:** Objektiv sömndata kompletterar subjektiv rapportering
+- **Temperatur:** Hudtemperaturavvikelse kan indikera sjukdom 24-48 timmar före symtom
+- **Integrering:** AI-motorn bör kunna ta emot data från vanliga wearables via API
 
 ---
 
@@ -195,83 +429,101 @@ Atergang till idrott foljer en progressiv modell:
 
 ### Veckovolymökning: 10%-regeln
 
-Den mest etablerade riktlinjen ar att oka traningsvolymen med max 10% per vecka. Detta galler primärt for:
+Den mest etablerade riktlinjen är att öka träningsvolymen med max 10% per vecka. Detta gäller primärt för:
 
-- Total lopvolym (km/vecka)
-- Total tranings-sRPE
-- Antal hogintensiva pass
+- Total löpvolym (km/vecka)
+- Total tränings-sRPE
+- Antal högintensiva pass
 
 ### Undvik belastningshopp >30%
 
-Forskning visar att en vecka-till-vecka okning pa >30% i total belastning ger markant okad skaderisk, oavsett absolut belastningsniva. Detta ar sarskilt relevant vid:
+Forskning visar att en vecka-till-vecka ökning på >30% i total belastning ger markant ökad skaderisk, oavsett absolut belastningsnivå. Detta är särskilt relevant vid:
 
-- Atergang fran semester/uppehall
-- Atergang fran sjukdom
-- Traningslagerperioder
-- Tavlingsintensifiering
+- Återgång från semester/uppehåll
+- Återgång från sjukdom
+- Träningslägersperioder
+- Tävlingsintensifiering
 
-### Hogintensitetshantering
+### Högintensitetshantering
 
-Hogintensiv traning (>85% HRmax, RPE >7) ar den enskilt storsta riskfaktorn for overbelastningsskador. Riktlinjer:
+Högintensiv träning (>85% HRmax, RPE >7) är den enskilt största riskfaktorn för överbelastningsskador. Riktlinjer:
 
-- Max 2-3 hogintensiva pass per vecka for de flesta idrottare
-- Minst 48 timmar mellan hogintensiva pass
-- Nar total veckobelastning okas, oka volym fore intensitet
-- Behall antal hogintensiva pass konstant vid volymökning
+- Max 2-3 högintensiva pass per vecka för de flesta idrottare
+- Minst 48 timmar mellan högintensiva pass
+- När total veckobelastning ökas, öka volym före intensitet
+- Behåll antal högintensiva pass konstant vid volymökning
 
 ---
 
 ## Common Injury Scenarios by Sport
 
 ### Löpning
-- **Patellofemoral smart (loparkna):** For snabb volymokning, bristande quadriceps/glutealstyrka
-- **Akillestendinopati:** Plotslig okning av loppvolym eller intervalltraning, bristande vadmuskelstyrka
-- **Tibial stress fracture:** Hog belastning + lag energitillganglighet (RED-S), bristande bentathet
-- **IT-band syndrom:** Repetitiv belastning, bristande hoftrotationskapacitet
+- **Patellofemoral smärta (löparknä):** För snabb volymökning, bristande quadriceps/glutealstyrka
+- **Achillestendinopati:** Plötslig ökning av löpvolym eller intervallträning, bristande vadmuskelstyrka
+- **Tibial stress fracture:** Hög belastning + låg energitillgänglighet (RED-S), bristande bentäthet
+- **IT-band syndrom:** Repetitiv belastning, bristande höftrotationskapacitet
 
 ### Cykling
-- **Knasmarta (patellofemoralt):** Felaktig sadelposition, for tung utvaxling, hog kadenz-variation
-- **Landryggssmarta:** Bristande core-stabilitet, aggressiv aeroposition
-- **Handledsneropati:** Langt hog belastning pa handlederna, bristande cykelfitting
+- **Knäsmärta (patellofemoralt):** Felaktig sadelposition, för tung utväxling, hög kadensvariation
+- **Ländryggsmärta:** Bristande core-stabilitet, aggressiv aeroposition
+- **Handledsneuropati:** Lång hög belastning på handlederna, bristande cykelfitting
+
+### Simning
+- **Simmaraxel (subakromial impingement):** Repetitiv överarmselevation, bristande scapulär stabilitet
+- **Knäsmärta (bröstsimsstam):** Repetitiv valgusbelastning vid bröstsimsspark
+- **Ländryggsmärta:** Hyperextension vid fjärilssim och delfinspark
+- **Prevention:** Skulderaktivering före varje pass, periodisera simvolym, variera simsätt
+
+### Rodd
+- **Ländryggsmärta:** Hög kompressiv belastning vid catch-position, dålig teknik under trötthet
+- **Revbensstressfraktur:** Hög dragvolym + snabb volymökning
+- **Handledsinflammation:** Repetitiv feathering-rörelse
+- **Prevention:** Teknikkontroll under trötthet, core-styrketräning, gradvis volymökning
+
+### Längdskidåkning
+- **Axelskador:** Stakning med hög intensitet, bristande skulderstabilitet
+- **Ländryggsmärta:** Böjd position vid diagonalgång, rotationsbelastning
+- **Överbelastning nedre extremitet:** Höga styrkekrafter vid skateteknik
+- **Prevention:** Specifik styrketräning för axlar/rygg, periodisera stakvolym, teknikfokus vid trötthet
 
 ### Lagidrotter (fotboll, handboll)
-- **Hamstringsskada:** Hog sprinthastighet med for lag eccentrisk styrka, ACWR >1.5
-- **Fremre korsband (ACL):** Landningsvalgus, troetthet, for lag neuromuskulär kontroll
-- **Ljumskesmarta:** For snabb okning av riktningsforandringar och sprint
+- **Hamstringsskada:** Hög sprinthastighet med för låg excentrisk styrka, ACWR >1.5
+- **Främre korsband (ACL):** Landningsvalgus, trötthet, för låg neuromuskulär kontroll
+- **Ljumskesmärta:** För snabb ökning av riktningsförändringar och sprint
 
 ### Triathlon
-- **Multisportbelastning:** Total ACWR maste beraknas over alla tre discipliner
-- **Axelproblem:** Simvolym i kombination med aeroposition pa cykel
-- **Stressfraktur:** Kombinerad lopning + dålig naring ar hograskgrupp
+- **Multisportbelastning:** Total ACWR måste beräknas över alla tre discipliner
+- **Axelproblem:** Simvolym i kombination med aeroposition på cykel
+- **Stressfraktur:** Kombinerad löpning + dålig näring är högriskgrupp
 
 ---
 
 ## Practical Guidelines Summary
 
 ### Daglig monitorering
-1. Registrera sRPE och duration for varje traningspass
-2. Mata vilohjarfrekvens och/eller HRV morgon
-3. Subjektiv valmaendeskattning (somn, troetthet, stress, muskelomhet)
-4. Smartskattning (Delaware-skalan) vid pagaende rehabilitering
+1. Registrera sRPE och duration för varje träningspass
+2. Mäta vilohjärtfrekvens och/eller HRV morgon
+3. Subjektiv välmåendeskattning (sömn, trötthet, stress, muskelömhet)
+4. Smärtskattning (Delaware-skalan) vid pågående rehabilitering
 
 ### Veckovis analys
-1. Berakna ACWR for varje idrottare
+1. Beräkna ACWR för varje idrottare
 2. Flagga idrottare i CAUTION/DANGER/CRITICAL zoner
 3. Granskning av monotoni och strain
-4. Jamfor planerad vs faktisk belastning
+4. Jämför planerad vs faktisk belastning
 
-### Beslutsstod
-- ACWR OPTIMAL + lag monotoni: Fortsatt som planerat, overväg progressiv okning
-- ACWR OPTIMAL + hog monotoni: Variera traning, behall total belastning
-- ACWR CAUTION: Reducera planerade hogintensiva pass, oka aterhamtning
-- ACWR DANGER: Omedelbar reduktion, ersatt med lagintensiv traning
-- ACWR CRITICAL: Individuell bedomning, overväg fullstandig vila
+### Beslutsstöd
+- ACWR OPTIMAL + låg monotoni: Fortsätt som planerat, överväg progressiv ökning
+- ACWR OPTIMAL + hög monotoni: Variera träning, behåll total belastning
+- ACWR CAUTION: Reducera planerade högintensiva pass, öka återhämtning
+- ACWR DANGER: Omedelbar reduktion, ersätt med lågintensiv träning
+- ACWR CRITICAL: Individuell bedömning, överväg fullständig vila
 
-### Sasongplanering
-- **Forsasong:** Gradvis uppbygging, max 10%/vecka, ACWR mal 0.9-1.1
-- **Tavlingsperiod:** Behall kronisk belastning stabil, planera for matchbelastning
-- **Off-season:** Kontrollerad nedtrappning, behall minst 50% av sasongsbelastning
-- **Rehabilitering:** Foljande ACWR som guide for progressiv atergang
+### Säsongsplanering
+- **Försäsong:** Gradvis uppbyggnad, max 10%/vecka, ACWR-mål 0.9-1.1
+- **Tävlingsperiod:** Behåll kronisk belastning stabil, planera för matchbelastning
+- **Off-season:** Kontrollerad nedtrappning, behåll minst 50% av säsongsbelastning
+- **Rehabilitering:** Följ ACWR som guide för progressiv återgång
 
 ---
 
@@ -279,22 +531,22 @@ Hogintensiv traning (>85% HRmax, RPE >7) ar den enskilt storsta riskfaktorn for 
 
 ### Gabbetts paradox
 
-En av de mest inflytelserika insikterna inom modern idrottsmedicin ar Gabbetts "training-injury prevention paradox" (2016). Paradoxen sammanfattas:
+En av de mest inflytelserika insikterna inom modern idrottsmedicin är Gabbetts "training-injury prevention paradox" (2016). Paradoxen sammanfattas:
 
-**Hog traningsbelastning ar bade den storsta riskfaktorn for skada OCH den storsta skyddsfaktorn mot skada.**
+**Hög träningsbelastning är både den största riskfaktorn för skada OCH den största skyddsfaktorn mot skada.**
 
-Forklaringen ar att kronisk belastning bygger kroppens tolerans. En idrottare som regelbundet tranar pa hog niva (hog kronisk belastning) har en kropp som ar anpassad till denna belastning. Skaderisken okar inte pa grund av hog absolut belastning, utan pa grund av snabba relativa forandringar (hog ACWR).
+Förklaringen är att kronisk belastning bygger kroppens tolerans. En idrottare som regelbundet tränar på hög nivå (hög kronisk belastning) har en kropp som är anpassad till denna belastning. Skaderisken ökar inte på grund av hög absolut belastning, utan på grund av snabba relativa förändringar (hög ACWR).
 
 ### Praktisk konsekvens
 
-- Undvik att halla idrottare borta fran traning "for sakerhets skull" - det sander den kroniska belastningen och gor dem mer sarbara
-- Under skaderehab: upprätthall sa hog traningsbelastning som mojligt inom smartfria gränser
-- Under viloperioder: behall minst 50% av normal belastning for att skydda kronisk fitness
+- Undvik att hålla idrottare borta från träning "för säkerhets skull" - det sänker den kroniska belastningen och gör dem mer sårbara
+- Under skaderehab: upprätthåll så hög träningsbelastning som möjligt inom smärtfria gränser
+- Under viloperioder: behåll minst 50% av normal belastning för att skydda kronisk fitness
 - Build physical robustness through progressive exposure, not avoidance
 
 ### Evidens
 
-Studier pa australiensk cricket (Hulin et al., 2014) och australiensisk fotboll (Gabbett, 2010) visar konsekvent att idrottare med hogre kronisk belastning har LAGRE skaderisk, förutsatt att belastningsokningen sker gradvis. Idrottare som hoppade over 18+ traningsveckor under forsasongen hade 2-4 ganger hogre skaderisk under tavlingsperioden, aven efter kontroll for andra faktorer.
+Studier på australiensisk cricket (Hulin et al., 2014) och australiensisk fotboll (Gabbett, 2010) visar konsekvent att idrottare med högre kronisk belastning har LÄGRE skaderisk, förutsatt att belastningsökningen sker gradvis. Idrottare som hoppade över 18+ träningsveckor under försäsongen hade 2-4 gånger högre skaderisk under tävlingsperioden, även efter kontroll för andra faktorer.
 
 ---
 
@@ -302,28 +554,28 @@ Studier pa australiensk cricket (Hulin et al., 2014) och australiensisk fotboll 
 
 ### HRV som monitoreringsverktyg
 
-Hjarfrekvensvariabilitet (HRV) mattar variationen i tid mellan hjartslagen och reflekterar det autonoma nervssystemets balans mellan sympatikus (fight-or-flight) och parasympatikus (rest-and-digest).
+Hjärtfrekvensvariabilitet (HRV) mäter variationen i tid mellan hjärtslagen och reflekterar det autonoma nervsystemets balans mellan sympatikus (fight-or-flight) och parasympatikus (rest-and-digest).
 
-**Relevans for skadeprevention:**
-- Ssjunkande HRV-trend over dagar/veckor indikerar ackumulerad troetthet
-- Plotslig HRV-minskning (>15% under personlig baslinje) kan indikera sjukdom, overtraning eller forhojd skaderisk
-- HRV-guidad traning (HRVG) har visat positiva resultat i flera studier
+**Relevans för skadeprevention:**
+- Sjunkande HRV-trend över dagar/veckor indikerar ackumulerad trötthet
+- Plötslig HRV-minskning (>15% under personlig baslinje) kan indikera sjukdom, överträning eller förhöjd skaderisk
+- HRV-guidad träning (HRVG) har visat positiva resultat i flera studier
 
-### Praktisk anvandning
+### Praktisk användning
 
-- Mata HRV varje morgon (fore uppstigande eller direkt efter uppvaknande)
-- Anvand 7-dagars rullande medelvarde for att identifiera trender
-- Kombinera med sRPE och subjektiv valmaende for helhetsbild
-- Individuella baslinjer ar viktigast - jamfor alltid med idrottarens egna normer
+- Mät HRV varje morgon (före uppstigande eller direkt efter uppvaknande)
+- Använd 7-dagars rullande medelvärde för att identifiera trender
+- Kombinera med sRPE och subjektivt välmående för helhetsbild
+- Individuella baslinjer är viktigast - jämför alltid med idrottarens egna normer
 
 ### HRV och ACWR i kombination
 
-Den mest effektiva monitoreringsstragein kombinerar:
-1. **ACWR** for extern/intern belastningsmonitorering (prospektiv risk)
-2. **HRV** for autonom nervssystemrespons (kroppens faktiska reaktion)
-3. **Subjektiva matt** (somn, troetthet, stress) for psykosocial kontext
+Den mest effektiva monitoreringsstrategin kombinerar:
+1. **ACWR** för extern/intern belastningsmonitorering (prospektiv risk)
+2. **HRV** för autonom nervsystemrespons (kroppens faktiska reaktion)
+3. **Subjektiva mått** (sömn, trötthet, stress) för psykosocial kontext
 
-Nar ACWR ar i CAUTION-zon OCH HRV sjunker, ar risken avsevaart forhojd och omedelbara atgarder bor vidtas.
+När ACWR är i CAUTION-zon OCH HRV sjunker, är risken avsevärt förhöjd och omedelbara åtgärder bör vidtas.
 
 ---
 
@@ -331,63 +583,63 @@ Nar ACWR ar i CAUTION-zon OCH HRV sjunker, ar risken avsevaart forhojd och omede
 
 ### Terminologi och differentiering
 
-Det ar viktigt att skilja mellan funktionell och icke-funktionell overreaching, samt overtranigssyndrom:
+Det är viktigt att skilja mellan funktionell och icke-funktionell overreaching, samt överträningssyndrom:
 
 **Funktionell overreaching (FOR):**
 - Kortvarig prestationsminskning (dagar till 1-2 veckor)
-- Aterhamtning med 1-2 veckors reduceraad traning
-- Normal del av traningsprocessen (supercompensation)
-- Planerad i periodisering (t.ex. overreaching-vecka foljd av vila)
+- Återhämtning med 1-2 veckors reducerad träning
+- Normal del av träningsprocessen (supercompensation)
+- Planerad i periodisering (t.ex. overreaching-vecka följd av vila)
 
 **Icke-funktionell overreaching (NFOR):**
-- Langvarig prestationsminskning (veckor till manader)
-- Krav 2-4 veckors aterhamtning
-- Hormonella forandringar (sank testosteron, forhojt kortisol)
-- Stalld immunfunktion, okad sjuklighet
+- Långvarig prestationsminskning (veckor till månader)
+- Kräver 2-4 veckors återhämtning
+- Hormonella förändringar (sänkt testosteron, förhöjt kortisol)
+- Ställd immunfunktion, ökad sjuklighet
 
-**Overtranignssyndrom (OTS):**
-- Allvarligt, lang aterhamtning (manader till ar)
-- Systemisk funktionsnedsattning
+**Överträningssyndrom (OTS):**
+- Allvarligt, lång återhämtning (månader till år)
+- Systemisk funktionsnedsättning
 - Diagnos genom exklusion
-- Extremt svart att skilja fran andra medicinska tilstand
+- Extremt svårt att skilja från andra medicinska tillstånd
 
 ### Varningssignaler
 
-Tidiga tecken pa NFOR/OTS som bor flaggas:
-- Prestationsminskning trots upplevd ansstraning
-- Persistent trrotthet som inte svarar pa vila
-- Soomnstoringar (svart att somna, tidig uppvakning)
-- Aptitforlust eller okad irritabilitet
-- Okad vilopuls (>5 slag over baslinje over flera dagar)
+Tidiga tecken på NFOR/OTS som bör flaggas:
+- Prestationsminskning trots upplevd ansträngning
+- Persistent trötthet som inte svarar på vila
+- Sömnstörningar (svårt att somna, tidig uppvakning)
+- Aptitförlust eller ökad irritabilitet
+- Ökad vilopuls (>5 slag över baslinje över flera dagar)
 - Sjunkande HRV-trend
-- Upprepad sjukdom (forkylningar, infektioner)
+- Upprepad sjukdom (förkylningar, infektioner)
 
 ---
 
 ## Sport-Specific Injury Prevention Strategies
 
-### Lopning: Forebyggande styrkeprogram
+### Löpning: Förebyggande styrkeprogram
 
-For lopare ar ett minimalt forebyggande program:
-- **Excentrisk vadmuskeltraning:** 3x15 reps, bade rak och bojd kna, dagligen
-- **Nordisk hamstringscurl:** 3x5 reps, 2-3 ganger/vecka
+För löpare är ett minimalt förebyggande program:
+- **Excentrisk vadmuskelträning:** 3x15 reps, både rak och böjd knä, dagligen
+- **Nordisk hamstringscurl:** 3x5 reps, 2-3 gånger/vecka
 - **Single-leg calf raises:** 3x12 per sida
 - **Hip abductor work:** Side-lying hip abduction, banded walks
 - **Core:** Planks, pallof press, bird-dogs
 
 ### Lagidrott: FIFA 11+ och liknande program
 
-Strukturerade uppvarmningsprogram som FIFA 11+ har visat:
-- 30-50% reduktion av overbelastningsskador
+Strukturerade uppvärmningsprogram som FIFA 11+ har visat:
+- 30-50% reduktion av överbelastningsskador
 - 50-70% reduktion av korsbandsskador (hos kvinnor)
-- Effekten beror pa compliance: programmet maste goras regelbundet
+- Effekten beror på compliance: programmet måste göras regelbundet
 
 ### Cykling: Positionsoptimering
 
-For cyklister ar den framsta skadeforebyggande insatsen professionell bikefitting:
-- Korrekt sadelhojd forebygger knaskador
-- Korrekt reach forebygger ryggproblem
-- Cleat-position paverkar kna- och fotledsbelastning
+För cyklister är den främsta skadeförebyggande insatsen professionell bikefitting:
+- Korrekt sadelhöjd förebygger knäskador
+- Korrekt reach förebygger ryggproblem
+- Cleat-position påverkar knä- och fotledsbelastning
 
 ---
 
@@ -395,23 +647,44 @@ For cyklister ar den framsta skadeforebyggande insatsen professionell bikefittin
 
 | Svenska | English | Definition |
 |---------|---------|------------|
-| Akut belastning | Acute workload | Senaste 7 dagarnas traningsbelastning |
-| Kronisk belastning | Chronic workload | Senaste 28 dagarnas traningsbelastning |
-| Skaderisk | Injury risk | Sannolikheten for skada baserat pa belastningsmönster |
-| Overbelastningsskada | Overuse injury | Skada orsakad av repetitiv belastning utan tillracklig aterhamtning |
-| Atergang till idrott | Return to sport | Progressiv process for att sakert aterga till full traning/tavling |
-| Belastningsmonitorering | Load monitoring | Systematisk tracking av traningsbelastning |
-| Tapering | Tapering | Kontrollerad belastningsreduktion fore tavling |
-| Troetthet | Fatigue | Tillfällig reduktion av prestationsformaga |
+| Akut belastning | Acute workload | Senaste 7 dagarnas träningsbelastning |
+| Kronisk belastning | Chronic workload | Senaste 28 dagarnas träningsbelastning |
+| Skaderisk | Injury risk | Sannolikheten för skada baserat på belastningsmönster |
+| Överbelastningsskada | Overuse injury | Skada orsakad av repetitiv belastning utan tillräcklig återhämtning |
+| Återgång till idrott | Return to sport | Progressiv process för att säkert återgå till full träning/tävling |
+| Belastningsmonitorering | Load monitoring | Systematisk tracking av träningsbelastning |
+| Tapering | Tapering | Kontrollerad belastningsreduktion före tävling |
+| Trötthet | Fatigue | Tillfällig reduktion av prestationsförmåga |
+| Kopplad modell | Coupled model | ACWR-beräkning där akut period ingår i kronisk |
+| Okopplad modell | Uncoupled model | ACWR-beräkning där akut period exkluderas från kronisk |
+| Monotoni | Monotony | Mått på träningens enformighet (medel/SD) |
+| Belastningshopp | Load spike | Plötslig ökning av träningsbelastning (>30% vecka-till-vecka) |
+| Funktionell overreaching | Functional overreaching | Planerad kortvarig överbelastning med efterföljande supercompensation |
+| Screeningverktyg | Screening tool | Standardiserat test för att identifiera skaderiskfaktorer |
+| Prehab | Pre-habilitation | Förebyggande träning för att förhindra skada |
+| Biomekanik | Biomechanics | Studiet av kroppens rörelsemekanik |
+| Neuromuskulär kontroll | Neuromuscular control | Nervsystemets förmåga att koordinera muskelaktivering |
+| Sömnkvalitet | Sleep quality | Mått på sömnens återhämtningseffekt |
+| Beredskapspoäng | Readiness score | Samlat mått på idrottarens träningsberedskap |
+| Cirkadisk rytm | Circadian rhythm | Kroppens interna 24-timmarsklocka |
 
 ---
 
 ## References and Evidence Base
 
-Denna kunskapsbas bygger pa forskning fran:
-- Gabbett TJ (2016): The training-injury prevention paradox
-- Blanch P, Gabbett TJ (2016): Has the athlete trained enough to return to play safely?
-- Hulin BT et al. (2014): The acute:chronic workload ratio predicts injury
-- Foster C (1998): Monitoring training in athletes with reference to overtraining syndrome
-- Banister EW (1991): Modeling elite athletic performance
-- Crossley KM et al. (2016): Delaware pain rules and clinical reasoning
+Denna kunskapsbas bygger på forskning från:
+- Gabbett TJ (2016): The training-injury prevention paradox. *British Journal of Sports Medicine*, 50(5), 273-280.
+- Blanch P, Gabbett TJ (2016): Has the athlete trained enough to return to play safely? *British Journal of Sports Medicine*, 50(8), 471-475.
+- Hulin BT et al. (2014): The acute:chronic workload ratio predicts injury: high chronic workload may decrease injury risk in elite rugby league players. *British Journal of Sports Medicine*, 48(3), 196-202.
+- Williams S et al. (2017): Better risk assessment: the EWMA approach to ACWR calculation. *British Journal of Sports Medicine*, 51(3), 209-210.
+- Lolli L et al. (2019): Mathematical coupling causes spurious correlation within the conventional acute-to-chronic workload ratio calculations. *British Journal of Sports Medicine*, 53(15), 921-922.
+- Foster C (1998): Monitoring training in athletes with reference to overtraining syndrome. *Medicine & Science in Sports & Exercise*, 30(7), 1164-1168.
+- Banister EW (1991): Modeling elite athletic performance. In *Physiological Testing of the High-Performance Athlete*. Human Kinetics, 403-424.
+- Crossley KM et al. (2016): Making patellofemoral pain management more effective. *British Journal of Sports Medicine*, 50(4), 209-215.
+- Williams JM, Andersen MB (1998): Psychosocial antecedents of sport injury: review and critique of the stress and injury model. *Journal of Applied Sport Psychology*, 10(1), 5-25.
+- Milewski MD et al. (2014): Chronic lack of sleep is associated with increased sports injuries in adolescent athletes. *Journal of Pediatric Orthopedics*, 34(2), 129-133.
+- Cook G, Burton L (2006): The Functional Movement Screen. *North American Journal of Sports Physical Therapy*, 1(2), 62-72.
+- Plisky PJ et al. (2006): Star Excursion Balance Test as a predictor of lower extremity injury in high school basketball players. *Journal of Orthopaedic & Sports Physical Therapy*, 36(12), 911-919.
+- Alfredson H et al. (1998): Heavy-load eccentric calf muscle training for the treatment of chronic Achilles tendinosis. *The American Journal of Sports Medicine*, 26(3), 360-366.
+- Soligard T et al. (2008): Comprehensive warm-up programme to prevent injuries in young female footballers. *BMJ*, 337, a2469.
+- Meeusen R et al. (2013): Prevention, diagnosis and treatment of the overtraining syndrome. *European Journal of Sport Science*, 13(1), 1-24.

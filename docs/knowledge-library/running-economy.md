@@ -30,6 +30,8 @@ Lopekonomi (Running Economy, RE) definieras som energiforbrukningen vid en given
 - RE forklarar 30-40% av variationen i uthallighetsprestation bland lopare med liknande VO2max
 - Elitafrikanska lopare har dokumenterat battre RE an europeiska lopare med liknande VO2max
 - RE forbattras med traningsar (erfarna lopare ar mer ekonomiska)
+- Bland elitlopare med VO2max over 70 ml/kg/min ar RE ofta den avgorande skillnaden mellan medaljorer och ovriga tavlande (Conley & Krahenbuhl, 1980)
+- Forskning visar att RE kan forbattras med 2-8% genom riktade interventioner, vilket motsvarar 30-90 sekunder pa en 10K tavling
 
 ---
 
@@ -70,6 +72,81 @@ Lopekonomi (Running Economy, RE) definieras som energiforbrukningen vid en given
 
 ---
 
+## Cadence Optimization: The 180 Steps/Min Myth
+
+### Bakgrund till 180 spm-myten
+
+Det populara pastaendet att alla lopare bor sikta pa 180 steg per minut härstammar fran Jack Daniels observationer vid OS 1984. Han noterade att nastan alla elitlopare hade kadens over 180 spm vid tavlingsfart. Detta forenklades till en universell rekommendation, men verkligheten ar mer nyanserad.
+
+### Individuell optimal kadenz
+
+- Optimal kadenz varierar med 10-15 spm beroende pa lopare (Heiderscheit et al., 2011)
+- Faktorer som paverkar individuell optimal kadenz:
+  - **Benlangd:** Langre ben = naturligt lagre optimal kadenz
+  - **Kroppsmassa:** Tyngre lopare tenderar mot lagre kadenz
+  - **Hastighet:** Kadensen okar naturligt med 3-5% for varje 1 km/h okning i fart
+  - **Traningsbakgrund:** Erfarna lopare har ofta finjusterat sin kadenz naturligt
+- Forskning (Burns et al., 2019) visar att forandringar pa +/- 5% fran sjalvvald kadenz okar syreforbrukningen med 1-3%
+- Rekommendation: Korrigera kadenz ENBART om den ar konstant under 165 spm vid mattlig hastighet, och da med hogst 5% okning at gangen over 4-6 veckor
+
+### Kadensens forhallande till skadeprevention
+
+- Okning av kadenz med 5-10% minskar belastningen pa kna med 10-20% (Lenhart et al., 2014)
+- Effektiv strategi for lopare med patellofemorala besvar eller medialt tibialt stressyndrom
+- Kadensmetronom-appar (t.ex. inbyggd i Garmin/Polar) ar praktiska verktyg for gradvis anpassning
+
+---
+
+## Ground Contact Time and Performance
+
+### GCT som prestationsindikator
+
+Markontakttid ar en av de starkaste biomekaniska prediktorerna for lopprestation. Sambandet ar val dokumenterat:
+
+- **Elitmarathonlopare:** 160-190 ms (Hasegawa et al., 2007)
+- **Sub-3h marathonlopare:** 190-220 ms
+- **4h-marathonlopare:** 250-300 ms
+- **Nybörjarlopare:** 300-350 ms
+
+### Faktorer som paverkar GCT
+
+- **Hastighet:** Den storsta enskilda faktorn. GCT minskar ca 10-15 ms for varje 1 km/h hastighetsokning
+- **Muskelstelhet (leg stiffness):** Hogre stelhet i muskel-sena-enheten = kortare GCT och battre energiatervinning
+- **Fotisattningsposition:** Landing under tyngdpunkten ger kortare GCT an overstriding
+- **Styrka:** Starkare vader och hofter mojliggor snabbare kraftutveckling och kortare kontakttid
+- **Troetthet:** GCT okar med 5-15% under langpass pa grund av muskeluttrottning
+
+### Hur forbattra GCT
+
+- Plyometrisk traning minskar GCT med 3-8% (Saunders et al., 2006)
+- Tung styrketraning forbattrar muskelstelhet och kraftutvecklingshastighet
+- Strides och lopdrills med fokus pa "snabba fotter"
+- Backlopning forcerar kortare markontakttid naturligt
+
+---
+
+## Vertical Oscillation: Targets and Reduction Strategies
+
+### Riktmärken for vertikal oscillering
+
+| Nivå | Vertikal oscillering | Vertical ratio |
+|------|---------------------|----------------|
+| Elit | 6-8 cm | < 6% |
+| Avancerad | 8-10 cm | 6-8% |
+| Medel | 10-12 cm | 8-10% |
+| Nybörjare | 12-15 cm | > 10% |
+
+### Strategier for att minska vertikal oscillering
+
+- **Kadensökning:** Varje 5% okning i kadenz minskar vertikal oscillering med ca 1-2 cm
+- **"Tysta fotter" cue:** Fokusera pa att landa tyst minskar vertikal impact automatiskt
+- **Starkare gluteus och vader:** Bättre horisontell kraftvektor vid avspark
+- **Undvik aktiv "push off" uppat:** Fokusera pa att driva horisontellt framåt
+- **Framatlutning fran ankelleden:** 5-10 grader lutning omdirigerar kraft framat
+- **Arm-timing:** Korrekt arm-pendel i fas med benen stabiliserar kroppens vertikala rorelse
+
+---
+
 ## Asymmetry Analysis: Left vs Right Differences
 
 ### Varfor analysera asymmetri?
@@ -79,6 +156,15 @@ De flesta lopare har naturlig asymmetri mellan vanster och hoger sida. Viss asym
 - Indikera underliggande muskuler obalans
 - Oka skaderisk pa den mer belastade sidan
 - Minska total lopekonomi
+
+### Asymmetri och skaderisk
+
+Forskning visar tydliga samband mellan biomekanisk asymmetri och skadeforekomst:
+
+- Lopare med >8% GCT-asymmetri har 2-3 ganger hogre skaderisk (Bredeweg et al., 2013)
+- Asymmetri okar under troetthet, vilket gor de sista kilometrarna av langpass och tavlingar sarskilt riskfyllda
+- Kronisk asymmetri leder till obalanserad belastning pa ledbrosk, senor och ben, vilket over tid kan orsaka overbelastningsskador som stressfrakturer och tendinopatier
+- Asymmetri efter skada kan bestå i 6-12 manader efter "klinisk lakkning" - funktionell testning (single-leg hop test, Y-balance test) ar nodvändig for att sakerställa full rehabilitering
 
 ### Matt att analysera
 
@@ -122,7 +208,7 @@ Videoanalys i sagittalplanet (fran sidan) och frontalplanet (framifrån/bakifran
 - **Knakollaps (valgus):** Knat faller inat vid landing, indikerar svag gluteus medius
 - **Hoftdrop (Trendelenburg):** Hoften pa svingsidan sjunker, indikerar svag gluteus medius pa standsidan
 - **Overkroppsrotation:** For mycket rotation slösar energi
-- **Armkorsning over mittlinjan:** Ineffektivt, skapar oonsked rotation
+- **Armkorsning over mittlinjen:** Ineffektivt, skapar oonsked rotation
 
 ### Praktisk videoinspelning
 
@@ -134,13 +220,41 @@ Videoanalys i sagittalplanet (fran sidan) och frontalplanet (framifrån/bakifran
 
 ---
 
-## Running Shoe Considerations
+## Shoe Technology and Running Economy
+
+### Karbonfiberplatta-skor: Revolution inom lopning
+
+Sedan Nike Vaporfly introducerades 2017 har skotek revolutionerat lopningsprestationer. Forskningen ar entydig om den ekonomiska fordelen:
+
+**Forskningsresultat:**
+- Hoogkamer et al. (2018): 4% forbattring i RE jamfort med kontrollskor (Nike Zoom Streak, Adidas Adios Boost) vid hastigheter mellan 14-18 km/h
+- Barnes & Kilding (2019): Individuell variation fran 2% till 6% forbattring beroende pa lopare
+- Hunter et al. (2019): Forbattring aven hos rekreationslopare, inte bara elit
+- Brazier et al. (2022): Meta-analys bekräftar 2.7-4.2% RE-forbattring over olika skomarken med karbonplatta
+
+**Mekanismer bakom forbattringen:**
+- **Karbonplattan** fungerar som en styv havstang som minskar energiforlusten i ankelleden med 6-8%
+- **PEBA-skum (ZoomX, LightStrike Pro, PEBAX):** Energireturnering pa 85-90%, jamfort med 60-70% for traditionellt EVA-skum
+- **Rocker-geometri:** Den rundade sulan reducerar muskelarbetet i vader genom att assistera framatlutningen under avspark
+- **Kombinerad effekt:** Det ar samspelet mellan platta, skum och geometri som ger den fulla effekten - inte enbart karbonplattan
+
+**Vem gynnas mest:**
+- Mid/forefoot strikers far storre effekt an heel strikers (2-3% ytterligare)
+- Lopare med hogre kroppsvikt tenderar att gynnas mer av dampningen
+- Lopare med styvare ankelledsmobilitet far storre havstangseffekt fran plattan
+- Snabbare lopare (>16 km/h) tenderar att fa nagon storre procentuell forbattring
+
+**Begransningar:**
+- Begransad livslangd (300-500 km beroende pa modell och underlag)
+- Hogre pris (2000-3500 SEK)
+- Potentiellt okad skaderisk vid overgång fran traditionella skor (andrad biomekanik)
+- Inte tillatet i alla tavlingssammanhang (World Athletics regelande: max 40mm sulhojd for banlopning, max 40mm for vag)
 
 ### Viktigaste egenskaperna
 
 **Vikt**
 - Lättare skor forbattrar lopekonomi
-- Riktmarkke: 100g mindre skovikt = ca 1% battre RE
+- Riktmarkke: 100g mindre skovikt = ca 1% battre RE (Frederick, 1984)
 - Modern "super shoes" med karbofiber-platta: 150-250g
 
 **Drop (halt-ta differens)**
@@ -155,15 +269,9 @@ Videoanalys i sagittalplanet (fran sidan) och frontalplanet (framifrån/bakifran
 - Mindre dampning: battre markkontakt, potentiellt battre proprioception
 - Super shoes (Nike Vaporfly, Adidas Adios Pro, etc.): tjock midsole med karbonplatta som returnerar energi
 
-**Karbonfiberplatta-skor**
-- Dokumenterad forbattring av RE med 4-5% (Hoogkamer et al., 2018)
-- Styvplattan fungerar som havarm som forstarker ankelns moment
-- Inte lika fordelaktigt for alla lopare - mest effekt for mid/forefoot strikers
-- Begransad livslangd (300-500 km beroende pa modell)
-
 ### Skovarsprotokoll
 
-- Rotera mellan 2-3 par skor
+- Rotera mellan 2-3 par skor (forskning visar 39% lagre skaderisk vid skorotation, Malisoux et al., 2015)
 - Anvand tavlingsskor for kvalitetspass och tavling
 - Anvand traningsskor for latta/langa pass
 - Byt skor var 500-800 km (dampningskapacitet minskar)
@@ -265,6 +373,23 @@ Styrketraning ar den enskilt mest effektiva interventionen for att forbattra lop
 - Adresserar asymmetrier och forbattrar stabilitet
 - Sarskilt viktigt for skadeprevention
 
+**Specifika ovningar for lopekonomi:**
+
+| Övning | Primar effekt pa RE | Dosering | Forskning |
+|--------|---------------------|----------|-----------|
+| Knaboj (back squat) | Okad leg stiffness, battre kraftoverföring | 3-4x4-6 @ 85-90% 1RM | Storen et al. (2008): 5% RE-forbattring |
+| Marklyft (deadlift) | Posterior chain styrka, hoftextension | 3-4x4-6 @ 85-90% 1RM | Beattie et al. (2017): 3-4% RE-forbattring |
+| Vadpress (calf raises) | Okad akillessen-styvhet, battre energireturn | 3x10-15, progressiv belastning | Albracht & Arampatzis (2013) |
+| Step-ups (med vikt) | Unilateral kraft, hoftflexorstyrka | 3x8-10 per ben | Fletcher et al. (2018) |
+| Nordic hamstring curl | Excentrisk hamstringstyrka, skadeprevention | 3x5-8 | Van Dyk et al. (2019) |
+| Single-leg hip thrust | Gluteal kraft, horisontell kraftproduktion | 3x10-12 per ben | Contreras et al. (2017) |
+| Tåhävningar (single-leg) | Vadstyrka, ankelledsstabilitet | 3x15-20 per ben, med vikt | - |
+
+**Periodisering av styrketraning for lopare:**
+- **Basperiod (8-12 veckor):** Tung styrka (3-6 reps), 2-3 ggr/vecka. Bygg maximal styrka.
+- **Tavlingsnaara perioden (4-8 veckor):** Explosiv/plyometrisk fokus, 1-2 ggr/vecka. Underhall styrka, oka power.
+- **Tavlingssasong:** Underhallsstyrka 1 ggr/vecka, lagre volym. Fokus pa att behalla anpassningar.
+
 ### Teknikfokuserad traning
 
 - Loptekniovningar (drills) 2-3 ganger/vecka som del av uppvarmning
@@ -281,6 +406,8 @@ Styrketraning ar den enskilt mest effektiva interventionen for att forbattra lop
   - Muskel-sena styvhet (positiv anpassning)
   - Neuromuskuler koordination
   - Substratanvandning (okad fettoxidation)
+- Forskning (Jones, 2006) visar att det tar 5-10 ar av konsekvent traning for att na nara-maximal RE
+- Okad lopvolym fran 30 till 60 km/vecka ar kopplat till 3-5% RE-forbattring over 12 manader
 
 ---
 
@@ -316,18 +443,38 @@ Elitlopare som Eliud Kipchoge ar kanda for att behalla form ofast genom hela mar
 
 ## Testing and Monitoring Running Economy
 
-### Laboratoriettesting
+### Laboratorietestning
 
-- **Submaximal loppband:** 4-5 minuter per steg vid okande hastigheter, mata O2-forbrukning
+**Submaximal loppbandstest (gyllene standard):**
+- 4-5 minuter per steg vid okande hastigheter, mata O2-forbrukning med indirekt kalorimetri
 - **Steady-state:** 6-10 minuter vid specifik hastighet (t.ex. marathon-fart) for noggrann RE-matning
+- Krav: kalibrerad metabol vagn (t.ex. COSMED, Cortex, Jaeger)
+- Stegen bor vara submaximal (under laktattroskel) for att undvika anaerob energibidrag som forstaer RE-matningen
+- Minst 3 hastigheter rekommenderas for att etablera RE-kurvan
+
+**Standardisering av laboratorietest:**
 - **Utförs bast:** Utvilad, standardiserad tid pa dygnet, minst 2h efter senaste maltid
+- Samma skor vid varje testtillfalle (skoeffekt kan vara 2-4%)
+- Kontrollerad temperatur (18-22 grader) och luftfuktighet (<60%)
+- 5 minuters uppvarmning vid lag intensitet innan forsta teststeget
+- Minst 48 timmar sedan senaste harda traningspass
+- Dokumentera koffeinintag, sömn och subjektiv troetthetsgrad for att kunna tolka resultat korrekt
 
-### Fältbaserad monitorering
+### Faltbaserad monitorering
 
+**Modern wearable-teknologi:**
 - **GPS-klockor:** Kadenz, GCT, vertikal oscillering (Garmin Running Dynamics, Stryd)
 - **Stryd foot pod:** Power-baserad loopning, RE kan skattas via power/pace
 - **Running Power (W/kg):** Lagre power vid samma pace = battre ekonomi
 - **Efficiency Index (EI):** Pace / Power ratio - hogre ar battre
+- **COROS/Garmin Running Dynamics Pod:** Ger GCT balance, vertikal oscillering och ratio
+
+**Fältbaserat RE-test (alternativ till labb):**
+- Lop 2-3 km i steady-state pa plan väg vid en given hastighet (t.ex. 5:00/km)
+- Registrera genomsnittlig hjarfrekvens under de sista 3-4 minuterna
+- Lagre hjarfrekvens vid samma fart over tid indikerar forbattrad RE
+- Kombinera med Stryd-data for power/pace-ratio
+- Utför manatligen under kontrollerade forhallanden for att tracka trender
 
 ### Frekvens for testning
 
@@ -353,6 +500,53 @@ Live High, Train Low (LHTL) strategin kan forbattra RE genom:
 - Okad hemoglobinmassa (battre syretransport)
 - Foerbattrad muskeleffektivitet (mitokondriella anpassningar)
 - Dokumenterad RE-forbattring pa 1-3% efter 3-4 veckors LHTL
+
+### Specifika hojdeffekter pa prestation
+
+| Hojd (m) | Lufttathet vs havsniva | Ungefärlig RE-effekt (aerodynamisk) | VO2max-forlust |
+|-----------|------------------------|--------------------------------------|----------------|
+| 500 | -6% | +0.5-1% | -1-2% |
+| 1000 | -11% | +1-2% | -3-5% |
+| 1500 | -16% | +2-3% | +5-8% |
+| 2000 | -21% | +3-5% | -8-11% |
+| 2500 | -26% | +4-6% | -12-15% |
+
+- For sprints och kortdistans (<800m) kan den minskade luftmotståndet mer an kompensera for syrebristen
+- For langdistans (>5K) dominerar syrebristen och nettoprestationen forsamras
+- Optimal traningshojd for LHTL: 2000-2500m sova, <1500m trana (Wilber et al., 2007)
+
+---
+
+## Temperature and Weather Effects on Economy
+
+### Temperaturens inverkan pa lopekonomi
+
+Temperatur ar en av de mest underskattade faktorerna som paverkar bade RE och prestationsformaga:
+
+**Kyla (under 5 grader C):**
+- Okad muskelstyvhet reducerar elastisk energireturnering med 2-5%
+- Langre uppvarmning kravs for att na optimal muskeltemperatur (38-39 grader C)
+- Okad energikostnad for termogenes (frysning, okad muskeltonus)
+- Tjockare kladsel okar kroppsvikten och luftmotståndet
+- Kall luft torkar ut luftvagarna och kan utlosa ansträngningsutlost bronkospasm
+
+**Optimal temperatur (10-15 grader C):**
+- De flesta maraton-vardsrekord har satts vid 8-15 grader C
+- Lag metabol kostnad for termoregulering
+- Effektiv varmebalans mojliggor hoga intensiteter over lang tid
+
+**Varme (over 25 grader C):**
+- RE forsamras med 2-5% vid temperaturer over 25 grader C (Ely et al., 2007)
+- Okad hjarfrekvens vid samma fart (cardiovascular drift) med 5-10 slag/minut
+- Okad blodflode till huden minskar blodflode till arbetande muskler
+- Dehydrering minskar RE ytterligare (2% kroppsviktforlust = 4-6% RE-forlust)
+- Acklimatisering till varme (10-14 dagar) minskar den negativa effekten med ca 50%
+
+**Vind:**
+- Motvind okar energikostnaden exponentiellt med vindhastigheten
+- Drafting bakom en annan lopare minskar luftmotstanddet med 40-80% beroende pa avstand
+- Vid 15 km/h motvind okar energikostnaden med ca 8% for en lopare i 4:00/km fart
+- Medvind kompenserar delvis men ger INTE lika stor fordel som motvinden kostar
 
 ---
 
@@ -418,15 +612,46 @@ For terranglopare ar specifik traning pa ojamnt underlag viktigt:
 | Asymmetri | Asymmetry | Skillnad mellan vanster och hoger sida |
 | Lopdrill | Running drill | Teknikovning for att forbattra lopbiomekanik |
 | Plyometrik | Plyometrics | Explosiv hopptraning for stretch-shortening cycle |
+| Muskelstelhet | Leg stiffness | Muskel-sena-enhetens formaga att lagra och aaterge elastisk energi |
+| Energireturnering | Energy return | Andelen mekanisk energi som atervinns vid fotisattning |
+| Vertikal ratio | Vertical ratio | Kvoten av vertikal oscillering och steglangd |
+| Karbonplatta | Carbon plate | Styv karbonfiberplatta i skon som fungerar som havarm |
+| LHTL | Live High Train Low | Hojdtraningsstrategi: sov pa hojd, trana pa lagre hojd |
+| Indirekt kalorimetri | Indirect calorimetry | Matmetod for energiforbrukning baserad pa O2 och CO2 |
+| Kraftplatta | Force plate | Matinstrument for markreaaktionskrafter vid lopning |
+| RER | Respiratory exchange ratio | Kvoten CO2-produktion/O2-forbrukning, indikerar substratanvandning |
+| Stretch-shortening cycle | Stretch-shortening cycle | Muskelns excentrisk-koncentriska cykel som lagrar elastisk energi |
 
 ---
 
 ## References and Evidence Base
 
 Denna kunskapsbas bygger pa forskning fran:
-- Barnes KR, Kilding AE (2015): Running economy: measurement, norms, and determining factors
-- Balsalobre-Fernandez C et al. (2016): Effects of strength training on running economy
-- Hoogkamer W et al. (2018): A comparison of the energetic cost of running in marathon racing shoes
-- Moore IS (2016): Is there an economical running technique?
-- Folland JP et al. (2017): Running technique is an important component of running economy
-- Anderson T (1996): Biomechanics and running economy
+
+1. Albracht K, Arampatzis A (2013): Exercise-induced changes in triceps surae tendon stiffness and muscle strength affect running economy in humans. *European Journal of Applied Physiology*, 113(6), 1605-1615.
+2. Anderson T (1996): Biomechanics and running economy. *Sports Medicine*, 22(2), 76-89.
+3. Balsalobre-Fernandez C et al. (2016): Effects of strength training on running economy in highly trained runners: a systematic review with meta-analysis. *Journal of Strength and Conditioning Research*, 30(8), 2361-2368.
+4. Barnes KR, Kilding AE (2015): Running economy: measurement, norms, and determining factors. *Sports Medicine - Open*, 1(1), 8.
+5. Barnes KR, Kilding AE (2019): A randomized crossover study investigating the running economy of highly-trained male and female distance runners in marathon racing shoes versus track spikes. *Sports Medicine*, 49(2), 331-342.
+6. Beattie K et al. (2017): The effect of strength training on performance indicators in distance runners. *Journal of Strength and Conditioning Research*, 31(1), 9-23.
+7. Brazier J et al. (2022): Running shoes, performance and injuries: a systematic review. *Footwear Science*, 14(2), 95-120.
+8. Bredeweg SW et al. (2013): The relationship between running-related injury and biomechanical asymmetry. *Physical Therapy in Sport*, 14(4), 192-198.
+9. Burns GT et al. (2019): Metabolic cost of step rate manipulation in running. *Medicine & Science in Sports & Exercise*, 51(6S), 340.
+10. Conley DL, Krahenbuhl GS (1980): Running economy and distance running performance of highly trained athletes. *Medicine and Science in Sports and Exercise*, 12(5), 357-360.
+11. Contreras B et al. (2017): A comparison of gluteus maximus, biceps femoris, and vastus lateralis EMG amplitude in the parallel, full, and front squat variations. *Journal of Applied Biomechanics*, 32(1), 16-22.
+12. Ely MR et al. (2007): Impact of weather on marathon-running performance. *Medicine and Science in Sports and Exercise*, 39(3), 487-493.
+13. Fletcher JR et al. (2018): Running economy from a muscle energetics perspective. *Frontiers in Physiology*, 9, 487.
+14. Folland JP et al. (2017): Running technique is an important component of running economy and performance. *Medicine and Science in Sports and Exercise*, 49(7), 1412-1423.
+15. Frederick EC (1984): Physiological and ergonomics factors in running shoe design. *Applied Ergonomics*, 15(4), 281-287.
+16. Hasegawa H et al. (2007): Foot strike patterns of runners at the 15-km point during an elite-level half marathon. *Journal of Strength and Conditioning Research*, 21(3), 888-893.
+17. Heiderscheit BC et al. (2011): Effects of step rate manipulation on joint mechanics during running. *Medicine and Science in Sports and Exercise*, 43(2), 296-302.
+18. Hoogkamer W et al. (2018): A comparison of the energetic cost of running in marathon racing shoes. *Sports Medicine*, 48(4), 1009-1019.
+19. Hunter I et al. (2019): Running economy in super shoes. *International Journal of Sports Physiology and Performance*, 14(S1), S1-83.
+20. Jones AM (2006): The physiology of the world record holder for the women's marathon. *International Journal of Sports Science & Coaching*, 1(2), 101-116.
+21. Lenhart RL et al. (2014): Increasing running step rate reduces patellofemoral joint forces. *Medicine and Science in Sports and Exercise*, 46(3), 557-564.
+22. Malisoux L et al. (2015): Can parallel use of different running shoes decrease running-related injury risk? *Scandinavian Journal of Medicine and Science in Sports*, 25(1), 110-115.
+23. Moore IS (2016): Is there an economical running technique? A review of modifiable biomechanical factors affecting running economy. *Sports Medicine*, 46(6), 793-807.
+24. Saunders PU et al. (2006): Short-term plyometric training improves running economy in highly trained middle and long distance runners. *Journal of Strength and Conditioning Research*, 20(4), 947-954.
+25. Storen O et al. (2008): Maximal strength training improves running economy in distance runners. *Medicine and Science in Sports and Exercise*, 40(6), 1087-1092.
+26. Van Dyk N et al. (2019): Including the Nordic hamstring exercise in injury prevention programmes halves the rate of hamstring injuries. *British Journal of Sports Medicine*, 53(21), 1362-1370.
+27. Wilber RL et al. (2007): Altitude training and athletic performance. *Routledge*, London.

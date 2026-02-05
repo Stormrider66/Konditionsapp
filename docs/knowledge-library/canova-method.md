@@ -29,6 +29,33 @@ Canovas signaturrpasss - långlöpningen som börjar långsamt och avslutas snab
 
 ---
 
+## Determining Current Marathon Pace / Att Bestämma Aktuellt Maratontempo
+
+### Metoder för MP-bestämning
+
+Korrekt bestämning av maratontempo (MP) är fundamentalt för hela Canova-systemet. Felaktigt MP leder till att alla träningszoner blir felaktiga.
+
+**1. Färska tävlingsresultat (mest tillförlitligt)**
+- Halvmaratontid + 4-6%: En löpare med 1:25 halvmaraton har uppskattat MP runt 4:08-4:12/km
+- 10 km-tid + 10-12%: En löpare med 38:00 på 10 km har uppskattat MP runt 4:12-4:16/km
+- VDOT-tabeller (Daniels) kan användas som utgångspunkt men bör valideras
+
+**2. Laktattröskeltest**
+- MP ligger typiskt vid 75-82% av VO2max för vältränade löpare
+- Laktat vid MP bör vara 2.0-3.0 mmol/L (under anaerob tröskel)
+- Hjärtfrekvens vid MP: 78-85% av maxpuls
+
+**3. Specifika testpass (Canovas favorit)**
+- 25-30 km vid uppskattad MP: Kan du hålla tempot? Hur kändes de sista 5 km?
+- Om det kändes kontrollerat men ansträngande = korrekt MP
+- Om du måste sakta ner = sänk MP med 5-10 sek/km
+- Om det var för lätt = höj MP med 5-10 sek/km
+
+**4. Löpande uppdatering**
+Canova betonar att MP inte är statiskt. Under ett 16-20 veckors program bör MP justeras 2-3 gånger baserat på träningsrespons, testpass och dagsform. En atlet som förbättras märkbart bör justera MP uppåt, annars riskerar man att träna för lätt.
+
+---
+
 ## Intensity Zones Based on Marathon Pace / Intensitetszoner Baserade på Maratontempo
 
 ### Canovas Zonystem
@@ -74,6 +101,27 @@ Canova definierar intensitetszoner relativt maratontempo (MP) snarare än fysiol
 - Mycket hög intensitet, vid eller över VO2max
 - Syfte: maximal aerob kraft, neurommuskulär snabbhet
 - Exempel (MP 4:00/km): 3:00-3:12/km
+
+---
+
+## Physiological Rationale / Fysiologisk Grund
+
+### Varför Maratontempo som Träningsankare
+
+Canova-metoden vilar på djup fysiologisk förståelse av maratonlöpningens krav. Att organisera all träning runt MP är inte godtyckligt - det speglar maratonets unika metabola profil.
+
+**Glykogenutarmning och fettoxidation**
+Maratonlöpning kräver att kroppen kan utnyttja fettoxidation som primär energikälla under loppets sista tredjedel, eftersom muskelglykogendepåerna (typiskt 400-500g) räcker i 90-120 minuter vid MP. Canovas progressiva långpass och Special Blocks tränar kroppen att:
+- Öka mitokondriell densitet i typ I-fibrer, vilket förbättrar fettoxidationskapaciteten
+- Aktivera och rekrytera typ IIa-fibrer under utdragen MP-belastning, vilket "lär" dessa fibrer att oxidera fett
+- Uppreglera enzymer för fettoxidation (CPT-1, HAD) genom långvarig träning vid MP
+- Spara glykogen genom förbättrad metabol flexibilitet (crossover-konceptet)
+
+**Muskelfiberrekrytering vid MP**
+Vid maratontempo rekryteras initialt främst typ I-fibrer. När dessa tröttnar (efter 25-30 km) tvingas kroppen rekrytera typ IIa-fibrer. Canovas Special Block-dagar med dubbla MP-pass simulerar just denna rekryteringsprocess: kvällspasset genomförs med redan trötta typ I-fibrer, vilket tvingar fram IIa-rekrytering och anpassning.
+
+**Laktatkinetik vid MP**
+Maratontempo ligger typiskt vid 2.0-3.0 mmol/L - under anaerob tröskel men över baslinjen. Denna intensitet är unik: tillräckligt hög för att stimulera metabola anpassningar, men tillräckligt låg för att vara hållbar över timmar. Canovas betoning av stora volymer vid MP optimerar laktat-clearance-kapaciteten vid just denna kritiska intensitet.
 
 ---
 
@@ -131,7 +179,7 @@ Canova definierar intensitetszoner relativt maratontempo (MP) snarare än fysiol
 **Nyckelpass:**
 - **Special Block AM**: 15 km vid MP
 - **Special Block PM**: 10 km vid MP (samma dag)
-- **Progressiv långlöpning**: 32 km, sista 15 km progressivt snabbare (MP+10% → MP → MP-5%)
+- **Progressiv långlöpning**: 32 km, sista 15 km progressivt snabbare (MP+10% -> MP -> MP-5%)
 
 ### Fas 4: Taper / Nedtrappning
 
@@ -193,6 +241,31 @@ Special Block är kanske Canovas mest kända och mest kopierade innovation. Det 
 - AM: 16 km vid MP + PM: 12 km vid MP = 28 km total MP
 - 2 Special Block-dagar per vecka under 4-6 veckor
 
+### Recovery Between Special Block Days / Återhämtning Mellan Special Block-dagar
+
+Korrekt återhämtning mellan Special Block-dagar är avgörande för att undvika överträning och maximera anpassningar.
+
+**Dagen efter Special Block:**
+- Morgon: 30-40 min regenerativ löpning (MP + 25-30%) eller komplett vila
+- Kväll: valfritt lätt pass (30 min) eller vila
+- Fokus: kolhydratfyllning (8-10g/kg), god sömn, kompressionsplagg
+
+**Två dagar efter Special Block:**
+- Grunddistanslöpning (MP + 15-20%), 50-60 min
+- Inget intensivt arbete
+- Fortsatt fokus på näring och sömn
+
+**Minimiintervall mellan Special Blocks:**
+- Mellannivå: minst 3 dagar mellan Special Block-dagar
+- Elitnivå: minst 2 dagar (Abel Kirui använde typiskt tisdag och fredag)
+- Lägg aldrig Special Block dagen efter en lång löpning
+
+**Återhämtningsstrategier:**
+- Kyla/kontrastbad (10 min kallt / 2 min varmt, 3 cykler) efter krävande pass
+- Massage eller foam rolling 6-12 timmar efter PM-passet
+- Höj benen 15-20 min vid vila
+- Prioritera minst 8 timmars sömn natten efter Special Block
+
 ---
 
 ## The Progressive Long Run / Långpassets Evolution
@@ -224,7 +297,154 @@ Till skillnad från traditionella långpass vid jämnt, lugnt tempo förespråka
 
 ---
 
+## Real-World Athlete Examples / Verkliga Atletexempel
+
+### Abel Kiruis Träningsvecka (Tävlingsförberedande Fas)
+
+Abel Kirui, dubbel världsmästare i maraton (2009, 2011), med bästtid 2:05:04, tränade enligt Canovas system med följande typiska vecka under den tävlingsförberedande fasen (MP ca 2:58/km):
+
+| Dag | Morgon | Kväll |
+|-----|--------|-------|
+| Måndag | 16 km vid MP (Special Block) | 10 km vid MP |
+| Tisdag | 50 min grunddistans | 40 min regenerativ |
+| Onsdag | 12x1000m vid 10K-tempo (2:42/km) | 40 min grunddistans |
+| Torsdag | 60 min grunddistans | 40 min regenerativ |
+| Fredag | 14 km vid MP (Special Block) | 8 km vid MP |
+| Lördag | 35-38 km progressiv långlöpning | Vila |
+| Söndag | 50 min grunddistans | 40 min regenerativ |
+
+**Total veckovolym**: ~190-200 km. **Total MP-volym per vecka**: ~48-50 km.
+
+### Florence Kiplagats Progression
+
+Florence Kiplagat, världsrekordhållerska på halvmaraton (1:05:09) och vinnare av Berlin Marathon (2:19:44), illustrerar Canovas progressionsmodell:
+
+- **Grundperioden**: Fokus på 160+ km/vecka i Kenyas höjd (2400m), inga MP-pass
+- **Specifik period**: Gradvis introduktion av MP-arbete, börja med 2x5 km vid MP i slutet av medellånga löpningar
+- **Tävlingsförberedande**: Special Blocks 2x/vecka, progressiva långpass upp till 38 km
+- **Nyckelinsikt**: Kiplagat ökade MP-volymen per vecka från 0 km (grundperiod) till 40+ km (tävlingsförberedande) under 12 veckor
+
+---
+
+## Strength Training Integration / Styrketräning i Canova-systemet
+
+### Styrketräningens Roll per Fas
+
+Canova integrerar styrketräning som stöd för löpspecifik prestation, inte som ett mål i sig. Styrkan ska tjäna löpningen.
+
+**Grundläggande Period:**
+- 2-3 styrkepass/vecka
+- Generell styrka: knäböj, utfallssteg, höftlyft, vadresning
+- Moderat belastning (60-70% av 1RM), 3x10-12 repetitioner
+- Core-stabilitet: planka, sidoplanka, pallof press
+- Backlöpning ersätter delvis styrketräning för benspecifik kraft
+
+**Specifik Period:**
+- 1-2 styrkepass/vecka (reducerat för att prioritera löpning)
+- Explosiv styrka: steghopp, djuphopp, medicinbollskast
+- Tyngre belastning men lägre volym: 3x5 vid 80% 1RM
+- Fokus: stiffness i fot/vad (vadresning med tyngd, hoppövningar)
+
+**Tävlingsförberedande Period:**
+- 0-1 styrkepass/vecka
+- Underhåll: 2x5 knäböj, 2x8 vadresning
+- Lägg styrkepasset minst 6 timmar före eller efter MP-arbete
+- Avsluta all styrketräning 10-14 dagar före maraton
+
+**Viktigt**: Placera aldrig tung styrketräning dagen före ett Special Block eller progressivt långpass.
+
+---
+
+## Heat and Weather Adaptation / Värme- och Väderanpassning
+
+### Maratonförberedelse i Varmt Klimat
+
+Många stora maraton (Dubai, Tokyo, Boston, Chicago) innebär risk för värme. Canova, verksam i Kenya, har stor erfarenhet av värmeförberedelse.
+
+**Fysiologiska effekter av värme på MP:**
+- +1 grad C över 15 grader = ca +1-2 sek/km långsammare
+- Vid 25 grader C: MP bör justeras med +10-15 sek/km
+- Ökad hjärtfrekvens, minskad blodvolym till musklerna, snabbare glykogenförbrukning
+
+**Canovas Värmestrategier:**
+- **Acklimatisering**: 10-14 dagars exponering, börja med lätta pass vid värme
+- **Anpassade MP-pass**: Sänk MP med 8-12 sek/km vid pass i värme >25 grader C
+- **Pre-cooling**: Kyld dryck och isvest före loppet
+- **Vätskeintag**: Öva drickteknik vid MP under träning, 150-250 ml var 15-20 min
+- **Klädval**: Ljusa, ventilerande material, keps med nackskydd
+
+**Raceday-anpassning**: Om det förväntas vara varmt, sänk ambitionstempot med 5-15 sek/km och kör negativ split-strategi.
+
+---
+
+## Mental Training Aspects / Mentala Aspekter
+
+### Att Hantera Lidande i Progressiva Långpass
+
+Canovas träningsfilosofi har en inbyggd mental härdningskomponent. De progressiva långpassen och Special Blocks utsätter löparen för exakt den typ av fysiskt och mentalt lidande som uppstår vid km 30-42 i ett maraton.
+
+**Canovas Mentala Principer:**
+
+1. **"Lär dig älska smärtan"**: Canova lär sina atleter att smärta vid MP under trötthet är EXAKT det som gör dem starkare. Det obehag du känner vid km 28 av ett progressivt långpass är din kropp som anpassar sig.
+
+2. **Processbaserat fokus**: Under tuffa MP-segment: fokusera på nästa kilometer, inte på det som återstår. Teknisk checklist: armhållning, stegfrekvens, andning.
+
+3. **Positiv association**: Till skillnad från dissociation (att "stänga av") förespråkar Canova-metoden att vara fullt närvarande och medveten om kroppens signaler, men tolka dem positivt - "jag är trött men mitt tempo håller" snarare än "jag kan inte orka mer."
+
+4. **Erfarenhetsbank**: Varje Special Block bygger en mental erfarenhetsbank. "Jag har sprungit 20 km vid MP på trötta ben förut - jag vet att jag klarar det." Denna erfarenhet är ovärderlig i tävlingssammanhang.
+
+5. **Gruppträning**: Canova förespråkar att träna MP-pass i grupp när möjligt. Social facilitering gör det lättare att hålla tempo, och att se andra kämpa normaliserar lidandet.
+
+---
+
+## Race Execution Strategy / Tävlingsstrategi
+
+### Hur Canova-träningen Översätts till Tävlingsdag
+
+Canovas träningsfilosofi leder naturligt till en specifik tävlingsstrategi som maximerar chansen till ett lyckat maratonlopp.
+
+**Canovas Tävlingsprinciper:**
+
+1. **Konservativ start**: Första 5 km vid MP eller 2-3 sek/km långsammare. Atletens kropp behöver tid att värmas upp och hitta rätt rytm. "Spara 30 sekunder på de första 10 km, tjäna 2 minuter på de sista 10."
+
+2. **Jämnt tempo, km 5-30**: Hitta MP-rytm och håll den med minimal variation (max 3-5 sek/km). Använd GPS men lita på känslan - kroppen vet vad MP ska kännas som tack vare hundratals MP-kilometer i träning.
+
+3. **Evaluering vid km 30**: "30 km är halvvägs i ett maraton" (berömd Canova-fras). Här avgörs om du kan: (a) höja tempot om du känner dig stark, (b) hålla MP om det är kontrollerat, eller (c) sakta 5-10 sek/km om du kämpar.
+
+4. **De sista 12 km**: Den progressiva långlöpningens effekt visar sig här. Löpare som tränat att accelerera under trötthet har en enorm fördel. Försök att springa de sista 5 km snabbare än de föregående 5 km.
+
+5. **Negativ split-idealet**: Canovas perfekta lopp är en minimal negativ split (andra halvlek 30-60 sek snabbare). Det speglar hur hans atleter tränar i varje progressivt långpass.
+
+---
+
 ## Practical Applications by Level / Praktiska Tillämpningar per Nivå
+
+### Sub-4:00 Maraton (MP 5:41/km)
+
+**Veckovolym**: 50-70 km
+**Nyckelpass per vecka:**
+- 1 långpass: 24-28 km (progressivt, sista 4-5 km vid medeltempo)
+- 1 MP-pass: 6-8 km vid 5:41/km (inkluderat i ett längre pass)
+- 1 intervallpass: 5x800m vid 5:00-5:10/km
+- 2-3 lättare löppass: 6-8 km vid 6:50-7:10/km
+
+**Special Block (tävlingsförberedande, förenklad):**
+- AM: 6 km vid MP + PM: 4 km vid MP = 10 km total MP
+- Max 1 Special Block-dag per vecka under 2 veckor
+
+### Sub-3:30 Maraton (MP 4:58/km)
+
+**Veckovolym**: 65-90 km
+**Nyckelpass per vecka:**
+- 1 långpass: 26-30 km (progressivt, sista 6-8 km med tempo)
+- 1 MP-pass: 8-10 km vid 4:58/km
+- 1 intervallpass: 6x1000m vid 4:20-4:30/km (10K-tempo)
+- 1 tröskelpass: 3x2000m vid 4:35-4:40/km (halvmaratontempo)
+- 2-3 lättare löppass: 6-10 km vid 5:50-6:10/km
+
+**Special Block (tävlingsförberedande):**
+- AM: 8 km vid MP + PM: 5 km vid MP = 13 km total MP
+- 1 Special Block-dag per vecka under 2-3 veckor
 
 ### Sub-3:00 Maraton (MP 4:15/km)
 
@@ -274,7 +494,7 @@ Canova skiljer sig från många andra tränare i sin nedtrappning:
 
 ### Nedtrappningens Fysiologi
 
-- **Glykogensupercompensation**: Reducerad träningsbelastning + normalt kostintag → fyllda glykogendepåer
+- **Glykogensupercompensation**: Reducerad träningsbelastning + normalt kostintag -> fyllda glykogendepåer
 - **Inflammationsreduktion**: Minskad mekanisk stress tillåter muskelreparation
 - **Neurommuskulär fräschhet**: Kortare, intensiva pass bibehåller snabbhet utan trötthet
 - **Mental förberedelse**: Ökad vilosstid ger möjlighet till mental förberedelse och visualisering
@@ -288,7 +508,7 @@ Canova skiljer sig från många andra tränare i sin nedtrappning:
 | Aspekt | Canova | Polariserad |
 |--------|--------|-------------|
 | Intensitetsreferens | Maratontempo (MP) | Ventilatoriska trösklar (VT1/VT2) |
-| Zon 2-arbete | Betydande (MP-arbete ≈ zon 2) | Minimalt |
+| Zon 2-arbete | Betydande (MP-arbete ungefär zon 2) | Minimalt |
 | Specifik vs. generell | Mycket specifik | Generell |
 | Bäst för | Maraton | Alla distanser |
 | Långpassets karaktär | Progressivt med snabb avslut | Jämnt, lugnt tempo |
@@ -313,6 +533,9 @@ Canova skiljer sig från många andra tränare i sin nedtrappning:
 5. **Tapera för aggressivt**: Bibehåll viss intensitet under nedtrappningen
 6. **Ignorera signaler**: Överträningssymtom kräver omedelbar justering
 7. **Kopiera elitprogram rakt av**: Anpassa efter individuell kapacitet och erfarenhet
+8. **Hoppa över styrketräning**: Utan muskulär uthållighet ökar skaderisken vid höga MP-volymer
+9. **Försumma näring mellan Special Block-pass**: Otillräcklig kolhydratfyllning undergräver kvällspassets kvalitet
+10. **Ignorera väderförhållanden**: MP måste justeras vid värme och fuktighet
 
 ---
 
@@ -327,3 +550,41 @@ Canova-metoden ställer särskilda krav på näring:
 - **Dagarna efter Special Block**: Extra fokus på återhämtningsnäring
 
 Canovas filosofi integrerar nutrition som en del av träningen - att träna magen att tolerera intag under löpning är lika viktigt som att träna benen att springa snabbt.
+
+---
+
+## Key Terminology / Nyckelterminologi
+
+| Svenskt Begrepp | Engelskt Begrepp | Definition |
+|---|---|---|
+| Maratontempo (MP) | Marathon Pace | Målhastighet per kilometer i tävling, alla zoner definieras relativt MP |
+| Progressiv långlöpning | Progressive Long Run | Långpass som börjar långsamt och avslutas vid eller snabbare än MP |
+| Special Block | Special Block | Dubbelpass-dag med signifikant MP-volym i båda passen |
+| Grunddistans | Fundamental Distance | Baslöpning vid MP + 15-20%, aerob grundträning |
+| Regenerativ löpning | Regenerative Run | Mycket lätt löpning (MP + 25-30%) för återhämtning |
+| Medeltempo | Medium Tempo | Moderat intensitet vid MP + 8-12%, "bekvämt hårt" |
+| Tempotolerens | Pace Tolerance | Förmågan att upprätthålla MP under ackumulerande trötthet |
+| Nedtrappning | Taper | Gradvis volymreduktion före tävling med bibehållen intensitet |
+| Fettoxidation | Fat Oxidation | Kroppens förmåga att använda fett som bränsle vid MP |
+| Glykogensupercompensation | Glycogen Supercompensation | Överfyllning av muskelglykogendepåer genom laddning |
+| Negativ split | Negative Split | Andra halvan av loppet snabbare än första halvan |
+| Specifik anpassning | Specific Adaptation | Fysiologisk anpassning till exakt den belastning som maratonet kräver |
+| Metabol flexibilitet | Metabolic Flexibility | Kroppens förmåga att växla mellan fett- och kolhydratförbränning |
+| Crossover-konceptet | Crossover Concept | Intensiteten där fettoxidation avtar och kolhydratanvändning dominerar |
+
+---
+
+## References and Evidence Base
+
+Denna kunskapsbas bygger på forskning och praktik från:
+
+- Canova R, Arcelli E (1999): Marathon Training - A Scientific Approach. Edizioni Correre.
+- Billat VL et al. (2001): The concept of maximal lactate steady state: a bridge between biochemistry, physiology and sport science. Sports Medicine, 31(11), 763-783.
+- Stellingwerff T (2012): Case study: nutrition and training periodization in three elite marathon runners. International Journal of Sport Nutrition and Exercise Metabolism, 22(5), 392-400.
+- Rapoport BI (2010): Metabolic factors limiting performance in marathon runners. PLoS Computational Biology, 6(10), e1000960.
+- Coyle EF (2007): Physiological regulation of marathon performance. Sports Medicine, 37(4-5), 306-311.
+- Joyner MJ, Coyle EF (2008): Endurance exercise performance: the physiology of champions. Journal of Physiology, 586(1), 35-44.
+- Midgley AW, McNaughton LR, Jones AM (2007): Training to enhance the physiological determinants of long-distance running performance. Sports Medicine, 37(10), 857-880.
+- Kenneally M, Casado A, Santos-Concejero J (2018): The effect of periodization and training intensity distribution on middle- and long-distance running performance: a systematic review. International Journal of Sports Physiology and Performance, 13(9), 1114-1121.
+- Tjelta LI (2016): The training of international level distance runners. International Journal of Sports Science & Coaching, 11(1), 122-134.
+- Tucker R, Dugas J (2009): The Runner's Body: How the Latest Exercise Science Can Help You Run Stronger, Longer, and Faster. Rodale.

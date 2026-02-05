@@ -2,77 +2,89 @@
 
 ## 1. Introduction: The Physiology of Cross-Country Skiing
 
-Langdskidakning ar en av de mest fysiologiskt kravavande uthallighetsidrotterna i varlden. Till skillnad fran lopning eller cykling engagerar skidakning bade overkropp och underkropp simultant, vilket resulterar i den hogsta uppmatta syreupptagningen (VO2max) bland alla idrotter. Elitakare uppnar regelbundet VO2max-varden over 80 ml/kg/min for man och over 70 ml/kg/min for kvinnor. Sporten kraver en unik kombination av aerob kapacitet, anaerob kraft, overkroppsstyrka, teknisk skicklighet och taktisk formaaga.
+Langdskidakning ar en av de mest fysiologiskt kravavande uthallighetsidrotterna. Skidakning engagerar bade overkropp och underkropp simultant, vilket ger den hogsta uppmatta VO2max bland alla idrotter (elit: >80 ml/kg/min man, >70 kvinnor). Sporten kraver en unik kombination av aerob kapacitet, anaerob kraft, overkroppsstyrka, teknisk skicklighet och taktisk formaaga.
 
-For en AI-baserad traningsmotor ar det centralt att forsta att skidtraning inte kan reduceras till enbart fysiologisk belastning. Teknikvalet paverkar vilka muskelgrupper som dominerar, vilken metabol belastning som uppstar, och darmed vilka traningsanpassningar som uppnas. En dubbelstakningsession pa rullskidor belastar overkroppen helt annorlunda an ett diagonalpass i kuperad terrang. Algoritmen maste darfor integrera teknikform, terrang och intensitet som separata variabler i traningsplaneringen.
+For AI-motorn ar det centralt att skidtraning inte kan reduceras till fysiologisk belastning. Teknikvalet paverkar muskelgrupper, metabol belastning och traningsanpassningar. Algoritmen maste integrera teknikform, terrang och intensitet som separata variabler.
 
 ## 2. Technique Forms: Klassisk och Fristil
 
 ### 2.1 Classical Technique (Klassisk stil)
 
-Klassisk skidakning utfors i preparerade spar och inkluderar tre huvudtekniker som valjs beroende pa lutning och fart:
+Utfors i preparerade spar med tre huvudtekniker beroende pa lutning och fart:
 
-**Diagonalgang (Diagonal stride):** Den mest grundlaggande tekniken i langdskidakning. Rorelsemonstret liknar lopning med alternativa arm- och benrorelser. Vanster arm och hoger ben arbetar synkront framat, och tvartom. Diagonalgangen anvands framst i uppforsbacker dar kraftoverforing genom faste (grip) ar nodvandig. Fran ett fysiologiskt perspektiv ar diagonalgangen den mest helkroppskravande klassiska tekniken, med hog belastning pa bade flexorer och extensorer i bade over- och underkropp.
+**Diagonalgang (Diagonal stride):** Grundlaggande teknik med alternativa arm-/benrorelser (vanster arm synkront med hoger ben). Anvands i uppforsbacker dar kraftoverforing genom faste (grip) ar nodvandig. Den mest helkroppskravande klassiska tekniken med hog belastning pa bade flexorer och extensorer.
 
-**Dubbelstakning (Double poling):** Bada stavarna satts ned samtidigt och kroppen anvander en koordinerad flexion fran hoften och trunk for att overfor kraft genom stavarna. Benen bidrar genom en aktiv hojtryckning (leg push) i modern teknik. Dubbelstakning har under de senaste 15 aren revolutionerat klassisk skidakning. Elitakare anvander numera dubbelstakning pa strackor som tidigare kravde diagonal, inklusive langre uppforsbackar. Tekniken kraver exceptionell overkroppsstyrka och -uthallig, sarskilt i latissimus dorsi, triceps, rectus abdominis och obliques. Den metabola belastningen ar framst pa overkroppen, vilket gor att benen relativt sett sparas - en taktisk fordel i langdistanslopp.
+**Dubbelstakning (Double poling):** Bada stavarna satts ned samtidigt med koordinerad flexion fran hoeft och trunk. Benen bidrar genom aktivt bentryck (leg push) i modern teknik. Har revolutionerat klassisk skidakning - elitakare dubbelstakar nu aven i langre uppforsbacker. Kraver exceptionell overkroppsstyrka (latissimus dorsi, triceps, rectus abdominis). Den metabola belastningen pa framst overkroppen sparar benen - en taktisk fordel i langdistanslopp.
 
-**Fiskbenskliv (Herringbone):** Anvands i branta uppforsbacker dar faste inte racker till. Skidorna placeras i V-formation med tarna utat och akaren "klattrar" uppfor med korta, kraftfulla steg. Tekniken ar mycket energikravande och hojer pulsfrekvensen snabbt. I traningssammanhang ar fiskbenskliv vardefull for att utveckla benspecifik styrka och anaerob kapacitet.
+**Fiskbenskliv (Herringbone):** Branta uppforsbacker dar faste inte racker till. Skidorna i V-formation, korta kraftfulla steg. Mycket energikravande - vardefull for benspecifik styrka och anaerob kapacitet.
 
 ### 2.2 Freestyle Technique (Fristil / Skating)
 
-Fristilstekniken, ofta kallad skating, anvander ett skridskoliknande rorelsemonster dar skidorna vinklas utat och akaren driver sig framat med avskjut fran skidans innerkant. Det finns flera underteknikar:
+Fristilstekniken (skating) anvander skridskoliknande rorelsemonster dar skidorna vinklas utat:
 
-**V1 (Offset):** Stavsattning sker pa varje annat skidavskjut, typiskt pa den sida som ger mest kraft. Anvands framst i uppforsbacker. V1 ar den langsammaste men mest kraftfulla skatingtekniken och anvands nar motstandet ar storst.
+**V1 (Offset):** Stavsattning pa varannat skidavskjut. Langsammaste men mest kraftfulla skatingtekniken. Anvands i uppforsbacker.
 
-**V2 (One-skate):** Stavsattning sker pa varje skidavskjut. Detta ar den mest universella skatingtekniken och anvands pa flack terrang och milda uppforsbacker. V2 kraver utmarkt koordination och timing da armarna och benet maste synkroniseras perfekt.
+**V2 (One-skate):** Stavsattning pa varje skidavskjut. Mest universella tekniken for flack terrang och milda backar. Kraver utmarkt koordination.
 
-**V2A (Two-skate / Paddling):** Stavsattning sker pa varannat skidavskjut, men till skillnad fran V1 ar kroppen mer upprest och rorelsen mer asymmetrisk. Anvands pa flacka partier och i svag utforslutning dar hog fart redan uppnatts.
+**V2A (Two-skate / Paddling):** Stavsattning pa varannat avskjut med upprest kropp. For flacka partier och svag utforslutning.
 
-**Frigang (Free skate without poles):** Anvands i branta nedforsbacker och som traningsovning for balans och avspark.
+**Frigang (Free skate without poles):** Nedforsbacker och balanstraning.
 
-For traningsmotorn ar det viktigt att matcha teknikform med traningens syfte. Dubbelstakning och V2 ar ideala for langre distanspass i lagre intensitet, medan V1 och fiskbenskliv lampar sig for intervalltraning i uppforsbackar med hogre intensitetsbelastning.
+For traningsmotorn: matcha teknikform med traningens syfte. Dubbelstakning och V2 for distanspass, V1 och fiskbenskliv for uppforsintervaller.
 
 ## 3. Double Poling: The Modern Revolution
 
-Dubbelstakningen har genomgatt en dramatisk utveckling. I moderna tavlingar, inklusive Vasaloppet och Worldcup-lopp, valjer allt fler akare att dubbelstaka hela strackan utan att anvanda diagonalgang overhuvudtaget.
+I moderna tavlingar (Vasaloppet, World Cup) valjer allt fler akare att dubbelstaka hela strackan utan diagonal.
 
 ### 3.1 Biomechanical Analysis
 
-Modern dubbelstakning ar inte enbart en armrorelse. Den involverar en koordinerad kinetisk kedja:
+Modern dubbelstakning involverar en koordinerad kinetisk kedja:
 
-1. **Uppfasen (Recovery):** Kroppen stracks ut, hoften extenderas, armarna lyfts over axelhoijd. Hela kroppen ar i en strack position.
-2. **Forspanningsfasen (Pre-loading):** Kroppen borjar falla framat genom gravitation, vikt skiftas till taballerna.
-3. **Kraftfasen (Power phase):** Buken och balen kontraherar kraftigt, armarna driver stavarna bakot. Latissimus dorsi, pectoralis major och triceps ar de primara musklerna. Modern teknik inkluderar ett bentryck (leg push) dar akaren aktivt trycker ner genom benen for att oka trycket pa stavarna.
-4. **Avslutningsfasen (Follow-through):** Handerna passerar forbi hoften, kroppen ar i maximal flexion.
+1. **Uppfasen (Recovery):** Kroppen stracks ut, armarna lyfts over axelhoijd.
+2. **Forspanningsfasen (Pre-loading):** Kroppen faller framat genom gravitation, vikt till taballerna.
+3. **Kraftfasen (Power phase):** Bal kontraherar, armarna driver stavarna bakot. Primara muskler: latissimus dorsi, pectoralis major, triceps. Aktivt bentryck (leg push) okar trycket pa stavarna.
+4. **Avslutningsfasen (Follow-through):** Handerna passerar hoften, maximal flexion.
 
-### 3.2 Training for Double Poling
+### 3.2 Training Protocols for Double Poling
 
-Traningen maste adressera bade styrkeuthalllighet och maximal kraft:
+Bade styrkeuthalllighet och maximal kraft maste adresseras:
 
-- **Maskintraning:** Skierg (Concept2) ar det mest specifika redskapet for dubbelstakningstraning utanfor sno. 4x4 min intervaller pa SkiErg ar ett standardpass for laktattroskelbedoming.
-- **Overviktsarbete:** Liggande magdrag (cable pull-down), latsdrag, triceps extensions, och rotationsovningar for balen.
-- **Volympass:** 60-90 min dubbelstakning pa rullskidor i flack terrang, zon 1-2.
-- **Intervalpass:** 8x3 min dubbelstakning i motlut pa rullskidor, zon 3-4.
+- **SkiErg (Concept2):** Mest specifika redskapet. 4x4 min intervaller for troskelbedoming.
+- **Overviktsarbete:** Magdrag, latsdrag, triceps extensions, rotationsovningar.
+- **Volympass:** 60-90 min dubbelstakning pa rullskidor, zon 1-2.
+- **Intervalpass:** 8x3 min dubbelstakning i motlut, zon 3-4.
+
+### 3.3 Double Poling Progression Model
+
+For att systematiskt utveckla dubbelstakningsformaga kravs en periodiserad progression:
+
+**Fas 1 - Grundlaggande teknik (4-6 veckor):** Korta pass (30-45 min) i zon 1 pa flat terrang. Fokus pa fullstandig armextension, kontrollerad framatkroppsfall, och aktivt bentryck. SkiErg 2-3 ganger/vecka.
+
+**Fas 2 - Kapacitetsuppbyggnad (6-8 veckor):** Progressiv okning till 60-90 min. Introducera milda stigningar (2-4%). Komplettera med specifik styrketraning: magdrag med expanderband, medicibolskast, SkiErg med extra motstand.
+
+**Fas 3 - Intensitetsutveckling (4-6 veckor):** Intervalltraning: 6x4 min zon 3-4 med 2 min vila. Backintervaller pa 6-8% stigning. Testpass: 10 min maxtest pa SkiErg.
+
+**Fas 4 - Tavlingsspecifik (4 veckor):** Tempopass (20-30 min zon 3), teknikhallning under uttrottning, kombinationspass med vaxling mellan dubbelstakning och diagonal.
 
 ## 4. Periodization: The Annual Cycle
 
 ### 4.1 Off-Snow Season (Barmarksperiod, Maj-Oktober)
 
-Barmarksperioden utgor 5-6 manader av arsplanens 10-11 traningsmander och ar darfor den viktigaste perioden for kapacitetsutveckling.
+Barmarksperioden (5-6 manader) ar den viktigaste perioden for kapacitetsutveckling.
 
-**Grundperiod (Maj-Juni):** Fokus pa allman kondition, grundstyrka och teknik. Traningen inkluderar lopning, cykling, rullskidor i lag intensitet och allman styrketraning. Volymen byggs gradvis fran 60% till 80% av toppvolym. For en elitakare innebar detta 12-16 traningstimmar per vecka.
+**Grundperiod (Maj-Juni):** Allman kondition, grundstyrka, teknik. Lopning, cykling, rullskidor i lag intensitet. Volym byggs fran 60% till 80% av toppvolym. Elit: 12-16 timmar/vecka.
 
-**Uppbyggnadsperiod (Juli-Augusti):** Intensiteten okar. Specifika intervallpass pa rullskidor introduceras, bade klassisk och fristil. Styrketraningen skiftar mot mer skidspecifika ovningar. Typisk vecka inkluderar 2-3 intervallpass, 3-4 distanspass och 2-3 styrkpass. Total volym 16-22 timmar/vecka for elit.
+**Uppbyggnadsperiod (Juli-Augusti):** Okad intensitet. Specifika intervallpass pa rullskidor (klassisk + fristil). Skidspecifik styrketraning. 2-3 intervallpass, 3-4 distanspass, 2-3 styrkpass. Elit: 16-22 timmar/vecka.
 
-**Forberedelseperiod (September-Oktober):** Traningen blir allt mer tavlingsspecifik. Langre intervallpass, fartlek, och specifik dubbelstakningstraning. Hojtdlager placeras ofta i denna period (se sektion 6). Styrketraningen bibehalls men minskar nagot i volym. Rullskidtraning dominerar.
+**Forberedelseperiod (September-Oktober):** Tavlingsspecifikt. Langre intervallpass, fartlek, dubbelstakningstraning. Hojtdlager placeras ofta har (se sektion 6). Rullskidtraning dominerar.
 
 ### 4.2 Early Snow Season (Tidig snoperiod, November)
 
-Overgangen till sno ar kritisk. De forsta veckorna pa sno bor fokusera pa teknikarbete och volymbaskering snarare an hog intensitet. Kroppen behover tid att anpassa sig fran rullskidors motstand till snons glid. Typiskt 70-80% av traningen i zon 1.
+De forsta veckorna pa sno: teknikarbete och volymbaskering, inte hog intensitet. Typiskt 70-80% zon 1 medan kroppen anpassar sig fran rullskidors motstand till snons glid.
 
 ### 4.3 Competition Season (Tavlingsperiod, December-Mars)
 
-Under tavlingsperioden minskar totalvolymen med 15-25% jamfort med uppbyggnadsperioden, men intensiteten okar. Periodiseringen styrs av tavlingskalendern:
+Totalvolymen minskar 15-25% men intensiteten okar. Periodiseringen styrs av tavlingskalendern:
 
 - **Vecka utan tavling:** 2 intervallpass, 3-4 distanspass, 1-2 styrkpass.
 - **Tavlingsvecka:** 1 oppnarpass (fartlek eller korta intervaller 3-4 dagar fore tavling), 1 distanspass, tavling, aterhamtning.
@@ -80,13 +92,13 @@ Under tavlingsperioden minskar totalvolymen med 15-25% jamfort med uppbyggnadspe
 
 ### 4.4 Recovery Period (Aterhamtningsperiod, April)
 
-4-6 veckors aktiv vila med alternativa aktiviteter (simning, paddling, vandring). Ingen strukturerad traning. Mentalaterhamt ar lika viktig som fysisk.
+4-6 veckors aktiv vila (simning, paddling, vandring). Ingen strukturerad traning. Mental aterhamt lika viktig som fysisk.
 
 ## 5. Zone Training: Adaptation of the 3/5-Zone Model
 
 ### 5.1 The 3-Zone Model for Skiing
 
-Skidakningens zonmodell foljder samma fysiologiska principer som for lopning, men med viktiga skillnader:
+Samma fysiologiska principer som lopning, men med viktiga skillnader:
 
 | Zon (3-zon) | Fysiologisk marker | Laktat | Typiskt HF-omrade | Beskrivning |
 |---|---|---|---|---|
@@ -106,13 +118,13 @@ For mer detaljerad styrning anvands ofta en 5-zonsmodell:
 | Zon 4 | VO2max | 87-93% | 4x4 intervaller, 3x8 min |
 | Zon 5 | Anaerob | 93-100% | Sprintintervaller, maxfart |
 
-**Viktig anpassning for skidakning:** Pulszoner i skidakning ligger typiskt 5-10 slag lagre an vid lopning for samma metabola belastning, sarskilt i klassisk teknik med overkroppsdominans (dubbelstakning). Detta beror pa att en mindre muskelmassa ar aktiv jamfort med lopning, vilket begransar det totala syrebehovet trots hog lokal muskelbelastning. Algoritmen maste justera pulszoner beroende pa teknikform och terrang.
+**Viktig anpassning:** Pulszoner i skidakning ligger typiskt 5-10 slag lagre an vid lopning for samma metabola belastning, sarskilt vid overkroppsdominans (dubbelstakning). Mindre aktiv muskelmassa begransar totala syrebehovet trots hog lokal belastning. Algoritmen maste justera pulszoner beroende pa teknikform och terrang.
 
-## 6. Altitude Training: Concepts and Protocols
+## 6. Altitude Training: The Nordic Model
 
 ### 6.1 Live High Train Low (LHTL)
 
-Den mest vetenskapligt validerade hojdtraningsmetoden for uthallighetsidrottare. Atleten bor pa hojd (2000-2500 meter) men tranar pa lag hojd (under 1200 meter). Detta maximerar den erytropoetiska stimulansen (okad produktion av roda blodkroppar via EPO-frigoring) utan att kompromissa traningskvaliteten.
+Mest validerade metoden. Atleten bor pa hojd (2000-2500 m) men tranar pa lag hojd (<1200 m). Maximerar erytropoetisk stimulans (EPO-frigoring, okad produktion av roda blodkroppar) utan att kompromissa traningskvaliteten.
 
 **Protokoll:**
 - Sovhojd: 2000-2500 meter over havet
@@ -122,7 +134,7 @@ Den mest vetenskapligt validerade hojdtraningsmetoden for uthallighetsidrottare.
 
 ### 6.2 Live High Train High (LHTH)
 
-Atleten bade bor och tranar pa hojd. Enklare logistiskt men medfor reducerad traningsintensitet pa grund av lagre syretillgang. Anvands ofta vid hojdlager i Skandinavien (t.ex. Torsby, Idre) eller i Alperna.
+Atleten bor och tranar pa hojd. Enklare logistiskt men reducerad traningsintensitet. Vanligt vid skandinaviska hojdlager (Torsby, Idre) och i Alperna.
 
 **Protokoll:**
 - Hojd: 1800-2200 meter (moderat hojd rekommenderas)
@@ -130,7 +142,19 @@ Atleten bade bor och tranar pa hojd. Enklare logistiskt men medfor reducerad tra
 - Intensitetsanpassning: Minska intervallintensiteten med 5-8% forsta veckan
 - Volymjustering: Bibehall volym men minska intensitet
 
-### 6.3 Altitude Response Phases
+### 6.3 The Nordic Altitude Model
+
+Skandinaviska landslag anvander typiskt 2-3 hojdlager per ar, integrerade med den polariserade traningsfilosofin:
+
+**Hojtdlager 1 (Juni-Juli):** Aerob bastraning. Livigno (1816 m) eller Font Romeu (1850 m). 85-90% zon 1 med rullskidor, lopning och cykling.
+
+**Hojtdlager 2 (September-Oktober):** Intensitetsfokuserat. Ofta Val Senales (glaciar, 2000-3200 m) med snotraning pa glaciar kombinerat med intervaller pa lagre hojd. Bro mellan barmark och snosasong.
+
+**Hojtdlager 3 (Januari-Februari, valfritt):** Under tavlingssasongen for att ladda hemoglobinmassan infor VM/OS. Kortare (2 veckor), aterkomst 14-21 dagar fore maltavling.
+
+**Individuell respons:** Stor variation i hojdrespons (non-responders far minimal nytta). AI-motorn bor spara data fran tidigare hojdlager (Hb-mass, prestation fore/efter) for att optimera framtida perioder.
+
+### 6.4 Altitude Response Phases
 
 Kroppens anpassning till hojd foljer ett forutsagbart monster:
 
@@ -154,18 +178,30 @@ Kroppens anpassning till hojd foljer ett forutsagbart monster:
 - Muskulara anpassningar (okad myoglobin, mitokondrier)
 - Optimalt prestationstillstand 1-3 veckor efter nerflytt
 
-**Viktig insikt for planeringen:** Den optimala prestationsforandringe efter hojdlager intrsffer typiskt 2-3 veckor efter aterkomst till lag hojd. Tavlingar bor planeras inom detta fonster. En vanlig strategi ar att ga direkt till havsniva 2-3 dagar fore tavling (for att utnyttja akut plasmvolymexpansion) eller vanta 14-21 dagar.
+**Planering:** Optimal prestation 2-3 veckor efter aterkomst till lag hojd. Tva strategier: direkt till havsniva 2-3 dagar fore tavling (akut plasmvolymexpansion) eller vanta 14-21 dagar.
 
 ## 7. Strength Training for Cross-Country Skiing
 
-### 7.1 Upper Body (Overkroppsstryka)
+### 7.1 Upper Body Strength: Skiing vs Other Endurance Sports
 
-Overkroppsstyrka ar avggorande for dubbelstakning och skating:
+Overkroppsstyrka ar avggorande for dubbelstakning och skating. Jamfort med andra uthallighetsidrottar ar kraven exceptionella:
+
+| Parameter | Skidakning | Lopning | Cykling | Simning |
+|---|---|---|---|---|
+| Overkroppens bidrag till framdrivning | 50-100% | <5% | <5% | 70-80% |
+| Krav pa styrkeuthalliget i overkropp | Mycket hog | Lag | Lag | Hog |
+| Maximal overkroppsstyrka (relevans) | Hog | Minimal | Minimal | Medel |
+
+Elitskidakare kan uppmata 85-90% av helkropps-VO2max vid isolerat overkroppsarbete (dubbelstakning pa SkiErg), jamfort med 60-70% hos lopare. Denna overkroppsspecifika aeroba kapacitet ar en nyckelskillnad for algoritmen vid programgenerering.
+
+**Rekommenderade styrkeovningar:**
 
 - **Latsdrag / Pull-downs:** 3-4 set x 8-12 reps. Direkt overforbart till stavsattning.
 - **Liggande press / Bench press:** 3 set x 8-10 reps. Balanserar dragrorelsen.
-- **Triceps extensions:** 3 set x 10-12 reps. Kritisk for den avslutande kraftfasen i dubbelstakning.
+- **Triceps extensions:** 3 set x 10-12 reps. Kritisk for dubbelstakningens kraftfas.
 - **Rodd / Seated row:** 3 set x 8-12 reps. Skulderbladsretraktorer for stabil stavsattning.
+- **Staaende kabeldrag nedaat:** 3 set x 10-12 reps. Imiterar dubbelstakningens kraftfas.
+- **Medicibolkast framat:** 3 set x 8-10 reps. Explosiv kraft i hela kedjan.
 
 ### 7.2 Core (Balstyrka)
 
@@ -209,19 +245,19 @@ Benstyrka ar grundlaggande for avspark och stabilitet:
 
 ### 8.2 Intensity Distribution
 
-Oavsett niva foljer elitakare typiskt en polariserad eller pyramidal fordelning:
+Elitakare foljer typiskt en polariserad eller pyramidal fordelning:
 
 - **Zon 1:** 75-85% av total traningsvolym
 - **Zon 2:** 5-15% av total traningsvolym
 - **Zon 3:** 5-12% av total traningsvolym
 
-Motionsaakare tenderar att lagga for mycket tid i zon 2 (den "gra zonen"), vilket ar kontraproduktivt. AI-motorn bor flagga om mer an 20% av volymen hamnar i zon 2 for en motionsar.
+AI-motorn bor flagga om mer an 20% av volymen hamnar i zon 2 ("gra zonen") for motionsaakare.
 
-## 9. Dry-Land Training: Specific Sessions
+## 9. Dry-Land Training: Roller Skiing and Specific Sessions
 
 ### 9.1 Roller Skiing (Rullskidtraning)
 
-Rullskidor ar det mest skidspecifika barmarksredskapet. Viktiga aspekter:
+Det mest skidspecifika barmarksredskapet:
 
 **Teknik och sakerhet:**
 - Anvand alltid hjalm
@@ -229,6 +265,12 @@ Rullskidor ar det mest skidspecifika barmarksredskapet. Viktiga aspekter:
 - Snabba hjul for klassisk (lagre motstand), langsamma for skating (hogre motstand)
 - Undvik vata vagar - rullskidor har minimal vadervaggrepp
 - Stavar med hardmetallspets for asfalt (asfaltdoppar)
+
+**Utrustning och val av rullskidor:**
+- **Klassiska rullskidor:** Langre modeller (ca 70 cm) med backsparre (ratchet). Mjukare hjul for nyborrjare, hardare for avancerade.
+- **Skatingrullskidor:** Kortare modeller (ca 60 cm) med bredare hjul. Lagre rammar ger battre balans.
+- **Stavlangd:** Klassisk = kroppslangd x 0.83, skating = kroppslangd x 0.89.
+- **Skydd:** Hjalm obligatoriskt, plus handskar med forstarkta handflator och reflex vid morkertraning.
 
 **Typiska pass:**
 - **Langpass (zon 1-2):** 90-150 min i kuperad terrang, varierad teknik. Fokus pa flyt och teknik.
@@ -238,43 +280,81 @@ Rullskidor ar det mest skidspecifika barmarksredskapet. Viktiga aspekter:
 
 ### 9.2 Running (Lopning)
 
-Lopning ar en central del av barmarkstraningen:
+Central del av barmarkstraningen:
 
-- **Byggperiod:** 3-5 loppass/vecka, gradvis volymokning
-- **Terranglop:** Foredras over flatlopning for specifik benstyrka
-- **Backlopning:** 10x60 sek uppfor, ga ned. Utvecklar skidspecifik benkraft
-- **Langpass:** 90-120 min i zon 1-2, ofta i terrang
+- **Byggperiod:** 3-5 pass/vecka, gradvis volymokning
+- **Terranglop:** Foredras for specifik benstyrka
+- **Backlopning:** 10x60 sek uppfor, ga ned. Skidspecifik benkraft
+- **Langpass:** 90-120 min zon 1-2 i terrang
 
 ### 9.3 Other Modalities
 
-- **Cykling:** Utmarkt for aerob basbyggande utan belastning pa leder
+- **Cykling:** Aerob basbyggnad utan ledbelastning
 - **Stavgang:** Imiterar klassisk teknik, lag intensitet
-- **Simning:** Aterhamtningsaktivitet och overkroppstraning
-- **Paddsport:** Alternativ overkroppstraning
+- **Simning:** Aterhamtning och overkroppstraning
 
-## 10. Competition Preparation: Sprint vs Distance
+### 9.4 Snow vs Roller Ski: Technique Differences and Transition
 
-### 10.1 Sprint Preparation
+Trots hog teknikoverforing finns betydande skillnader mellan rullskidor och sno:
 
-Sprintlopp i langdskidakning ar 1.0-1.8 km med kvalheat och finalomgangar. Foreberedelsen kraver:
+**Nyckelskillnader:**
+- Rullskidor har konstant motstand; sno varierar med temperatur, snotyp och valla.
+- Klassisk diagonal pa sno kraver faste (grip) fran valla med distinkt nedtryck - finns inte pa rullskidor med backsparre.
+- Skating pa sno tillater vidare V-vinkel med bredare avskjutsyta. Smalare rullskidhjul traner dock balansen effektivt.
+- Nedforsteknk (telemark, parallellsving) kan inte ovas tillrackligt pa rullskidor.
+
+**Overgangsstrategier (Oktober-November):**
+1. Vecka 1: Enbart teknikfokus zon 1, korta pass (60-75 min).
+2. Vecka 2: Oka passlangd, varierad terrang, zon 1-2.
+3. Vecka 3: Forsiktiga intervallpass, kortare an normalt.
+4. Vecka 4: Normal traningsstruktur pa sno.
+
+## 10. Competition Strategy: Sprint vs Distance
+
+### 10.1 Sprint Preparation and Tactics
+
+Sprintlopp (1.0-1.8 km, kvalheat + finalomgangar) kraver:
 
 - **Anaerob kapacitet:** Korta intervaller (30-90 sek) i zon 5 under forberedelsperioden
 - **Startacceleration:** Explosiv styrka, plyometrisk traning
 - **Taktisk formaaga:** Draftning, positionering i spurtklungor
 - **Tapering:** Kort taper (5-7 dagar), bibehall intensitet, minska volym med 40-50%
 
-### 10.2 Distance Preparation
+**Taktiska overvaganden i sprint:**
+- **Kvalloppet:** Ensam mot klockan. Full utlaggning - forsta 200 m avggor ofta tidskvalificeringen.
+- **Finalomgangar:** 3-4 akare samtidigt. Positionering i forsta kurvan avgorande. Draftning sparar 10-15% energi pa flacka partier. Attack i sista uppforsbacken eller avslutande spurten.
+- **Klassisk vs fristilssprint:** Klassisk kraver mer teknisk precision (faste/glid-balans). Fristilssprint innebar hogre fart och mer taktisk draftning.
 
-Distanslopp (10-50 km) kraver en annan forberedelseperiod:
+### 10.2 Distance Preparation and Race Execution
+
+Distanslopp (10-50 km) kraver:
 
 - **Aerob kapacitet:** Fokus pa zon 1-2 volym under basperioden
 - **Tempouthalllighet:** Progressiva troskelpass (20-40 min i zon 3)
 - **Ravitaljering:** Kolhydratintag under lopp langre an 30 min
 - **Tapering:** Langre taper (10-14 dagar), minska volym med 40-60%, bibehall 2 intensitetspass
 
-## 11. Recovery Strategies in Cold Conditions
+**Loppstrategi for distans:**
+- **Intervallstart:** Jamn utlaggning optimalt. Negativa splitar korrelerar med battre resultat.
+- **Masstart:** Folj huvudgruppen 5-10 km, position 5-15 for att undvika vindexponering. Slutspurt forbereds 500-800 m fore mal.
+- **Skiathlon:** Halva klassiskt, halva fristil. Fordelaktigt att ligga i framkant vid skidytet. Stark dubbelstakning ger fordelar pa klassiska delen.
 
-### 11.1 Immediate Post-Exercise
+## 11. Heat Management and Equipment in Cold Conditions
+
+### 11.1 Layering System (Kladselsystem)
+
+Korrekt kladsel ar avgorande for prestation och sakerhet i kyla. Tre lager anvands: **baslager** (merinoull/syntet, aldrig bomull), **mellanlager** (fleece/dun for isolering), och **ytterlager** (vindtatt, andningsbar).
+
+| Temperatur | Intensitet | Rekommendation |
+|---|---|---|
+| 0 till -5 C | Hog | Tunt baslager + vindvast |
+| 0 till -5 C | Lag | Baslager + mellanlager + vindvast |
+| -5 till -15 C | Hog | Medeltjockt baslager + vindvast |
+| -5 till -15 C | Lag | Baslager + fleece + vindvast |
+| Under -15 C | Hog | Baslager + tunn fleece + vindvast + buff over ansikte |
+| Under -15 C | Lag | Overvaag inomhustraning |
+
+### 11.2 Immediate Post-Exercise Recovery
 
 Kyla paverkar aterhamtningen betydligt:
 
@@ -283,26 +363,89 @@ Kyla paverkar aterhamtningen betydligt:
 - **Naringsinlag:** Protein + kolhydrater inom 30 minuter (minst 20g protein, 1g/kg kolhydrater)
 - **Undvik statisk stretching i kyla:** Muskler ar mer sarbara for skada nar de kyls ner snabbt
 
-### 11.2 Daily Recovery in Winter Training
+### 11.3 Daily Recovery in Winter Training
 
-- **Bastu:** Traditionell finsk bastu (80-100 grader C) i 15-20 minuter posttraning ar vanligt bland skandinaviska skidakare. Framjar blodcirkulation och muskelavslappning.
-- **Somn:** Minimum 8-9 timmar under tunga traningsperioder. Markens kortare dagar i Skandinavien paverkar melatoninproduktion - anvand dagsljuslampor.
-- **Hydration:** Kalla forhallanden maskserar vatskeforlust. Elitakare bor dricka 3-4 liter/dag aven i kallt vader.
-- **Progressiv uppvarmning:** I temperaturer under -15 grader C bor uppvarmningen forlngas med 10-15 minuter och inkludera gradvis intensitetshojning for att skydda luftvagarna.
+- **Bastu:** 80-100 grader C, 15-20 min posttraning. Framjar cirkulation och muskelavslappning.
+- **Somn:** Minimum 8-9 timmar. Anvand dagsljuslampor under morka skandinaviska vintrar.
+- **Hydration:** Kyla maskerar vatskeforlust. 3-4 liter/dag aven i kallt vader.
+- **Uppvarmning i kyla:** Under -15 C: forlang med 10-15 min, gradvis intensitetshojning for luftvagsskydd.
 
-### 11.3 Airway Protection
+### 11.4 Airway Protection
 
-Traning i stark kyla (under -15 grader C) kan orsaka exercise-induced bronchoconstriction (EIB). Strategier:
+Stark kyla (<-15 C) kan orsaka exercise-induced bronchoconstriction (EIB). Anvand buff over mun/nasa, andas genom nasan, undvik maxanstrangning i extrem kyla. Flytta hogintensiva pass inomhus (SkiErg, lopband) under -20 C. Spirometri fore/efter sasong for akare med symptom.
 
-- Anvand buff eller vardarm over mun och nasa
-- Andas genom nasan sa langt det ar mojligt
-- Undvik maximala anstrangningar i extrem kyla
-- Overvaag att flytta hogintensiva pass inomhus (SkiErg, lopband) nar temperaturen understiger -20 grader C
-- Uppfoljning: Spirometri fore och efter sasongen for akare med symptom
+## 12. Wax and Equipment Impact on Performance
 
-## 12. Practical Weekly Examples
+### 12.1 Glide Wax (Glidvalla)
 
-### 12.1 Elite Skier - Base Period (July)
+I ett 50 km lopp kan skillnaden mellan bra och dalig glid motsvara 2-5 minuters tidsskillnad. Faktorer: snotemperatur (varmre = mjukare valla), luftfuktighet (hog = fluorbaserade vallor, observera FIS-forbud fran 2023), och snokristallstruktur (ny vs gammal sno).
+
+### 12.2 Grip Wax (Fastevalla) for Classic
+
+Korrekt faste avgorande for diagonal. Felaktig valla ger "sladd" (skidan glider bakat) eller "is" (snon fastnar). Optimal faste ger grepp vid nedtryck men glider fritt framat. Fellskidor och klisterzoner erbjuder mekaniska alternativ.
+
+### 12.3 Ski Selection and Equipment
+
+- **Skidval:** Langre/styvare for tyngre akare och hard spar, kortare/mjukare for lattare akare.
+- **Stavlangd:** Klassisk = kroppslangd x 0.83. Skating = kroppslangd x 0.89. Langre stavar gynnar dubbelstakning.
+- **Kangor:** Klassiska - lagre, mjukare (fotledsflexion). Skating - hogre, styvare (sidostabilitet).
+
+## 13. Testing Protocols Specific to Skiing
+
+### 13.1 VO2max Test on Ski Treadmill (Rullband med rullskidor)
+
+Guldstandarden for aerob kapacitetsbedoming i skidakning:
+
+**Protokoll (stegtest):**
+1. Uppvarmning: 10 min zon 1, vald teknik
+2. Startsteg: 7-9 km/h, 4-5% lutning (diagonal) - individuellt anpassat
+3. Steglangd: 1 min med 0.5-1.0 km/h okning per steg
+4. Laktatprov: Kapillarblodprov efter varje steg
+5. Avslut vid volitional exhaustion
+6. Parametrar: VO2max, HFmax, laktatprofil, anaerob troskel (D-max), hastighet vid troskel
+
+Test bor genomforas i bade dubbelstakning och diagonal/skating for teknikspecifik kapacitetsbedoming. Skillnaden mellan helkropps- och overkropps-VO2max ar ett viktigt traningstillstandsmatt.
+
+### 13.2 Double Pole Power Test (Dubbelstakningstest)
+
+Specifikt test for dubbelstakningskraft pa SkiErg eller instrumenterad stavsattningsplattform:
+
+**30-sekunder maxtest:** Maximal anaerob effekt. Elitman: >250 W medel, >350 W peak. Elitkvinnor: >180 W medel, >250 W peak.
+
+**6-minuter maxtest:** Aerob overkroppskapacitet. Korrelerar starkt med dubbelstakningsprestanda pa sno.
+
+**60-minuter uthalllighetstest:** Styrkeuthalllighet och pacingformaga. Elitakare haaller >70% av 6-minuters watteffekt.
+
+### 13.3 Field Tests (Falttester)
+
+- **5 km tidskontroll:** Genomfors pa standardiserad bana tidigt i sasongen och upprepas regelbundet. Ger praktisk prestandamatning.
+- **Uppforstest:** 3-5 min maximal anstrangning i konstant uppforsbacker. Jamfor klassisk vs fristil for att bedoma teknikstyrka.
+- **Submaxtest med laktatmatning:** 4x4 min stegtest pa sno med laktatprov. Enklare att genomfora an rullbandstest men med lagre standardisering.
+
+## 14. Youth Development in Cross-Country Skiing
+
+### 14.1 Long-Term Athletic Development (LTAD)
+
+Langsiktig modell dar allsidig traning prioriteras over tidig specialisering:
+
+**Fas 1 - Grundmotorik (6-9 ar):** Allsidig rorelseutveckling: lek pa skidor, skridsko, lopning, simning. Ingen strukturerad traning. Skidfardigheter genom stafetter, hinderbana, fri akning i varierad terrang.
+
+**Fas 2 - Traningsalder (10-13 ar):** 3-5 organiserade pass/vecka. Teknikutveckling klassisk och fristil. Tavling med fokus pa deltagande. Allsidig idrott fortfarande viktig (lopning, orientering, cykling). Volym: 200-350 timmar/ar.
+
+**Fas 3 - Specialisering (14-17 ar):** Okad skidspecifik traning med barmarksmangfald. Systematisk intervalltraning introduceras. Styrketraning med fokus pa teknik. Forsta hojdlager vid 16-17 ar. Volym: 450-600 timmar/ar vid 17.
+
+**Fas 4 - Elitutveckling (18-22 ar):** Full satsning. 600-800 timmar/ar. Systematisk periodisering. Individuella styrkor/svagheter adresseras. Junior- och U23-tavlingar internationellt.
+
+### 14.2 Common Mistakes in Youth Development
+
+- **For tidig specialisering:** Enbart skidakning fore 14 ar okar risk for overbelastning och utbrandhet.
+- **For hog intensitet:** Strukturerade VO2max-intervaller bor vantas till 14-15 ar. Naturlig fartlek racker.
+- **Forsummad teknik:** Teknisk inlarning bor prioriteras over fysisk kapacitet i unga ar.
+- **Volymchock:** Maximalt 10% volymokning per ar vid overgang till juniortraning.
+
+## 15. Practical Weekly Examples
+
+### 15.1 Elite Skier - Base Period (July)
 
 | Dag | Pass 1 | Pass 2 | Timmar |
 |---|---|---|---|
@@ -315,7 +458,7 @@ Traning i stark kyla (under -15 grader C) kan orsaka exercise-induced bronchocon
 | Sondag | Aktiv vila: promenad/simning (60 min) | - | 1.0 |
 | **Totalt** | | | **14.5** |
 
-### 12.2 Recreational Skier - Winter Season
+### 15.2 Recreational Skier - Winter Season
 
 | Dag | Pass | Timmar |
 |---|---|---|
@@ -327,3 +470,42 @@ Traning i stark kyla (under -15 grader C) kan orsaka exercise-induced bronchocon
 | Lordag | Skidakning langpass zon 1 (120 min) | 2.0 |
 | Sondag | Skidakning intervall 5x4 min zon 3-4 (75 min) | 1.25 |
 | **Totalt** | | **6.0** |
+
+## 16. Key Terminology (Nyckelterminologi)
+
+| Svenska | English | Definition |
+|---|---|---|
+| Dubbelstakning | Double poling | Simultaneous pole push using both arms and trunk flexion |
+| Diagonalgang | Diagonal stride | Alternating arm/leg classical technique for uphills |
+| Fiskbenskliv | Herringbone | V-shaped climbing technique for steep uphills |
+| Fristil / Skating | Freestyle / Skating | Skate-like technique with angled skis |
+| Stavsattning | Pole plant | The moment poles contact the snow surface |
+| Avskjut | Push-off / Kick | Leg drive propelling the skier forward |
+| Glid | Glide | The sliding phase between push-offs |
+| Faste | Grip / Kick zone | Wax or mechanical grip preventing backward slide |
+| Glidvalla | Glide wax | Wax applied to ski base for reduced friction |
+| Fastevalla | Grip wax | Wax applied to kick zone for traction in classical |
+| Rullskidor | Roller skis | Wheeled skis for dry-land training |
+| Barmarkstraning | Dry-land training | All training done without snow |
+| Hojdlager | Altitude camp | Training period at elevation for adaptation |
+| Intervallpass | Interval session | High-intensity repetitions with rest |
+| Langpass | Long session | Extended low-intensity endurance training |
+| Fartlek | Speed play | Unstructured tempo variation in endurance session |
+| Anaerob troskel | Anaerobic threshold | Intensity where lactate accumulates exponentially |
+| SkiErg | SkiErg | Concept2 ergometer simulating double poling |
+| Styrkeuthalllighet | Strength endurance | Ability to sustain repeated force production |
+| Bentryck | Leg push | Active leg drive during double poling |
+| Backsparre | Ratchet | Roller ski mechanism preventing roll-back |
+
+## 17. References
+
+1. Holmberg, H.C. et al. (2005). "The double-poling biomechanics of elite cross-country skiers." *Medicine & Science in Sports & Exercise*, 37(5), 807-818.
+2. Sandbakk, O. & Holmberg, H.C. (2014). "A reappraisal of success factors for Olympic cross-country skiing." *International Journal of Sports Physiology and Performance*, 9(1), 117-121.
+3. Stoggl, T. & Muller, E. (2009). "Kinematic determinants and physiological response of cross-country skiing at maximal speed." *Medicine & Science in Sports & Exercise*, 41(7), 1476-1487.
+4. Tonnessen, E. et al. (2014). "The road to gold: training and peaking characteristics in the year prior to a gold medal endurance performance." *PLoS ONE*, 9(7), e101796.
+5. Losnegard, T. (2019). "Energy system contribution during competitive cross-country skiing." *European Journal of Applied Physiology*, 119(8), 1675-1690.
+6. Stoggl, T. & Sperlich, B. (2015). "The training intensity distribution among well-trained and elite endurance athletes." *Frontiers in Physiology*, 6, 295.
+7. Sandbakk, O. et al. (2016). "The physiology of world-class sprint skiers." *Scandinavian Journal of Medicine & Science in Sports*, 26(8), 875-881.
+8. Millet, G.P. et al. (2010). "Combining hypoxic methods for peak performance." *Sports Medicine*, 40(1), 1-25.
+9. Rusko, H.K. et al. (2004). "Altitude and endurance training." *Journal of Sports Sciences*, 22(10), 928-945.
+10. Swedish Ski Association / Svenska Skidforbundet. (2022). *Tranarguiden: Langdskidakning - fran borjan till elit.* Stockholm: SSF Forlag.
