@@ -10,7 +10,7 @@
  * - Optional notes
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -99,26 +99,7 @@ export function StrengthSessionAssignmentDialog({
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
 
-  useEffect(() => {
-    if (open) {
-      fetchAthletes();
-      fetchCoaches();
-      // Reset form
-      setSelectedAthletes([]);
-      setAssignedDate(new Date().toISOString().split('T')[0]);
-      setNotes('');
-      setSelectedCoach('');
-      // Reset scheduling
-      setSchedulingOpen(false);
-      setStartTime('');
-      setEndTime('');
-      setLocationId('');
-      setLocationName('');
-      setCreateCalendarEvent(true);
-    }
-  }, [open]);
-
-  async function fetchAthletes() {
+  const fetchAthletes = useCallback(async () => {
     setLoadingAthletes(true);
     try {
       // Use business-scoped API if businessId is provided
@@ -137,9 +118,9 @@ export function StrengthSessionAssignmentDialog({
     } finally {
       setLoadingAthletes(false);
     }
-  }
+  }, [businessId]);
 
-  async function fetchCoaches() {
+  const fetchCoaches = useCallback(async () => {
     setLoadingCoaches(true);
     try {
       if (businessId) {
@@ -169,7 +150,26 @@ export function StrengthSessionAssignmentDialog({
     } finally {
       setLoadingCoaches(false);
     }
-  }
+  }, [businessId]);
+
+  useEffect(() => {
+    if (open) {
+      fetchAthletes();
+      fetchCoaches();
+      // Reset form
+      setSelectedAthletes([]);
+      setAssignedDate(new Date().toISOString().split('T')[0]);
+      setNotes('');
+      setSelectedCoach('');
+      // Reset scheduling
+      setSchedulingOpen(false);
+      setStartTime('');
+      setEndTime('');
+      setLocationId('');
+      setLocationName('');
+      setCreateCalendarEvent(true);
+    }
+  }, [open, fetchAthletes, fetchCoaches]);
 
   function toggleAthlete(athleteId: string) {
     setSelectedAthletes((prev) =>

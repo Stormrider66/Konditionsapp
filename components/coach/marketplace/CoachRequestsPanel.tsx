@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -80,7 +80,7 @@ export function CoachRequestsPanel({ locale = 'sv' }: Props) {
   const t = (en: string, sv: string) => locale === 'sv' ? sv : en
   const dateLocale = locale === 'sv' ? sv : enUS
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setIsLoading(true)
     try {
       const response = await fetch(`/api/coach/requests?status=${statusFilter}`)
@@ -94,11 +94,11 @@ export function CoachRequestsPanel({ locale = 'sv' }: Props) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [statusFilter])
 
   useEffect(() => {
     fetchRequests()
-  }, [statusFilter])
+  }, [fetchRequests])
 
   const handleAccept = async () => {
     if (!selectedRequest) return

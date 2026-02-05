@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -61,13 +61,7 @@ export function ChatHistoryPanel({
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => {
-    if (open) {
-      fetchConversations()
-    }
-  }, [open])
-
-  async function fetchConversations() {
+  const fetchConversations = useCallback(async () => {
     setLoading(true)
     try {
       const response = await fetch('/api/ai/conversations?limit=50')
@@ -85,7 +79,13 @@ export function ChatHistoryPanel({
     } finally {
       setLoading(false)
     }
-  }
+  }, [toast])
+
+  useEffect(() => {
+    if (open) {
+      fetchConversations()
+    }
+  }, [open, fetchConversations])
 
   async function handleDelete(id: string) {
     setDeleting(true)
