@@ -9237,6 +9237,13 @@ enum KnowledgeCategory {
   SPORT_SPECIFIC // HYROX, cycling, swimming, skiing, triathlon
   PROGRAMMING // Periodization, program structure
   RECOVERY // Recovery methods, overtraining
+  PERFORMANCE // Race strategy, pacing, competition execution
+  MONITORING // Wearable data, training load metrics, HRV
+  YOUTH // Youth development, LTAD, PHV
+  MASTERS // Masters athlete training, aging
+  PSYCHOLOGY // Sports psychology, mental training
+  MOBILITY // Warm-up, mobility, movement preparation
+  TEAM_SPORTS // Team sport conditioning, GPS metrics
 }
 
 /// Curated knowledge skills for automatic RAG retrieval
