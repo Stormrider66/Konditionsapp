@@ -129,8 +129,20 @@ export type ParseResult = {
  *   value2
  */
 function parseKeyValueFormat(text: string): Record<string, unknown> | null {
-  // Known field names for program schema
-  const knownFields = ['name', 'description', 'totalWeeks', 'methodology', 'weeklySchedule', 'phases', 'notes'];
+  // Map of lowercase field names to their correct camelCase versions
+  const fieldMap: Record<string, string> = {
+    'name': 'name',
+    'description': 'description',
+    'totalweeks': 'totalWeeks',
+    'total_weeks': 'totalWeeks',
+    'methodology': 'methodology',
+    'weeklyschedule': 'weeklySchedule',
+    'weekly_schedule': 'weeklySchedule',
+    'phases': 'phases',
+    'faser': 'phases',
+    'notes': 'notes',
+    'anteckningar': 'notes',
+  };
 
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const result: Record<string, unknown> = {};
@@ -139,16 +151,17 @@ function parseKeyValueFormat(text: string): Record<string, unknown> | null {
   let currentValue: string[] = [];
 
   for (const line of lines) {
-    // Check if this line is a field name
-    if (knownFields.includes(line.toLowerCase()) || knownFields.includes(line)) {
+    // Check if this line is a field name (case-insensitive)
+    const normalizedLine = line.toLowerCase().replace(/[:\s]/g, '');
+    const mappedField = fieldMap[normalizedLine];
+
+    if (mappedField) {
       // Save previous field if exists
       if (currentField && currentValue.length > 0) {
         const valueStr = currentValue.join('\n').trim();
         result[currentField] = parseFieldValue(valueStr);
       }
-      currentField = line.toLowerCase() === 'totalweeks' ? 'totalWeeks' :
-                     line.toLowerCase() === 'weeklyschedule' ? 'weeklySchedule' :
-                     line.toLowerCase();
+      currentField = mappedField;
       currentValue = [];
     } else if (currentField) {
       currentValue.push(line);
@@ -161,7 +174,7 @@ function parseKeyValueFormat(text: string): Record<string, unknown> | null {
     result[currentField] = parseFieldValue(valueStr);
   }
 
-  // Must have at least name and phases
+  // Must have at least name and phases to be a valid program
   if (result.name && result.phases) {
     return result;
   }
@@ -198,16 +211,28 @@ function extractJsonFromText(text: string): string | null {
   // Try to find JSON in code blocks first
   const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
-    return codeBlockMatch[1].trim();
+    const extracted = codeBlockMatch[1].trim();
+    // Validate it's actually parseable JSON
+    try {
+      JSON.parse(extracted);
+      return extracted;
+    } catch {
+      // Code block content isn't valid JSON, continue to other methods
+    }
   }
 
-  // Try to find raw JSON object
+  // Try to find raw JSON object - validate it's actually valid JSON
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
-    return jsonMatch[0];
+    try {
+      JSON.parse(jsonMatch[0]);
+      return jsonMatch[0];
+    } catch {
+      // Raw JSON match isn't valid, continue to key-value parser
+    }
   }
 
-  // Try to parse key-value format (GPT-5.2 sometimes outputs this)
+  // Try to parse key-value format (GPT-5.2 outputs this format)
   const kvResult = parseKeyValueFormat(text);
   if (kvResult) {
     return JSON.stringify(kvResult);

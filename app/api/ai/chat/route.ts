@@ -576,7 +576,7 @@ ${pageContext}
       model: aiModel as LanguageModel,
       system: systemPrompt,
       messages: coreMessages,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 16384,
       experimental_telemetry: { isEnabled: false },
       // Provider-specific options for Gemini Deep Think
       ...(provider === 'GOOGLE' && deepThinkEnabled && {
