@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams
     const clientId = searchParams.get('clientId')
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 200)
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '100') || 100), 200)
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0)
 
     const where = {
       userId: user.id,

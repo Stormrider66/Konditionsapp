@@ -32,12 +32,11 @@ function getStripeClient(): Stripe {
   return _stripe;
 }
 
-// Convenience getter for the Stripe client
-const stripe = new Proxy({} as Stripe, {
-  get(_, prop) {
-    return (getStripeClient() as unknown as Record<string, unknown>)[prop as string];
-  },
-});
+// Lazy accessor — calls getStripeClient() on each use so the key is
+// validated at runtime rather than import time.
+function stripe(): Stripe {
+  return getStripeClient();
+}
 
 // Coach subscription price IDs from environment
 const COACH_PRICE_IDS = {
@@ -119,7 +118,7 @@ export async function getOrCreateCoachStripeCustomer(userId: string): Promise<st
   }
 
   // Create new Stripe customer
-  const customer = await stripe.customers.create({
+  const customer = await stripe().customers.create({
     email: user.email,
     name: user.name || undefined,
     metadata: {
@@ -193,7 +192,7 @@ export async function createCoachCheckoutSession(
     allow_promotion_codes: true,
   };
 
-  const session = await stripe.checkout.sessions.create(sessionConfig);
+  const session = await stripe().checkout.sessions.create(sessionConfig);
 
   return session.url!;
 }
@@ -213,7 +212,7 @@ export async function createCoachBillingPortalSession(
     throw new Error('No Stripe customer found for coach');
   }
 
-  const session = await stripe.billingPortal.sessions.create({
+  const session = await stripe().billingPortal.sessions.create({
     customer: subscription.stripeCustomerId,
     return_url: returnUrl,
   });
@@ -325,7 +324,7 @@ async function handleCoachCheckoutComplete(
       );
     }
   } catch (emailError) {
-    console.error('Failed to send subscription confirmation email:', emailError);
+    logger.error('Failed to send subscription confirmation email', {}, emailError);
     // Don't fail the webhook for email errors
   }
 
@@ -440,7 +439,7 @@ async function handleCoachSubscriptionDeleted(
       );
     }
   } catch (emailError) {
-    console.error('Failed to send subscription cancelled email:', emailError);
+    logger.error('Failed to send subscription cancelled email', {}, emailError);
     // Don't fail the webhook for email errors
   }
 
@@ -461,7 +460,7 @@ async function handleCoachInvoiceSucceeded(
     return { handled: true, message: 'Coach payment succeeded but no subscription found' };
   }
 
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const subscription = await stripe().subscriptions.retrieve(subscriptionId);
 
   if (subscription?.metadata?.userId && subscription?.metadata?.type === 'coach') {
     // Update period end date (handle Stripe SDK types)
@@ -502,10 +501,10 @@ async function handleCoachInvoiceFailed(
     return { handled: true, message: 'Coach payment failed but no subscription found' };
   }
 
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const subscription = await stripe().subscriptions.retrieve(subscriptionId);
 
   if (subscription?.metadata?.userId && subscription?.metadata?.type === 'coach') {
-    console.error(`Coach payment failed for user ${subscription.metadata.userId}`);
+    logger.error('Coach payment failed', { userId: subscription.metadata.userId });
 
     // Send payment failed email
     try {
@@ -530,7 +529,7 @@ async function handleCoachInvoiceFailed(
         );
       }
     } catch (emailError) {
-      console.error('Failed to send payment failed email:', emailError);
+      logger.error('Failed to send payment failed email', {}, emailError);
       // Don't fail the webhook for email errors
     }
 
@@ -549,7 +548,7 @@ async function handleCoachInvoiceFailed(
 export async function getCoachStripeSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
-  return stripe.subscriptions.retrieve(subscriptionId);
+  return stripe().subscriptions.retrieve(subscriptionId);
 }
 
 /**
@@ -558,7 +557,7 @@ export async function getCoachStripeSubscription(
 export async function cancelCoachSubscriptionAtPeriodEnd(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
-  return stripe.subscriptions.update(subscriptionId, {
+  return stripe().subscriptions.update(subscriptionId, {
     cancel_at_period_end: true,
   });
 }
@@ -569,7 +568,7 @@ export async function cancelCoachSubscriptionAtPeriodEnd(
 export async function resumeCoachSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
-  return stripe.subscriptions.update(subscriptionId, {
+  return stripe().subscriptions.update(subscriptionId, {
     cancel_at_period_end: false,
   });
 }

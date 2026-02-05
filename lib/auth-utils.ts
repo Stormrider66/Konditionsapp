@@ -5,6 +5,7 @@ import { User, UserRole, AdminRole, BusinessAdminUser, BusinessMemberRole } from
 import { redirect } from 'next/navigation'
 import { isAthleteModeActive, getAthleteModeAccess } from '@/lib/athlete-mode'
 import { createCoachTrialSubscription } from '@/lib/subscription/feature-access'
+import { logger } from '@/lib/logger'
 
 /**
  * Get the currently authenticated user from Supabase session
@@ -92,7 +93,7 @@ export async function getCurrentUser(): Promise<User | null> {
     await createCoachTrialSubscription(user.id, 14)
   } catch (error) {
     // Subscription may already exist if created through another flow
-    console.error('Failed to create coach trial subscription:', error)
+    logger.error('Failed to create coach trial subscription', {}, error)
   }
 
   return user

@@ -30,12 +30,11 @@ function getStripeClient(): Stripe {
   return _stripe;
 }
 
-// Convenience getter for the Stripe client
-const stripe = new Proxy({} as Stripe, {
-  get(_, prop) {
-    return (getStripeClient() as unknown as Record<string, unknown>)[prop as string];
-  },
-});
+// Lazy accessor — calls getStripeClient() on each use so the key is
+// validated at runtime rather than import time.
+function stripe(): Stripe {
+  return getStripeClient();
+}
 
 // Price IDs from environment
 const PRICE_IDS = {
@@ -79,7 +78,7 @@ export async function getOrCreateStripeCustomer(clientId: string): Promise<strin
   }
 
   // Create new Stripe customer
-  const customer = await stripe.customers.create({
+  const customer = await stripe().customers.create({
     email: client.email || client.user?.email || undefined,
     name: client.name,
     metadata: {
@@ -176,7 +175,7 @@ export async function createCheckoutSession(
     };
   }
 
-  const session = await stripe.checkout.sessions.create(sessionConfig);
+  const session = await stripe().checkout.sessions.create(sessionConfig);
 
   return session.url!;
 }
@@ -196,7 +195,7 @@ export async function createBillingPortalSession(
     throw new Error('No Stripe customer found for client');
   }
 
-  const session = await stripe.billingPortal.sessions.create({
+  const session = await stripe().billingPortal.sessions.create({
     customer: subscription.stripeCustomerId,
     return_url: returnUrl,
   });
@@ -372,7 +371,7 @@ async function handleInvoicePaymentSucceeded(
   const subscriptionId = invoiceAny.subscription;
 
   const subscription = subscriptionId
-    ? await stripe.subscriptions.retrieve(subscriptionId)
+    ? await stripe().subscriptions.retrieve(subscriptionId)
     : null;
 
   if (subscription?.metadata?.clientId) {
@@ -444,7 +443,7 @@ async function handleInvoicePaymentFailed(
   const subscriptionId = invoiceAny.subscription;
 
   const subscription = subscriptionId
-    ? await stripe.subscriptions.retrieve(subscriptionId)
+    ? await stripe().subscriptions.retrieve(subscriptionId)
     : null;
 
   if (subscription?.metadata?.clientId) {
@@ -506,7 +505,7 @@ export function verifyWebhookSignature(
   if (!webhookSecret) {
     throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
   }
-  return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+  return stripe().webhooks.constructEvent(payload, signature, webhookSecret);
 }
 
 /**
@@ -515,7 +514,7 @@ export function verifyWebhookSignature(
 export async function getStripeSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
-  return stripe.subscriptions.retrieve(subscriptionId);
+  return stripe().subscriptions.retrieve(subscriptionId);
 }
 
 /**
@@ -524,7 +523,7 @@ export async function getStripeSubscription(
 export async function cancelSubscriptionAtPeriodEnd(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
-  return stripe.subscriptions.update(subscriptionId, {
+  return stripe().subscriptions.update(subscriptionId, {
     cancel_at_period_end: true,
   });
 }
@@ -535,7 +534,7 @@ export async function cancelSubscriptionAtPeriodEnd(
 export async function resumeSubscription(
   subscriptionId: string
 ): Promise<Stripe.Subscription> {
-  return stripe.subscriptions.update(subscriptionId, {
+  return stripe().subscriptions.update(subscriptionId, {
     cancel_at_period_end: false,
   });
 }
