@@ -202,14 +202,21 @@ export async function POST(request: NextRequest) {
 
       // Link to AI conversation if provided
       if (conversationId) {
-        await tx.aIGeneratedProgram.create({
-          data: {
-            conversationId,
-            programId: program.id,
-            programJson: parseResult.rawJson as object,
-            isSaved: true,
-          },
+        // Verify conversation exists before creating the link
+        const conversation = await tx.aIConversation.findUnique({
+          where: { id: conversationId },
+          select: { id: true },
         });
+        if (conversation) {
+          await tx.aIGeneratedProgram.create({
+            data: {
+              conversationId,
+              programId: program.id,
+              programJson: (parseResult.rawJson ?? {}) as object,
+              isSaved: true,
+            },
+          });
+        }
       }
 
       return program;
@@ -281,7 +288,10 @@ export async function POST(request: NextRequest) {
       }`,
     });
   } catch (error) {
-    logger.error('Save program error', {}, error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const prismaCode = (error as { code?: string })?.code
+    const prismaMeta = (error as { meta?: unknown })?.meta
+    logger.error('Save program error', { errorMessage, prismaCode, prismaMeta }, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json(
@@ -296,7 +306,7 @@ export async function POST(request: NextRequest) {
         message:
           process.env.NODE_ENV === 'production'
             ? 'Internal server error'
-            : (error instanceof Error ? error.message : 'Unknown error'),
+            : errorMessage,
       },
       { status: 500 }
     );

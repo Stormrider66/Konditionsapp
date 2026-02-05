@@ -88,8 +88,10 @@ export function PublishProgramDialog({
       const data = await response.json()
 
       if (!response.ok) {
-        const details = data.errors?.length ? `: ${data.errors.join(', ')}` : ''
-        throw new Error((data.error || 'Failed to publish program') + details)
+        const parts = [data.error || 'Failed to publish program']
+        if (data.errors?.length) parts.push(data.errors.join(', '))
+        if (data.message && data.message !== data.error) parts.push(data.message)
+        throw new Error(parts.join(': '))
       }
 
       toast({

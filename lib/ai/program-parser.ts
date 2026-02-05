@@ -720,7 +720,7 @@ function convertSegmentsToDbFormat(workout: ParsedWorkout): DbSegment[] {
       segments.push({
         order: order++,
         type: 'interval',
-        duration: interval.workDuration / 60, // Convert seconds to minutes
+        duration: Math.round(interval.workDuration / 60), // Convert seconds to minutes (Int)
         zone: parseInt(interval.workIntensity) || 4,
         reps: interval.repetitions,
         description: `Intervall ${idx + 1}`,
@@ -731,7 +731,7 @@ function convertSegmentsToDbFormat(workout: ParsedWorkout): DbSegment[] {
         segments.push({
           order: order++,
           type: 'rest',
-          duration: interval.restDuration / 60,
+          duration: Math.round(interval.restDuration / 60),
           zone: 1,
           description: 'Vila',
         });
@@ -863,7 +863,7 @@ function generateDaysFromTemplate(
           name: workout.name || workout.type,
           type: mapToWorkoutType(workout.type),
           intensity: mapToWorkoutIntensity(workout.intensity),
-          duration: workout.duration,
+          duration: workout.duration != null ? Math.round(workout.duration) : undefined,
           distance: workout.distance,
           description: workout.description,
           instructions: workout.notes,
