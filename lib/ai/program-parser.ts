@@ -644,7 +644,9 @@ function generateWeeksFromPhases(
  */
 function findPhaseForWeek(phases: ParsedPhase[], weekNumber: number): ParsedPhase | undefined {
   for (const phase of phases) {
-    const [start, end] = phase.weeks.split('-').map(Number);
+    const parts = phase.weeks.split('-').map(Number);
+    const start = parts[0];
+    const end = parts.length > 1 ? parts[1] : start; // Single week: "3" → start=3, end=3
     if (weekNumber >= start && weekNumber <= end) {
       return phase;
     }

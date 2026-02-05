@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -165,6 +165,22 @@ export function EnhancedProgramPreview({
       weeklySchedule: parseResult.program.weeklySchedule,
     }
   })
+
+  // Sync draft when content changes (e.g., streaming completes) and user hasn't manually edited
+  useEffect(() => {
+    if (!isDirty && parseResult.success && parseResult.program) {
+      setDraft({
+        name: parseResult.program.name,
+        description: parseResult.program.description || '',
+        methodology: parseResult.program.methodology,
+        totalWeeks: parseResult.program.totalWeeks,
+        phases: parseResult.program.phases,
+        notes: parseResult.program.notes,
+        weeklySchedule: parseResult.program.weeklySchedule,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content])
 
   const updateDraft = useCallback((updates: Partial<DraftProgram>) => {
     setDraft(prev => ({ ...prev, ...updates }))
