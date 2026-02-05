@@ -39,10 +39,10 @@ const stripe = new Proxy({} as Stripe, {
 
 // Price IDs from environment
 const PRICE_IDS = {
-  STANDARD_MONTHLY: process.env.STRIPE_ATHLETE_STANDARD_MONTHLY!,
-  STANDARD_YEARLY: process.env.STRIPE_ATHLETE_STANDARD_YEARLY!,
-  PRO_MONTHLY: process.env.STRIPE_ATHLETE_PRO_MONTHLY!,
-  PRO_YEARLY: process.env.STRIPE_ATHLETE_PRO_YEARLY!,
+  STANDARD_MONTHLY: process.env.STRIPE_ATHLETE_STANDARD_MONTHLY,
+  STANDARD_YEARLY: process.env.STRIPE_ATHLETE_STANDARD_YEARLY,
+  PRO_MONTHLY: process.env.STRIPE_ATHLETE_PRO_MONTHLY,
+  PRO_YEARLY: process.env.STRIPE_ATHLETE_PRO_YEARLY,
 } as const;
 
 export type BillingCycle = 'MONTHLY' | 'YEARLY';
@@ -478,7 +478,8 @@ async function handleInvoicePaymentFailed(
           athleteName,
           amount,
           retryDate,
-          'sv'
+          'sv',
+          { updatePaymentPath: '/athlete/subscription' }
         );
       }
     } catch (emailError) {
@@ -501,7 +502,10 @@ export function verifyWebhookSignature(
   payload: string | Buffer,
   signature: string
 ): Stripe.Event {
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
+  }
   return stripe.webhooks.constructEvent(payload, signature, webhookSecret);
 }
 

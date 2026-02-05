@@ -947,6 +947,7 @@ export async function canAccessAthleteAsPhysio(
     where: { id: clientId },
     select: {
       id: true,
+      userId: true,
       teamId: true,
       team: {
         select: {
@@ -991,28 +992,12 @@ export async function canAccessAthleteAsPhysio(
     if (assignment.businessId) {
       const coachBusiness = await prisma.businessMember.findFirst({
         where: {
-          userId: client.id, // Note: client.userId is the coach
+          userId: client.userId,
           businessId: assignment.businessId,
           isActive: true,
         },
       })
       if (coachBusiness) return true
-
-      // Also check by client's userId (the coach who owns the client)
-      const clientRecord = await prisma.client.findUnique({
-        where: { id: clientId },
-        select: { userId: true },
-      })
-      if (clientRecord) {
-        const ownerBusiness = await prisma.businessMember.findFirst({
-          where: {
-            userId: clientRecord.userId,
-            businessId: assignment.businessId,
-            isActive: true,
-          },
-        })
-        if (ownerBusiness) return true
-      }
     }
 
     // Location assignment - check if client prefers this location
