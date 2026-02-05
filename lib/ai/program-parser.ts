@@ -906,8 +906,10 @@ export function validateProgramCompleteness(program: ParsedProgram): {
       warnings.push(`Phase "${phase.name}" has no weekly template`);
     }
 
-    // Check week ranges
-    const [start, end] = phase.weeks.split('-').map(Number);
+    // Check week ranges (single-week phases like "1" are valid)
+    const parts = phase.weeks.split('-').map(Number);
+    const start = parts[0];
+    const end = parts.length > 1 ? parts[1] : start;
     if (isNaN(start) || isNaN(end)) {
       errors.push(`Invalid week range "${phase.weeks}" in phase "${phase.name}"`);
     }
