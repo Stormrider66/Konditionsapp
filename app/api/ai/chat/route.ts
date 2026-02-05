@@ -571,12 +571,20 @@ ${pageContext}
       hasConversationId: Boolean(conversationId),
     })
 
+    // Set max output tokens per provider
+    const maxTokensByProvider: Record<string, number> = {
+      OPENAI: 128000,    // GPT-5.2 supports 128k output
+      ANTHROPIC: 16384,  // Claude Sonnet
+      GOOGLE: 65536,     // Gemini
+    };
+    const maxOutputTokens = maxTokensByProvider[provider] || 16384;
+
     // Stream the response
     const result = streamText({
       model: aiModel as LanguageModel,
       system: systemPrompt,
       messages: coreMessages,
-      maxOutputTokens: 16384,
+      maxOutputTokens,
       experimental_telemetry: { isEnabled: false },
       // Provider-specific options for Gemini Deep Think
       ...(provider === 'GOOGLE' && deepThinkEnabled && {
