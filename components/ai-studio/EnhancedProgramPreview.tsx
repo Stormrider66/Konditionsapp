@@ -684,13 +684,13 @@ export function EnhancedProgramPreview({
           </div>
         </div>
         {draft.description && (
-          <p className="text-sm text-muted-foreground mt-1">
+          <div className="text-sm text-muted-foreground mt-1">
             <InlineEdit
               value={draft.description}
               fieldId="program-description"
               onSave={(value) => updateDraft({ description: value })}
             />
-          </p>
+          </div>
         )}
       </CardHeader>
       <CardContent>
