@@ -503,15 +503,24 @@ ${messageContent}`
     setMultiPartGenerating(false)
     setMultiPartSessionId(null)
 
+    // Inject as assistant message so EnhancedProgramPreview renders
+    // (instead of immediately opening PublishProgramDialog with unparseable markdown)
+    const jsonContent = formatMergedProgramAsJson(program)
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `multipart-${Date.now()}`,
+        role: 'assistant' as const,
+        content: jsonContent,
+        parts: [{ type: 'text' as const, text: jsonContent }],
+        createdAt: new Date(),
+      },
+    ])
+
     toast({
       title: 'Program klart!',
-      description: `${program.name} - ${program.totalWeeks} veckor, ${program.phases.length} faser`,
+      description: `${program.name} - ${program.totalWeeks} veckor, ${program.phases.length} faser. Granska och redigera nedan.`,
     })
-
-    // Format program for publish dialog
-    const formattedProgram = formatMergedProgramForPublish(program)
-    setPublishContent(formattedProgram)
-    setPublishDialogOpen(true)
   }
 
   // Handle multi-part generation error
@@ -1371,70 +1380,28 @@ function getGoalLabel(goal: string): string {
   return labels[goal] || goal
 }
 
-// Format merged program for publish dialog
-function formatMergedProgramForPublish(program: MergedProgram): string {
-  const lines: string[] = []
-
-  lines.push(`# ${program.name}`)
-  lines.push('')
-  lines.push(program.description)
-  lines.push('')
-  lines.push(`**Längd:** ${program.totalWeeks} veckor`)
-  lines.push(`**Faser:** ${program.phases.length}`)
-  if (program.methodology) {
-    lines.push(`**Metodik:** ${program.methodology}`)
-  }
-  lines.push('')
-
-  // Day name mapping
-  const dayNames: Record<string, string> = {
-    monday: 'Måndag',
-    tuesday: 'Tisdag',
-    wednesday: 'Onsdag',
-    thursday: 'Torsdag',
-    friday: 'Fredag',
-    saturday: 'Lördag',
-    sunday: 'Söndag',
+// Format merged program as a JSON code block that parseAIProgram() can parse
+function formatMergedProgramAsJson(program: MergedProgram): string {
+  const programJson = {
+    name: program.name,
+    description: program.description,
+    totalWeeks: program.totalWeeks,
+    ...(program.methodology && { methodology: program.methodology }),
+    ...(program.weeklySchedule && {
+      weeklySchedule: {
+        sessionsPerWeek: program.weeklySchedule.sessionsPerWeek,
+      },
+    }),
+    phases: program.phases.map((phase) => ({
+      name: phase.name,
+      weeks: phase.weeks,
+      focus: phase.focus,
+      ...(phase.weeklyTemplate && { weeklyTemplate: phase.weeklyTemplate }),
+      ...(phase.volumeGuidance && { volumeGuidance: phase.volumeGuidance }),
+      ...(phase.keyWorkouts && { keyWorkouts: phase.keyWorkouts }),
+      ...(phase.notes && { notes: phase.notes }),
+    })),
   }
 
-  // Add each phase
-  for (const phase of program.phases) {
-    lines.push(`## ${phase.name}`)
-    lines.push(`Veckor: ${phase.weeks}`)
-    lines.push(`Fokus: ${phase.focus}`)
-    lines.push('')
-
-    // Add weekly template
-    if (phase.weeklyTemplate) {
-      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
-      for (const dayKey of days) {
-        const workout = phase.weeklyTemplate[dayKey]
-        if (workout) {
-          lines.push(`### ${dayNames[dayKey]}`)
-          lines.push(`**${workout.name || workout.type}** (${workout.type})`)
-          if (workout.duration) {
-            lines.push(`Längd: ${workout.duration} min`)
-          }
-          if (workout.intensity) {
-            lines.push(`Intensitet: ${workout.intensity}`)
-          }
-          if (workout.description) {
-            lines.push(workout.description)
-          }
-          if (workout.segments && workout.segments.length > 0) {
-            lines.push('Segment:')
-            for (const seg of workout.segments) {
-              const segDuration = seg.duration ? `${seg.duration} min` : seg.distance ? `${seg.distance}m` : ''
-              const segIntensity = seg.zone ? `Zon ${seg.zone}` : seg.pace || ''
-              lines.push(`- ${seg.type}: ${segDuration} @ ${segIntensity}`)
-            }
-          }
-          lines.push('')
-        }
-      }
-    }
-    lines.push('')
-  }
-
-  return lines.join('\n')
+  return '```json\n' + JSON.stringify(programJson, null, 2) + '\n```'
 }
