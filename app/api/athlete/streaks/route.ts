@@ -5,8 +5,8 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import {
   getNextMilestone,
   getMotivationMessage,
@@ -16,36 +16,25 @@ import {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const resolved = await resolveAthleteClientId()
 
-    if (!user) {
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get athlete's client ID and personal best streak
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
+    const { clientId } = resolved
+
+    // Get personal best streak from client record
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
       select: {
-        clientId: true,
-        client: {
-          select: {
-            bestCheckInStreak: true,
-            bestStreakAchievedAt: true,
-          },
-        },
+        bestCheckInStreak: true,
+        bestStreakAchievedAt: true,
       },
     })
 
-    if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
-    }
-
-    const clientId = athleteAccount.clientId
-    const personalBest = athleteAccount.client.bestCheckInStreak || 0
-    const personalBestDate = athleteAccount.client.bestStreakAchievedAt
+    const personalBest = client?.bestCheckInStreak || 0
+    const personalBestDate = client?.bestStreakAchievedAt
 
     // Get last 30 days of metrics for streak calculation
     const thirtyDaysAgo = new Date()

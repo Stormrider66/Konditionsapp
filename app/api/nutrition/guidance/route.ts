@@ -9,7 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { startOfDay, endOfDay, addDays } from 'date-fns'
 import { logger } from '@/lib/logger'
 import { generateDailyGuidance } from '@/lib/nutrition-timing'
@@ -22,36 +22,28 @@ import type { WorkoutIntensity, WorkoutType } from '@prisma/client'
  */
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const resolved = await resolveAthleteClientId()
 
-    if (!user) {
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get athlete account with all related data
-    const athleteAccount = await prisma.athleteAccount.findFirst({
-      where: {
-        user: { email: user.email },
-      },
+    const { user, clientId } = resolved
+
+    // Get client with all related data
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
       include: {
-        client: {
-          include: {
-            dietaryPreferences: true,
-            nutritionGoal: true,
-            sportProfile: true,
-          },
-        },
+        dietaryPreferences: true,
+        nutritionGoal: true,
+        sportProfile: true,
       },
     })
 
-    if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    const client = athleteAccount.client
     const now = new Date()
     const todayStart = startOfDay(now)
     const todayEnd = endOfDay(now)

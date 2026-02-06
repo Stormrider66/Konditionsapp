@@ -13,7 +13,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
 
@@ -27,26 +27,14 @@ interface Suggestion {
 
 export async function GET() {
   try {
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
 
-    // Get athlete's account
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: {
-        clientId: true,
-        userId: true,
-      },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json(
-        { error: 'Athlete account not found' },
-        { status: 404 }
-      )
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const clientId = athleteAccount.clientId
-    const athleteId = athleteAccount.userId
+    const { user, clientId } = resolved
+    const athleteId = user.id
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -286,10 +274,6 @@ export async function GET() {
     })
   } catch (error) {
     logError('Error generating AI suggestions:', error)
-
-    if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     return NextResponse.json(
       { error: 'Failed to generate suggestions' },

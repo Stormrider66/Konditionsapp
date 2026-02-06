@@ -5,8 +5,8 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 
 type ACWRZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH'
@@ -52,26 +52,13 @@ interface InjuryPreventionResponse {
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const resolved = await resolveAthleteClientId()
 
-    if (!user) {
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
-    }
-
-    const clientId = athleteAccount.clientId
+    const { clientId } = resolved
 
     // Get latest training load with ACWR data
     const latestLoad = await prisma.trainingLoad.findFirst({

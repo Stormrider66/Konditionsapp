@@ -6,39 +6,27 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import type { AgentActionStatus } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const searchParams = request.nextUrl.searchParams
     let clientId = searchParams.get('clientId')
     const status = searchParams.get('status') // PROPOSED, ACCEPTED, etc.
     const limit = parseInt(searchParams.get('limit') || '10', 10)
 
     if (!clientId) {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
+      const resolved = await resolveAthleteClientId()
 
-      if (!athleteAccount) {
+      if (!resolved) {
         return NextResponse.json(
           { error: 'No athlete profile found' },
           { status: 404 }
         )
       }
 
-      clientId = athleteAccount.clientId
+      clientId = resolved.clientId
     }
 
     // Build where clause

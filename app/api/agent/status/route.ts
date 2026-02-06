@@ -6,39 +6,26 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { getConsentStatus } from '@/lib/agent/gdpr'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get client ID from query or find athlete account
+    // Get client ID from query or resolve from auth
     const searchParams = request.nextUrl.searchParams
     let clientId = searchParams.get('clientId')
 
     if (!clientId) {
-      // Try to find athlete account
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
+      const resolved = await resolveAthleteClientId()
 
-      if (!athleteAccount) {
+      if (!resolved) {
         return NextResponse.json(
           { error: 'No athlete profile found' },
           { status: 404 }
         )
       }
 
-      clientId = athleteAccount.clientId
+      clientId = resolved.clientId
     }
 
     // Get consent status

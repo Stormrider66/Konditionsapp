@@ -1,39 +1,34 @@
 // app/api/athlete/me/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 // GET /api/athlete/me - Get current athlete's info including sport profile
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const resolved = await resolveAthleteClientId()
 
-    if (!user) {
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    // Get athlete account with client and sport profile
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
+    const { clientId } = resolved
+
+    // Get client with sport profile
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
       include: {
-        client: {
-          include: {
-            sportProfile: true,
-          },
-        },
+        sportProfile: true,
       },
     })
 
-    if (!athleteAccount) {
+    if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
+        { success: false, error: 'Client not found' },
         { status: 404 }
       )
     }
@@ -41,10 +36,10 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: {
-        id: athleteAccount.id,
-        clientId: athleteAccount.clientId,
-        clientName: athleteAccount.client.name,
-        sportProfile: athleteAccount.client.sportProfile,
+        id: clientId,
+        clientId,
+        clientName: client.name,
+        sportProfile: client.sportProfile,
       },
     })
   } catch (error) {

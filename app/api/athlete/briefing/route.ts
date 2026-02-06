@@ -5,29 +5,18 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const resolved = await resolveAthleteClientId()
 
-    if (!user) {
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
-    }
+    const { clientId } = resolved
 
     // Get today's briefing
     const today = new Date()
@@ -35,7 +24,7 @@ export async function GET() {
 
     const briefing = await prisma.aIBriefing.findFirst({
       where: {
-        clientId: athleteAccount.clientId,
+        clientId,
         briefingType: 'MORNING',
         scheduledFor: { gte: today },
         dismissedAt: null,

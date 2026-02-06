@@ -234,6 +234,45 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
 }
 
 /**
+ * Resolve athlete clientId for API routes (no redirects, returns null on failure).
+ *
+ * For ATHLETE role: returns athleteAccount.clientId
+ * For COACH/ADMIN with athleteMode cookie: returns selfAthleteClientId
+ *
+ * Use this in API routes instead of requireAthleteOrCoachInAthleteMode() which
+ * redirects (unsuitable for JSON endpoints).
+ */
+export async function resolveAthleteClientId(): Promise<AthleteOrCoachInAthleteModeResult | null> {
+  const user = await getCurrentUser()
+  if (!user) return null
+
+  // ATHLETE role → use AthleteAccount
+  if (user.role === 'ATHLETE') {
+    const athleteAccount = await prisma.athleteAccount.findUnique({
+      where: { userId: user.id },
+      select: { clientId: true },
+    })
+    if (!athleteAccount) return null
+    return { user, clientId: athleteAccount.clientId, isCoachInAthleteMode: false }
+  }
+
+  // COACH/ADMIN → check athlete mode cookie + selfAthleteClientId
+  if (user.role === 'COACH' || user.role === 'ADMIN') {
+    const athleteMode = await isAthleteModeActive()
+    if (!athleteMode) return null
+
+    const fullUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { selfAthleteClientId: true },
+    })
+    if (!fullUser?.selfAthleteClientId) return null
+    return { user, clientId: fullUser.selfAthleteClientId, isCoachInAthleteMode: true }
+  }
+
+  return null
+}
+
+/**
  * Check if user is authenticated
  * Does not throw or redirect, just returns boolean
  */
