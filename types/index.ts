@@ -851,6 +851,13 @@ export interface Test {
   notes?: string
   publicToken?: string | null
   publicExpiresAt?: Date | null
+  // Pre-test baseline
+  restingLactate?: number | null
+  restingHeartRate?: number | null
+  // Post-test measurements (peak lactate after max effort)
+  postTestMeasurements?: Array<{ timeMin: number; lactate: number; heartRate?: number }> | null
+  // Recommended next test
+  recommendedNextTestDate?: Date | string | null
   client?: Client
   user?: User
   testStages: TestStage[]

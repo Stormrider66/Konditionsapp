@@ -94,6 +94,18 @@ export function ReportTemplate({
             <p className="text-gray-600">Testledare</p>
             <p className="font-medium">{testLeader}</p>
           </div>
+          {test.restingLactate != null && (
+            <div>
+              <p className="text-gray-600">Vilolaktat</p>
+              <p className="font-medium">{test.restingLactate} mmol/L</p>
+            </div>
+          )}
+          {test.restingHeartRate != null && (
+            <div>
+              <p className="text-gray-600">Vilopuls</p>
+              <p className="font-medium">{test.restingHeartRate} slag/min</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -165,6 +177,40 @@ export function ReportTemplate({
               <p className="text-gray-600 text-sm">Bedömning</p>
               <p className="text-lg font-bold text-indigo-700">{calculations.cyclingData.evaluation}</p>
             </div>
+          </div>
+        )}
+
+        {/* Post-test measurements (peak lactate after max effort) */}
+        {test.postTestMeasurements && Array.isArray(test.postTestMeasurements) && test.postTestMeasurements.length > 0 && (
+          <div className="mt-4">
+            <h3 className="font-semibold mb-2">Eftermätningar (post-max laktat)</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Tid efter test</th>
+                    <th className="px-4 py-2 text-left">Laktat (mmol/L)</th>
+                    {test.postTestMeasurements.some((m: { heartRate?: number }) => m.heartRate) && (
+                      <th className="px-4 py-2 text-left">Puls (slag/min)</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {test.postTestMeasurements.map((m: { timeMin: number; lactate: number; heartRate?: number }, i: number) => (
+                    <tr key={i} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-2">{m.timeMin} min</td>
+                      <td className="px-4 py-2 font-medium">{m.lactate}</td>
+                      {test.postTestMeasurements!.some((pm: { heartRate?: number }) => pm.heartRate) && (
+                        <td className="px-4 py-2">{m.heartRate || '-'}</td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Topplaktat efter maxbelastning ger en bild av anaerob kapacitet
+            </p>
           </div>
         )}
       </section>
@@ -532,6 +578,23 @@ export function ReportTemplate({
 
       {/* Training Focus */}
       <TrainingFocus trainingFocus={interpretation.trainingFocus} />
+
+      {/* Recommended Next Test Date */}
+      {test.recommendedNextTestDate && (
+        <section className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <div>
+              <p className="font-semibold text-blue-900">Rekommenderat nästa test</p>
+              <p className="text-blue-800">
+                {format(new Date(test.recommendedNextTestDate), 'PPP', { locale: sv })}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="mt-8 pt-6 border-t text-sm text-gray-600">
