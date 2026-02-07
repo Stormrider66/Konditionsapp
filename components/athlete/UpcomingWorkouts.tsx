@@ -7,19 +7,109 @@ import { Badge } from '@/components/ui/badge'
 import { CalendarDays, Clock, MapPin, Calendar, ChevronRight, Timer } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import {
+  DashboardItem,
+  getAssignmentRoute,
+  getAssignmentTypeLabel,
+  getAssignmentTypeIcon,
+  getAssignmentTypeBadgeStyle,
+} from '@/types/dashboard-items'
 
 interface UpcomingWorkoutsProps {
-  workouts: DashboardWorkoutWithContext[]
+  items: DashboardItem[]
   className?: string
   variant?: 'default' | 'glass'
   basePath?: string
 }
 
-function WorkoutRow({ workout, theme, variant = 'default', basePath = '' }: { workout: DashboardWorkoutWithContext; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', basePath?: string }) {
+function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: DashboardItem; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', basePath?: string }) {
+  if (item.kind === 'assignment') {
+    const TypeIcon = getAssignmentTypeIcon(item.assignmentType)
+    const badgeStyle = getAssignmentTypeBadgeStyle(item.assignmentType)
+    const route = getAssignmentRoute(item, basePath)
+
+    if (variant === 'glass') {
+      return (
+        <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-black/20 hover:bg-white/5 transition-colors">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-sm text-white truncate">
+                {item.name}
+              </span>
+              <Badge variant="secondary" className="text-xs bg-white/10 text-slate-300 hover:bg-white/20">
+                {format(new Date(item.assignedDate), 'EEE d MMM', { locale: sv })}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-slate-400">
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-xs ${badgeStyle}`}>
+                <TypeIcon className="h-3 w-3" />
+                {getAssignmentTypeLabel(item.assignmentType)}
+              </span>
+              {item.startTime && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
+                  <Timer className="h-3 w-3" />
+                  {item.startTime}
+                </span>
+              )}
+              {item.locationName && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">
+                  <MapPin className="h-3 w-3" />
+                  {item.locationName}
+                </span>
+              )}
+              {item.duration && <span>• {item.duration} min</span>}
+            </div>
+          </div>
+          <Link href={route}>
+            <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/10">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      )
+    }
+
+    // Default variant for assignment
+    return (
+      <div
+        className="border rounded-lg p-3 text-sm space-y-2"
+        style={{
+          backgroundColor: theme.colors.background,
+          borderColor: theme.colors.border,
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <span
+            className="font-medium"
+            style={{ color: theme.colors.textPrimary }}
+          >
+            {item.name}
+          </span>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs ${badgeStyle}`}>
+            <TypeIcon className="h-3 w-3" />
+            {getAssignmentTypeLabel(item.assignmentType)}
+          </span>
+        </div>
+        <div
+          className="flex items-center gap-3 text-xs"
+          style={{ color: theme.colors.textMuted }}
+        >
+          {item.duration && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {item.duration} min
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // Program workout rendering (existing)
+  const workout = item.workout
   if (variant === 'glass') {
     return (
       <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-black/20 hover:bg-white/5 transition-colors">
@@ -101,11 +191,22 @@ function WorkoutRow({ workout, theme, variant = 'default', basePath = '' }: { wo
   )
 }
 
-export function UpcomingWorkouts({ workouts, className, variant = 'default', basePath = '' }: UpcomingWorkoutsProps) {
+function getItemId(item: DashboardItem): string {
+  return item.kind === 'program' ? item.workout.id : item.id
+}
+
+function getItemDateKey(item: DashboardItem): string {
+  if (item.kind === 'program') {
+    return format(new Date(item.workout.dayDate || item.workout.day.date), 'yyyy-MM-dd')
+  }
+  return format(new Date(item.assignedDate), 'yyyy-MM-dd')
+}
+
+export function UpcomingWorkouts({ items, className, variant = 'default', basePath = '' }: UpcomingWorkoutsProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
-  if (workouts.length === 0) {
+  if (items.length === 0) {
     if (variant === 'glass') {
       return (
         <GlassCard className={className}>
@@ -160,8 +261,8 @@ export function UpcomingWorkouts({ workouts, className, variant = 'default', bas
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
-          {workouts.slice(0, 5).map((workout) => (
-            <WorkoutRow key={workout.id} workout={workout} theme={theme} variant="glass" basePath={basePath} />
+          {items.slice(0, 5).map((item) => (
+            <ItemRow key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
           ))}
         </GlassCardContent>
       </GlassCard>
@@ -169,14 +270,14 @@ export function UpcomingWorkouts({ workouts, className, variant = 'default', bas
   }
 
   // Group by date
-  const workoutsByDate = workouts.reduce((acc, workout) => {
-    const dateKey = format(new Date(workout.dayDate || workout.day.date), 'yyyy-MM-dd')
+  const itemsByDate = items.reduce((acc, item) => {
+    const dateKey = getItemDateKey(item)
     if (!acc[dateKey]) {
       acc[dateKey] = []
     }
-    acc[dateKey].push(workout)
+    acc[dateKey].push(item)
     return acc
-  }, {} as Record<string, DashboardWorkoutWithContext[]>)
+  }, {} as Record<string, DashboardItem[]>)
 
   return (
     <Card
@@ -195,7 +296,7 @@ export function UpcomingWorkouts({ workouts, className, variant = 'default', bas
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {Object.entries(workoutsByDate).map(([dateKey, dayWorkouts]) => (
+        {Object.entries(itemsByDate).map(([dateKey, dayItems]) => (
           <div key={dateKey} className="space-y-2">
             <h4
               className="font-semibold text-sm"
@@ -204,59 +305,8 @@ export function UpcomingWorkouts({ workouts, className, variant = 'default', bas
               {format(new Date(dateKey), 'EEEE d MMMM', { locale: sv })}
             </h4>
             <div className="space-y-2">
-              {dayWorkouts.map((workout) => (
-                <div
-                  key={workout.id}
-                  className="border rounded-lg p-3 text-sm space-y-2"
-                  style={{
-                    backgroundColor: theme.colors.background,
-                    borderColor: theme.colors.border,
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className="font-medium"
-                      style={{ color: theme.colors.textPrimary }}
-                    >
-                      {workout.name}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className={getIntensityBadgeClass(workout.intensity)}
-                    >
-                      {formatIntensity(workout.intensity)}
-                    </Badge>
-                  </div>
-                  <div
-                    className="flex flex-wrap items-center gap-2 text-xs"
-                    style={{ color: theme.colors.textMuted }}
-                  >
-                    {workout.startTime && (
-                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-500">
-                        <Timer className="h-3 w-3" />
-                        {workout.startTime}
-                      </span>
-                    )}
-                    {(workout.locationName || workout.location?.name) && (
-                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-500">
-                        <MapPin className="h-3 w-3" />
-                        {workout.locationName || workout.location?.name}
-                      </span>
-                    )}
-                    {workout.duration && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {workout.duration} min
-                      </span>
-                    )}
-                    {workout.distance && (
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {workout.distance} km
-                      </span>
-                    )}
-                  </div>
-                </div>
+              {dayItems.map((item) => (
+                <ItemRow key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
               ))}
             </div>
           </div>

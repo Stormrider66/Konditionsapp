@@ -18,12 +18,20 @@ import { Moon, Sunrise, Heart, Battery, Calendar, ChevronRight, Sparkles, Zap } 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { WODGeneratorModal, WODPreviewScreen } from '@/components/athlete/wod'
 import type { WODResponse } from '@/types/wod'
+import {
+  DashboardItem,
+  getItemName,
+  getItemDate,
+  getAssignmentRoute,
+  getAssignmentTypeLabel,
+  getAssignmentTypeIcon,
+  getAssignmentTypeBadgeStyle,
+} from '@/types/dashboard-items'
 
 interface RestDayHeroCardProps {
-  nextWorkout: DashboardWorkoutWithContext | null
+  nextItem: DashboardItem | null
   readinessScore: number | null
   athleteName?: string
   wodRemainingCount?: number
@@ -123,7 +131,7 @@ function formatIntensity(intensity: string): string {
 }
 
 export function RestDayHeroCard({
-  nextWorkout,
+  nextItem,
   readinessScore,
   athleteName,
   wodRemainingCount = 3,
@@ -234,30 +242,30 @@ export function RestDayHeroCard({
         </div>
 
         {/* Next Workout Preview */}
-        {nextWorkout && (
+        {nextItem && nextItem.kind === 'program' && (
           <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
             <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2 transition-colors">
               <Calendar className="w-4 h-4" />
               Nästa pass
             </h3>
 
-            <Link href={`${basePath}/athlete/workouts/${nextWorkout.id}`}>
+            <Link href={`${basePath}/athlete/workouts/${nextItem.workout.id}`}>
               <div className="group/next p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 hover:border-orange-500/30 dark:hover:border-orange-500/30 hover:bg-slate-100 dark:hover:bg-slate-900/70 transition-all cursor-pointer">
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className="text-xs text-orange-600 dark:text-orange-400 font-medium transition-colors">
-                        {formatNextWorkoutDate(nextWorkout.dayDate)}
+                        {formatNextWorkoutDate(nextItem.workout.dayDate)}
                       </span>
-                      <span className={`px-2 py-0.5 rounded text-xs border ${getIntensityBadgeStyle(nextWorkout.intensity)}`}>
-                        {formatIntensity(nextWorkout.intensity)}
+                      <span className={`px-2 py-0.5 rounded text-xs border ${getIntensityBadgeStyle(nextItem.workout.intensity)}`}>
+                        {formatIntensity(nextItem.workout.intensity)}
                       </span>
                     </div>
                     <h4 className="font-semibold text-slate-900 dark:text-white truncate group-hover/next:text-orange-600 dark:group-hover/next:text-orange-400 transition-colors">
-                      {nextWorkout.name}
+                      {nextItem.workout.name}
                     </h4>
                     <p className="text-sm text-slate-500 truncate">
-                      {nextWorkout.programName}
+                      {nextItem.workout.programName}
                     </p>
                   </div>
                   <ChevronRight className="w-5 h-5 text-slate-400 dark:text-slate-600 group-hover/next:text-orange-500 dark:group-hover/next:text-orange-400 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
@@ -265,11 +273,11 @@ export function RestDayHeroCard({
 
                 {/* Duration/Distance preview */}
                 <div className="flex gap-4 mt-2 text-xs text-slate-500">
-                  {nextWorkout.duration && (
-                    <span>{nextWorkout.duration} min</span>
+                  {nextItem.workout.duration && (
+                    <span>{nextItem.workout.duration} min</span>
                   )}
-                  {nextWorkout.distance && (
-                    <span>{nextWorkout.distance} km</span>
+                  {nextItem.workout.distance && (
+                    <span>{nextItem.workout.distance} km</span>
                   )}
                 </div>
               </div>
@@ -277,8 +285,51 @@ export function RestDayHeroCard({
           </div>
         )}
 
+        {/* Next Assignment Preview */}
+        {nextItem && nextItem.kind === 'assignment' && (() => {
+          const NextTypeIcon = getAssignmentTypeIcon(nextItem.assignmentType)
+          const nextBadgeStyle = getAssignmentTypeBadgeStyle(nextItem.assignmentType)
+          return (
+            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
+              <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2 transition-colors">
+                <Calendar className="w-4 h-4" />
+                Nästa pass
+              </h3>
+
+              <Link href={getAssignmentRoute(nextItem, basePath)}>
+                <div className="group/next p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 hover:border-orange-500/30 dark:hover:border-orange-500/30 hover:bg-slate-100 dark:hover:bg-slate-900/70 transition-all cursor-pointer">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="text-xs text-orange-600 dark:text-orange-400 font-medium transition-colors">
+                          {formatNextWorkoutDate(nextItem.assignedDate)}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-xs border inline-flex items-center gap-1 ${nextBadgeStyle}`}>
+                          <NextTypeIcon className="w-3 h-3" />
+                          {getAssignmentTypeLabel(nextItem.assignmentType)}
+                        </span>
+                      </div>
+                      <h4 className="font-semibold text-slate-900 dark:text-white truncate group-hover/next:text-orange-600 dark:group-hover/next:text-orange-400 transition-colors">
+                        {nextItem.name}
+                      </h4>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-400 dark:text-slate-600 group-hover/next:text-orange-500 dark:group-hover/next:text-orange-400 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
+                  </div>
+
+                  {/* Duration preview */}
+                  <div className="flex gap-4 mt-2 text-xs text-slate-500">
+                    {nextItem.duration && (
+                      <span>{nextItem.duration} min</span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            </div>
+          )
+        })()}
+
         {/* No upcoming workouts */}
-        {!nextWorkout && (
+        {!nextItem && (
           <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
             <p className="text-sm text-slate-500 text-center">
               Inga kommande pass schemalagda

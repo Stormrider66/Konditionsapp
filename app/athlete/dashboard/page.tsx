@@ -44,7 +44,7 @@ import {
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
-import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget } from '@/components/athlete/dashboard'
+import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, AssignmentHeroCard } from '@/components/athlete/dashboard'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
@@ -65,6 +65,17 @@ import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary'
 import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
+import {
+  DashboardItem,
+  DashboardAssignment,
+  isItemCompleted,
+  getItemDate,
+  getAssignmentRoute,
+  mapStrengthAssignment,
+  mapCardioAssignment,
+  mapHybridAssignment,
+  mapAgilityAssignment,
+} from '@/types/dashboard-items'
 
 export default async function AthleteDashboardPage() {
   const t = await getTranslations('athlete')
@@ -409,6 +420,94 @@ export default async function AthleteDashboardPage() {
     dayDate: w.day.date
   }))
 
+  // Fetch coach-assigned workouts (strength, cardio, hybrid, agility)
+  const [strengthAssignments, cardioAssignments, hybridAssignments, agilityAssignments] = await Promise.all([
+    prisma.strengthSessionAssignment.findMany({
+      where: {
+        athleteId: clientId,
+        assignedDate: { gte: todayStart, lte: upcomingEnd },
+        status: { not: 'SKIPPED' },
+      },
+      include: {
+        session: {
+          select: { id: true, name: true, description: true, phase: true, estimatedDuration: true }
+        },
+        location: { select: { id: true, name: true } },
+      },
+      orderBy: { assignedDate: 'asc' },
+    }),
+    prisma.cardioSessionAssignment.findMany({
+      where: {
+        athleteId: clientId,
+        assignedDate: { gte: todayStart, lte: upcomingEnd },
+        status: { not: 'SKIPPED' },
+      },
+      include: {
+        session: {
+          select: { id: true, name: true, description: true, sport: true, totalDuration: true }
+        },
+        location: { select: { id: true, name: true } },
+      },
+      orderBy: { assignedDate: 'asc' },
+    }),
+    prisma.hybridWorkoutAssignment.findMany({
+      where: {
+        athleteId: clientId,
+        assignedDate: { gte: todayStart, lte: upcomingEnd },
+        status: { not: 'SKIPPED' },
+      },
+      include: {
+        workout: {
+          select: { id: true, name: true, description: true, format: true, totalMinutes: true }
+        },
+        location: { select: { id: true, name: true } },
+      },
+      orderBy: { assignedDate: 'asc' },
+    }),
+    prisma.agilityWorkoutAssignment.findMany({
+      where: {
+        athleteId: clientId,
+        assignedDate: { gte: todayStart, lte: upcomingEnd },
+        status: { notIn: ['SKIPPED'] },
+      },
+      include: {
+        workout: {
+          select: { id: true, name: true, description: true, format: true, totalDuration: true }
+        },
+        location: { select: { id: true, name: true } },
+      },
+      orderBy: { assignedDate: 'asc' },
+    }),
+  ])
+
+  // Map assignments to DashboardAssignment[]
+  const allAssignments: DashboardAssignment[] = [
+    ...strengthAssignments.map(a => mapStrengthAssignment(a as any)),
+    ...cardioAssignments.map(a => mapCardioAssignment(a as any)),
+    ...hybridAssignments.map(a => mapHybridAssignment(a as any)),
+    ...agilityAssignments.map(a => mapAgilityAssignment(a as any)),
+  ]
+
+  // Split assignments into today vs upcoming
+  const todayAssignments = allAssignments.filter(a => {
+    const d = new Date(a.assignedDate)
+    return d >= todayStart && d <= todayEnd
+  })
+  const upcomingAssignments = allAssignments.filter(a => {
+    const d = new Date(a.assignedDate)
+    return d >= upcomingStart && d <= upcomingEnd
+  })
+
+  // Build merged DashboardItem arrays
+  const todayItems: DashboardItem[] = [
+    ...todaysWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
+    ...todayAssignments,
+  ]
+  const upcomingItems: DashboardItem[] = [
+    ...upcomingWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
+    ...upcomingAssignments,
+  ].sort((a, b) => getItemDate(a).getTime() - getItemDate(b).getTime())
+
   // Calculate stats
   const totalWorkoutsThisWeek = recentLogs.filter(
     (log) => log.completedAt && log.completedAt >= subDays(now, 7)
@@ -484,8 +583,8 @@ export default async function AthleteDashboardPage() {
   const weeklyTSS = weeklyTrainingLoad.reduce((sum, load) => sum + (load.dailyLoad || 0), 0)
   const weeklyTSSTarget = 1000 // Default target, could be from athlete profile
 
-  // Get next workout for rest day card
-  const nextWorkout = upcomingWorkouts.length > 0 ? upcomingWorkouts[0] : null
+  // Get next item for rest day card
+  const nextItem: DashboardItem | null = upcomingItems.length > 0 ? upcomingItems[0] : null
 
   // Calculate WOD stats
   const startOfWeek = startOfDay(addDays(now, -now.getDay() + 1)) // Monday
@@ -510,17 +609,22 @@ export default async function AthleteDashboardPage() {
     return baseLinks
   }
 
-  // Hero Card Data - prioritize incomplete workouts
-  const sortedTodaysWorkouts = [...todaysWorkouts].sort((a, b) => {
-    const aCompleted = a.logs && a.logs.length > 0 && a.logs[0].completed
-    const bCompleted = b.logs && b.logs.length > 0 && b.logs[0].completed
-    // Incomplete workouts come first
+  // Hero Card Data - prioritize: incomplete programs first, then incomplete assignments, then completed
+  const sortedTodayItems = [...todayItems].sort((a, b) => {
+    const aCompleted = isItemCompleted(a)
+    const bCompleted = isItemCompleted(b)
+    // Incomplete items come first
     if (aCompleted && !bCompleted) return 1
     if (!aCompleted && bCompleted) return -1
+    // Among incomplete: programs before assignments
+    if (!aCompleted && !bCompleted) {
+      if (a.kind === 'program' && b.kind === 'assignment') return -1
+      if (a.kind === 'assignment' && b.kind === 'program') return 1
+    }
     return 0
   })
-  const heroWorkout = sortedTodaysWorkouts[0] || null
-  const remainingTodaysWorkouts = sortedTodaysWorkouts.slice(1)
+  const heroItem: DashboardItem | null = sortedTodayItems[0] || null
+  const remainingTodayItems = sortedTodayItems.slice(1)
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
@@ -540,9 +644,15 @@ export default async function AthleteDashboardPage() {
         </div>
         <div className="flex gap-3">
           <LogWorkoutButton variant="button" className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border-0 h-10 px-4 transition-all" />
-          <Link href={heroWorkout ? `/athlete/workouts/${heroWorkout.id}/log` : '/athlete/programs'}>
+          <Link href={
+            heroItem?.kind === 'program'
+              ? `/athlete/workouts/${heroItem.workout.id}/log`
+              : heroItem?.kind === 'assignment'
+                ? getAssignmentRoute(heroItem, basePath)
+                : '/athlete/programs'
+          }>
             <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 h-10 px-6 transition-all">
-              <Zap className="w-4 h-4 mr-2" /> {heroWorkout ? 'Start Session' : 'Find Workout'}
+              <Zap className="w-4 h-4 mr-2" /> {heroItem ? 'Start Session' : 'Find Workout'}
             </Button>
           </Link>
         </div>
@@ -598,14 +708,20 @@ export default async function AthleteDashboardPage() {
       {/* Main Grid - Hero Card + Readiness Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* HERO CARD (Left 2/3) */}
-        {heroWorkout ? (
+        {heroItem?.kind === 'program' ? (
           <HeroWorkoutCard
-            workout={heroWorkout}
+            workout={heroItem.workout}
             athleteName={client.name.split(' ')[0]}
+          />
+        ) : heroItem?.kind === 'assignment' ? (
+          <AssignmentHeroCard
+            assignment={heroItem}
+            athleteName={client.name.split(' ')[0]}
+            basePath={basePath}
           />
         ) : (
           <RestDayHeroCard
-            nextWorkout={nextWorkout}
+            nextItem={nextItem}
             readinessScore={readinessScore}
             athleteName={client.name.split(' ')[0]}
           />
@@ -636,12 +752,12 @@ export default async function AthleteDashboardPage() {
             */}
 
           {/* Today&apos;s Workouts (If more than 1, show the rest - using sorted list) */}
-          {remainingTodaysWorkouts.length > 0 && (
-            <TodaysWorkouts workouts={remainingTodaysWorkouts} variant="glass" clientId={clientId} />
+          {remainingTodayItems.length > 0 && (
+            <TodaysWorkouts items={remainingTodayItems} variant="glass" clientId={clientId} basePath={basePath} />
           )}
 
           {/* Upcoming Workouts */}
-          <UpcomingWorkouts workouts={upcomingWorkouts} variant="glass" />
+          <UpcomingWorkouts items={upcomingItems} variant="glass" basePath={basePath} />
 
           {/* Training Load Widget (TSS from integrations) */}
           <TrainingLoadWidget clientId={clientId} variant="glass" />

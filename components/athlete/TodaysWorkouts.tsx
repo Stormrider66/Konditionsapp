@@ -12,19 +12,30 @@ import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
 import { OptimizeWorkoutButton } from './OptimizeWorkoutButton'
+import {
+  DashboardItem,
+  getAssignmentRoute,
+  getAssignmentTypeLabel,
+  getAssignmentTypeIcon,
+  getAssignmentTypeBadgeStyle,
+} from '@/types/dashboard-items'
 
 interface TodaysWorkoutsProps {
-  workouts: DashboardWorkoutWithContext[]
+  items: DashboardItem[]
   variant?: 'default' | 'glass'
   clientId?: string
   basePath?: string
 }
 
-export function TodaysWorkouts({ workouts, variant = 'default', clientId, basePath = '' }: TodaysWorkoutsProps) {
+function getItemId(item: DashboardItem): string {
+  return item.kind === 'program' ? item.workout.id : item.id
+}
+
+export function TodaysWorkouts({ items, variant = 'default', clientId, basePath = '' }: TodaysWorkoutsProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
-  if (workouts.length === 0) {
+  if (items.length === 0) {
     if (variant === 'glass') {
       return (
         <GlassCard>
@@ -85,12 +96,14 @@ export function TodaysWorkouts({ workouts, variant = 'default', clientId, basePa
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-orange-500" />
-            Dagens pass ({workouts.length})
+            Dagens pass ({items.length})
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent className="space-y-4">
-          {workouts.map((workout) => (
-            <WorkoutCard key={workout.id} workout={workout} theme={theme} variant="glass" clientId={clientId} basePath={basePath} />
+          {items.map((item) => (
+            item.kind === 'program'
+              ? <WorkoutCard key={getItemId(item)} workout={item.workout} theme={theme} variant="glass" clientId={clientId} basePath={basePath} />
+              : <AssignmentCard key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
           ))}
         </GlassCardContent>
       </GlassCard>
@@ -110,17 +123,195 @@ export function TodaysWorkouts({ workouts, variant = 'default', clientId, basePa
           style={{ color: theme.colors.textPrimary }}
         >
           <Calendar className="h-5 w-5" />
-          Dagens pass ({workouts.length})
+          Dagens pass ({items.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {workouts.map((workout) => (
-          <WorkoutCard key={workout.id} workout={workout} theme={theme} clientId={clientId} basePath={basePath} />
+        {items.map((item) => (
+          item.kind === 'program'
+            ? <WorkoutCard key={getItemId(item)} workout={item.workout} theme={theme} clientId={clientId} basePath={basePath} />
+            : <AssignmentCard key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
         ))}
       </CardContent>
     </Card>
   )
 }
+
+// ── Assignment Card ────────────────────────────────────────────────────────
+
+function AssignmentCard({ item, theme, variant = 'default', basePath = '' }: {
+  item: DashboardItem & { kind: 'assignment' }
+  theme: typeof MINIMALIST_WHITE_THEME
+  variant?: 'default' | 'glass'
+  basePath?: string
+}) {
+  const completed = item.status === 'COMPLETED'
+  const TypeIcon = getAssignmentTypeIcon(item.assignmentType)
+  const badgeStyle = getAssignmentTypeBadgeStyle(item.assignmentType)
+  const route = getAssignmentRoute(item, basePath)
+
+  if (variant === 'glass') {
+    return (
+      <div className="border border-white/10 rounded-lg p-3 sm:p-4 space-y-3 hover:bg-white/5 transition-colors bg-black/20">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h4 className="font-semibold text-sm sm:text-base truncate text-white">
+                {item.name}
+              </h4>
+              {completed && (
+                <Badge variant="default" className="bg-green-500 flex-shrink-0">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  <span className="text-xs">Klar</span>
+                </Badge>
+              )}
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}>
+                <TypeIcon className="h-3 w-3" />
+                {getAssignmentTypeLabel(item.assignmentType)}
+              </span>
+            </div>
+            {(item.description || item.notes) && (
+              <p className="text-xs sm:text-sm truncate text-slate-400">
+                {item.notes || item.description}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Footer - Duration, Scheduling info */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
+          {item.startTime && (
+            <span className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">
+              <Timer className="h-3 w-3 sm:h-4 sm:w-4" />
+              {item.startTime}
+            </span>
+          )}
+          {item.locationName && (
+            <span className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400">
+              <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
+              {item.locationName}
+            </span>
+          )}
+          {item.duration && (
+            <span className="flex items-center gap-1 flex-shrink-0">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+              {item.duration} min
+            </span>
+          )}
+        </div>
+
+        {completed ? (
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link href={route} className="flex-1">
+              <Button variant="outline" size="sm" className="w-full min-h-[40px] border-white/10 text-white hover:bg-white/10">
+                Visa resultat
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link href={route} className="flex-1">
+              <Button className="w-full min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border-0">
+                Starta pass
+              </Button>
+            </Link>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Default variant
+  return (
+    <div
+      className="border rounded-lg p-3 sm:p-4 space-y-3 hover:shadow-md transition-shadow"
+      style={{
+        backgroundColor: theme.colors.backgroundCard,
+        borderColor: theme.colors.border,
+      }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h4
+              className="font-semibold text-sm sm:text-base truncate"
+              style={{ color: theme.colors.textPrimary }}
+            >
+              {item.name}
+            </h4>
+            {completed && (
+              <Badge variant="default" className="bg-green-500 flex-shrink-0">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                <span className="text-xs">Klar</span>
+              </Badge>
+            )}
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}>
+              <TypeIcon className="h-3 w-3" />
+              {getAssignmentTypeLabel(item.assignmentType)}
+            </span>
+          </div>
+          {(item.description || item.notes) && (
+            <p
+              className="text-xs sm:text-sm truncate"
+              style={{ color: theme.colors.textSecondary }}
+            >
+              {item.notes || item.description}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Footer - Duration, Scheduling info */}
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm" style={{ color: theme.colors.textMuted }}>
+        {item.startTime && (
+          <span className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-500">
+            <Timer className="h-3 w-3 sm:h-4 sm:w-4" />
+            {item.startTime}
+          </span>
+        )}
+        {item.locationName && (
+          <span className="flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-500">
+            <MapPin className="h-3 w-3 sm:h-4 sm:w-4" />
+            {item.locationName}
+          </span>
+        )}
+        {item.duration && (
+          <span className="flex items-center gap-1 flex-shrink-0">
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+            {item.duration} min
+          </span>
+        )}
+      </div>
+
+      {completed ? (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Link href={route} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full min-h-[40px]">
+              Visa resultat
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Link href={route} className="flex-1">
+            <Button
+              className="w-full min-h-[44px]"
+              style={{
+                backgroundColor: theme.colors.accent,
+                color: theme.colors.accentText,
+              }}
+            >
+              Starta pass
+            </Button>
+          </Link>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Program Workout Card (existing) ────────────────────────────────────────
 
 function WorkoutCard({ workout, theme, variant = 'default', clientId, basePath = '' }: { workout: DashboardWorkoutWithContext; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', clientId?: string, basePath?: string }) {
   const isCompleted = workout.logs && workout.logs.length > 0 && workout.logs[0].completed

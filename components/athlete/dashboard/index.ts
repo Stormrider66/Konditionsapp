@@ -5,6 +5,7 @@
  */
 
 export { HeroWorkoutCard } from './HeroWorkoutCard'
+export { AssignmentHeroCard } from './AssignmentHeroCard'
 export { RestDayHeroCard } from './RestDayHeroCard'
 export { ReadinessPanel } from './ReadinessPanel'
 export { AccountabilityStreakWidget } from './AccountabilityStreakWidget'
