@@ -28,6 +28,8 @@ import {
   getAssignmentTypeLabel,
   getAssignmentTypeIcon,
   getAssignmentTypeBadgeStyle,
+  getWODRoute,
+  getWODModeLabel,
 } from '@/types/dashboard-items'
 
 interface RestDayHeroCardProps {
@@ -327,6 +329,45 @@ export function RestDayHeroCard({
             </div>
           )
         })()}
+
+        {/* Next WOD Preview */}
+        {nextItem && nextItem.kind === 'wod' && (
+          <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2 transition-colors">
+              <Calendar className="w-4 h-4" />
+              Nästa pass
+            </h3>
+
+            <Link href={getWODRoute(nextItem, basePath)}>
+              <div className="group/next p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 hover:bg-slate-100 dark:hover:bg-slate-900/70 transition-all cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium transition-colors">
+                        {formatNextWorkoutDate(nextItem.createdAt)}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-xs border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 inline-flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        AI-Pass
+                      </span>
+                    </div>
+                    <h4 className="font-semibold text-slate-900 dark:text-white truncate group-hover/next:text-emerald-600 dark:group-hover/next:text-emerald-400 transition-colors">
+                      {nextItem.title}
+                    </h4>
+                    <p className="text-sm text-slate-500 truncate">
+                      {getWODModeLabel(nextItem.mode)}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400 dark:text-slate-600 group-hover/next:text-emerald-500 dark:group-hover/next:text-emerald-400 group-hover/next:translate-x-1 transition-all flex-shrink-0 ml-4" />
+                </div>
+
+                <div className="flex gap-4 mt-2 text-xs text-slate-500">
+                  <span>{nextItem.requestedDuration} min</span>
+                </div>
+              </div>
+            </Link>
+          </div>
+        )}
 
         {/* No upcoming workouts */}
         {!nextItem && (

@@ -18,7 +18,7 @@ import { logError } from '@/lib/logger-console'
 
 export interface UnifiedCalendarItem {
   id: string
-  type: 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN'
+  type: 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN' | 'WOD'
   title: string
   description?: string | null
   date: Date
@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
     const includeFieldTests = searchParams.get('includeFieldTests') !== 'false'
     const includeEvents = searchParams.get('includeEvents') !== 'false'
     const includeCheckIns = searchParams.get('includeCheckIns') !== 'false'
+    const includeWODs = searchParams.get('includeWODs') !== 'false'
 
     if (!clientId) {
       return NextResponse.json(
@@ -335,6 +336,40 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Fetch AI-generated WODs
+    if (includeWODs) {
+      const wods = await prisma.aIGeneratedWOD.findMany({
+        where: {
+          clientId,
+          createdAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+          status: { notIn: ['ABANDONED'] },
+        },
+      })
+
+      for (const wod of wods) {
+        items.push({
+          id: wod.id,
+          type: 'WOD',
+          title: wod.title,
+          description: wod.subtitle,
+          date: wod.createdAt,
+          status: wod.status,
+          metadata: {
+            mode: wod.mode,
+            requestedDuration: wod.requestedDuration,
+            actualDuration: wod.actualDuration,
+            intensityAdjusted: wod.intensityAdjusted,
+            isCompleted: wod.status === 'COMPLETED',
+            sessionRPE: wod.sessionRPE,
+            primarySport: wod.primarySport,
+          },
+        })
+      }
+    }
+
     // Sort by date
     items.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
@@ -362,6 +397,7 @@ export async function GET(request: NextRequest) {
         fieldTests: items.filter((i) => i.type === 'FIELD_TEST').length,
         calendarEvents: items.filter((i) => i.type === 'CALENDAR_EVENT').length,
         checkIns: items.filter((i) => i.type === 'CHECK_IN').length,
+        wods: items.filter((i) => i.type === 'WOD').length,
       },
     })
   } catch (error) {

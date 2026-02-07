@@ -1,4 +1,5 @@
 // lib/auth-utils.ts
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { User, UserRole, AdminRole, BusinessAdminUser, BusinessMemberRole } from '@/types'
@@ -9,9 +10,10 @@ import { logger } from '@/lib/logger'
 
 /**
  * Get the currently authenticated user from Supabase session
- * Returns null if no user is authenticated
+ * Wrapped with React.cache() to deduplicate calls within a single request
+ * (layouts + pages calling this multiple times will only hit Supabase/DB once)
  */
-export async function getCurrentUser(): Promise<User | null> {
+export const getCurrentUser = cache(async (): Promise<User | null> => {
   const supabase = await createClient()
 
   const {
@@ -97,7 +99,7 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 
   return user
-}
+})
 
 /**
  * Require a user to be authenticated and have a specific role

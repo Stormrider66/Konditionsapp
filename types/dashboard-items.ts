@@ -1,9 +1,10 @@
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
-import { Dumbbell, Heart, Flame, Zap, type LucideIcon } from 'lucide-react'
+import { Dumbbell, Heart, Flame, Zap, Sparkles, type LucideIcon } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export type AssignmentType = 'strength' | 'cardio' | 'hybrid' | 'agility'
+export type WODMode = 'STRUCTURED' | 'CASUAL' | 'FUN'
 
 export interface DashboardAssignment {
   kind: 'assignment'
@@ -31,13 +32,33 @@ export interface DashboardProgramWorkout {
   workout: DashboardWorkoutWithContext
 }
 
-export type DashboardItem = DashboardProgramWorkout | DashboardAssignment
+export interface DashboardWOD {
+  kind: 'wod'
+  id: string
+  title: string
+  subtitle: string | null
+  description: string | null
+  mode: WODMode
+  requestedDuration: number
+  actualDuration: number | null
+  status: string  // GENERATED | STARTED | COMPLETED | ABANDONED
+  createdAt: Date
+  completedAt: Date | null
+  intensityAdjusted: string | null
+  sessionRPE: number | null
+  primarySport: string | null
+}
+
+export type DashboardItem = DashboardProgramWorkout | DashboardAssignment | DashboardWOD
 
 // ── Utility Functions ──────────────────────────────────────────────────────
 
 export function isItemCompleted(item: DashboardItem): boolean {
   if (item.kind === 'program') {
     return !!(item.workout.logs && item.workout.logs.length > 0 && item.workout.logs[0].completed)
+  }
+  if (item.kind === 'wod') {
+    return item.status === 'COMPLETED'
   }
   return item.status === 'COMPLETED'
 }
@@ -46,12 +67,18 @@ export function getItemDate(item: DashboardItem): Date {
   if (item.kind === 'program') {
     return new Date(item.workout.dayDate)
   }
+  if (item.kind === 'wod') {
+    return new Date(item.createdAt)
+  }
   return new Date(item.assignedDate)
 }
 
 export function getItemName(item: DashboardItem): string {
   if (item.kind === 'program') {
     return item.workout.name
+  }
+  if (item.kind === 'wod') {
+    return item.title
   }
   return item.name
 }
@@ -60,12 +87,18 @@ export function getItemStartTime(item: DashboardItem): string | null {
   if (item.kind === 'program') {
     return item.workout.startTime ?? null
   }
+  if (item.kind === 'wod') {
+    return null // WODs don't have scheduled start times
+  }
   return item.startTime ?? null
 }
 
 export function getItemLocationName(item: DashboardItem): string | null {
   if (item.kind === 'program') {
     return item.workout.locationName ?? item.workout.location?.name ?? null
+  }
+  if (item.kind === 'wod') {
+    return null // WODs don't have locations
   }
   return item.locationName ?? null
 }
@@ -275,4 +308,71 @@ export function mapAgilityAssignment(raw: RawAgilityAssignment): DashboardAssign
     duration: raw.workout.totalDuration,
     format: raw.workout.format,
   }
+}
+
+// ── WOD Mapping & Helpers ────────────────────────────────────────────────
+
+interface RawWOD {
+  id: string
+  title: string
+  subtitle: string | null
+  description: string | null
+  mode: string
+  requestedDuration: number
+  actualDuration: number | null
+  status: string
+  createdAt: Date
+  completedAt: Date | null
+  intensityAdjusted: string | null
+  sessionRPE: number | null
+  primarySport: string | null
+}
+
+export function mapWODToDashboard(raw: RawWOD): DashboardWOD {
+  return {
+    kind: 'wod',
+    id: raw.id,
+    title: raw.title,
+    subtitle: raw.subtitle,
+    description: raw.description,
+    mode: raw.mode as WODMode,
+    requestedDuration: raw.requestedDuration,
+    actualDuration: raw.actualDuration,
+    status: raw.status,
+    createdAt: raw.createdAt,
+    completedAt: raw.completedAt,
+    intensityAdjusted: raw.intensityAdjusted,
+    sessionRPE: raw.sessionRPE,
+    primarySport: raw.primarySport,
+  }
+}
+
+export function getWODRoute(wod: DashboardWOD, basePath: string): string {
+  return `${basePath}/athlete/wod/${wod.id}`
+}
+
+export function getWODModeLabel(mode: WODMode): string {
+  switch (mode) {
+    case 'STRUCTURED': return 'Strukturerat'
+    case 'CASUAL': return 'Avslappnat'
+    case 'FUN': return 'Bara kul!'
+  }
+}
+
+export function getWODModeIcon(): LucideIcon {
+  return Sparkles
+}
+
+export function getWODStatusLabel(status: string): string {
+  switch (status) {
+    case 'GENERATED': return 'Genererat'
+    case 'STARTED': return 'Pågår'
+    case 'COMPLETED': return 'Slutfört'
+    case 'ABANDONED': return 'Avbrutet'
+    default: return status
+  }
+}
+
+export function getWODBadgeStyle(): string {
+  return 'bg-emerald-100 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
 }

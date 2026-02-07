@@ -4,7 +4,7 @@
 
 import { CalendarEventType, CalendarEventStatus, EventImpact, AltitudeAdaptationPhase } from '@prisma/client'
 
-export type UnifiedItemType = 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN'
+export type UnifiedItemType = 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN' | 'WOD'
 
 export interface UnifiedCalendarItem {
   id: string
@@ -64,6 +64,7 @@ export interface DayData {
   hasEvent: boolean
   hasFieldTest: boolean
   hasCheckIn: boolean
+  hasWOD: boolean
   isBlocked: boolean
   isReduced: boolean
   isToday: boolean
@@ -206,6 +207,7 @@ export const WORKOUT_TYPE_COLORS: Record<string, string> = {
   HYROX: 'bg-rose-500',
   ALTERNATIVE: 'bg-gray-500',
   OTHER: 'bg-slate-500',
+  WOD: 'bg-emerald-500',
 }
 
 // Workout intensity colors

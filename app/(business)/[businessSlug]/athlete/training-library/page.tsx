@@ -26,6 +26,7 @@ async function getLibraryData(userId: string, clientId: string) {
     agilityAssignments,
     agilityResults,
     agilityTimingResults,
+    wodHistory,
   ] = await Promise.all([
     prisma.athleteAccount.findUnique({
       where: { userId },
@@ -95,6 +96,25 @@ async function getLibraryData(userId: string, clientId: string) {
         session: { select: { sessionName: true, sessionDate: true } },
       },
     }),
+    prisma.aIGeneratedWOD.findMany({
+      where: {
+        clientId,
+        status: { notIn: ['ABANDONED'] },
+      },
+      select: {
+        id: true,
+        title: true,
+        mode: true,
+        requestedDuration: true,
+        actualDuration: true,
+        status: true,
+        createdAt: true,
+        completedAt: true,
+        sessionRPE: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    }),
   ])
 
   return {
@@ -105,6 +125,7 @@ async function getLibraryData(userId: string, clientId: string) {
     agilityAssignments,
     agilityResults,
     agilityTimingResults,
+    wodHistory,
   }
 }
 
@@ -149,6 +170,7 @@ export default async function BusinessTrainingLibraryPage({ params }: PageProps)
           agilityAssignments={data.agilityAssignments as any}
           agilityResults={data.agilityResults as any}
           agilityTimingResults={data.agilityTimingResults as any}
+          wodHistory={data.wodHistory as any}
         />
       </Suspense>
     </div>

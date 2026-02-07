@@ -1,4 +1,5 @@
 // lib/business-context.ts
+import { cache } from 'react'
 import { prisma } from '@/lib/prisma'
 import { BusinessMemberRole } from '@/types'
 
@@ -24,16 +25,17 @@ export async function getBusinessBySlug(slug: string) {
 
 /**
  * Validate that a user is a member of a business
- * Returns the membership details if valid, null otherwise
+ * Wrapped with React.cache() to deduplicate calls within a single request
+ * (business layout + role layout + page all call this with the same args)
  */
-export async function validateBusinessMembership(
+export const validateBusinessMembership = cache(async (
   userId: string,
   businessSlug: string
 ): Promise<{
   businessId: string
   role: BusinessMemberRole
   business: { id: string; name: string; slug: string; logoUrl: string | null; primaryColor: string | null }
-} | null> {
+} | null> => {
   const membership = await prisma.businessMember.findFirst({
     where: {
       userId,
@@ -65,7 +67,7 @@ export async function validateBusinessMembership(
     role: membership.role as BusinessMemberRole,
     business: membership.business,
   }
-}
+})
 
 /**
  * Get user's primary business slug for redirects

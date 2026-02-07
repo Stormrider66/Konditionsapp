@@ -19,10 +19,12 @@ import {
   MessageSquare,
   Lock,
   BookOpen,
+  Save,
 } from 'lucide-react'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
 import { cn } from '@/lib/utils'
 import { ATHLETE_QUICK_PROMPTS, MemoryContext } from '@/lib/ai/athlete-prompts'
+import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { MemoryIndicator } from './MemoryIndicator'
 import { AIChatUsageMeter, AIChatUsageCompact } from '@/components/athlete/AIChatUsageMeter'
 import Link from 'next/link'
@@ -63,6 +65,10 @@ export function AthleteFloatingChat({
     message: string
     upgradeUrl?: string
   } | null>(null)
+
+  // Program detection state
+  const [detectedProgram, setDetectedProgram] = useState<ParseResult | null>(null)
+  const [isPublishing, setIsPublishing] = useState(false)
 
   // Fetch AI config from coach
   useEffect(() => {
@@ -169,6 +175,77 @@ export function AthleteFloatingChat({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Detect programs in assistant messages
+  useEffect(() => {
+    if (!messages.length || isLoading) return
+    const lastMessage = messages[messages.length - 1]
+    if (lastMessage.role !== 'assistant') return
+
+    const textContent = lastMessage.parts
+      ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+      .map((part) => part.text)
+      .join('') || ''
+
+    if (!textContent || textContent.length < 100) return
+
+    try {
+      const result = parseAIProgram(textContent)
+      if (result.success && result.program) {
+        setDetectedProgram(result)
+      } else {
+        setDetectedProgram(null)
+      }
+    } catch {
+      setDetectedProgram(null)
+    }
+  }, [messages, isLoading])
+
+  async function handlePublishProgram() {
+    if (!detectedProgram?.program) return
+    setIsPublishing(true)
+    try {
+      // Get last assistant message content
+      const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant')
+      const aiOutput = lastAssistant?.parts
+        ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+        .map((part) => part.text)
+        .join('') || ''
+
+      const response = await fetch('/api/ai/save-program', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          aiOutput,
+          clientId,
+          conversationId,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'Program sparat!',
+          description: `"${detectedProgram.program.name}" har sparats.`,
+        })
+        setDetectedProgram(null)
+      } else {
+        const data = await response.json()
+        toast({
+          title: 'Kunde inte spara programmet',
+          description: data.error || 'Försök igen senare.',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      toast({
+        title: 'Fel vid sparning',
+        description: 'Ett oväntat fel uppstod.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsPublishing(false)
+    }
+  }
 
   // Auto-focus textarea when opened
   useEffect(() => {
@@ -518,6 +595,38 @@ export function AthleteFloatingChat({
           </div>
         )}
       </ScrollArea>
+
+      {/* Program detected banner */}
+      {detectedProgram?.program && (
+        <div className="px-3 py-2 border-t bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Sparkles className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300 truncate">
+                  {detectedProgram.program.name}
+                </p>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                  {detectedProgram.program.totalWeeks} veckor
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={handlePublishProgram}
+              disabled={isPublishing}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-7 px-2 shrink-0"
+            >
+              {isPublishing ? (
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              ) : (
+                <Save className="h-3 w-3 mr-1" />
+              )}
+              Spara program
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-3 border-t">

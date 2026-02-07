@@ -123,6 +123,7 @@ export function MonthViewDraggable({
         hasEvent: dayItems.some((i) => i.type === 'CALENDAR_EVENT'),
         hasFieldTest: dayItems.some((i) => i.type === 'FIELD_TEST'),
         hasCheckIn: dayItems.some((i) => i.type === 'CHECK_IN'),
+        hasWOD: dayItems.some((i) => i.type === 'WOD'),
         isBlocked: dayItems.some(
           (i) => i.type === 'CALENDAR_EVENT' && i.metadata.trainingImpact === 'NO_TRAINING'
         ),
@@ -336,6 +337,15 @@ function DroppableDayCell({
       type: 'FIELD_TEST',
       color: 'bg-green-500',
       label: 'Fälttest',
+    })
+  }
+
+  // Add WOD indicator
+  if (day.hasWOD) {
+    indicators.push({
+      type: 'WOD',
+      color: 'bg-emerald-500',
+      label: 'AI-Pass',
     })
   }
 

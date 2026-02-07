@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Mountain,
   Thermometer,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -110,6 +111,7 @@ export function DaySidebar({
   const events = items.filter((i) => i.type === 'CALENDAR_EVENT')
   const fieldTests = items.filter((i) => i.type === 'FIELD_TEST')
   const checkIns = items.filter((i) => i.type === 'CHECK_IN')
+  const wods = items.filter((i) => i.type === 'WOD')
 
   if (isGlass) {
     return (
@@ -150,6 +152,26 @@ export function DaySidebar({
                         workout={workout}
                         isSelected={selectedItem?.id === workout.id}
                         onClick={() => onItemClick(workout)}
+                        isGlass={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {wods.length > 0 && (
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-emerald-500" />
+                    AI-Pass ({wods.length})
+                  </h4>
+                  <div className="space-y-2.5">
+                    {wods.map((wod) => (
+                      <WODItem
+                        key={wod.id}
+                        wod={wod}
+                        isSelected={selectedItem?.id === wod.id}
+                        onClick={() => onItemClick(wod)}
                         isGlass={true}
                       />
                     ))}
@@ -327,6 +349,25 @@ export function DaySidebar({
               </div>
             )}
 
+            {wods.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-emerald-500" />
+                  AI-Pass ({wods.length})
+                </h4>
+                <div className="space-y-2">
+                  {wods.map((wod) => (
+                    <WODItem
+                      key={wod.id}
+                      wod={wod}
+                      isSelected={selectedItem?.id === wod.id}
+                      onClick={() => onItemClick(wod)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {races.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -449,6 +490,81 @@ export function DaySidebar({
 }
 
 // Sub-components for different item types
+
+// ── WOD Item ──────────────────────────────────────────────────────────────
+
+interface WODItemProps {
+  wod: UnifiedCalendarItem
+  isSelected: boolean
+  onClick: () => void
+  isGlass?: boolean
+}
+
+function WODItem({ wod, isSelected, onClick, isGlass = false }: WODItemProps) {
+  const meta = wod.metadata
+  const isCompleted = meta.isCompleted as boolean
+  const mode = meta.mode as string
+  const modeLabels: Record<string, string> = {
+    STRUCTURED: 'Strukturerat',
+    CASUAL: 'Avslappnat',
+    FUN: 'Bara kul!',
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full text-left rounded-lg p-3 transition-all',
+        isGlass
+          ? cn(
+              'border border-white/10 hover:bg-white/5',
+              isSelected && 'bg-white/10 border-emerald-500/30'
+            )
+          : cn(
+              'border hover:shadow-sm',
+              isSelected && 'ring-2 ring-emerald-500/50'
+            )
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className={cn(
+              'font-medium text-sm truncate',
+              isGlass ? 'text-white' : ''
+            )}>
+              {wod.title}
+            </span>
+            {isCompleted && (
+              <Badge variant="default" className="bg-green-500 text-white text-[10px] px-1.5 py-0">
+                Klar
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+              <Sparkles className="h-3 w-3" />
+              AI-Pass
+            </span>
+            <span>{modeLabels[mode] || mode}</span>
+            {meta.requestedDuration && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {meta.actualDuration || meta.requestedDuration} min
+              </span>
+            )}
+          </div>
+        </div>
+        <ChevronRight className={cn(
+          'h-4 w-4 shrink-0 mt-1',
+          isGlass ? 'text-slate-500' : 'text-muted-foreground'
+        )} />
+      </div>
+    </button>
+  )
+}
+
+// ── Workout Item ──────────────────────────────────────────────────────────
 
 interface WorkoutItemProps {
   workout: UnifiedCalendarItem

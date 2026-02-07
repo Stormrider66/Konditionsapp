@@ -12,6 +12,7 @@ import {
   Heart,
   Flame,
   Zap,
+  Sparkles,
   Lock,
   Crown,
   ChevronRight,
@@ -19,6 +20,7 @@ import {
 import { AthleteStrengthClient } from '@/app/athlete/strength/client'
 import { AthleteCardioClient } from '@/components/athlete/cardio/AthleteCardioClient'
 import { AgilityDashboard } from '@/components/athlete/AgilityDashboard'
+import { WODHistorySection, type WODSummaryItem } from '@/components/athlete/WODHistorySection'
 import type { AgilityWorkoutResult, TimingGateResult } from '@/types'
 
 interface Assignment {
@@ -52,7 +54,7 @@ interface DashboardAssignment {
   }
 }
 
-type CategoryFilter = 'alla' | 'styrka' | 'cardio' | 'hybrid' | 'agility'
+type CategoryFilter = 'alla' | 'styrka' | 'cardio' | 'hybrid' | 'agility' | 'ai-pass'
 type CreateCategoryFilter = 'styrka' | 'cardio' | 'hybrid'
 
 interface TrainingLibraryClientProps {
@@ -69,6 +71,7 @@ interface TrainingLibraryClientProps {
   agilityTimingResults: (TimingGateResult & {
     session: { sessionName?: string | null; sessionDate: Date }
   })[]
+  wodHistory?: WODSummaryItem[]
 }
 
 const historyCategoryFilters: { value: CategoryFilter; label: string; icon: React.ElementType }[] = [
@@ -77,6 +80,7 @@ const historyCategoryFilters: { value: CategoryFilter; label: string; icon: Reac
   { value: 'cardio', label: 'Cardio', icon: Heart },
   { value: 'hybrid', label: 'Hybrid', icon: Flame },
   { value: 'agility', label: 'Agility', icon: Zap },
+  { value: 'ai-pass', label: 'AI-Pass', icon: Sparkles },
 ]
 
 const createCategoryFilters: { value: CreateCategoryFilter; label: string; icon: React.ElementType }[] = [
@@ -95,6 +99,7 @@ export function TrainingLibraryClient({
   agilityAssignments,
   agilityResults,
   agilityTimingResults,
+  wodHistory = [],
 }: TrainingLibraryClientProps) {
   const [topTab, setTopTab] = useState<string>('historik')
   const [historyCategory, setHistoryCategory] = useState<CategoryFilter>('alla')
@@ -203,6 +208,18 @@ export function TrainingLibraryClient({
                 timingResults={agilityTimingResults}
                 basePath={`${basePath}/athlete`}
               />
+            </div>
+          )}
+
+          {(historyCategory === 'alla' || historyCategory === 'ai-pass') && (
+            <div className={historyCategory === 'alla' ? 'mb-8' : ''}>
+              {historyCategory === 'alla' && (
+                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4 flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-emerald-500" />
+                  AI-Pass
+                </h2>
+              )}
+              <WODHistorySection wodHistory={wodHistory} basePath={basePath} />
             </div>
           )}
 

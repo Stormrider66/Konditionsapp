@@ -44,7 +44,7 @@ import {
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
-import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, AssignmentHeroCard } from '@/components/athlete/dashboard'
+import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, AssignmentHeroCard, WODHeroCard } from '@/components/athlete/dashboard'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
@@ -68,13 +68,16 @@ import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import {
   DashboardItem,
   DashboardAssignment,
+  DashboardWOD,
   isItemCompleted,
   getItemDate,
   getAssignmentRoute,
+  getWODRoute,
   mapStrengthAssignment,
   mapCardioAssignment,
   mapHybridAssignment,
   mapAgilityAssignment,
+  mapWODToDashboard,
 } from '@/types/dashboard-items'
 
 export default async function AthleteDashboardPage() {
@@ -355,6 +358,33 @@ export default async function AthleteDashboardPage() {
     }),
   ])
 
+  // Fetch today's WODs for dashboard items
+  const todayWODs = await prisma.aIGeneratedWOD.findMany({
+    where: {
+      clientId: clientId,
+      createdAt: { gte: todayStart, lte: todayEnd },
+      status: { notIn: ['ABANDONED'] },
+    },
+    select: {
+      id: true,
+      title: true,
+      subtitle: true,
+      description: true,
+      mode: true,
+      requestedDuration: true,
+      actualDuration: true,
+      status: true,
+      createdAt: true,
+      completedAt: true,
+      intensityAdjusted: true,
+      sessionRPE: true,
+      primarySport: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const todayWODItems: DashboardWOD[] = todayWODs.map(w => mapWODToDashboard(w as any))
+
   // Fetch workouts with program info
   const todaysWorkoutsWithProgram = await prisma.workout.findMany({
     where: {
@@ -498,10 +528,11 @@ export default async function AthleteDashboardPage() {
     return d >= upcomingStart && d <= upcomingEnd
   })
 
-  // Build merged DashboardItem arrays
+  // Build merged DashboardItem arrays (WODs are always today, never upcoming)
   const todayItems: DashboardItem[] = [
     ...todaysWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
     ...todayAssignments,
+    ...todayWODItems,
   ]
   const upcomingItems: DashboardItem[] = [
     ...upcomingWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
@@ -609,17 +640,17 @@ export default async function AthleteDashboardPage() {
     return baseLinks
   }
 
-  // Hero Card Data - prioritize: incomplete programs first, then incomplete assignments, then completed
+  // Hero Card Data - prioritize: incomplete programs > assignments > WODs > completed
+  const kindPriority = (kind: string) => kind === 'program' ? 0 : kind === 'assignment' ? 1 : 2
   const sortedTodayItems = [...todayItems].sort((a, b) => {
     const aCompleted = isItemCompleted(a)
     const bCompleted = isItemCompleted(b)
     // Incomplete items come first
     if (aCompleted && !bCompleted) return 1
     if (!aCompleted && bCompleted) return -1
-    // Among incomplete: programs before assignments
+    // Among incomplete: programs > assignments > WODs
     if (!aCompleted && !bCompleted) {
-      if (a.kind === 'program' && b.kind === 'assignment') return -1
-      if (a.kind === 'assignment' && b.kind === 'program') return 1
+      return kindPriority(a.kind) - kindPriority(b.kind)
     }
     return 0
   })
@@ -649,7 +680,9 @@ export default async function AthleteDashboardPage() {
               ? `/athlete/workouts/${heroItem.workout.id}/log`
               : heroItem?.kind === 'assignment'
                 ? getAssignmentRoute(heroItem, basePath)
-                : '/athlete/programs'
+                : heroItem?.kind === 'wod'
+                  ? getWODRoute(heroItem, basePath)
+                  : '/athlete/programs'
           }>
             <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 h-10 px-6 transition-all">
               <Zap className="w-4 h-4 mr-2" /> {heroItem ? 'Start Session' : 'Find Workout'}
@@ -716,6 +749,12 @@ export default async function AthleteDashboardPage() {
         ) : heroItem?.kind === 'assignment' ? (
           <AssignmentHeroCard
             assignment={heroItem}
+            athleteName={client.name.split(' ')[0]}
+            basePath={basePath}
+          />
+        ) : heroItem?.kind === 'wod' ? (
+          <WODHeroCard
+            wod={heroItem}
             athleteName={client.name.split(' ')[0]}
             basePath={basePath}
           />

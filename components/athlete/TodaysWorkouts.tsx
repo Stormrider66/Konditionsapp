@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, CheckCircle2, Clock, MapPin, Timer } from 'lucide-react'
+import { Calendar, CheckCircle2, Clock, MapPin, Timer, Sparkles } from 'lucide-react'
 import { formatPace } from '@/lib/utils'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
@@ -18,6 +18,9 @@ import {
   getAssignmentTypeLabel,
   getAssignmentTypeIcon,
   getAssignmentTypeBadgeStyle,
+  getWODRoute,
+  getWODModeLabel,
+  getWODBadgeStyle,
 } from '@/types/dashboard-items'
 
 interface TodaysWorkoutsProps {
@@ -28,7 +31,8 @@ interface TodaysWorkoutsProps {
 }
 
 function getItemId(item: DashboardItem): string {
-  return item.kind === 'program' ? item.workout.id : item.id
+  if (item.kind === 'program') return item.workout.id
+  return item.id
 }
 
 export function TodaysWorkouts({ items, variant = 'default', clientId, basePath = '' }: TodaysWorkoutsProps) {
@@ -103,7 +107,9 @@ export function TodaysWorkouts({ items, variant = 'default', clientId, basePath 
           {items.map((item) => (
             item.kind === 'program'
               ? <WorkoutCard key={getItemId(item)} workout={item.workout} theme={theme} variant="glass" clientId={clientId} basePath={basePath} />
-              : <AssignmentCard key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
+              : item.kind === 'wod'
+                ? <WODCard key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
+                : <AssignmentCard key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
           ))}
         </GlassCardContent>
       </GlassCard>
@@ -130,10 +136,167 @@ export function TodaysWorkouts({ items, variant = 'default', clientId, basePath 
         {items.map((item) => (
           item.kind === 'program'
             ? <WorkoutCard key={getItemId(item)} workout={item.workout} theme={theme} clientId={clientId} basePath={basePath} />
-            : <AssignmentCard key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
+            : item.kind === 'wod'
+              ? <WODCard key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
+              : <AssignmentCard key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
         ))}
       </CardContent>
     </Card>
+  )
+}
+
+// ── WOD Card ──────────────────────────────────────────────────────────────
+
+function WODCard({ item, theme, variant = 'default', basePath = '' }: {
+  item: DashboardItem & { kind: 'wod' }
+  theme: typeof MINIMALIST_WHITE_THEME
+  variant?: 'default' | 'glass'
+  basePath?: string
+}) {
+  const completed = item.status === 'COMPLETED'
+  const route = getWODRoute(item, basePath)
+  const badgeStyle = getWODBadgeStyle()
+
+  if (variant === 'glass') {
+    return (
+      <div className="border border-white/10 rounded-lg p-3 sm:p-4 space-y-3 hover:bg-white/5 transition-colors bg-black/20">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <h4 className="font-semibold text-sm sm:text-base truncate text-white">
+                {item.title}
+              </h4>
+              {completed && (
+                <Badge variant="default" className="bg-green-500 flex-shrink-0">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  <span className="text-xs">Klar</span>
+                </Badge>
+              )}
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}>
+                <Sparkles className="h-3 w-3" />
+                AI-Pass
+              </span>
+              <span className="text-xs text-emerald-400">
+                {getWODModeLabel(item.mode)}
+              </span>
+            </div>
+            {item.subtitle && (
+              <p className="text-xs sm:text-sm truncate text-slate-400">
+                {item.subtitle}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
+          <span className="flex items-center gap-1 flex-shrink-0">
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+            {item.actualDuration || item.requestedDuration} min
+          </span>
+          {item.intensityAdjusted && (
+            <span className="flex items-center gap-1 flex-shrink-0">
+              {item.intensityAdjusted}
+            </span>
+          )}
+        </div>
+
+        {completed ? (
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link href={route} className="flex-1">
+              <Button variant="outline" size="sm" className="w-full min-h-[40px] border-white/10 text-white hover:bg-white/10">
+                Visa resultat
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link href={route} className="flex-1">
+              <Button className="w-full min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white border-0">
+                {item.status === 'STARTED' ? 'Fortsätt pass' : 'Starta pass'}
+              </Button>
+            </Link>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Default variant
+  return (
+    <div
+      className="border rounded-lg p-3 sm:p-4 space-y-3 hover:shadow-md transition-shadow"
+      style={{
+        backgroundColor: theme.colors.backgroundCard,
+        borderColor: theme.colors.border,
+      }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <h4
+              className="font-semibold text-sm sm:text-base truncate"
+              style={{ color: theme.colors.textPrimary }}
+            >
+              {item.title}
+            </h4>
+            {completed && (
+              <Badge variant="default" className="bg-green-500 flex-shrink-0">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                <span className="text-xs">Klar</span>
+              </Badge>
+            )}
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs flex-shrink-0 ${badgeStyle}`}>
+              <Sparkles className="h-3 w-3" />
+              AI-Pass
+            </span>
+          </div>
+          {item.subtitle && (
+            <p
+              className="text-xs sm:text-sm truncate"
+              style={{ color: theme.colors.textSecondary }}
+            >
+              {item.subtitle}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm" style={{ color: theme.colors.textMuted }}>
+        <span className="flex items-center gap-1 flex-shrink-0">
+          <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+          {item.actualDuration || item.requestedDuration} min
+        </span>
+        {item.intensityAdjusted && (
+          <span className="flex items-center gap-1 flex-shrink-0">
+            {item.intensityAdjusted}
+          </span>
+        )}
+      </div>
+
+      {completed ? (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Link href={route} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full min-h-[40px]">
+              Visa resultat
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Link href={route} className="flex-1">
+            <Button
+              className="w-full min-h-[44px]"
+              style={{
+                backgroundColor: '#059669',
+                color: '#ffffff',
+              }}
+            >
+              {item.status === 'STARTED' ? 'Fortsätt pass' : 'Starta pass'}
+            </Button>
+          </Link>
+        </div>
+      )}
+    </div>
   )
 }
 

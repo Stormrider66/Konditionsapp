@@ -4,7 +4,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
-import { CalendarDays, Clock, MapPin, Calendar, ChevronRight, Timer } from 'lucide-react'
+import { CalendarDays, Clock, MapPin, Calendar, ChevronRight, Timer, Sparkles } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
@@ -16,6 +16,9 @@ import {
   getAssignmentTypeLabel,
   getAssignmentTypeIcon,
   getAssignmentTypeBadgeStyle,
+  getWODRoute,
+  getWODModeLabel,
+  getWODBadgeStyle,
 } from '@/types/dashboard-items'
 
 interface UpcomingWorkoutsProps {
@@ -26,6 +29,74 @@ interface UpcomingWorkoutsProps {
 }
 
 function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: DashboardItem; theme: typeof MINIMALIST_WHITE_THEME, variant?: 'default' | 'glass', basePath?: string }) {
+  // WOD items
+  if (item.kind === 'wod') {
+    const route = getWODRoute(item, basePath)
+    const badgeStyle = getWODBadgeStyle()
+
+    if (variant === 'glass') {
+      return (
+        <div className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-black/20 hover:bg-white/5 transition-colors">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-sm text-white truncate">
+                {item.title}
+              </span>
+              <Badge variant="secondary" className="text-xs bg-white/10 text-slate-300 hover:bg-white/20">
+                {format(new Date(item.createdAt), 'EEE d MMM', { locale: sv })}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-slate-400">
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-xs ${badgeStyle}`}>
+                <Sparkles className="h-3 w-3" />
+                AI-Pass
+              </span>
+              <span className="text-emerald-400">{getWODModeLabel(item.mode)}</span>
+              <span>• {item.requestedDuration} min</span>
+            </div>
+          </div>
+          <Link href={route}>
+            <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white hover:bg-white/10">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+      )
+    }
+
+    return (
+      <div
+        className="border rounded-lg p-3 text-sm space-y-2"
+        style={{
+          backgroundColor: theme.colors.background,
+          borderColor: theme.colors.border,
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <span
+            className="font-medium"
+            style={{ color: theme.colors.textPrimary }}
+          >
+            {item.title}
+          </span>
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs ${badgeStyle}`}>
+            <Sparkles className="h-3 w-3" />
+            AI-Pass
+          </span>
+        </div>
+        <div
+          className="flex items-center gap-3 text-xs"
+          style={{ color: theme.colors.textMuted }}
+        >
+          <span className="flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {item.requestedDuration} min
+          </span>
+        </div>
+      </div>
+    )
+  }
+
   if (item.kind === 'assignment') {
     const TypeIcon = getAssignmentTypeIcon(item.assignmentType)
     const badgeStyle = getAssignmentTypeBadgeStyle(item.assignmentType)
@@ -192,12 +263,16 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
 }
 
 function getItemId(item: DashboardItem): string {
-  return item.kind === 'program' ? item.workout.id : item.id
+  if (item.kind === 'program') return item.workout.id
+  return item.id
 }
 
 function getItemDateKey(item: DashboardItem): string {
   if (item.kind === 'program') {
     return format(new Date(item.workout.dayDate || item.workout.day.date), 'yyyy-MM-dd')
+  }
+  if (item.kind === 'wod') {
+    return format(new Date(item.createdAt), 'yyyy-MM-dd')
   }
   return format(new Date(item.assignedDate), 'yyyy-MM-dd')
 }
