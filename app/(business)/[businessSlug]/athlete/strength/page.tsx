@@ -47,39 +47,68 @@ async function getAthleteData(userId: string) {
   })
 
   // Get assigned strength sessions with scheduling info
-  const assignments = await prisma.strengthSessionAssignment.findMany({
-    where: {
-      athleteId: athleteAccount.clientId,
-      assignedDate: {
-        gte: new Date(new Date().setHours(0, 0, 0, 0)),
-      },
-    },
-    include: {
-      session: {
-        select: {
-          id: true,
-          name: true,
-          phase: true,
-          estimatedDuration: true,
+  const [upcomingAssignments, completedAssignments] = await Promise.all([
+    prisma.strengthSessionAssignment.findMany({
+      where: {
+        athleteId: athleteAccount.clientId,
+        assignedDate: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)),
         },
       },
-      location: {
-        select: {
-          id: true,
-          name: true,
+      include: {
+        session: {
+          select: {
+            id: true,
+            name: true,
+            phase: true,
+            estimatedDuration: true,
+          },
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
       },
-    },
-    orderBy: {
-      assignedDate: 'asc',
-    },
-    take: 10,
-  })
+      orderBy: {
+        assignedDate: 'asc',
+      },
+      take: 10,
+    }),
+    prisma.strengthSessionAssignment.findMany({
+      where: {
+        athleteId: athleteAccount.clientId,
+        status: 'COMPLETED',
+      },
+      include: {
+        session: {
+          select: {
+            id: true,
+            name: true,
+            phase: true,
+            estimatedDuration: true,
+          },
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        assignedDate: 'desc',
+      },
+      take: 20,
+    }),
+  ])
 
   return {
     athleteAccount,
     subscription,
-    assignments,
+    upcomingAssignments,
+    completedAssignments,
   }
 }
 
@@ -123,7 +152,20 @@ export default async function BusinessStrengthPage({ params }: BusinessStrengthP
         <AthleteStrengthClient
           selfServiceEnabled={selfServiceEnabled}
           subscriptionTier={subscriptionTier}
-          upcomingAssignments={data.assignments.map((a) => ({
+          upcomingAssignments={data.upcomingAssignments.map((a) => ({
+            id: a.id,
+            sessionId: a.session.id,
+            sessionName: a.session.name,
+            phase: a.session.phase,
+            estimatedDuration: a.session.estimatedDuration,
+            assignedDate: a.assignedDate.toISOString(),
+            status: a.status,
+            startTime: a.startTime,
+            endTime: a.endTime,
+            locationName: a.locationName,
+            location: a.location,
+          }))}
+          completedAssignments={data.completedAssignments.map((a) => ({
             id: a.id,
             sessionId: a.session.id,
             sessionName: a.session.name,

@@ -5,10 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
     LayoutDashboard,
-    Dumbbell,
-    LineChart,
     Menu,
-    X,
     User as UserIcon,
     LogOut,
     Settings,
@@ -16,8 +13,6 @@ import {
     Calendar,
     Activity,
     TrendingUp,
-    Heart,
-    Flame,
     Gauge,
     Ship,
     Video,
@@ -26,7 +21,8 @@ import {
     Droplet,
     MessageSquare,
     ClipboardList,
-    Sparkles
+    Sparkles,
+    Library
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -115,9 +111,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                 { href: '/athlete/history', label: 'Historik', icon: TrendingUp },
                 { href: '/athlete/programs', label: 'Program', icon: ClipboardList },
                 { href: '/athlete/wod/history', label: 'AI-Pass', icon: Sparkles },
-                { href: '/athlete/strength', label: 'Styrketräning', icon: Dumbbell },
-                { href: '/athlete/cardio', label: 'Cardio Pass', icon: Heart },
-                { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame },
+                { href: '/athlete/training-library', label: 'Träningsbibliotek', icon: Library },
                 { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge },
                 { href: '/athlete/concept2', label: 'Concept2', icon: Ship },
                 { href: '/athlete/video-analysis', label: 'Videoanalys', icon: Video },

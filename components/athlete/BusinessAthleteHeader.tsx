@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
     LayoutDashboard,
-    Dumbbell,
     Menu,
     User as UserIcon,
     LogOut,
@@ -15,8 +14,6 @@ import {
     Calendar,
     Activity,
     TrendingUp,
-    Heart,
-    Flame,
     Gauge,
     Ship,
     Video,
@@ -25,7 +22,8 @@ import {
     Droplet,
     MessageSquare,
     ClipboardList,
-    Sparkles
+    Sparkles,
+    Library
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -102,9 +100,7 @@ export function BusinessAthleteHeader({
                 { href: `${basePath}/athlete/history`, label: 'Historik', icon: TrendingUp },
                 { href: `${basePath}/athlete/programs`, label: 'Program', icon: ClipboardList },
                 { href: `${basePath}/athlete/wod/history`, label: 'AI-Pass', icon: Sparkles },
-                { href: `${basePath}/athlete/strength`, label: 'Styrketräning', icon: Dumbbell },
-                { href: `${basePath}/athlete/cardio`, label: 'Cardio Pass', icon: Heart },
-                { href: `${basePath}/athlete/hybrid`, label: 'Hybrid Pass', icon: Flame },
+                { href: `${basePath}/athlete/training-library`, label: 'Träningsbibliotek', icon: Library },
                 { href: `${basePath}/athlete/vbt`, label: 'VBT Data', icon: Gauge },
                 { href: `${basePath}/athlete/concept2`, label: 'Concept2', icon: Ship },
                 { href: `${basePath}/athlete/video-analysis`, label: 'Videoanalys', icon: Video },

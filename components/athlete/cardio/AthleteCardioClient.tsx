@@ -93,7 +93,7 @@ export function AthleteCardioClient({
   // State
   const [assignments, setAssignments] = useState<CardioAssignment[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('upcoming')
+  const [activeTab, setActiveTab] = useState('history')
 
   // Focus mode state
   const [selectedAssignment, setSelectedAssignment] = useState<CardioAssignment | null>(null)
@@ -375,18 +375,6 @@ export function AthleteCardioClient({
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-none lg:flex bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
           <TabsTrigger
-            value="upcoming"
-            className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
-          >
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Kommande</span>
-            {upcomingAssignments.length > 0 && (
-              <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-100">
-                {upcomingAssignments.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger
             value="history"
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
@@ -402,6 +390,18 @@ export function AthleteCardioClient({
               <span className="hidden sm:inline">Mallar</span>
             </TabsTrigger>
           )}
+          <TabsTrigger
+            value="upcoming"
+            className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
+          >
+            <Calendar className="h-4 w-4" />
+            <span className="hidden sm:inline">Tilldelade</span>
+            {upcomingAssignments.length > 0 && (
+              <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-100">
+                {upcomingAssignments.length}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* Upcoming Sessions */}

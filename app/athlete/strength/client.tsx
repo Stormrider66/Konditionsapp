@@ -33,6 +33,7 @@ import {
   CalendarDays,
   MapPin,
   Timer,
+  History,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
@@ -64,6 +65,7 @@ interface AthleteStrengthClientProps {
   selfServiceEnabled: boolean
   subscriptionTier: string
   upcomingAssignments: Assignment[]
+  completedAssignments?: Assignment[]
   basePath?: string
 }
 
@@ -71,12 +73,11 @@ export function AthleteStrengthClient({
   selfServiceEnabled,
   subscriptionTier,
   upcomingAssignments,
+  completedAssignments = [],
   basePath = '',
 }: AthleteStrengthClientProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<string>(
-    upcomingAssignments.length > 0 ? 'upcoming' : 'browse'
-  )
+  const [activeTab, setActiveTab] = useState<string>('history')
 
   const handleAssigned = () => {
     // Refresh the page to show updated assignments
@@ -86,22 +87,102 @@ export function AthleteStrengthClient({
   return (
     <div className="space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 max-w-md bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg bg-slate-100 dark:bg-white/5 p-1 rounded-xl">
           <TabsTrigger
-            value="upcoming"
+            value="history"
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
-            <CalendarDays className="h-4 w-4" />
-            Kommande ({upcomingAssignments.length})
+            <History className="h-4 w-4" />
+            Historik
           </TabsTrigger>
           <TabsTrigger
             value="browse"
             className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
           >
             <Library className="h-4 w-4" />
-            Bläddra mallar
+            Mallar
+          </TabsTrigger>
+          <TabsTrigger
+            value="upcoming"
+            className="flex items-center gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm dark:data-[state=active]:bg-blue-600 dark:data-[state=active]:text-white transition-all font-bold"
+          >
+            <CalendarDays className="h-4 w-4" />
+            Tilldelade ({upcomingAssignments.length})
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="history" className="mt-8">
+          {completedAssignments.length === 0 ? (
+            <GlassCard className="text-center py-20 border-slate-200 dark:border-white/5 border-dashed bg-slate-50 dark:bg-white/[0.02] shadow-none">
+              <GlassCardContent>
+                <div className="w-16 h-16 bg-slate-100 dark:bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <History className="h-8 w-8 text-slate-300 dark:text-slate-500" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2">Ingen historik ännu</h3>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">
+                  Slutförda styrkepass visas här.
+                </p>
+              </GlassCardContent>
+            </GlassCard>
+          ) : (
+            <div className="space-y-4">
+              {completedAssignments.map((assignment) => {
+                const phaseInfo = PHASE_LABELS[assignment.phase] || {
+                  label: assignment.phase,
+                  color: 'bg-slate-500',
+                }
+                const assignedDate = new Date(assignment.assignedDate)
+
+                return (
+                  <GlassCard
+                    key={assignment.id}
+                    className="cursor-pointer hover:border-blue-300 dark:hover:border-blue-500/50 transition-all duration-300 group hover:shadow-lg dark:border-white/5 border-slate-200"
+                    onClick={() =>
+                      router.push(`${basePath}/athlete/workout/${assignment.sessionId}`)
+                    }
+                  >
+                    <GlassCardContent className="p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-5">
+                          <div className="p-4 rounded-2xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">
+                            <Dumbbell className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-3 mb-1">
+                              <h3 className="font-black text-lg text-slate-900 dark:text-white tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                {assignment.sessionName}
+                              </h3>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex-wrap">
+                              <span className="flex items-center gap-1.5">
+                                <Calendar className="h-3.5 w-3.5" />
+                                {format(assignedDate, 'EEEE d MMMM', { locale: sv })}
+                              </span>
+                              {assignment.estimatedDuration && (
+                                <span className="flex items-center gap-1.5">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  {assignment.estimatedDuration} min
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <Badge className={`${phaseInfo.color} text-white border-0 font-bold uppercase tracking-wider shadow-sm`}>
+                            {phaseInfo.label}
+                          </Badge>
+                          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 font-bold uppercase tracking-wide border-0">
+                            Slutförd
+                          </Badge>
+                        </div>
+                      </div>
+                    </GlassCardContent>
+                  </GlassCard>
+                )
+              })}
+            </div>
+          )}
+        </TabsContent>
 
         <TabsContent value="upcoming" className="mt-8">
           {upcomingAssignments.length === 0 ? (
