@@ -21,6 +21,7 @@ export default async function WODHistoryPage() {
       title: true,
       subtitle: true,
       mode: true,
+      workoutType: true,
       status: true,
       requestedDuration: true,
       primarySport: true,

@@ -379,6 +379,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       subtitle: true,
       description: true,
       mode: true,
+      workoutType: true,
       requestedDuration: true,
       actualDuration: true,
       status: true,

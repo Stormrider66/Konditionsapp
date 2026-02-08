@@ -11,6 +11,8 @@
 
 export type WODMode = 'structured' | 'casual' | 'fun'
 
+export type WODWorkoutType = 'strength' | 'cardio' | 'mixed' | 'core'
+
 export type WODFocusArea =
   | 'upper_body'
   | 'lower_body'
@@ -30,9 +32,20 @@ export type WODEquipment =
   | 'bike'
   | 'rower'
   | 'skierg'
+  | 'airbike'
+  | 'crosstrainer'
+  | 'step_machine'
+  | 'jump_rope'
+  | 'wall_ball'
+  | 'box'
+  | 'sled'
+  | 'sandbag'
+  | 'medicine_ball'
+  | 'stability_ball'
 
 export interface WODRequest {
   mode: WODMode
+  workoutType?: WODWorkoutType
   duration?: number  // Minutes (15-90, default 45)
   equipment?: WODEquipment[]
   focusArea?: WODFocusArea
@@ -106,6 +119,7 @@ export interface WODMetadata {
   requestId: string
   athleteName: string
   primarySport: string
+  workoutType?: WODWorkoutType
 
   // Readiness context
   readinessScore: number | null
@@ -242,7 +256,7 @@ export interface WODUsageStats {
 // UI STATE TYPES
 // ============================================
 
-export type WODGenerationStep = 'mode' | 'duration' | 'equipment' | 'generating' | 'preview' | 'focus'
+export type WODGenerationStep = 'workoutType' | 'mode' | 'duration' | 'equipment' | 'generating' | 'preview' | 'focus'
 
 export interface WODGeneratorState {
   step: WODGenerationStep
@@ -257,6 +271,26 @@ export interface WODGeneratorState {
 // ============================================
 
 export const WOD_LABELS = {
+  // Workout type labels
+  workoutTypes: {
+    strength: {
+      title: 'Styrka',
+      description: 'Styrketräning med fokus på muskeluppbyggnad och kraft',
+    },
+    cardio: {
+      title: 'Kondition',
+      description: 'Konditionsträning med intervaller eller steady-state',
+    },
+    mixed: {
+      title: 'Mixat',
+      description: 'CrossFit/HYROX-stil med både styrka och kondition',
+    },
+    core: {
+      title: 'Core',
+      description: 'Stabilitet, bålstyrka och funktionell core-träning',
+    },
+  },
+
   // Mode labels
   modes: {
     structured: {
@@ -293,6 +327,16 @@ export const WOD_LABELS = {
     bike: 'Cykel',
     rower: 'Roddmaskin',
     skierg: 'SkiErg',
+    airbike: 'Airbike',
+    crosstrainer: 'Crosstrainer',
+    step_machine: 'Trappmaskin',
+    jump_rope: 'Hopprep',
+    wall_ball: 'Wall Ball',
+    box: 'Plyo-box',
+    sled: 'Släde',
+    sandbag: 'Sandsäck',
+    medicine_ball: 'Medicinboll',
+    stability_ball: 'Pilatesboll',
   },
 
   // Focus area labels

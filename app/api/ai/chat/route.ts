@@ -110,6 +110,8 @@ export async function POST(request: NextRequest) {
     let apiKeyUserId: string; // Whose API keys to use
     let athleteClientId: string | undefined; // For athlete context
     let athleteName: string | undefined;
+    // Coach chat: only set when athlete belongs to coach AND consent is present
+    let coachVerifiedAthleteId: string | undefined;
     // Date range for calendar constraints (prefer active/current program window)
     let calendarProgramStartDate: Date | undefined;
     let calendarProgramEndDate: Date | undefined;
@@ -282,6 +284,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (athleteCheck) {
+        coachVerifiedAthleteId = athleteId;
         // Set calendar date range from active program
         if (athleteCheck.trainingPrograms[0]) {
           calendarProgramStartDate = athleteCheck.trainingPrograms[0].startDate;
@@ -344,7 +347,9 @@ export async function POST(request: NextRequest) {
 
     // Build calendar context for the athlete
     let calendarContext = '';
-    const calendarAthleteId = isAthleteChat ? athleteClientId : athleteId;
+    // GDPR: Never include athlete calendar data without consent.
+    // ACL: Never include athlete calendar data unless the athlete belongs to the coach.
+    const calendarAthleteId = isAthleteChat ? athleteClientId : coachVerifiedAthleteId;
     if (calendarAthleteId) {
       try {
         const calendarData = await buildCalendarContext(

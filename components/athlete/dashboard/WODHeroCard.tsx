@@ -15,6 +15,7 @@ import {
   DashboardWOD,
   getWODRoute,
   getWODModeLabel,
+  getWODWorkoutTypeLabel,
 } from '@/types/dashboard-items'
 
 interface WODHeroCardProps {
@@ -56,12 +57,17 @@ export function WODHeroCard({ wod, athleteName, basePath = '' }: WODHeroCardProp
             </p>
           )}
 
-          {/* Mode badge */}
+          {/* Mode badge + Workout type */}
           <div className="flex flex-wrap items-center gap-2 mt-3">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
               <Sparkles className="w-3 h-3" />
               {getWODModeLabel(wod.mode)}
             </span>
+            {wod.workoutType && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-medium">
+                {getWODWorkoutTypeLabel(wod.workoutType)}
+              </span>
+            )}
             {wod.intensityAdjusted && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 text-xs font-medium">
                 <Activity className="w-3 h-3" />

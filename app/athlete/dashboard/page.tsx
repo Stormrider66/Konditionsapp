@@ -371,6 +371,7 @@ export default async function AthleteDashboardPage() {
       subtitle: true,
       description: true,
       mode: true,
+      workoutType: true,
       requestedDuration: true,
       actualDuration: true,
       status: true,

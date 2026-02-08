@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
     const body: RequestBody = await request.json()
     const {
       mode = 'structured',
+      workoutType = 'strength',
       duration = 45,
       equipment = ['none'],
       focusArea,
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest) {
     // Build prompt
     const wodRequest: WODRequest = {
       mode: mode as WODMode,
+      workoutType: workoutType as WODRequest['workoutType'],
       duration,
       equipment,
       focusArea,
@@ -272,6 +274,7 @@ export async function POST(request: NextRequest) {
       requestId: crypto.randomUUID(),
       athleteName: context.athleteName,
       primarySport: context.primarySport,
+      workoutType: workoutType as WODMetadata['workoutType'],
       readinessScore: context.readinessScore,
       adjustedIntensity: guardrails.adjustedIntensity,
       guardrailsApplied,
@@ -286,6 +289,7 @@ export async function POST(request: NextRequest) {
       data: {
         clientId,
         mode: mode.toUpperCase() as 'STRUCTURED' | 'CASUAL' | 'FUN',
+        workoutType,
         requestedDuration: duration,
         equipment,
         focusArea,

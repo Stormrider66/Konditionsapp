@@ -39,6 +39,7 @@ export interface DashboardWOD {
   subtitle: string | null
   description: string | null
   mode: WODMode
+  workoutType: string | null
   requestedDuration: number
   actualDuration: number | null
   status: string  // GENERATED | STARTED | COMPLETED | ABANDONED
@@ -318,6 +319,7 @@ interface RawWOD {
   subtitle: string | null
   description: string | null
   mode: string
+  workoutType?: string | null
   requestedDuration: number
   actualDuration: number | null
   status: string
@@ -336,6 +338,7 @@ export function mapWODToDashboard(raw: RawWOD): DashboardWOD {
     subtitle: raw.subtitle,
     description: raw.description,
     mode: raw.mode as WODMode,
+    workoutType: raw.workoutType || 'strength',
     requestedDuration: raw.requestedDuration,
     actualDuration: raw.actualDuration,
     status: raw.status,
@@ -361,6 +364,26 @@ export function getWODModeLabel(mode: WODMode): string {
 
 export function getWODModeIcon(): LucideIcon {
   return Sparkles
+}
+
+export function getWODWorkoutTypeLabel(workoutType: string | null): string {
+  switch (workoutType) {
+    case 'strength': return 'Styrka'
+    case 'cardio': return 'Kondition'
+    case 'mixed': return 'Mixat'
+    case 'core': return 'Core'
+    default: return 'Styrka'
+  }
+}
+
+export function getWODWorkoutTypeIcon(workoutType: string | null): LucideIcon {
+  switch (workoutType) {
+    case 'strength': return Dumbbell
+    case 'cardio': return Heart
+    case 'mixed': return Zap
+    case 'core': return Flame
+    default: return Dumbbell
+  }
 }
 
 export function getWODStatusLabel(status: string): string {

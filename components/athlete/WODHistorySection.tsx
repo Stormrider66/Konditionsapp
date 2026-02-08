@@ -4,19 +4,23 @@
  * WODHistorySection - Shows WOD history in the Training Library
  *
  * Renders a list of AI-generated WOD cards with title, mode, date, duration, status, and RPE.
+ * Supports filtering by workout type.
  */
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Sparkles, Clock, CheckCircle2, Play, Star } from 'lucide-react'
+import { Sparkles, Clock, CheckCircle2, Play, Star, Dumbbell, Heart, Shuffle, Target } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 export interface WODSummaryItem {
   id: string
   title: string
   mode: string
+  workoutType?: string | null
   requestedDuration: number
   actualDuration: number | null
   status: string
@@ -43,7 +47,35 @@ const statusLabels: Record<string, string> = {
   ABANDONED: 'Avbrutet',
 }
 
+const workoutTypeLabels: Record<string, string> = {
+  strength: 'Styrka',
+  cardio: 'Kondition',
+  mixed: 'Mixat',
+  core: 'Core',
+}
+
+const workoutTypeIcons: Record<string, typeof Dumbbell> = {
+  strength: Dumbbell,
+  cardio: Heart,
+  mixed: Shuffle,
+  core: Target,
+}
+
+const WORKOUT_TYPE_FILTERS = [
+  { value: 'all', label: 'Alla' },
+  { value: 'strength', label: 'Styrka' },
+  { value: 'cardio', label: 'Kondition' },
+  { value: 'mixed', label: 'Mixat' },
+  { value: 'core', label: 'Core' },
+]
+
 export function WODHistorySection({ wodHistory, basePath }: WODHistorySectionProps) {
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+
+  const filteredHistory = typeFilter === 'all'
+    ? wodHistory
+    : wodHistory.filter(w => (w.workoutType || 'strength') === typeFilter)
+
   if (wodHistory.length === 0) {
     return (
       <div className="text-center py-20 bg-slate-50 border border-dashed border-slate-200 dark:bg-white/5 dark:border-white/10 rounded-3xl">
@@ -62,7 +94,31 @@ export function WODHistorySection({ wodHistory, basePath }: WODHistorySectionPro
 
   return (
     <div className="space-y-3">
-      {wodHistory.map((wod) => {
+      {/* Workout type filter */}
+      <div className="flex flex-wrap gap-2">
+        {WORKOUT_TYPE_FILTERS.map(f => (
+          <button
+            key={f.value}
+            onClick={() => setTypeFilter(f.value)}
+            className={cn(
+              'px-3 py-1 rounded-full text-xs font-medium transition-colors border',
+              typeFilter === f.value
+                ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-500/30'
+                : 'bg-white dark:bg-white/5 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:border-emerald-300 dark:hover:border-emerald-500/30'
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredHistory.length === 0 && (
+        <div className="text-center py-8 text-sm text-muted-foreground">
+          Inga pass med vald typ.
+        </div>
+      )}
+
+      {filteredHistory.map((wod) => {
         const isCompleted = wod.status === 'COMPLETED'
         const isStarted = wod.status === 'STARTED'
         const createdDate = new Date(wod.createdAt)
@@ -99,6 +155,15 @@ export function WODHistorySection({ wodHistory, basePath }: WODHistorySectionPro
                     <Sparkles className="h-3 w-3" />
                     {modeLabels[wod.mode] || wod.mode}
                   </span>
+                  {wod.workoutType && wod.workoutType !== 'strength' && (() => {
+                    const TypeIcon = workoutTypeIcons[wod.workoutType] || Dumbbell
+                    return (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
+                        <TypeIcon className="h-3 w-3" />
+                        {workoutTypeLabels[wod.workoutType] || wod.workoutType}
+                      </span>
+                    )
+                  })()}
                   <span>{format(createdDate, 'd MMM yyyy', { locale: sv })}</span>
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />

@@ -31,9 +31,15 @@ import {
   AlertTriangle,
   Bot,
   ChevronDown,
+  Dumbbell,
+  Heart,
+  Shuffle,
+  Target,
+  MapPin,
 } from 'lucide-react'
 import type {
   WODMode,
+  WODWorkoutType,
   WODEquipment,
   WODRequest,
   WODResponse,
@@ -51,7 +57,84 @@ interface WODGeneratorModalProps {
   isUnlimited: boolean
 }
 
-type Step = 'mode' | 'duration' | 'equipment' | 'generating'
+type Step = 'workoutType' | 'mode' | 'duration' | 'equipment' | 'generating'
+
+// Workout type config
+const WORKOUT_TYPE_ICONS: Record<WODWorkoutType, typeof Dumbbell> = {
+  strength: Dumbbell,
+  cardio: Heart,
+  mixed: Shuffle,
+  core: Target,
+}
+
+const WORKOUT_TYPE_COLORS: Record<WODWorkoutType, string> = {
+  strength: 'from-blue-500/20 to-indigo-500/20 border-blue-500/30 hover:border-blue-500/50',
+  cardio: 'from-red-500/20 to-orange-500/20 border-red-500/30 hover:border-red-500/50',
+  mixed: 'from-purple-500/20 to-pink-500/20 border-purple-500/30 hover:border-purple-500/50',
+  core: 'from-teal-500/20 to-cyan-500/20 border-teal-500/30 hover:border-teal-500/50',
+}
+
+const WORKOUT_TYPE_ACCENT: Record<WODWorkoutType, string> = {
+  strength: 'ring-blue-500 bg-blue-500/20 text-blue-500',
+  cardio: 'ring-red-500 bg-red-500/20 text-red-500',
+  mixed: 'ring-purple-500 bg-purple-500/20 text-purple-500',
+  core: 'ring-teal-500 bg-teal-500/20 text-teal-500',
+}
+
+// Equipment per workout type
+const EQUIPMENT_BY_TYPE: Record<WODWorkoutType, { value: WODEquipment; label: string; icon: string }[]> = {
+  strength: [
+    { value: 'none', label: 'Ingen utrustning', icon: '🏃' },
+    { value: 'dumbbells', label: 'Hantlar', icon: '🏋️' },
+    { value: 'barbell', label: 'Skivstång', icon: '💪' },
+    { value: 'kettlebell', label: 'Kettlebell', icon: '🔔' },
+    { value: 'resistance_band', label: 'Gummiband', icon: '〰️' },
+    { value: 'pull_up_bar', label: 'Räcke', icon: '🔩' },
+  ],
+  cardio: [
+    { value: 'none', label: 'Ingen utrustning', icon: '🏃' },
+    { value: 'treadmill', label: 'Löpband', icon: '🏃‍♂️' },
+    { value: 'rower', label: 'Roddmaskin', icon: '🚣' },
+    { value: 'bike', label: 'Cykel', icon: '🚴' },
+    { value: 'skierg', label: 'SkiErg', icon: '⛷️' },
+    { value: 'airbike', label: 'Airbike', icon: '💨' },
+    { value: 'crosstrainer', label: 'Crosstrainer', icon: '🔄' },
+    { value: 'step_machine', label: 'Trappmaskin', icon: '🪜' },
+    { value: 'jump_rope', label: 'Hopprep', icon: '🪢' },
+  ],
+  mixed: [
+    { value: 'none', label: 'Ingen utrustning', icon: '🏃' },
+    { value: 'dumbbells', label: 'Hantlar', icon: '🏋️' },
+    { value: 'barbell', label: 'Skivstång', icon: '💪' },
+    { value: 'kettlebell', label: 'Kettlebell', icon: '🔔' },
+    { value: 'resistance_band', label: 'Gummiband', icon: '〰️' },
+    { value: 'pull_up_bar', label: 'Räcke', icon: '🔩' },
+    { value: 'rower', label: 'Roddmaskin', icon: '🚣' },
+    { value: 'bike', label: 'Cykel', icon: '🚴' },
+    { value: 'skierg', label: 'SkiErg', icon: '⛷️' },
+    { value: 'airbike', label: 'Airbike', icon: '💨' },
+    { value: 'wall_ball', label: 'Wall Ball', icon: '⚽' },
+    { value: 'box', label: 'Plyo-box', icon: '📦' },
+    { value: 'sled', label: 'Släde', icon: '🛷' },
+    { value: 'sandbag', label: 'Sandsäck', icon: '🎒' },
+    { value: 'jump_rope', label: 'Hopprep', icon: '🪢' },
+  ],
+  core: [
+    { value: 'none', label: 'Ingen utrustning', icon: '🏃' },
+    { value: 'resistance_band', label: 'Gummiband', icon: '〰️' },
+    { value: 'medicine_ball', label: 'Medicinboll', icon: '🏐' },
+    { value: 'stability_ball', label: 'Pilatesboll', icon: '🔵' },
+  ],
+}
+
+interface LocationOption {
+  id: string
+  name: string
+  city: string | null
+  address: string | null
+  isPrimary: boolean
+  equipmentCount: number
+}
 
 const MODE_ICONS: Record<WODMode, typeof Sparkles> = {
   structured: Sparkles,
@@ -65,14 +148,6 @@ const MODE_COLORS: Record<WODMode, string> = {
   fun: 'from-pink-500/20 to-purple-500/20 border-pink-500/30 hover:border-pink-500/50',
 }
 
-const EQUIPMENT_OPTIONS: { value: WODEquipment; label: string; icon: string }[] = [
-  { value: 'none', label: 'Ingen utrustning', icon: '🏃' },
-  { value: 'dumbbells', label: 'Hantlar', icon: '🏋️' },
-  { value: 'barbell', label: 'Skivstång', icon: '💪' },
-  { value: 'kettlebell', label: 'Kettlebell', icon: '🔔' },
-  { value: 'resistance_band', label: 'Gummiband', icon: '〰️' },
-  { value: 'pull_up_bar', label: 'Räcke', icon: '🔩' },
-]
 
 export function WODGeneratorModal({
   open,
@@ -81,18 +156,49 @@ export function WODGeneratorModal({
   remainingWODs,
   isUnlimited,
 }: WODGeneratorModalProps) {
-  const [step, setStep] = useState<Step>('mode')
+  const [step, setStep] = useState<Step>('workoutType')
+  const [selectedWorkoutType, setSelectedWorkoutType] = useState<WODWorkoutType>('strength')
   const [selectedMode, setSelectedMode] = useState<WODMode>('structured')
   const [duration, setDuration] = useState(45)
   const [selectedEquipment, setSelectedEquipment] = useState<WODEquipment[]>(['none'])
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Gym location selector state
+  const [locations, setLocations] = useState<LocationOption[]>([])
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
+  const [hasLocations, setHasLocations] = useState(false)
+  const [loadingLocations, setLoadingLocations] = useState(false)
+
   // Model selection state
   const [availableModels, setAvailableModels] = useState<AIModelConfig[]>([])
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const [showModelSelector, setShowModelSelector] = useState(false)
   const [loadingModels, setLoadingModels] = useState(false)
+
+  // Fetch available locations when modal opens
+  useEffect(() => {
+    if (open && !hasLocations && !loadingLocations) {
+      setLoadingLocations(true)
+      fetch('/api/athlete/settings/preferred-location')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.hasLocations) {
+            setLocations(data.availableLocations)
+            setHasLocations(true)
+            if (data.preferredLocation) {
+              setSelectedLocationId(data.preferredLocation.id)
+            }
+          }
+        })
+        .catch(() => {
+          // No locations available - that's fine
+        })
+        .finally(() => {
+          setLoadingLocations(false)
+        })
+    }
+  }, [open, hasLocations, loadingLocations])
 
   // Fetch available models when modal opens
   useEffect(() => {
@@ -122,13 +228,18 @@ export function WODGeneratorModal({
   // Reset state when modal closes
   const handleOpenChange = useCallback((newOpen: boolean) => {
     if (!newOpen) {
-      setStep('mode')
+      setStep('workoutType')
       setError(null)
       setIsGenerating(false)
       setShowModelSelector(false)
     }
     onOpenChange(newOpen)
   }, [onOpenChange])
+
+  // Reset equipment when workout type changes
+  useEffect(() => {
+    setSelectedEquipment(['none'])
+  }, [selectedWorkoutType])
 
   // Toggle equipment selection
   const toggleEquipment = (equipment: WODEquipment) => {
@@ -158,6 +269,7 @@ export function WODGeneratorModal({
     try {
       const request = {
         mode: selectedMode,
+        workoutType: selectedWorkoutType,
         duration,
         equipment: selectedEquipment,
         modelId: selectedModelId,
@@ -183,7 +295,7 @@ export function WODGeneratorModal({
     } catch (err) {
       console.error('WOD generation error:', err)
       setError(err instanceof Error ? err.message : 'Något gick fel')
-      setStep('mode') // Go back to start
+      setStep('workoutType') // Go back to start
     } finally {
       setIsGenerating(false)
     }
@@ -191,13 +303,15 @@ export function WODGeneratorModal({
 
   // Navigation
   const goNext = () => {
-    if (step === 'mode') setStep('duration')
+    if (step === 'workoutType') setStep('mode')
+    else if (step === 'mode') setStep('duration')
     else if (step === 'duration') setStep('equipment')
     else if (step === 'equipment') generateWOD()
   }
 
   const goBack = () => {
-    if (step === 'duration') setStep('mode')
+    if (step === 'mode') setStep('workoutType')
+    else if (step === 'duration') setStep('mode')
     else if (step === 'equipment') setStep('duration')
   }
 
@@ -227,6 +341,49 @@ export function WODGeneratorModal({
           <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             {error}
+          </div>
+        )}
+
+        {/* Step: Workout Type Selection */}
+        {step === 'workoutType' && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Vilken typ av träning vill du göra?
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              {(['strength', 'cardio', 'mixed', 'core'] as WODWorkoutType[]).map(type => {
+                const Icon = WORKOUT_TYPE_ICONS[type]
+                const isSelected = selectedWorkoutType === type
+                const typeInfo = WOD_LABELS.workoutTypes[type]
+                const accent = WORKOUT_TYPE_ACCENT[type]
+
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setSelectedWorkoutType(type)}
+                    className={cn(
+                      'relative p-4 rounded-xl border-2 transition-all text-left',
+                      'bg-gradient-to-br',
+                      WORKOUT_TYPE_COLORS[type],
+                      isSelected && `ring-2 ring-offset-2 ring-offset-background ${accent.split(' ')[0]}`
+                    )}
+                  >
+                    <div className="flex flex-col gap-2">
+                      <div className={cn('p-2 rounded-lg w-fit', accent.split(' ').slice(1).join(' '))}>
+                        <Icon className={cn('h-5 w-5', accent.split(' ')[2])} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm">{typeInfo.title}</h3>
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {typeInfo.description}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -335,8 +492,37 @@ export function WODGeneratorModal({
               Vilken utrustning har du tillgång till?
             </p>
 
+            {/* Gym Location Selector */}
+            {hasLocations && locations.length > 0 && (
+              <div className="pb-3 border-b">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Välj gym</span>
+                </div>
+                <Select
+                  value={selectedLocationId || 'none'}
+                  onValueChange={(value) => {
+                    const locId = value === 'none' ? null : value
+                    setSelectedLocationId(locId)
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Inget gym valt" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Inget gym valt</SelectItem>
+                    {locations.map(loc => (
+                      <SelectItem key={loc.id} value={loc.id}>
+                        {loc.name}{loc.city ? ` (${loc.city})` : ''} - {loc.equipmentCount} utr.
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2">
-              {EQUIPMENT_OPTIONS.map(({ value, label, icon }) => {
+              {EQUIPMENT_BY_TYPE[selectedWorkoutType].map(({ value, label, icon }) => {
                 const isSelected = selectedEquipment.includes(value)
                 return (
                   <button
@@ -453,7 +639,7 @@ export function WODGeneratorModal({
             <Button
               variant="ghost"
               onClick={goBack}
-              disabled={step === 'mode'}
+              disabled={step === 'workoutType'}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Tillbaka

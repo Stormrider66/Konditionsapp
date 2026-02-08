@@ -547,10 +547,10 @@ function WODItem({ wod, isSelected, onClick, isGlass = false }: WODItemProps) {
               AI-Pass
             </span>
             <span>{modeLabels[mode] || mode}</span>
-            {meta.requestedDuration && (
+            {typeof meta.requestedDuration === 'number' && meta.requestedDuration > 0 && (
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {meta.actualDuration || meta.requestedDuration} min
+                {(typeof meta.actualDuration === 'number' ? meta.actualDuration : meta.requestedDuration)} min
               </span>
             )}
           </div>

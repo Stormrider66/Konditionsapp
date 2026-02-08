@@ -4547,6 +4547,7 @@ model AIGeneratedWOD {
 
   // Generation configuration
   mode              WODMode  @default(STRUCTURED)
+  workoutType       String?  @default("strength") // "strength", "cardio", "mixed", "core"
   requestedDuration Int      @default(45) // Minutes
   equipment         String[] @default([])
   focusArea         String? // "upper_body", "lower_body", "full_body", "cardio", "recovery"

@@ -10,6 +10,7 @@ import type {
   WODRequest,
   WODGuardrailResult,
   WODMode,
+  WODWorkoutType,
   WODEquipment,
 } from '@/types/wod'
 import { WOD_LABELS } from '@/types/wod'
@@ -27,14 +28,19 @@ export function buildWODPrompt(
   request: WODRequest,
   guardrails: WODGuardrailResult
 ): string {
+  const workoutType = request.workoutType || 'strength'
   const modePrompt = getModePrompt(request.mode)
+  const workoutTypePrompt = getWorkoutTypePrompt(workoutType)
   const sportContext = getSportContext(context.primarySport)
   const constraintsSection = generateGuardrailConstraints(guardrails)
   const excludedCategories = getExcludedExerciseCategories(guardrails.excludedAreas)
+  const jsonTemplate = getJsonTemplate(workoutType)
 
   return `${SYSTEM_CONTEXT}
 
 ${modePrompt}
+
+${workoutTypePrompt}
 
 ## ATLET PROFIL
 - **Namn**: ${context.athleteName}
@@ -58,6 +64,7 @@ ${constraintsSection}
 ${excludedCategories.length > 0 ? `\n## EXKLUDERADE ÖVNINGSKATEGORIER\n${excludedCategories.join(', ')}\n` : ''}
 
 ## PASSSPECIFIKATION
+- **Träningstyp**: ${WOD_LABELS.workoutTypes[workoutType].title}
 - **Längd**: ${request.duration || 45} minuter
 - **Önskad utrustning**: ${formatEquipment(request.equipment || ['none'])}
 - **Fokusområde**: ${request.focusArea ? WOD_LABELS.focusAreas[request.focusArea] : 'Helkropp'}
@@ -70,7 +77,7 @@ ${formatLocationEquipment(context.locationEquipment)}
 Svara ENDAST med JSON i följande format (ingen annan text):
 
 \`\`\`json
-${JSON_OUTPUT_TEMPLATE}
+${jsonTemplate}
 \`\`\`
 
 VIKTIGT:
@@ -161,6 +168,129 @@ Tonen ska vara energisk och lekfull. Använd:
 - Motiverande undertitlar
 - Humoristiska instruktioner (men fortfarande korrekta)
 - "Achievement unlocked"-känsla`
+
+// ============================================
+// WORKOUT TYPE-SPECIFIC PROMPTS
+// ============================================
+
+function getWorkoutTypePrompt(workoutType: WODWorkoutType): string {
+  switch (workoutType) {
+    case 'strength':
+      return STRENGTH_TYPE_PROMPT
+    case 'cardio':
+      return CARDIO_TYPE_PROMPT
+    case 'mixed':
+      return MIXED_TYPE_PROMPT
+    case 'core':
+      return CORE_TYPE_PROMPT
+    default:
+      return STRENGTH_TYPE_PROMPT
+  }
+}
+
+const STRENGTH_TYPE_PROMPT = `## TRÄNINGSTYP: STYRKA
+
+Du skapar ett STYRKEPASS med fokus på muskeluppbyggnad och kraft:
+
+- Strukturera med sets, reps och viloperioder
+- Inkludera alla 4 sektioner: WARMUP → MAIN → CORE → COOLDOWN
+- Progressiv belastning baserat på atletens nivå
+- Ange vikt som "Kroppsvikt", "Lätt", "Måttlig", "Tung" eller "% av 1RM"
+- Ge tydliga tempoangavelser (t.ex. "3-1-1")
+- Fokusera på kompoundövningar i huvuddelen`
+
+const CARDIO_TYPE_PROMPT = `## TRÄNINGSTYP: KONDITION
+
+Du skapar ett KONDITIONSPASS med fokus på uthållighet och kardiovaskulär fitness:
+
+- Inkludera 3 sektioner: WARMUP → MAIN → COOLDOWN (INGEN Core-sektion)
+- Använd intervaller, steady-state eller zonbaserad träning
+- Ange duration, distans och/eller puls-zoner för varje övning
+- Variera intensitet genom passet (t.ex. pyramidintervaller, fartlek)
+- Anpassa till tillgänglig utrustning (löpband, cykel, rodd, etc.)
+- Inkludera pace/watt-rekommendationer baserat på atletens nivå`
+
+const MIXED_TYPE_PROMPT = `## TRÄNINGSTYP: MIXAT (CrossFit/HYROX-stil)
+
+Du skapar ett FUNKTIONELLT MIXAT PASS som kombinerar styrka och kondition:
+
+- Inkludera alla 4 sektioner: WARMUP → MAIN → CORE → COOLDOWN
+- Använd CrossFit/HYROX-format: AMRAP, EMOM, For Time, Tabata, eller Chipper
+- Kombinera styrkeövningar med kardiobursts
+- Ange tidsformat tydligt (t.ex. "AMRAP 12 min", "EMOM x 8")
+- Funktionella rörelser som har bred överföring
+- Inkludera stationsövergångar och vila strategiskt`
+
+const CORE_TYPE_PROMPT = `## TRÄNINGSTYP: CORE
+
+Du skapar ett CORE-FOKUSERAT PASS med fokus på bålstabilitet:
+
+- Inkludera 3 sektioner: WARMUP → MAIN → COOLDOWN (INGEN separat Core-sektion)
+- Hela MAIN-sektionen är core-fokuserad
+- Blanda anti-rotation, anti-extension, anti-flexion övningar
+- Inkludera stabilitet, balans och funktionella core-rörelser
+- Variation: plank-varianter, pallof press, dead bugs, carries, etc.
+- Anpassa duration (holds) och reps efter atletens nivå`
+
+// ============================================
+// WORKOUT TYPE-SPECIFIC JSON TEMPLATES
+// ============================================
+
+function getJsonTemplate(workoutType: WODWorkoutType): string {
+  switch (workoutType) {
+    case 'cardio':
+    case 'core':
+      return JSON_THREE_SECTION_TEMPLATE
+    case 'strength':
+    case 'mixed':
+    default:
+      return JSON_OUTPUT_TEMPLATE
+  }
+}
+
+const JSON_THREE_SECTION_TEMPLATE = `{
+  "title": "Inspirerande svenskt namn på passet",
+  "subtitle": "Kort motiverande undertitel",
+  "description": "2-3 meningar som beskriver vad passet fokuserar på och varför det är bra för atleten idag",
+  "sections": [
+    {
+      "type": "WARMUP",
+      "name": "Uppvärmning",
+      "duration": 8,
+      "exercises": [
+        {
+          "name": "Exercise Name",
+          "nameSv": "Övningsnamn på Svenska",
+          "sets": 2,
+          "reps": "10 vardera",
+          "instructions": "Tydliga instruktioner på svenska"
+        }
+      ],
+      "notes": "Valfri sektion-specifik notering"
+    },
+    {
+      "type": "MAIN",
+      "name": "Huvudpass",
+      "duration": 30,
+      "exercises": [
+        {
+          "name": "Exercise Name",
+          "nameSv": "Övningsnamn på Svenska",
+          "sets": 3,
+          "reps": "12",
+          "instructions": "Tydliga instruktioner"
+        }
+      ]
+    },
+    {
+      "type": "COOLDOWN",
+      "name": "Nedvarvning",
+      "duration": 7,
+      "exercises": []
+    }
+  ],
+  "coachNotes": "AI-genererad förklaring av varför detta pass valdes för atleten idag baserat på deras tillstånd och mål"
+}`
 
 // ============================================
 // SPORT-SPECIFIC CONTEXT

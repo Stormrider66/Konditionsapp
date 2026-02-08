@@ -36,6 +36,7 @@ export default async function BusinessWODHistoryPage({ params }: BusinessWODHist
       title: true,
       subtitle: true,
       mode: true,
+      workoutType: true,
       status: true,
       requestedDuration: true,
       primarySport: true,

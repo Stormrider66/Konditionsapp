@@ -105,6 +105,7 @@ async function getLibraryData(userId: string, clientId: string) {
         id: true,
         title: true,
         mode: true,
+        workoutType: true,
         requestedDuration: true,
         actualDuration: true,
         status: true,
