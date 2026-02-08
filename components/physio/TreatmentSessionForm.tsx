@@ -22,6 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface Athlete {
     id: string
@@ -309,7 +310,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
             {/* SOAP Notes */}
             <Card className="bg-slate-900/50 border-white/10">
                 <CardHeader>
-                    <CardTitle className="text-white">SOAP Notes</CardTitle>
+                    <CardTitle className="text-white">SOAP Notes <InfoTooltip conceptKey="soapNotes" /></CardTitle>
                     <CardDescription className="text-slate-400">
                         Document your clinical findings using the SOAP format
                     </CardDescription>

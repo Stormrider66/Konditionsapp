@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Target, TrendingUp } from 'lucide-react';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 const vdotSchema = z.object({
   raceDistance: z.enum(['1500', '3000', '5000', '10000', '21097', '42195']),
@@ -204,7 +205,7 @@ export function VDOTCalculator() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5" />
-                Your VDOT Score
+                Your VDOT Score <InfoTooltip conceptKey="vdot" />
               </CardTitle>
             </CardHeader>
             <CardContent>

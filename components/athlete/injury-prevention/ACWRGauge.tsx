@@ -15,6 +15,7 @@
  */
 
 import { cn } from '@/lib/utils'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 type ACWRZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 
@@ -211,7 +212,7 @@ export function ACWRGauge({ value, zone, className }: ACWRGaugeProps) {
           {value !== null ? value.toFixed(2) : '—'}
         </div>
         <div className={cn('text-sm font-medium', value !== null ? zoneConfig.text : 'text-muted-foreground')}>
-          {zone ? zoneConfig.label : 'Ingen data'}
+          {zone ? zoneConfig.label : 'Ingen data'} <InfoTooltip conceptKey="acwr" />
         </div>
       </div>
     </div>

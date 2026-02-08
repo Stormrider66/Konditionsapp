@@ -65,6 +65,7 @@ import {
   Zap,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { generatePeriodizationPlan, STRENGTH_PHASES } from '@/lib/training-engine/quality-programming/strength-periodization'
 
 interface StrengthProgramWizardProps {
@@ -504,9 +505,10 @@ export function StrengthProgramWizard({
 
         <Alert>
           <CheckCircle2 className="h-4 w-4" />
-          <AlertDescription className="text-xs">
+          <AlertDescription className="text-xs flex items-center gap-1.5">
             Periodization automatically aligns with your running phase. Strength phases will
             transition appropriately to avoid interference with key running workouts.
+            <InfoTooltip conceptKey="interferenceWarnings" />
           </AlertDescription>
         </Alert>
       </div>

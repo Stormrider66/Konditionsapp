@@ -26,6 +26,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -60,6 +61,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface ProgressionDashboardProps {
   clientId: string
@@ -95,6 +97,7 @@ interface ProgressionSummary {
 }
 
 export function ProgressionDashboard({ clientId, clientName }: ProgressionDashboardProps) {
+  const pageCtx = usePageContextOptional()
   const { toast } = useToast()
 
   // State
@@ -103,6 +106,43 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
   const [exerciseSummaries, setExerciseSummaries] = useState<ProgressionSummary[]>([])
   const [timeRange, setTimeRange] = useState<'4weeks' | '12weeks' | 'all'>('12weeks')
   const [isLoading, setIsLoading] = useState(false)
+
+  // Set rich page context for AI chat
+  useEffect(() => {
+    if (exerciseSummaries.length === 0) return
+    const selectedSummary = exerciseSummaries.find(s => s.exercise.id === selectedExercise)
+    const plateauExercises = exerciseSummaries.filter(s => s.currentStatus === 'PLATEAU')
+    const readyForIncrease = exerciseSummaries.filter(s => s.readyForIncrease)
+    pageCtx?.setPageContext({
+      type: 'progression',
+      title: `Progression - ${clientName}`,
+      conceptKeys: ['oneRM', 'twoForTwo', 'rpe'],
+      data: {
+        clientName,
+        totalExercises: exerciseSummaries.length,
+        exercises: exerciseSummaries.map(s => ({
+          name: s.exercise.name,
+          current1RM: s.current1RM,
+          improvementPercent: s.improvementPercent,
+          status: s.currentStatus,
+          readyForIncrease: s.readyForIncrease,
+          plateauWeeks: s.plateauWeeks,
+        })),
+        selectedExercise: selectedSummary ? {
+          name: selectedSummary.exercise.name,
+          current1RM: selectedSummary.current1RM,
+          initial1RM: selectedSummary.initial1RM,
+          improvement: selectedSummary.improvement,
+          status: selectedSummary.currentStatus,
+          plateauWeeks: selectedSummary.plateauWeeks,
+          readyForIncrease: selectedSummary.readyForIncrease,
+        } : null,
+        plateauCount: plateauExercises.length,
+        readyForIncreaseCount: readyForIncrease.length,
+      },
+      summary: `Progression för ${clientName}: ${exerciseSummaries.length} övningar spåras. ${plateauExercises.length} i platå, ${readyForIncrease.length} redo för belastningsökning.${selectedSummary ? ` Vald övning: ${selectedSummary.exercise.name} med 1RM ${selectedSummary.current1RM.toFixed(1)} kg (${selectedSummary.currentStatus}).` : ''}`,
+    })
+  }, [exerciseSummaries, selectedExercise, clientName, pageCtx])
 
   // Fetch weekly progression summary
   const fetchProgressionSummary = useCallback(async () => {
@@ -241,7 +281,7 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Load Progression</CardTitle>
+            <CardTitle className="text-sm font-medium">Load Progression <InfoTooltip conceptKey="twoForTwo" /></CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">

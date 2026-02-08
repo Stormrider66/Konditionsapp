@@ -11,10 +11,12 @@
  */
 
 import { useEffect, useState } from 'react';
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Activity, Heart, TrendingUp, AlertTriangle } from 'lucide-react';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface MonitoringChartsProps {
@@ -25,6 +27,7 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const pageCtx = usePageContextOptional();
 
   useEffect(() => {
     async function fetchData() {
@@ -45,6 +48,31 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
 
     fetchData();
   }, [athleteId, timeRange]);
+
+  // Rich page context for AI chat
+  useEffect(() => {
+    if (!data?.metrics?.length || !pageCtx?.setPageContext) return;
+    const latest = data.metrics[data.metrics.length - 1];
+    const avg = {
+      hrv: (data.metrics.reduce((s: number, m: any) => s + (m.hrvRMSSD || 0), 0) / data.metrics.length).toFixed(1),
+      rhr: (data.metrics.reduce((s: number, m: any) => s + (m.restingHR || 0), 0) / data.metrics.length).toFixed(0),
+    };
+    pageCtx.setPageContext({
+      type: 'monitoring',
+      title: 'Atletövervakning',
+      data: {
+        currentHRV: latest.hrvRMSSD,
+        currentRHR: latest.restingHR,
+        readinessScore: latest.readinessScore,
+        avgHRV: avg.hrv,
+        avgRHR: avg.rhr,
+        dataPoints: data.metrics.length,
+        timeRange,
+      },
+      summary: `Monitoreringsdata för atlet. Senaste HRV: ${latest.hrvRMSSD?.toFixed(1) || 'N/A'} ms, Vilopuls: ${latest.restingHR || 'N/A'} bpm, Beredskap: ${latest.readinessScore || 'N/A'}.`,
+      conceptKeys: ['readiness', 'hrv', 'tss', 'acwr', 'trainingZones', 'rhrDeviation'],
+    });
+  }, [data, timeRange, pageCtx]);
 
   if (loading) {
     return <div>Loading monitoring data...</div>;
@@ -102,6 +130,7 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Activity className="h-4 w-4" />
               Current HRV
+              <InfoTooltip conceptKey="hrv" />
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -142,6 +171,7 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Readiness
+              <InfoTooltip conceptKey="readiness" />
             </CardTitle>
           </CardHeader>
           <CardContent>

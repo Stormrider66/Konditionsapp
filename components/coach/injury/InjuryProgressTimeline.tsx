@@ -46,6 +46,7 @@ import {
 } from 'lucide-react'
 import { format, addDays, differenceInDays } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface InjuryWithProgress {
   id: string
@@ -223,7 +224,7 @@ export function InjuryProgressTimeline() {
       {/* Header with Athlete Selector */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-2xl font-bold">Skadeåterhämtning</h3>
+          <h3 className="text-2xl font-bold">Skadeåterhämtning <InfoTooltip conceptKey="rehabPhases" /></h3>
           <p className="text-sm text-muted-foreground">
             Följ progressionen tillbaka till full träning
           </p>

@@ -22,6 +22,7 @@ import {
   Target,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface CyclingWorkoutLoggingFormProps {
   workout: {
@@ -305,7 +306,7 @@ export function CyclingWorkoutLoggingForm({
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label>Kadens (snitt RPM)</Label>
+              <Label className="flex items-center gap-1.5">Kadens (snitt RPM) <InfoTooltip conceptKey="cadence" /></Label>
               <Input
                 type="number"
                 value={formData.avgCadence || ''}

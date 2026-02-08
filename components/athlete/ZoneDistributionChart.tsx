@@ -27,6 +27,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import {
   Heart,
   Activity,
@@ -273,6 +274,7 @@ export function ZoneDistributionChart({
             <CardTitle className="text-base flex items-center gap-2">
               <Heart className="h-4 w-4" />
               Tid i HR-zoner
+              <InfoTooltip conceptKey="trainingZones" />
             </CardTitle>
             <CardDescription>
               Fordelning av traningstid per intensitetszon

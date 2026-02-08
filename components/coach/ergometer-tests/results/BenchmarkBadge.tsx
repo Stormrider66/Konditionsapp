@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, TrendingUp, Target, Info, Zap } from 'lucide-react';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import {
   Tooltip,
   TooltipContent,
@@ -117,7 +118,7 @@ export function BenchmarkBadge({ benchmark, compact = false, showDetails = true 
               {config.icon}
             </div>
             <div>
-              <h4 className={`font-bold ${config.text}`}>{config.label}</h4>
+              <h4 className={`font-bold ${config.text} flex items-center gap-1.5`}>{config.label} <InfoTooltip conceptKey="benchmarkTiers" /></h4>
               <p className="text-xs text-muted-foreground">{benchmark.comparedTo}</p>
             </div>
           </div>

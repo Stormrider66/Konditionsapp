@@ -34,6 +34,7 @@ import {
   CheckCircle2,
   ArrowRight,
 } from 'lucide-react';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 interface ExerciseSummary {
   exerciseId: string;
@@ -184,6 +185,7 @@ export function VBTProgressionWidget({ clientId }: VBTProgressionWidgetProps) {
           <CardTitle className="text-base flex items-center gap-2">
             <Gauge className="h-4 w-4" />
             VBT Progression
+            <InfoTooltip conceptKey="oneRM" />
           </CardTitle>
           <Link href="/athlete/vbt">
             <Button variant="ghost" size="sm" className="h-7 text-xs">

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +10,8 @@ import { calculatePowerZones, evaluateCyclingPower } from '@/lib/calculations/cy
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 
 interface CyclingSettings {
   bikeTypes: string[]
@@ -55,8 +58,41 @@ export function CyclingDashboard({
   experience,
   clientName,
 }: CyclingDashboardProps) {
+  const pageCtx = usePageContextOptional()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+
+  // Set rich page context for AI chat
+  useEffect(() => {
+    if (!cyclingSettings) return
+    const ftp = cyclingSettings.currentFtp
+    const w = cyclingSettings.weight
+    const wpkg = ftp && w ? (ftp / w) : null
+    const pzones = ftp ? calculatePowerZones(ftp) : null
+    pageCtx?.setPageContext({
+      type: 'cycling',
+      title: `Cykling - ${clientName}`,
+      conceptKeys: ['ftp', 'wattsPerKg', 'criticalPower', 'trainingZones'],
+      data: {
+        clientName,
+        ftp,
+        weight: w,
+        wattsPerKg: wpkg ? parseFloat(wpkg.toFixed(2)) : null,
+        ftpTestDate: cyclingSettings.ftpTestDate,
+        primaryDiscipline: cyclingSettings.primaryDiscipline,
+        weeklyHours: cyclingSettings.weeklyHours,
+        bikeTypes: cyclingSettings.bikeTypes,
+        zoneCount: pzones?.length ?? 0,
+        zones: pzones?.map(z => ({
+          zone: z.zone,
+          name: z.name,
+          powerMin: z.powerMin,
+          powerMax: z.powerMax,
+        })) ?? [],
+      },
+      summary: `Cykling för ${clientName}: FTP ${ftp ? `${ftp}W` : 'ej registrerad'}${wpkg ? `, ${wpkg.toFixed(2)} W/kg` : ''}. ${cyclingSettings.weeklyHours}h/vecka, disciplin: ${cyclingSettings.primaryDiscipline || 'ej angiven'}. ${pzones ? `${pzones.length} träningszoner beräknade.` : 'Inga zoner beräknade.'}`,
+    })
+  }, [cyclingSettings, clientName, pageCtx])
 
   if (!cyclingSettings) {
     return (
@@ -106,7 +142,7 @@ export function CyclingDashboard({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>FTP</p>
+                <p className="text-sm font-medium flex items-center gap-1.5" style={{ color: theme.colors.textMuted }}>FTP <InfoTooltip conceptKey="ftp" /></p>
                 <p className="text-3xl font-bold mt-1" style={{ color: theme.colors.textPrimary }}>
                   {currentFtp ? `${currentFtp}W` : '—'}
                 </p>
@@ -127,7 +163,7 @@ export function CyclingDashboard({
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Watt/kg</p>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textMuted }}>Watt/kg <InfoTooltip conceptKey="wattsPerKg" /></p>
                 <p className="text-3xl font-bold mt-1" style={{ color: theme.colors.textPrimary }}>
                   {wattsPerKg ? wattsPerKg.toFixed(2) : '—'}
                 </p>
@@ -192,6 +228,7 @@ export function CyclingDashboard({
             <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <TrendingUp className="h-5 w-5" />
               Dina träningszoner
+              <InfoTooltip conceptKey="trainingZones" />
             </CardTitle>
             <CardDescription style={{ color: theme.colors.textMuted }}>
               Baserat på din FTP på {currentFtp}W

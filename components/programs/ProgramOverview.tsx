@@ -34,6 +34,7 @@ import { ProgramWithWeeks } from '@/types/prisma-types'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 import { ProgramExportButton } from '@/components/coach/programs/ProgramExportButton'
 import { convertDatabaseProgramToParsed } from '@/lib/exports/program-converter'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface ProgramOverviewProps {
   program: ProgramWithWeeks
@@ -89,7 +90,7 @@ export function ProgramOverview({ program, basePath = '/coach' }: ProgramOvervie
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{program.name}</h1>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{program.name} <InfoTooltip conceptKey="periodization" /></h1>
             {isActive && (
               <Badge variant="default" className="text-sm bg-green-600 hover:bg-green-700">
                 Aktivt

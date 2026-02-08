@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Download, FileText, Table } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 
@@ -137,6 +138,7 @@ export function ExportDataButton({ logs }: ExportDataButtonProps) {
         <Button variant="outline" size="sm">
           <Download className="mr-2 h-4 w-4" />
           Exportera data
+          <InfoTooltip conceptKey="exportFormats" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

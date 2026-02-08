@@ -13,11 +13,13 @@
  */
 
 import { useEffect, useState } from 'react'
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Watch, Moon, Activity } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import {
   LineChart,
   Line,
@@ -125,6 +127,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
   const [garminData, setGarminData] = useState<GarminData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const pageCtx = usePageContextOptional()
 
   useEffect(() => {
     async function fetchData() {
@@ -156,6 +159,31 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
 
     fetchData()
   }, [clientId])
+
+  // Rich page context for AI chat
+  useEffect(() => {
+    if (!data?.current || !pageCtx?.setPageContext) return
+    pageCtx.setPageContext({
+      type: 'readiness',
+      title: 'Beredskap',
+      data: {
+        readinessScore: data.current.readinessScore,
+        readinessLevel: data.current.readinessLevel,
+        recommendedAction: data.current.recommendedAction,
+        hrvValue: data.current.factors?.hrv?.value,
+        hrvTrend: data.current.factors?.hrv?.trend,
+        rhrValue: data.current.factors?.rhr?.value,
+        rhrDeviation: data.current.factors?.rhr?.deviation,
+        trendDirection: data.trend.direction,
+        trendMagnitude: data.trend.magnitude,
+        avg30Readiness: data.averages.readiness,
+        checkInStreak: data.meta.checkInStreak,
+        hasGarmin: garminData?.available || false,
+      },
+      summary: `Beredskap: ${data.current.readinessScore || 'N/A'}/10 (${data.current.readinessLevel || 'Ingen data'}). Trend: ${data.trend.direction}. HRV: ${data.current.factors?.hrv?.value?.toFixed(1) || 'N/A'} ms.`,
+      conceptKeys: ['readiness', 'hrv', 'rhrDeviation', 'sleepBreakdown'],
+    })
+  }, [data, garminData, pageCtx])
 
   if (isLoading) {
     return (
@@ -241,7 +269,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
       {/* Current Readiness Score */}
       <Card>
         <CardHeader>
-          <CardTitle>Current Readiness</CardTitle>
+          <CardTitle>Current Readiness <InfoTooltip conceptKey="readiness" /></CardTitle>
           <CardDescription>
             {data.current.date
               ? `Last updated: ${new Date(data.current.date).toLocaleDateString()}`
@@ -288,7 +316,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
           {data.current.factors.hrv && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Heart Rate Variability</CardTitle>
+                <CardTitle className="text-base">Heart Rate Variability <InfoTooltip conceptKey="hrv" /></CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -313,7 +341,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
           {data.current.factors.rhr && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Resting Heart Rate</CardTitle>
+                <CardTitle className="text-base flex items-center gap-1.5">Resting Heart Rate <InfoTooltip conceptKey="rhrDeviation" /></CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -413,7 +441,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               {/* Sleep Details */}
               {garminData.data.sleepDetails && (
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">Sömndetaljer</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1.5">Sömndetaljer <InfoTooltip conceptKey="sleepBreakdown" /></div>
                   <div className="text-xs space-y-0.5">
                     {garminData.data.sleepDetails.deepSleepMinutes !== undefined && (
                       <div>Djupsömn: {Math.round(garminData.data.sleepDetails.deepSleepMinutes)} min</div>

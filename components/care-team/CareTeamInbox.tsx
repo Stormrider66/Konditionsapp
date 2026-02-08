@@ -37,6 +37,7 @@ import {
   User,
   Activity,
 } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface Thread {
   id: string
@@ -187,6 +188,7 @@ export function CareTeamInbox({
           <GlassCardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-blue-500" />
             Vårdteam
+            <InfoTooltip conceptKey="careTeamPriority" />
           </GlassCardTitle>
           <GlassCardDescription className="text-slate-400">
             Kommunikation mellan fysio, coach och atlet

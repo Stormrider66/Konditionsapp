@@ -13,6 +13,7 @@
 
 import Link from 'next/link'
 import { TrendingUp, Activity, AlertCircle, Heart } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { GlassCard, GlassCardHeader, GlassCardTitle, GlassCardContent } from '@/components/ui/GlassCard'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
@@ -139,6 +140,7 @@ export function ReadinessPanel({
         <GlassCardTitle className="text-lg flex items-center gap-2 text-slate-900 dark:text-white transition-colors">
           <TrendingUp className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
           Beredskap
+          <InfoTooltip conceptKey="readiness" />
         </GlassCardTitle>
       </GlassCardHeader>
 

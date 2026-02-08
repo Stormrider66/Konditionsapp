@@ -2,6 +2,7 @@
 
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface AIChatUsageMeterProps {
   used: number
@@ -54,8 +55,8 @@ export function AIChatUsageMeter({
     <div className={cn('space-y-1', className)}>
       {showLabel && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            {locale === 'sv' ? 'AI-chatt' : 'AI Chat'}
+          <span className="text-muted-foreground flex items-center gap-1.5">
+            {locale === 'sv' ? 'AI-chatt' : 'AI Chat'} <InfoTooltip conceptKey="tokenBudget" />
           </span>
           <span
             className={cn(

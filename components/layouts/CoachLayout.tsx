@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 
 function FloatingAIChatWithContext() {
   const pageContextValue = usePageContextOptional()
-  return <FloatingAIChat pageContext={pageContextValue?.pageContext} />
+  return <FloatingAIChat pageContext={pageContextValue?.pageContext} visibleConcepts={pageContextValue?.visibleConcepts} />
 }
 
 export function CoachLayout({ children }: { children: React.ReactNode }) {

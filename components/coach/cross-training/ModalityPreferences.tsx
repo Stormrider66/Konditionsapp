@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
@@ -273,7 +274,7 @@ export default function ModalityPreferences({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold">Korstr.träningspreferenser</h2>
+          <h2 className="text-2xl font-bold flex items-center gap-1.5">Korstr.träningspreferenser <InfoTooltip conceptKey="crossTraining" /></h2>
           <p className="text-sm text-muted-foreground">
             Konfigurera modaliteter och utrustning för individuell anpassning
           </p>

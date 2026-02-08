@@ -6,6 +6,7 @@
  * Main dashboard combining ACWR gauge, load trend, injury status, and recommendations.
  */
 
+import { useEffect } from 'react'
 import useSWR from 'swr'
 import { Loader2, AlertCircle, Shield } from 'lucide-react'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
@@ -14,6 +15,8 @@ import { LoadTrendChart } from './LoadTrendChart'
 import { InjuryStatusList } from './InjuryStatusCard'
 import { AIRecommendations } from './AIRecommendations'
 import { cn } from '@/lib/utils'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 
 type ACWRZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH'
@@ -62,6 +65,7 @@ interface InjuryPreventionDashboardProps {
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboardProps) {
+  const pageCtx = usePageContextOptional()
   const { data, error, isLoading } = useSWR<InjuryPreventionResponse>(
     '/api/athlete/injury-prevention',
     fetcher,
@@ -70,6 +74,34 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
       revalidateOnFocus: true,
     }
   )
+
+  // Set rich page context for AI chat
+  useEffect(() => {
+    if (!data?.success || !data.data) return
+    const { acwr, activeInjuries, recommendations } = data.data
+    const warningCount = recommendations.filter(r => r.type === 'WARNING').length
+    pageCtx?.setPageContext({
+      type: 'injury-prevention',
+      title: 'Skadeförebyggande dashboard',
+      conceptKeys: ['acwr', 'delawarePain'],
+      data: {
+        acwrValue: acwr.current,
+        acwrZone: acwr.zone,
+        acwrRiskLevel: acwr.riskLevel,
+        acwrTrend: acwr.trend,
+        activeInjuriesCount: activeInjuries.length,
+        activeInjuries: activeInjuries.map(i => ({
+          bodyPart: i.bodyPart,
+          status: i.status,
+          phase: i.phase,
+          painLevel: i.painLevel,
+        })),
+        recommendationCount: recommendations.length,
+        warningCount,
+      },
+      summary: `Skadeförebyggande: ACWR ${acwr.current?.toFixed(2) ?? 'ej beräknad'} (${acwr.zone ?? 'okänd zon'}), ${activeInjuries.length} aktiva skador, ${recommendations.length} rekommendationer (${warningCount} varningar).`,
+    })
+  }, [data, pageCtx])
 
   if (isLoading) {
     return (
@@ -109,7 +141,7 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
         <GlassCard>
           <GlassCardHeader>
             <GlassCardTitle className="text-sm">
-              Belastningskvot (ACWR)
+              Belastningskvot (ACWR) <InfoTooltip conceptKey="acwr" />
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
@@ -146,7 +178,7 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
         <GlassCard>
           <GlassCardHeader>
             <GlassCardTitle className="text-sm">
-              Aktiva skador
+              Aktiva skador <InfoTooltip conceptKey="delawarePain" />
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>

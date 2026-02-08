@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TrendingUp, Activity, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface TrainingLoadData {
   weeklyTSS: number
@@ -170,6 +171,7 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
             <GlassCardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-cyan-400" />
               Träningsbelastning
+              <InfoTooltip conceptKey="tss" />
             </GlassCardTitle>
             <Badge className={`${riskConfig.bg} ${riskConfig.color} border-0`}>
               {riskConfig.icon} {riskConfig.label}
@@ -252,6 +254,7 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
             Träningsbelastning
+            <InfoTooltip conceptKey="tss" />
           </CardTitle>
           <Badge className={`${riskConfig.bg} ${riskConfig.color}`}>
             {riskConfig.icon} {riskConfig.label}

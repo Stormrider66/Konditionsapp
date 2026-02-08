@@ -26,6 +26,7 @@ import {
   Minus,
   Plus,
 } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface SetLoggingFormProps {
   exerciseId: string
@@ -340,7 +341,7 @@ export function SetLoggingForm({
       {/* RPE Slider */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-sm">RPE (svårighetsgrad)</Label>
+          <Label className="text-sm">RPE (svårighetsgrad) <InfoTooltip conceptKey="rpe" /></Label>
           {rpe !== undefined && (
             <Badge className={`${getRPEColor(rpe)} text-white`}>
               {rpe}

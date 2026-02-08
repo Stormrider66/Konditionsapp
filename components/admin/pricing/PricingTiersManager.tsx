@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RefreshCw, CreditCard, AlertCircle } from 'lucide-react';
 import { PricingTier } from '@/types';
 import { PricingTierCard } from './PricingTierCard';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 
 export function PricingTiersManager() {
   const [tiers, setTiers] = useState<PricingTier[]>([]);
@@ -96,9 +97,9 @@ export function PricingTiersManager() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-1.5">
                 <CreditCard className="h-5 w-5" />
-                Pricing Management
+                Pricing Management <InfoTooltip conceptKey="subscriptionTiers" />
               </CardTitle>
               <CardDescription>
                 Manage subscription tiers and pricing

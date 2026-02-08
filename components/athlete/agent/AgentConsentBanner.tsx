@@ -21,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface AgentConsentBannerProps {
   onConsentGranted: () => void
@@ -71,7 +72,7 @@ export function AgentConsentBanner({
             <Bot className="h-5 w-5 text-purple-600 dark:text-purple-400" />
           </div>
           <div>
-            <CardTitle className="text-base">Enable AI Training Agent</CardTitle>
+            <CardTitle className="text-base flex items-center gap-1.5">Enable AI Training Agent <InfoTooltip conceptKey="agentConsent" /></CardTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
               Get personalized recommendations based on your training data
             </p>

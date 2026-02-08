@@ -48,6 +48,7 @@ import { WOD_LABELS } from '@/types/wod'
 import type { AIModelConfig } from '@/types/ai-models'
 import { COST_TIER_LABELS, COST_TIER_COLORS } from '@/types/ai-models'
 import { cn } from '@/lib/utils'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface WODGeneratorModalProps {
   open: boolean
@@ -93,8 +94,11 @@ const EQUIPMENT_BY_TYPE: Record<WODWorkoutType, { value: WODEquipment; label: st
     { value: 'dumbbells', label: 'Hantlar', icon: '🏋️' },
     { value: 'barbell', label: 'Skivstång', icon: '💪' },
     { value: 'kettlebell', label: 'Kettlebell', icon: '🔔' },
+    { value: 'cable_machine', label: 'Kabelmaskin', icon: '🔧' },
+    { value: 'ez_curl_bar', label: 'EZ-stång', icon: '🏋️' },
     { value: 'resistance_band', label: 'Gummiband', icon: '〰️' },
     { value: 'pull_up_bar', label: 'Räcke', icon: '🔩' },
+    { value: 'rings', label: 'Ringar', icon: '⭕' },
   ],
   cardio: [
     { value: 'none', label: 'Ingen utrustning', icon: '🏃' },
@@ -112,8 +116,10 @@ const EQUIPMENT_BY_TYPE: Record<WODWorkoutType, { value: WODEquipment; label: st
     { value: 'dumbbells', label: 'Hantlar', icon: '🏋️' },
     { value: 'barbell', label: 'Skivstång', icon: '💪' },
     { value: 'kettlebell', label: 'Kettlebell', icon: '🔔' },
+    { value: 'cable_machine', label: 'Kabelmaskin', icon: '🔧' },
     { value: 'resistance_band', label: 'Gummiband', icon: '〰️' },
     { value: 'pull_up_bar', label: 'Räcke', icon: '🔩' },
+    { value: 'rings', label: 'Ringar', icon: '⭕' },
     { value: 'rower', label: 'Roddmaskin', icon: '🚣' },
     { value: 'bike', label: 'Cykel', icon: '🚴' },
     { value: 'skierg', label: 'SkiErg', icon: '⛷️' },
@@ -130,6 +136,41 @@ const EQUIPMENT_BY_TYPE: Record<WODWorkoutType, { value: WODEquipment; label: st
     { value: 'medicine_ball', label: 'Medicinboll', icon: '🏐' },
     { value: 'stability_ball', label: 'Pilatesboll', icon: '🔵' },
   ],
+}
+
+// Map equipment catalog names (English) to WODEquipment values
+const CATALOG_TO_WOD_EQUIPMENT: Record<string, WODEquipment> = {
+  'dumbbells': 'dumbbells',
+  'olympic barbell': 'barbell',
+  'barbell': 'barbell',
+  'kettlebells': 'kettlebell',
+  'kettlebell': 'kettlebell',
+  'cable machine': 'cable_machine',
+  'ez curl bar': 'ez_curl_bar',
+  'resistance bands': 'resistance_band',
+  'pull-up rig': 'pull_up_bar',
+  'pull-up bar': 'pull_up_bar',
+  'gymnastics rings': 'rings',
+  'treadmill': 'treadmill',
+  'assault bike': 'airbike',
+  'air bike': 'airbike',
+  'concept2 rower': 'rower',
+  'rower': 'rower',
+  'concept2 skierg': 'skierg',
+  'skierg': 'skierg',
+  'concept2 bikeerg': 'bike',
+  'wattbike': 'bike',
+  'bike': 'bike',
+  'elliptical': 'crosstrainer',
+  'stairmaster': 'step_machine',
+  'jump rope': 'jump_rope',
+  'wall balls': 'wall_ball',
+  'plyo boxes': 'box',
+  'sled': 'sled',
+  'sandbag': 'sandbag',
+  'd-ball': 'sandbag',
+  'medicine ball': 'medicine_ball',
+  'stability ball': 'stability_ball',
 }
 
 interface LocationOption {
@@ -246,6 +287,44 @@ export function WODGeneratorModal({
     setSelectedEquipment(['none'])
   }, [selectedWorkoutType])
 
+  // Auto-populate equipment when location is selected
+  useEffect(() => {
+    if (!selectedLocationId) return
+
+    async function fetchLocationEquipment() {
+      try {
+        const res = await fetch(`/api/locations/${selectedLocationId}/equipment`)
+        if (!res.ok) return
+        const data = await res.json()
+        const equipment = data.equipment || []
+
+        // Map catalog names to WODEquipment types
+        const wodEquipment = new Set<WODEquipment>()
+        for (const item of equipment) {
+          const name = (item.name || '').toLowerCase()
+          const mapped = CATALOG_TO_WOD_EQUIPMENT[name]
+          if (mapped) {
+            wodEquipment.add(mapped)
+          }
+        }
+
+        if (wodEquipment.size > 0) {
+          // Only select equipment that's available in the current workout type
+          const availableInType = new Set(
+            EQUIPMENT_BY_TYPE[selectedWorkoutType].map(e => e.value)
+          )
+          const matchedEquipment = [...wodEquipment].filter(e => availableInType.has(e))
+          if (matchedEquipment.length > 0) {
+            setSelectedEquipment(matchedEquipment)
+          }
+        }
+      } catch {
+        // Failed to fetch - keep current selection
+      }
+    }
+    fetchLocationEquipment()
+  }, [selectedLocationId, selectedWorkoutType])
+
   // Toggle equipment selection
   const toggleEquipment = (equipment: WODEquipment) => {
     setSelectedEquipment(prev => {
@@ -353,8 +432,8 @@ export function WODGeneratorModal({
         {/* Step: Workout Type Selection */}
         {step === 'workoutType' && (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground text-center">
-              Vilken typ av träning vill du göra?
+            <p className="text-sm text-muted-foreground text-center flex items-center justify-center gap-1.5">
+              Vilken typ av träning vill du göra? <InfoTooltip conceptKey="wodFormats" />
             </p>
 
             <div className="grid grid-cols-2 gap-3">

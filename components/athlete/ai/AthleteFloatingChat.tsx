@@ -27,6 +27,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
 import { cn } from '@/lib/utils'
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
+import { getInfoEntriesByKeys } from '@/lib/info-content'
 import { ATHLETE_QUICK_PROMPTS, MemoryContext } from '@/lib/ai/athlete-prompts'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { MemoryIndicator } from './MemoryIndicator'
@@ -60,6 +62,7 @@ export function AthleteFloatingChat({
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const pageCtx = usePageContextOptional()
 
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -190,6 +193,52 @@ export function AthleteFloatingChat({
       setIsGrantingConsent(false)
     }
   }
+
+  // Build page context string for the AI
+  const buildAthletePageContext = useCallback(() => {
+    const pc = pageCtx?.pageContext
+    if (!pc) return ''
+
+    let contextStr = `\n\n## AKTUELL SIDKONTEXT: ${pc.title}\n`
+    if (pc.summary) contextStr += `\n${pc.summary}\n`
+
+    if (pc.conceptKeys && pc.conceptKeys.length > 0) {
+      const entries = getInfoEntriesByKeys(pc.conceptKeys)
+      if (entries.length > 0) {
+        contextStr += `\n### Relevanta begrepp:\n`
+        for (const entry of entries) {
+          contextStr += `\n**${entry.title}**: ${entry.detailed}\n`
+        }
+      }
+    }
+
+    if (Object.keys(pc.data || {}).length > 0) {
+      contextStr += `\n\`\`\`json\n${JSON.stringify(pc.data, null, 2)}\n\`\`\`\n`
+    }
+
+    // Scroll-aware: visible card concepts
+    const visible = pageCtx?.visibleConcepts
+    if (visible && visible.size > 0) {
+      const existingKeys = new Set(pc.conceptKeys || [])
+      const extraKeys = [...visible].filter(k => !existingKeys.has(k))
+      if (extraKeys.length > 0) {
+        const extraEntries = getInfoEntriesByKeys(extraKeys)
+        if (extraEntries.length > 0) {
+          contextStr += `\n### Användaren tittar just nu på:\n`
+          for (const entry of extraEntries) {
+            contextStr += `- **${entry.title}**: ${entry.short}\n`
+          }
+        }
+      }
+    }
+
+    return contextStr
+  }, [pageCtx?.pageContext, pageCtx?.visibleConcepts])
+
+  const pageContextRef = useRef('')
+  useEffect(() => {
+    pageContextRef.current = buildAthletePageContext()
+  }, [buildAthletePageContext])
 
   // Manual input state
   const [input, setInput] = useState('')
@@ -368,6 +417,7 @@ export function AthleteFloatingChat({
         isAthleteChat: true, // This triggers athlete mode
         clientId,
         memoryContext: memoryContext || undefined,
+        pageContext: pageContextRef.current || undefined,
       },
     })
   }

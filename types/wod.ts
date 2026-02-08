@@ -42,6 +42,9 @@ export type WODEquipment =
   | 'sandbag'
   | 'medicine_ball'
   | 'stability_ball'
+  | 'cable_machine'
+  | 'ez_curl_bar'
+  | 'rings'
 
 export interface WODRequest {
   mode: WODMode
@@ -337,6 +340,9 @@ export const WOD_LABELS = {
     sandbag: 'Sandsäck',
     medicine_ball: 'Medicinboll',
     stability_ball: 'Pilatesboll',
+    cable_machine: 'Kabelmaskin',
+    ez_curl_bar: 'EZ-stång',
+    rings: 'Ringar',
   },
 
   // Focus area labels

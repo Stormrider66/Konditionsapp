@@ -41,6 +41,7 @@ import { VoiceWorkoutButton } from '@/components/coach/voice-workout'
 import { TodaysAppointmentsCard } from '@/components/coach/dashboard/TodaysAppointmentsCard'
 import { cn } from '@/lib/utils'
 import { notFound } from 'next/navigation'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface BusinessDashboardPageProps {
   params: Promise<{ businessSlug: string }>
@@ -348,6 +349,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
               <GlassCardTitle className="text-sm flex items-center gap-2">
                 <Zap className="h-4 w-4 text-yellow-500" />
                 Beredskap idag
+                <InfoTooltip conceptKey="readiness" />
               </GlassCardTitle>
             </GlassCardHeader>
             <GlassCardContent>

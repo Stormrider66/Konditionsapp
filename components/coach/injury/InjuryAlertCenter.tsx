@@ -31,6 +31,7 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface InjuryAlert {
   id: string
@@ -106,7 +107,7 @@ export function InjuryAlertCenter() {
       {/* Header with Summary Stats */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Skadeövervakning</h2>
+          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-1.5">Skadeövervakning <InfoTooltip conceptKey="coachAlerts" /></h2>
           <p className="text-muted-foreground">
             Automatisk skadedetektering och träningsjustering
           </p>

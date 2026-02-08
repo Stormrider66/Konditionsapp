@@ -38,6 +38,7 @@ import {
   FileText,
   ListOrdered,
 } from 'lucide-react';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import type { HybridSectionData, HybridSectionMovement, HybridSectionType } from '@/types';
 
 interface Exercise {
@@ -383,6 +384,7 @@ export function SectionEditor({
       {/* Mode Toggle */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
+          <InfoTooltip conceptKey="workoutSections" />
           <button
             type="button"
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors ${

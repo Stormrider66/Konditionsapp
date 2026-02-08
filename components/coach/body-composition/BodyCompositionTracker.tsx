@@ -48,6 +48,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { BioimpedanceForm } from '@/components/forms/BioimpedanceForm'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface BodyComposition {
   id: string
@@ -183,9 +184,9 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
+          <h2 className="text-2xl font-bold flex items-center gap-1.5">
             <Scale className="h-6 w-6" />
-            Kroppssammansättning
+            Kroppssammansättning <InfoTooltip conceptKey="bodyComposition" />
           </h2>
           {clientName && <p className="text-muted-foreground">{clientName}</p>}
         </div>

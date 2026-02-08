@@ -20,6 +20,7 @@ import {
 import { Bot, Brain, Sparkles, Zap, Check, ChevronDown, AlertCircle, FileText, Loader2 } from 'lucide-react'
 import type { AIProvider } from '@prisma/client'
 import { formatTokenCount, estimateWeeksFromTokens } from '@/types/ai-models'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface AIModel {
   id: string
@@ -200,8 +201,8 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
       <DropdownMenuContent align="end" className="w-[350px]">
         {availableModels.length > 0 && (
           <>
-            <DropdownMenuLabel className="text-xs text-muted-foreground">
-              Tillgängliga modeller
+            <DropdownMenuLabel className="text-xs text-muted-foreground flex items-center gap-1.5">
+              Tillgängliga modeller <InfoTooltip conceptKey="aiModels" />
             </DropdownMenuLabel>
             {availableModels.map((model) => {
               const modelMaxTokens = getMaxOutputTokens(model)

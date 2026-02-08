@@ -102,7 +102,7 @@ const equipmentCatalog: EquipmentSeed[] = [
     category: 'STRENGTH_MACHINE',
     description: 'Adjustable cable pulley system',
     enablesTests: [],
-    enablesExercises: ['cable_row', 'cable_fly', 'tricep_pushdown', 'lat_pulldown', 'face_pull', 'cable_woodchop', 'pallof_press']
+    enablesExercises: ['cable_row', 'cable_fly', 'tricep_pushdown', 'lat_pulldown', 'face_pull', 'cable_woodchop', 'pallof_press', 'cable_crunch', 'cable_flye', 'cable_rows']
   },
   {
     name: 'Lat Pulldown Machine',
@@ -166,7 +166,7 @@ const equipmentCatalog: EquipmentSeed[] = [
     category: 'STRENGTH_MACHINE',
     description: 'For GHD raises, back extensions, sit-ups',
     enablesTests: [],
-    enablesExercises: ['ghd_situp', 'ghd_raise', 'back_extension', 'hip_extension']
+    enablesExercises: ['ghd_situp', 'ghd_raise', 'back_extension', 'hip_extension', 'glute_ham_raise']
   },
   {
     name: 'Reverse Hyper',
@@ -184,7 +184,7 @@ const equipmentCatalog: EquipmentSeed[] = [
     category: 'FREE_WEIGHTS',
     description: 'Standard 20kg Olympic barbell',
     enablesTests: ['squat_1rm', 'deadlift_1rm', 'bench_1rm'],
-    enablesExercises: ['back_squat', 'front_squat', 'deadlift', 'bench_press', 'overhead_press', 'barbell_row', 'romanian_deadlift', 'power_clean', 'snatch', 'clean_and_jerk']
+    enablesExercises: ['back_squat', 'front_squat', 'deadlift', 'bench_press', 'overhead_press', 'barbell_row', 'romanian_deadlift', 'power_clean', 'snatch', 'clean_and_jerk', 'close_grip_bench_press', 'upright_row', 'push_press', 'sumo_deadlift', 'incline_bench_press', 'barbell_curl']
   },
   {
     name: 'Olympic Barbell (15kg)',
@@ -208,7 +208,7 @@ const equipmentCatalog: EquipmentSeed[] = [
     category: 'FREE_WEIGHTS',
     description: 'Curved barbell for curls and extensions',
     enablesTests: [],
-    enablesExercises: ['ez_curl', 'skull_crusher', 'preacher_curl']
+    enablesExercises: ['ez_curl', 'skull_crusher', 'preacher_curl', 'barbell_curl']
   },
   {
     name: 'Dumbbells (Set)',
@@ -216,7 +216,7 @@ const equipmentCatalog: EquipmentSeed[] = [
     category: 'FREE_WEIGHTS',
     description: 'Adjustable or fixed dumbbells',
     enablesTests: [],
-    enablesExercises: ['dumbbell_curl', 'dumbbell_press', 'dumbbell_row', 'dumbbell_fly', 'lateral_raise', 'goblet_squat', 'dumbbell_lunge', 'dumbbell_rdl']
+    enablesExercises: ['dumbbell_curl', 'dumbbell_press', 'dumbbell_row', 'dumbbell_fly', 'lateral_raise', 'goblet_squat', 'dumbbell_lunge', 'dumbbell_rdl', 'incline_dumbbell_press', 'hammer_curl', 'front_raise', 'rear_delt_fly', 'arnold_press', 'overhead_carry', 'shrug', 'overhead_tricep_extension']
   },
   {
     name: 'Kettlebells (Set)',
@@ -224,7 +224,7 @@ const equipmentCatalog: EquipmentSeed[] = [
     category: 'FREE_WEIGHTS',
     description: 'Various weights kettlebells',
     enablesTests: [],
-    enablesExercises: ['kettlebell_swing', 'turkish_getup', 'goblet_squat', 'kb_clean', 'kb_snatch', 'kb_press', 'kb_windmill']
+    enablesExercises: ['kettlebell_swing', 'turkish_getup', 'goblet_squat', 'kb_clean', 'kb_snatch', 'kb_press', 'kb_windmill', 'overhead_carry']
   },
   {
     name: 'Weight Plates',
@@ -266,7 +266,7 @@ const equipmentCatalog: EquipmentSeed[] = [
     category: 'RACKS',
     description: 'Pull-up bars and monkey bars',
     enablesTests: [],
-    enablesExercises: ['pullup', 'chin_up', 'muscle_up', 'hanging_leg_raise', 'toes_to_bar']
+    enablesExercises: ['pullup', 'chin_up', 'muscle_up', 'hanging_leg_raise', 'toes_to_bar', 'hanging_leg_raises']
   },
   {
     name: 'Dip Station',
@@ -440,7 +440,7 @@ const equipmentCatalog: EquipmentSeed[] = [
     category: 'ACCESSORIES',
     description: 'Adjustable weight bench',
     enablesTests: [],
-    enablesExercises: ['bench_press', 'incline_press', 'dumbbell_row', 'step_up']
+    enablesExercises: ['bench_press', 'incline_press', 'dumbbell_row', 'step_up', 'incline_bench_press', 'skull_crusher']
   },
 
   // ==================== RECOVERY ====================

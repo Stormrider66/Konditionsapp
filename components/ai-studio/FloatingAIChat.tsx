@@ -27,18 +27,21 @@ import {
 import { ChatMessage } from './ChatMessage'
 import { cn } from '@/lib/utils'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
+import { getInfoEntriesByKeys } from '@/lib/info-content'
 import Link from 'next/link'
 
 // Page context types for different page contexts
 export interface PageContext {
   /** Type of page context */
-  type: 'video-analysis' | 'test-results' | 'program' | 'athlete-profile' | 'general'
+  type: string
   /** Human-readable title for the context */
   title: string
   /** Structured data to include in the AI prompt */
   data: Record<string, unknown>
   /** Optional summary text */
   summary?: string
+  /** Concept keys from info-content.ts for this page */
+  conceptKeys?: string[]
 }
 
 interface FloatingAIChatProps {
@@ -51,6 +54,8 @@ interface FloatingAIChatProps {
   contextType?: 'athlete' | 'program' | 'test' | 'general'
   /** Page-specific context data to include in AI prompts */
   pageContext?: PageContext
+  /** Concept keys from cards currently visible in the viewport */
+  visibleConcepts?: Set<string>
 }
 
 interface ModelConfig {
@@ -65,6 +70,7 @@ export function FloatingAIChat({
   initialMessage,
   contextType = 'general',
   pageContext,
+  visibleConcepts,
 }: FloatingAIChatProps) {
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -86,8 +92,11 @@ export function FloatingAIChat({
   const [detectedProgram, setDetectedProgram] = useState<ParseResult | null>(null)
   const [isPublishing, setIsPublishing] = useState(false)
 
-  // Track if context is available
-  const hasContext = !!pageContext && Object.keys(pageContext.data || {}).length > 0
+  // Track if context is available (data-rich or auto-context with concepts)
+  const hasContext = !!pageContext && (
+    Object.keys(pageContext.data || {}).length > 0 ||
+    (pageContext.conceptKeys && pageContext.conceptKeys.length > 0)
+  )
 
   // Fetch model configuration from unified AI config endpoint
   // Works for both coaches (uses own keys) and athletes (uses coach's keys)
@@ -338,11 +347,39 @@ export function FloatingAIChat({
       }
     } else {
       // Generic data dump for other context types
-      contextStr += `\n\`\`\`json\n${JSON.stringify(pageContext.data, null, 2)}\n\`\`\`\n`
+      if (Object.keys(pageContext.data || {}).length > 0) {
+        contextStr += `\n\`\`\`json\n${JSON.stringify(pageContext.data, null, 2)}\n\`\`\`\n`
+      }
+    }
+
+    // Append concept definitions when conceptKeys are available
+    if (pageContext.conceptKeys && pageContext.conceptKeys.length > 0) {
+      const entries = getInfoEntriesByKeys(pageContext.conceptKeys)
+      if (entries.length > 0) {
+        contextStr += `\n### Relevanta begrepp på denna sida:\n`
+        for (const entry of entries) {
+          contextStr += `\n**${entry.title}**: ${entry.detailed}\n`
+        }
+      }
+    }
+
+    // Append scroll-aware visible card concepts (not already in conceptKeys)
+    if (visibleConcepts && visibleConcepts.size > 0) {
+      const existingKeys = new Set(pageContext.conceptKeys || [])
+      const extraKeys = [...visibleConcepts].filter(k => !existingKeys.has(k))
+      if (extraKeys.length > 0) {
+        const extraEntries = getInfoEntriesByKeys(extraKeys)
+        if (extraEntries.length > 0) {
+          contextStr += `\n### Användaren tittar just nu på:\n`
+          for (const entry of extraEntries) {
+            contextStr += `- **${entry.title}**: ${entry.short}\n`
+          }
+        }
+      }
     }
 
     return contextStr
-  }, [pageContext, isContextEnabled])
+  }, [pageContext, isContextEnabled, visibleConcepts])
 
   // Ref to store the current context string - updated when context changes
   const contextStringRef = useRef('')

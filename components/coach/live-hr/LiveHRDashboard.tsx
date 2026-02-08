@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface AvailableClient {
   id: string
@@ -148,7 +149,7 @@ export function LiveHRDashboard({
           <Button variant="ghost" size="icon" onClick={() => router.push('/coach/live-hr')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold">Live HR</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-1.5">Live HR <InfoTooltip conceptKey="liveHrZones" /></h1>
         </div>
 
         <div className="flex items-center gap-2">

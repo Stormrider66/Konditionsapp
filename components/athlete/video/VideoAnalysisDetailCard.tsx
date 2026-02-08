@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Clock, Eye, Target, Lightbulb, TrendingUp, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 export interface AIPoseAnalysis {
   interpretation?: string
@@ -174,9 +175,9 @@ export function VideoAnalysisDetailCard({ analysis }: VideoAnalysisDetailCardPro
           {/* Score and Overall Assessment */}
           {poseAnalysis?.overallAssessment && (
             <div className="p-4 bg-background rounded-lg border">
-              <h4 className="font-semibold flex items-center gap-2 mb-2">
+              <h4 className="font-semibold flex items-center gap-1.5 mb-2">
                 <Target className="h-4 w-4 text-blue-600" />
-                Sammanfattning
+                Sammanfattning <InfoTooltip conceptKey="videoAnalysisScores" />
               </h4>
               <p className="text-sm text-muted-foreground">{poseAnalysis.overallAssessment}</p>
             </div>

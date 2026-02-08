@@ -62,6 +62,7 @@ import {
   Clock,
   Target,
   Activity,
+  MapPin,
 } from 'lucide-react';
 import { SectionEditor } from './SectionEditor';
 import type { HybridSectionData } from '@/types';
@@ -346,6 +347,11 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
   const [exercisePopoverOpen, setExercisePopoverOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Equipment filter
+  const [locations, setLocations] = useState<{ id: string; name: string; city: string | null }[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('ALL');
+  const [locationEquipmentTypes, setLocationEquipmentTypes] = useState<string[]>([]);
+
   // DnD Kit sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -375,6 +381,46 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
   useEffect(() => {
     fetchExercises();
   }, []);
+
+  // Fetch locations
+  useEffect(() => {
+    async function fetchLocations() {
+      try {
+        const res = await fetch('/api/locations');
+        if (res.ok) {
+          const data = await res.json();
+          const locs = Array.isArray(data) ? data : (data.locations || []);
+          setLocations(locs.map((l: any) => ({ id: l.id, name: l.name, city: l.city })));
+        }
+      } catch {
+        // Locations not available
+      }
+    }
+    fetchLocations();
+  }, []);
+
+  // Fetch equipment when location changes
+  useEffect(() => {
+    if (selectedLocationId === 'ALL') {
+      setLocationEquipmentTypes([]);
+      return;
+    }
+    async function fetchEquipment() {
+      try {
+        const res = await fetch(`/api/locations/${selectedLocationId}/equipment`);
+        if (res.ok) {
+          const data = await res.json();
+          const equipment = data.equipment || [];
+          // Collect all enablesExercises types from equipment
+          const types = equipment.flatMap((e: any) => e.enablesExercises || []);
+          setLocationEquipmentTypes([...new Set(types)] as string[]);
+        }
+      } catch {
+        setLocationEquipmentTypes([]);
+      }
+    }
+    fetchEquipment();
+  }, [selectedLocationId]);
 
   async function fetchExercises() {
     try {
@@ -475,12 +521,22 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
     }
   }
 
-  const filteredExercises = exercises.filter(
+  const searchFilteredExercises = exercises.filter(
     (e) =>
       e.name.toLowerCase().includes(exerciseSearch.toLowerCase()) ||
       e.nameSv?.toLowerCase().includes(exerciseSearch.toLowerCase()) ||
       e.standardAbbreviation?.toLowerCase().includes(exerciseSearch.toLowerCase())
   );
+
+  // Apply equipment filter
+  const filteredExercises = selectedLocationId !== 'ALL' && locationEquipmentTypes.length > 0
+    ? searchFilteredExercises.filter(ex => {
+        if (!ex.equipmentTypes || ex.equipmentTypes.length === 0) return true
+        if (ex.equipmentTypes.some(t => ['BODYWEIGHT', 'RUNNING'].includes(t.toUpperCase()))) return true
+        const normalizedTypes = new Set(locationEquipmentTypes.map(t => t.toLowerCase()))
+        return ex.equipmentTypes.some(t => normalizedTypes.has(t.toLowerCase()))
+      })
+    : searchFilteredExercises;
 
   // Group exercises by category
   const groupedExercises = filteredExercises.reduce(
@@ -852,6 +908,34 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
               </CollapsibleContent>
             </Collapsible>
           </Card>
+
+          {/* Equipment filter by location */}
+          {locations.length > 0 && (
+            <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>Gym:</span>
+              </div>
+              <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="All equipment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All utrustning</SelectItem>
+                  {locations.map(loc => (
+                    <SelectItem key={loc.id} value={loc.id}>
+                      {loc.name}{loc.city ? ` (${loc.city})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedLocationId !== 'ALL' && (
+                <Badge variant="secondary" className="text-xs">
+                  {filteredExercises.length} av {searchFilteredExercises.length} tillgängliga
+                </Badge>
+              )}
+            </div>
+          )}
 
           {/* METCON SECTION - Always visible, required */}
           <Card className="border-primary/50 overflow-hidden">

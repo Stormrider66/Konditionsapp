@@ -29,6 +29,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { TrendingDown, TrendingUp, Award, Calendar, Info } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -202,7 +203,7 @@ export default function FitnessProjection({
       {/* Header with controls */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold">Fitness Retention Projektion</h2>
+          <h2 className="text-2xl font-bold flex items-center gap-1.5">Fitness Retention Projektion <InfoTooltip conceptKey="detraining" /></h2>
           <p className="text-sm text-muted-foreground">
             VO2max-förlust över tid beroende på korstr.träningsmodalitet
           </p>

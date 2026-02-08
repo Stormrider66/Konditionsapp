@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Filter, Dumbbell, PlayCircle, Info } from 'lucide-react'
+import { Search, Filter, Dumbbell, PlayCircle, Info, MapPin } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Dialog,
@@ -16,12 +16,31 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { filterExercisesByEquipment } from '@/lib/equipment-filter'
+
+interface LocationOption {
+  id: string
+  name: string
+  city: string | null
+}
+
+interface LocationEquipment {
+  id: string
+  name: string
+  nameSv: string
+  category: string
+}
 
 export function ExerciseLibrary() {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [pillarFilter, setPillarFilter] = useState('ALL')
   const [exercises, setExercises] = useState<any[]>([])
+
+  // Equipment filter state
+  const [locations, setLocations] = useState<LocationOption[]>([])
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('ALL')
+  const [locationEquipment, setLocationEquipment] = useState<LocationEquipment[]>([])
 
   useEffect(() => {
     async function fetchExercises() {
@@ -32,7 +51,7 @@ export function ExerciseLibrary() {
                 const data = await res.json()
                 // Handle both array and object response structure
                 const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
-                
+
                 setExercises(exercisesList.map((e: any) => ({
                     id: e.id,
                     name: e.name,
@@ -52,22 +71,68 @@ export function ExerciseLibrary() {
     fetchExercises()
   }, [])
 
+  // Fetch locations
+  useEffect(() => {
+    async function fetchLocations() {
+      try {
+        const res = await fetch('/api/locations')
+        if (res.ok) {
+          const data = await res.json()
+          const locs = Array.isArray(data) ? data : (data.locations || [])
+          setLocations(locs.map((l: any) => ({
+            id: l.id,
+            name: l.name,
+            city: l.city,
+          })))
+        }
+      } catch {
+        // Locations not available - that's fine
+      }
+    }
+    fetchLocations()
+  }, [])
+
+  // Fetch equipment when location changes
+  useEffect(() => {
+    if (selectedLocationId === 'ALL') {
+      setLocationEquipment([])
+      return
+    }
+    async function fetchEquipment() {
+      try {
+        const res = await fetch(`/api/locations/${selectedLocationId}/equipment`)
+        if (res.ok) {
+          const data = await res.json()
+          setLocationEquipment(data.equipment || [])
+        }
+      } catch {
+        setLocationEquipment([])
+      }
+    }
+    fetchEquipment()
+  }, [selectedLocationId])
+
   const filteredExercises = exercises.filter(ex => {
-    const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           ex.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = categoryFilter === 'ALL' || ex.category === categoryFilter
     const matchesPillar = pillarFilter === 'ALL' || ex.pillar === pillarFilter
     return matchesSearch && matchesCategory && matchesPillar
   })
 
+  // Apply equipment filter
+  const displayExercises = selectedLocationId !== 'ALL' && locationEquipment.length > 0
+    ? filterExercisesByEquipment(filteredExercises, locationEquipment.map(e => e.name))
+    : filteredExercises
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search exercises (name, muscle)..." 
-            className="pl-8" 
+          <Input
+            placeholder="Search exercises (name, muscle)..."
+            className="pl-8"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -92,6 +157,7 @@ export function ExerciseLibrary() {
             <SelectItem value="ALL">All Pillars</SelectItem>
             <SelectItem value="KNEE_DOMINANCE">Knee Dominance</SelectItem>
             <SelectItem value="POSTERIOR_CHAIN">Posterior Chain</SelectItem>
+            <SelectItem value="UPPER_BODY">Upper Body</SelectItem>
             <SelectItem value="UNILATERAL">Unilateral</SelectItem>
             <SelectItem value="ANTI_ROTATION_CORE">Anti-Rotation</SelectItem>
             <SelectItem value="FOOT_ANKLE">Foot & Ankle</SelectItem>
@@ -99,8 +165,36 @@ export function ExerciseLibrary() {
         </Select>
       </div>
 
+      {/* Equipment filter by location */}
+      {locations.length > 0 && (
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            <span>Filter by gym:</span>
+          </div>
+          <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="All equipment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All equipment</SelectItem>
+              {locations.map(loc => (
+                <SelectItem key={loc.id} value={loc.id}>
+                  {loc.name}{loc.city ? ` (${loc.city})` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedLocationId !== 'ALL' && (
+            <Badge variant="secondary" className="text-xs">
+              {displayExercises.length} of {filteredExercises.length} available
+            </Badge>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredExercises.map((exercise) => (
+        {displayExercises.map((exercise) => (
           <ExerciseCard key={exercise.id} exercise={exercise} />
         ))}
       </div>
@@ -170,4 +264,3 @@ function ExerciseCard({ exercise }: { exercise: any }) {
     </Dialog>
   )
 }
-

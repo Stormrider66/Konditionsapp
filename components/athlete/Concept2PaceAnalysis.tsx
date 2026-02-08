@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Gauge, TrendingDown, TrendingUp, Timer, Minus } from 'lucide-react';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import {
   LineChart,
   Line,
@@ -191,9 +192,9 @@ export function Concept2PaceAnalysis({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-1.5">
             <Gauge className="h-5 w-5" />
-            Tempoanalys
+            Tempoanalys <InfoTooltip conceptKey="splitPace" />
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -209,9 +210,9 @@ export function Concept2PaceAnalysis({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-1.5">
             <Gauge className="h-5 w-5" />
-            Tempoanalys
+            Tempoanalys <InfoTooltip conceptKey="splitPace" />
           </CardTitle>
           {paceTrend && (
             <Badge

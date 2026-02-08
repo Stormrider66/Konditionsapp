@@ -26,12 +26,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { GripVertical, Plus, Trash2, Dumbbell, Timer, RotateCcw, Search, Download, Loader2, X } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Dumbbell, Timer, RotateCcw, Search, Download, Loader2, X, MapPin } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { SessionExportButton } from '@/components/exports/SessionExportButton'
 import { toast } from 'sonner'
+import { filterExercisesByEquipment } from '@/lib/equipment-filter'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import type { StrengthSessionData } from '@/types'
 
 // Types
@@ -85,6 +87,11 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
   const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [pillarFilter, setPillarFilter] = useState('ALL')
 
+  // Equipment filter
+  const [locations, setLocations] = useState<{ id: string; name: string; city: string | null }[]>([])
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('ALL')
+  const [locationEquipmentNames, setLocationEquipmentNames] = useState<string[]>([])
+
   // Load initial data when editing
   useEffect(() => {
     if (initialData) {
@@ -114,18 +121,19 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
   useEffect(() => {
     async function fetchExercises() {
       try {
-        const res = await fetch('/api/exercises')
+        const res = await fetch('/api/exercises?limit=500')
         if (res.ok) {
           const data = await res.json()
           // Handle both array (legacy/direct) and object with exercises property
           const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
-          
+
           setAvailableExercises(exercisesList.map((e: any) => ({
             id: e.id,
             name: e.name,
             category: e.category,
             pillar: e.biomechanicalPillar,
             muscleGroup: e.muscleGroup,
+            equipment: e.equipment || 'None',
             defaultSets: 3,
             defaultReps: e.category === 'STRENGTH' ? '8-10' : '10'
           })))
@@ -137,13 +145,59 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
     fetchExercises()
   }, [])
 
-  const filteredAvailableExercises = availableExercises.filter(ex => {
-    const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  // Fetch locations
+  useEffect(() => {
+    async function fetchLocations() {
+      try {
+        const res = await fetch('/api/locations')
+        if (res.ok) {
+          const data = await res.json()
+          const locs = Array.isArray(data) ? data : (data.locations || [])
+          setLocations(locs.map((l: any) => ({
+            id: l.id,
+            name: l.name,
+            city: l.city,
+          })))
+        }
+      } catch {
+        // Locations not available
+      }
+    }
+    fetchLocations()
+  }, [])
+
+  // Fetch equipment when location changes
+  useEffect(() => {
+    if (selectedLocationId === 'ALL') {
+      setLocationEquipmentNames([])
+      return
+    }
+    async function fetchEquipment() {
+      try {
+        const res = await fetch(`/api/locations/${selectedLocationId}/equipment`)
+        if (res.ok) {
+          const data = await res.json()
+          setLocationEquipmentNames((data.equipment || []).map((e: any) => e.name))
+        }
+      } catch {
+        setLocationEquipmentNames([])
+      }
+    }
+    fetchEquipment()
+  }, [selectedLocationId])
+
+  const baseFilteredExercises = availableExercises.filter(ex => {
+    const matchesSearch = ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (ex.muscleGroup && ex.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesCategory = categoryFilter === 'ALL' || ex.category === categoryFilter
     const matchesPillar = pillarFilter === 'ALL' || ex.pillar === pillarFilter
     return matchesSearch && matchesCategory && matchesPillar
   })
+
+  // Apply equipment filter
+  const filteredAvailableExercises = selectedLocationId !== 'ALL' && locationEquipmentNames.length > 0
+    ? filterExercisesByEquipment(baseFilteredExercises, locationEquipmentNames)
+    : baseFilteredExercises
 
   useEffect(() => {
     async function loadWorkout() {
@@ -336,7 +390,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
                 </div>
               </div>
               <div className="space-y-2 w-[150px]">
-                <Label>Fas</Label>
+                <Label className="flex items-center gap-1.5">Fas <InfoTooltip conceptKey="strengthPhases" /></Label>
                 <Select value={phase} onValueChange={setPhase}>
                   <SelectTrigger>
                     <SelectValue />
@@ -446,12 +500,40 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
                     <SelectItem value="ALL">All Pillars</SelectItem>
                     <SelectItem value="KNEE_DOMINANCE">Knee Dom</SelectItem>
                     <SelectItem value="POSTERIOR_CHAIN">Post. Chain</SelectItem>
+                    <SelectItem value="UPPER_BODY">Upper Body</SelectItem>
                     <SelectItem value="UNILATERAL">Unilateral</SelectItem>
                     <SelectItem value="ANTI_ROTATION_CORE">Anti-Rot</SelectItem>
                     <SelectItem value="FOOT_ANKLE">Foot/Ankle</SelectItem>
                   </SelectContent>
                 </Select>
             </div>
+
+            {locations.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <MapPin className="h-3 w-3" />
+                  <span>Filter by gym</span>
+                </div>
+                <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="All equipment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All equipment</SelectItem>
+                    {locations.map(loc => (
+                      <SelectItem key={loc.id} value={loc.id}>
+                        {loc.name}{loc.city ? ` (${loc.city})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedLocationId !== 'ALL' && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {filteredAvailableExercises.length} of {baseFilteredExercises.length} available
+                  </Badge>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
             {filteredAvailableExercises.length > 0 ? filteredAvailableExercises.map(ex => (

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Flame, Trophy, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { StreakCalendar } from './StreakCalendar'
 import type { StreakResponse } from '@/types/streak'
 
@@ -74,9 +75,9 @@ export function AccountabilityStreakWidget({ className, basePath = '' }: Account
   return (
     <GlassCard className={className}>
       <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="flex items-center gap-2 text-sm">
+        <GlassCardTitle className="flex items-center gap-1.5 text-sm">
           <Flame className="h-4 w-4 text-orange-500" />
-          Streak
+          Streak <InfoTooltip conceptKey="checkinStreak" />
         </GlassCardTitle>
       </GlassCardHeader>
 

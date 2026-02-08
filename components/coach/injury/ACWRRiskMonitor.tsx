@@ -11,8 +11,9 @@
  * - Real-time alerts for danger zones
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useSWR from 'swr'
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -46,6 +47,7 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface ACWRData {
   clientId: string
@@ -116,6 +118,7 @@ const fetcher = (url: string) => fetch(url).then(r => r.json())
 
 export function ACWRRiskMonitor() {
   const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const pageCtx = usePageContextOptional()
 
   // Fetch ACWR warnings from API
   const { data: warningsData, error } = useSWR('/api/training-load/warnings', fetcher, {
@@ -158,11 +161,33 @@ export function ACWRRiskMonitor() {
 
   const selectedWarning = warnings.find(w => w.clientId === selectedClientId)
 
+  // Rich page context for AI chat
+  useEffect(() => {
+    if (!pageCtx?.setPageContext) return
+    const critical = warnings.filter(w => w.acwrZone === 'CRITICAL').length
+    const danger = warnings.filter(w => w.acwrZone === 'DANGER').length
+    const caution = warnings.filter(w => w.acwrZone === 'CAUTION').length
+    pageCtx.setPageContext({
+      type: 'acwr-monitor',
+      title: 'ACWR Skaderiskmonitor',
+      data: {
+        totalWarnings: warnings.length,
+        criticalCount: critical,
+        dangerCount: danger,
+        cautionCount: caution,
+        totalAthletes: allClients.length,
+        flaggedAthletes: warnings.map(w => ({ name: w.clientName, acwr: w.acwr.toFixed(2), zone: w.acwrZone })),
+      },
+      summary: `ACWR-monitor: ${critical} kritiska, ${danger} fara, ${caution} varning av ${allClients.length} atleter.`,
+      conceptKeys: ['acwr', 'delawarePain', 'rehabPhases', 'tss'],
+    })
+  }, [warningsData, clientsData, pageCtx])
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h3 className="text-2xl font-bold">ACWR Skaderiskmonitor</h3>
+        <h3 className="text-2xl font-bold">ACWR Skaderiskmonitor <InfoTooltip conceptKey="acwr" /></h3>
         <p className="text-sm text-muted-foreground">
           Övervaka träningsbelastning och förebygg skador med ACWR-zoner
         </p>

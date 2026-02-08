@@ -7,6 +7,7 @@ import { AthleteFloatingChat } from '@/components/athlete/ai/AthleteFloatingChat
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 import { SportType } from '@prisma/client'
+import { PageContextProvider } from '@/components/ai-studio/PageContextProvider'
 import { WorkoutThemeProvider, useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider'
 import type { ThemePreferences } from '@/lib/themes/types'
 import { DEFAULT_THEME_PREFERENCES } from '@/lib/themes/types'
@@ -122,16 +123,18 @@ export function BusinessAthleteLayout({
         clientId={athleteInfo?.clientId}
         initialPreferences={themePreferences}
       >
-        <ThemedContent
-          user={user}
-          athleteInfo={athleteInfo}
-          businessSlug={businessSlug}
-          businessName={businessName}
-          businessLogo={businessLogo}
-          businessColor={businessColor}
-        >
-          {children}
-        </ThemedContent>
+        <PageContextProvider>
+          <ThemedContent
+            user={user}
+            athleteInfo={athleteInfo}
+            businessSlug={businessSlug}
+            businessName={businessName}
+            businessLogo={businessLogo}
+            businessColor={businessColor}
+          >
+            {children}
+          </ThemedContent>
+        </PageContextProvider>
       </WorkoutThemeProvider>
     </BasePathProvider>
   )

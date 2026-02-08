@@ -26,6 +26,7 @@ import {
   Eye,
   Loader2,
 } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { DocumentUploader } from './DocumentUploader'
 import { DocumentPreview } from './DocumentPreview'
 import {
@@ -327,7 +328,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <FileText className="h-6 w-6 text-blue-600" />
-            Dokumentbibliotek
+            Dokumentbibliotek <InfoTooltip conceptKey="ragDocuments" />
           </h1>
           <p className="text-muted-foreground mt-1">
             Ladda upp dokument för AI-assisterad träningsplanering

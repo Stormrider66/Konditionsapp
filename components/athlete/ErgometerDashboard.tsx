@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import { ErgometerType } from '@prisma/client';
+import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ import {
 } from 'lucide-react';
 import { Concept2WorkoutList } from './integrations';
 import { TeamRankCard } from './TeamRankCard';
+import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { PerformancePredictionCard } from './predictions';
 import { RacePacingCard } from './pacing';
 import { format, formatDistanceToNow, differenceInWeeks } from 'date-fns';
@@ -97,12 +99,46 @@ function isConcept2(ergometerType: ErgometerType): boolean {
 }
 
 export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
+  const pageCtx = usePageContextOptional();
   const [thresholds, setThresholds] = useState<ErgometerThreshold[]>([]);
   const [zones, setZones] = useState<Record<ErgometerType, ErgometerZone[]>>(
     {} as Record<ErgometerType, ErgometerZone[]>
   );
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ErgometerType | null>(null);
+
+  // Set rich page context for AI chat
+  useEffect(() => {
+    if (thresholds.length === 0) return;
+    const activeThreshold = thresholds.find(t => t.ergometerType === activeTab);
+    const availableErgometers = Object.keys(zones) as ErgometerType[];
+    const activeZones = activeTab ? zones[activeTab] || [] : [];
+    pageCtx?.setPageContext({
+      type: 'ergometer',
+      title: 'Ergometer-zoner',
+      conceptKeys: ['criticalPower', 'ftp', 'wprime'],
+      data: {
+        availableErgometers,
+        activeErgometer: activeTab,
+        thresholds: thresholds.map(t => ({
+          ergometerType: t.ergometerType,
+          criticalPower: t.criticalPower,
+          ftp: t.ftp,
+          wPrime: t.wPrime,
+          testDate: t.testDate,
+        })),
+        activeZones: activeZones.map(z => ({
+          zone: z.zone,
+          name: z.nameSwedish,
+          powerMin: z.powerMin,
+          powerMax: z.powerMax,
+          percentMin: z.percentMin,
+          percentMax: z.percentMax,
+        })),
+      },
+      summary: `Ergometer: ${availableErgometers.length} maskiner med zoner.${activeThreshold ? ` Aktiv: ${activeTab} med ${activeThreshold.criticalPower ? `CP ${activeThreshold.criticalPower}W` : `FTP ${activeThreshold.ftp}W`}${activeThreshold.wPrime ? `, W' ${(activeThreshold.wPrime / 1000).toFixed(1)}kJ` : ''}.` : ''} ${activeZones.length} traningszoner.`,
+    });
+  }, [thresholds, zones, activeTab, pageCtx]);
 
   useEffect(() => {
     async function fetchData() {
@@ -157,6 +193,7 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
           <CardTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5" />
             Mina Ergometer-zoner
+            <InfoTooltip conceptKey="criticalPower" />
           </CardTitle>
           <CardDescription>Inga traningszoner beraknade annu</CardDescription>
         </CardHeader>
@@ -238,6 +275,7 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
                 <CardTitle className="flex items-center gap-2 text-lg">
                   {ERGOMETER_CONFIG[activeTab].icon}
                   {ERGOMETER_CONFIG[activeTab].label} Zoner
+                  <InfoTooltip conceptKey="criticalPower" />
                 </CardTitle>
                 {currentThreshold && (
                   <CardDescription>
@@ -249,8 +287,9 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
                 )}
               </div>
               {currentThreshold?.wPrime && (
-                <Badge variant="outline">
+                <Badge variant="outline" className="flex items-center gap-1.5">
                   W&apos; {(currentThreshold.wPrime / 1000).toFixed(1)}kJ
+                  <InfoTooltip conceptKey="wprime" />
                 </Badge>
               )}
             </div>
