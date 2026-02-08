@@ -2113,7 +2113,8 @@ export function buildTierAwareContext(
  */
 function buildBasicProfileContext(athlete: AthleteData): string {
   let context = `## Atletprofil\n`;
-  context += `- **Namn**: ${athlete.name}\n`;
+  // GDPR: Use pseudonym instead of real name for AI context
+  context += `- **Namn**: Atleten\n`;
 
   if (athlete.gender) {
     context += `- **Kön**: ${athlete.gender === 'MALE' ? 'Man' : 'Kvinna'}\n`;

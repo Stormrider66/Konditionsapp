@@ -17,6 +17,7 @@ import { buildSportSpecificContext, type AthleteData } from '@/lib/ai/sport-cont
 import { buildAthleteOwnContext } from '@/lib/ai/athlete-context-builder';
 import { buildAthleteSystemPrompt, MemoryContext, AthleteCapabilities } from '@/lib/ai/athlete-prompts';
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
+import { getConsentStatus } from '@/lib/agent/gdpr/consent-manager';
 import { extractMemoriesFromConversation, saveMemories } from '@/lib/ai/memory-extractor';
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
 import { buildCalendarContext } from '@/lib/ai/calendar-context-builder';
@@ -227,6 +228,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // GDPR: Check consent before building athlete context
+    let hasAthleteConsent = false;
+    if (isAthleteChat && athleteClientId) {
+      const consentStatus = await getConsentStatus(athleteClientId);
+      if (!consentStatus.hasRequiredConsent) {
+        return new Response(
+          JSON.stringify({
+            error: 'Du måste godkänna databehandling innan du kan använda AI-chatten.',
+            code: 'CONSENT_REQUIRED',
+          }),
+          { status: 403, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      hasAthleteConsent = true;
+    } else if (athleteId) {
+      // Coach chat: check if the target athlete has consented
+      const consentStatus = await getConsentStatus(athleteId);
+      hasAthleteConsent = consentStatus.hasRequiredConsent;
+    }
+
     // Build context from athlete data
     let athleteContext = '';
     let sportSpecificContext = '';
@@ -236,13 +257,15 @@ export async function POST(request: NextRequest) {
     if (isAthleteChat && athleteClientId) {
       try {
         athleteContext = await buildAthleteOwnContext(athleteClientId);
-        athleteSystemPrompt = buildAthleteSystemPrompt(athleteContext, athleteName, memoryContext, athleteCapabilities);
+        // GDPR: Pass undefined for athleteName - real name must not be sent to AI providers
+        athleteSystemPrompt = buildAthleteSystemPrompt(athleteContext, undefined, memoryContext, athleteCapabilities);
       } catch (error) {
         logger.warn('Error building athlete context', { athleteClientId }, error)
       }
     }
     // Coach chat mode: Use full context with athlete data (same as athlete's floating chat)
-    else if (athleteId) {
+    // GDPR: Only include athlete context if athlete has given consent
+    else if (athleteId && hasAthleteConsent) {
       // First verify that the athlete belongs to this coach
       const athleteCheck = await prisma.client.findFirst({
         where: { id: athleteId, userId: userId },
@@ -542,6 +565,7 @@ ${calendarContext ? `
 - FLYTTA nyckelpass (intervaller, långpass) till fullt tillgängliga dagar
 - INFORMERA om hur kalenderbegränsningar påverkar programmet` : ''}
 
+${athleteId && !hasAthleteConsent ? '\n## OBS: SAMTYCKE SAKNAS\nAtletens data kan inte inkluderas i denna konversation — atleten har inte samtyckt till databehandling för AI-analys. Du kan fortfarande hjälpa coachen med generella frågor.\n' : ''}
 ${athleteContext}
 ${sportSpecificContext}
 ${calendarContext}

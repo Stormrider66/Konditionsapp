@@ -155,7 +155,7 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
       where: { id: clientId },
       select: {
         id: true,
-        name: true,
+        // GDPR: name intentionally excluded - not sent to AI providers
         gender: true,
         birthDate: true,
         height: true,
@@ -520,7 +520,6 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
 }
 
 function buildProfileContext(client: {
-  name: string
   gender: string | null
   birthDate: Date | null
   height: number | null

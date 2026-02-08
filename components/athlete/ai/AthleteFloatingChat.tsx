@@ -20,7 +20,9 @@ import {
   Lock,
   BookOpen,
   Save,
+  ShieldCheck,
 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
 import { cn } from '@/lib/utils'
 import { ATHLETE_QUICK_PROMPTS, MemoryContext } from '@/lib/ai/athlete-prompts'
@@ -65,6 +67,12 @@ export function AthleteFloatingChat({
     message: string
     upgradeUrl?: string
   } | null>(null)
+
+  // GDPR consent state
+  const [consentStatus, setConsentStatus] = useState<'loading' | 'granted' | 'required'>('loading')
+  const [consentDataProcessing, setConsentDataProcessing] = useState(false)
+  const [consentHealthData, setConsentHealthData] = useState(false)
+  const [isGrantingConsent, setIsGrantingConsent] = useState(false)
 
   // Program detection state
   const [detectedProgram, setDetectedProgram] = useState<ParseResult | null>(null)
@@ -118,6 +126,58 @@ export function AthleteFloatingChat({
     fetchSubscriptionStatus()
   }, [])
 
+  // Check GDPR consent status when chat opens
+  useEffect(() => {
+    if (!isOpen) return
+    async function checkConsent() {
+      try {
+        const response = await fetch('/api/agent/consent')
+        const data = await response.json()
+        if (data.hasRequiredConsent) {
+          setConsentStatus('granted')
+        } else {
+          setConsentStatus('required')
+        }
+      } catch {
+        // If we can't check consent, require it to be safe
+        setConsentStatus('required')
+      }
+    }
+    checkConsent()
+  }, [isOpen])
+
+  async function handleGrantConsent() {
+    setIsGrantingConsent(true)
+    try {
+      const response = await fetch('/api/agent/consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dataProcessingConsent: true,
+          healthDataProcessingConsent: true,
+        }),
+      })
+      const data = await response.json()
+      if (data.success) {
+        setConsentStatus('granted')
+      } else {
+        toast({
+          title: 'Kunde inte spara samtycke',
+          description: 'Försök igen senare.',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({
+        title: 'Kunde inte spara samtycke',
+        description: 'Ett oväntat fel uppstod.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsGrantingConsent(false)
+    }
+  }
+
   // Manual input state
   const [input, setInput] = useState('')
 
@@ -150,8 +210,15 @@ export function AthleteFloatingChat({
       fetch: skillCapturingFetch,
     }),
     onError: (error) => {
-      // Check for subscription error (403)
       const errorMessage = error.message || ''
+
+      // Check for consent error
+      if (errorMessage.includes('CONSENT_REQUIRED')) {
+        setConsentStatus('required')
+        return
+      }
+
+      // Check for subscription error (403)
       if (errorMessage.includes('SUBSCRIPTION_REQUIRED') || errorMessage.includes('403')) {
         setSubscriptionError({
           code: 'SUBSCRIPTION_REQUIRED',
@@ -468,6 +535,85 @@ export function AthleteFloatingChat({
               </Button>
             </Link>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // GDPR consent required
+  if (consentStatus === 'required') {
+    return (
+      <div
+        className={cn(
+          'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
+          'bottom-6 right-6 w-[380px] h-[420px]'
+        )}
+      >
+        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-white" />
+            <span className="font-semibold text-white">Samtycke krävs</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleClose}
+            className="h-8 w-8 text-white hover:bg-white/20"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="flex-1 p-5 overflow-y-auto">
+          <div className="text-center mb-4">
+            <ShieldCheck className="h-10 w-10 mx-auto mb-3 text-emerald-600" />
+            <h3 className="font-semibold mb-1">Databehandling för AI-chatt</h3>
+            <p className="text-xs text-muted-foreground">
+              Din träningsdata skickas till en extern AI-tjänst för analys. Enligt GDPR behöver vi ditt samtycke.
+            </p>
+          </div>
+          <div className="space-y-3 mb-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox
+                checked={consentDataProcessing}
+                onCheckedChange={(checked) => setConsentDataProcessing(checked === true)}
+                className="mt-0.5"
+              />
+              <div>
+                <span className="text-sm font-medium">Behandla min träningsdata</span>
+                <p className="text-xs text-muted-foreground">
+                  Tillåt att träningshistorik, testresultat och prestationsdata skickas till AI-tjänsten.
+                </p>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox
+                checked={consentHealthData}
+                onCheckedChange={(checked) => setConsentHealthData(checked === true)}
+                className="mt-0.5"
+              />
+              <div>
+                <span className="text-sm font-medium">Behandla hälsodata</span>
+                <p className="text-xs text-muted-foreground">
+                  Tillåt att hälsorelaterad data som beredskapspoäng, trötthet och skadestatus skickas.
+                </p>
+              </div>
+            </label>
+          </div>
+          <Button
+            onClick={handleGrantConsent}
+            disabled={!consentDataProcessing || !consentHealthData || isGrantingConsent}
+            className="w-full bg-emerald-600 hover:bg-emerald-700"
+          >
+            {isGrantingConsent ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <ShieldCheck className="h-4 w-4 mr-2" />
+            )}
+            Godkänn
+          </Button>
+          <p className="text-[10px] text-muted-foreground text-center mt-2">
+            Du kan återkalla ditt samtycke när som helst via inställningar.
+          </p>
         </div>
       </div>
     )

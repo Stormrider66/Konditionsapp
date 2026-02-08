@@ -42,7 +42,8 @@ export function buildAthleteSystemPrompt(
   memoryContext?: MemoryContext,
   capabilities?: AthleteCapabilities
 ): string {
-  const greeting = athleteName ? `Du hjälper ${athleteName}` : 'Du hjälper en atlet'
+  // GDPR: Never send athlete's real name to external AI providers
+  const greeting = 'Du hjälper atleten'
 
   // Build capabilities section for self-coached athletes
   let capabilitiesSection = ''
@@ -50,7 +51,7 @@ export function buildAthleteSystemPrompt(
     capabilitiesSection = `
 ## DINA FÖRMÅGOR SOM AI-COACH
 
-Som självtränad atlet har ${athleteName || 'du'} tillgång till AI-coachning:
+Som självtränad atlet har atleten tillgång till AI-coachning:
 `
     if (capabilities.canGenerateProgram) {
       capabilitiesSection += `
