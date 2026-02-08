@@ -6,6 +6,7 @@
  */
 
 import type { StrengthPhase } from '@prisma/client'
+import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 
 // Strength phase descriptions for AI context
 export const STRENGTH_PHASE_CONTEXT: Record<StrengthPhase, {
@@ -250,7 +251,7 @@ export function generateStrengthSessionPrompt(params: {
   const phaseInfo = STRENGTH_PHASE_CONTEXT[phase]
   const goalInfo = STRENGTH_GOAL_CONTEXT[goal] || STRENGTH_GOAL_CONTEXT.strength
 
-  return `## UPPGIFT: SKAPA STYRKEPASS
+  return `${buildConstitutionPreamble('program')}## UPPGIFT: SKAPA STYRKEPASS
 
 Du ska skapa ett komplett styrkepass för en löpare/idrottare.
 

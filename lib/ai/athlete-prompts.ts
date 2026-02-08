@@ -5,6 +5,8 @@
  * All prompts are in Swedish to match the app's primary language.
  */
 
+import { buildConstitutionPreamble } from '@/lib/ai/constitution'
+
 /**
  * Memory context for personalized AI interactions
  */
@@ -75,7 +77,7 @@ Som självtränad atlet har atleten tillgång till AI-coachning:
     }
   }
 
-  return `Du är en personlig AI-träningsassistent. ${greeting} med deras träning och prestation.
+  return `${buildConstitutionPreamble('chat', 'athlete')}Du är en personlig AI-träningsassistent. ${greeting} med deras träning och prestation.
 ${capabilitiesSection}
 
 ## DINA KUNSKAPSOMRÅDEN

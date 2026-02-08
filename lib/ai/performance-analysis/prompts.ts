@@ -9,11 +9,12 @@ import {
   TrainingContextForAnalysis,
   AthleteProfileForAnalysis,
 } from './types'
+import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 
 /**
  * System prompt for all performance analysis
  */
-export const PERFORMANCE_ANALYSIS_SYSTEM_PROMPT = `Du är en expert på prestationsanalys inom uthållighetsidrott med djup kunskap om:
+export const PERFORMANCE_ANALYSIS_SYSTEM_PROMPT = `${buildConstitutionPreamble('analysis')}Du är en expert på prestationsanalys inom uthållighetsidrott med djup kunskap om:
 - Fysiologiska testningar (VO2max, laktattröskel, löpekonomi)
 - Träningsteori och periodisering
 - Prestation-träningskorrelationer

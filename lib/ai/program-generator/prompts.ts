@@ -5,12 +5,13 @@
  */
 
 import type { GenerationContext, PhaseConfig, GeneratedPhase, ProgramOutline } from './types'
+import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 
 // ============================================
 // System Prompts
 // ============================================
 
-export const PROGRAM_GENERATOR_SYSTEM_PROMPT = `Du är en erfaren tränare och idrottsfysiolog som skapar individualiserade träningsprogram.
+export const PROGRAM_GENERATOR_SYSTEM_PROMPT = `${buildConstitutionPreamble('program')}Du är en erfaren tränare och idrottsfysiolog som skapar individualiserade träningsprogram.
 
 VIKTIGA PRINCIPER:
 - Följ vetenskapligt beprövade periodiseringsmetoder

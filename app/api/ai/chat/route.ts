@@ -24,6 +24,7 @@ import { buildCalendarContext } from '@/lib/ai/calendar-context-builder';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { matchKnowledgeSkills, fetchSkillContext } from '@/lib/ai/knowledge-skills';
 import { logger } from '@/lib/logger'
+import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 
 // Allow longer execution time for AI streaming responses (60 seconds)
 export const maxDuration = 60;
@@ -467,7 +468,7 @@ ${c.content}
       ? `${athleteSystemPrompt}
 ${pageContext}
 `
-      : `Du är en erfaren tränare och idrottsfysiolog som hjälper coacher att skapa träningsprogram.
+      : `${buildConstitutionPreamble('chat', 'coach')}Du är en erfaren tränare och idrottsfysiolog som hjälper coacher att skapa träningsprogram.
 
 ## DINA KUNSKAPSOMRÅDEN
 - Periodisering och träningsplanering för uthållighetsidrotter

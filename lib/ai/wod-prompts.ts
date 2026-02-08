@@ -15,6 +15,7 @@ import type {
 } from '@/types/wod'
 import { WOD_LABELS } from '@/types/wod'
 import { generateGuardrailConstraints, getExcludedExerciseCategories } from './wod-guardrails'
+import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 
 // ============================================
 // MAIN PROMPT BUILDER
@@ -96,7 +97,7 @@ VIKTIGT:
 // SYSTEM CONTEXT
 // ============================================
 
-const SYSTEM_CONTEXT = `Du är en erfaren personlig tränare och fysiolog som skapar individuellt anpassade träningspass.
+const SYSTEM_CONTEXT = `${buildConstitutionPreamble('wod')}Du är en erfaren personlig tränare och fysiolog som skapar individuellt anpassade träningspass.
 
 Din uppgift är att generera ett komplett träningspass (Workout of the Day) baserat på atletens profil, nuvarande tillstånd och specifikationer.
 
