@@ -4,14 +4,16 @@
  * GET /api/athlete/ai-config - Get AI config for athlete use
  *
  * Athletes use their coach's API keys but can select their own preferred model.
- * Priority: Athlete preference > Coach default > First available provider
+ * Models are filtered by: admin availability → coach restrictions → athlete preference.
+ *
+ * Returns list of available models so the athlete can pick in the floating chat.
  */
 
 import { NextResponse } from 'next/server'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { getModelById, getDefaultModel, AI_MODELS } from '@/types/ai-models'
 import { logError } from '@/lib/logger-console'
+import type { AIProvider } from '@prisma/client'
 
 export async function GET() {
   try {
@@ -45,13 +47,15 @@ export async function GET() {
     const coachId = athleteAccount.client.userId
     const athletePreferredModelId = athleteAccount.client.sportProfile?.preferredAIModelId
 
-    // Fetch coach's API keys
+    // Fetch coach's API keys and athlete model settings
     const apiKeys = await prisma.userApiKey.findUnique({
       where: { userId: coachId },
       select: {
         anthropicKeyValid: true,
         googleKeyValid: true,
         openaiKeyValid: true,
+        allowedAthleteModelIds: true,
+        athleteDefaultModelId: true,
       },
     })
 
@@ -62,53 +66,99 @@ export async function GET() {
       apiKeys?.openaiKeyValid ||
       false
 
-    // Build keys object for model selection
-    const keys = {
-      anthropicKey: apiKeys?.anthropicKeyValid ? 'valid' : null,
-      googleKey: apiKeys?.googleKeyValid ? 'valid' : null,
-      openaiKey: apiKeys?.openaiKeyValid ? 'valid' : null,
+    if (!hasAIAccess) {
+      return NextResponse.json({
+        success: true,
+        hasAIAccess: false,
+        model: null,
+        provider: null,
+        displayName: null,
+        clientId: athleteAccount.client.id,
+        availableModels: [],
+      })
     }
 
-    // Determine which model to use
-    let provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI' = 'GOOGLE'
-    let model = 'gemini-3-flash-preview'
-    let displayName = 'Gemini 3 Flash'
+    // Build list of valid providers from coach's keys
+    const validProviders: AIProvider[] = []
+    if (apiKeys?.anthropicKeyValid) validProviders.push('ANTHROPIC')
+    if (apiKeys?.googleKeyValid) validProviders.push('GOOGLE')
+    if (apiKeys?.openaiKeyValid) validProviders.push('OPENAI')
 
-    // Priority 1: Athlete's preferred model (if valid and available)
+    // Fetch DB models: active + available for athletes + valid provider
+    let dbModels = await prisma.aIModel.findMany({
+      where: {
+        isActive: true,
+        availableForAthletes: true,
+        provider: { in: validProviders },
+      },
+      orderBy: [{ isDefault: 'desc' }, { displayName: 'asc' }],
+    })
+
+    // Apply coach's allowedAthleteModelIds filter (empty array = all allowed)
+    if (apiKeys?.allowedAthleteModelIds?.length) {
+      const allowedIds = apiKeys.allowedAthleteModelIds
+      const filtered = dbModels.filter(m => allowedIds.includes(m.id))
+      if (filtered.length > 0) {
+        dbModels = filtered
+      }
+    }
+
+    if (dbModels.length === 0) {
+      return NextResponse.json({
+        success: true,
+        hasAIAccess: false,
+        model: null,
+        provider: null,
+        displayName: null,
+        clientId: athleteAccount.client.id,
+        availableModels: [],
+      })
+    }
+
+    // Determine selected model via priority chain
+    let selectedModel = dbModels[0] // fallback: first available
+
+    // Priority 1: Athlete's preference (if still in allowed set)
     if (athletePreferredModelId) {
-      const preferredModel = getModelById(athletePreferredModelId)
-      if (preferredModel) {
-        // Check if the provider key is valid
-        const providerKeyValid =
-          (preferredModel.provider === 'anthropic' && apiKeys?.anthropicKeyValid) ||
-          (preferredModel.provider === 'google' && apiKeys?.googleKeyValid) ||
-          (preferredModel.provider === 'openai' && apiKeys?.openaiKeyValid)
-
-        if (providerKeyValid) {
-          provider = preferredModel.provider.toUpperCase() as 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
-          model = preferredModel.modelId
-          displayName = preferredModel.name
-        }
+      const preferred = dbModels.find(m => m.id === athletePreferredModelId || m.modelId === athletePreferredModelId)
+      if (preferred) {
+        selectedModel = preferred
       }
     }
 
-    // Priority 2: Default model from AI_MODELS (if no preference or preference invalid)
-    if (!athletePreferredModelId || model === 'gemini-3-flash-preview') {
-      const defaultModel = getDefaultModel(keys)
+    // Priority 2: Coach's athlete default (if athlete has no preference or preference not available)
+    if (!athletePreferredModelId && apiKeys?.athleteDefaultModelId) {
+      const coachDefault = dbModels.find(m => m.id === apiKeys.athleteDefaultModelId)
+      if (coachDefault) {
+        selectedModel = coachDefault
+      }
+    }
+
+    // Priority 3: First default model, or first available
+    if (!athletePreferredModelId && !apiKeys?.athleteDefaultModelId) {
+      const defaultModel = dbModels.find(m => m.isDefault)
       if (defaultModel) {
-        provider = defaultModel.provider.toUpperCase() as 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
-        model = defaultModel.modelId
-        displayName = defaultModel.name
+        selectedModel = defaultModel
       }
     }
+
+    // Build available models list for the model picker
+    const availableModels = dbModels.map(m => ({
+      id: m.id,
+      modelId: m.modelId,
+      provider: m.provider,
+      displayName: m.displayName,
+      isDefault: m.isDefault,
+    }))
 
     return NextResponse.json({
       success: true,
-      hasAIAccess,
-      model,
-      provider,
-      displayName,
+      hasAIAccess: true,
+      model: selectedModel.modelId,
+      provider: selectedModel.provider,
+      displayName: selectedModel.displayName,
       clientId: athleteAccount.client.id,
+      availableModels,
     })
   } catch (error) {
     logError('Get athlete AI config error:', error)

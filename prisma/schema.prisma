@@ -4742,8 +4742,9 @@ model AIModel {
   outputCostPer1k Float?
 
   // Availability
-  isActive  Boolean @default(true)
-  isDefault Boolean @default(false) // Default model for new conversations
+  isActive             Boolean @default(true)
+  isDefault            Boolean @default(false) // Default model for new conversations
+  availableForAthletes Boolean @default(true)  // Super admin toggle: can athletes use this model?
 
   // Versioning
   releasedAt   DateTime?

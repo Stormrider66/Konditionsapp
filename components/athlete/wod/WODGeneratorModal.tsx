@@ -59,6 +59,11 @@ interface WODGeneratorModalProps {
 
 type Step = 'workoutType' | 'mode' | 'duration' | 'equipment' | 'generating'
 
+type GenerateWODRequestBody = WODRequest & {
+  modelId?: string | null
+  locationId?: string | null
+}
+
 // Workout type config
 const WORKOUT_TYPE_ICONS: Record<WODWorkoutType, typeof Dumbbell> = {
   strength: Dumbbell,
@@ -267,12 +272,13 @@ export function WODGeneratorModal({
     setError(null)
 
     try {
-      const request = {
+      const request: GenerateWODRequestBody = {
         mode: selectedMode,
         workoutType: selectedWorkoutType,
         duration,
         equipment: selectedEquipment,
         modelId: selectedModelId,
+        locationId: selectedLocationId,
       }
 
       const response = await fetch('/api/ai/wod', {

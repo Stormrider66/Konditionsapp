@@ -21,6 +21,8 @@ import {
   BookOpen,
   Save,
   ShieldCheck,
+  Check,
+  ChevronDown,
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
@@ -29,6 +31,7 @@ import { ATHLETE_QUICK_PROMPTS, MemoryContext } from '@/lib/ai/athlete-prompts'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { MemoryIndicator } from './MemoryIndicator'
 import { AIChatUsageMeter, AIChatUsageCompact } from '@/components/athlete/AIChatUsageMeter'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import Link from 'next/link'
 
 interface AthleteFloatingChatProps {
@@ -40,6 +43,14 @@ interface ModelConfig {
   model: string
   provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
   displayName: string
+}
+
+interface AvailableModel {
+  id: string
+  modelId: string
+  provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
+  displayName: string
+  isDefault: boolean
 }
 
 export function AthleteFloatingChat({
@@ -55,6 +66,7 @@ export function AthleteFloatingChat({
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [hasAIAccess, setHasAIAccess] = useState<boolean | null>(null)
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null)
+  const [availableModels, setAvailableModels] = useState<AvailableModel[]>([])
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
   const [memoryContext, setMemoryContext] = useState<MemoryContext | null>(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState<{
@@ -91,6 +103,7 @@ export function AthleteFloatingChat({
             provider: data.provider,
             displayName: data.displayName,
           })
+          setAvailableModels(data.availableModels || [])
           setHasAIAccess(true)
         } else {
           setHasAIAccess(false)
@@ -384,23 +397,82 @@ export function AthleteFloatingChat({
     textareaRef.current?.focus()
   }
 
-  // Get provider badge
-  function getProviderBadge() {
+  const providerColors: Record<string, string> = {
+    ANTHROPIC: 'bg-orange-100 text-orange-800',
+    GOOGLE: 'bg-blue-100 text-blue-800',
+    OPENAI: 'bg-green-100 text-green-800',
+  }
+  const providerShortNames: Record<string, string> = {
+    ANTHROPIC: 'Claude',
+    GOOGLE: 'Gemini',
+    OPENAI: 'GPT',
+  }
+
+  async function handleSelectModel(model: AvailableModel) {
+    setModelConfig({
+      model: model.modelId,
+      provider: model.provider,
+      displayName: model.displayName,
+    })
+    // Persist preference
+    try {
+      await fetch('/api/ai/models/preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ modelId: model.id }),
+      })
+    } catch {
+      // Silent failure - model is already switched locally
+    }
+  }
+
+  // Render provider badge (static or as picker trigger)
+  function renderModelBadge() {
     if (!modelConfig) return null
-    const colors: Record<string, string> = {
-      ANTHROPIC: 'bg-orange-100 text-orange-800',
-      GOOGLE: 'bg-blue-100 text-blue-800',
-      OPENAI: 'bg-green-100 text-green-800',
+
+    // Only 1 model available → static badge
+    if (availableModels.length <= 1) {
+      return (
+        <Badge variant="secondary" className={cn('text-xs', providerColors[modelConfig.provider])}>
+          {providerShortNames[modelConfig.provider]}
+        </Badge>
+      )
     }
-    const names: Record<string, string> = {
-      ANTHROPIC: 'Claude',
-      GOOGLE: 'Gemini',
-      OPENAI: 'GPT',
-    }
+
+    // Multiple models → clickable picker
     return (
-      <Badge variant="secondary" className={cn('text-xs', colors[modelConfig.provider])}>
-        {names[modelConfig.provider]}
-      </Badge>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button className={cn(
+            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors hover:opacity-80',
+            providerColors[modelConfig.provider]
+          )}>
+            {modelConfig.displayName}
+            <ChevronDown className="h-3 w-3" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-56 p-2" align="start" side="bottom">
+          <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">Välj AI-modell</p>
+          {availableModels.map((model) => (
+            <button
+              key={model.id}
+              onClick={() => handleSelectModel(model)}
+              className={cn(
+                'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left text-sm transition-colors hover:bg-muted',
+                model.modelId === modelConfig.model && 'bg-muted'
+              )}
+            >
+              <Badge className={cn('text-[10px] px-1.5 py-0', providerColors[model.provider])}>
+                {providerShortNames[model.provider]}
+              </Badge>
+              <span className="flex-1 truncate">{model.displayName}</span>
+              {model.modelId === modelConfig.model && (
+                <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              )}
+            </button>
+          ))}
+        </PopoverContent>
+      </Popover>
     )
   }
 
@@ -634,7 +706,7 @@ export function AthleteFloatingChat({
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5 text-white" />
           <span className="font-semibold text-white">AI-assistent</span>
-          {getProviderBadge()}
+          {renderModelBadge()}
           {/* Usage meter - only show if there's a limit */}
           {subscriptionStatus && subscriptionStatus.limit > 0 && subscriptionStatus.limit !== -1 && (
             <Badge variant="secondary" className="text-xs bg-white/20 text-white">

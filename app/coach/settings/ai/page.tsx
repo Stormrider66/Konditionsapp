@@ -8,6 +8,7 @@
 import { requireCoach } from '@/lib/auth-utils';
 import { ApiKeySettingsClient } from './ApiKeySettingsClient';
 import { DefaultModelSelector } from './DefaultModelSelector';
+import { AthleteModelSettings } from '@/components/coach/settings/AthleteModelSettings';
 
 export default async function AISettingsPage() {
   await requireCoach();
@@ -25,6 +26,11 @@ export default async function AISettingsPage() {
       <div className="mb-8">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Standardmodell</h2>
         <DefaultModelSelector />
+      </div>
+
+      {/* Athlete Model Restrictions */}
+      <div className="mb-8">
+        <AthleteModelSettings />
       </div>
 
       {/* API Keys Section */}

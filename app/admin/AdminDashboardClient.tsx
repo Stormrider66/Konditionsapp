@@ -38,12 +38,14 @@ import {
   CreditCard,
   Monitor,
   Building2,
+  Bot,
 } from 'lucide-react';
 import { useTranslations } from '@/i18n/client';
 import { ContractsTable } from '@/components/admin/contracts/ContractsTable';
 import { PricingTiersManager } from '@/components/admin/pricing/PricingTiersManager';
 import { MonitoringDashboard } from '@/components/admin/monitoring/MonitoringDashboard';
 import { BusinessesTable } from '@/components/admin/businesses/BusinessesTable';
+import { AIModelsManager } from '@/components/admin/ai-models/AIModelsManager';
 import {
   LineChart,
   Line,
@@ -311,6 +313,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
           <TabsTrigger value="monitoring" className="flex items-center gap-1">
             <Monitor className="h-3 w-3" />
             Monitoring
+          </TabsTrigger>
+          <TabsTrigger value="ai-models" className="flex items-center gap-1">
+            <Bot className="h-3 w-3" />
+            AI Models
           </TabsTrigger>
         </TabsList>
 
@@ -670,6 +676,11 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
         {/* Monitoring Tab */}
         <TabsContent value="monitoring">
           <MonitoringDashboard />
+        </TabsContent>
+
+        {/* AI Models Tab */}
+        <TabsContent value="ai-models">
+          <AIModelsManager />
         </TabsContent>
       </Tabs>
     </div>

@@ -113,6 +113,7 @@ export async function GET() {
       where: {
         provider: { in: validProviders },
         isActive: true,
+        ...(isAthlete ? { availableForAthletes: true } : {}),
       },
       orderBy: [
         { isDefault: 'desc' },

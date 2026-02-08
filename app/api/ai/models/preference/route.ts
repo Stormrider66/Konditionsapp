@@ -8,7 +8,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAthlete } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { getModelById } from '@/types/ai-models'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 
@@ -24,12 +23,19 @@ export async function POST(request: NextRequest) {
 
     const { modelId } = await request.json()
 
-    // Validate model exists
-    const model = getModelById(modelId)
-    if (!model) {
+    // Validate model exists in DB and is available for athletes
+    const dbModel = await prisma.aIModel.findFirst({
+      where: {
+        OR: [{ id: modelId }, { modelId }],
+        isActive: true,
+        availableForAthletes: true,
+      },
+    })
+
+    if (!dbModel) {
       return NextResponse.json(
-        { error: 'Invalid model ID' },
-        { status: 400 }
+        { error: 'Model not available for athletes' },
+        { status: 403 }
       )
     }
 
@@ -66,9 +72,9 @@ export async function POST(request: NextRequest) {
 
     // Check if the provider key is valid
     const providerKeyValid =
-      (model.provider === 'anthropic' && coachSettings?.anthropicKeyValid) ||
-      (model.provider === 'google' && coachSettings?.googleKeyValid) ||
-      (model.provider === 'openai' && coachSettings?.openaiKeyValid)
+      (dbModel.provider === 'ANTHROPIC' && coachSettings?.anthropicKeyValid) ||
+      (dbModel.provider === 'GOOGLE' && coachSettings?.googleKeyValid) ||
+      (dbModel.provider === 'OPENAI' && coachSettings?.openaiKeyValid)
 
     if (!providerKeyValid) {
       return NextResponse.json(
@@ -80,7 +86,7 @@ export async function POST(request: NextRequest) {
     // If coach has restricted models, verify this one is allowed
     if (
       coachSettings?.allowedAthleteModelIds?.length &&
-      !coachSettings.allowedAthleteModelIds.includes(modelId)
+      !coachSettings.allowedAthleteModelIds.includes(dbModel.id)
     ) {
       return NextResponse.json(
         { error: 'Model not allowed by coach' },
@@ -88,17 +94,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update sport profile with preference
+    // Update sport profile with preference (store the DB model ID)
     await prisma.sportProfile.upsert({
       where: { clientId: athleteAccount.clientId },
-      update: { preferredAIModelId: modelId },
+      update: { preferredAIModelId: dbModel.id },
       create: {
         clientId: athleteAccount.clientId,
-        preferredAIModelId: modelId,
+        preferredAIModelId: dbModel.id,
       },
     })
 
-    return NextResponse.json({ success: true, modelId })
+    return NextResponse.json({ success: true, modelId: dbModel.id })
   } catch (error) {
     logger.error('POST /api/ai/models/preference error', {}, error)
 
