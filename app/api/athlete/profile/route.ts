@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
@@ -25,59 +25,60 @@ const updateProfileSchema = z.object({
  */
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const resolved = await resolveAthleteClientId()
 
-    if (!user) {
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
+    const { clientId } = resolved
+
+    // Get client with athlete account profile fields
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
       select: {
         id: true,
-        clientId: true,
-        trainingBackground: true,
-        longTermAmbitions: true,
-        seasonalFocus: true,
-        personalMotivations: true,
-        trainingPreferences: true,
-        constraints: true,
-        dietaryNotes: true,
-        profileLastUpdated: true,
-        client: {
+        name: true,
+        athleteAccount: {
           select: {
-            name: true,
+            trainingBackground: true,
+            longTermAmbitions: true,
+            seasonalFocus: true,
+            personalMotivations: true,
+            trainingPreferences: true,
+            constraints: true,
+            dietaryNotes: true,
+            profileLastUpdated: true,
           },
         },
       },
     })
 
-    if (!athleteAccount) {
+    if (!client) {
       return NextResponse.json(
         { success: false, error: 'Athlete account not found' },
         { status: 404 }
       )
     }
 
+    const profile = client.athleteAccount
+
     return NextResponse.json({
       success: true,
       data: {
-        clientId: athleteAccount.clientId,
-        clientName: athleteAccount.client.name,
-        trainingBackground: athleteAccount.trainingBackground,
-        longTermAmbitions: athleteAccount.longTermAmbitions,
-        seasonalFocus: athleteAccount.seasonalFocus,
-        personalMotivations: athleteAccount.personalMotivations,
-        trainingPreferences: athleteAccount.trainingPreferences,
-        constraints: athleteAccount.constraints,
-        dietaryNotes: athleteAccount.dietaryNotes,
-        profileLastUpdated: athleteAccount.profileLastUpdated,
+        clientId: client.id,
+        clientName: client.name,
+        trainingBackground: profile?.trainingBackground ?? null,
+        longTermAmbitions: profile?.longTermAmbitions ?? null,
+        seasonalFocus: profile?.seasonalFocus ?? null,
+        personalMotivations: profile?.personalMotivations ?? null,
+        trainingPreferences: profile?.trainingPreferences ?? null,
+        constraints: profile?.constraints ?? null,
+        dietaryNotes: profile?.dietaryNotes ?? null,
+        profileLastUpdated: profile?.profileLastUpdated ?? null,
       },
     })
   } catch (error) {
@@ -95,20 +96,20 @@ export async function GET() {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const resolved = await resolveAthleteClientId()
 
-    if (!user) {
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
+    const { clientId } = resolved
+
+    // Find or get the athlete account by clientId
+    const athleteAccount = await prisma.athleteAccount.findFirst({
+      where: { clientId },
     })
 
     if (!athleteAccount) {

@@ -10,17 +10,23 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
 export async function GET() {
   try {
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
 
-    // Get athlete's account with business membership
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { user, clientId } = resolved
+
+    // Get athlete's account with preferred location
+    const athleteAccount = await prisma.athleteAccount.findFirst({
+      where: { clientId },
       select: {
         id: true,
         preferredLocationId: true,
@@ -35,10 +41,12 @@ export async function GET() {
     })
 
     if (!athleteAccount) {
-      return NextResponse.json(
-        { error: 'Athlete account not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({
+        success: true,
+        hasLocations: false,
+        preferredLocation: null,
+        availableLocations: [],
+      })
     }
 
     // Get business membership to find available locations
@@ -124,13 +132,19 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { user, clientId } = resolved
     const body = await request.json()
     const { locationId } = body
 
     // Get athlete's account
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
+    const athleteAccount = await prisma.athleteAccount.findFirst({
+      where: { clientId },
       select: { id: true },
     })
 

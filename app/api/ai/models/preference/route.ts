@@ -6,14 +6,20 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { user, clientId, isCoachInAthleteMode } = resolved
 
     const rateLimited = await rateLimitJsonResponse('ai:model-preference:set', user.id, {
       limit: 30,
@@ -39,29 +45,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get athlete's account and coach info
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: {
-        clientId: true,
-        client: {
-          select: {
-            userId: true, // Coach's user ID
-          },
-        },
-      },
-    })
+    // Get the coach ID for API key validation
+    const coachId = isCoachInAthleteMode
+      ? user.id
+      : (await prisma.client.findUnique({
+          where: { id: clientId },
+          select: { userId: true },
+        }))?.userId
 
-    if (!athleteAccount) {
+    if (!coachId) {
       return NextResponse.json(
-        { error: 'Athlete account not found' },
+        { error: 'Coach not found' },
         { status: 404 }
       )
     }
 
     // Validate model is allowed by coach
     const coachSettings = await prisma.userApiKey.findUnique({
-      where: { userId: athleteAccount.client.userId },
+      where: { userId: coachId },
       select: {
         allowedAthleteModelIds: true,
         anthropicKeyValid: true,
@@ -96,10 +97,10 @@ export async function POST(request: NextRequest) {
 
     // Update sport profile with preference (store the DB model ID)
     await prisma.sportProfile.upsert({
-      where: { clientId: athleteAccount.clientId },
+      where: { clientId },
       update: { preferredAIModelId: dbModel.id },
       create: {
-        clientId: athleteAccount.clientId,
+        clientId,
         preferredAIModelId: dbModel.id,
       },
     })
@@ -121,7 +122,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { user, clientId } = resolved
 
     const rateLimited = await rateLimitJsonResponse('ai:model-preference:get', user.id, {
       limit: 60,
@@ -129,22 +136,9 @@ export async function GET() {
     })
     if (rateLimited) return rateLimited
 
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json(
-        { error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
-
     // Get sport profile
     const sportProfile = await prisma.sportProfile.findUnique({
-      where: { clientId: athleteAccount.clientId },
+      where: { clientId },
       select: { preferredAIModelId: true },
     })
 
