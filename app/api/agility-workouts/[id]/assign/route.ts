@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const assignWorkoutSchema = z.object({
@@ -70,19 +71,28 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       createCalendarEvent,
     } = assignWorkoutSchema.parse(body)
 
-    // Verify all athletes exist and belong to the coach
+    // Verify all athletes exist
     const athletes = await prisma.client.findMany({
       where: {
         id: { in: athleteIds },
-        userId: user.id
       },
       select: { id: true, name: true }
     })
 
     if (athletes.length !== athleteIds.length) {
       return NextResponse.json(
-        { error: 'One or more athletes not found or do not belong to you' },
+        { error: 'One or more athletes not found' },
         { status: 400 }
+      )
+    }
+
+    const accessResults = await Promise.all(
+      athleteIds.map((athleteId) => canAccessClient(user.id, athleteId))
+    )
+    if (accessResults.some((allowed) => !allowed)) {
+      return NextResponse.json(
+        { error: 'One or more athletes not found or do not belong to you' },
+        { status: 403 }
       )
     }
 

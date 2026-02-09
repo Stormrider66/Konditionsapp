@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 
@@ -47,14 +47,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireCoach()
 
     // Get the race result
     const raceResult = await prisma.raceResult.findUnique({
@@ -73,8 +66,8 @@ export async function POST(
       return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
     }
 
-    // Verify access (userId is the coach who manages this client)
-    if (raceResult.client.userId !== user.id) {
+    const hasAccess = await canAccessClient(user.id, raceResult.client.id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
@@ -170,14 +163,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireCoach()
 
     const raceResult = await prisma.raceResult.findUnique({
       where: { id },
@@ -201,8 +187,8 @@ export async function GET(
       return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
     }
 
-    // Verify access (userId is the coach who manages this client)
-    if (raceResult.client.userId !== user.id) {
+    const hasAccess = await canAccessClient(user.id, raceResult.client.id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

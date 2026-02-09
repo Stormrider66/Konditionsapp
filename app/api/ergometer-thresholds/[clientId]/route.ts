@@ -7,6 +7,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient } from '@/lib/auth-utils'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api/utils'
 import { ErgometerType } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
@@ -37,12 +38,13 @@ export async function GET(
 
     const { ergometerType, includeExpired } = queryResult.data
 
-    // Verify client exists and user has access
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        userId: user.id,
-      },
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return errorResponse('Client not found or access denied', 404)
+    }
+
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
       select: {
         id: true,
         name: true,

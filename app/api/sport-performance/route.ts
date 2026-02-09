@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { SportType } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
@@ -85,20 +86,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'clientId required' }, { status: 400 })
     }
 
-    // Verify access to this client
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    })
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
-    }
-
-    const isCoach = client.userId === user.id
-    const isAthlete = client.athleteAccount?.userId === user.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
@@ -140,20 +129,8 @@ export async function POST(request: NextRequest) {
 
     const data = validation.data
 
-    // Verify access to this client
-    const client = await prisma.client.findUnique({
-      where: { id: data.clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    })
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
-    }
-
-    const isCoach = client.userId === user.id
-    const isAthlete = client.athleteAccount?.userId === user.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, data.clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

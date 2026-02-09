@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 export async function PUT(
@@ -72,7 +73,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
     }
 
-    if (workout.day.week.program.client.userId !== dbUser.id) {
+    const hasAccess = await canAccessClient(dbUser.id, workout.day.week.program.clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

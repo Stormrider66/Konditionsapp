@@ -194,11 +194,7 @@ export async function POST(request: NextRequest) {
     } else if (user.role === 'COACH') {
       hasAccess = await canAccessClient(user.id, validatedData.clientId)
     } else if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-      hasAccess = athleteAccount?.clientId === validatedData.clientId
+      hasAccess = await canAccessClient(user.id, validatedData.clientId)
     }
 
     if (!hasAccess) {

@@ -1,7 +1,7 @@
 // app/api/physio/rehab-programs/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requirePhysio, getCurrentUser, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
+import { requirePhysio, getCurrentUser, canAccessAthleteAsPhysio, canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const updateProgramSchema = z.object({
@@ -107,18 +107,10 @@ export async function GET(
     } else if (user.role === 'PHYSIO') {
       hasAccess = program.physioUserId === user.id || await canAccessAthleteAsPhysio(user.id, program.clientId)
     } else if (user.role === 'COACH') {
-      // Coach can view programs for their athletes
-      const client = await prisma.client.findUnique({
-        where: { id: program.clientId },
-        select: { userId: true },
-      })
-      hasAccess = client?.userId === user.id
+      // Coach can view programs for their athletes.
+      hasAccess = await canAccessClient(user.id, program.clientId)
     } else if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-      hasAccess = athleteAccount?.clientId === program.clientId
+      hasAccess = await canAccessClient(user.id, program.clientId)
     }
 
     if (!hasAccess) {

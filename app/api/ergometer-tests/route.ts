@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient } from '@/lib/auth-utils'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api/utils'
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client'
 import {
@@ -267,14 +268,14 @@ export async function POST(request: NextRequest) {
 
     const data = validationResult.data
 
-    // Verify client exists and user has access
-    const client = await prisma.client.findFirst({
-      where: {
-        id: data.clientId,
-        userId: user.id,
-      },
-    })
+    const hasAccess = await canAccessClient(user.id, data.clientId)
+    if (!hasAccess) {
+      return errorResponse('Client not found or access denied', 404)
+    }
 
+    const client = await prisma.client.findUnique({
+      where: { id: data.clientId },
+    })
     if (!client) {
       return errorResponse('Client not found or access denied', 404)
     }

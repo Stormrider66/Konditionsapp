@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { detectWorkoutConflicts } from '@/lib/calendar/conflict-detection'
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
 import { z } from 'zod'
@@ -89,11 +90,8 @@ export async function POST(request: NextRequest) {
     const program = workout.day.week.program
     const client = program.client
 
-    // Verify access - must be coach or athlete of this client
-    const isCoach = client.userId === dbUser.id
-    const isAthlete = client.athleteAccount?.userId === dbUser.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, client.id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -160,7 +158,7 @@ export async function POST(request: NextRequest) {
         newData: {
           newDate: targetDate.toISOString(),
           newDayId: targetDay.id,
-          movedBy: isCoach ? 'COACH' : 'ATHLETE',
+          movedBy: dbUser.role === 'COACH' ? 'COACH' : 'ATHLETE',
           reason: reason || null,
         },
       },

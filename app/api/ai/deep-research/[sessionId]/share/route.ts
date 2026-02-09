@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { requireCoach } from '@/lib/auth-utils'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
 
 // ============================================
@@ -88,12 +88,16 @@ export async function POST(
       )
     }
 
-    // Verify athlete belongs to coach
-    const athlete = await prisma.client.findFirst({
-      where: {
-        id: athleteId,
-        userId: user.id,
-      },
+    const hasAccess = await canAccessClient(user.id, athleteId)
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Athlete not found or not accessible' },
+        { status: 404 }
+      )
+    }
+
+    const athlete = await prisma.client.findUnique({
+      where: { id: athleteId },
       select: {
         id: true,
         name: true,

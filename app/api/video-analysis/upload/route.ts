@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCoach } from '@/lib/auth-utils';
+import { canAccessClient, requireCoach } from '@/lib/auth-utils';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { createSignedUrl } from '@/lib/storage/supabase-storage-server';
@@ -82,10 +82,8 @@ export async function POST(request: NextRequest) {
 
     // Verify athlete belongs to coach if provided
     if (athleteId) {
-      const athlete = await prisma.client.findFirst({
-        where: { id: athleteId, userId: user.id },
-      });
-      if (!athlete) {
+      const hasAccess = await canAccessClient(user.id, athleteId)
+      if (!hasAccess) {
         return NextResponse.json(
           { error: 'Athlete not found' },
           { status: 404 }

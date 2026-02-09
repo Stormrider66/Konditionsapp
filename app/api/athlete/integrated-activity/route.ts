@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import {
   deduplicateActivities,
@@ -85,11 +86,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    const isCoach = client.userId === user.id
-    const isAthlete = client.athleteAccount?.userId === user.id
+    const hasAccess = await canAccessClient(user.id, clientId)
     const athleteId = client.athleteAccount?.userId
 
-    if (!isCoach && !isAthlete) {
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

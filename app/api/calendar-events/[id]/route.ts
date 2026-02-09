@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { CalendarEventType, CalendarEventStatus, EventImpact, AltitudeAdaptationPhase } from '@prisma/client'
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
 import { logError } from '@/lib/logger-console'
@@ -70,11 +71,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
-    // Check authorization
-    const isCoach = event.client.userId === dbUser.id
-    const isAthlete = event.client.athleteAccount?.userId === dbUser.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, event.client.id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -127,11 +125,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
-    // Check authorization
-    const isCoach = existingEvent.client.userId === dbUser.id
-    const isAthlete = existingEvent.client.athleteAccount?.userId === dbUser.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, existingEvent.client.id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -326,11 +321,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
 
-    // Check authorization
-    const isCoach = existingEvent.client.userId === dbUser.id
-    const isAthlete = existingEvent.client.athleteAccount?.userId === dbUser.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, existingEvent.client.id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

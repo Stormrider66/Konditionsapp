@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
 
@@ -18,9 +18,13 @@ export async function GET(
     const user = await requireCoach()
     const { id: clientId } = await params
 
-    // Verify coach has access to this client
-    const client = await prisma.client.findFirst({
-      where: { id: clientId, userId: user.id },
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
       select: {
         id: true,
         name: true,
@@ -44,10 +48,6 @@ export async function GET(
         }
       }
     })
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
-    }
 
     // Get latest test date
     const latestTest = await prisma.test.findFirst({

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { SportType, Prisma } from '@prisma/client'
@@ -117,24 +118,8 @@ export async function GET(
 
     const { clientId } = await params
 
-    // Verify the client belongs to this user (coach) or is the athlete themselves
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    })
-
-    if (!client) {
-      return NextResponse.json(
-        { success: false, error: 'Client not found' },
-        { status: 404 }
-      )
-    }
-
-    // Allow access if coach owns the client OR user is the athlete
-    const isCoach = client.userId === user.id
-    const isAthlete = client.athleteAccount?.userId === user.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -200,24 +185,8 @@ export async function PUT(
 
     const data = validation.data
 
-    // Verify the client belongs to this user (coach) or is the athlete themselves
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    })
-
-    if (!client) {
-      return NextResponse.json(
-        { success: false, error: 'Client not found' },
-        { status: 404 }
-      )
-    }
-
-    // Allow access if coach owns the client OR user is the athlete
-    const isCoach = client.userId === user.id
-    const isAthlete = client.athleteAccount?.userId === user.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -433,24 +402,8 @@ export async function PATCH(
       )
     }
 
-    // Verify the client belongs to this user (coach) or is the athlete themselves
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    })
-
-    if (!client) {
-      return NextResponse.json(
-        { success: false, error: 'Client not found' },
-        { status: 404 }
-      )
-    }
-
-    // Allow access if coach owns the client OR user is the athlete
-    const isCoach = client.userId === user.id
-    const isAthlete = client.athleteAccount?.userId === user.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }

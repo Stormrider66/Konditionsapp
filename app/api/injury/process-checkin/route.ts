@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import {
   processInjuryDetection,
   type InjuryDetection,
@@ -121,20 +122,14 @@ export async function POST(request: NextRequest) {
     // Verify client access
     const client = await prisma.client.findUnique({
       where: { id: clientId },
-      include: {
-        athleteAccount: true,
-      },
     })
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    // Authorization check
-    const isOwner = client.userId === dbUser.id
-    const isAthlete = client.athleteAccount?.userId === dbUser.id
-
-    if (!isOwner && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

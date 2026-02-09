@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
+import { canAccessAthlete, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
 import { HybridScoreType, ScalingLevel } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
 
@@ -38,6 +38,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
     if (resolved) {
       where.athleteId = resolved.clientId
     } else if (user.role === 'COACH' || user.role === 'ADMIN') {
+      if (athleteId) {
+        const hasAccess = await canAccessAthlete(user.id, athleteId)
+        if (!hasAccess) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+      }
       where.athlete = { userId: user.id }
       if (athleteId) {
         where.athleteId = athleteId
@@ -129,10 +135,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return NextResponse.json({ error: 'athleteId is required' }, { status: 400 })
       }
       // Verify coach can write results for this athlete
-      const hasAccess = await prisma.client.findFirst({
-        where: { id: athleteId, userId: user.id },
-        select: { id: true },
-      })
+      const hasAccess = await canAccessAthlete(user.id, athleteId)
       if (!hasAccess) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }

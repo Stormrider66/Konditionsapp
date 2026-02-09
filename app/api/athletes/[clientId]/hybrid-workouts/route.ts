@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAthlete } from '@/lib/auth-utils'
+import { canAccessClient, requireAthlete } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
 /**
@@ -15,12 +15,8 @@ export async function GET(
     const { clientId } = await params
     const athlete = await requireAthlete()
 
-    // Verify the athlete is accessing their own data
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount || athleteAccount.clientId !== clientId) {
+    const hasAccess = await canAccessClient(athlete.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -29,7 +25,7 @@ export async function GET(
 
     // Determine athlete gender for weight selection (mirror /api/hybrid-workouts/[id]/focus-mode)
     const athleteProfile = await prisma.client.findUnique({
-      where: { id: athleteAccount.clientId },
+      where: { id: clientId },
       select: { gender: true },
     })
     const isFemale = athleteProfile?.gender === 'FEMALE'

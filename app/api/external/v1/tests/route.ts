@@ -39,6 +39,21 @@ export const GET = withApiKey(
     }
 
     if (athleteId) {
+      const athlete = await prisma.client.findFirst({
+        where: {
+          id: athleteId,
+          userId: { in: coachIds }
+        },
+        select: { id: true }
+      })
+
+      if (!athlete) {
+        return NextResponse.json(
+          { success: false, error: 'Athlete not found or access denied' },
+          { status: 404 }
+        )
+      }
+
       where.clientId = athleteId
     }
     if (testType) {

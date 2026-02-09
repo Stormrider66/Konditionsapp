@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { AIProvider } from '@prisma/client'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
@@ -116,14 +116,8 @@ export async function POST(request: NextRequest) {
 
     // Verify athlete belongs to coach if specified
     if (athleteId) {
-      const client = await prisma.client.findFirst({
-        where: {
-          id: athleteId,
-          userId: user.id,
-        },
-      })
-
-      if (!client) {
+      const hasAccess = await canAccessClient(user.id, athleteId)
+      if (!hasAccess) {
         return NextResponse.json(
           { error: 'Athlete not found or not accessible' },
           { status: 404 }

@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { StrengthPhase, SportType, HybridFormat } from '@prisma/client'
 import { voiceWorkoutConfirmSchema } from '@/lib/validations/voice-workout-schemas'
@@ -151,10 +151,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
       // Single athlete
       const client = await prisma.client.findUnique({
         where: { id: assignment.targetId },
-        select: { id: true, userId: true },
+        select: { id: true },
       })
 
-      if (!client || client.userId !== user.id) {
+      if (!client) {
+        return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
+      }
+
+      const hasAccess = await canAccessClient(user.id, client.id)
+      if (!hasAccess) {
         return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
       }
 

@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
 import {
@@ -57,11 +57,8 @@ export async function GET(
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    // Verify access
-    const isCoach = session.client.userId === user.id;
-    const isAthlete = session.client.athleteAccount?.userId === user.id;
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, session.clientId);
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

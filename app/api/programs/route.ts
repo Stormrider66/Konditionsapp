@@ -241,15 +241,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify client belongs to coach
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        userId: user.id,
-      },
-    })
-
-    if (!client) {
+    const hasClientAccess = await canAccessClient(user.id, clientId)
+    if (!hasClientAccess) {
       return NextResponse.json(
         { success: false, error: 'Klient hittades inte eller åtkomst nekad' },
         { status: 404 }

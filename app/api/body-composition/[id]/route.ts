@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import {
   calculateBMI,
@@ -29,19 +30,12 @@ export async function GET(
 
     const { id } = await params
 
-    const measurement = await prisma.bodyComposition.findFirst({
-      where: {
-        id,
-        client: {
-          OR: [
-            { userId: user.id }, // coach
-            { athleteAccount: { userId: user.id } }, // athlete
-          ],
-        },
-      },
+    const measurement = await prisma.bodyComposition.findUnique({
+      where: { id },
       include: {
         client: {
           select: {
+            id: true,
             name: true,
             gender: true,
             birthDate: true,
@@ -52,6 +46,10 @@ export async function GET(
     })
 
     if (!measurement) {
+      return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
+    }
+    const hasAccess = await canAccessClient(user.id, measurement.clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
     }
 
@@ -91,19 +89,12 @@ export async function PUT(
     const body = await req.json()
 
     // Check if measurement exists
-    const existing = await prisma.bodyComposition.findFirst({
-      where: {
-        id,
-        client: {
-          OR: [
-            { userId: user.id }, // coach
-            { athleteAccount: { userId: user.id } }, // athlete
-          ],
-        },
-      },
+    const existing = await prisma.bodyComposition.findUnique({
+      where: { id },
       include: {
         client: {
           select: {
+            id: true,
             height: true,
             gender: true,
             birthDate: true,
@@ -113,6 +104,10 @@ export async function PUT(
     })
 
     if (!existing) {
+      return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
+    }
+    const hasAccess = await canAccessClient(user.id, existing.clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
     }
 
@@ -234,19 +229,13 @@ export async function DELETE(
     const { id } = await params
 
     // Check if measurement exists
-    const existing = await prisma.bodyComposition.findFirst({
-      where: {
-        id,
-        client: {
-          OR: [
-            { userId: user.id }, // coach
-            { athleteAccount: { userId: user.id } }, // athlete
-          ],
-        },
-      },
-    })
+    const existing = await prisma.bodyComposition.findUnique({ where: { id } })
 
     if (!existing) {
+      return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
+    }
+    const hasAccess = await canAccessClient(user.id, existing.clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
     }
 

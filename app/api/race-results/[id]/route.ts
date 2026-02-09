@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient } from '@/lib/auth-utils'
 import { Prisma } from '@prisma/client'
 import { calculateVDOTFromRace, type VDOTResult } from '@/lib/training-engine/calculations/vdot'
 import { logger } from '@/lib/logger'
@@ -25,19 +26,12 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const raceResult = await prisma.raceResult.findFirst({
-      where: {
-        id,
-        client: {
-          OR: [
-            { userId: user.id }, // coach
-            { athleteAccount: { userId: user.id } }, // athlete
-          ],
-        },
-      },
+    const raceResult = await prisma.raceResult.findUnique({
+      where: { id },
       include: {
         client: {
           select: {
+            id: true,
             name: true,
             gender: true,
             birthDate: true,
@@ -48,6 +42,10 @@ export async function GET(
     })
 
     if (!raceResult) {
+      return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
+    }
+    const hasAccess = await canAccessClient(user.id, raceResult.clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
     }
 
@@ -96,22 +94,18 @@ export async function PUT(
     const body = await req.json()
 
     // Get existing race result
-    const existingResult = await prisma.raceResult.findFirst({
-      where: {
-        id,
-        client: {
-          OR: [
-            { userId: user.id }, // coach
-            { athleteAccount: { userId: user.id } }, // athlete
-          ],
-        },
-      },
+    const existingResult = await prisma.raceResult.findUnique({
+      where: { id },
       include: {
         client: true,
       },
     })
 
     if (!existingResult) {
+      return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
+    }
+    const hasAccess = await canAccessClient(user.id, existingResult.clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
     }
 
@@ -217,19 +211,13 @@ export async function DELETE(
     }
 
     // Check if race exists
-    const raceResult = await prisma.raceResult.findFirst({
-      where: {
-        id,
-        client: {
-          OR: [
-            { userId: user.id }, // coach
-            { athleteAccount: { userId: user.id } }, // athlete
-          ],
-        },
-      },
-    })
+    const raceResult = await prisma.raceResult.findUnique({ where: { id } })
 
     if (!raceResult) {
+      return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
+    }
+    const hasAccess = await canAccessClient(user.id, raceResult.clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
     }
 

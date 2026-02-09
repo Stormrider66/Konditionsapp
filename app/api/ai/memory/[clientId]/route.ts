@@ -11,6 +11,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import {
   getRelevantMemories,
   getRecentSummary,
@@ -33,23 +34,8 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify user has access to this client
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        OR: [
-          { userId: user.id },
-          {
-            athleteAccount: {
-              userId: user.id,
-            },
-          },
-        ],
-      },
-      select: { id: true },
-    })
-
-    if (!client) {
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Client not found or access denied' },
         { status: 404 }
@@ -91,14 +77,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const { clientId } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireCoach()
 
     // Get memory ID from query params
     const url = new URL(request.url)
@@ -111,16 +90,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       )
     }
 
-    // Verify user has access to this client (only coach can delete)
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        userId: user.id, // Only coach can delete memories
-      },
-      select: { id: true },
-    })
-
-    if (!client) {
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Client not found or access denied' },
         { status: 404 }

@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import type { VBTDeviceType } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
@@ -70,20 +70,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       return NextResponse.json({ error: 'clientId is required' }, { status: 400 });
     }
 
-    // Verify access to client
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    });
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
-    }
-
-    const isCoach = client.userId === user.id;
-    const isAthlete = client.athleteAccount?.userId === user.id;
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, clientId);
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -130,7 +118,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       const newSession = await tx.vBTSession.create({
         data: {
           clientId,
-          coachId: isCoach ? user.id : null,
+          coachId: user.role === 'COACH' ? user.id : null,
           sessionDate: parsed.sessionDate,
           deviceType: parsed.deviceType,
           deviceName: parsed.deviceName,

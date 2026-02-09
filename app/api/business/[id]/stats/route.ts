@@ -31,6 +31,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       where: {
         userId: user.id,
         businessId: id,
+        isActive: true,
       },
     });
 
@@ -241,13 +242,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get tester and location names for breakdown
     const testerData = await prisma.tester.findMany({
-      where: { id: { in: testerIds } },
+      where: { id: { in: testerIds }, businessId: id },
       select: { id: true, name: true },
     });
     const testerMap = new Map(testerData.map((t) => [t.id, t.name]));
 
     const locationData = await prisma.location.findMany({
-      where: { id: { in: locationIds } },
+      where: { id: { in: locationIds }, businessId: id },
       select: { id: true, name: true },
     });
     const locationMap = new Map(locationData.map((l) => [l.id, l.name]));

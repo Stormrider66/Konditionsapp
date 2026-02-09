@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { encryptIntegrationSecret } from '@/lib/integrations/crypto'
 import { logger } from '@/lib/logger'
 import { validateOAuthState } from '@/lib/auth/oauth-state'
@@ -116,10 +117,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const isCoach = connection.client.userId === dbUser.id
-    const isAthlete = connection.client.athleteAccount?.userId === dbUser.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, connection.client.id)
+    if (!hasAccess) {
       return NextResponse.redirect(
         `${baseUrl}/athlete/settings/calendars?error=forbidden`
       )

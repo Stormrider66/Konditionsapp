@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveAthleteClientId, requireCoach } from '@/lib/auth-utils';
+import { canAccessClient, resolveAthleteClientId, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
@@ -34,10 +34,8 @@ export async function GET(
     } else {
       // Try as coach viewing a specific client
       const user = await requireCoach();
-      const client = await prisma.client.findFirst({
-        where: { id: clientId, userId: user.id },
-      });
-      if (!client) {
+      const hasAccess = await canAccessClient(user.id, clientId)
+      if (!hasAccess) {
         return NextResponse.json({ error: 'Client not found' }, { status: 404 });
       }
     }

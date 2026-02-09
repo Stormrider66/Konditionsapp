@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import {
   detectWorkoutConflicts,
   detectConflictsInRange,
@@ -50,20 +51,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Verify client access
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      include: { athleteAccount: true },
-    })
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
-    }
-
-    const isCoach = client.userId === dbUser.id
-    const isAthlete = client.athleteAccount?.userId === dbUser.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -177,11 +166,8 @@ export async function POST(request: NextRequest) {
 
     const client = workout.day.week.program.client
 
-    // Verify access
-    const isCoach = client.userId === dbUser.id
-    const isAthlete = client.athleteAccount?.userId === dbUser.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, client.id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

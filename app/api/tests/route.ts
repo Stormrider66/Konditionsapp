@@ -4,7 +4,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from "@/lib/prisma"
 import { createTestApiSchema, type CreateTestApiData } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
-import { canAccessClient } from '@/lib/auth-utils'
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 // GET /api/tests - Hämta alla tester för inloggad användare (med optional clientId filter)
@@ -85,11 +85,7 @@ export async function GET(request: NextRequest) {
 // POST /api/tests - Skapa nytt test med stages
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json(
         {
@@ -97,6 +93,15 @@ export async function POST(request: NextRequest) {
           error: 'Unauthorized',
         },
         { status: 401 }
+      )
+    }
+    if (user.role !== 'COACH') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Only coaches can create tests',
+        },
+        { status: 403 }
       )
     }
 
@@ -143,7 +148,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (client.userId !== user.id) {
+    const hasClientAccess = await canAccessClient(user.id, data.clientId)
+    if (!hasClientAccess) {
       return NextResponse.json(
         {
           success: false,

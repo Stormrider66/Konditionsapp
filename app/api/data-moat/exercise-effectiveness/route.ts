@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 // Validation schemas
@@ -44,14 +44,7 @@ const listQuerySchema = z.object({
 // GET: List exercise effectiveness records
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireCoach()
 
     const searchParams = request.nextUrl.searchParams
     const query = listQuerySchema.parse({
@@ -66,6 +59,13 @@ export async function GET(request: NextRequest) {
     const page = parseInt(query.page || '1', 10)
     const limit = Math.min(parseInt(query.limit || '20', 10), 100)
     const skip = (page - 1) * limit
+
+    if (query.athleteId) {
+      const hasAccess = await canAccessClient(user.id, query.athleteId)
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'Athlete not found or access denied' }, { status: 404 })
+      }
+    }
 
     // Build where clause - filter by athletes the coach owns
     const where: Record<string, unknown> = {
@@ -142,27 +142,13 @@ export async function GET(request: NextRequest) {
 // POST: Create new effectiveness tracking record
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireCoach()
 
     const body = await request.json()
     const validatedData = createEffectivenessSchema.parse(body)
 
-    // Verify coach has access to athlete
-    const athlete = await prisma.client.findFirst({
-      where: {
-        id: validatedData.athleteId,
-        userId: user.id,
-      },
-    })
-
-    if (!athlete) {
+    const hasAccess = await canAccessClient(user.id, validatedData.athleteId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Athlete not found or access denied' }, { status: 404 })
     }
 
@@ -232,14 +218,7 @@ export async function POST(request: NextRequest) {
 // PATCH: Update effectiveness record with results
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireCoach()
 
     const searchParams = request.nextUrl.searchParams
     const recordId = searchParams.get('id')
@@ -260,7 +239,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Record not found' }, { status: 404 })
     }
 
-    if (existing.athlete.userId !== user.id) {
+    const hasAccess = await canAccessClient(user.id, existing.athleteId)
+    if (!hasAccess || existing.athlete.userId !== user.id) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

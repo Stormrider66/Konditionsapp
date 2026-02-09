@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const updateConsentSchema = z.object({
@@ -28,27 +29,8 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify access - must be the athlete themselves or their coach
-    const athlete = await prisma.client.findUnique({
-      where: { id: athleteId },
-      select: {
-        id: true,
-        userId: true, // This is the coach's user ID
-        athleteAccount: {
-          select: { userId: true }, // This is the athlete's own user ID (if they have an account)
-        },
-      },
-    })
-
-    if (!athlete) {
-      return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
-    }
-
-    // Allow access if user is the coach (userId) or the athlete themselves (athleteAccount.userId)
-    const isCoach = athlete.userId === user.id
-    const isAthlete = athlete.athleteAccount?.userId === user.id
-
-    if (!isAthlete && !isCoach) {
+    const hasAccess = await canAccessClient(user.id, athleteId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
@@ -108,6 +90,11 @@ export async function PUT(
 
     if (!athlete) {
       return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
+    }
+
+    const hasAccess = await canAccessClient(user.id, athleteId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
     // Only the athlete can update their own consent (via their athleteAccount)

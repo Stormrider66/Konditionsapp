@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
+import { canAccessClient, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
 /**
@@ -47,7 +47,11 @@ export async function GET(request: NextRequest) {
         clientIds = clients.map((c) => c.id)
 
         // If specific clientId requested, filter to that one
-        if (clientId && clientIds.includes(clientId)) {
+        if (clientId) {
+          const hasAccess = await canAccessClient(dbUser.id, clientId)
+          if (!hasAccess) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          }
           clientIds = [clientId]
         }
       }

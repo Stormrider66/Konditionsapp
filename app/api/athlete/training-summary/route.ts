@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import {
   getRecentWeeklySummaries,
@@ -50,20 +51,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'count must be between 1 and 52' }, { status: 400 })
     }
 
-    // Verify access
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    })
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
-    }
-
-    const isCoach = client.userId === user.id
-    const isAthlete = client.athleteAccount?.userId === user.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { analyzeTrainingCorrelation } from '@/lib/ai/performance-analysis'
 import { logger } from '@/lib/logger'
@@ -32,16 +32,8 @@ export async function POST(req: NextRequest) {
 
     const { clientId, lookbackMonths } = parsed.data
 
-    // Verify client belongs to coach
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        userId: user.id,
-      },
-      select: { id: true, name: true },
-    })
-
-    if (!client) {
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Client not found or access denied' },
         { status: 404 }

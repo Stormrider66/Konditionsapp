@@ -13,6 +13,7 @@ import {
   requireAuth,
   successResponse,
 } from '@/lib/api/utils'
+import { canAccessClient } from '@/lib/auth-utils'
 import { validateSystemState } from '@/lib/training-engine/integration/multi-system-validation'
 
 export async function GET(request: NextRequest) {
@@ -27,20 +28,14 @@ export async function GET(request: NextRequest) {
 
     const client = await prisma.client.findUnique({
       where: { id: clientId },
-      include: {
-        athleteAccount: true,
-      },
     })
 
     if (!client) {
       return errorResponse('Client not found', 404)
     }
 
-    const isOwner = client.userId === user.id
-    const isAthlete = client.athleteAccount?.userId === user.id
-    const isAdmin = user.role === 'ADMIN'
-
-    if (!isOwner && !isAthlete && !isAdmin) {
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
       return errorResponse('Access denied', 403)
     }
 

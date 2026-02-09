@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient } from '@/lib/auth-utils'
 import {
   extractMemoriesFromConversation,
   saveMemories,
@@ -44,19 +45,16 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verify user has access to this client (either as coach or as the athlete)
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        OR: [
-          { userId: user.id }, // Coach owns this client
-          {
-            athleteAccount: {
-              userId: user.id, // Athlete is this client
-            },
-          },
-        ],
-      },
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Client not found or access denied' },
+        { status: 404 }
+      )
+    }
+
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
       select: {
         id: true,
         userId: true, // Coach's user ID

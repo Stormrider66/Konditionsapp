@@ -6,8 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 // Validation schemas
@@ -53,14 +53,7 @@ const listQuerySchema = z.object({
 // GET: List training period outcomes
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireCoach()
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams
@@ -77,6 +70,13 @@ export async function GET(request: NextRequest) {
     const page = parseInt(query.page || '1', 10)
     const limit = Math.min(parseInt(query.limit || '20', 10), 100)
     const skip = (page - 1) * limit
+
+    if (query.athleteId) {
+      const hasAccess = await canAccessClient(user.id, query.athleteId)
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'Athlete not found or access denied' }, { status: 404 })
+      }
+    }
 
     // Build where clause
     const where: Record<string, unknown> = {
@@ -141,6 +141,9 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Coach access required')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid query parameters', details: error.errors },
@@ -155,27 +158,13 @@ export async function GET(request: NextRequest) {
 // POST: Create a new training period outcome
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireCoach()
 
     const body = await request.json()
     const validatedData = createOutcomeSchema.parse(body)
 
-    // Verify coach has access to athlete
-    const athlete = await prisma.client.findFirst({
-      where: {
-        id: validatedData.athleteId,
-        userId: user.id,
-      },
-    })
-
-    if (!athlete) {
+    const hasAccess = await canAccessClient(user.id, validatedData.athleteId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Athlete not found or access denied' }, { status: 404 })
     }
 
@@ -235,6 +224,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(outcome, { status: 201 })
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Coach access required')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 })
     }

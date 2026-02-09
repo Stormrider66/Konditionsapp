@@ -1,7 +1,7 @@
 // app/api/physio/rehab-programs/[id]/progress/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
+import { getCurrentUser, canAccessAthleteAsPhysio, canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
@@ -50,17 +50,9 @@ export async function GET(
     } else if (user.role === 'PHYSIO') {
       hasAccess = program.physioUserId === user.id || await canAccessAthleteAsPhysio(user.id, program.clientId)
     } else if (user.role === 'COACH') {
-      const client = await prisma.client.findUnique({
-        where: { id: program.clientId },
-        select: { userId: true },
-      })
-      hasAccess = client?.userId === user.id
+      hasAccess = await canAccessClient(user.id, program.clientId)
     } else if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-      hasAccess = athleteAccount?.clientId === program.clientId
+      hasAccess = await canAccessClient(user.id, program.clientId)
     }
 
     if (!hasAccess) {
@@ -134,17 +126,9 @@ export async function POST(
     } else if (user.role === 'PHYSIO') {
       hasAccess = program.physioUserId === user.id || await canAccessAthleteAsPhysio(user.id, program.clientId)
     } else if (user.role === 'COACH') {
-      const client = await prisma.client.findUnique({
-        where: { id: program.clientId },
-        select: { userId: true },
-      })
-      hasAccess = client?.userId === user.id
+      hasAccess = await canAccessClient(user.id, program.clientId)
     } else if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-      hasAccess = athleteAccount?.clientId === program.clientId
+      hasAccess = await canAccessClient(user.id, program.clientId)
     }
 
     if (!hasAccess) {

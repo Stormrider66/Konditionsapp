@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { CalendarEventType, EventImpact } from '@prisma/client'
 import { z } from 'zod'
 import { toPublicExternalCalendarConnection } from '@/lib/calendar/external-calendar-connection'
@@ -77,11 +78,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    // Verify access
-    const isCoach = connection.client.userId === dbUser.id
-    const isAthlete = connection.client.athleteAccount?.userId === dbUser.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, connection.client.id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -149,11 +147,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    // Verify access
-    const isCoach = connection.client.userId === dbUser.id
-    const isAthlete = connection.client.athleteAccount?.userId === dbUser.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, connection.client.id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -234,11 +229,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    // Verify access
-    const isCoach = connection.client.userId === dbUser.id
-    const isAthlete = connection.client.athleteAccount?.userId === dbUser.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, connection.client.id)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

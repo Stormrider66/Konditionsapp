@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
+import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import {
   executePendingActions,
   executeActionsForAthlete,
@@ -28,19 +29,9 @@ export async function POST(request: NextRequest) {
 
     // If specific clientId provided, execute for that athlete
     if (clientId) {
-      // Verify user has access to this client
-      const client = await prisma.client.findFirst({
-        where: {
-          id: clientId,
-          OR: [
-            { userId: user.id }, // Coach owns client
-            { athleteAccount: { userId: user.id } }, // Is the athlete
-          ],
-        },
-      })
-
-      if (!client) {
-        return NextResponse.json({ error: 'Client not found or unauthorized' }, { status: 404 })
+      const hasAccess = await canAccessAthlete(user.id, clientId)
+      if (!hasAccess.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
       // Check consent
@@ -71,26 +62,15 @@ export async function POST(request: NextRequest) {
     if (actionId) {
       const action = await prisma.agentAction.findUnique({
         where: { id: actionId },
-        include: {
-          client: {
-            select: {
-              userId: true,
-              athleteAccount: { select: { userId: true } },
-            },
-          },
-        },
       })
 
       if (!action) {
         return NextResponse.json({ error: 'Action not found' }, { status: 404 })
       }
 
-      // Verify user has access
-      const isCoach = action.client.userId === user.id
-      const isAthlete = action.client.athleteAccount?.userId === user.id
-
-      if (!isCoach && !isAthlete) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      const hasAccess = await canAccessAthlete(user.id, action.clientId)
+      if (!hasAccess.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
 
       // Import and execute

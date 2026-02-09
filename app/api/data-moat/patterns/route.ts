@@ -6,8 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { z } from 'zod'
 import {
   detectPatterns,
@@ -31,29 +31,15 @@ const matchQuerySchema = z.object({
 // GET: List discovered patterns or match athlete to patterns
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireCoach()
 
     const searchParams = request.nextUrl.searchParams
 
     // Check if this is a match request
     const athleteId = searchParams.get('athleteId')
     if (athleteId) {
-      // Verify access to athlete
-      const athlete = await prisma.client.findFirst({
-        where: {
-          id: athleteId,
-          userId: user.id,
-        },
-      })
-
-      if (!athlete) {
+      const hasAccess = await canAccessClient(user.id, athleteId)
+      if (!hasAccess) {
         return NextResponse.json({ error: 'Athlete not found or access denied' }, { status: 404 })
       }
 
@@ -138,6 +124,9 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Coach access required')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid query parameters', details: error.errors },
@@ -152,24 +141,7 @@ export async function GET(request: NextRequest) {
 // POST: Trigger pattern detection (admin/system use)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Verify admin or coach role
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { role: true },
-    })
-
-    if (!dbUser || (dbUser.role !== 'ADMIN' && dbUser.role !== 'COACH')) {
-      return NextResponse.json({ error: 'Admin or coach access required' }, { status: 403 })
-    }
+    const user = await requireCoach()
 
     const body = await request.json().catch(() => ({}))
     const sport = body.sport as string | undefined
@@ -201,6 +173,9 @@ export async function POST(request: NextRequest) {
       })),
     })
   } catch (error) {
+    if (error instanceof Error && error.message.includes('Coach access required')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     console.error('Error detecting patterns:', error)
     return NextResponse.json({ error: 'Failed to detect patterns' }, { status: 500 })
   }

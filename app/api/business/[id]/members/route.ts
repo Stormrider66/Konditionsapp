@@ -33,6 +33,7 @@ async function canManageMembers(userId: string, businessId: string) {
       userId,
       businessId,
       role: { in: ['OWNER', 'ADMIN'] },
+      isActive: true,
     },
   });
 
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       where: {
         userId: user.id,
         businessId: id,
+        isActive: true,
       },
     });
 
@@ -231,6 +233,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       where: {
         userId: user.id,
         businessId: id,
+        isActive: true,
       },
     });
 
@@ -243,6 +246,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       where: {
         userId: targetUserId,
         businessId: id,
+        isActive: true,
       },
     });
 

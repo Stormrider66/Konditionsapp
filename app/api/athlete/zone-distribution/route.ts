@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient } from '@/lib/auth-utils'
 import { getAggregatedZoneDistribution } from '@/lib/integrations/zone-distribution-service'
 
 export async function GET(request: Request) {
@@ -48,20 +49,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'clientId is required' }, { status: 400 })
     }
 
-    // Verify access to client
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    })
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
-    }
-
-    const isCoach = client.userId === user.id
-    const isAthlete = client.athleteAccount?.userId === user.id
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

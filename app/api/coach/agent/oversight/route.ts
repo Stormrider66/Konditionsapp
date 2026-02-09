@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { safeParseInt } from '@/lib/utils/parse'
 import type { AgentActionStatus, Prisma } from '@prisma/client'
 
@@ -45,6 +46,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (clientId) {
+      const hasAccess = await canAccessClient(user.id, clientId)
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
       where.clientId = clientId
     }
 

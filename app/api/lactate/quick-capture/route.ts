@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { logError } from '@/lib/logger-console'
 
 const quickCaptureSchema = z.object({
@@ -33,18 +33,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = quickCaptureSchema.parse(body);
 
-    // Verify the user has access to this client (either is the client or is their coach)
-    const client = await prisma.client.findFirst({
-      where: {
-        id: data.clientId,
-        OR: [
-          { athleteAccount: { userId: user.id } },
-          { userId: user.id },
-        ],
-      },
-    });
-
-    if (!client) {
+    const hasAccess = await canAccessClient(user.id, data.clientId)
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Klient hittades inte eller saknar behörighet' },
         { status: 403 }
@@ -119,6 +109,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'clientId krävs' },
         { status: 400 }
+      );
+    }
+
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Klient hittades inte eller saknar behörighet' },
+        { status: 403 }
       );
     }
 

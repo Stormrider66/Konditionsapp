@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma, SportTestCategory, SportTestProtocol, SportType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { createSportTestSchema } from '@/lib/validations/sport-test-schemas'
 import {
@@ -41,6 +42,16 @@ export async function GET(request: NextRequest) {
     const sport = searchParams.get('sport')
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
+
+    if (clientId) {
+      const hasAccess = await canAccessClient(user.id, clientId)
+      if (!hasAccess) {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden' },
+          { status: 403 }
+        )
+      }
+    }
 
     // Build filter with validated enum values
     const categoryFilter = category && Object.values(SportTestCategory).includes(category as SportTestCategory)
@@ -111,15 +122,17 @@ export async function GET(request: NextRequest) {
 // POST /api/sport-tests - Create new sport test
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
+      )
+    }
+    if (user.role !== 'COACH') {
+      return NextResponse.json(
+        { success: false, error: 'Only coaches can create sport tests' },
+        { status: 403 }
       )
     }
 
@@ -141,12 +154,17 @@ export async function POST(request: NextRequest) {
     const { clientId, testDate, category, protocol, sport, conditions, rawData, notes } =
       validation.data
 
-    // Verify client belongs to user
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        userId: user.id,
-      },
+    const hasAccess = await canAccessClient(user.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 }
+      )
+    }
+
+    // Fetch client data used for derived metrics after access check
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
       select: {
         id: true,
         weight: true,
@@ -156,7 +174,7 @@ export async function POST(request: NextRequest) {
 
     if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Client not found' },
+        { success: false, error: 'Client not found or access denied' },
         { status: 404 }
       )
     }

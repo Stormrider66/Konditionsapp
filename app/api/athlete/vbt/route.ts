@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
@@ -51,20 +51,8 @@ export async function GET(request: NextRequest) {
 
     const { clientId, limit, offset, startDate, endDate } = validationResult.data;
 
-    // Verify access
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    });
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
-    }
-
-    const isCoach = client.userId === user.id;
-    const isAthlete = client.athleteAccount?.userId === user.id;
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, clientId);
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -188,12 +176,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    // Verify access (only coach or uploading athlete can delete)
-    const isCoach = session.client.userId === user.id;
-    const isAthlete = session.client.athleteAccount?.userId === user.id;
-    const isUploader = session.coachId === user.id;
+    const hasAccess = await canAccessClient(user.id, session.clientId);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
-    if (!isCoach && !(isAthlete && !session.coachId)) {
+    // Additional guard: athlete can only delete self-uploaded sessions (no coachId).
+    if (user.role !== 'COACH' && session.coachId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

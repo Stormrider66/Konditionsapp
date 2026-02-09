@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const querySchema = z.object({
@@ -12,14 +12,7 @@ const querySchema = z.object({
 // GET: Get analytics for coach decisions
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const user = await requireCoach()
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams
@@ -28,6 +21,13 @@ export async function GET(request: NextRequest) {
       endDate: searchParams.get('endDate') || undefined,
       athleteId: searchParams.get('athleteId') || undefined,
     })
+
+    if (query.athleteId) {
+      const hasAccess = await canAccessClient(user.id, query.athleteId)
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'Athlete not found or access denied' }, { status: 404 })
+      }
+    }
 
     // Build where clause
     const where: Record<string, unknown> = {

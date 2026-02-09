@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import {
   assessHRV,
   assessRHR,
@@ -92,24 +93,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify client access
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      include: {
-        athleteAccount: true,
-      },
-    })
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    const hasAccess = await canAccessClient(dbUser.id, clientId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    // Authorization check: User must own the client or be the athlete
-    const isOwner = client.userId === dbUser.id
-    const isAthlete = client.athleteAccount?.userId === dbUser.id
-
-    if (!isOwner && !isAthlete) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, name: true },
+    })
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
     // Convert date string to Date object
@@ -790,23 +784,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Verify client access
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      include: {
-        athleteAccount: true,
-      },
-    })
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
-    }
-
-    // Authorization check
-    const isOwner = client.userId === dbUser.id
-    const isAthlete = client.athleteAccount?.userId === dbUser.id
-
-    if (!isOwner && !isAthlete) {
+    const hasAccess = await canAccessClient(dbUser.id, clientId)
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

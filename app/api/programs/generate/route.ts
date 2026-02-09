@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { generateBaseProgram, validateProgramParams, ProgramGenerationParams } from '@/lib/program-generator'
 import { generateSportProgram, SportProgramParams, DataSourceType } from '@/lib/program-generator/sport-router'
 import { getProgramStartDate, getProgramEndDate } from '@/lib/program-generator/date-utils'
-import { requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
+import { canAccessClient, requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { WorkoutType, WorkoutIntensity, SportType } from '@prisma/client'
 import { logDebug, logError } from '@/lib/logger-console'
@@ -39,6 +39,26 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    if (!body?.clientId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Klient-ID saknas',
+        },
+        { status: 400 }
+      )
+    }
+
+    const hasClientAccess = await canAccessClient(user.id, body.clientId)
+    if (!hasClientAccess) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Obehörig åtkomst',
+        },
+        { status: 403 }
+      )
+    }
 
     // ========================================
     // NEW: Multi-Sport Program Generation
@@ -56,14 +76,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { success: false, error: 'Klient hittades inte' },
           { status: 404 }
-        )
-      }
-
-      // Verify client ownership
-      if (client.userId !== user.id) {
-        return NextResponse.json(
-          { success: false, error: 'Obehörig åtkomst' },
-          { status: 403 }
         )
       }
 
@@ -331,17 +343,6 @@ export async function POST(request: NextRequest) {
           error: 'Klient hittades inte',
         },
         { status: 404 }
-      )
-    }
-
-    // Verify client ownership
-    if (client.userId !== user.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Obehörig åtkomst',
-        },
-        { status: 403 }
       )
     }
 

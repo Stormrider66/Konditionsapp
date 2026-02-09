@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { SportType } from '@prisma/client'
@@ -54,13 +55,15 @@ export async function POST(request: NextRequest) {
 
     const data = validation.data
 
-    // Verify the client belongs to this user (coach)
-    const client = await prisma.client.findUnique({
-      where: { id: data.clientId },
-      select: { userId: true },
-    })
+    if (user.role !== 'COACH') {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 403 }
+      )
+    }
 
-    if (!client || client.userId !== user.id) {
+    const hasAccess = await canAccessClient(user.id, data.clientId)
+    if (!hasAccess) {
       return NextResponse.json(
         { success: false, error: 'Client not found or unauthorized' },
         { status: 404 }

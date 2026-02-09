@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
 import {
@@ -40,20 +40,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verify access to client
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    });
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
-    }
-
-    const isCoach = client.userId === user.id;
-    const isAthlete = client.athleteAccount?.userId === user.id;
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, clientId);
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -122,20 +110,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify access to client
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true, athleteAccount: { select: { userId: true } } },
-    });
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
-    }
-
-    const isCoach = client.userId === user.id;
-    const isAthlete = client.athleteAccount?.userId === user.id;
-
-    if (!isCoach && !isAthlete) {
+    const hasAccess = await canAccessClient(user.id, clientId);
+    if (!hasAccess) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

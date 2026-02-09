@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateObject } from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { requireCoach } from '@/lib/auth-utils';
+import { canAccessClient, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { GEMINI_MODELS, getGeminiThinkingOptions } from '@/lib/ai/gemini-config';
 import { LactateMeterOCRSchema } from '@/lib/validations/gemini-schemas';
@@ -88,8 +88,16 @@ export async function POST(request: NextRequest) {
     // Build context for better accuracy
     let contextInfo = '';
     if (clientId) {
-      const client = await prisma.client.findFirst({
-        where: { id: clientId, userId: user.id },
+      const hasAccess = await canAccessClient(user.id, clientId)
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: 'Client not found or access denied' },
+          { status: 404 }
+        )
+      }
+
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
         select: { name: true },
       });
       if (client) {

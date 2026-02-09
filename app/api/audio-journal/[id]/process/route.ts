@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveAthleteClientId, requireCoach } from '@/lib/auth-utils';
+import { canAccessClient, resolveAthleteClientId, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import {
   createGoogleGenAIClient,
@@ -70,7 +70,8 @@ export async function POST(
 
     // Verify access
     if (isCoach) {
-      if (audioJournal.client.userId !== user.id) {
+      const hasAccess = await canAccessClient(user.id, audioJournal.clientId)
+      if (!hasAccess) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
     } else {

@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveAthleteClientId, requireCoach } from '@/lib/auth-utils';
+import { resolveAthleteClientId, requireCoach, canAccessClient } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@supabase/supabase-js';
 import { normalizeStoragePath } from '@/lib/storage/supabase-storage';
@@ -57,12 +57,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'clientId required for coach uploads' }, { status: 400 });
       }
 
-      // Verify coach has access to this client
-      const client = await prisma.client.findFirst({
-        where: { id: clientId, userId: user.id },
-      });
-      if (!client) {
-        return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+      const hasAccess = await canAccessClient(user.id, clientId);
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
 
@@ -163,13 +160,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'clientId required' }, { status: 400 });
     }
 
-    // Verify coach has access
-    const client = await prisma.client.findFirst({
-      where: { id: clientId, userId: user.id },
-    });
-
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    const hasAccess = await canAccessClient(user.id, clientId);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const journals = await prisma.audioJournal.findMany({

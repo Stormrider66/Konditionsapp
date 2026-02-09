@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
@@ -67,6 +68,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (clientId) {
+      const hasAccess = await canAccessClient(dbUser.id, clientId)
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
       whereClause.day.week.program.clientId = clientId
     }
 
