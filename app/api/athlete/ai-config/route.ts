@@ -10,42 +10,48 @@
  */
 
 import { NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
 import type { AIProvider } from '@prisma/client'
 
 export async function GET() {
   try {
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
 
-    // Get athlete's account with sport profile and linked client -> coach
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      include: {
-        client: {
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { user, clientId, isCoachInAthleteMode } = resolved
+
+    // Get the client with sport profile and coach link
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: {
+        id: true,
+        userId: true, // This is the coach's user ID (null for self-athletes)
+        sportProfile: {
           select: {
-            id: true,
-            userId: true, // This is the coach's user ID
-            sportProfile: {
-              select: {
-                preferredAIModelId: true,
-              },
-            },
+            preferredAIModelId: true,
           },
         },
       },
     })
 
-    if (!athleteAccount?.client?.userId) {
+    // Determine the coach whose API keys to use
+    // For coach-in-athlete-mode: the coach IS the user
+    // For regular athletes: the coach is client.userId
+    const coachId = isCoachInAthleteMode ? user.id : client?.userId
+
+    if (!coachId) {
       return NextResponse.json(
         { error: 'Athlete account not properly linked to coach' },
         { status: 400 }
       )
     }
 
-    const coachId = athleteAccount.client.userId
-    const athletePreferredModelId = athleteAccount.client.sportProfile?.preferredAIModelId
+    const athletePreferredModelId = client?.sportProfile?.preferredAIModelId
 
     // Fetch coach's API keys and athlete model settings
     const apiKeys = await prisma.userApiKey.findUnique({
@@ -73,7 +79,7 @@ export async function GET() {
         model: null,
         provider: null,
         displayName: null,
-        clientId: athleteAccount.client.id,
+        clientId,
         availableModels: [],
       })
     }
@@ -110,7 +116,7 @@ export async function GET() {
         model: null,
         provider: null,
         displayName: null,
-        clientId: athleteAccount.client.id,
+        clientId,
         availableModels: [],
       })
     }
@@ -157,7 +163,7 @@ export async function GET() {
       model: selectedModel.modelId,
       provider: selectedModel.provider,
       displayName: selectedModel.displayName,
-      clientId: athleteAccount.client.id,
+      clientId,
       availableModels,
     })
   } catch (error) {

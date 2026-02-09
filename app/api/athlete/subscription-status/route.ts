@@ -7,44 +7,37 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { getTrialDaysRemaining } from '@/lib/subscription/trial-utils'
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const resolved = await resolveAthleteClientId()
 
-    if (!user) {
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    // Get athlete account with subscription
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
+    // Get client with subscription using resolved clientId
+    const client = await prisma.client.findUnique({
+      where: { id: resolved.clientId },
       include: {
-        client: {
-          include: {
-            athleteSubscription: true,
-          },
-        },
+        athleteSubscription: true,
       },
     })
 
-    if (!athleteAccount) {
+    if (!client) {
       return NextResponse.json(
         { success: false, error: 'Athlete account not found' },
         { status: 404 }
       )
     }
 
-    const subscription = athleteAccount.client.athleteSubscription
+    const subscription = client.athleteSubscription
 
     if (!subscription) {
       return NextResponse.json({
