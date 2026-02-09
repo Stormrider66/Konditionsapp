@@ -1,6 +1,6 @@
 // app/(business)/[businessSlug]/athlete/settings/page.tsx
-import { redirect, notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { notFound } from 'next/navigation'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { AthleteSettingsClient } from '@/app/athlete/settings/AthleteSettingsClient'
@@ -16,14 +16,7 @@ interface BusinessSettingsPageProps {
 
 export default async function BusinessAthleteSettingsPage({ params }: BusinessSettingsPageProps) {
   const { businessSlug } = await params
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -33,27 +26,23 @@ export default async function BusinessAthleteSettingsPage({ params }: BusinessSe
 
   const basePath = `/${businessSlug}`
 
-  // Get athlete account with sport profile
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
+  // Get client with sport profile
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
     include: {
-      client: {
-        include: {
-          sportProfile: true,
-        },
-      },
+      sportProfile: true,
     },
   })
 
-  if (!athleteAccount) {
-    redirect('/login')
+  if (!client) {
+    notFound()
   }
 
   return (
     <AthleteSettingsClient
-      clientId={athleteAccount.clientId}
-      clientName={athleteAccount.client.name}
-      sportProfile={athleteAccount.client.sportProfile}
+      clientId={clientId}
+      clientName={client.name}
+      sportProfile={client.sportProfile}
       basePath={basePath}
     />
   )
