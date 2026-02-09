@@ -4,6 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 
@@ -50,9 +52,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
     }
 
+    // Coaches can only access results for workouts they own.
+    if (workout.coachId !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const where: Record<string, unknown> = { workoutId: id }
 
     if (athleteId) {
+      const access = await canAccessAthlete(user.id, athleteId)
+      if (!access.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
       where.athleteId = athleteId
     }
 
@@ -84,22 +95,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    // Get athlete account
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true }
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
-    }
+    const { clientId } = resolved
 
     // Verify workout exists
     const workout = await prisma.agilityWorkout.findUnique({
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const result = await prisma.agilityWorkoutResult.create({
       data: {
         workoutId: id,
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         completedAt: new Date(),
         totalDuration: validatedData.totalDuration,
         perceivedEffort: validatedData.perceivedEffort,
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     await prisma.agilityWorkoutAssignment.updateMany({
       where: {
         workoutId: id,
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         status: { in: ['ASSIGNED', 'IN_PROGRESS'] }
       },
       data: {

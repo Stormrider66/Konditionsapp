@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { z } from 'zod'
 
 // Validation schemas
@@ -78,6 +79,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (query.athleteId) {
+      const access = await canAccessAthlete(user.id, query.athleteId)
+      if (!access.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
       where.athleteId = query.athleteId
     }
 
@@ -155,16 +160,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = createPredictionSchema.parse(body)
 
-    // Verify coach has access to athlete
-    const athlete = await prisma.client.findFirst({
-      where: {
-        id: validatedData.athleteId,
-        userId: user.id,
-      },
-    })
-
-    if (!athlete) {
-      return NextResponse.json({ error: 'Athlete not found or access denied' }, { status: 404 })
+    const access = await canAccessAthlete(user.id, validatedData.athleteId)
+    if (!access.allowed) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Create the prediction

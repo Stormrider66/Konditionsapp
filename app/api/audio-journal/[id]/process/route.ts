@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAthlete, requireCoach } from '@/lib/auth-utils';
+import { resolveAthleteClientId, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import {
   createGoogleGenAIClient,
@@ -38,9 +38,12 @@ export async function POST(
     let user;
     let isCoach = false;
 
-    try {
-      user = await requireAthlete();
-    } catch {
+    // Try as athlete (or coach in athlete mode) first
+    const resolved = await resolveAthleteClientId();
+    if (resolved) {
+      user = resolved.user;
+    } else {
+      // Try as coach
       user = await requireCoach();
       isCoach = true;
     }
@@ -71,12 +74,8 @@ export async function POST(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
     } else {
-      // Athlete - verify they own this journal
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      });
-      if (athleteAccount?.clientId !== audioJournal.clientId) {
+      // Athlete (or coach in athlete mode) - verify they own this journal
+      if (resolved?.clientId !== audioJournal.clientId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
     }

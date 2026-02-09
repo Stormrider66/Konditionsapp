@@ -6,41 +6,45 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
+import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { logError } from '@/lib/logger-console'
 
 // GET /api/hybrid-analytics - Get workout analytics
 // Query params: athleteId (optional for coaches), dateFrom, dateTo, workoutId
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     let athleteId = searchParams.get('athleteId');
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
     const workoutId = searchParams.get('workoutId');
 
-    // If athlete, can only see own data
-    if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      });
-      if (!athleteAccount) {
-        return NextResponse.json({ error: 'Athlete not found' }, { status: 404 });
-      }
-      athleteId = athleteAccount.clientId;
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // If no athleteId query param, resolve from session (athlete or coach-in-athlete-mode)
     if (!athleteId) {
-      return NextResponse.json(
-        { error: 'athleteId is required for coaches' },
-        { status: 400 }
-      );
+      const resolved = await resolveAthleteClientId();
+      if (!resolved) {
+        // Coaches/admins must provide an athleteId when not in athlete mode
+        if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        return NextResponse.json(
+          { error: 'athleteId is required for coaches' },
+          { status: 400 }
+        );
+      }
+      athleteId = resolved.clientId;
+    } else {
+      // athleteId via query param: enforce coach-athlete authorization
+      const access = await canAccessAthlete(user.id, athleteId);
+      if (!access.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     // Build where clause

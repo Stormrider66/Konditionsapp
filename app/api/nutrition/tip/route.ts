@@ -12,7 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { startOfDay, endOfDay, addDays } from 'date-fns'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
@@ -31,14 +31,11 @@ const requestSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     // Parse request body
     const body = await request.json()
@@ -46,9 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Get athlete data with preferences
     const athleteAccount = await prisma.athleteAccount.findFirst({
-      where: {
-        user: { email: user.email },
-      },
+      where: { clientId },
       include: {
         client: {
           include: {

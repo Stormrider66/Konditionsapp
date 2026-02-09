@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { calculateVDOTFromRace, type VDOTResult } from '@/lib/training-engine/calculations/vdot'
+import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { logger } from '@/lib/logger'
 
 /**
@@ -55,6 +56,11 @@ export async function POST(req: NextRequest) {
         { error: 'Missing required fields: clientId, raceDate, distance, timeMinutes' },
         { status: 400 }
       )
+    }
+
+    const access = await canAccessAthlete(user.id, clientId)
+    if (!access.allowed) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Get client data for age and gender
@@ -163,6 +169,11 @@ export async function GET(req: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+    }
+
+    const access = await canAccessAthlete(user.id, clientId)
+    if (!access.allowed) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const raceResults = await prisma.raceResult.findMany({

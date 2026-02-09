@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCoach, requireAthlete } from '@/lib/auth-utils';
+import { resolveAthleteClientId, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
@@ -23,19 +23,16 @@ export async function GET(
   try {
     const { clientId } = await params;
 
-    // Verify access
+    // Verify access - try as athlete (or coach in athlete mode) first
     let isAthlete = false;
-    try {
-      const user = await requireAthlete();
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      });
-      if (athleteAccount?.clientId !== clientId) {
+    const resolved = await resolveAthleteClientId();
+    if (resolved) {
+      if (resolved.clientId !== clientId) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
       }
       isAthlete = true;
-    } catch {
+    } else {
+      // Try as coach viewing a specific client
       const user = await requireCoach();
       const client = await prisma.client.findFirst({
         where: { id: clientId, userId: user.id },

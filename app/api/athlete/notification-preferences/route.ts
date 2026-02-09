@@ -6,40 +6,27 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
-    }
+    const { clientId } = resolved
 
     // Get or create default preferences
     let preferences = await prisma.aINotificationPreferences.findUnique({
-      where: { clientId: athleteAccount.clientId },
+      where: { clientId },
     })
 
     if (!preferences) {
       // Return defaults without creating
       preferences = {
         id: '',
-        clientId: athleteAccount.clientId,
+        clientId,
         morningBriefingEnabled: true,
         preWorkoutNudgeEnabled: true,
         postWorkoutCheckEnabled: true,
@@ -65,24 +52,11 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
-    }
+    const { clientId } = resolved
 
     const body = await request.json()
 
@@ -110,10 +84,10 @@ export async function PUT(request: Request) {
 
     // Upsert preferences
     const preferences = await prisma.aINotificationPreferences.upsert({
-      where: { clientId: athleteAccount.clientId },
+      where: { clientId },
       update: updateData,
       create: {
-        clientId: athleteAccount.clientId,
+        clientId,
         ...updateData,
       },
     })

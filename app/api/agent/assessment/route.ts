@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { z } from 'zod'
 import type { SportType } from '@prisma/client'
 
@@ -51,14 +51,11 @@ const assessmentSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const { user, clientId } = resolved
 
     const body = await request.json()
     const validation = assessmentSchema.safeParse(body)
@@ -72,15 +69,8 @@ export async function POST(request: NextRequest) {
 
     const data = validation.data
 
-    // Verify user owns this client
-    const athleteAccount = await prisma.athleteAccount.findFirst({
-      where: {
-        userId: user.id,
-        clientId: data.clientId,
-      },
-    })
-
-    if (!athleteAccount) {
+    // Verify the body clientId matches the resolved athlete clientId
+    if (data.clientId !== clientId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 

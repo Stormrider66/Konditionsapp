@@ -7,8 +7,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const updateMatchSchema = z.object({
@@ -31,34 +31,21 @@ const updateMatchSchema = z.object({
   maxSpeed: z.number().optional().nullable(),
 })
 
-async function getAthleteClientId(): Promise<string | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) return null
-
-  const athleteAccount = await prisma.athleteAccount.findFirst({
-    where: { userId: user.id },
-    select: { clientId: true },
-  })
-
-  return athleteAccount?.clientId || null
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ matchId: string }> }
 ) {
   try {
-    const clientId = await getAthleteClientId()
+    const resolved = await resolveAthleteClientId()
     const { matchId } = await params
 
-    if (!clientId) {
+    if (!resolved) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    const { clientId } = resolved
 
     const match = await prisma.externalMatchSchedule.findFirst({
       where: {
@@ -89,15 +76,16 @@ export async function PATCH(
   { params }: { params: Promise<{ matchId: string }> }
 ) {
   try {
-    const clientId = await getAthleteClientId()
+    const resolved = await resolveAthleteClientId()
     const { matchId } = await params
 
-    if (!clientId) {
+    if (!resolved) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    const { clientId } = resolved
 
     // Verify ownership
     const existingMatch = await prisma.externalMatchSchedule.findFirst({
@@ -162,15 +150,16 @@ export async function DELETE(
   { params }: { params: Promise<{ matchId: string }> }
 ) {
   try {
-    const clientId = await getAthleteClientId()
+    const resolved = await resolveAthleteClientId()
     const { matchId } = await params
 
-    if (!clientId) {
+    if (!resolved) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    const { clientId } = resolved
 
     // Verify ownership
     const existingMatch = await prisma.externalMatchSchedule.findFirst({

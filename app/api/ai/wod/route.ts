@@ -15,7 +15,7 @@ import { generateText, type LanguageModel } from 'ai'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createOpenAI } from '@ai-sdk/openai'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { buildWODContext, getWODUsageStats } from '@/lib/ai/wod-context-builder'
 import { checkWODGuardrails } from '@/lib/ai/wod-guardrails'
@@ -36,7 +36,6 @@ import { logger } from '@/lib/logger'
 export const maxDuration = 30
 
 interface RequestBody extends WODRequest {
-  clientId?: string
   modelId?: string
 }
 
@@ -44,8 +43,12 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now()
 
   try {
-    // Authenticate athlete
-    const user = await requireAthlete()
+    // Authenticate athlete (supports coaches in athlete mode)
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { user, clientId } = resolved
 
     const rateLimited = await rateLimitJsonResponse('ai:wod:generate', user.id, {
       limit: 10,
@@ -61,37 +64,21 @@ export async function POST(request: NextRequest) {
       duration = 45,
       equipment = ['none'],
       focusArea,
-      clientId: providedClientId,
       modelId: requestedModelId,
     } = body
 
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
+    // Get client details for coach ID and subscription tier
+    const clientRecord = await prisma.client.findUnique({
+      where: { id: clientId },
       select: {
-        clientId: true,
-        client: {
-          select: {
-            userId: true,
-            athleteSubscription: {
-              select: { tier: true },
-            },
-          },
+        userId: true,
+        athleteSubscription: {
+          select: { tier: true },
         },
       },
     })
 
-    if (!athleteAccount) {
-      return NextResponse.json(
-        { error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
-
-    const clientId = providedClientId || athleteAccount.clientId
-
-    // Safety: athleteAccount existence does not guarantee nested relations are populated
-    const subscriptionTier = athleteAccount.client?.athleteSubscription?.tier || 'FREE'
+    const subscriptionTier = clientRecord?.athleteSubscription?.tier || 'FREE'
 
     // Build athlete context
     const context = await buildWODContext(clientId)
@@ -133,7 +120,7 @@ export async function POST(request: NextRequest) {
     const prompt = buildWODPrompt(context, wodRequest, guardrails)
 
     // Get API keys - try athlete's coach's keys first, then system keys
-    const coachId = athleteAccount.client?.userId
+    const coachId = clientRecord?.userId
     let apiKeys: {
       anthropicKey: string | null
       googleKey: string | null
@@ -506,29 +493,21 @@ async function enhanceWorkoutWithLibrary(
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { clientId } = resolved
+
     const { searchParams } = new URL(request.url)
     const wodId = searchParams.get('id')
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json(
-        { error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
 
     if (wodId) {
       // Get specific WOD
       const wod = await prisma.aIGeneratedWOD.findFirst({
         where: {
           id: wodId,
-          clientId: athleteAccount.clientId,
+          clientId,
         },
       })
 
@@ -540,7 +519,7 @@ export async function GET(request: NextRequest) {
     } else {
       // Get recent WODs
       const wods = await prisma.aIGeneratedWOD.findMany({
-        where: { clientId: athleteAccount.clientId },
+        where: { clientId },
         orderBy: { createdAt: 'desc' },
         take: 10,
       })
@@ -567,28 +546,20 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { clientId } = resolved
+
     const body = await request.json()
     const { wodId, status, sessionRPE, exerciseLogs, actualDuration } = body
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json(
-        { error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
 
     // Get WOD for training load calculation
     const existingWOD = await prisma.aIGeneratedWOD.findFirst({
       where: {
         id: wodId,
-        clientId: athleteAccount.clientId,
+        clientId,
       },
     })
 
@@ -600,7 +571,7 @@ export async function PATCH(request: NextRequest) {
     const wod = await prisma.aIGeneratedWOD.updateMany({
       where: {
         id: wodId,
-        clientId: athleteAccount.clientId,
+        clientId,
       },
       data: {
         status,
@@ -646,7 +617,7 @@ export async function PATCH(request: NextRequest) {
         // Create training load entry
         await prisma.trainingLoad.create({
           data: {
-            clientId: athleteAccount.clientId,
+            clientId,
             date: new Date(),
             dailyLoad,
             loadType: 'RPE_BASED',

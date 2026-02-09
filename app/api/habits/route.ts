@@ -1,7 +1,7 @@
 // app/api/habits/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { HabitCategory, HabitFrequency } from '@prisma/client'
@@ -18,37 +18,17 @@ const createHabitSchema = z.object({
   reward: z.string().optional(),
 })
 
-// Helper function to get athlete's client ID
-async function getAthleteClientId(userId: string): Promise<string | null> {
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId },
-    select: { clientId: true },
-  })
-  return athleteAccount?.clientId ?? null
-}
-
 // GET /api/habits - List all habits for current athlete
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
-
-    const clientId = await getAthleteClientId(user.id)
-    if (!clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
+    const { clientId } = resolved
 
     // Get query params for filtering
     const { searchParams } = new URL(request.url)
@@ -89,25 +69,14 @@ export async function GET(request: NextRequest) {
 // POST /api/habits - Create a new habit
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
-
-    const clientId = await getAthleteClientId(user.id)
-    if (!clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
+    const { clientId } = resolved
 
     const body = await request.json()
     const validation = createHabitSchema.safeParse(body)

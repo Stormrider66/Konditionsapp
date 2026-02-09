@@ -9,7 +9,7 @@ import { streamText, type CoreMessage, type LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { requireCoach, requireAthlete, getCurrentUser } from '@/lib/auth-utils';
+import { requireCoach, resolveAthleteClientId, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { checkAthleteFeatureAccess, incrementAIChatUsage } from '@/lib/subscription/feature-access';
 import { searchSimilarChunks } from '@/lib/ai/embeddings';
@@ -120,34 +120,36 @@ export async function POST(request: NextRequest) {
     let athleteCapabilities: AthleteCapabilities | undefined;
 
     if (isAthleteChat) {
-      // Athlete chat mode
-      const user = await requireAthlete();
-      userId = user.id;
+      // Athlete chat mode (supports coaches in athlete mode)
+      const resolved = await resolveAthleteClientId();
+      if (!resolved) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = resolved.user.id;
+      athleteClientId = resolved.clientId;
 
-      // Get athlete's client and coach
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        include: {
-          client: {
-            select: {
-              id: true,
-              name: true,
-              userId: true, // Coach's user ID
-            },
-          },
+      // Get coach info from the client record
+      const clientRecord = await prisma.client.findUnique({
+        where: { id: resolved.clientId },
+        select: {
+          id: true,
+          name: true,
+          userId: true, // Coach's user ID
         },
       });
 
-      if (!athleteAccount?.client?.userId) {
+      if (!clientRecord?.userId) {
         return new Response(
           JSON.stringify({ error: 'Athlete account not properly linked to coach' }),
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
 
-      apiKeyUserId = athleteAccount.client.userId; // Use coach's API keys
-      athleteClientId = athleteAccount.client.id;
-      athleteName = athleteAccount.client.name;
+      apiKeyUserId = clientRecord.userId; // Use coach's API keys
+      athleteName = clientRecord.name;
 
       // Check subscription for AI chat access
       const access = await checkAthleteFeatureAccess(athleteClientId, 'ai_chat');

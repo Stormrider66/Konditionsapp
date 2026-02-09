@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAthlete, requireCoach } from '@/lib/auth-utils';
+import { resolveAthleteClientId, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
 
@@ -27,17 +27,12 @@ export async function GET(request: NextRequest) {
   try {
     let clientId: string;
 
-    try {
-      const user = await requireAthlete();
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      });
-      if (!athleteAccount) {
-        return NextResponse.json({ error: 'Athlete profile not found' }, { status: 404 });
-      }
-      clientId = athleteAccount.clientId;
-    } catch {
+    // Try as athlete (or coach in athlete mode) first
+    const resolved = await resolveAthleteClientId();
+    if (resolved) {
+      clientId = resolved.clientId;
+    } else {
+      // Try as coach viewing a specific client
       const user = await requireCoach();
       const { searchParams } = new URL(request.url);
       clientId = searchParams.get('clientId') || '';
@@ -123,17 +118,12 @@ export async function POST(request: NextRequest) {
   try {
     let clientId: string;
 
-    try {
-      const user = await requireAthlete();
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      });
-      if (!athleteAccount) {
-        return NextResponse.json({ error: 'Athlete profile not found' }, { status: 404 });
-      }
-      clientId = athleteAccount.clientId;
-    } catch {
+    // Try as athlete (or coach in athlete mode) first
+    const resolved = await resolveAthleteClientId();
+    if (resolved) {
+      clientId = resolved.clientId;
+    } else {
+      // Try as coach managing a specific client
       const user = await requireCoach();
       const body = await request.json();
       clientId = body.clientId;

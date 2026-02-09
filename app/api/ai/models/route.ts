@@ -8,7 +8,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth-utils'
+import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 // getDecryptedUserApiKeys no longer needed - using userKeys.xxxKeyValid flags
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
@@ -54,25 +54,22 @@ export async function GET() {
     })
     if (rateLimited) return rateLimited
 
-    // Check if user is an athlete
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: {
-        clientId: true,
-        client: {
-          select: {
-            userId: true, // Coach's user ID
-          },
-        },
-      },
-    })
+    // Check if user is an athlete (or coach in athlete mode)
+    const resolved = await resolveAthleteClientId()
 
     let coachUserId: string
     let isAthlete = false
 
-    if (athleteAccount) {
-      // User is an athlete - get coach's settings
-      coachUserId = athleteAccount.client.userId
+    if (resolved) {
+      // User is an athlete or coach in athlete mode - get coach's settings via client
+      const client = await prisma.client.findUnique({
+        where: { id: resolved.clientId },
+        select: { userId: true },
+      })
+      if (!client) {
+        return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      }
+      coachUserId = client.userId
       isAthlete = true
     } else {
       // User is a coach - use their own settings

@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAthlete } from '@/lib/auth-utils';
+import { resolveAthleteClientId } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createBillingPortalSession } from '@/lib/payments/stripe';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
@@ -13,7 +13,11 @@ import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAthlete();
+    const resolved = await resolveAthleteClientId();
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { user, clientId } = resolved;
 
     const rateLimited = await rateLimitJsonResponse('payments:athlete:portal', user.id, {
       limit: 10,
@@ -21,26 +25,22 @@ export async function POST(request: NextRequest) {
     })
     if (rateLimited) return rateLimited
 
-    // Get athlete's client record
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
+    // Get athlete's subscription to check for Stripe customer
+    const clientWithSub = await prisma.client.findUnique({
+      where: { id: clientId },
       include: {
-        client: {
-          include: {
-            athleteSubscription: true,
-          },
-        },
+        athleteSubscription: true,
       },
     });
 
-    if (!athleteAccount) {
+    if (!clientWithSub) {
       return NextResponse.json(
         { error: 'Athlete account not found' },
         { status: 404 }
       );
     }
 
-    if (!athleteAccount.client.athleteSubscription?.stripeCustomerId) {
+    if (!clientWithSub.athleteSubscription?.stripeCustomerId) {
       return NextResponse.json(
         { error: 'No active subscription found' },
         { status: 400 }
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     // Create portal session
     const portalUrl = await createBillingPortalSession(
-      athleteAccount.clientId,
+      clientId,
       returnUrl
     );
 

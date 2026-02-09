@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAthlete, requireCoach } from '@/lib/auth-utils';
+import { resolveAthleteClientId, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@supabase/supabase-js';
 import { normalizeStoragePath } from '@/lib/storage/supabase-storage';
@@ -34,23 +34,17 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
 
-    try {
-      user = await requireAthlete();
+    // Try as athlete (or coach in athlete mode) first
+    const resolved = await resolveAthleteClientId();
+    if (resolved) {
+      user = resolved.user;
       const rateLimited = await rateLimitJsonResponse('audio-journal:upload', user.id, {
         limit: 10,
         windowSeconds: 60,
       })
       if (rateLimited) return rateLimited
-      // Athlete uploading for themselves
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      });
-      if (!athleteAccount) {
-        return NextResponse.json({ error: 'Athlete profile not found' }, { status: 404 });
-      }
-      clientId = athleteAccount.clientId;
-    } catch {
+      clientId = resolved.clientId;
+    } else {
       // Try as coach
       user = await requireCoach();
       const rateLimited = await rateLimitJsonResponse('audio-journal:upload', user.id, {

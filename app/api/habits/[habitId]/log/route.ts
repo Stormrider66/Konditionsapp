@@ -1,7 +1,7 @@
 // app/api/habits/[habitId]/log/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
@@ -14,15 +14,6 @@ const logHabitSchema = z.object({
   note: z.string().optional(),
   value: z.number().optional(),
 })
-
-// Helper function to get athlete's client ID
-async function getAthleteClientId(userId: string): Promise<string | null> {
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId },
-    select: { clientId: true },
-  })
-  return athleteAccount?.clientId ?? null
-}
 
 // Helper function to calculate streak
 async function updateStreaks(habitId: string): Promise<void> {
@@ -103,25 +94,14 @@ export async function GET(
 ) {
   try {
     const { habitId } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
-
-    const clientId = await getAthleteClientId(user.id)
-    if (!clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
+    const { clientId } = resolved
 
     // Check habit exists and belongs to athlete
     const habit = await prisma.habit.findFirst({
@@ -171,25 +151,14 @@ export async function POST(
 ) {
   try {
     const { habitId } = await params
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
-
-    const clientId = await getAthleteClientId(user.id)
-    if (!clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
+    const { clientId } = resolved
 
     // Check habit exists and belongs to athlete
     const habit = await prisma.habit.findFirst({

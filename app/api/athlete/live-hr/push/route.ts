@@ -6,27 +6,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { pushHRReading, getActiveSessionForAthlete } from '@/lib/live-hr/reading-service'
 import { PushHRReadingInput } from '@/lib/live-hr/types'
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAthlete()
-
-    // Get athlete account with linked client
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount?.clientId) {
-      return NextResponse.json(
-        { error: 'No client linked to athlete account' },
-        { status: 400 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     const body: PushHRReadingInput = await req.json()
 
@@ -45,7 +35,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const success = await pushHRReading(athleteAccount.clientId, body)
+    const success = await pushHRReading(clientId, body)
 
     if (!success) {
       return NextResponse.json(
@@ -56,9 +46,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
     console.error('Error pushing HR reading:', error)
     return NextResponse.json(
       { error: 'Failed to push reading' },
@@ -69,28 +56,16 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    const user = await requireAthlete()
-
-    // Get athlete account with linked client
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount?.clientId) {
-      return NextResponse.json(
-        { error: 'No client linked to athlete account' },
-        { status: 400 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
-    const activeSession = await getActiveSessionForAthlete(athleteAccount.clientId)
+    const activeSession = await getActiveSessionForAthlete(clientId)
 
     return NextResponse.json({ activeSession })
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
     console.error('Error getting active session:', error)
     return NextResponse.json(
       { error: 'Failed to get active session' },

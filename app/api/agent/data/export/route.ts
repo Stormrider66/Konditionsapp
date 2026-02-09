@@ -5,39 +5,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { exportAgentData } from '@/lib/agent/gdpr/data-export'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const searchParams = request.nextUrl.searchParams
-    let clientId = searchParams.get('clientId')
-
-    if (!clientId) {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-
-      if (!athleteAccount) {
-        return NextResponse.json(
-          { error: 'No athlete profile found' },
-          { status: 404 }
-        )
-      }
-
-      clientId = athleteAccount.clientId
-    }
+    const { user, clientId } = resolved
 
     // Get IP for audit
     const ipAddress =

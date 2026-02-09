@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'
@@ -40,20 +40,11 @@ const createAdHocWorkoutSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAthlete()
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount?.clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 400 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     // Parse and validate request body
     const body = await request.json()
@@ -79,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Create the ad-hoc workout entry
     const adHocWorkout = await prisma.adHocWorkout.create({
       data: {
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         inputType: data.inputType as AdHocInputType,
         workoutDate: data.workoutDate,
         workoutName: data.workoutName,
@@ -121,20 +112,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAthlete()
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount?.clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 400 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams
@@ -144,7 +126,7 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const where: { athleteId: string; status?: AdHocWorkoutStatus } = {
-      athleteId: athleteAccount.clientId,
+      athleteId: clientId,
     }
 
     if (status) {

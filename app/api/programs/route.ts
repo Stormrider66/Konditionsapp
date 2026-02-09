@@ -1,7 +1,7 @@
 // app/api/programs/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, canAccessProgram } from '@/lib/auth-utils'
+import { getCurrentUser, canAccessProgram, canAccessClient, resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 /**
@@ -28,10 +28,66 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 
+    // Check if user is in athlete mode (athlete or coach-in-athlete-mode)
+    const athleteResolved = await resolveAthleteClientId()
+
     // Get programs based on user role
     let programs
 
-    if (user.role === 'COACH') {
+    if (athleteResolved) {
+      // Athlete (or coach in athlete mode) sees programs for their linked client
+      programs = await prisma.trainingProgram.findMany({
+        where: {
+          clientId: athleteResolved.clientId,
+        },
+        include: {
+          client: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          test: {
+            select: {
+              id: true,
+              testDate: true,
+              testType: true,
+            },
+          },
+          weeks: {
+            select: {
+              id: true,
+              weekNumber: true,
+              phase: true,
+            },
+            orderBy: {
+              weekNumber: 'asc',
+            },
+          },
+          _count: {
+            select: {
+              weeks: true,
+            },
+          },
+        },
+        orderBy: {
+          startDate: 'desc',
+        },
+      })
+    } else if (user.role === 'COACH') {
+      if (clientId) {
+        const hasClientAccess = await canAccessClient(user.id, clientId)
+        if (!hasClientAccess) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Åtkomst nekad till klient',
+            },
+            { status: 403 }
+          )
+        }
+      }
+
       // Build where clause
       const whereClause: any = {
         coachId: user.id,
@@ -78,57 +134,6 @@ export async function GET(request: NextRequest) {
         },
         orderBy: {
           createdAt: 'desc',
-        },
-      })
-    } else if (user.role === 'ATHLETE') {
-      // Athletes see programs for their linked client
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-      })
-
-      if (!athleteAccount) {
-        return NextResponse.json({
-          success: true,
-          data: [],
-        })
-      }
-
-      programs = await prisma.trainingProgram.findMany({
-        where: {
-          clientId: athleteAccount.clientId,
-        },
-        include: {
-          client: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          test: {
-            select: {
-              id: true,
-              testDate: true,
-              testType: true,
-            },
-          },
-          weeks: {
-            select: {
-              id: true,
-              weekNumber: true,
-              phase: true,
-            },
-            orderBy: {
-              weekNumber: 'asc',
-            },
-          },
-          _count: {
-            select: {
-              weeks: true,
-            },
-          },
-        },
-        orderBy: {
-          startDate: 'desc',
         },
       })
     } else {

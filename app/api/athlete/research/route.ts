@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
 
 // ============================================
@@ -16,20 +16,14 @@ import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
 export async function GET(request: NextRequest) {
   try {
     // Authenticate as athlete
-    const user = await requireAthlete()
-
-    // Get athlete account
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
-        { error: 'Athlete account not found' },
-        { status: 404 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       )
     }
+    const { user, clientId } = resolved
 
     // Rate limit
     const rateLimited = await rateLimitJsonResponse('athlete:research:list', user.id, {
@@ -47,7 +41,7 @@ export async function GET(request: NextRequest) {
     const [sharedResearch, total] = await Promise.all([
       prisma.sharedResearchAccess.findMany({
         where: {
-          clientId: athleteAccount.clientId,
+          clientId: clientId,
         },
         include: {
           session: {
@@ -73,7 +67,7 @@ export async function GET(request: NextRequest) {
         skip: offset,
       }),
       prisma.sharedResearchAccess.count({
-        where: { clientId: athleteAccount.clientId },
+        where: { clientId: clientId },
       }),
     ])
 

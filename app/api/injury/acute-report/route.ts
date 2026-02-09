@@ -1,7 +1,7 @@
 // app/api/injury/acute-report/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
+import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio, resolveAthleteClientId } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 // Validation schema for creating an acute injury report
@@ -69,14 +69,11 @@ export async function GET(request: NextRequest) {
       where.clientId = { in: coachClients.map(c => c.id) }
     } else if (user.role === 'ATHLETE') {
       // Athletes see their own reports
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-      if (!athleteAccount) {
+      const resolved = await resolveAthleteClientId()
+      if (!resolved) {
         return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
       }
-      where.clientId = athleteAccount.clientId
+      where.clientId = resolved.clientId
     } else if (user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
@@ -186,11 +183,8 @@ export async function POST(request: NextRequest) {
     } else if (user.role === 'COACH') {
       hasAccess = await canAccessClient(user.id, validatedData.clientId)
     } else if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-      hasAccess = athleteAccount?.clientId === validatedData.clientId
+      const resolved = await resolveAthleteClientId()
+      hasAccess = resolved?.clientId === validatedData.clientId
     }
 
     if (!hasAccess) {

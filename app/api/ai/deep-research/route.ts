@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
+import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
 import { createProvider, PROVIDER_COST_ESTIMATES, ResearchConfig } from '@/lib/ai/deep-research'
@@ -102,15 +103,11 @@ export async function POST(request: NextRequest) {
 
     // Verify athlete belongs to coach (if provided)
     if (athleteId) {
-      const athlete = await prisma.client.findFirst({
-        where: { id: athleteId, userId: user.id },
-        select: { id: true },
-      })
-
-      if (!athlete) {
+      const access = await canAccessAthlete(user.id, athleteId)
+      if (!access.allowed) {
         return NextResponse.json(
-          { error: 'Athlete not found or not accessible' },
-          { status: 404 }
+          { error: 'Forbidden' },
+          { status: 403 }
         )
       }
     }
@@ -320,6 +317,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (athleteId) {
+      const access = await canAccessAthlete(user.id, athleteId)
+      if (!access.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
       where.athleteId = athleteId
     }
 

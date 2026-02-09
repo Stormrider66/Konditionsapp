@@ -7,39 +7,17 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { generateAIProgram } from '@/lib/agent/program-generator'
 import { logAgentAudit } from '@/lib/agent/gdpr/audit-logger'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const body = await request.json()
-    const { clientId } = body
-
-    if (!clientId) {
-      return NextResponse.json({ error: 'Client ID required' }, { status: 400 })
-    }
-
-    // Verify user owns this client
-    const athleteAccount = await prisma.athleteAccount.findFirst({
-      where: {
-        userId: user.id,
-        clientId,
-      },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-    }
+    const { user, clientId } = resolved
 
     // Get client with all needed data
     const client = await prisma.client.findUnique({

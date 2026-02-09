@@ -8,8 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import {
   calculateAvailability,
   isDateAvailable,
@@ -28,23 +27,13 @@ import { logError } from '@/lib/logger-console'
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAthlete()
-    const { searchParams } = new URL(request.url)
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json(
-        { error: 'Athlete account not found' },
-        { status: 404 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
-    const clientId = athleteAccount.clientId
+    const { searchParams } = new URL(request.url)
 
     // Check for specific date query
     const specificDate = searchParams.get('date')

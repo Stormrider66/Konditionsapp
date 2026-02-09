@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth-utils';
+import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
 import { HybridScoreType, ScalingLevel } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
 
@@ -32,21 +32,18 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const where: Record<string, unknown> = { workoutId: id }
 
     // Access control:
+    // - Athletes (or coach-in-athlete-mode): only their own results
     // - Coaches: only results for their own athletes
-    // - Athletes: only their own results
-    if (user.role === 'COACH' || user.role === 'ADMIN') {
+    const resolved = await resolveAthleteClientId()
+    if (resolved) {
+      where.athleteId = resolved.clientId
+    } else if (user.role === 'COACH' || user.role === 'ADMIN') {
       where.athlete = { userId: user.id }
-    } else if (user.role === 'ATHLETE') {
-      where.athlete = { athleteAccount: { userId: user.id } }
-    } else {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    if (athleteId) {
-      // Coaches can filter to a specific athlete (still scoped by where.athlete above)
-      if (user.role === 'COACH' || user.role === 'ADMIN') {
+      if (athleteId) {
         where.athleteId = athleteId
       }
+    } else {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const [results, total] = await Promise.all([
@@ -121,12 +118,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     // Determine which athlete this result is for
     let athleteId: string | undefined
-    if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-      athleteId = athleteAccount?.clientId || undefined
+
+    // First try resolving as athlete (or coach-in-athlete-mode)
+    const resolved = await resolveAthleteClientId()
+    if (resolved) {
+      athleteId = resolved.clientId
     } else if (user.role === 'COACH' || user.role === 'ADMIN') {
       athleteId = body?.athleteId
       if (typeof athleteId !== 'string' || !athleteId) {

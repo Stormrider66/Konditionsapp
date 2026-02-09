@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import {
   executePendingActions,
   executeActionsForAthlete,
@@ -17,10 +17,7 @@ import { getConsentStatus } from '@/lib/agent/gdpr/consent-manager'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -147,34 +144,11 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const searchParams = request.nextUrl.searchParams
-    let clientId = searchParams.get('clientId')
-
-    // Get clientId from athlete account if not provided
-    if (!clientId) {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-
-      if (!athleteAccount) {
-        return NextResponse.json(
-          { error: 'No athlete profile found' },
-          { status: 404 }
-        )
-      }
-
-      clientId = athleteAccount.clientId
-    }
+    const { user, clientId } = resolved
 
     // Get recent execution history
     const recentActions = await prisma.agentAction.findMany({

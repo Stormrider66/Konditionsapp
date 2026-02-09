@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { getTemplateById } from '@/lib/training-engine/templates/strength-templates'
 import { logger } from '@/lib/logger'
 
@@ -23,7 +23,15 @@ interface SelfAssignRequestBody {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { user, clientId, isCoachInAthleteMode } = resolved
+
     const body: SelfAssignRequestBody = await request.json()
 
     const { templateId, assignedDate, notes } = body
@@ -36,24 +44,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get athlete account
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      include: {
-        client: true,
-      },
+    // Get client for coach lookup
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { userId: true },
     })
 
-    if (!athleteAccount) {
+    if (!client) {
       return NextResponse.json(
-        { error: 'Athlete account not found' },
+        { error: 'Client not found' },
         { status: 404 }
       )
     }
 
     // Check subscription through user
+    const subscriptionUserId = isCoachInAthleteMode ? user.id : client.userId
     const subscription = await prisma.subscription.findUnique({
-      where: { userId: user.id },
+      where: { userId: subscriptionUserId },
     })
 
     // Check if athlete has self-service enabled (PRO or higher)
@@ -148,7 +155,7 @@ export async function POST(request: NextRequest) {
           : undefined,
         totalSets: template.exercises.reduce((sum, ex) => sum + ex.sets, 0),
         totalExercises: template.exercises.length,
-        coachId: athleteAccount.client?.userId || user.id, // Use athlete's coach or self
+        coachId: isCoachInAthleteMode ? user.id : client.userId, // Use athlete's coach or self
         isPublic: false,
         tags: [...template.tags, `template:${template.id}`], // Store template reference in tags
       },
@@ -158,7 +165,7 @@ export async function POST(request: NextRequest) {
     const assignment = await prisma.strengthSessionAssignment.create({
       data: {
         sessionId: session.id,
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         assignedDate: new Date(assignedDate),
         assignedBy: user.id, // Self-assigned
         notes: notes || `Självtilldelad från mall: ${template.nameSv}`,

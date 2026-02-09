@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { extractCoachingStyle, applyStyleToPrompt } from '@/lib/ai/advanced-intelligence'
 import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
-import { getCurrentUser } from '@/lib/auth-utils'
+import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
 /**
@@ -33,15 +33,17 @@ export async function GET(req: NextRequest) {
     // Prevent information leaks: only allow extracting the requesting user's coach style
     // (Admins can query any coachId explicitly.)
     let coachId = user.id
-    if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { client: { select: { userId: true } } },
+    const resolved = await resolveAthleteClientId()
+    if (resolved) {
+      // User is an athlete or coach in athlete mode - get coach from client record
+      const client = await prisma.client.findUnique({
+        where: { id: resolved.clientId },
+        select: { userId: true },
       })
-      if (!athleteAccount?.client?.userId) {
+      if (!client) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
-      coachId = athleteAccount.client.userId
+      coachId = client.userId
     } else if (user.role === 'ADMIN' && requestedCoachId) {
       coachId = requestedCoachId
     }
@@ -96,15 +98,17 @@ export async function POST(req: NextRequest) {
     // Prevent information leaks: only allow using the requesting user's coach style
     // (Admins can specify a coachId explicitly.)
     let effectiveCoachId = user.id
-    if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { client: { select: { userId: true } } },
+    const resolvedPost = await resolveAthleteClientId()
+    if (resolvedPost) {
+      // User is an athlete or coach in athlete mode - get coach from client record
+      const client = await prisma.client.findUnique({
+        where: { id: resolvedPost.clientId },
+        select: { userId: true },
       })
-      if (!athleteAccount?.client?.userId) {
+      if (!client) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
-      effectiveCoachId = athleteAccount.client.userId
+      effectiveCoachId = client.userId
     } else if (user.role === 'ADMIN' && coachId) {
       effectiveCoachId = coachId
     }

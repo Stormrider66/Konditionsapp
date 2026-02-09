@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from "@/lib/prisma"
 import { createTestApiSchema, type CreateTestApiData } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 // GET /api/tests - Hämta alla tester för inloggad användare (med optional clientId filter)
@@ -28,6 +29,19 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('clientId')
     const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '100') || 100), 200)
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0)
+
+    if (clientId) {
+      const hasClientAccess = await canAccessClient(user.id, clientId)
+      if (!hasClientAccess) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Unauthorized',
+          },
+          { status: 403 }
+        )
+      }
+    }
 
     const where = {
       userId: user.id,

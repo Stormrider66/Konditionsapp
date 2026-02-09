@@ -1,7 +1,7 @@
 // app/api/meals/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { MealType } from '@prisma/client'
@@ -27,37 +27,17 @@ const createMealSchema = z.object({
   notes: z.string().optional(),
 })
 
-// Helper function to get athlete's client ID
-async function getAthleteClientId(userId: string): Promise<string | null> {
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId },
-    select: { clientId: true },
-  })
-  return athleteAccount?.clientId ?? null
-}
-
 // GET /api/meals - Get meals for a date range
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
-
-    const clientId = await getAthleteClientId(user.id)
-    if (!clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
+    const { clientId } = resolved
 
     // Get query params for date range
     const { searchParams } = new URL(request.url)
@@ -126,25 +106,14 @@ export async function GET(request: NextRequest) {
 // POST /api/meals - Create a new meal log
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
-
-    const clientId = await getAthleteClientId(user.id)
-    if (!clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
+    const { clientId } = resolved
 
     const body = await request.json()
     const validation = createMealSchema.safeParse(body)

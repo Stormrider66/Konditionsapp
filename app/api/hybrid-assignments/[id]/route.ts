@@ -6,7 +6,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireCoach, getCurrentUser } from '@/lib/auth-utils';
+import { requireCoach, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
+import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { logError } from '@/lib/logger-console'
 
 interface RouteParams {
@@ -47,13 +48,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     }
 
-    // Check access: athlete can only see their own assignments
-    if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      });
-      if (athleteAccount?.clientId !== assignment.athleteId) {
+    // Check access: athlete (or coach-in-athlete-mode) can only see their own assignments
+    const resolved = await resolveAthleteClientId();
+    if (resolved) {
+      if (resolved.clientId !== assignment.athleteId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    } else {
+      const access = await canAccessAthlete(user.id, assignment.athleteId);
+      if (!access.allowed) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
@@ -92,13 +95,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Build update data based on user role
     const updateData: any = {};
 
-    if (user.role === 'ATHLETE') {
-      // Athlete can only update status and resultId
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      });
-      if (athleteAccount?.clientId !== assignment.athleteId) {
+    // Check if user is athlete (or coach-in-athlete-mode)
+    const resolved = await resolveAthleteClientId();
+    if (resolved) {
+      // Athlete (or coach-in-athlete-mode) can only update status and resultId
+      if (resolved.clientId !== assignment.athleteId) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
@@ -112,6 +113,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         updateData.resultId = resultId;
       }
     } else {
+      const access = await canAccessAthlete(user.id, assignment.athleteId);
+      if (!access.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
       // Coach can update everything
       if (status) updateData.status = status;
       if (notes !== undefined) updateData.notes = notes;
@@ -154,7 +160,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    await requireCoach();
+    const user = await requireCoach();
 
     const assignment = await prisma.hybridWorkoutAssignment.findUnique({
       where: { id },
@@ -162,6 +168,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     if (!assignment) {
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+    }
+
+    const access = await canAccessAthlete(user.id, assignment.athleteId);
+    if (!access.allowed) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     await prisma.hybridWorkoutAssignment.delete({

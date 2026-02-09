@@ -6,18 +6,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireCoach, requireAthlete, getCurrentUser } from '@/lib/auth-utils';
+import { requireCoach, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
+import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { logError } from '@/lib/logger-console'
 
 // GET /api/hybrid-assignments - Get assignments
 // Query params: athleteId, workoutId, status, dateFrom, dateTo
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(request.url);
     const athleteId = searchParams.get('athleteId');
     const workoutId = searchParams.get('workoutId');
@@ -25,21 +21,31 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
 
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Build where clause based on user role
     const where: any = {};
 
-    // If athlete, only show their assignments
-    if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      });
-      if (!athleteAccount) {
-        return NextResponse.json({ error: 'Athlete not found' }, { status: 404 });
+    // Try resolving as athlete (or coach-in-athlete-mode)
+    if (!athleteId) {
+      const resolved = await resolveAthleteClientId();
+      if (resolved) {
+        where.athleteId = resolved.clientId;
+      } else if (user.role === 'COACH') {
+        // Default coach scope: only assignments for their own athletes.
+        where.athlete = { userId: user.id };
+      } else if (user.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
-      where.athleteId = athleteAccount.clientId;
-    } else if (athleteId) {
-      // Coach can filter by athlete
+    } else {
+      // athleteId provided via query param - enforce coach-athlete authorization
+      const access = await canAccessAthlete(user.id, athleteId);
+      if (!access.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
       where.athleteId = athleteId;
     }
 
@@ -136,15 +142,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify workout exists
-    const workout = await prisma.hybridWorkout.findUnique({
-      where: { id: workoutId },
+    // Verify workout exists and is assignable by this coach
+    const workout = await prisma.hybridWorkout.findFirst({
+      where: {
+        id: workoutId,
+        OR: [
+          { coachId: user.id },
+          { isPublic: true },
+          { coachId: null }, // system workouts
+        ],
+      },
     });
 
     if (!workout) {
       return NextResponse.json(
-        { error: 'Workout not found' },
-        { status: 404 }
+        { error: 'Workout not found or access denied' },
+        { status: 403 }
+      );
+    }
+
+    // Verify coach can assign to all requested athletes
+    const accessChecks = await Promise.all(
+      athleteIds.map((athleteId: string) => canAccessAthlete(user.id, athleteId))
+    );
+    const hasForbiddenAthlete = accessChecks.some((access) => !access.allowed);
+    if (hasForbiddenAthlete) {
+      return NextResponse.json(
+        { error: 'Forbidden: one or more athletes are not accessible' },
+        { status: 403 }
       );
     }
 

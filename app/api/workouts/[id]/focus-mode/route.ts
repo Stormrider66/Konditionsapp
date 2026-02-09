@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
 interface FocusModeExercise {
@@ -42,19 +42,14 @@ export async function GET(
 ) {
   try {
     const { id: workoutId } = await params
-    const athlete = await requireAthlete()
-
-    // Get athlete account
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 404 }
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
       )
     }
+    const { user, clientId } = resolved
 
     // Get workout with segments and exercise details
     const workout = await prisma.workout.findUnique({
@@ -87,7 +82,7 @@ export async function GET(
           },
         },
         logs: {
-          where: { athleteId: athlete.id },
+          where: { athleteId: user.id },
           orderBy: { completedAt: 'desc' },
           take: 1,
           include: {
@@ -107,7 +102,7 @@ export async function GET(
     }
 
     // Verify athlete has access to this workout's program
-    if (workout.day.week.program.clientId !== athleteAccount.clientId) {
+    if (workout.day.week.program.clientId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }

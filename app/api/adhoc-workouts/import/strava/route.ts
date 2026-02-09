@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { parseWorkoutFromStrava } from '@/lib/adhoc-workout'
@@ -19,20 +19,11 @@ import { logger } from '@/lib/logger'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAthlete()
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount?.clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 400 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams
@@ -42,7 +33,7 @@ export async function GET(request: NextRequest) {
     // Get Strava activities that haven't been imported yet
     const stravaActivities = await prisma.stravaActivity.findMany({
       where: {
-        clientId: athleteAccount.clientId,
+        clientId: clientId,
       },
       orderBy: { startDate: 'desc' },
       take: limit,
@@ -66,7 +57,7 @@ export async function GET(request: NextRequest) {
     // Check which ones have already been imported as ad-hoc workouts
     const existingImports = await prisma.adHocWorkout.findMany({
       where: {
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         inputType: 'STRAVA_IMPORT',
       },
       select: {
@@ -124,20 +115,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAthlete()
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount?.clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 400 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     // Parse request body
     const body = await request.json()
@@ -153,7 +135,7 @@ export async function POST(request: NextRequest) {
     // Get the Strava activity
     const stravaActivity = await prisma.stravaActivity.findFirst({
       where: {
-        clientId: athleteAccount.clientId,
+        clientId: clientId,
         stravaId: stravaActivityId,
       },
     })
@@ -168,7 +150,7 @@ export async function POST(request: NextRequest) {
     // Check if already imported
     const existingImport = await prisma.adHocWorkout.findFirst({
       where: {
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         inputType: 'STRAVA_IMPORT',
         rawInputMetadata: {
           path: ['activityId'],
@@ -213,7 +195,7 @@ export async function POST(request: NextRequest) {
     // Create ad-hoc workout entry
     const adHocWorkout = await prisma.adHocWorkout.create({
       data: {
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         inputType: 'STRAVA_IMPORT',
         workoutDate: stravaActivity.startDate,
         workoutName: stravaActivity.name,
@@ -231,7 +213,7 @@ export async function POST(request: NextRequest) {
     })
 
     logger.info('Strava activity imported', {
-      athleteId: athleteAccount.clientId,
+      athleteId: clientId,
       stravaActivityId,
       adHocWorkoutId: adHocWorkout.id,
     })

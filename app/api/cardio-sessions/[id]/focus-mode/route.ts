@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import type { CardioSegmentType } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
 
@@ -86,7 +86,14 @@ export async function GET(
 ) {
   try {
     const { id: assignmentId } = await params
-    const athlete = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { clientId } = resolved
 
     // Get assignment with session
     const assignment = await prisma.cardioSessionAssignment.findUnique({
@@ -107,11 +114,7 @@ export async function GET(
     }
 
     // Verify athlete owns this assignment
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount || assignment.athleteId !== athleteAccount.clientId) {
+    if (assignment.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -124,7 +127,7 @@ export async function GET(
     const existingLog = await prisma.cardioSessionLog.findFirst({
       where: {
         sessionId: session.id,
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },
       },
       include: {
@@ -258,7 +261,14 @@ export async function POST(
 ) {
   try {
     const { id: assignmentId } = await params
-    const athlete = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { clientId } = resolved
 
     // Get assignment
     const assignment = await prisma.cardioSessionAssignment.findUnique({
@@ -274,11 +284,7 @@ export async function POST(
     }
 
     // Verify athlete owns this assignment
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount || assignment.athleteId !== athleteAccount.clientId) {
+    if (assignment.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -289,7 +295,7 @@ export async function POST(
     const existingLog = await prisma.cardioSessionLog.findFirst({
       where: {
         sessionId: assignment.sessionId,
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },
       },
     })
@@ -307,7 +313,7 @@ export async function POST(
     const sessionLog = await prisma.cardioSessionLog.create({
       data: {
         sessionId: assignment.sessionId,
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         assignmentId: assignment.id,
         status: 'SCHEDULED',
         focusModeUsed: true,
@@ -344,7 +350,15 @@ export async function PUT(
 ) {
   try {
     const { id: assignmentId } = await params
-    const athlete = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { clientId } = resolved
+
     const body = await request.json()
 
     const {
@@ -370,11 +384,7 @@ export async function PUT(
     }
 
     // Verify athlete owns this assignment
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount || assignment.athleteId !== athleteAccount.clientId) {
+    if (assignment.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -385,7 +395,7 @@ export async function PUT(
     const sessionLog = await prisma.cardioSessionLog.findFirst({
       where: {
         sessionId: assignment.sessionId,
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },
       },
     })

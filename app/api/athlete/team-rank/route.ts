@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAthlete, canAccessClient } from '@/lib/auth-utils';
+import { resolveAthleteClientId } from '@/lib/auth-utils';
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
 import {
@@ -19,22 +19,11 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAthlete();
-    const { searchParams } = new URL(request.url);
-    const clientId = searchParams.get('clientId');
-
-    if (!clientId) {
-      return NextResponse.json(
-        { error: 'clientId is required' },
-        { status: 400 }
-      );
+    const resolved = await resolveAthleteClientId();
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    // Verify athlete has access to this client
-    const hasAccess = await canAccessClient(user.id, clientId);
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const { clientId } = resolved;
 
     // Find the team the athlete is a member of
     const client = await prisma.client.findUnique({

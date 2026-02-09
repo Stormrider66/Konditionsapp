@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'
@@ -34,20 +34,11 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const user = await requireAthlete()
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount?.clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 400 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     // Get the ad-hoc workout
     const adHocWorkout = await prisma.adHocWorkout.findUnique({
@@ -62,7 +53,7 @@ export async function GET(
     }
 
     // Verify ownership
-    if (adHocWorkout.athleteId !== athleteAccount.clientId) {
+    if (adHocWorkout.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -117,20 +108,11 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const user = await requireAthlete()
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount?.clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 400 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     // Get the ad-hoc workout
     const adHocWorkout = await prisma.adHocWorkout.findUnique({
@@ -145,7 +127,7 @@ export async function PATCH(
     }
 
     // Verify ownership
-    if (adHocWorkout.athleteId !== athleteAccount.clientId) {
+    if (adHocWorkout.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -224,20 +206,11 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const user = await requireAthlete()
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount?.clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 400 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     // Get the ad-hoc workout
     const adHocWorkout = await prisma.adHocWorkout.findUnique({
@@ -252,7 +225,7 @@ export async function DELETE(
     }
 
     // Verify ownership
-    if (adHocWorkout.athleteId !== athleteAccount.clientId) {
+    if (adHocWorkout.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }

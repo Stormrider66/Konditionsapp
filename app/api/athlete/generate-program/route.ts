@@ -11,13 +11,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { generateAIProgram } from '@/lib/agent/program-generator'
 import { z } from 'zod'
 
 const generateProgramSchema = z.object({
-  clientId: z.string().uuid(),
   sport: z.string(),
   experience: z.string(),
   goal: z.string().optional(),
@@ -32,17 +31,14 @@ const generateProgramSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    const { user, clientId } = resolved
 
     const body = await request.json()
     const validationResult = generateProgramSchema.safeParse(body)
@@ -55,7 +51,6 @@ export async function POST(request: NextRequest) {
     }
 
     const {
-      clientId,
       sport,
       experience,
       goal,
@@ -65,29 +60,22 @@ export async function POST(request: NextRequest) {
       equipment,
     } = validationResult.data
 
-    // Verify the athlete owns this client
-    const athleteAccount = await prisma.athleteAccount.findFirst({
-      where: {
-        userId: user.id,
-        clientId,
-      },
+    // Get client with subscription info
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
       include: {
-        client: {
-          include: {
-            athleteSubscription: true,
-          },
-        },
+        athleteSubscription: true,
       },
     })
 
-    if (!athleteAccount) {
+    if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Client not found or not owned by user' },
+        { success: false, error: 'Client not found' },
         { status: 404 }
       )
     }
 
-    const subscription = athleteAccount.client.athleteSubscription
+    const subscription = client.athleteSubscription
 
     // Check subscription tier
     if (!subscription || subscription.tier === 'FREE') {

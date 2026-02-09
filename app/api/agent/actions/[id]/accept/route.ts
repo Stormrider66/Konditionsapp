@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logActionTaken } from '@/lib/agent/gdpr/audit-logger'
 
 export async function POST(
@@ -14,14 +14,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const { user, clientId } = resolved
 
     const { id } = await params
     const body = await request.json()
@@ -42,19 +39,7 @@ export async function POST(
     }
 
     // Verify user has access to this action
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json(
-        { error: 'No athlete profile found' },
-        { status: 404 }
-      )
-    }
-
-    if (athleteAccount.clientId !== action.clientId) {
+    if (clientId !== action.clientId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

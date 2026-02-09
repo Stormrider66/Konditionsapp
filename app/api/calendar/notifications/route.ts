@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
 /**
@@ -16,21 +16,10 @@ import { logError } from '@/lib/logger-console'
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
-    })
+    const dbUser = await getCurrentUser()
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -45,25 +34,28 @@ export async function GET(request: NextRequest) {
     let clientIds: string[] = []
 
     if (dbUser.role === 'COACH') {
-      // Get all clients the coach manages
-      const clients = await prisma.client.findMany({
-        where: { userId: dbUser.id },
-        select: { id: true },
-      })
-      clientIds = clients.map((c) => c.id)
+      // Check if coach is in athlete mode
+      const resolved = await resolveAthleteClientId()
+      if (resolved?.isCoachInAthleteMode) {
+        clientIds = [resolved.clientId]
+      } else {
+        // Get all clients the coach manages
+        const clients = await prisma.client.findMany({
+          where: { userId: dbUser.id },
+          select: { id: true },
+        })
+        clientIds = clients.map((c) => c.id)
 
-      // If specific clientId requested, filter to that one
-      if (clientId && clientIds.includes(clientId)) {
-        clientIds = [clientId]
+        // If specific clientId requested, filter to that one
+        if (clientId && clientIds.includes(clientId)) {
+          clientIds = [clientId]
+        }
       }
     } else if (dbUser.role === 'ATHLETE') {
       // Athlete sees notifications for their profile
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: dbUser.id },
-        select: { clientId: true },
-      })
-      if (athleteAccount) {
-        clientIds = [athleteAccount.clientId]
+      const resolved = await resolveAthleteClientId()
+      if (resolved) {
+        clientIds = [resolved.clientId]
       }
     }
 
@@ -174,21 +166,10 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
-    })
+    const dbUser = await getCurrentUser()
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -198,18 +179,21 @@ export async function POST(request: NextRequest) {
     let clientIds: string[] = []
 
     if (dbUser.role === 'COACH') {
-      const clients = await prisma.client.findMany({
-        where: { userId: dbUser.id },
-        select: { id: true },
-      })
-      clientIds = clients.map((c) => c.id)
+      // Check if coach is in athlete mode
+      const resolved = await resolveAthleteClientId()
+      if (resolved?.isCoachInAthleteMode) {
+        clientIds = [resolved.clientId]
+      } else {
+        const clients = await prisma.client.findMany({
+          where: { userId: dbUser.id },
+          select: { id: true },
+        })
+        clientIds = clients.map((c) => c.id)
+      }
     } else if (dbUser.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: dbUser.id },
-        select: { clientId: true },
-      })
-      if (athleteAccount) {
-        clientIds = [athleteAccount.clientId]
+      const resolved = await resolveAthleteClientId()
+      if (resolved) {
+        clientIds = [resolved.clientId]
       }
     }
 

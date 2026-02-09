@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { canAccessWorkout, getCurrentUser } from '@/lib/auth-utils'
+import { canAccessWorkout, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 /**
@@ -14,9 +14,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await getCurrentUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
         {
           success: false,
@@ -25,6 +24,7 @@ export async function POST(
         { status: 401 }
       )
     }
+    const { user, clientId } = resolved
 
     const { id } = await params
 
@@ -34,17 +34,6 @@ export async function POST(
         {
           success: false,
           error: 'Obehörig åtkomst till detta träningspass',
-        },
-        { status: 403 }
-      )
-    }
-
-    // Only athletes can log workouts
-    if (user.role !== 'ATHLETE') {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Endast atleter kan logga träningspass',
         },
         { status: 403 }
       )
@@ -102,93 +91,86 @@ export async function POST(
     // Create TrainingLoad entry when workout is completed
     // This ensures traditional workouts contribute to weekly load ("Veckobelastning")
     if ((body.completed ?? true) && body.duration) {
-      // Get athlete's client ID
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      // Use provided TSS if available, otherwise estimate from duration and RPE
+      const rpeValue = body.perceivedEffort || 6
+      const durationMinutes = body.duration // Already in minutes for WorkoutLog
+      const estimatedTSS = body.tss || Math.round(durationMinutes * (rpeValue / 10) * 0.9)
+
+      // Map workout type to training load workout type
+      const workoutTypeMap: Record<string, string> = {
+        STRENGTH: 'STRENGTH',
+        CARDIO: 'CARDIO',
+        RUNNING: 'CARDIO',
+        CYCLING: 'CARDIO',
+        SWIMMING: 'CARDIO',
+        SKIING: 'CARDIO',
+        FLEXIBILITY: 'RECOVERY',
+        RECOVERY: 'RECOVERY',
+      }
+      const loadWorkoutType = workoutTypeMap[workout.type] || 'GENERAL'
+
+      // Map RPE to intensity label
+      let intensity = 'MODERATE'
+      if (rpeValue <= 3) intensity = 'EASY'
+      else if (rpeValue <= 5) intensity = 'MODERATE'
+      else if (rpeValue <= 7) intensity = 'HARD'
+      else intensity = 'VERY_HARD'
+
+      // Check if there's already a TrainingLoad entry for today with this workout type
+      const existingLoad = await prisma.trainingLoad.findFirst({
+        where: {
+          clientId,
+          date: today,
+          workoutType: loadWorkoutType,
+        },
       })
 
-      if (athleteAccount) {
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-
-        // Use provided TSS if available, otherwise estimate from duration and RPE
-        const rpeValue = body.perceivedEffort || 6
-        const durationMinutes = body.duration // Already in minutes for WorkoutLog
-        const estimatedTSS = body.tss || Math.round(durationMinutes * (rpeValue / 10) * 0.9)
-
-        // Map workout type to training load workout type
-        const workoutTypeMap: Record<string, string> = {
-          STRENGTH: 'STRENGTH',
-          CARDIO: 'CARDIO',
-          RUNNING: 'CARDIO',
-          CYCLING: 'CARDIO',
-          SWIMMING: 'CARDIO',
-          SKIING: 'CARDIO',
-          FLEXIBILITY: 'RECOVERY',
-          RECOVERY: 'RECOVERY',
-        }
-        const loadWorkoutType = workoutTypeMap[workout.type] || 'GENERAL'
-
-        // Map RPE to intensity label
-        let intensity = 'MODERATE'
-        if (rpeValue <= 3) intensity = 'EASY'
-        else if (rpeValue <= 5) intensity = 'MODERATE'
-        else if (rpeValue <= 7) intensity = 'HARD'
-        else intensity = 'VERY_HARD'
-
-        // Check if there's already a TrainingLoad entry for today with this workout type
-        const existingLoad = await prisma.trainingLoad.findFirst({
-          where: {
-            clientId: athleteAccount.clientId,
-            date: today,
-            workoutType: loadWorkoutType,
+      if (existingLoad) {
+        // Update existing entry (add load from this workout)
+        await prisma.trainingLoad.update({
+          where: { id: existingLoad.id },
+          data: {
+            dailyLoad: existingLoad.dailyLoad + estimatedTSS,
+            duration: existingLoad.duration + durationMinutes,
+            distance: body.distance
+              ? (existingLoad.distance || 0) + body.distance
+              : existingLoad.distance,
           },
         })
-
-        if (existingLoad) {
-          // Update existing entry (add load from this workout)
-          await prisma.trainingLoad.update({
-            where: { id: existingLoad.id },
-            data: {
-              dailyLoad: existingLoad.dailyLoad + estimatedTSS,
-              duration: existingLoad.duration + durationMinutes,
-              distance: body.distance
-                ? (existingLoad.distance || 0) + body.distance
-                : existingLoad.distance,
-            },
-          })
-        } else {
-          // Convert pace string (e.g., "5:30") to seconds per km for TrainingLoad
-          let avgPaceSeconds: number | undefined = undefined
-          if (body.avgPace && typeof body.avgPace === 'string') {
-            const paceParts = body.avgPace.replace(/\/km$/, '').split(':')
-            if (paceParts.length === 2) {
-              const minutes = parseInt(paceParts[0], 10)
-              const seconds = parseInt(paceParts[1], 10)
-              if (!isNaN(minutes) && !isNaN(seconds)) {
-                avgPaceSeconds = minutes * 60 + seconds
-              }
+      } else {
+        // Convert pace string (e.g., "5:30") to seconds per km for TrainingLoad
+        let avgPaceSeconds: number | undefined = undefined
+        if (body.avgPace && typeof body.avgPace === 'string') {
+          const paceParts = body.avgPace.replace(/\/km$/, '').split(':')
+          if (paceParts.length === 2) {
+            const minutes = parseInt(paceParts[0], 10)
+            const seconds = parseInt(paceParts[1], 10)
+            if (!isNaN(minutes) && !isNaN(seconds)) {
+              avgPaceSeconds = minutes * 60 + seconds
             }
           }
-
-          // Create new entry for today's training
-          await prisma.trainingLoad.create({
-            data: {
-              clientId: athleteAccount.clientId,
-              date: today,
-              dailyLoad: estimatedTSS,
-              loadType: body.tss ? 'TSS' : 'RPE_BASED',
-              duration: durationMinutes,
-              distance: body.distance,
-              avgHR: body.avgHR,
-              maxHR: body.maxHR,
-              avgPace: avgPaceSeconds,
-              intensity,
-              workoutType: loadWorkoutType,
-              workoutId: id,
-            },
-          })
         }
+
+        // Create new entry for today's training
+        await prisma.trainingLoad.create({
+          data: {
+            clientId,
+            date: today,
+            dailyLoad: estimatedTSS,
+            loadType: body.tss ? 'TSS' : 'RPE_BASED',
+            duration: durationMinutes,
+            distance: body.distance,
+            avgHR: body.avgHR,
+            maxHR: body.maxHR,
+            avgPace: avgPaceSeconds,
+            intensity,
+            workoutType: loadWorkoutType,
+            workoutId: id,
+          },
+        })
       }
     }
 

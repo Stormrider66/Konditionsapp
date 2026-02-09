@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
@@ -19,7 +19,11 @@ interface RequestBody {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { user, clientId } = resolved
 
     const rateLimited = await rateLimitJsonResponse('ai:wod:repeat', user.id, {
       limit: 20,
@@ -37,24 +41,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json(
-        { error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
-
     // Fetch the original WOD
     const originalWOD = await prisma.aIGeneratedWOD.findFirst({
       where: {
         id: wodId,
-        clientId: athleteAccount.clientId,
+        clientId,
       },
     })
 
@@ -68,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Create a new WOD with the same workout data
     const newWOD = await prisma.aIGeneratedWOD.create({
       data: {
-        clientId: athleteAccount.clientId,
+        clientId,
         mode: originalWOD.mode,
         requestedDuration: originalWOD.requestedDuration,
         equipment: originalWOD.equipment,

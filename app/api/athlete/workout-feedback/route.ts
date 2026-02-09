@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
@@ -21,24 +21,11 @@ const feedbackSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
-    }
+    const { clientId } = resolved
 
     // Parse and validate body
     const body = await request.json()
@@ -57,7 +44,7 @@ export async function POST(request: Request) {
     const notification = await prisma.aINotification.findFirst({
       where: {
         id: feedback.notificationId,
-        clientId: athleteAccount.clientId,
+        clientId: clientId,
         notificationType: 'POST_WORKOUT_CHECK',
       },
       select: { id: true, contextData: true },
@@ -90,7 +77,7 @@ export async function POST(request: Request) {
     // If pain/discomfort was reported, consider creating a flag for the coach
     if (feedback.painOrDiscomfort && feedback.painOrDiscomfort.trim().length > 0) {
       logger.info('Athlete reported discomfort after workout', {
-        clientId: athleteAccount.clientId,
+        clientId: clientId,
         discomfort: feedback.painOrDiscomfort,
       })
       // Could trigger additional coach notification here

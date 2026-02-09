@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { getConsentStatus, grantConsent, updateConsent } from '@/lib/agent/gdpr'
 import { CONSENT_EXPLANATIONS } from '@/lib/agent/guardrails/consent'
 
@@ -15,34 +15,11 @@ import { CONSENT_EXPLANATIONS } from '@/lib/agent/guardrails/consent'
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    // Get client ID
-    const searchParams = request.nextUrl.searchParams
-    let clientId = searchParams.get('clientId')
-
-    if (!clientId) {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-
-      if (!athleteAccount) {
-        return NextResponse.json(
-          { error: 'No athlete profile found' },
-          { status: 404 }
-        )
-      }
-
-      clientId = athleteAccount.clientId
-    }
+    const { user, clientId } = resolved
 
     const status = await getConsentStatus(clientId)
 
@@ -64,43 +41,20 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const { user, clientId } = resolved
 
     const body = await request.json()
     const {
-      clientId: bodyClientId,
       dataProcessingConsent,
       automatedDecisionConsent,
       healthDataProcessingConsent,
       learningContributionConsent,
       anonymizedResearchConsent,
     } = body
-
-    // Get client ID
-    let clientId = bodyClientId
-
-    if (!clientId) {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-
-      if (!athleteAccount) {
-        return NextResponse.json(
-          { error: 'No athlete profile found' },
-          { status: 404 }
-        )
-      }
-
-      clientId = athleteAccount.clientId
-    }
 
     // Get IP and user agent for audit
     const ipAddress =

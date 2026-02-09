@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import {
@@ -44,33 +44,31 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const user = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+    const { clientId, isCoachInAthleteMode, user } = resolved
 
-    // Get athlete's account with client info
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      include: {
-        client: {
-          select: {
-            id: true,
-            userId: true, // Coach's user ID
-            sportProfile: {
-              select: { preferredAIModelId: true },
-            },
-          },
+    // Get client info for coach's API keys
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: {
+        userId: true, // Coach's user ID
+        sportProfile: {
+          select: { preferredAIModelId: true },
         },
       },
     })
 
-    if (!athleteAccount?.client) {
+    if (!client) {
       return NextResponse.json(
         { success: false, error: 'Athlete account not found' },
         { status: 400 }
       )
     }
 
-    const clientId = athleteAccount.client.id
-    const coachId = athleteAccount.client.userId
+    const coachId = isCoachInAthleteMode ? user.id : client.userId
 
     // Get the ad-hoc workout
     const adHocWorkout = await prisma.adHocWorkout.findUnique({
@@ -139,7 +137,7 @@ export async function POST(
     let modelDisplayName = 'Gemini 3 Flash'
 
     // Priority 1: Athlete's preferred model (if Google)
-    const athletePreferredModelId = athleteAccount.client.sportProfile?.preferredAIModelId
+    const athletePreferredModelId = client.sportProfile?.preferredAIModelId
     if (athletePreferredModelId) {
       const preferredModel = getModelById(athletePreferredModelId)
       if (preferredModel && preferredModel.provider === 'google' && apiKeys.googleKeyValid) {

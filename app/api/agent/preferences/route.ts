@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const preferencesSchema = z.object({
@@ -26,33 +26,11 @@ const preferencesSchema = z.object({
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const searchParams = request.nextUrl.searchParams
-    let clientId = searchParams.get('clientId')
-
-    if (!clientId) {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-
-      if (!athleteAccount) {
-        return NextResponse.json(
-          { error: 'No athlete profile found' },
-          { status: 404 }
-        )
-      }
-
-      clientId = athleteAccount.clientId
-    }
+    const { clientId } = resolved
 
     // Get preferences or return defaults
     const preferences = await prisma.agentPreferences.findUnique({
@@ -101,39 +79,17 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     const body = await request.json()
-    const { clientId: bodyClientId, ...updates } = body
+    const { clientId: _bodyClientId, ...updates } = body
 
     // Validate updates
     const validatedUpdates = preferencesSchema.parse(updates)
-
-    // Get client ID
-    let clientId = bodyClientId
-
-    if (!clientId) {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-
-      if (!athleteAccount) {
-        return NextResponse.json(
-          { error: 'No athlete profile found' },
-          { status: 404 }
-        )
-      }
-
-      clientId = athleteAccount.clientId
-    }
 
     // Upsert preferences
     const preferences = await prisma.agentPreferences.upsert({

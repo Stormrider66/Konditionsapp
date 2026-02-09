@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAthlete, canAccessClient } from '@/lib/auth-utils';
+import { resolveAthleteClientId } from '@/lib/auth-utils';
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
 
@@ -76,21 +76,20 @@ function paceToWatts(paceSeconds: number): number {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAthlete();
-    const body = await request.json();
-    const { clientId, concept2ResultId } = body;
+    const resolved = await resolveAthleteClientId();
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { clientId } = resolved;
 
-    if (!clientId || !concept2ResultId) {
+    const body = await request.json();
+    const { concept2ResultId } = body;
+
+    if (!concept2ResultId) {
       return NextResponse.json(
-        { error: 'Missing clientId or concept2ResultId' },
+        { error: 'Missing concept2ResultId' },
         { status: 400 }
       );
-    }
-
-    // Verify athlete has access to this client
-    const hasAccess = await canAccessClient(user.id, clientId);
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     // Fetch the Concept2 result

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { AssignmentStatus } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
 
@@ -10,19 +10,14 @@ import { logError } from '@/lib/logger-console'
  */
 export async function GET(request: NextRequest) {
   try {
-    const athlete = await requireAthlete()
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 404 }
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
       )
     }
+    const { clientId } = resolved
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') // PENDING, IN_PROGRESS, COMPLETED, SKIPPED
@@ -36,7 +31,7 @@ export async function GET(request: NextRequest) {
       status?: AssignmentStatus
       assignedDate?: { gte?: Date; lte?: Date }
     } = {
-      athleteId: athleteAccount.clientId,
+      athleteId: clientId,
     }
 
     if (status && Object.values(AssignmentStatus).includes(status as AssignmentStatus)) {
@@ -136,7 +131,7 @@ export async function GET(request: NextRequest) {
 
     const todaysSessions = await prisma.strengthSessionAssignment.findMany({
       where: {
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         assignedDate: {
           gte: today,
           lt: tomorrow,

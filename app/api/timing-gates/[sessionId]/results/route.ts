@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { SportTestProtocol } from '@prisma/client'
 import { z } from 'zod'
 
@@ -57,9 +58,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 })
     }
 
+    if (session.coachId !== user.id) {
+      return NextResponse.json({ error: 'You can only view your own sessions' }, { status: 403 })
+    }
+
     const where: Record<string, unknown> = { sessionId }
 
     if (athleteId) {
+      const access = await canAccessAthlete(user.id, athleteId)
+      if (!access.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
       where.athleteId = athleteId
     }
 
@@ -178,17 +187,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const body = await request.json()
     const { athleteId } = matchAthleteSchema.parse(body)
 
-    // Verify athlete belongs to coach
-    const athlete = await prisma.client.findFirst({
-      where: {
-        id: athleteId,
-        userId: user.id
-      },
-      select: { id: true, name: true }
-    })
-
-    if (!athlete) {
-      return NextResponse.json({ error: 'Athlete not found or does not belong to you' }, { status: 404 })
+    const access = await canAccessAthlete(user.id, athleteId)
+    if (!access.allowed) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     const result = await prisma.timingGateResult.update({

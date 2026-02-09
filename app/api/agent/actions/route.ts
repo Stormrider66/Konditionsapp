@@ -6,11 +6,17 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
+import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import type { AgentActionStatus } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     let clientId = searchParams.get('clientId')
     const status = searchParams.get('status') // PROPOSED, ACCEPTED, etc.
@@ -27,6 +33,11 @@ export async function GET(request: NextRequest) {
       }
 
       clientId = resolved.clientId
+    } else {
+      const access = await canAccessAthlete(user.id, clientId)
+      if (!access.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
     }
 
     // Build where clause

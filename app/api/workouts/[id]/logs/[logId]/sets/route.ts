@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
 /**
@@ -12,7 +12,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string; logId: string }> }
 ) {
   try {
-    const athlete = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { user } = resolved
+
     const { id: workoutId, logId } = await params
     const body = await request.json()
 
@@ -33,7 +41,7 @@ export async function POST(
       )
     }
 
-    if (workoutLog.athleteId !== athlete.id) {
+    if (workoutLog.athleteId !== user.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -83,7 +91,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string; logId: string }> }
 ) {
   try {
-    const athlete = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { user } = resolved
+
     const { logId } = await params
 
     // Verify workout log exists and belongs to athlete
@@ -98,7 +114,7 @@ export async function GET(
       )
     }
 
-    if (workoutLog.athleteId !== athlete.id) {
+    if (workoutLog.athleteId !== user.id) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }

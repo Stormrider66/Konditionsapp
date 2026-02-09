@@ -1,7 +1,7 @@
 // app/api/injury/acute-report/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
+import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio, resolveAthleteClientId } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const updateAcuteReportSchema = z.object({
@@ -81,11 +81,8 @@ export async function GET(
     } else if (user.role === 'COACH') {
       hasAccess = await canAccessClient(user.id, report.clientId)
     } else if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: { clientId: true },
-      })
-      hasAccess = athleteAccount?.clientId === report.clientId
+      const resolved = await resolveAthleteClientId()
+      hasAccess = resolved?.clientId === report.clientId
     }
 
     if (!hasAccess) {

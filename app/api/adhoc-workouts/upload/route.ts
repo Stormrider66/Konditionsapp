@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { uploadToSupabaseStorage } from '@/lib/storage/supabase-storage-server'
 import { logger } from '@/lib/logger'
@@ -38,20 +38,11 @@ const ALLOWED_AUDIO_TYPES = [
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAthlete()
-
-    // Get athlete's client ID
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      select: { clientId: true },
-    })
-
-    if (!athleteAccount?.clientId) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 400 }
-      )
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
+    const { clientId } = resolved
 
     // Parse form data
     const formData = await request.formData()
@@ -102,7 +93,7 @@ export async function POST(request: NextRequest) {
     // Generate unique filename
     const timestamp = Date.now()
     const extension = getExtensionFromMimeType(file.type)
-    const filename = `${athleteAccount.clientId}/${timestamp}.${extension}`
+    const filename = `${clientId}/${timestamp}.${extension}`
     const bucket = isImage ? 'adhoc-workout-images' : 'adhoc-workout-audio'
     const storagePath = `${bucket}/${filename}`
 
@@ -122,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     logger.info('Ad-hoc workout file uploaded', {
-      athleteId: athleteAccount.clientId,
+      athleteId: clientId,
       type,
       mimeType: file.type,
       size: file.size,

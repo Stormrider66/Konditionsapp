@@ -14,6 +14,7 @@ import { createSignedUrl } from '@/lib/storage/supabase-storage-server';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
+import { canAccessAthlete } from '@/lib/auth/athlete-access'
 
 const createAnalysisSchema = z.object({
   // Accept either a Supabase storage path or a Supabase Storage URL (signed/public).
@@ -65,13 +66,11 @@ export async function POST(request: NextRequest) {
 
     // Verify athlete belongs to coach if provided
     if (validated.athleteId) {
-      const athlete = await prisma.client.findFirst({
-        where: { id: validated.athleteId, userId: user.id },
-      });
-      if (!athlete) {
+      const access = await canAccessAthlete(user.id, validated.athleteId);
+      if (!access.allowed) {
         return NextResponse.json(
-          { error: 'Athlete not found' },
-          { status: 404 }
+          { error: 'Forbidden' },
+          { status: 403 }
         );
       }
 
@@ -161,6 +160,13 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const videoType = searchParams.get('videoType');
     const limit = parseInt(searchParams.get('limit') || '20');
+
+    if (athleteId) {
+      const access = await canAccessAthlete(user.id, athleteId);
+      if (!access.allowed) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
 
     const analyses = await prisma.videoAnalysis.findMany({
       where: {

@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAthlete } from '@/lib/auth-utils';
+import { resolveAthleteClientId } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { createCheckoutSession, BillingCycle } from '@/lib/payments/stripe';
 import { AthleteSubscriptionTier } from '@prisma/client';
@@ -21,32 +21,17 @@ const checkoutSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAthlete();
+    const resolved = await resolveAthleteClientId();
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { user, clientId } = resolved;
 
     const rateLimited = await rateLimitJsonResponse('payments:athlete:create-checkout', user.id, {
       limit: 10,
       windowSeconds: 60,
     })
     if (rateLimited) return rateLimited
-
-    // Get athlete's client record
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
-      include: {
-        client: {
-          include: {
-            athleteSubscription: true,
-          },
-        },
-      },
-    });
-
-    if (!athleteAccount) {
-      return NextResponse.json(
-        { error: 'Athlete account not found' },
-        { status: 404 }
-      );
-    }
 
     const body = await request.json();
     const { tier, cycle, businessId } = checkoutSchema.parse(body);
@@ -58,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Create checkout session
     const checkoutUrl = await createCheckoutSession(
-      athleteAccount.clientId,
+      clientId,
       tier as AthleteSubscriptionTier,
       cycle as BillingCycle,
       successUrl,

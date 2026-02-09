@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAthlete } from '@/lib/auth-utils';
+import { resolveAthleteClientId } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
@@ -20,7 +20,11 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireAthlete();
+    const resolved = await resolveAthleteClientId();
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const { user, clientId } = resolved;
 
     const rateLimited = await rateLimitJsonResponse('payments:athlete:subscription', user.id, {
       limit: 60,
@@ -28,20 +32,16 @@ export async function GET(request: NextRequest) {
     })
     if (rateLimited) return rateLimited
 
-    // Get athlete's client record
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: user.id },
+    // Get athlete's client record with subscription
+    const clientWithSub = await prisma.client.findUnique({
+      where: { id: clientId },
       include: {
-        client: {
+        athleteSubscription: {
           include: {
-            athleteSubscription: {
-              include: {
-                business: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
+            business: {
+              select: {
+                id: true,
+                name: true,
               },
             },
           },
@@ -49,14 +49,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    if (!athleteAccount) {
+    if (!clientWithSub) {
       return NextResponse.json(
         { error: 'Athlete account not found' },
         { status: 404 }
       );
     }
 
-    const subscription = athleteAccount.client.athleteSubscription;
+    const subscription = clientWithSub.athleteSubscription;
 
     // If no subscription, return FREE tier
     if (!subscription) {
@@ -92,10 +92,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Get feature access
-    const aiAccess = await checkAIAccess(athleteAccount.clientId);
-    const videoAccess = await checkVideoAccess(athleteAccount.clientId);
-    const stravaAccess = await checkIntegrationAccess(athleteAccount.clientId, 'strava');
-    const garminAccess = await checkIntegrationAccess(athleteAccount.clientId, 'garmin');
+    const aiAccess = await checkAIAccess(clientId);
+    const videoAccess = await checkVideoAccess(clientId);
+    const stravaAccess = await checkIntegrationAccess(clientId, 'strava');
+    const garminAccess = await checkIntegrationAccess(clientId, 'garmin');
 
     // Build available upgrades
     const availableUpgrades = [];

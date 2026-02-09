@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
 // Epley formula for 1RM estimation
@@ -29,7 +29,14 @@ export async function POST(
 ) {
   try {
     const { id: assignmentId } = await params
-    const athlete = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { clientId } = resolved
 
     const body = await request.json()
     const {
@@ -71,12 +78,8 @@ export async function POST(
       )
     }
 
-    // Verify athlete owns this assignment (via athleteAccount)
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount || assignment.athleteId !== athleteAccount.clientId) {
+    // Verify athlete owns this assignment
+    if (assignment.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -170,7 +173,14 @@ export async function GET(
 ) {
   try {
     const { id: assignmentId } = await params
-    const athlete = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { clientId } = resolved
 
     // Verify assignment exists
     const assignment = await prisma.strengthSessionAssignment.findUnique({
@@ -188,11 +198,7 @@ export async function GET(
     }
 
     // Verify athlete owns this assignment
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount || assignment.athleteId !== athleteAccount.clientId) {
+    if (assignment.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -266,7 +272,14 @@ export async function DELETE(
       )
     }
 
-    const athlete = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { clientId } = resolved
 
     // Verify set log exists and belongs to this assignment
     const setLog = await prisma.setLog.findUnique({
@@ -284,11 +297,7 @@ export async function DELETE(
     }
 
     // Verify athlete owns this assignment
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount || setLog.assignment?.athleteId !== athleteAccount.clientId) {
+    if (setLog.assignment?.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { Prisma, WorkoutType, BiomechanicalPillar, ProgressionLevel, PlyometricIntensity } from '@prisma/client'
 import { logger } from '@/lib/logger'
 
@@ -58,15 +59,15 @@ export async function GET(request: NextRequest) {
     } else if (user.role === 'COACH') {
       accessWhere.OR = [{ isPublic: true }, { coachId: user.id }]
     } else if (user.role === 'ATHLETE') {
-      const athleteAccount = await prisma.athleteAccount.findUnique({
-        where: { userId: user.id },
-        select: {
-          client: {
-            select: { userId: true },
-          },
-        },
-      })
-      const coachId = athleteAccount?.client.userId
+      const resolved = await resolveAthleteClientId()
+      let coachId: string | undefined
+      if (resolved) {
+        const client = await prisma.client.findUnique({
+          where: { id: resolved.clientId },
+          select: { userId: true },
+        })
+        coachId = client?.userId
+      }
       accessWhere.OR = coachId ? [{ isPublic: true }, { coachId }] : [{ isPublic: true }]
     } else {
       accessWhere.OR = [{ isPublic: true }]

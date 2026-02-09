@@ -7,8 +7,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const createMatchSchema = z.object({
@@ -22,30 +22,16 @@ const createMatchSchema = z.object({
   externalSource: z.string().default('manual'),
 })
 
-async function getAthleteClientId(): Promise<string | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) return null
-
-  const athleteAccount = await prisma.athleteAccount.findFirst({
-    where: { userId: user.id },
-    select: { clientId: true },
-  })
-
-  return athleteAccount?.clientId || null
-}
-
 export async function GET(request: NextRequest) {
   try {
-    const clientId = await getAthleteClientId()
-
-    if (!clientId) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    const { clientId } = resolved
 
     const { searchParams } = new URL(request.url)
     const upcoming = searchParams.get('upcoming') === 'true'
@@ -92,14 +78,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const clientId = await getAthleteClientId()
-
-    if (!clientId) {
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    const { clientId } = resolved
 
     const body = await request.json()
     const validatedData = createMatchSchema.parse(body)

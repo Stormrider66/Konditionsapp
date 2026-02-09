@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAthlete } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import type { Prisma } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
 
@@ -31,7 +31,14 @@ export async function PUT(
       )
     }
 
-    const athlete = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { clientId } = resolved
     const body = await request.json()
 
     const {
@@ -58,11 +65,7 @@ export async function PUT(
     }
 
     // Verify athlete owns this assignment
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount || assignment.athleteId !== athleteAccount.clientId) {
+    if (assignment.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -73,7 +76,7 @@ export async function PUT(
     let workoutLog = await prisma.hybridWorkoutLog.findFirst({
       where: {
         workoutId: assignment.workoutId,
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },
       },
     })
@@ -82,7 +85,7 @@ export async function PUT(
       workoutLog = await prisma.hybridWorkoutLog.create({
         data: {
           workoutId: assignment.workoutId,
-          athleteId: athleteAccount.clientId,
+          athleteId: clientId,
           assignmentId: assignment.id,
           status: 'SCHEDULED',
           scalingLevel: assignment.workout.scalingLevel,
@@ -177,7 +180,14 @@ export async function GET(
       )
     }
 
-    const athlete = await requireAthlete()
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    const { clientId } = resolved
 
     // Get assignment
     const assignment = await prisma.hybridWorkoutAssignment.findUnique({
@@ -192,11 +202,7 @@ export async function GET(
     }
 
     // Verify athlete owns this assignment
-    const athleteAccount = await prisma.athleteAccount.findUnique({
-      where: { userId: athlete.id },
-    })
-
-    if (!athleteAccount || assignment.athleteId !== athleteAccount.clientId) {
+    if (assignment.athleteId !== clientId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }
@@ -207,7 +213,7 @@ export async function GET(
     const workoutLog = await prisma.hybridWorkoutLog.findFirst({
       where: {
         workoutId: assignment.workoutId,
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },
       },
     })
