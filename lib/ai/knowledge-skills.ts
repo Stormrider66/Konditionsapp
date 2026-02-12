@@ -9,7 +9,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { generateEmbedding, searchSystemChunks } from '@/lib/ai/embeddings'
+import { generateEmbedding, searchSystemChunks, getVectorType } from '@/lib/ai/embeddings'
 import { logger } from '@/lib/logger'
 
 export interface MatchedSkill {
@@ -117,35 +117,19 @@ export async function matchKnowledgeSkills(
     // Query skill embeddings using cosine similarity
     const EMBEDDING_THRESHOLD = 0.80
 
-    let embeddingResults: { id: string; similarity: number }[]
-    try {
-      embeddingResults = await prisma.$queryRawUnsafe<{ id: string; similarity: number }[]>(
-        `SELECT id, 1 - (embedding <=> $1::extensions.vector) as similarity
-         FROM "KnowledgeSkill"
-         WHERE "isActive" = true
-           AND embedding IS NOT NULL
-           AND 1 - (embedding <=> $1::extensions.vector) > $2
-         ORDER BY embedding <=> $1::extensions.vector
-         LIMIT $3`,
-        embeddingArray,
-        EMBEDDING_THRESHOLD,
-        maxSkills
-      )
-    } catch {
-      // Fallback to unqualified vector type
-      embeddingResults = await prisma.$queryRawUnsafe<{ id: string; similarity: number }[]>(
-        `SELECT id, 1 - (embedding <=> $1::vector) as similarity
-         FROM "KnowledgeSkill"
-         WHERE "isActive" = true
-           AND embedding IS NOT NULL
-           AND 1 - (embedding <=> $1::vector) > $2
-         ORDER BY embedding <=> $1::vector
-         LIMIT $3`,
-        embeddingArray,
-        EMBEDDING_THRESHOLD,
-        maxSkills
-      )
-    }
+    const vtype = await getVectorType()
+    const embeddingResults = await prisma.$queryRawUnsafe<{ id: string; similarity: number }[]>(
+      `SELECT id, 1 - (embedding <=> $1::${vtype}) as similarity
+       FROM "KnowledgeSkill"
+       WHERE "isActive" = true
+         AND embedding IS NOT NULL
+         AND 1 - (embedding <=> $1::${vtype}) > $2
+       ORDER BY embedding <=> $1::${vtype}
+       LIMIT $3`,
+      embeddingArray,
+      EMBEDDING_THRESHOLD,
+      maxSkills
+    )
 
     // Merge embedding matches with keyword matches (deduplicating)
     const matchedIds = new Set(keywordMatches.map(m => m.id))
