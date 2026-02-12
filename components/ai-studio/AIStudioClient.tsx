@@ -154,6 +154,7 @@ export function AIStudioClient({
   const router = useRouter()
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const creatingConversationRef = useRef(false)
 
   // Program mode state
   const [programMode, setProgramMode] = useState(initialMode === 'program')
@@ -410,7 +411,7 @@ ${messageContent}`
 
   // Handle "Start with context" button click - send initial message with program context
   async function handleStartWithContext() {
-    if (!programContext) return
+    if (!programContext || isLoading) return
 
     if (!hasApiKeys) {
       toast({
@@ -555,8 +556,9 @@ ${messageContent}`
     setCurrentConversationId(null)
   }
 
-  // Create new conversation
+  // Create new conversation (guarded against concurrent calls)
   async function createConversation() {
+    if (creatingConversationRef.current) return null
     if (!currentModel) {
       toast({
         title: 'Ingen AI-modell vald',
@@ -566,6 +568,7 @@ ${messageContent}`
       return null
     }
 
+    creatingConversationRef.current = true
     try {
       const response = await fetch('/api/ai/conversations', {
         method: 'POST',
@@ -595,6 +598,8 @@ ${messageContent}`
         variant: 'destructive',
       })
       return null
+    } finally {
+      creatingConversationRef.current = false
     }
   }
 
@@ -1122,7 +1127,7 @@ ${messageContent}`
             </div>
           ) : (
             <div className="space-y-4 max-w-4xl mx-auto">
-              {messages.map((message) => {
+              {messages.filter((message, index, arr) => arr.findIndex(m => m.id === message.id) === index).map((message) => {
                 // AI SDK 5: Extract text from message parts, fall back to content for loaded history
                 const textContent = message.parts
                   ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
