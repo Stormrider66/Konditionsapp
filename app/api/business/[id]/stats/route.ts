@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Rate limit stats requests to prevent abuse
     const rateLimited = await rateLimitJsonResponse('stats:business', user.id, {
-      limit: 6000,
+      limit: 30,
       windowSeconds: 60,
     })
     if (rateLimited) return rateLimited
