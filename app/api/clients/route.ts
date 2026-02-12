@@ -108,6 +108,26 @@ export async function POST(request: NextRequest) {
 
     const data: ClientFormData = validation.data
 
+    // Check for duplicate client with same email for this coach
+    if (data.email) {
+      const existingClient = await prisma.client.findFirst({
+        where: {
+          userId: user.id,
+          email: data.email,
+        },
+      })
+
+      if (existingClient) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'En klient med denna e-postadress finns redan',
+          },
+          { status: 409 }
+        )
+      }
+    }
+
     // Ensure user exists in database (create if needed from Supabase Auth)
     let dbUser = await prisma.user.findUnique({
       where: { id: user.id },

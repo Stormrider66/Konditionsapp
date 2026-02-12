@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { Loader2, AlertCircle, Plus } from 'lucide-react'
@@ -50,6 +51,10 @@ export function ProgramSelector({
   const [programs, setPrograms] = useState<Program[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const pathname = usePathname()
+  // Extract business slug basePath (e.g. /star-by-thomson/coach/... → /star-by-thomson)
+  const slugMatch = pathname.match(/^\/([^/]+)\/coach/)
+  const basePath = slugMatch ? `/${slugMatch[1]}` : ''
 
   useEffect(() => {
     const fetchPrograms = async () => {
@@ -108,7 +113,7 @@ export function ProgramSelector({
           <AlertCircle className="h-4 w-4 text-amber-500" />
           <span className="text-sm text-amber-700">Inga program hittades</span>
         </div>
-        <Link href="/programs/new">
+        <Link href={`${basePath}/coach/programs/new`}>
           <Button variant="outline" size="sm" className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             Skapa nytt program

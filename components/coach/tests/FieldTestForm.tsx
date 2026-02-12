@@ -21,7 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertTriangle, Droplets } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { LactateScanButton } from '@/components/shared/LactateScanButton';
 import type { LactateMeterOCRResult } from '@/lib/validations/gemini-schemas';
 
@@ -70,6 +70,10 @@ interface FieldTestFormProps {
 
 export function FieldTestForm({ athletes }: FieldTestFormProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  // Extract business slug basePath (e.g. /star-by-thomson/coach/tests/new → /star-by-thomson)
+  const slugMatch = pathname.match(/^\/([^/]+)\/coach/);
+  const basePath = slugMatch ? `/${slugMatch[1]}` : '';
   const [testType, setTestType] = useState<'THIRTY_MIN_TT' | 'HR_DRIFT' | 'CRITICAL_VELOCITY'>('THIRTY_MIN_TT');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -169,7 +173,7 @@ export function FieldTestForm({ athletes }: FieldTestFormProps) {
                 </div>
               )}
 
-              <Button onClick={() => router.push(`/coach/tests/${result.fieldTest.id}`)}>
+              <Button onClick={() => router.push(`${basePath}/coach/tests/${result.fieldTest.id}`)}>
                 View Full Results
               </Button>
             </div>

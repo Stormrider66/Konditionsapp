@@ -109,7 +109,28 @@
     "areYouCoach": "Är du tränare?",
     "createCoachAccount": "Skapa ett tränarkonto",
     "referredBy": "Värvad av {name}",
-    "accountCreatedWithReferral": "Ditt konto har skapats med värvningsförmåner!"
+    "accountCreatedWithReferral": "Ditt konto har skapats med värvningsförmåner!",
+    "claimBusiness": {
+      "title": "Aktivera ditt konto",
+      "description": "Skapa ditt konto för att ta över din verksamhet.",
+      "claimingBusiness": "Aktiverar verksamhet",
+      "claimButton": "Skapa konto och aktivera",
+      "success": "Din verksamhet har aktiverats!"
+    },
+    "joinGym": {
+      "title": "Anslut till ett befintligt gym eller klubb (valfritt)",
+      "searchPlaceholder": "Sök efter gym eller klubb...",
+      "searching": "Söker...",
+      "description": "En förfrågan skickas till gymägaren för godkännande."
+    },
+    "alsoUseAsAthlete": "Jag vill också använda appen som atlet",
+    "athleteProfileDescription": "Skapa en personlig atletprofil för egen träning och uppföljning.",
+    "athleteProfileFields": "Atletprofilinformation",
+    "selectGender": "Välj kön",
+    "other": "Annat",
+    "birthDateLabel": "Födelsedatum",
+    "heightLabel": "Längd (cm)",
+    "weightLabel": "Vikt (kg)"
   },
   "athlete": {
     "dashboard": "Atlet Dashboard",
@@ -540,6 +561,247 @@
     },
     "footer": {
       "copyright": "Alla rättigheter förbehållna."
+    },
+    "segments": {
+      "hub": {
+        "badge": "För atleter, coacher, gym & klubbar",
+        "title": "Träna smartare,",
+        "titleHighlight": "på ditt sätt",
+        "description": "Allt-i-ett-plattformen för fysiologisk testning, AI-drivna träningsprogram och atlethantering. Byggd för alla som tar prestation på allvar."
+      },
+      "learnMore": "Läs mer",
+      "athletes": {
+        "title": "För Atleter",
+        "hubDescription": "AI-drivna dagliga pass, tävlingsprognoser och träningszoner baserade på din fysiologi.",
+        "hero": {
+          "badge": "För Atleter",
+          "title": "Träna baserat på",
+          "titleHighlight": "din fysiologi",
+          "description": "Få dagliga pass anpassade efter din dagsform, träningszoner beräknade från dina laktattester och tävlingsprognoser baserade på riktig data — inte gissningar."
+        },
+        "painPoints": {
+          "title": "Känns det igen?",
+          "item0": "Följer generiska planer som inte matchar din kondition",
+          "item1": "Ingen aning om du tränar på rätt intensitet",
+          "item2": "Gissar din tävlingsfart istället för att veta den",
+          "item3": "Kör hårt på dagar kroppen behöver vila"
+        },
+        "features": {
+          "title": "Allt du behöver för att prestera",
+          "description": "Verktyg som elitidrottare använder — nu tillgängliga för dig.",
+          "aiWod": {
+            "title": "AI Dagligt Pass",
+            "description": "Ett personligt pass varje dag, anpassat efter din dagsform, trötthet och träningsplan."
+          },
+          "readiness": {
+            "title": "Readiness & HRV",
+            "description": "Daglig hälsokoll som talar om ifall du ska köra hårt eller ta det lugnt."
+          },
+          "racePrediction": {
+            "title": "Tävlingsprognos",
+            "description": "Se dina prognostiserade tider på 10 km, halvmaraton och maraton baserat på din data."
+          },
+          "zones": {
+            "title": "Zonberäkning",
+            "description": "Exakta träningszoner från laktattester — puls, fart och effekt."
+          },
+          "progress": {
+            "title": "Uppföljning",
+            "description": "Följ din utveckling över tid med tydliga grafer och trendanalys."
+          },
+          "sync": {
+            "title": "Strava & Garmin-synk",
+            "description": "Automatisk import av träningspass från dina favoritenheter och appar."
+          }
+        },
+        "cta": {
+          "title": "Redo att träna smartare?",
+          "description": "Registrera dig gratis och koppla ihop dig med din coach — eller träna på egen hand med AI-driven vägledning.",
+          "button": "Registrera dig gratis",
+          "subText": "Inget kreditkort krävs."
+        }
+      },
+      "coaches": {
+        "title": "För Coacher",
+        "hubDescription": "AI-studio, programbyggare, testrapporter och atletövervakning i en plattform.",
+        "hero": {
+          "badge": "För Coacher",
+          "title": "Coacha smartare med",
+          "titleHighlight": "vetenskapsbaserade verktyg",
+          "description": "Bygg träningsprogram, analysera laktattester, övervaka atletbelastning och använd AI för att skala din coaching — allt från en plattform."
+        },
+        "painPoints": {
+          "title": "Känns det igen?",
+          "item0": "Spenderar timmar i kalkylark istället för att coacha",
+          "item1": "Inget sätt att objektivt spåra atletbelastning och skaderisk",
+          "item2": "Laktattestresultat fastnar i PDF-rapporter ingen läser",
+          "item3": "Att skala förbi 10 atleter känns omöjligt"
+        },
+        "features": {
+          "title": "Din digitala coachingverktygslåda",
+          "description": "Allt du behöver för att leverera coaching i världsklass i stor skala.",
+          "aiStudio": {
+            "title": "AI Studio",
+            "description": "Generera program, analysera data och få coachingförslag drivna av AI."
+          },
+          "programBuilder": {
+            "title": "Programbyggare",
+            "description": "Bygg periodiserade träningsprogram med 4 beprövade metoder."
+          },
+          "testReports": {
+            "title": "Testrapporter",
+            "description": "Professionella laktattestrapporter med tröskeldetektering och zonberäkning."
+          },
+          "monitoring": {
+            "title": "Atletövervakning",
+            "description": "Spåra träningsbelastning, ACWR, readiness och skaderisk över hela din trupp."
+          },
+          "multiSport": {
+            "title": "Multisportstöd",
+            "description": "17 sporter med sportspecifika dashboards, testprotokoll och träningszoner."
+          },
+          "portal": {
+            "title": "Atletportal",
+            "description": "Dina atleter får sin egen app med dagligt pass, kalender, loggning och uppföljning."
+          }
+        },
+        "cta": {
+          "title": "Redo att skala din coaching?",
+          "description": "Starta din gratis provperiod och se hur plattformen förändrar ditt arbetsflöde.",
+          "button": "Starta gratis provperiod",
+          "subText": "14 dagars provperiod. Inget kreditkort krävs."
+        }
+      },
+      "gyms": {
+        "title": "För Gym & Studior",
+        "hubDescription": "Teamhantering, multi-coach-åtkomst, anpassat varumärke och testning som intäktskälla.",
+        "hero": {
+          "badge": "För Gym & Studior",
+          "title": "Lyft ditt gym med",
+          "titleHighlight": "prestationstestning",
+          "description": "Erbjud fysiologisk testning som en premiumtjänst, hantera flera coacher och ge dina medlemmar en träningsupplevelse i världsklass."
+        },
+        "painPoints": {
+          "title": "Känns det igen?",
+          "item0": "Medlemmar slutar för att de inte ser mätbara framsteg",
+          "item1": "Inga premiumtjänster som skiljer dig från konkurrenterna",
+          "item2": "Coacher jobbar i sina egna kalkylark",
+          "item3": "Kunddata försvinner när en coach slutar"
+        },
+        "features": {
+          "title": "Byggt för gymdrift",
+          "description": "Företagsverktyg som växer med din verksamhet.",
+          "teamManagement": {
+            "title": "Teamhantering",
+            "description": "Hantera alla dina medlemmar, coacher och personal från en central dashboard."
+          },
+          "multiCoach": {
+            "title": "Multi-Coach-åtkomst",
+            "description": "Flera coacher arbetar i samma system med rollbaserade behörigheter."
+          },
+          "branding": {
+            "title": "Anpassat Varumärke",
+            "description": "White-label-rapporter och dashboards med ditt gyms logotyp och färger."
+          },
+          "api": {
+            "title": "API-åtkomst",
+            "description": "Integrera med dina befintliga medlems- och bokningssystem."
+          },
+          "dataContinuity": {
+            "title": "Datakontinuitet",
+            "description": "Kunddata stannar hos din verksamhet — även när coacher slutar."
+          },
+          "revenue": {
+            "title": "Testning som Intäkt",
+            "description": "Erbjud laktattestning och VO2max-analys som en betald premiumtjänst."
+          }
+        },
+        "cta": {
+          "title": "Redo att sticka ut?",
+          "description": "Boka en demo och se hur prestationstestning kan förvandla ditt gym.",
+          "button": "Boka en demo",
+          "subText": "Gratis demo. Ingen bindning."
+        }
+      },
+      "clubs": {
+        "title": "För Idrottsklubbar",
+        "hubDescription": "Batchtestning, teamtopplistor, skadeövervakning och säsongsperiodisering.",
+        "hero": {
+          "badge": "För Idrottsklubbar",
+          "title": "Utveckla ditt lag med",
+          "titleHighlight": "datadriven träning",
+          "description": "Kör batchtester, spåra skaderisk, bygg säsongsplaner och ge varje atlet i din trupp en personlig upplevelse."
+        },
+        "painPoints": {
+          "title": "Känns det igen?",
+          "item0": "Att testa 30 atleter tar hela dagen med pappersformulär",
+          "item1": "Skadefrekvensen ökar för att träningsbelastning inte övervakas",
+          "item2": "Inget sätt att jämföra atleter eller spåra lagtrender",
+          "item3": "Sjukgymnaster och coacher jobbar i separata system"
+        },
+        "features": {
+          "title": "Ändamålsbyggt för lagidrott",
+          "description": "Från testdag till matchdag — en plattform för hela säsongen.",
+          "batchTesting": {
+            "title": "Batchtestning",
+            "description": "Testa hela truppen effektivt med strömlinjeformad datainmatning och omedelbara resultat."
+          },
+          "leaderboards": {
+            "title": "Teamtopplistor",
+            "description": "Jämför VO2max, trösklar och testresultat över hela truppen."
+          },
+          "acwr": {
+            "title": "ACWR-övervakning",
+            "description": "Spåra akut:kronisk belastningskvot och få varningar innan skador inträffar."
+          },
+          "physio": {
+            "title": "Sjukgymnastintegration",
+            "description": "Sjukgymnaster hanterar rehabprogram och restriktioner som synkar med träningsplaner."
+          },
+          "periodization": {
+            "title": "Säsongsperiodisering",
+            "description": "Planera hela säsongen med periodiserade träningsblock för topprestanda."
+          },
+          "sports": {
+            "title": "17 Sporter",
+            "description": "Sportspecifika testprotokoll, dashboards och träningszoner."
+          }
+        },
+        "cta": {
+          "title": "Redo att lyfta din klubb?",
+          "description": "Kontakta oss för en skräddarsydd lösning för din organisation.",
+          "button": "Kontakta oss",
+          "subText": "Anpassad prissättning för klubbar och förbund."
+        }
+      }
+    },
+    "interestForm": {
+      "contactName": "Kontaktperson",
+      "contactNamePlaceholder": "Ditt namn",
+      "contactEmail": "E-post",
+      "contactEmailPlaceholder": "namn@exempel.se",
+      "contactPhone": "Telefon",
+      "phonePlaceholder": "070-123 45 67",
+      "organizationName": "Verksamhetens namn",
+      "gymNamePlaceholder": "T.ex. Star by Thomson",
+      "clubNamePlaceholder": "T.ex. Djurgårdens IF",
+      "city": "Stad",
+      "cityPlaceholder": "T.ex. Stockholm",
+      "website": "Webbplats",
+      "description": "Beskriv din verksamhet",
+      "descriptionPlaceholder": "Berätta kort om er verksamhet och era behov...",
+      "primarySport": "Primär sport",
+      "sportPlaceholder": "T.ex. Ishockey",
+      "estimatedMembers": "Antal medlemmar",
+      "estimatedPlayers": "Antal spelare",
+      "estimatedCoaches": "Antal tränare",
+      "submit": "Skicka intresseanmälan",
+      "submitting": "Skickar...",
+      "successTitle": "Tack för din intresseanmälan!",
+      "successMessage": "Vi har mottagit din ansökan och återkommer inom kort med mer information.",
+      "required": "Detta fält är obligatoriskt",
+      "invalidEmail": "Ange en giltig e-postadress",
+      "privacyNote": "Vi delar aldrig dina uppgifter med tredje part."
     }
   },
   "referrals": {
@@ -940,5 +1202,35 @@
       "average": "Medel",
       "developing": "Utveckling"
     }
+  },
+  "infographic": {
+    "title": "Programöversikt",
+    "generate": "Skapa",
+    "regenerate": "Generera om",
+    "generating": "Genererar...",
+    "download": "Ladda ner",
+    "empty": "Ingen infographic genererad ännu",
+    "emptyAction": "Klicka för att skapa",
+    "modelFlash": "Flash (snabb)",
+    "modelPro": "Pro (hög kvalitet)",
+    "success": "Programöversikten har genererats",
+    "error": "Kunde inte skapa infographic"
+  },
+  "visualReport": {
+    "title": "Visuell rapport",
+    "progression": "Progression",
+    "trainingSummary": "Veckosammanfattning",
+    "testReport": "Testrapport",
+    "program": "Programöversikt",
+    "generate": "Skapa",
+    "regenerate": "Generera om",
+    "generating": "Genererar...",
+    "download": "Ladda ner",
+    "empty": "Ingen visuell rapport genererad ännu",
+    "emptyAction": "Klicka för att skapa",
+    "modelFlash": "Flash (snabb)",
+    "modelPro": "Pro (hög kvalitet)",
+    "success": "Visuell rapport genererad",
+    "error": "Kunde inte skapa visuell rapport"
   }
 }

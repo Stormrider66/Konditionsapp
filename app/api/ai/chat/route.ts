@@ -493,6 +493,7 @@ ${pageContext}
 - Anpassa råden efter atletens nivå och mål
 - Om videoanalysdata finns tillgänglig, integrera löpteknikrekommendationer i programmet
 - Vid hög asymmetri eller skaderisk, inkludera preventiva övningar och styrketräning
+- **VIKTIGT: ANVÄND BEFINTLIG ATLETDATA** — Nedan i kontexten finns atletens profil, testresultat, tröskelvärden, träningszoner, skadehistorik, ACWR, Strava-data med mera. Fråga INTE om information som redan finns i kontexten (t.ex. ålder, vikt, längd, maxpuls, VO2max, trösklar, träningszoner). Använd dessa data direkt. Fråga bara om information som SAKNAS i kontexten.
 
 ## PROGRAMGENERERING - VIKTIGT!
 När coachen ber dig skapa ett träningsprogram MÅSTE du inkludera programmet i JSON-format i ett kodblock.

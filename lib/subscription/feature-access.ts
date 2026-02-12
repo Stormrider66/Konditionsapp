@@ -43,6 +43,12 @@ export const ATHLETE_TIER_FEATURES = {
     strava: { enabled: true },
     garmin: { enabled: true },
   },
+  ELITE: {
+    ai_chat: { enabled: true, limit: -1 }, // Unlimited
+    video_analysis: { enabled: true },
+    strava: { enabled: true },
+    garmin: { enabled: true },
+  },
 } as const
 
 // Coach tier features for athlete mode access
@@ -363,7 +369,7 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
 export async function createDefaultAthleteSubscription(
   clientId: string,
   options?: {
-    tier?: 'FREE' | 'STANDARD' | 'PRO'
+    tier?: 'FREE' | 'STANDARD' | 'PRO' | 'ELITE'
     businessId?: string
     trialDays?: number
   }

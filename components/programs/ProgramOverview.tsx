@@ -35,9 +35,10 @@ import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 import { ProgramExportButton } from '@/components/coach/programs/ProgramExportButton'
 import { convertDatabaseProgramToParsed } from '@/lib/exports/program-converter'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { ProgramInfographic } from '@/components/programs/ProgramInfographic'
 
 interface ProgramOverviewProps {
-  program: ProgramWithWeeks
+  program: ProgramWithWeeks & { infographicUrl?: string | null; infographicModel?: string | null }
   basePath?: string
 }
 
@@ -227,6 +228,13 @@ export function ProgramOverview({ program, basePath = '/coach' }: ProgramOvervie
           </GlassCardContent>
         </GlassCard>
       </div>
+
+      {/* Infographic */}
+      <ProgramInfographic
+        programId={program.id}
+        infographicUrl={program.infographicUrl}
+        infographicModel={program.infographicModel}
+      />
 
       {/* Program Notes */}
       {program.description && (

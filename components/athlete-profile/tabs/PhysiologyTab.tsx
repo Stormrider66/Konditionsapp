@@ -292,7 +292,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
                         )}
 
                         <div className="flex gap-3 mt-8">
-                          <Link href={`/tests/${test.id}`}>
+                          <Link href={`${basePath}/coach/tests/${test.id}`}>
                             <Button size="sm" variant="ghost" className={cn(
                               "font-black uppercase tracking-widest text-[10px] h-9 rounded-lg px-4",
                               isGlass ? "bg-white/50 dark:bg-white/5 hover:bg-white/80 dark:hover:bg-white/10 text-slate-900 dark:text-white" : ""

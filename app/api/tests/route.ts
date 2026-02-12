@@ -6,6 +6,7 @@ import { createTestApiSchema, type CreateTestApiData } from '@/lib/validations/s
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { generateVisualReport } from '@/lib/ai/visual-reports'
 
 // GET /api/tests - Hämta alla tester för inloggad användare (med optional clientId filter)
 export async function GET(request: NextRequest) {
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
-    if (user.role !== 'COACH') {
+    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
       return NextResponse.json(
         {
           success: false,
@@ -194,6 +195,17 @@ export async function POST(request: NextRequest) {
           orderBy: { sequence: 'asc' },
         },
       },
+    })
+
+    // Fire-and-forget: generate visual test report in background
+    generateVisualReport({
+      reportType: 'test-report',
+      testId: test.id,
+      clientId: test.clientId,
+      coachId: user.id,
+      locale: 'sv',
+    }).catch((err) => {
+      logger.warn('Background visual report generation failed', { testId: test.id }, err)
     })
 
     return NextResponse.json(

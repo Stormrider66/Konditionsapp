@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Target, TrendingUp, Activity, Timer, Zap, Trophy, ClipboardList } from 'lucide-react'
 import { HyroxRaceAnalysisCard } from './HyroxRaceAnalysisCard'
+import { ProgramInfographic } from '@/components/programs/ProgramInfographic'
 import {
   GlassCard,
   GlassCardHeader,
@@ -132,6 +133,16 @@ export function AthleteProgramOverview({ program, basePath = '' }: AthleteProgra
           </div>
         </GlassCard>
       </div>
+
+      {/* Infographic */}
+      {program.infographicUrl && (
+        <ProgramInfographic
+          programId={program.id}
+          infographicUrl={program.infographicUrl}
+          infographicModel={program.infographicModel}
+          readOnly
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Purpose & Info */}

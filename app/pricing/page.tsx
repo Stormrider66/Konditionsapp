@@ -18,13 +18,15 @@ import {
   Crown,
 } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
-import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { LandingHeader } from '@/components/landing/LandingHeader'
+import { LandingFooter } from '@/components/landing/LandingFooter'
+import { CTASection } from '@/components/landing/CTASection'
 
 export default function PricingPage() {
   const t = useTranslations('pricing')
@@ -84,33 +86,7 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Navigation */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground">
-              <Activity className="w-5 h-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">Star by Thomson</span>
-          </Link>
-          <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-            <Link href="/#features" className="text-muted-foreground hover:text-primary transition-colors">{tLanding('nav.features')}</Link>
-            <Link href="/#science" className="text-muted-foreground hover:text-primary transition-colors">{tLanding('nav.science')}</Link>
-            <Link href="/pricing" className="text-primary font-semibold">{tLanding('nav.pricing')}</Link>
-          </nav>
-          <div className="flex items-center space-x-4">
-            <LanguageSwitcher showLabel={false} variant="ghost" />
-            <Link href="/login">
-              <Button variant="ghost" size="sm">{tLanding('nav.login')}</Button>
-            </Link>
-            <Link href="/register">
-              <Button size="sm" className="bg-primary hover:bg-primary/90">
-                {tLanding('nav.startNow')}
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <LandingHeader activeLink="pricing" />
 
       <main className="flex-1">
         {/* Hero Section */}
@@ -260,34 +236,16 @@ export default function PricingPage() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-slate-900 text-white">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">{tLanding('cta.title')}</h2>
-            <p className="text-xl text-slate-300 mb-10 max-w-2xl mx-auto">
-              {tLanding('cta.description')}
-            </p>
-            <Link href="/register">
-              <Button size="lg" className="h-14 px-8 text-lg bg-white text-slate-900 hover:bg-slate-100">
-                {tLanding('cta.button')}
-                <ChevronRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
-            <p className="mt-6 text-sm text-slate-400">
-              {tLanding('cta.noCreditCard')}
-            </p>
-          </div>
-        </section>
+        <CTASection
+          title={tLanding('cta.title')}
+          description={tLanding('cta.description')}
+          buttonText={tLanding('cta.button')}
+          buttonHref="/register"
+          subText={tLanding('cta.noCreditCard')}
+        />
       </main>
 
-      <footer className="py-12 bg-background border-t">
-        <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Activity className="w-5 h-5 text-primary" />
-            <span className="font-bold text-foreground">Star by Thomson</span>
-          </div>
-          <p>&copy; {new Date().getFullYear()} Star by Thomson. {tLanding('footer.copyright')}</p>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   )
 }

@@ -201,6 +201,106 @@ export async function sendReferralInviteEmail(
   return sendEmail(to, subject, html);
 }
 
+// ==================== BUSINESS APPLICATION EMAILS ====================
+
+/**
+ * Send confirmation to applicant when their interest form is received
+ */
+export async function sendApplicationReceivedEmail(
+  to: string,
+  contactName: string,
+  organizationName: string
+): Promise<SendEmailResult> {
+  const subject = `Vi har mottagit din ansökan – ${organizationName}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Tack för din ansökan, ${contactName}!</h2>
+      <p>Vi har mottagit din intresseanmälan för <strong>${organizationName}</strong>.</p>
+      <p>Vårt team kommer att granska din ansökan och återkomma inom kort. Du kommer att få ett e-postmeddelande när din ansökan har godkänts.</p>
+      <p>Med vänliga hälsningar,<br/>Star by Thomson</p>
+    </div>
+  `;
+  return sendEmail(to, subject, html);
+}
+
+/**
+ * Send approval email with claim link to applicant
+ */
+export async function sendApplicationApprovedEmail(
+  to: string,
+  contactName: string,
+  organizationName: string,
+  claimUrl: string
+): Promise<SendEmailResult> {
+  const subject = `Din ansökan har godkänts – ${organizationName}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Grattis, ${contactName}!</h2>
+      <p>Din ansökan för <strong>${organizationName}</strong> har godkänts.</p>
+      <p>Klicka på knappen nedan för att skapa ditt konto och ta över din verksamhet:</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${claimUrl}" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+          Aktivera ditt konto
+        </a>
+      </div>
+      <p style="color: #666; font-size: 14px;">Länken är giltig i 30 dagar.</p>
+      <p>Med vänliga hälsningar,<br/>Star by Thomson</p>
+    </div>
+  `;
+  return sendEmail(to, subject, html);
+}
+
+/**
+ * Notify business owner about a new join request
+ */
+export async function sendJoinRequestNotification(
+  ownerEmail: string,
+  requesterName: string,
+  businessName: string
+): Promise<SendEmailResult> {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const subject = `Ny förfrågan att gå med i ${businessName}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Ny anslutningsförfrågan</h2>
+      <p><strong>${requesterName}</strong> vill gå med i <strong>${businessName}</strong> som tränare.</p>
+      <p>Logga in för att granska och godkänna eller avslå förfrågan:</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${baseUrl}/coach/settings" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+          Granska förfrågan
+        </a>
+      </div>
+      <p>Med vänliga hälsningar,<br/>Star by Thomson</p>
+    </div>
+  `;
+  return sendEmail(ownerEmail, subject, html);
+}
+
+/**
+ * Notify platform admin about a new business application
+ */
+export async function sendNewApplicationNotification(
+  adminEmail: string,
+  organizationName: string,
+  type: string
+): Promise<SendEmailResult> {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const typeLabel = type === 'GYM' ? 'Gym/Studio' : 'Team/Klubb';
+  const subject = `Ny verksamhetsansökan: ${organizationName} (${typeLabel})`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Ny ansökan att granska</h2>
+      <p><strong>${organizationName}</strong> har ansökt som <strong>${typeLabel}</strong>.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${baseUrl}/admin" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+          Granska i admin
+        </a>
+      </div>
+    </div>
+  `;
+  return sendEmail(adminEmail, subject, html);
+}
+
 // ==================== GENERIC SEND EMAIL ====================
 
 /**

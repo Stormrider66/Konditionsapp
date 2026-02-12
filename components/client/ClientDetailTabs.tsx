@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { LayoutGrid, Calendar, ClipboardList, Folder, TestTube } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -30,6 +30,7 @@ const TAB_CONFIG: { value: ClientDetailTab; label: string; icon: React.ElementTy
 export function ClientDetailTabs({ clientId, content, defaultTab = 'overview' }: ClientDetailTabsProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
 
   // Get active tab from URL or use default
   const activeTab = (searchParams.get('tab') as ClientDetailTab) || defaultTab
@@ -46,7 +47,7 @@ export function ClientDetailTabs({ clientId, content, defaultTab = 'overview' }:
     }
 
     const newUrl = params.toString() ? `?${params.toString()}` : ''
-    router.push(`/clients/${clientId}${newUrl}`, { scroll: false })
+    router.push(`${pathname}${newUrl}`, { scroll: false })
   }
 
   return (

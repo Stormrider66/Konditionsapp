@@ -5,7 +5,7 @@
 // Integrated with Data Moat system for prediction validation
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -34,6 +34,9 @@ interface RaceResultFormProps {
 
 export function RaceResultForm({ clientId, clientName, onSuccess, onCancel }: RaceResultFormProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const slugMatch = pathname.match(/^\/([^/]+)\/coach/)
+  const basePath = slugMatch ? `/${slugMatch[1]}` : ''
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -254,7 +257,7 @@ export function RaceResultForm({ clientId, clientName, onSuccess, onCancel }: Ra
       if (onSuccess) {
         onSuccess(raceResult.id)
       } else {
-        router.push(`/coach/clients/${clientId}`)
+        router.push(`${basePath}/coach/clients/${clientId}`)
         router.refresh()
       }
     } catch (err) {

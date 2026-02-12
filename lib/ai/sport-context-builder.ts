@@ -204,6 +204,7 @@ interface RunningSettings {
   weeklyVolume?: number;
   preferredMethodology?: string;
   longestRun?: number;
+  terrainPreference?: string;
   currentPaces?: {
     easy?: string;
     tempo?: string;
@@ -452,6 +453,9 @@ function buildRunningContext(athlete: AthleteData): string {
   }
   if (settings?.longestRun) {
     context += `- **Längsta löppass**: ${settings.longestRun} km\n`;
+  }
+  if (settings?.terrainPreference) {
+    context += `- **Terräng**: ${settings.terrainPreference}\n`;
   }
   if (settings?.preferredMethodology) {
     const methodology = METHODOLOGIES[settings.preferredMethodology as keyof typeof METHODOLOGIES];

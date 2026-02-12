@@ -129,6 +129,7 @@ enum AthleteSubscriptionTier {
   FREE // View reports only - no AI access
   STANDARD // Basic AI chat (50 msg/month), workout logging, daily check-in
   PRO // Full AI agent, unlimited AI, video analysis, Strava/Garmin sync
+  ELITE // Everything in PRO + assigned real PT/coach (custom pricing per business)
 }
 
 enum PaymentSource {
@@ -146,6 +147,28 @@ enum InvitationType {
   ATHLETE_SIGNUP // Invite athlete to create account
   REPORT_VIEW // Public report link
   REFERRAL // Referral bonus link
+  BUSINESS_CLAIM // Claim ownership of admin-approved business
+}
+
+// ==================== BUSINESS TYPE & APPLICATIONS ====================
+
+enum BusinessType {
+  INDEPENDENT_COACH // Self-registered PT/coach
+  GYM // Gym/studio (admin-approved)
+  CLUB // Team/club (admin-approved)
+}
+
+enum BusinessApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // ==================== REFERRAL SYSTEM ====================
@@ -534,8 +557,9 @@ model User {
   timingGateSessions TimingGateSession[] @relation("CoachTimingGateSessions")
 
   // Business & Organization relations
-  businessMemberships BusinessMember[]
-  tester              Tester?
+  businessMemberships  BusinessMember[]
+  businessJoinRequests BusinessJoinRequest[]
+  tester               Tester?
 
   // Team Sports System relations
   organizations         Organization[]
@@ -622,6 +646,9 @@ model User {
   coachAgreementsAsCoach     CoachAgreement[]        @relation("CoachAgreementsAsCoach")
   coachEarnings              CoachEarnings[]         @relation("CoachEarnings")
   athleteSubscriptionsCoached AthleteSubscription[]  @relation("CoachAthleteSubscriptions")
+
+  // Visual Report System relations
+  visualReports VisualReport[] @relation("CoachVisualReports")
 
   @@index([email])
   @@index([role])
@@ -899,6 +926,9 @@ model Client {
   benchmarkComparisons BenchmarkComparison[] @relation("AthleteBenchmarks")
   patternMatches       AthletePatternMatch[] @relation("AthletePatternMatches")
 
+  // Visual Report System relations
+  visualReports VisualReport[] @relation("ClientVisualReports")
+
   // Physiotherapist System relations
   physioAssignments    PhysioAssignment[]    @relation("ClientPhysioAssignments")
   treatmentSessions    TreatmentSession[]    @relation("ClientTreatmentSessions")
@@ -1005,6 +1035,44 @@ model Test {
   @@index([testerId])
   @@index([locationId])
   @@index([publicToken])
+
+  // Visual Report System relations
+  visualReports VisualReport[] @relation("TestVisualReports")
+}
+
+model VisualReport {
+  id       String @id @default(uuid())
+  clientId String
+  coachId  String
+
+  reportType String  // "progression" | "training-summary" | "test-report" | "program"
+  sportType  String? // SportType enum value
+
+  // Source entity (polymorphic)
+  testId    String?
+  programId String?
+
+  // Time period (progression / training-summary)
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  // Storage
+  imageUrl    String
+  storagePath String
+  mimeType    String @default("image/png")
+  model       String // gemini model used
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation("ClientVisualReports", fields: [clientId], references: [id], onDelete: Cascade)
+  coach  User   @relation("CoachVisualReports", fields: [coachId], references: [id])
+  test   Test?  @relation("TestVisualReports", fields: [testId], references: [id], onDelete: SetNull)
+
+  @@index([clientId, reportType])
+  @@index([testId])
+  @@index([programId])
+  @@index([clientId, reportType, createdAt(sort: Desc)])
 }
 
 model TestStage {
@@ -1258,6 +1326,9 @@ model Business {
   slug        String  @unique // URL-friendly identifier
   description String? @db.Text
 
+  // Business type
+  type BusinessType @default(INDEPENDENT_COACH)
+
   // Contact info
   email   String?
   phone   String?
@@ -1273,6 +1344,11 @@ model Business {
   stripeConnectAccountId String?
   stripeConnectStatus    String? // "PENDING", "ACTIVE", "RESTRICTED"
   defaultRevenueShare    Float   @default(20) // Default platform share %
+
+  // Custom ELITE tier pricing (set by PT/gym, in SEK öre - 79900 = 799 kr)
+  elitePriceMonthly Int? // null = ELITE not offered by this business
+  elitePriceYearly  Int? // null = no yearly option
+  eliteDescription  String? @db.Text // PT can describe what's included
 
   // Branding
   logoUrl      String?
@@ -1305,6 +1381,10 @@ model Business {
 
   // Physiotherapist System relations
   physioAssignments PhysioAssignment[] @relation("BusinessPhysioAssignments")
+
+  // Business application & join request relations
+  application  BusinessApplication?
+  joinRequests BusinessJoinRequest[]
 
   @@index([slug])
   @@index([isActive])
@@ -1997,6 +2077,10 @@ model TrainingProgram {
 
   // Generated from which test?
   generatedFromTest Boolean @default(false)
+
+  // AI-generated infographic
+  infographicUrl   String? // Supabase Storage public URL
+  infographicModel String? // Model used: "gemini-2.5-flash-image" or "gemini-3-pro-image-preview"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -9286,4 +9370,52 @@ model StripeWebhookEvent {
 
   @@index([type])
   @@index([createdAt])
+}
+
+// ==================== BUSINESS APPLICATIONS & JOIN REQUESTS ====================
+
+/// Interest form submissions from gyms/clubs, reviewed by platform admin
+model BusinessApplication {
+  id               String                    @id @default(uuid())
+  type             BusinessType // GYM or CLUB
+  status           BusinessApplicationStatus @default(PENDING)
+  contactName      String
+  contactEmail     String
+  contactPhone     String?
+  organizationName String
+  city             String?
+  country          String?                   @default("SE")
+  website          String?
+  description      String?                   @db.Text
+  primarySport     String? // For clubs
+  estimatedMembers Int?
+  estimatedCoaches Int?
+  reviewedById     String?
+  reviewNotes      String?                   @db.Text
+  reviewedAt       DateTime?
+  businessId       String?                   @unique
+  business         Business?                 @relation(fields: [businessId], references: [id])
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  @@index([status])
+  @@index([contactEmail])
+}
+
+/// PTs who self-register and want to join an existing gym/club business
+model BusinessJoinRequest {
+  id           String            @id @default(uuid())
+  userId       String
+  businessId   String
+  status       JoinRequestStatus @default(PENDING)
+  message      String?           @db.Text
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business     Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, businessId])
+  @@index([businessId, status])
 }

@@ -9,6 +9,7 @@ import { sv } from 'date-fns/locale'
 import type { Client, Test, TestType, TrainingZone } from '@/types'
 import { ProgressionChart } from '@/components/charts/ProgressionChart'
 import { SportSpecificAthleteView } from '@/components/coach/sport-views'
+import { VisualReportCard } from '@/components/visual-reports/VisualReportCard'
 import { PaceValidationDashboard } from '@/components/coach/pace-zones/PaceValidationDashboard'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 import { AnalyzeTestButton } from '@/components/ai/performance-analysis'
@@ -446,6 +447,14 @@ export default function BusinessClientDetailPage() {
           />
         </div>
       )}
+
+      {/* Training Summary Visual Report */}
+      <div className="mb-6">
+        <VisualReportCard
+          clientId={id}
+          reportType="training-summary"
+        />
+      </div>
 
       {!sportProfileLoading && sportProfile?.primarySport === 'RUNNING' && (
         <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-6 mb-6">

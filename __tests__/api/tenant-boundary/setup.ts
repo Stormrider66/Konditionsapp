@@ -64,8 +64,33 @@ vi.mock('@/lib/data-moat/pattern-detection', () => ({
   matchAthleteToPatterns: vi.fn(),
 }))
 
+vi.mock('@/lib/auth/athlete-access', () => ({
+  canAccessAthlete: vi.fn(),
+}))
+
+vi.mock('@/lib/agent/execution', () => ({
+  executePendingActions: vi.fn(),
+  executeActionsForAthlete: vi.fn(),
+  expireOldActions: vi.fn(),
+  executeAction: vi.fn(),
+}))
+
+vi.mock('@/lib/agent/gdpr/consent-manager', () => ({
+  getConsentStatus: vi.fn(),
+}))
+
+vi.mock('@/lib/user-api-keys', () => ({
+  getDecryptedUserApiKeys: vi.fn(),
+}))
+
+vi.mock('@/lib/ai/deep-research', () => ({
+  createProvider: vi.fn(),
+  PROVIDER_COST_ESTIMATES: {},
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    $transaction: vi.fn(),
     user: { findUnique: vi.fn() },
     businessMember: { findFirst: vi.fn(), findMany: vi.fn() },
     client: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
@@ -75,15 +100,15 @@ vi.mock('@/lib/prisma', () => ({
     coachDecision: { findMany: vi.fn(), count: vi.fn(), create: vi.fn() },
     trainingPeriodOutcome: { findMany: vi.fn(), count: vi.fn(), create: vi.fn() },
     trainingRestriction: { findMany: vi.fn(), findUnique: vi.fn() },
-    aIPrediction: { findMany: vi.fn() },
+    aIPrediction: { findMany: vi.fn(), count: vi.fn(), create: vi.fn() },
     hybridWorkoutResult: { findMany: vi.fn(), count: vi.fn(), findFirst: vi.fn(), create: vi.fn() },
-    hybridWorkout: { findUnique: vi.fn() },
+    hybridWorkout: { findUnique: vi.fn(), findFirst: vi.fn() },
     agilityWorkout: { findUnique: vi.fn() },
     location: { findUnique: vi.fn() },
     calendarEvent: { create: vi.fn() },
     agilityWorkoutAssignment: { upsert: vi.fn() },
     cardioSessionAssignment: { findMany: vi.fn() },
-    hybridWorkoutAssignment: { findMany: vi.fn() },
+    hybridWorkoutAssignment: { findMany: vi.fn(), upsert: vi.fn(), update: vi.fn() },
     videoAnalysis: { create: vi.fn() },
     deepResearchSession: { findFirst: vi.fn(), update: vi.fn() },
     sharedResearchAccess: {
@@ -100,6 +125,16 @@ vi.mock('@/lib/prisma', () => ({
     athleteAccount: { findFirst: vi.fn() },
     rehabProgram: { findUnique: vi.fn() },
     rehabProgressLog: { findMany: vi.fn(), count: vi.fn() },
+    agentAction: { findUnique: vi.fn() },
+    raceResult: {
+      findMany: vi.fn(),
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    athleteProfile: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   },
 }))
 

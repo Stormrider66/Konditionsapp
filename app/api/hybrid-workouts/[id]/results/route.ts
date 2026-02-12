@@ -7,7 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { canAccessAthlete, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
+import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
+import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { HybridScoreType, ScalingLevel } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
 
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     } else if (user.role === 'COACH' || user.role === 'ADMIN') {
       if (athleteId) {
         const hasAccess = await canAccessAthlete(user.id, athleteId)
-        if (!hasAccess) {
+        if (!hasAccess.allowed) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }
       }
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
       // Verify coach can write results for this athlete
       const hasAccess = await canAccessAthlete(user.id, athleteId)
-      if (!hasAccess) {
+      if (!hasAccess.allowed) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
     } else {

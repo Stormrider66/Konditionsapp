@@ -54,7 +54,7 @@ export function AthleteProfileClient({
   const [isAIPreferencesOpen, setIsAIPreferencesOpen] = useState(false)
 
   const client = data.identity.client!
-  const backLink = viewMode === 'coach' ? `/clients/${client.id}` : `${basePath}/athlete/dashboard`
+  const backLink = viewMode === 'coach' ? `${basePath}/coach/clients/${client.id}` : `${basePath}/athlete/dashboard`
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -83,6 +83,7 @@ export function AthleteProfileClient({
           data={data}
           viewMode={viewMode}
           variant={isAthlete ? "glass" : "default"}
+          basePath={basePath}
         />
 
         {/* Manage Sports Section (Athlete only) */}
@@ -154,7 +155,7 @@ export function AthleteProfileClient({
                 </TabsContent>
 
                 <TabsContent value="goals" className="mt-0">
-                  <GoalsPlanningTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} />
+                  <GoalsPlanningTab data={data} viewMode={viewMode} variant={isAthlete ? "glass" : "default"} basePath={basePath} />
                 </TabsContent>
               </div>
             </Tabs>

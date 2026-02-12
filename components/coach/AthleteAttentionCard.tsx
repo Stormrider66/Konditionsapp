@@ -26,6 +26,7 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
 interface CoachAlert {
@@ -120,6 +121,10 @@ export function AthleteAttentionCard({
 }: AthleteAttentionCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isActioning, setIsActioning] = useState(false)
+  const pathname = usePathname()
+  // Extract business slug basePath from current URL (e.g. /star-by-thomson/coach/dashboard → /star-by-thomson)
+  const slugMatch = pathname.match(/^\/([^/]+)\/coach/)
+  const basePath = slugMatch ? `/${slugMatch[1]}` : ''
 
   const typeConfig = alertTypeConfig[alert.alertType]
   const severity = severityConfig[alert.severity]
@@ -243,7 +248,7 @@ export function AthleteAttentionCard({
               className="h-7 text-xs"
               asChild
             >
-              <Link href={`/clients/${alert.clientId}`}>
+              <Link href={`${basePath}/coach/clients/${alert.clientId}`}>
                 <Eye className="h-3 w-3 mr-1" />
                 Visa profil
               </Link>
@@ -254,7 +259,7 @@ export function AthleteAttentionCard({
               className="h-7 text-xs"
               asChild
             >
-              <Link href={`/coach/messages?to=${alert.clientId}`}>
+              <Link href={`${basePath}/coach/messages?to=${alert.clientId}`}>
                 <MessageCircle className="h-3 w-3 mr-1" />
                 Kontakta
               </Link>

@@ -149,6 +149,7 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
     athleteAccount,
     totalPlannedWorkouts,
     completedWorkouts,
+    longestStravaRun,
   ] = await Promise.all([
     // Basic client info
     prisma.client.findUnique({
@@ -438,6 +439,24 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
         },
       },
     }),
+
+    // Longest run from Strava (last 8 weeks) for auto-calculating longest run
+    prisma.stravaActivity.findFirst({
+      where: {
+        clientId,
+        type: { in: ['Run', 'run', 'RUNNING'] },
+        startDate: {
+          gte: new Date(Date.now() - 56 * 24 * 60 * 60 * 1000),
+        },
+      },
+      orderBy: { distance: 'desc' },
+      select: {
+        distance: true,
+        movingTime: true,
+        startDate: true,
+        averageHeartrate: true,
+      },
+    }),
   ])
 
   if (!client) {
@@ -458,6 +477,21 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
   // Sport profile section
   if (sportProfile) {
     context += buildSportProfileContext(sportProfile)
+  }
+
+  // Auto-calculated longest run (from Strava, last 8 weeks)
+  // Only add if the sport profile doesn't already have a manual longestRun
+  const runSettings = sportProfile?.runningSettings as { longestRun?: number } | null
+  if (!runSettings?.longestRun && longestStravaRun?.distance) {
+    const distKm = (longestStravaRun.distance / 1000).toFixed(1)
+    const timeMin = longestStravaRun.movingTime ? Math.round(longestStravaRun.movingTime / 60) : null
+    const date = formatDate(longestStravaRun.startDate)
+    let line = `## LÄNGSTA LÖPPASS (senaste 8 veckorna, Strava)\n`
+    line += `- **Distans**: ${distKm} km`
+    if (timeMin) line += ` (${timeMin} min)`
+    if (longestStravaRun.averageHeartrate) line += ` | Snittpuls: ${Math.round(longestStravaRun.averageHeartrate)} bpm`
+    line += ` | Datum: ${date}\n\n`
+    context += line
   }
 
   // Training load / ACWR section (NEW)
@@ -559,6 +593,8 @@ function buildSportProfileContext(sportProfile: {
   runningExperience: string | null
   cyclingExperience: string | null
   swimmingExperience: string | null
+  weeklyAvailability: unknown
+  preferredSessionLength: number | null
 }): string {
   let context = `## SPORTPROFIL\n`
 
@@ -623,6 +659,29 @@ function buildSportProfileContext(sportProfile: {
   const swimSettings = sportProfile.swimmingSettings as { currentCss?: string } | null
   if (swimSettings?.currentCss) {
     context += `- **CSS**: ${swimSettings.currentCss}/100m\n`
+  }
+
+  // Weekly availability
+  const availability = sportProfile.weeklyAvailability as Record<string, { available: boolean; maxHours?: number }> | null
+  if (availability) {
+    const dayNames: Record<string, string> = {
+      monday: 'Måndag', tuesday: 'Tisdag', wednesday: 'Onsdag',
+      thursday: 'Torsdag', friday: 'Fredag', saturday: 'Lördag', sunday: 'Söndag',
+    }
+    const availableDays = Object.entries(availability)
+      .filter(([, v]) => v.available)
+      .map(([day, v]) => {
+        const name = dayNames[day] || day
+        return v.maxHours ? `${name} (max ${v.maxHours}h)` : name
+      })
+    if (availableDays.length > 0) {
+      context += `- **Tillgängliga träningsdagar**: ${availableDays.join(', ')}\n`
+      context += `- **Träningsdagar/vecka**: ${availableDays.length}\n`
+    }
+  }
+
+  if (sportProfile.preferredSessionLength) {
+    context += `- **Föredragen passlängd**: ${sportProfile.preferredSessionLength} minuter\n`
   }
 
   return context + '\n'

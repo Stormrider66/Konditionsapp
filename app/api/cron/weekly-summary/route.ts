@@ -13,6 +13,7 @@ import {
   saveWeeklySummary,
   saveMonthlySummary,
 } from '@/lib/training/summary-calculator'
+import { generateVisualReport } from '@/lib/ai/visual-reports'
 
 // Helper to get Monday of the previous week
 function getPreviousWeekStart(): Date {
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
       where: {
         athleteAccount: { isNot: null },
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, userId: true },
     })
 
     const previousWeekStart = getPreviousWeekStart()
@@ -65,6 +66,16 @@ export async function GET(request: NextRequest) {
         // Update current month's summary
         await saveMonthlySummary(athlete.id, currentMonth, currentYear)
         results.monthlySummariesUpdated++
+
+        // Fire-and-forget: generate training summary visual report
+        generateVisualReport({
+          reportType: 'training-summary',
+          clientId: athlete.id,
+          coachId: athlete.userId,
+          locale: 'sv',
+          periodStart: previousWeekStart,
+          periodEnd: new Date(previousWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
+        }).catch(() => { /* silently ignore */ })
       } catch (error) {
         results.errors++
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'

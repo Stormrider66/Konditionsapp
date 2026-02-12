@@ -22,6 +22,7 @@ const createBusinessSchema = z.object({
       /^[a-z0-9-]+$/,
       'Slug can only contain lowercase letters, numbers, and hyphens'
     ),
+  type: z.enum(['INDEPENDENT_COACH']).default('INDEPENDENT_COACH'), // GYM/CLUB require admin approval
   description: z.string().optional().nullable(),
   email: z.string().email().optional().nullable(),
   phone: z.string().optional().nullable(),
@@ -161,6 +162,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: data.name,
         slug: data.slug,
+        type: data.type,
         description: data.description,
         email: data.email,
         phone: data.phone,

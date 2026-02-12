@@ -46,6 +46,7 @@ export function normalizeStoragePath(bucket: string, value: string): string | nu
 // ============================================
 
 export const EXERCISE_IMAGES_BUCKET = 'exercise-images'
+export const PROGRAM_INFOGRAPHICS_BUCKET = 'program-infographics'
 
 /**
  * Get public URL for an exercise image stored in Supabase
@@ -70,6 +71,15 @@ export function getExerciseImagePublicUrl(path: string): string {
 export function resolveExerciseImageUrls(paths: string[] | null | undefined): string[] {
   if (!paths || !Array.isArray(paths)) return []
   return paths.map(path => getExerciseImagePublicUrl(path))
+}
+
+export function getProgramInfographicPublicUrl(path: string): string {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not defined')
+  }
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path
+  return `${supabaseUrl}/storage/v1/object/public/${PROGRAM_INFOGRAPHICS_BUCKET}/${normalizedPath}`
 }
 
 

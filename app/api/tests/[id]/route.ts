@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client"
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { performAllCalculations, ManualThresholdOverrides } from '@/lib/calculations'
+import { triggerTrialAfterTest } from '@/lib/subscription/trial-trigger'
 import type { TestStatus, Threshold, TrainingZone, Test, Client, TestStage } from '@/types'
 
 type RouteParams = {
@@ -168,6 +169,11 @@ export async function PUT(
     if (body.notes !== undefined) updateData.notes = body.notes
 
     const test = await prisma.test.update({ where: { id }, data: updateData })
+
+    // Trigger trial for FREE athletes after test completion
+    if (body.status === 'COMPLETED' && existingTest.clientId) {
+      triggerTrialAfterTest(existingTest.clientId).catch(() => {})
+    }
 
     return NextResponse.json({
       success: true,

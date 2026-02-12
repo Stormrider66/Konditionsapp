@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Gift, CheckCircle2, User } from 'lucide-react'
+import { Loader2, Gift, CheckCircle2, User, Building2, Search, X } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 
@@ -58,6 +58,12 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [referralInfo, setReferralInfo] = useState<ReferralInfo | null>(null)
   const [referralValidated, setReferralValidated] = useState(false)
+
+  // Gym join state
+  const [gymSearch, setGymSearch] = useState('')
+  const [gymResults, setGymResults] = useState<Array<{ id: string; name: string; city: string | null; type: string }>>([])
+  const [selectedGym, setSelectedGym] = useState<{ id: string; name: string } | null>(null)
+  const [searchingGyms, setSearchingGyms] = useState(false)
 
   // Check for referral code in URL
   useEffect(() => {
@@ -105,6 +111,24 @@ export default function RegisterPage() {
   })
 
   const createAthleteProfile = watch('createAthleteProfile')
+
+  const searchGyms = async (query: string) => {
+    setGymSearch(query)
+    if (query.length < 2) {
+      setGymResults([])
+      return
+    }
+    setSearchingGyms(true)
+    try {
+      const response = await fetch(`/api/businesses/search?q=${encodeURIComponent(query)}`)
+      const data = await response.json()
+      setGymResults(data.businesses || [])
+    } catch {
+      setGymResults([])
+    } finally {
+      setSearchingGyms(false)
+    }
+  }
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true)
@@ -169,6 +193,19 @@ export default function RegisterPage() {
 
         if (!response.ok) {
           console.warn('Could not create user in database')
+        }
+
+        // Submit gym join request if selected
+        if (selectedGym) {
+          try {
+            await fetch(`/api/business/${selectedGym.id}/join-requests`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: `New coach registration: ${data.name}` }),
+            })
+          } catch (error) {
+            console.warn('Failed to submit gym join request:', error)
+          }
         }
 
         // Complete referral if applicable
@@ -434,6 +471,72 @@ export default function RegisterPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Join Existing Gym */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <label className="text-sm font-medium">
+                  {t('joinGym.title') || 'Join an existing gym or club (optional)'}
+                </label>
+              </div>
+
+              {selectedGym ? (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium">{selectedGym.name}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedGym(null)}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      className="flex h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      placeholder={t('joinGym.searchPlaceholder') || 'Search for gym or club...'}
+                      value={gymSearch}
+                      onChange={(e) => searchGyms(e.target.value)}
+                    />
+                  </div>
+                  {gymResults.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-40 overflow-auto">
+                      {gymResults.map((gym) => (
+                        <button
+                          key={gym.id}
+                          type="button"
+                          className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex items-center justify-between"
+                          onClick={() => {
+                            setSelectedGym({ id: gym.id, name: gym.name })
+                            setGymResults([])
+                            setGymSearch('')
+                          }}
+                        >
+                          <span>{gym.name}</span>
+                          {gym.city && <span className="text-muted-foreground text-xs">{gym.city}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {searchingGyms && (
+                    <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg p-3 text-center">
+                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                      <span className="text-sm text-muted-foreground">{t('joinGym.searching') || 'Searching...'}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {t('joinGym.description') || 'A join request will be sent to the gym owner for approval.'}
+              </p>
             </div>
 
             <Button

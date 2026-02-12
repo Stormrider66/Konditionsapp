@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Info } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { getInfoEntry } from '@/lib/info-content'
@@ -22,11 +22,30 @@ export function InfoTooltip({
   className,
 }: InfoTooltipProps) {
   const [showDetailed, setShowDetailed] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const entry = getInfoEntry(conceptKey)
+
+  useEffect(() => { setMounted(true) }, [])
 
   if (!entry) return null
 
   const iconSize = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'
+
+  // Render plain button during SSR/hydration to avoid Radix ID mismatch
+  if (!mounted) {
+    return (
+      <button
+        type="button"
+        className={cn(
+          'inline-flex items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+          className
+        )}
+        aria-label={`Information om ${entry.title}`}
+      >
+        <Info className={iconSize} />
+      </button>
+    )
+  }
 
   return (
     <Popover onOpenChange={(open) => { if (!open) setShowDetailed(false) }}>

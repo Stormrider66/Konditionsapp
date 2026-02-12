@@ -115,19 +115,15 @@ export async function createCheckoutSession(
   cancelUrl: string,
   businessId?: string
 ): Promise<string> {
-  const priceId = getPriceId(tier, cycle);
-  if (!priceId) {
-    throw new Error(`No price configured for tier ${tier} with cycle ${cycle}`);
-  }
-
   const customerId = await getOrCreateStripeCustomer(clientId);
 
   // Check if business has Stripe Connect for revenue sharing
   let applicationFeePercent: number | undefined;
   let stripeAccount: string | undefined;
+  let business: { name: string; stripeConnectAccountId: string | null; stripeConnectStatus: string | null; defaultRevenueShare: number; elitePriceMonthly: number | null; elitePriceYearly: number | null; eliteDescription: string | null } | null = null;
 
   if (businessId) {
-    const business = await prisma.business.findUnique({
+    business = await prisma.business.findUnique({
       where: { id: businessId },
     });
 
@@ -137,16 +133,47 @@ export async function createCheckoutSession(
     }
   }
 
+  // Build line items - ELITE uses dynamic pricing, others use pre-defined Price IDs
+  let lineItems: Stripe.Checkout.SessionCreateParams.LineItem[];
+
+  if (tier === 'ELITE') {
+    if (!businessId || !business) {
+      throw new Error('ELITE tier requires a business');
+    }
+    const priceInOre = cycle === 'MONTHLY'
+      ? business.elitePriceMonthly
+      : business.elitePriceYearly;
+    if (!priceInOre) {
+      throw new Error('Business does not offer ELITE tier');
+    }
+
+    lineItems = [{
+      price_data: {
+        currency: 'sek',
+        product_data: {
+          name: `Elite Training – ${business.name}`,
+          description: business.eliteDescription || 'Premium training with assigned PT',
+        },
+        unit_amount: priceInOre,
+        recurring: {
+          interval: cycle === 'MONTHLY' ? 'month' : 'year',
+        },
+      },
+      quantity: 1,
+    }];
+  } else {
+    const priceId = getPriceId(tier, cycle);
+    if (!priceId) {
+      throw new Error(`No price configured for tier ${tier} with cycle ${cycle}`);
+    }
+    lineItems = [{ price: priceId, quantity: 1 }];
+  }
+
   const sessionConfig: Stripe.Checkout.SessionCreateParams = {
     customer: customerId,
     mode: 'subscription',
     payment_method_types: ['card'],
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
+    line_items: lineItems,
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata: {

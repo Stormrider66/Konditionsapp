@@ -29,6 +29,12 @@ export const GEMINI_MODELS = {
 
   /** Newest capability, advanced reasoning */
   PRO_PREVIEW: 'gemini-3-pro-preview',
+
+  /** Image generation (fast) */
+  IMAGE_GENERATION: 'gemini-2.5-flash-image',
+
+  /** Image generation (high quality) */
+  IMAGE_GENERATION_PRO: 'gemini-3-pro-image-preview',
 } as const;
 
 /**
@@ -88,6 +94,14 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
   'gemini-3-flash-preview': {
     input: 0.0005, // $0.50 per 1M input tokens
     output: 0.003, // $3.00 per 1M output tokens
+  },
+  'gemini-2.5-flash-image': {
+    input: 0.0005,
+    output: 0.003,
+  },
+  'gemini-3-pro-image-preview': {
+    input: 0.002,
+    output: 0.012,
   },
   // Anthropic Claude models
   'claude-sonnet-4-5-20250929': {
@@ -165,7 +179,7 @@ export function estimateAudioCost(
  * Get the recommended model for a specific task.
  */
 export function getModelForTask(
-  task: 'video' | 'audio' | 'chat' | 'quick'
+  task: 'video' | 'audio' | 'chat' | 'quick' | 'image'
 ): string {
   switch (task) {
     case 'video':
@@ -176,6 +190,8 @@ export function getModelForTask(
       return GEMINI_MODELS.CHAT;
     case 'quick':
       return GEMINI_MODELS.FLASH;
+    case 'image':
+      return GEMINI_MODELS.IMAGE_GENERATION;
     default:
       return GEMINI_MODELS.CHAT;
   }

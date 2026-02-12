@@ -7,7 +7,7 @@
  * Used in the coach dashboard for quick access.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Sheet,
@@ -37,7 +37,10 @@ export function VoiceWorkoutButton({
   basePath = '',
 }: VoiceWorkoutButtonProps) {
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+
+  useEffect(() => { setMounted(true) }, [])
 
   // Build coach path with optional business prefix
   const coachPath = basePath ? `${basePath}/coach` : '/coach'
@@ -62,6 +65,21 @@ export function VoiceWorkoutButton({
 
   // Card variant for dashboard quick links
   if (variant === 'card') {
+    // Render plain button during SSR/hydration to avoid Radix ID mismatch
+    if (!mounted) {
+      return (
+        <button
+          className={cn(
+            'flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center w-full',
+            className
+          )}
+        >
+          <Mic className="h-5 w-5 text-pink-500" />
+          <span className="text-xs dark:text-slate-300">Röstpass</span>
+        </button>
+      )
+    }
+
     return (
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
@@ -86,6 +104,16 @@ export function VoiceWorkoutButton({
           />
         </SheetContent>
       </Sheet>
+    )
+  }
+
+  // Render plain button during SSR/hydration to avoid Radix ID mismatch
+  if (!mounted) {
+    return (
+      <Button variant={variant} size={size} className={cn('gap-2', className)}>
+        <Mic className="h-4 w-4" />
+        Skapa med röst
+      </Button>
     )
   }
 

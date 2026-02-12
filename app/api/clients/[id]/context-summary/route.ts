@@ -48,6 +48,9 @@ export async function GET(
         }
       }
     })
+    if (!client) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
 
     // Get latest test date
     const latestTest = await prisma.test.findFirst({

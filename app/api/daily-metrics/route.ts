@@ -24,10 +24,54 @@ import {
 } from '@/lib/training-engine/monitoring'
 import {
   calculateSyncedStrengthFatigue,
-  blendStrengthFatigue,
   type SyncedStrengthFatigue,
 } from '@/lib/training-engine/monitoring/synced-strength-fatigue'
 import { logger } from '@/lib/logger'
+
+const STRENGTH_FATIGUE_TTL_MS = 60 * 1000
+const strengthFatigueCache = new Map<string, { expiresAt: number; value: SyncedStrengthFatigue }>()
+const dailyMetricsSideEffectsDedup = new Map<string, number>()
+const dailyMetricsWriteInFlight = new Map<string, Promise<void>>()
+const dailyMetricsAssessmentInFlight = new Map<string, Promise<void>>()
+const dailyMetricsPostWritePending = new Map<string, DailyMetricsPostWriteInput>()
+const dailyMetricsPostWriteTimers = new Map<string, ReturnType<typeof setTimeout>>()
+let dailyMetricsPostWriteActive = 0
+const clientAccessCache = new Map<string, { expiresAt: number; allowed: boolean }>()
+const dailyMetricsGetCache = new Map<string, { expiresAt: number; payload: unknown }>()
+const dailyMetricsGetInFlight = new Map<string, Promise<unknown>>()
+const DAILY_METRICS_RECENT_WRITE_TTL_MS = 15 * 1000
+const AUTH_CONTEXT_TTL_MS = 30 * 1000
+const DAILY_METRICS_POST_WRITE_DEBOUNCE_MS = 3000
+const DAILY_METRICS_POST_WRITE_REPORT_INTERVAL_MS = 30 * 1000
+const DAILY_METRICS_RECOMPUTE_SKIP_TTL_MS = 2 * 60 * 1000
+const dailyMetricsRecentWriteCache = new Map<
+  string,
+  { expiresAt: number; signature: string; payload: unknown }
+>()
+const dailyMetricsProcessedSignatureCache = new Map<
+  string,
+  {
+    signature: string
+    processedAt: number
+    readinessScore: number | null
+    readinessLevel: string | null
+  }
+>()
+const authEmailCache = new Map<string, { expiresAt: number; email: string }>()
+const userIdByEmailCache = new Map<string, { expiresAt: number; userId: string }>()
+const authEmailInFlight = new Map<string, Promise<string>>()
+const userIdByEmailInFlight = new Map<string, Promise<string | null>>()
+const postWriteMetrics = {
+  enqueued: 0,
+  coalesced: 0,
+  started: 0,
+  completed: 0,
+  recomputeSkipped: 0,
+  failed: 0,
+  totalDurationMs: 0,
+  maxDurationMs: 0,
+  lastReportedAt: Date.now(),
+}
 
 /**
  * POST /api/daily-metrics
@@ -35,25 +79,15 @@ import { logger } from '@/lib/logger'
  * Save daily metrics and calculate readiness score
  */
 export async function POST(request: NextRequest) {
+  let activeWriteKey: string | null = null
+  let releaseWriteLock: () => void = () => {}
+  let rejectWriteLock: (reason?: unknown) => void = () => {}
   try {
-    // Authenticate user
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await resolveAuthenticatedUserId(request)
+    if (!authResult.ok) {
+      return authResult.response
     }
-
-    // Get user from database
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
-    })
-
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    const dbUserId = authResult.userId
 
     // Parse request body
     const body = await request.json()
@@ -93,134 +127,73 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const hasAccess = await canAccessClient(dbUser.id, clientId)
+    const accessCacheKey = `${dbUserId}:${clientId}`
+    const cachedAccess = clientAccessCache.get(accessCacheKey)
+    let hasAccess: boolean
+    if (cachedAccess && cachedAccess.expiresAt > Date.now()) {
+      hasAccess = cachedAccess.allowed
+    } else {
+      hasAccess = await canAccessClient(dbUserId, clientId)
+      clientAccessCache.set(accessCacheKey, {
+        expiresAt: Date.now() + 2 * 60 * 1000,
+        allowed: hasAccess,
+      })
+    }
     if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { id: true, name: true },
-    })
-    if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    const writeKey = `${clientId}:${date}`
+    const writeSignature = createDailyMetricsWriteSignature(body)
+    const recentWrite = dailyMetricsRecentWriteCache.get(writeKey)
+    if (
+      recentWrite &&
+      recentWrite.expiresAt > Date.now() &&
+      recentWrite.signature === writeSignature
+    ) {
+      return NextResponse.json(recentWrite.payload)
     }
+    const inFlightWrite = dailyMetricsWriteInFlight.get(writeKey)
+    if (inFlightWrite) {
+      const currentRecent = dailyMetricsRecentWriteCache.get(writeKey)
+      if (
+        currentRecent &&
+        currentRecent.expiresAt > Date.now() &&
+        currentRecent.signature === writeSignature
+      ) {
+        return NextResponse.json(currentRecent.payload)
+      }
+      // Duplicate check-in submission for the same athlete/date while a write is in-flight:
+      // acknowledge quickly instead of queueing request latency.
+      return NextResponse.json({
+        success: true,
+        queued: true,
+        assessments: {
+          hrv: null,
+          rhr: null,
+          wellness: null,
+          readiness: null,
+          strengthFatigue: null,
+        },
+        injuryResponse: {
+          triggered: false,
+          pendingEvaluation: true,
+        },
+      })
+    }
+    const writeLockPromise = new Promise<void>((resolve, reject) => {
+      releaseWriteLock = resolve
+      rejectWriteLock = reject
+    })
+    activeWriteKey = writeKey
+    dailyMetricsWriteInFlight.set(writeKey, writeLockPromise)
 
     // Convert date string to Date object
     const metricsDate = new Date(date)
 
-    // Get historical data for baseline calculations
-    const historicalMetrics = await prisma.dailyMetrics.findMany({
-      where: {
-        clientId,
-        date: {
-          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-        },
-      },
-      orderBy: { date: 'asc' },
-    })
-
-    // ==================
-    // HRV Assessment
-    // ==================
-    let hrvAssessment = null
-    let hrvStatus = 'NOT_MEASURED'
-    let hrvPercent = null
-    let hrvTrend = null
-
-    if (hrvRMSSD && hrvQuality) {
-      const hrvMeasurement: HRVMeasurement = {
-        rmssd: hrvRMSSD,
-        quality: normalizeMeasurementQuality(hrvQuality),
-        artifactPercent: hrvArtifactPercent ?? 0,
-        duration: hrvDuration ?? 180,
-        position: normalizePosition(hrvPosition),
-        timestamp: metricsDate,
-      }
-
-      // Calculate baseline from historical data
-      const historicalHRVMeasurements = historicalMetrics
-        .filter(m => m.hrvRMSSD !== null)
-        .map(m => ({
-          rmssd: m.hrvRMSSD as number,
-          quality: normalizeMeasurementQuality(m.hrvQuality),
-          artifactPercent: m.hrvArtifactPercent ?? 0,
-          duration: m.hrvDuration ?? 180,
-          position: normalizePosition(m.hrvPosition),
-          timestamp: m.date,
-        }))
-
-      let hrvBaseline: HRVBaseline | null = null
-      if (historicalHRVMeasurements.length >= 14) {
-        try {
-          hrvBaseline = establishHRVBaseline(historicalHRVMeasurements)
-        } catch (error) {
-          logger.warn('Failed to build HRV baseline from history', { clientId, measurementCount: historicalHRVMeasurements.length }, error)
-        }
-      }
-
-      if (!hrvBaseline) {
-        hrvBaseline = createFallbackHRVBaseline(hrvMeasurement)
-      }
-
-      hrvAssessment = assessHRV(hrvMeasurement, hrvBaseline)
-      hrvStatus = hrvAssessment.status
-      hrvPercent = hrvAssessment.percentOfBaseline
-      hrvTrend = hrvAssessment.trend
-    }
-
-    // ==================
-    // RHR Assessment
-    // ==================
-    let rhrAssessment = null
-    let restingHRStatus = 'NORMAL'
-    let restingHRDev = null
-
-    if (restingHR) {
-      const rhrMeasurement: RHRMeasurement = {
-        heartRate: restingHR,
-        quality: 'GOOD',
-        duration: 60,
-        position: 'SUPINE',
-        timestamp: metricsDate,
-      }
-
-      // Calculate baseline from historical data
-      const historicalRHRMeasurements = historicalMetrics
-        .filter(m => m.restingHR !== null)
-        .map(m => ({
-          heartRate: m.restingHR as number,
-          quality: 'GOOD' as const,
-          duration: 60,
-          position: 'SUPINE' as const,
-          timestamp: m.date,
-        }))
-
-      let rhrBaseline: RHRBaseline | null = null
-      if (historicalRHRMeasurements.length >= 7) {
-        try {
-          rhrBaseline = establishRHRBaseline(historicalRHRMeasurements)
-        } catch (error) {
-          logger.warn('Failed to build RHR baseline from history', { clientId, measurementCount: historicalRHRMeasurements.length }, error)
-        }
-      }
-
-      if (!rhrBaseline) {
-        rhrBaseline = createFallbackRHRBaseline(rhrMeasurement)
-      }
-
-      rhrAssessment = assessRHR(rhrMeasurement, rhrBaseline)
-      restingHRStatus = rhrAssessment.status
-      restingHRDev = rhrAssessment.deviationFromBaseline
-    }
-
-    // ==================
-    // Wellness Scoring
-    // ==================
-    let wellnessScoreData = null
-    let calculatedWellnessScore = null
-
-    if (
+    const needsHrvAssessment = hrvRMSSD !== undefined && hrvQuality !== undefined
+    const needsRhrAssessment = restingHR !== undefined
+    const hasWellnessInputs =
       sleepQuality !== undefined &&
       sleepHours !== undefined &&
       muscleSoreness !== undefined &&
@@ -228,113 +201,22 @@ export async function POST(request: NextRequest) {
       mood !== undefined &&
       stress !== undefined &&
       injuryPain !== undefined
-    ) {
-      // Convert 1-10 scale to 1-5 scale for wellness function
-      const scaleTo5 = (value: number) => Math.round(((value - 1) / 9) * 4 + 1)
+    const hasReadinessInputs = needsHrvAssessment && needsRhrAssessment && hasWellnessInputs
 
-      // Invert negative metrics before scaling
-      // Form: 1 = no pain/stress (good), 10 = extreme pain/stress (bad)
-      // Wellness expects: 1 = bad, 5 = good (higher = better for all metrics)
-      const invertScale = (value: number) => 11 - value
-
-      const wellnessResponses: WellnessResponses = {
-        sleepQuality: scaleTo5(sleepQuality) as 1 | 2 | 3 | 4 | 5,
-        sleepDuration: sleepHours,
-        fatigueLevel: scaleTo5(energyLevel) as 1 | 2 | 3 | 4 | 5,
-        muscleSoreness: scaleTo5(invertScale(muscleSoreness)) as 1 | 2 | 3 | 4 | 5, // Invert: 1 (no soreness) → 10 → 5 (good)
-        stressLevel: scaleTo5(invertScale(stress)) as 1 | 2 | 3 | 4 | 5, // Invert: 1 (no stress) → 10 → 5 (good)
-        mood: scaleTo5(mood) as 1 | 2 | 3 | 4 | 5,
-        motivationToTrain: scaleTo5(invertScale(injuryPain)) as 1 | 2 | 3 | 4 | 5, // Invert: 1 (no pain) → 10 → 5 (high motivation)
-      }
-
-      // Avoid logging raw wellness inputs (health-related data) even in production debug.
-      if (process.env.NODE_ENV !== 'production') {
-        logger.debug('Wellness calculation completed', { clientId })
-      }
-
-      wellnessScoreData = calculateWellnessScore(wellnessResponses)
-      calculatedWellnessScore = wellnessScoreData.totalScore
-
-      logger.debug('Wellness score result', {
-        clientId,
-        totalScore: wellnessScoreData.totalScore,
-        rawScore: wellnessScoreData.rawScore,
-        status: wellnessScoreData.status
-      })
-    }
-
-    // ==================
-    // Synced Strength Fatigue (Gap 3 fix)
-    // ==================
-    let syncedStrengthFatigue: SyncedStrengthFatigue | null = null
-    try {
-      syncedStrengthFatigue = await calculateSyncedStrengthFatigue(clientId, prisma)
-      if (process.env.NODE_ENV !== 'production') {
-        logger.debug('Synced strength fatigue calculated', {
-          clientId,
-          score: syncedStrengthFatigue.score,
-          volume: syncedStrengthFatigue.strengthVolume7d,
-          sessions: syncedStrengthFatigue.strengthSessions7d,
-        })
-      }
-    } catch (error) {
-      logger.warn('Error calculating synced strength fatigue', { clientId }, error)
-    }
-
-    // ==================
-    // Readiness Composite
-    // ==================
-    let readinessScoreData = null
-    let calculatedReadinessScore = null
-    let readinessLevel = null
-    let recommendedAction = null
-
-    // Calculate readiness if we have HRV, wellness, and RHR
-    if (hrvAssessment && wellnessScoreData && rhrAssessment) {
-      // Get recent training load for ACWR calculation
-      const recentWorkouts = await prisma.workoutLog.findMany({
-        where: {
-          athleteId: dbUser.id,
-          completed: true,
-          completedAt: {
-            gte: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000), // Last 28 days
-          },
-        },
-        orderBy: { completedAt: 'asc' },
-      })
-
-      // Calculate daily TSS/TRIMP (simplified - assume RPE * duration / 10)
-      const dailyLoads = recentWorkouts
-        .filter(w => w.completedAt !== null)
-        .map(w => ({
-          date: w.completedAt!,
-          tss: (w.perceivedEffort || 5) * (w.duration || 0) / 10,
-        }))
-
-      // Group by date and sum
-      const loadByDate = new Map<string, number>()
-      for (const load of dailyLoads) {
-        const dateKey = load.date.toISOString().split('T')[0]
-        loadByDate.set(dateKey, (loadByDate.get(dateKey) || 0) + load.tss)
-      }
-
-      const trainingLoads = Array.from(loadByDate.entries()).map(([date, tss]) => ({
-        date: new Date(date),
-        tss,
-      }))
-
-      readinessScoreData = calculateReadinessScore({
-        hrv: hrvAssessment,
-        rhr: rhrAssessment,
-        wellness: wellnessScoreData,
-        // ACWR calculation would require more complex load tracking
-        // For now, readiness is based on HRV, RHR, and wellness only
-      })
-
-      calculatedReadinessScore = readinessScoreData.score
-      readinessLevel = readinessScoreData.status
-      recommendedAction = readinessScoreData.workoutModification.action
-    }
+    // Synchronous path is intentionally minimal; expensive readiness calculations run async.
+    const hrvAssessment = null
+    const rhrAssessment = null
+    const wellnessScoreData = null
+    const readinessScoreData = null
+    const hrvStatus = needsHrvAssessment ? 'PENDING' : 'NOT_MEASURED'
+    const hrvPercent = null
+    const hrvTrend = null
+    const restingHRStatus = needsRhrAssessment ? 'PENDING' : null
+    const restingHRDev = null
+    const calculatedWellnessScore = null
+    const calculatedReadinessScore = null
+    const readinessLevel = hasReadinessInputs ? 'PENDING' : null
+    const recommendedAction = null
 
     // ==================
     // Save to Database
@@ -463,250 +345,35 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // ==========================================
-    // Automatic Injury Detection & Response
-    // ==========================================
-    let injuryTriggered = false
-    let injurySummary = null
-    let injuriesResolved = 0
+    // Defer assessments + side effects to background to keep write latency low.
+    const shouldRunSideEffects = shouldProcessDailyMetricsSideEffects(clientId, date)
+    enqueueDailyMetricsPostWrite({
+      clientId,
+      date,
+      signature: writeSignature,
+      shouldRunSideEffects,
+      sideEffectsInput: {
+        clientId,
+        date,
+        injuryPain: injuryPain ?? 0,
+        stress: stress ?? 0,
+        sleepHours: sleepHours ?? 0,
+        energyLevel: energyLevel ?? 0,
+        readinessScore: null,
+        readinessLevel: null,
+        muscleSoreness: muscleSoreness ?? 0,
+        injuryDetails,
+        keywordAnalysis,
+        requestOrigin: request.nextUrl.origin,
+        authCookie: request.headers.get('cookie') || '',
+        requestPhysioContact: requestPhysioContact ?? false,
+        physioContactReason,
+        rehabPainDuring,
+        rehabPainAfter,
+      },
+    })
 
-    // Auto-resolve injuries if athlete reports low pain (1-2)
-    // This clears injuries when athlete is recovered
-    if (injuryPain <= 2) {
-      try {
-        const activeInjuries = await prisma.injuryAssessment.findMany({
-          where: {
-            clientId,
-            status: { not: 'FULLY_RECOVERED' },
-          },
-        })
-
-        if (activeInjuries.length > 0) {
-          // Mark all active injuries as recovered
-          await prisma.injuryAssessment.updateMany({
-            where: {
-              clientId,
-              status: { not: 'FULLY_RECOVERED' },
-            },
-            data: {
-              status: 'FULLY_RECOVERED',
-              updatedAt: new Date(),
-            },
-          })
-          injuriesResolved = activeInjuries.length
-          logger.info('Auto-resolved injuries due to low pain report', {
-            clientId,
-            injuryPain,
-            resolvedCount: injuriesResolved
-          })
-        }
-      } catch (error) {
-        logger.error('Error auto-resolving injuries', { clientId }, error)
-      }
-    }
-
-    // Trigger injury cascade if pain/readiness thresholds exceeded
-    // Note: injuryPain uses natural scale (1 = no pain, 10 = high pain)
-    const shouldTriggerInjury =
-      injuryPain >= 5 || // Pain ≥5/10
-      (calculatedReadinessScore && calculatedReadinessScore < 5.5) || // Low readiness
-      sleepHours < 5 || // Critical sleep deprivation
-      stress >= 8 // Extreme stress
-
-    if (shouldTriggerInjury) {
-      try {
-        logger.info('Injury trigger detected, processing cascade', { clientId, injuryPain, readinessScore: calculatedReadinessScore })
-
-        // Call injury processing endpoint internally
-        const injuryResponse = await fetch(
-          `${request.nextUrl.origin}/api/injury/process-checkin`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Cookie: request.headers.get('cookie') || '', // Forward auth cookie
-            },
-            body: JSON.stringify({
-              clientId,
-              date: date,
-              injuryPain,
-              stress,
-              sleepHours,
-              energyLevel,
-              readinessScore: calculatedReadinessScore,
-              readinessLevel,
-              muscleSoreness,
-              // Pass injury details for accurate injury type detection
-              injuryDetails: injuryDetails ? {
-                bodyPart: injuryDetails.bodyPart,
-                injuryType: injuryDetails.injuryType,
-                side: injuryDetails.side,
-                isIllness: injuryDetails.isIllness,
-                illnessType: injuryDetails.illnessType,
-              } : undefined,
-              // Pass keyword analysis summary for context
-              keywordAnalysis: keywordAnalysis ? {
-                matches: keywordAnalysis.matches,
-                suggestedBodyPart: keywordAnalysis.suggestedBodyPart,
-                severityLevel: keywordAnalysis.severityLevel,
-                summary: keywordAnalysis.summary,
-              } : undefined,
-            }),
-          }
-        )
-
-        if (injuryResponse.ok) {
-          const injuryData = await injuryResponse.json()
-          injuryTriggered = injuryData.triggered
-          injurySummary = injuryData.summary
-          logger.info('Injury cascade completed', { clientId, title: injuryData.summary?.title })
-        } else {
-          logger.error('Failed to process injury cascade', { clientId, status: injuryResponse.statusText })
-        }
-      } catch (error) {
-        logger.error('Error triggering injury cascade', { clientId }, error)
-        // Don't fail the entire check-in if injury processing fails
-      }
-    }
-
-    // Blend objective and subjective muscle fatigue if both available
-    let blendedMuscularFatigue: number | null = null
-    if (syncedStrengthFatigue && muscleSoreness !== null) {
-      // Note: muscleSoreness is already inverted (11 - value) in the form
-      // So higher = less soreness = more fresh (same direction as objectiveFatigue)
-      blendedMuscularFatigue = blendStrengthFatigue(
-        syncedStrengthFatigue.score,
-        muscleSoreness
-      )
-    }
-
-    // ==========================================
-    // Physio Contact Request Notification (Phase 7)
-    // ==========================================
-    if (requestPhysioContact) {
-      try {
-        // Find physio assigned to this athlete
-        const physioAssignment = await prisma.physioAssignment.findFirst({
-          where: {
-            clientId,
-            isActive: true,
-          },
-          include: {
-            physio: true,
-          },
-        })
-
-        if (physioAssignment) {
-          // Create notification for the physio
-          await prisma.aINotification.create({
-            data: {
-              clientId,
-              notificationType: 'PHYSIO_CONTACT_REQUEST',
-              title: '📞 Atlet begär kontakt',
-              message: physioContactReason || 'Atleten vill prata med dig.',
-              priority: 'HIGH',
-              contextData: {
-                requestType: 'ATHLETE_INITIATED',
-                athleteName: client.name,
-                reason: physioContactReason,
-                checkInDate: metricsDate.toISOString(),
-                rehabPainDuring,
-                rehabPainAfter,
-              },
-              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-            },
-          })
-          logger.info('Physio contact request notification created', {
-            clientId,
-            physioId: physioAssignment.physioUserId,
-          })
-        } else {
-          logger.warn('No active physio assignment found for athlete', { clientId })
-        }
-      } catch (error) {
-        logger.error('Error creating physio contact notification', { clientId }, error)
-        // Don't fail check-in if notification fails
-      }
-    }
-
-    // ==========================================
-    // Streak Processing & Milestone Celebrations
-    // ==========================================
-    try {
-      // Get all metrics for streak calculation
-      const allMetrics = await prisma.dailyMetrics.findMany({
-        where: { clientId },
-        orderBy: { date: 'desc' },
-        select: { date: true },
-        take: 400, // Enough for a year+
-      })
-
-      // Calculate current streak
-      const currentStreak = calculateStreakFromMetrics(allMetrics)
-
-      // Get client's current best streak
-      const clientData = await prisma.client.findUnique({
-        where: { id: clientId },
-        select: { bestCheckInStreak: true },
-      })
-
-      const previousBest = clientData?.bestCheckInStreak || 0
-
-      // Update personal best if beaten
-      if (currentStreak > previousBest) {
-        await prisma.client.update({
-          where: { id: clientId },
-          data: {
-            bestCheckInStreak: currentStreak,
-            bestStreakAchievedAt: new Date(),
-          },
-        })
-        logger.info('New personal best streak!', { clientId, currentStreak, previousBest })
-      }
-
-      // Check for milestone and create notification
-      const STREAK_MILESTONES = [7, 14, 21, 30, 60, 90, 180, 365]
-      if (STREAK_MILESTONES.includes(currentStreak)) {
-        const milestoneLabels: Record<number, { label: string; level: string }> = {
-          7: { label: 'En vecka stark!', level: 'BRONZE' },
-          14: { label: 'Två veckor!', level: 'BRONZE' },
-          21: { label: 'Tre veckor - vana bildas!', level: 'SILVER' },
-          30: { label: 'En hel månad!', level: 'SILVER' },
-          60: { label: 'Två månader!', level: 'GOLD' },
-          90: { label: 'Kvartalet är ditt!', level: 'GOLD' },
-          180: { label: 'Halvåret avklarat!', level: 'PLATINUM' },
-          365: { label: 'Ett helt år - legendär!', level: 'PLATINUM' },
-        }
-
-        const milestone = milestoneLabels[currentStreak]
-
-        // Create milestone notification
-        await prisma.aINotification.create({
-          data: {
-            clientId,
-            notificationType: 'MILESTONE',
-            title: `🔥 ${currentStreak} dagars streak!`,
-            message: milestone.label,
-            priority: 'MEDIUM',
-            contextData: {
-              milestoneType: 'CONSISTENCY_STREAK',
-              celebrationLevel: milestone.level,
-              value: currentStreak,
-              unit: 'dagar',
-              previousBest: previousBest > 0 ? previousBest : null,
-            },
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-          },
-        })
-
-        logger.info('Streak milestone notification created', { clientId, currentStreak, level: milestone.level })
-      }
-    } catch (error) {
-      logger.error('Error processing streak', { clientId }, error)
-      // Don't fail check-in if streak processing fails
-    }
-
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       dailyMetrics,
       assessments: {
@@ -714,35 +381,566 @@ export async function POST(request: NextRequest) {
         rhr: rhrAssessment,
         wellness: wellnessScoreData,
         readiness: readinessScoreData,
-        // Synced strength fatigue data (Gap 3)
-        strengthFatigue: syncedStrengthFatigue
-          ? {
-              objectiveScore: syncedStrengthFatigue.score,
-              blendedScore: blendedMuscularFatigue,
-              volume7d: syncedStrengthFatigue.strengthVolume7d,
-              sessions7d: syncedStrengthFatigue.strengthSessions7d,
-              daysSinceLastStrength: syncedStrengthFatigue.daysSinceLastStrength,
-              warning: syncedStrengthFatigue.warning,
-              sources: syncedStrengthFatigue.sources,
-            }
-          : null,
+        deferred: true,
+        // Available after async assessment pipeline completes.
+        strengthFatigue: null,
       },
-      injuryResponse: injuryTriggered
-        ? {
-            triggered: true,
-            summary: injurySummary,
-          }
-        : {
-            triggered: false,
-            resolved: injuriesResolved > 0 ? injuriesResolved : undefined,
-          },
+      injuryResponse: {
+        triggered: false,
+        pendingEvaluation: true,
+      },
+    }
+    dailyMetricsRecentWriteCache.set(writeKey, {
+      expiresAt: Date.now() + DAILY_METRICS_RECENT_WRITE_TTL_MS,
+      signature: writeSignature,
+      payload: responsePayload,
     })
+    const response = NextResponse.json(responsePayload)
+    // Invalidate short-lived GET cache for this athlete after writes.
+    const cacheKeySuffix = `:${clientId}:`
+    for (const key of dailyMetricsGetCache.keys()) {
+      if (key.includes(cacheKeySuffix)) {
+        dailyMetricsGetCache.delete(key)
+      }
+    }
+    releaseWriteLock()
+    return response
   } catch (error) {
+    rejectWriteLock(error)
     logger.error('Error saving daily metrics', {}, error)
     return NextResponse.json(
       { error: 'Failed to save daily metrics' },
       { status: 500 }
     )
+  } finally {
+    if (activeWriteKey) {
+      dailyMetricsWriteInFlight.delete(activeWriteKey)
+    }
+  }
+}
+
+interface DailyMetricsPostWriteInput {
+  clientId: string
+  date: string
+  signature: string
+  shouldRunSideEffects: boolean
+  sideEffectsInput: DailyMetricsSideEffectsInput
+}
+
+function enqueueDailyMetricsPostWrite(input: DailyMetricsPostWriteInput) {
+  const key = `${input.clientId}:${input.date}`
+  postWriteMetrics.enqueued++
+  if (dailyMetricsPostWritePending.has(key)) {
+    postWriteMetrics.coalesced++
+  }
+  dailyMetricsPostWritePending.set(key, input)
+  scheduleDailyMetricsPostWriteFlush(key, DAILY_METRICS_POST_WRITE_DEBOUNCE_MS)
+  maybeReportPostWriteQueueMetrics()
+}
+
+function scheduleDailyMetricsPostWriteFlush(key: string, delayMs: number) {
+  if (dailyMetricsPostWriteTimers.has(key)) {
+    return
+  }
+  const timer = setTimeout(() => {
+    dailyMetricsPostWriteTimers.delete(key)
+    void flushDailyMetricsPostWrite(key).catch(error => {
+      logger.error('Deferred daily-metrics post-write flush failed', { key }, error)
+    })
+  }, delayMs)
+  dailyMetricsPostWriteTimers.set(key, timer)
+}
+
+async function flushDailyMetricsPostWrite(key: string) {
+  const pending = dailyMetricsPostWritePending.get(key)
+  if (!pending) {
+    return
+  }
+  dailyMetricsPostWritePending.delete(key)
+  dailyMetricsPostWriteActive++
+  postWriteMetrics.started++
+  const startedAt = Date.now()
+  try {
+    await processDailyMetricsPostWriteNow(pending)
+    postWriteMetrics.completed++
+  } finally {
+    const durationMs = Date.now() - startedAt
+    postWriteMetrics.totalDurationMs += durationMs
+    postWriteMetrics.maxDurationMs = Math.max(postWriteMetrics.maxDurationMs, durationMs)
+    dailyMetricsPostWriteActive--
+    // If a newer payload arrived while processing this key, flush it soon.
+    if (dailyMetricsPostWritePending.has(key)) {
+      scheduleDailyMetricsPostWriteFlush(key, 100)
+    }
+    maybeReportPostWriteQueueMetrics()
+  }
+}
+
+async function processDailyMetricsPostWriteNow(input: DailyMetricsPostWriteInput) {
+  const { clientId, date, signature, shouldRunSideEffects, sideEffectsInput } = input
+  const key = `${clientId}:${date}`
+  const inFlight = dailyMetricsAssessmentInFlight.get(key)
+  if (inFlight) {
+    return inFlight
+  }
+
+  const task = (async () => {
+    const cachedProcessing = dailyMetricsProcessedSignatureCache.get(key)
+    const now = Date.now()
+    const canSkipRecompute =
+      cachedProcessing &&
+      cachedProcessing.signature === signature &&
+      now - cachedProcessing.processedAt < DAILY_METRICS_RECOMPUTE_SKIP_TTL_MS
+
+    let computed: { readinessScore: number | null; readinessLevel: string | null }
+    if (canSkipRecompute) {
+      postWriteMetrics.recomputeSkipped++
+      computed = {
+        readinessScore: cachedProcessing.readinessScore,
+        readinessLevel: cachedProcessing.readinessLevel,
+      }
+    } else {
+      computed = await recomputeDailyMetricsAssessments({ clientId, date })
+      dailyMetricsProcessedSignatureCache.set(key, {
+        signature,
+        processedAt: now,
+        readinessScore: computed.readinessScore,
+        readinessLevel: computed.readinessLevel,
+      })
+    }
+
+    if (shouldRunSideEffects) {
+      await processDailyMetricsSideEffects({
+        ...sideEffectsInput,
+        readinessScore: computed.readinessScore,
+        readinessLevel: computed.readinessLevel,
+      })
+    }
+  })()
+
+  dailyMetricsAssessmentInFlight.set(key, task)
+  try {
+    await task
+  } catch (error) {
+    postWriteMetrics.failed++
+    throw error
+  } finally {
+    dailyMetricsAssessmentInFlight.delete(key)
+  }
+}
+
+function maybeReportPostWriteQueueMetrics() {
+  const now = Date.now()
+  if (now - postWriteMetrics.lastReportedAt < DAILY_METRICS_POST_WRITE_REPORT_INTERVAL_MS) {
+    return
+  }
+  const completed = Math.max(postWriteMetrics.completed, 1)
+  logger.info('Daily-metrics post-write queue stats', {
+    enqueued: postWriteMetrics.enqueued,
+    coalesced: postWriteMetrics.coalesced,
+    started: postWriteMetrics.started,
+    completed: postWriteMetrics.completed,
+    recomputeSkipped: postWriteMetrics.recomputeSkipped,
+    failed: postWriteMetrics.failed,
+    active: dailyMetricsPostWriteActive,
+    pending: dailyMetricsPostWritePending.size,
+    timers: dailyMetricsPostWriteTimers.size,
+    avgDurationMs: Math.round(postWriteMetrics.totalDurationMs / completed),
+    maxDurationMs: postWriteMetrics.maxDurationMs,
+  })
+  postWriteMetrics.lastReportedAt = now
+}
+
+interface RecomputeDailyMetricsAssessmentsInput {
+  clientId: string
+  date: string
+}
+
+async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAssessmentsInput) {
+  const { clientId, date } = input
+  const metricsDate = new Date(date)
+  const dailyMetrics = await prisma.dailyMetrics.findUnique({
+    where: {
+      clientId_date: {
+        clientId,
+        date: metricsDate,
+      },
+    },
+    select: {
+      id: true,
+      hrvRMSSD: true,
+      hrvQuality: true,
+      hrvArtifactPercent: true,
+      hrvDuration: true,
+      hrvPosition: true,
+      restingHR: true,
+      sleepQuality: true,
+      sleepHours: true,
+      muscleSoreness: true,
+      energyLevel: true,
+      mood: true,
+      stress: true,
+      injuryPain: true,
+    },
+  })
+  if (!dailyMetrics) {
+    return { readinessScore: null as number | null, readinessLevel: null as string | null }
+  }
+
+  const needsHrvAssessment =
+    dailyMetrics.hrvRMSSD !== null && dailyMetrics.hrvQuality !== null
+  const needsRhrAssessment = dailyMetrics.restingHR !== null
+
+  const historicalMetrics =
+    needsHrvAssessment || needsRhrAssessment
+      ? await prisma.dailyMetrics.findMany({
+          where: {
+            clientId,
+            date: {
+              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+              lt: metricsDate,
+            },
+          },
+          select: {
+            date: true,
+            hrvRMSSD: true,
+            hrvQuality: true,
+            hrvArtifactPercent: true,
+            hrvDuration: true,
+            hrvPosition: true,
+            restingHR: true,
+          },
+          orderBy: { date: 'asc' },
+        })
+      : []
+
+  let hrvAssessment = null
+  let hrvStatus: string | null = needsHrvAssessment ? 'PENDING' : 'NOT_MEASURED'
+  let hrvPercent: number | null = null
+  let hrvTrend: string | null = null
+  if (needsHrvAssessment && dailyMetrics.hrvRMSSD !== null && dailyMetrics.hrvQuality !== null) {
+    const hrvMeasurement: HRVMeasurement = {
+      rmssd: dailyMetrics.hrvRMSSD,
+      quality: normalizeMeasurementQuality(dailyMetrics.hrvQuality),
+      artifactPercent: dailyMetrics.hrvArtifactPercent ?? 0,
+      duration: dailyMetrics.hrvDuration ?? 180,
+      position: normalizePosition(dailyMetrics.hrvPosition),
+      timestamp: metricsDate,
+    }
+
+    const historicalHRVMeasurements = historicalMetrics
+      .filter(m => m.hrvRMSSD !== null)
+      .map(m => ({
+        rmssd: m.hrvRMSSD as number,
+        quality: normalizeMeasurementQuality(m.hrvQuality),
+        artifactPercent: m.hrvArtifactPercent ?? 0,
+        duration: m.hrvDuration ?? 180,
+        position: normalizePosition(m.hrvPosition),
+        timestamp: m.date,
+      }))
+
+    let hrvBaseline: HRVBaseline | null = null
+    if (historicalHRVMeasurements.length >= 14) {
+      try {
+        hrvBaseline = establishHRVBaseline(historicalHRVMeasurements)
+      } catch (error) {
+        logger.warn(
+          'Failed to build HRV baseline from history',
+          { clientId, measurementCount: historicalHRVMeasurements.length },
+          error
+        )
+      }
+    }
+    if (!hrvBaseline) {
+      hrvBaseline = createFallbackHRVBaseline(hrvMeasurement)
+    }
+    hrvAssessment = assessHRV(hrvMeasurement, hrvBaseline)
+    hrvStatus = hrvAssessment.status
+    hrvPercent = hrvAssessment.percentOfBaseline
+    hrvTrend = hrvAssessment.trend
+  }
+
+  let rhrAssessment = null
+  let restingHRStatus: string | null = needsRhrAssessment ? 'PENDING' : null
+  let restingHRDev: number | null = null
+  if (needsRhrAssessment && dailyMetrics.restingHR !== null) {
+    const rhrMeasurement: RHRMeasurement = {
+      heartRate: dailyMetrics.restingHR,
+      quality: 'GOOD',
+      duration: 60,
+      position: 'SUPINE',
+      timestamp: metricsDate,
+    }
+    const historicalRHRMeasurements = historicalMetrics
+      .filter(m => m.restingHR !== null)
+      .map(m => ({
+        heartRate: m.restingHR as number,
+        quality: 'GOOD' as const,
+        duration: 60,
+        position: 'SUPINE' as const,
+        timestamp: m.date,
+      }))
+
+    let rhrBaseline: RHRBaseline | null = null
+    if (historicalRHRMeasurements.length >= 7) {
+      try {
+        rhrBaseline = establishRHRBaseline(historicalRHRMeasurements)
+      } catch (error) {
+        logger.warn(
+          'Failed to build RHR baseline from history',
+          { clientId, measurementCount: historicalRHRMeasurements.length },
+          error
+        )
+      }
+    }
+    if (!rhrBaseline) {
+      rhrBaseline = createFallbackRHRBaseline(rhrMeasurement)
+    }
+    rhrAssessment = assessRHR(rhrMeasurement, rhrBaseline)
+    restingHRStatus = rhrAssessment.status
+    restingHRDev = rhrAssessment.deviationFromBaseline
+  }
+
+  let wellnessScoreData = null
+  let wellnessScore: number | null = null
+  if (
+    dailyMetrics.sleepQuality !== null &&
+    dailyMetrics.sleepHours !== null &&
+    dailyMetrics.muscleSoreness !== null &&
+    dailyMetrics.energyLevel !== null &&
+    dailyMetrics.mood !== null &&
+    dailyMetrics.stress !== null &&
+    dailyMetrics.injuryPain !== null
+  ) {
+    const scaleTo5 = (value: number) => Math.round(((value - 1) / 9) * 4 + 1)
+    const invertScale = (value: number) => 11 - value
+    const wellnessResponses: WellnessResponses = {
+      sleepQuality: scaleTo5(dailyMetrics.sleepQuality) as 1 | 2 | 3 | 4 | 5,
+      sleepDuration: dailyMetrics.sleepHours,
+      fatigueLevel: scaleTo5(dailyMetrics.energyLevel) as 1 | 2 | 3 | 4 | 5,
+      muscleSoreness: scaleTo5(invertScale(dailyMetrics.muscleSoreness)) as 1 | 2 | 3 | 4 | 5,
+      stressLevel: scaleTo5(invertScale(dailyMetrics.stress)) as 1 | 2 | 3 | 4 | 5,
+      mood: scaleTo5(dailyMetrics.mood) as 1 | 2 | 3 | 4 | 5,
+      motivationToTrain: scaleTo5(invertScale(dailyMetrics.injuryPain)) as 1 | 2 | 3 | 4 | 5,
+    }
+    wellnessScoreData = calculateWellnessScore(wellnessResponses)
+    wellnessScore = wellnessScoreData.totalScore
+  }
+
+  let readinessScore: number | null = null
+  let readinessLevel: string | null = null
+  let recommendedAction: string | null = null
+  if (hrvAssessment && rhrAssessment && wellnessScoreData) {
+    const readinessScoreData = calculateReadinessScore({
+      hrv: hrvAssessment,
+      rhr: rhrAssessment,
+      wellness: wellnessScoreData,
+    })
+    readinessScore = readinessScoreData.score
+    readinessLevel = readinessScoreData.status
+    recommendedAction = readinessScoreData.workoutModification.action
+  }
+
+  await prisma.dailyMetrics.update({
+    where: { id: dailyMetrics.id },
+    data: {
+      hrvStatus,
+      hrvPercent,
+      hrvTrend,
+      restingHRStatus,
+      restingHRDev,
+      wellnessScore,
+      readinessScore,
+      readinessLevel,
+      recommendedAction,
+    },
+  })
+
+  if (dailyMetrics.muscleSoreness !== null) {
+    try {
+      const syncedStrengthFatigue = await calculateSyncedStrengthFatigue(clientId, prisma)
+      strengthFatigueCache.set(clientId, {
+        expiresAt: Date.now() + STRENGTH_FATIGUE_TTL_MS,
+        value: syncedStrengthFatigue,
+      })
+    } catch (error) {
+      logger.warn('Error calculating synced strength fatigue', { clientId }, error)
+    }
+  }
+
+  return { readinessScore, readinessLevel }
+}
+
+interface DailyMetricsSideEffectsInput {
+  clientId: string
+  clientName?: string
+  date: string
+  injuryPain: number
+  stress: number
+  sleepHours: number
+  energyLevel: number
+  readinessScore: number | null
+  readinessLevel: string | null
+  muscleSoreness: number
+  injuryDetails?: Record<string, any>
+  keywordAnalysis?: Record<string, any>
+  requestOrigin: string
+  authCookie: string
+  requestPhysioContact: boolean
+  physioContactReason?: string
+  rehabPainDuring?: number
+  rehabPainAfter?: number
+}
+
+async function processDailyMetricsSideEffects(input: DailyMetricsSideEffectsInput) {
+  const {
+    clientId,
+    clientName,
+    date,
+    injuryPain,
+    stress,
+    sleepHours,
+    energyLevel,
+    readinessScore,
+    readinessLevel,
+    muscleSoreness,
+    injuryDetails,
+    keywordAnalysis,
+    requestOrigin,
+    authCookie,
+    requestPhysioContact,
+    physioContactReason,
+    rehabPainDuring,
+    rehabPainAfter,
+  } = input
+
+  try {
+    if (injuryPain <= 2) {
+      const activeInjuries = await prisma.injuryAssessment.findMany({
+        where: {
+          clientId,
+          status: { not: 'FULLY_RECOVERED' },
+        },
+      })
+      if (activeInjuries.length > 0) {
+        await prisma.injuryAssessment.updateMany({
+          where: {
+            clientId,
+            status: { not: 'FULLY_RECOVERED' },
+          },
+          data: {
+            status: 'FULLY_RECOVERED',
+            updatedAt: new Date(),
+          },
+        })
+      }
+    }
+
+    const shouldTriggerInjury =
+      injuryPain >= 5 ||
+      (readinessScore !== null && readinessScore < 5.5) ||
+      sleepHours < 5 ||
+      stress >= 8
+
+    if (shouldTriggerInjury) {
+      await fetch(`${requestOrigin}/api/injury/process-checkin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: authCookie,
+        },
+        body: JSON.stringify({
+          clientId,
+          date,
+          injuryPain,
+          stress,
+          sleepHours,
+          energyLevel,
+          readinessScore,
+          readinessLevel,
+          muscleSoreness,
+          injuryDetails: injuryDetails
+            ? {
+                bodyPart: injuryDetails.bodyPart,
+                injuryType: injuryDetails.injuryType,
+                side: injuryDetails.side,
+                isIllness: injuryDetails.isIllness,
+                illnessType: injuryDetails.illnessType,
+              }
+            : undefined,
+          keywordAnalysis: keywordAnalysis
+            ? {
+                matches: keywordAnalysis.matches,
+                suggestedBodyPart: keywordAnalysis.suggestedBodyPart,
+                severityLevel: keywordAnalysis.severityLevel,
+                summary: keywordAnalysis.summary,
+              }
+            : undefined,
+        }),
+      })
+    }
+
+    if (requestPhysioContact) {
+      let athleteName = clientName
+      if (!athleteName) {
+        const athlete = await prisma.client.findUnique({
+          where: { id: clientId },
+          select: { name: true },
+        })
+        athleteName = athlete?.name
+      }
+
+      const physioAssignment = await prisma.physioAssignment.findFirst({
+        where: {
+          clientId,
+          isActive: true,
+        },
+      })
+      if (physioAssignment) {
+        await prisma.aINotification.create({
+          data: {
+            clientId,
+            notificationType: 'PHYSIO_CONTACT_REQUEST',
+            title: '📞 Atlet begär kontakt',
+            message: physioContactReason || 'Atleten vill prata med dig.',
+            priority: 'HIGH',
+            contextData: {
+              requestType: 'ATHLETE_INITIATED',
+              athleteName: athleteName || 'Atlet',
+              reason: physioContactReason,
+              checkInDate: new Date(date).toISOString(),
+              rehabPainDuring,
+              rehabPainAfter,
+            },
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          },
+        })
+      }
+    }
+
+    const allMetrics = await prisma.dailyMetrics.findMany({
+      where: { clientId },
+      orderBy: { date: 'desc' },
+      select: { date: true },
+      take: 400,
+    })
+    const currentStreak = calculateStreakFromMetrics(allMetrics)
+    const clientData = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { bestCheckInStreak: true },
+    })
+    const previousBest = clientData?.bestCheckInStreak || 0
+    if (currentStreak > previousBest) {
+      await prisma.client.update({
+        where: { id: clientId },
+        data: {
+          bestCheckInStreak: currentStreak,
+          bestStreakAchievedAt: new Date(),
+        },
+      })
+    }
+  } catch (error) {
+    logger.error('Error processing deferred daily-metrics side effects', { clientId }, error)
   }
 }
 
@@ -753,24 +951,11 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate user
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await resolveAuthenticatedUserId(request)
+    if (!authResult.ok) {
+      return authResult.response
     }
-
-    // Get user from database
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
-    })
-
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    const dbUserId = authResult.userId
 
     // Get query parameters
     const { searchParams } = new URL(request.url)
@@ -784,10 +969,35 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const hasAccess = await canAccessClient(dbUser.id, clientId)
+    const accessCacheKey = `${dbUserId}:${clientId}`
+    const cachedAccess = clientAccessCache.get(accessCacheKey)
+    let hasAccess: boolean
+    if (cachedAccess && cachedAccess.expiresAt > Date.now()) {
+      hasAccess = cachedAccess.allowed
+    } else {
+      hasAccess = await canAccessClient(dbUserId, clientId)
+      clientAccessCache.set(accessCacheKey, {
+        expiresAt: Date.now() + 2 * 60 * 1000,
+        allowed: hasAccess,
+      })
+    }
     if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
+
+    const cacheKey = `${dbUserId}:${clientId}:${days}`
+    const nowMs = Date.now()
+    const cached = dailyMetricsGetCache.get(cacheKey)
+    if (cached && cached.expiresAt > nowMs) {
+      return NextResponse.json(cached.payload)
+    }
+    const inFlight = dailyMetricsGetInFlight.get(cacheKey)
+    if (inFlight) {
+      const payload = await inFlight
+      return NextResponse.json(payload)
+    }
+
+    const loadPromise = (async () => {
 
     // Retrieve metrics
     const metrics = await prisma.dailyMetrics.findMany({
@@ -796,6 +1006,32 @@ export async function GET(request: NextRequest) {
         date: {
           gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000),
         },
+      },
+      select: {
+        id: true,
+        clientId: true,
+        date: true,
+        readinessScore: true,
+        readinessLevel: true,
+        recommendedAction: true,
+        wellnessScore: true,
+        hrvRMSSD: true,
+        restingHR: true,
+        sleepHours: true,
+        sleepQuality: true,
+        muscleSoreness: true,
+        energyLevel: true,
+        mood: true,
+        stress: true,
+        injuryPain: true,
+        hrvStatus: true,
+        hrvPercent: true,
+        hrvTrend: true,
+        restingHRStatus: true,
+        restingHRDev: true,
+        athleteNotes: true,
+        createdAt: true,
+        updatedAt: true,
       },
       orderBy: { date: 'desc' },
     })
@@ -828,11 +1064,26 @@ export async function GET(request: NextRequest) {
           : null,
     }
 
-    return NextResponse.json({
+    const payload = {
       success: true,
       metrics,
       summary,
+    }
+
+    dailyMetricsGetCache.set(cacheKey, {
+      expiresAt: Date.now() + 10 * 1000,
+      payload,
     })
+    return payload
+    })()
+
+    dailyMetricsGetInFlight.set(cacheKey, loadPromise)
+    try {
+      const payload = await loadPromise
+      return NextResponse.json(payload)
+    } finally {
+      dailyMetricsGetInFlight.delete(cacheKey)
+    }
   } catch (error) {
     logger.error('Error retrieving daily metrics', {}, error)
     return NextResponse.json(
@@ -840,6 +1091,108 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+async function resolveAuthenticatedUserId(
+  request: NextRequest
+): Promise<
+  | { ok: true; userId: string }
+  | { ok: false; response: NextResponse }
+> {
+  const forwardedEmail = request.headers.get('x-auth-user-email')
+  const authCacheKey = buildAuthCacheKey(request, forwardedEmail)
+  const nowMs = Date.now()
+
+  let authEmail = forwardedEmail
+  if (!authEmail) {
+    const cachedEmail = authEmailCache.get(authCacheKey)
+    if (cachedEmail && cachedEmail.expiresAt > nowMs) {
+      authEmail = cachedEmail.email
+    } else {
+      const inFlightEmail = authEmailInFlight.get(authCacheKey)
+      if (inFlightEmail) {
+        authEmail = await inFlightEmail
+      } else {
+        const resolveEmailPromise = (async () => {
+          const supabase = await createClient()
+          const {
+            data: { user },
+          } = await supabase.auth.getUser()
+          if (!user?.email) {
+            throw new Error('UNAUTHORIZED')
+          }
+          return user.email
+        })()
+        authEmailInFlight.set(authCacheKey, resolveEmailPromise)
+        try {
+          authEmail = await resolveEmailPromise
+        } catch (error) {
+          if (error instanceof Error && error.message === 'UNAUTHORIZED') {
+            return {
+              ok: false,
+              response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+            }
+          }
+          throw error
+        } finally {
+          authEmailInFlight.delete(authCacheKey)
+        }
+      }
+      authEmailCache.set(authCacheKey, {
+        expiresAt: nowMs + AUTH_CONTEXT_TTL_MS,
+        email: authEmail,
+      })
+    }
+  }
+
+  const cachedUserId = userIdByEmailCache.get(authEmail)
+  if (cachedUserId && cachedUserId.expiresAt > nowMs) {
+    return { ok: true, userId: cachedUserId.userId }
+  }
+  const inFlightUserId = userIdByEmailInFlight.get(authEmail)
+  const resolvedUserId = inFlightUserId
+    ? await inFlightUserId
+    : await (() => {
+        const lookupPromise = prisma.user
+          .findUnique({
+            where: { email: authEmail },
+            select: { id: true },
+          })
+          .then(user => user?.id ?? null)
+        userIdByEmailInFlight.set(authEmail, lookupPromise)
+        return lookupPromise.finally(() => {
+          userIdByEmailInFlight.delete(authEmail)
+        })
+      })()
+  if (!resolvedUserId) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'User not found' }, { status: 404 }),
+    }
+  }
+  userIdByEmailCache.set(authEmail, {
+    expiresAt: nowMs + AUTH_CONTEXT_TTL_MS,
+    userId: resolvedUserId,
+  })
+
+  return { ok: true, userId: resolvedUserId }
+}
+
+function buildAuthCacheKey(request: NextRequest, forwardedEmail?: string | null): string {
+  if (forwardedEmail) {
+    return `forwarded:${forwardedEmail}`
+  }
+  const cookieHeader = request.headers.get('cookie') || ''
+  const supabaseSessionCookie = cookieHeader
+    .split(';')
+    .map(part => part.trim())
+    .find(part => part.startsWith('sb-') && part.includes('auth-token='))
+
+  if (supabaseSessionCookie) {
+    return `cookie:${supabaseSessionCookie}`
+  }
+
+  return `cookie:${cookieHeader.slice(0, 256)}`
 }
 
 function normalizeMeasurementQuality(
@@ -889,6 +1242,47 @@ function createFallbackRHRBaseline(measurement: RHRMeasurement): RHRBaseline {
       highlyElevated: measurement.heartRate + 8,
     },
   }
+}
+
+function shouldProcessDailyMetricsSideEffects(clientId: string, date: string): boolean {
+  const dedupKey = `${clientId}:${date}`
+  const now = Date.now()
+  const previousRunAt = dailyMetricsSideEffectsDedup.get(dedupKey)
+  if (previousRunAt && now - previousRunAt < 60 * 1000) {
+    return false
+  }
+  dailyMetricsSideEffectsDedup.set(dedupKey, now)
+  return true
+}
+
+function createDailyMetricsWriteSignature(body: Record<string, unknown>): string {
+  // Keep signature stable and compact; only include fields that affect persisted values.
+  return JSON.stringify({
+    clientId: body.clientId ?? null,
+    date: body.date ?? null,
+    hrvRMSSD: body.hrvRMSSD ?? null,
+    hrvQuality: body.hrvQuality ?? null,
+    hrvArtifactPercent: body.hrvArtifactPercent ?? null,
+    hrvDuration: body.hrvDuration ?? null,
+    hrvPosition: body.hrvPosition ?? null,
+    restingHR: body.restingHR ?? null,
+    sleepQuality: body.sleepQuality ?? null,
+    sleepHours: body.sleepHours ?? null,
+    muscleSoreness: body.muscleSoreness ?? null,
+    energyLevel: body.energyLevel ?? null,
+    mood: body.mood ?? null,
+    stress: body.stress ?? null,
+    injuryPain: body.injuryPain ?? null,
+    notes: body.notes ?? null,
+    injuryDetails: body.injuryDetails ?? null,
+    keywordAnalysis: body.keywordAnalysis ?? null,
+    rehabExercisesDone: body.rehabExercisesDone ?? null,
+    rehabPainDuring: body.rehabPainDuring ?? null,
+    rehabPainAfter: body.rehabPainAfter ?? null,
+    rehabNotes: body.rehabNotes ?? null,
+    requestPhysioContact: body.requestPhysioContact ?? null,
+    physioContactReason: body.physioContactReason ?? null,
+  })
 }
 
 /**

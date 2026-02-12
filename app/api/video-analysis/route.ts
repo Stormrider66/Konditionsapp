@@ -75,13 +75,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Check athlete subscription for video analysis access
-      const access = await checkAthleteFeatureAccess(validated.athleteId, 'video_analysis');
-      if (!access.allowed) {
+      const featureAccess = await checkAthleteFeatureAccess(validated.athleteId, 'video_analysis');
+      if (!featureAccess.allowed) {
         return NextResponse.json(
           {
-            error: access.reason || 'Video analysis requires a Pro subscription',
-            code: access.code || 'SUBSCRIPTION_REQUIRED',
-            upgradeUrl: access.upgradeUrl || '/athlete/subscription',
+            error: featureAccess.reason || 'Video analysis requires a Pro subscription',
+            code: featureAccess.code || 'SUBSCRIPTION_REQUIRED',
+            upgradeUrl: featureAccess.upgradeUrl || '/athlete/subscription',
           },
           { status: 403 }
         );

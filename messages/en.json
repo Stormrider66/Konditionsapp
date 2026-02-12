@@ -109,7 +109,28 @@
     "areYouCoach": "Are you a coach?",
     "createCoachAccount": "Create a coach account",
     "referredBy": "Referred by {name}",
-    "accountCreatedWithReferral": "Your account has been created with referral benefits!"
+    "accountCreatedWithReferral": "Your account has been created with referral benefits!",
+    "claimBusiness": {
+      "title": "Activate your account",
+      "description": "Create your account to take over your business.",
+      "claimingBusiness": "Claiming business",
+      "claimButton": "Create account and activate",
+      "success": "Your business has been activated!"
+    },
+    "joinGym": {
+      "title": "Join an existing gym or club (optional)",
+      "searchPlaceholder": "Search for gym or club...",
+      "searching": "Searching...",
+      "description": "A join request will be sent to the gym owner for approval."
+    },
+    "alsoUseAsAthlete": "I also want to use the app as an athlete",
+    "athleteProfileDescription": "Create a personal athlete profile for self-coaching and tracking your own training.",
+    "athleteProfileFields": "Athlete Profile Information",
+    "selectGender": "Select gender",
+    "other": "Other",
+    "birthDateLabel": "Birth Date",
+    "heightLabel": "Height (cm)",
+    "weightLabel": "Weight (kg)"
   },
   "athlete": {
     "dashboard": "Athlete Dashboard",
@@ -582,6 +603,247 @@
     },
     "footer": {
       "copyright": "All rights reserved."
+    },
+    "segments": {
+      "hub": {
+        "badge": "For athletes, coaches, gyms & clubs",
+        "title": "Train smarter,",
+        "titleHighlight": "your way",
+        "description": "The all-in-one platform for physiological testing, AI-powered training programs, and athlete management. Built for everyone who takes performance seriously."
+      },
+      "learnMore": "Learn more",
+      "athletes": {
+        "title": "For Athletes",
+        "hubDescription": "AI-powered daily workouts, race predictions, and training zones based on your physiology.",
+        "hero": {
+          "badge": "For Athletes",
+          "title": "Train based on",
+          "titleHighlight": "your physiology",
+          "description": "Get daily workouts adapted to your readiness, training zones calculated from your lactate tests, and race predictions based on real data — not guesswork."
+        },
+        "painPoints": {
+          "title": "Sound familiar?",
+          "item0": "Following generic plans that don't match your fitness level",
+          "item1": "No idea if you're training at the right intensity",
+          "item2": "Guessing your race pace instead of knowing it",
+          "item3": "Training hard on days your body needs recovery"
+        },
+        "features": {
+          "title": "Everything you need to perform",
+          "description": "Tools that elite athletes use — now available to you.",
+          "aiWod": {
+            "title": "AI Daily Workout",
+            "description": "A personalized workout every day, adjusted to your readiness, fatigue, and training plan."
+          },
+          "readiness": {
+            "title": "Readiness & HRV",
+            "description": "Daily health check that tells you whether to push hard or take it easy."
+          },
+          "racePrediction": {
+            "title": "Race Prediction",
+            "description": "See your predicted 10K, half marathon, and marathon times based on your actual data."
+          },
+          "zones": {
+            "title": "Zone Calculation",
+            "description": "Exact training zones from lactate tests — heart rate, pace, and power."
+          },
+          "progress": {
+            "title": "Progress Tracking",
+            "description": "Track your development over time with clear graphs and trend analysis."
+          },
+          "sync": {
+            "title": "Strava & Garmin Sync",
+            "description": "Automatic import of workouts from your favorite devices and apps."
+          }
+        },
+        "cta": {
+          "title": "Ready to train smarter?",
+          "description": "Sign up free and connect with your coach — or train on your own with AI-powered guidance.",
+          "button": "Sign up free",
+          "subText": "No credit card required."
+        }
+      },
+      "coaches": {
+        "title": "For Coaches",
+        "hubDescription": "AI studio, program builder, test reports, and athlete monitoring in one platform.",
+        "hero": {
+          "badge": "For Coaches",
+          "title": "Coach smarter with",
+          "titleHighlight": "science-backed tools",
+          "description": "Build training programs, analyze lactate tests, monitor athlete load, and use AI to scale your coaching — all from one platform."
+        },
+        "painPoints": {
+          "title": "Sound familiar?",
+          "item0": "Spending hours on spreadsheets instead of coaching",
+          "item1": "No way to objectively track athlete load and injury risk",
+          "item2": "Lactate test results stuck in PDF reports nobody reads",
+          "item3": "Scaling past 10 athletes feels impossible"
+        },
+        "features": {
+          "title": "Your digital coaching toolkit",
+          "description": "Everything you need to deliver world-class coaching at scale.",
+          "aiStudio": {
+            "title": "AI Studio",
+            "description": "Generate programs, analyze data, and get coaching suggestions powered by AI."
+          },
+          "programBuilder": {
+            "title": "Program Builder",
+            "description": "Build periodized training programs with 4 proven methodologies."
+          },
+          "testReports": {
+            "title": "Test Reports",
+            "description": "Professional lactate test reports with threshold detection and zone calculation."
+          },
+          "monitoring": {
+            "title": "Athlete Monitoring",
+            "description": "Track training load, ACWR, readiness, and injury risk across your roster."
+          },
+          "multiSport": {
+            "title": "Multi-Sport Support",
+            "description": "17 sports with sport-specific dashboards, testing protocols, and training zones."
+          },
+          "portal": {
+            "title": "Athlete Portal",
+            "description": "Your athletes get their own app with WOD, calendar, logging, and progress tracking."
+          }
+        },
+        "cta": {
+          "title": "Ready to scale your coaching?",
+          "description": "Start your free trial and see how the platform transforms your workflow.",
+          "button": "Start free trial",
+          "subText": "14-day free trial. No credit card required."
+        }
+      },
+      "gyms": {
+        "title": "For Gyms & Studios",
+        "hubDescription": "Team management, multi-coach access, custom branding, and testing as a revenue stream.",
+        "hero": {
+          "badge": "For Gyms & Studios",
+          "title": "Elevate your gym with",
+          "titleHighlight": "performance testing",
+          "description": "Offer physiological testing as a premium service, manage multiple coaches, and give your members a world-class training experience."
+        },
+        "painPoints": {
+          "title": "Sound familiar?",
+          "item0": "Members churn because they don't see measurable progress",
+          "item1": "No premium services to differentiate from competitors",
+          "item2": "Coaches work in silos with their own spreadsheets",
+          "item3": "Client data is lost when a coach leaves"
+        },
+        "features": {
+          "title": "Built for gym operations",
+          "description": "Enterprise tools that grow with your business.",
+          "teamManagement": {
+            "title": "Team Management",
+            "description": "Manage all your members, coaches, and staff from one central dashboard."
+          },
+          "multiCoach": {
+            "title": "Multi-Coach Access",
+            "description": "Multiple coaches work in the same system with role-based permissions."
+          },
+          "branding": {
+            "title": "Custom Branding",
+            "description": "White-label reports and dashboards with your gym's logo and colors."
+          },
+          "api": {
+            "title": "API Access",
+            "description": "Integrate with your existing membership and booking systems."
+          },
+          "dataContinuity": {
+            "title": "Data Continuity",
+            "description": "Client data stays with your business — even when coaches move on."
+          },
+          "revenue": {
+            "title": "Testing as Revenue",
+            "description": "Offer lactate testing and VO2max analysis as a premium paid service."
+          }
+        },
+        "cta": {
+          "title": "Ready to stand out?",
+          "description": "Book a demo and see how performance testing can transform your gym.",
+          "button": "Book a demo",
+          "subText": "Free demo. No commitment."
+        }
+      },
+      "clubs": {
+        "title": "For Sports Clubs",
+        "hubDescription": "Batch testing, team leaderboards, injury monitoring, and season periodization.",
+        "hero": {
+          "badge": "For Sports Clubs",
+          "title": "Develop your team with",
+          "titleHighlight": "data-driven training",
+          "description": "Run batch tests, track injury risk, build season plans, and give every athlete on your roster a personalized experience."
+        },
+        "painPoints": {
+          "title": "Sound familiar?",
+          "item0": "Testing 30 athletes takes all day with paper forms",
+          "item1": "Injury rates spike because training load isn't monitored",
+          "item2": "No way to compare athletes or track team-wide trends",
+          "item3": "Physios and coaches work in separate systems"
+        },
+        "features": {
+          "title": "Purpose-built for team sports",
+          "description": "From testing day to game day — one platform for the entire season.",
+          "batchTesting": {
+            "title": "Batch Testing",
+            "description": "Test your entire squad efficiently with streamlined data entry and instant results."
+          },
+          "leaderboards": {
+            "title": "Team Leaderboards",
+            "description": "Compare VO2max, thresholds, and test results across your roster."
+          },
+          "acwr": {
+            "title": "ACWR Monitoring",
+            "description": "Track acute:chronic workload ratio and get alerts before injuries happen."
+          },
+          "physio": {
+            "title": "Physio Integration",
+            "description": "Physios manage rehab programs and restrictions that sync with training plans."
+          },
+          "periodization": {
+            "title": "Season Periodization",
+            "description": "Plan your entire season with periodized training blocks for peak performance."
+          },
+          "sports": {
+            "title": "17 Sports Supported",
+            "description": "Sport-specific testing protocols, dashboards, and training zones."
+          }
+        },
+        "cta": {
+          "title": "Ready to level up your club?",
+          "description": "Contact us for a tailored solution for your organization.",
+          "button": "Contact us",
+          "subText": "Custom pricing for clubs and federations."
+        }
+      }
+    },
+    "interestForm": {
+      "contactName": "Contact person",
+      "contactNamePlaceholder": "Your name",
+      "contactEmail": "Email",
+      "contactEmailPlaceholder": "name@example.com",
+      "contactPhone": "Phone",
+      "phonePlaceholder": "+46 70 123 45 67",
+      "organizationName": "Organization name",
+      "gymNamePlaceholder": "e.g. Star by Thomson",
+      "clubNamePlaceholder": "e.g. Djurgårdens IF",
+      "city": "City",
+      "cityPlaceholder": "e.g. Stockholm",
+      "website": "Website",
+      "description": "Describe your organization",
+      "descriptionPlaceholder": "Tell us briefly about your organization and needs...",
+      "primarySport": "Primary sport",
+      "sportPlaceholder": "e.g. Ice Hockey",
+      "estimatedMembers": "Estimated members",
+      "estimatedPlayers": "Estimated players",
+      "estimatedCoaches": "Number of coaches",
+      "submit": "Submit interest form",
+      "submitting": "Submitting...",
+      "successTitle": "Thank you for your interest!",
+      "successMessage": "We have received your application and will get back to you shortly.",
+      "required": "This field is required",
+      "invalidEmail": "Please enter a valid email address",
+      "privacyNote": "We never share your information with third parties."
     }
   },
   "referrals": {
@@ -938,5 +1200,35 @@
       "average": "Average",
       "developing": "Developing"
     }
+  },
+  "infographic": {
+    "title": "Program Overview",
+    "generate": "Generate",
+    "regenerate": "Regenerate",
+    "generating": "Generating...",
+    "download": "Download",
+    "empty": "No infographic generated yet",
+    "emptyAction": "Click to generate",
+    "modelFlash": "Flash (fast)",
+    "modelPro": "Pro (high quality)",
+    "success": "Program infographic generated",
+    "error": "Failed to generate infographic"
+  },
+  "visualReport": {
+    "title": "Visual Report",
+    "progression": "Progression",
+    "trainingSummary": "Weekly Summary",
+    "testReport": "Test Report",
+    "program": "Program Overview",
+    "generate": "Generate",
+    "regenerate": "Regenerate",
+    "generating": "Generating...",
+    "download": "Download",
+    "empty": "No visual report generated yet",
+    "emptyAction": "Click to generate",
+    "modelFlash": "Flash (fast)",
+    "modelPro": "Pro (high quality)",
+    "success": "Visual report generated",
+    "error": "Failed to generate visual report"
   }
 }

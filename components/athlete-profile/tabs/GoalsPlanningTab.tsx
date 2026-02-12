@@ -27,9 +27,10 @@ interface GoalsPlanningTabProps {
   data: AthleteProfileData
   viewMode: 'coach' | 'athlete'
   variant?: 'default' | 'glass'
+  basePath?: string
 }
 
-export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsPlanningTabProps) {
+export function GoalsPlanningTab({ data, viewMode, variant = 'default', basePath = '' }: GoalsPlanningTabProps) {
   const router = useRouter()
   const sportProfile = data.identity.sportProfile
   const { programs } = data.training
@@ -285,7 +286,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsP
               <CardDescription>{programs.length} program</CardDescription>
             </div>
             {viewMode === 'coach' && (
-              <Link href="/programs/new">
+              <Link href={`${basePath}/coach/programs/new`}>
                 <Button size="sm">+ Nytt program</Button>
               </Link>
             )}
@@ -299,7 +300,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsP
           ) : (
             <div className="space-y-3">
               {programs.map((program) => (
-                <Link key={program.id} href={`/coach/programs/${program.id}`}>
+                <Link key={program.id} href={`${basePath}/coach/programs/${program.id}`}>
                   <div className="p-4 border rounded-lg hover:border-blue-300 hover:bg-blue-50/50 transition cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div>
@@ -364,7 +365,7 @@ export function GoalsPlanningTab({ data, viewMode, variant = 'default' }: GoalsP
               </p>
             )}
             <div className="mt-4 pt-4 border-t">
-              <Link href={`/clients/${data.identity.client?.id}/edit`}>
+              <Link href={`${basePath}/coach/clients/${data.identity.client?.id}/edit`}>
                 <Button variant="outline" size="sm">
                   Redigera anteckningar
                 </Button>

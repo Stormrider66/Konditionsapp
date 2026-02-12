@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Home, User, Printer, ArrowLeft, Edit2, RefreshCw } from 'lucide-react'
 import type { Test, Client, TestCalculations, Threshold, TrainingZone } from '@/types'
 import { AnalyzeTestButton } from '@/components/ai/performance-analysis'
+import { VisualReportCard } from '@/components/visual-reports/VisualReportCard'
 
 export default function TestDetailPage() {
   const params = useParams()
@@ -213,6 +214,15 @@ export default function TestDetailPage() {
           testLeader="Henrik Lundholm"
           organization="Star by Thomson"
         />
+
+        {/* Visual test report */}
+        <div className="mt-8">
+          <VisualReportCard
+            clientId={client.id}
+            reportType="test-report"
+            testId={test.id}
+          />
+        </div>
       </main>
     </div>
   )

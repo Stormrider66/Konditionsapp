@@ -10,6 +10,7 @@ import {
   requireCoach,
   resolveAthleteClientId,
 } from '@/lib/auth-utils'
+import { canAccessAthlete as canAccessAthleteScoped } from '@/lib/auth/athlete-access'
 import { expectDeniedResponse, resetTenantBoundaryMocks } from './setup'
 import { GET as getAthleteRestrictions } from '@/app/api/restrictions/athlete/[clientId]/route'
 import { GET as getAthleteCardioSessions } from '@/app/api/athletes/[clientId]/cardio-sessions/route'
@@ -21,11 +22,27 @@ import {
 import { POST as postAgilityWorkoutAssign } from '@/app/api/agility-workouts/[id]/assign/route'
 import { POST as postVideoUpload } from '@/app/api/video-analysis/upload/route'
 import { POST as postDeepResearchShare } from '@/app/api/ai/deep-research/[sessionId]/share/route'
+import {
+  GET as getDeepResearchSession,
+  DELETE as deleteDeepResearchSession,
+} from '@/app/api/ai/deep-research/[sessionId]/route'
+import { GET as getDeepResearchProgress } from '@/app/api/ai/deep-research/[sessionId]/progress/route'
 import { POST as postAiConversations } from '@/app/api/ai/conversations/route'
 import { DELETE as deleteAiMemory } from '@/app/api/ai/memory/[clientId]/route'
 import { POST as postCareTeamThreads } from '@/app/api/care-team/threads/route'
 import { GET as getRehabProgress } from '@/app/api/physio/rehab-programs/[id]/progress/route'
+import { GET as getRehabProgramDetail } from '@/app/api/physio/rehab-programs/[id]/route'
 import { GET as getPhysioRestrictionDetail } from '@/app/api/physio/restrictions/[id]/route'
+import { POST as postAgentExecute } from '@/app/api/agent/execute/route'
+import { GET as getRaceResults, POST as postRaceResults } from '@/app/api/race-results/route'
+import {
+  GET as getRaceResultDetail,
+  DELETE as deleteRaceResult,
+} from '@/app/api/race-results/[id]/route'
+import {
+  GET as getHybridAssignments,
+  POST as postHybridAssignments,
+} from '@/app/api/hybrid-assignments/route'
 
 describe('Tenant boundary - access routes', () => {
   beforeEach(() => {
@@ -74,7 +91,7 @@ describe('Tenant boundary - access routes', () => {
   it('GET /api/hybrid-workouts/[id]/results denies coach access for foreign athleteId filter', async () => {
     vi.mocked(getCurrentUser).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
     vi.mocked(resolveAthleteClientId).mockResolvedValue(null)
-    vi.mocked(canAccessAthlete).mockResolvedValue(false)
+    vi.mocked(canAccessAthlete).mockResolvedValue({ allowed: false } as any)
 
     const request = new Request(
       'http://localhost/api/hybrid-workouts/workout-1/results?athleteId=client-b'
@@ -91,7 +108,7 @@ describe('Tenant boundary - access routes', () => {
   it('POST /api/hybrid-workouts/[id]/results denies coach write for foreign athleteId', async () => {
     vi.mocked(getCurrentUser).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
     vi.mocked(resolveAthleteClientId).mockResolvedValue(null)
-    vi.mocked(canAccessAthlete).mockResolvedValue(false)
+    vi.mocked(canAccessAthlete).mockResolvedValue({ allowed: false } as any)
 
     const request = new Request('http://localhost/api/hybrid-workouts/workout-1/results', {
       method: 'POST',
@@ -190,6 +207,43 @@ describe('Tenant boundary - access routes', () => {
     await expectDeniedResponse(response as any, 404, ['shareId', 'athleteName'])
     expect(prisma.client.findUnique).not.toHaveBeenCalled()
     expect(prisma.sharedResearchAccess.create).not.toHaveBeenCalled()
+  })
+
+  it('GET /api/ai/deep-research/[sessionId] returns 404 for foreign session', async () => {
+    vi.mocked(requireCoach).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
+    vi.mocked(prisma.deepResearchSession.findFirst).mockResolvedValue(null as any)
+
+    const response = await getDeepResearchSession(
+      new NextRequest('http://localhost/api/ai/deep-research/session-b') as any,
+      { params: Promise.resolve({ sessionId: 'session-b' }) }
+    )
+
+    await expectDeniedResponse(response as any, 404)
+  })
+
+  it('DELETE /api/ai/deep-research/[sessionId] returns 404 for foreign session', async () => {
+    vi.mocked(requireCoach).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
+    vi.mocked(prisma.deepResearchSession.findFirst).mockResolvedValue(null as any)
+
+    const response = await deleteDeepResearchSession(
+      new NextRequest('http://localhost/api/ai/deep-research/session-b', { method: 'DELETE' }) as any,
+      { params: Promise.resolve({ sessionId: 'session-b' }) }
+    )
+
+    await expectDeniedResponse(response as any, 404)
+    expect(prisma.deepResearchSession.update).not.toHaveBeenCalled()
+  })
+
+  it('GET /api/ai/deep-research/[sessionId]/progress returns 404 for foreign session', async () => {
+    vi.mocked(requireCoach).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
+    vi.mocked(prisma.deepResearchSession.findFirst).mockResolvedValue(null as any)
+
+    const response = await getDeepResearchProgress(
+      new NextRequest('http://localhost/api/ai/deep-research/session-b/progress') as any,
+      { params: Promise.resolve({ sessionId: 'session-b' }) }
+    )
+
+    expect(response.status).toBe(404)
   })
 
   it('POST /api/ai/conversations returns 404 for foreign athleteId', async () => {
@@ -296,6 +350,23 @@ describe('Tenant boundary - access routes', () => {
     expect(prisma.rehabProgressLog.count).not.toHaveBeenCalled()
   })
 
+  it('GET /api/physio/rehab-programs/[id] denies COACH for foreign athlete program', async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
+    vi.mocked(prisma.rehabProgram.findUnique).mockResolvedValue({
+      id: 'program-1',
+      clientId: 'client-b',
+      physioUserId: 'physio-a',
+    } as any)
+    vi.mocked(canAccessClient).mockResolvedValue(false)
+
+    const request = new NextRequest('http://localhost/api/physio/rehab-programs/program-1')
+    const response = await getRehabProgramDetail(request as any, {
+      params: Promise.resolve({ id: 'program-1' }),
+    })
+
+    await expectDeniedResponse(response as any, 403, ['client', 'exercises'])
+  })
+
   it('GET /api/physio/restrictions/[id] denies ATHLETE for foreign restriction', async () => {
     vi.mocked(getCurrentUser).mockResolvedValue({ id: 'athlete-a', role: 'ATHLETE' } as any)
     vi.mocked(prisma.trainingRestriction.findUnique).mockResolvedValue({
@@ -311,5 +382,141 @@ describe('Tenant boundary - access routes', () => {
     })
 
     await expectDeniedResponse(response as any, 403, ['client', 'injury'])
+  })
+
+  it('POST /api/agent/execute denies foreign clientId execution', async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
+    vi.mocked(canAccessAthleteScoped).mockResolvedValue({ allowed: false } as any)
+
+    const request = new Request('http://localhost/api/agent/execute', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ clientId: 'client-b' }),
+    })
+    const response = await postAgentExecute(request as any)
+
+    await expectDeniedResponse(response as any, 403)
+  })
+
+  it('POST /api/agent/execute denies foreign actionId execution', async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
+    vi.mocked(prisma.agentAction.findUnique).mockResolvedValue({
+      id: 'action-1',
+      clientId: 'client-b',
+    } as any)
+    vi.mocked(canAccessAthleteScoped).mockResolvedValue({ allowed: false } as any)
+
+    const request = new Request('http://localhost/api/agent/execute', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ actionId: 'action-1' }),
+    })
+    const response = await postAgentExecute(request as any)
+
+    await expectDeniedResponse(response as any, 403)
+  })
+
+  it('GET /api/race-results denies foreign clientId', async () => {
+    vi.mocked(canAccessAthleteScoped).mockResolvedValue({ allowed: false } as any)
+
+    const response = await getRaceResults(
+      new NextRequest('http://localhost/api/race-results?clientId=client-b') as any
+    )
+
+    await expectDeniedResponse(response as any, 403)
+    expect(prisma.raceResult.findMany).not.toHaveBeenCalled()
+  })
+
+  it('POST /api/race-results denies foreign clientId', async () => {
+    vi.mocked(canAccessAthleteScoped).mockResolvedValue({ allowed: false } as any)
+
+    const response = await postRaceResults(
+      new Request('http://localhost/api/race-results', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          clientId: 'client-b',
+          raceDate: '2026-02-09T00:00:00.000Z',
+          distance: '5K',
+          timeMinutes: 22,
+        }),
+      }) as any
+    )
+
+    await expectDeniedResponse(response as any, 403)
+    expect(prisma.raceResult.create).not.toHaveBeenCalled()
+  })
+
+  it('GET /api/race-results/[id] returns 404 for foreign race result', async () => {
+    vi.mocked(prisma.raceResult.findUnique).mockResolvedValue({
+      id: 'race-1',
+      clientId: 'client-b',
+    } as any)
+    vi.mocked(canAccessClient).mockResolvedValue(false)
+
+    const response = await getRaceResultDetail(
+      new NextRequest('http://localhost/api/race-results/race-1') as any,
+      { params: Promise.resolve({ id: 'race-1' }) }
+    )
+
+    await expectDeniedResponse(response as any, 404)
+  })
+
+  it('DELETE /api/race-results/[id] returns 404 for foreign race result', async () => {
+    vi.mocked(prisma.raceResult.findUnique).mockResolvedValue({
+      id: 'race-1',
+      clientId: 'client-b',
+      usedForZones: false,
+    } as any)
+    vi.mocked(canAccessClient).mockResolvedValue(false)
+
+    const response = await deleteRaceResult(
+      new NextRequest('http://localhost/api/race-results/race-1', { method: 'DELETE' }) as any,
+      { params: Promise.resolve({ id: 'race-1' }) }
+    )
+
+    await expectDeniedResponse(response as any, 404)
+    expect(prisma.raceResult.delete).not.toHaveBeenCalled()
+  })
+
+  it('GET /api/hybrid-assignments denies foreign athleteId filter', async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
+    vi.mocked(canAccessAthleteScoped).mockResolvedValue({ allowed: false } as any)
+
+    const response = await getHybridAssignments(
+      new NextRequest('http://localhost/api/hybrid-assignments?athleteId=client-b') as any
+    )
+
+    await expectDeniedResponse(response as any, 403)
+    expect(prisma.hybridWorkoutAssignment.findMany).not.toHaveBeenCalled()
+  })
+
+  it('POST /api/hybrid-assignments denies when athleteIds include foreign athlete', async () => {
+    vi.mocked(requireCoach).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
+    vi.mocked(prisma.hybridWorkout.findFirst).mockResolvedValue({
+      id: 'workout-1',
+      name: 'Hybrid Test',
+      coachId: 'coach-a',
+      isPublic: false,
+    } as any)
+    vi.mocked(canAccessAthleteScoped).mockImplementation(async (_userId, athleteId) => ({
+      allowed: athleteId !== 'client-b',
+    }) as any)
+
+    const response = await postHybridAssignments(
+      new Request('http://localhost/api/hybrid-assignments', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workoutId: 'workout-1',
+          athleteIds: ['client-a', 'client-b'],
+          assignedDate: '2026-02-09',
+        }),
+      }) as any
+    )
+
+    await expectDeniedResponse(response as any, 403)
+    expect(prisma.hybridWorkoutAssignment.upsert).not.toHaveBeenCalled()
+    expect(prisma.$transaction).not.toHaveBeenCalled()
   })
 })

@@ -19,6 +19,7 @@ interface ProfileHeroSectionProps {
   data: AthleteProfileData
   viewMode: 'coach' | 'athlete'
   variant?: 'default' | 'glass'
+  basePath?: string
 }
 
 import {
@@ -30,7 +31,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
 
-export function ProfileHeroSection({ data, viewMode, variant = 'default' }: ProfileHeroSectionProps) {
+export function ProfileHeroSection({ data, viewMode, variant = 'default', basePath = '' }: ProfileHeroSectionProps) {
   const isGlass = variant === 'glass'
   const isAthlete = viewMode === 'athlete'
   const client = data.identity.client!
@@ -168,7 +169,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default' }: Prof
                   athleteId={client.id}
                   athleteName={client.name}
                 />
-                <Link href={`/clients/${client.id}/edit`}>
+                <Link href={`${basePath}/coach/clients/${client.id}/edit`}>
                   <Button variant="outline" size="sm">
                     <Edit2 className="w-4 h-4 mr-2" />
                     Redigera

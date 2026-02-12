@@ -670,7 +670,3 @@ export function formatPaceValidation(validation: {
   return `Marathon pace: ${pace} (${validation.marathonPaceKmh.toFixed(1)} km/h) from ${validation.source} (${validation.confidence} confidence)`
 }
 
-// For running directly
-if (require.main === module) {
-  runAllValidationTests()
-}

@@ -8,6 +8,7 @@ import { ArrowLeft, Download } from 'lucide-react'
 import { ReportTemplate } from '@/components/reports/ReportTemplate'
 import { PDFExportButton } from '@/components/reports/PDFExportButton'
 import type { TestCalculations, Threshold, TrainingZone } from '@/types'
+import { VisualReportCard } from '@/components/visual-reports/VisualReportCard'
 
 interface AthleteTestDetailPageProps {
   params: Promise<{
@@ -90,6 +91,16 @@ export default async function AthleteTestDetailPage({ params }: AthleteTestDetai
           testLeader={test.testLeader || 'Star by Thomson'}
           organization="Star by Thomson"
         />
+
+        {/* Visual test report (read-only for athletes) */}
+        <div className="mt-8">
+          <VisualReportCard
+            clientId={test.clientId}
+            reportType="test-report"
+            testId={test.id}
+            readOnly
+          />
+        </div>
       </main>
     </div>
   )

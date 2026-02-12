@@ -18,6 +18,7 @@ import { BasketballAthleteView } from './BasketballAthleteView'
 import { VolleyballAthleteView } from './VolleyballAthleteView'
 import { TennisAthleteView } from './TennisAthleteView'
 import { PadelAthleteView } from './PadelAthleteView'
+import { VisualReportCard } from '@/components/visual-reports/VisualReportCard'
 
 const SPORT_DISPLAY: Record<string, { icon: string; label: string }> = {
   RUNNING: { icon: '🏃', label: 'Löpning' },
@@ -278,6 +279,12 @@ export function SportSpecificAthleteView({
 
       {/* Sport-specific view */}
       {renderSportView()}
+
+      {/* Progression visual report */}
+      <VisualReportCard
+        clientId={clientId}
+        reportType="progression"
+      />
     </div>
   )
 }

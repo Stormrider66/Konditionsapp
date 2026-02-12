@@ -37,6 +37,15 @@ const TIER_FEATURES = {
     workoutLoggingEnabled: true,
     dailyCheckInEnabled: true,
   },
+  ELITE: {
+    aiChatEnabled: true,
+    aiChatMessagesLimit: -1, // unlimited
+    videoAnalysisEnabled: true,
+    garminEnabled: true,
+    stravaEnabled: true,
+    workoutLoggingEnabled: true,
+    dailyCheckInEnabled: true,
+  },
 } as const;
 
 export type TierFeatures = typeof TIER_FEATURES[AthleteSubscriptionTier];
@@ -99,7 +108,7 @@ export async function requireTier(
 ): Promise<boolean> {
   const currentTier = await getAthleteTier(clientId);
 
-  const tierOrder: AthleteSubscriptionTier[] = ['FREE', 'STANDARD', 'PRO'];
+  const tierOrder: AthleteSubscriptionTier[] = ['FREE', 'STANDARD', 'PRO', 'ELITE'];
   const currentIndex = tierOrder.indexOf(currentTier);
   const requiredIndex = tierOrder.indexOf(minTier);
 
@@ -285,6 +294,7 @@ export function getTierDisplayName(tier: AthleteSubscriptionTier): string {
     FREE: 'Gratis',
     STANDARD: 'Standard',
     PRO: 'Pro',
+    ELITE: 'Elite',
   };
   return names[tier];
 }
@@ -297,6 +307,7 @@ export function getTierPrice(tier: AthleteSubscriptionTier): number {
     FREE: 0,
     STANDARD: 199,
     PRO: 399,
+    ELITE: 0, // Custom pricing per business - use getElitePrice() instead
   };
   return prices[tier];
 }
@@ -309,6 +320,28 @@ export function getTierYearlyPrice(tier: AthleteSubscriptionTier): number {
     FREE: 0,
     STANDARD: 1990, // ~17% discount
     PRO: 3990, // ~17% discount
+    ELITE: 0, // Custom pricing per business - use getElitePrice() instead
   };
   return prices[tier];
+}
+
+/**
+ * Get ELITE tier price for a specific business (custom pricing).
+ * Returns null if the business doesn't offer ELITE.
+ */
+export async function getElitePrice(businessId: string): Promise<{
+  monthly: number | null;
+  yearly: number | null;
+  description: string | null;
+} | null> {
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: { elitePriceMonthly: true, elitePriceYearly: true, eliteDescription: true },
+  });
+  if (!business?.elitePriceMonthly) return null;
+  return {
+    monthly: business.elitePriceMonthly / 100, // öre → kr
+    yearly: business.elitePriceYearly ? business.elitePriceYearly / 100 : null,
+    description: business.eliteDescription,
+  };
 }

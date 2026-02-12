@@ -15,6 +15,7 @@ coverage/
 .env
 .env.local
 .env.*.local
+load-tests/.env.k6
 
 # Logs
 debug.log

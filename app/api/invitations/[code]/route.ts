@@ -40,6 +40,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           select: {
             id: true,
             name: true,
+            type: true,
           },
         },
       },
@@ -64,7 +65,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isExpired,
       isUsed,
       recipientName: invitation.recipientName,
+      recipientEmail: invitation.recipientEmail,
       businessName: invitation.business?.name,
+      business: invitation.business,
       expiresAt: invitation.expiresAt,
     };
 

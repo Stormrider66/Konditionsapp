@@ -12,6 +12,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { ErgometerType } from '@prisma/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -106,6 +107,9 @@ function formatPace(seconds: number): string {
 export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteViewProps) {
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
+  const pathname = usePathname();
+  const slugMatch = pathname.match(/^\/([^/]+)\/coach/);
+  const basePath = slugMatch ? `/${slugMatch[1]}` : '';
 
   const [thresholds, setThresholds] = useState<ErgometerThreshold[]>([]);
   const [zones, setZones] = useState<Record<ErgometerType, ErgometerZone[]>>({} as Record<ErgometerType, ErgometerZone[]>);
@@ -195,7 +199,7 @@ export function ErgometerAthleteView({ clientId, clientName }: ErgometerAthleteV
             Genomfor ett ergometertest for att se troskelvarden och traningszoner.
           </p>
           <Button variant="outline" asChild>
-            <a href={`/coach/tests/ergometer/new?clientId=${clientId}`}>
+            <a href={`${basePath}/coach/tests/ergometer/new?clientId=${clientId}`}>
               Skapa nytt test
             </a>
           </Button>

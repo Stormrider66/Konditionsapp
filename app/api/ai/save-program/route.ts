@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canAccessClient, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { parseAIProgram, convertToDbFormat, validateProgramCompleteness } from '@/lib/ai/program-parser';
+import { generateProgramInfographic, parsedProgramToInfographicData } from '@/lib/ai/program-infographic';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
 
@@ -195,6 +196,16 @@ export async function POST(request: NextRequest) {
 
       return program;
     }, { timeout: 15000 });
+
+    // Fire-and-forget infographic generation (don't await, don't block response)
+    generateProgramInfographic({
+      programId: savedProgram.id,
+      programData: parsedProgramToInfographicData(parseResult.program),
+      coachId: user.id,
+      locale: request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en',
+    }).catch((err) => {
+      logger.warn('Background infographic generation failed', { programId: savedProgram.id }, err)
+    })
 
     // Return the saved program with summary
     const programWithDetails = await prisma.trainingProgram.findUnique({

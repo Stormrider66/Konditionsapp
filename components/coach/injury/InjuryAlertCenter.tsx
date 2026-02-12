@@ -31,7 +31,14 @@ import {
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { usePathname } from 'next/navigation'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+
+function useBasePath() {
+  const pathname = usePathname()
+  const slugMatch = pathname.match(/^\/([^/]+)\/coach/)
+  return slugMatch ? `/${slugMatch[1]}` : ''
+}
 
 interface InjuryAlert {
   id: string
@@ -297,6 +304,7 @@ function InjuryAlertCard({
   alert: InjuryAlert
   onResolve: () => void
 }) {
+  const basePath = useBasePath()
   const [isResolving, setIsResolving] = useState(false)
 
   const urgencyColors = {
@@ -369,7 +377,7 @@ function InjuryAlertCard({
 
         <div className="flex items-center justify-between pt-2 border-t">
           <Button variant="outline" size="sm" asChild>
-            <a href={`/coach/clients/${alert.clientId}`}>
+            <a href={`${basePath}/coach/clients/${alert.clientId}`}>
               <User className="mr-2 h-4 w-4" />
               Visa atleet
             </a>
@@ -396,6 +404,7 @@ function InjuryAlertCard({
  * ACWR Warning Card
  */
 function ACWRWarningCard({ warning }: { warning: ACWRWarning }) {
+  const basePath = useBasePath()
   const riskColors = {
     CRITICAL: 'destructive',
     DANGER: 'default',
@@ -433,7 +442,7 @@ function ACWRWarningCard({ warning }: { warning: ACWRWarning }) {
         </Alert>
 
         <Button variant="outline" size="sm" asChild className="w-full">
-          <a href={`/coach/clients/${warning.clientId}/monitoring`}>
+          <a href={`${basePath}/coach/clients/${warning.clientId}/monitoring`}>
             <TrendingUp className="mr-2 h-4 w-4" />
             Visa träningsbelastning
           </a>

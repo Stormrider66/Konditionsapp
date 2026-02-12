@@ -14,7 +14,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
 
 const checkoutSchema = z.object({
-  tier: z.enum(['STANDARD', 'PRO']),
+  tier: z.enum(['STANDARD', 'PRO', 'ELITE']),
   cycle: z.enum(['MONTHLY', 'YEARLY']).default('MONTHLY'),
   businessId: z.string().uuid().optional(),
 });

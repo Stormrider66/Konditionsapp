@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import './setup'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
+import { canAccessAthlete as canAccessAthleteScoped } from '@/lib/auth/athlete-access'
 import { resetTenantBoundaryMocks } from './setup'
 import { GET as getPatterns } from '@/app/api/data-moat/patterns/route'
 import { POST as postCoachDecision } from '@/app/api/data-moat/coach-decisions/route'
@@ -11,6 +12,8 @@ import { GET as getCohortBenchmark } from '@/app/api/data-moat/cohorts/benchmark
 import { GET as getPredictionsAccuracy } from '@/app/api/data-moat/predictions/accuracy/route'
 import { GET as getCoachDecisionAnalytics } from '@/app/api/data-moat/coach-decisions/analytics/route'
 import { GET as getTrainingOutcomeAnalytics } from '@/app/api/data-moat/training-outcomes/analytics/route'
+import { GET as getPredictions } from '@/app/api/data-moat/predictions/route'
+import { POST as postPredictions } from '@/app/api/data-moat/predictions/route'
 
 describe('Tenant boundary - data-moat', () => {
   beforeEach(() => {
@@ -131,5 +134,39 @@ describe('Tenant boundary - data-moat', () => {
 
     expect(response.status).toBe(404)
     expect(prisma.trainingPeriodOutcome.findMany).not.toHaveBeenCalled()
+  })
+
+  it('GET /api/data-moat/predictions returns 403 for inaccessible athlete filter', async () => {
+    vi.mocked(canAccessAthleteScoped).mockResolvedValue({ allowed: false } as any)
+
+    const request = new NextRequest(
+      'http://localhost/api/data-moat/predictions?athleteId=cm1234567890abcde12345'
+    )
+    const response = await getPredictions(request as any)
+
+    expect(response.status).toBe(403)
+    expect(prisma.aIPrediction.findMany).not.toHaveBeenCalled()
+    expect(prisma.aIPrediction.count).not.toHaveBeenCalled()
+  })
+
+  it('POST /api/data-moat/predictions returns 403 for inaccessible athlete', async () => {
+    vi.mocked(canAccessAthleteScoped).mockResolvedValue({ allowed: false } as any)
+
+    const request = new Request('http://localhost/api/data-moat/predictions', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        athleteId: 'cm1234567890abcde12345',
+        predictionType: 'READINESS_SCORE',
+        predictedValue: { value: 78 },
+        confidenceScore: 0.83,
+        modelVersion: 'test-v1',
+        inputDataSnapshot: { sample: true },
+      }),
+    })
+    const response = await postPredictions(request as any)
+
+    expect(response.status).toBe(403)
+    expect(prisma.aIPrediction.create).not.toHaveBeenCalled()
   })
 })
