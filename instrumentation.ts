@@ -24,6 +24,12 @@ export async function register() {
 
       // Scrub sensitive data
       beforeSend(event) {
+        // Attach correlation ID from request headers as a searchable tag
+        const correlationId = event.request?.headers?.['x-correlation-id']
+        if (correlationId) {
+          event.tags = { ...event.tags, correlation_id: correlationId }
+        }
+
         // Scrub authorization headers
         if (event.request?.headers) {
           const headers = event.request.headers

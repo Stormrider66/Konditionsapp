@@ -228,6 +228,16 @@ export async function middleware(request: NextRequest) {
   const perfT0 = Date.now()
   const pathname = request.nextUrl.pathname
 
+  // Generate a correlation ID for end-to-end request tracing.
+  // Propagate via request headers (for API routes / logger) and response headers (for clients).
+  const correlationId = crypto.randomUUID()
+  request.headers.set('x-correlation-id', correlationId)
+
+  function finalizeResponse(res: NextResponse): NextResponse {
+    res.headers.set('x-correlation-id', correlationId)
+    return addSecurityHeaders(res)
+  }
+
   // =========================
   // API CSRF (same-origin) guard
   // =========================
@@ -252,7 +262,7 @@ export async function middleware(request: NextRequest) {
 
     // If Origin is present, enforce exact match (block 'null' too)
     if (originHeader && originHeader !== requestOrigin) {
-      return addSecurityHeaders(
+      return finalizeResponse(
         NextResponse.json({ error: 'Invalid origin' }, { status: 403 })
       )
     }
@@ -262,13 +272,13 @@ export async function middleware(request: NextRequest) {
       try {
         const refererOrigin = new URL(refererHeader).origin
         if (refererOrigin !== requestOrigin) {
-          return addSecurityHeaders(
+          return finalizeResponse(
             NextResponse.json({ error: 'Invalid referer' }, { status: 403 })
           )
         }
       } catch {
         // If referer is malformed, fail closed for browser-like requests (referer present)
-        return addSecurityHeaders(
+        return finalizeResponse(
           NextResponse.json({ error: 'Invalid referer' }, { status: 403 })
         )
       }
@@ -299,7 +309,7 @@ export async function middleware(request: NextRequest) {
   ) {
     const forwardedEmail = request.headers.get('x-auth-user-email') || loadTestBypassEmail
     if (!forwardedEmail) {
-      return addSecurityHeaders(response)
+      return finalizeResponse(response)
     }
     const forwardedHeaders = new Headers(request.headers)
     forwardedHeaders.set('x-auth-user-email', forwardedEmail)
@@ -311,7 +321,7 @@ export async function middleware(request: NextRequest) {
     // Helps k6 verify bypass is active (only for local load tests).
     bypassResponse.headers.set('x-mw-bypass', '1')
     bypassResponse.headers.set('x-mw-ms', String(Math.max(0, Date.now() - perfT0)))
-    return addSecurityHeaders(bypassResponse)
+    return finalizeResponse(bypassResponse)
   }
 
   const supabase = createServerClient(
@@ -367,7 +377,7 @@ export async function middleware(request: NextRequest) {
   // API handlers should return JSON 401/403 as appropriate.
   // Session refresh above ensures tokens are refreshed before API calls.
   if (isApiRoute) {
-    return addSecurityHeaders(response)
+    return finalizeResponse(response)
   }
 
   // Public routes that don't require authentication
@@ -444,7 +454,7 @@ export async function middleware(request: NextRequest) {
         }
 
         // User has access to this business route - continue
-        return addSecurityHeaders(response)
+        return finalizeResponse(response)
       }
 
       // Role-based route protection
@@ -681,7 +691,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Add security headers to all responses
-  return addSecurityHeaders(response)
+  return finalizeResponse(response)
 }
 
 export const config = {
