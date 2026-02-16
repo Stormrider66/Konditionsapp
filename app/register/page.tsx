@@ -272,7 +272,7 @@ export default function RegisterPage() {
 
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            Star by Thomson
+            Trainomics
           </CardTitle>
           <CardDescription className="text-center">
             {t('registerDescription')}

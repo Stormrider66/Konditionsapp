@@ -74,7 +74,7 @@ export function ProgramPDFContent({
   program,
   athleteName,
   coachName,
-  organization = 'Star by Thomson',
+  organization = 'Trainomics',
   startDate,
 }: ProgramPDFContentProps) {
   const generatedDate = new Date().toLocaleDateString('sv-SE');

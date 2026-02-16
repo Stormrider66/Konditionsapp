@@ -619,7 +619,7 @@ async function sendCoachNotification(
           const urgencyText = notification.urgency === 'CRITICAL' ? 'KRITISKT' : 'HÖG PRIORITET'
 
           await resend.emails.send({
-            from: 'Konditionstest <noreply@konditionstest.se>',
+            from: 'Trainomics <noreply@trainomics.se>',
             to: coachUser.email,
             subject: `[${urgencyText}] ${notification.title}`,
             html: `
@@ -630,7 +630,7 @@ async function sendCoachNotification(
                 <div style="border: 1px solid #e5e5e5; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
                   <h2 style="margin-top: 0; color: #1a1a1a;">${notification.title}</h2>
                   <p style="color: #444;">${notification.message}</p>
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://konditionstest.se'}/coach/injuries"
+                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.se'}/coach/injuries"
                      style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 15px;">
                     Se skadehantering
                   </a>

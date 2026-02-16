@@ -111,7 +111,7 @@ function getExportColors(themeId?: ThemeId) {
  */
 export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData): Promise<Blob> {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Star by Thomson'
+  workbook.creator = 'Trainomics'
   workbook.created = new Date()
 
   // Get theme colors

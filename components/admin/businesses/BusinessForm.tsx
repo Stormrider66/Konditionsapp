@@ -95,7 +95,7 @@ export function BusinessForm({ business, onSuccess }: BusinessFormProps) {
               id="name"
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Star by Thomson"
+              placeholder="Trainomics"
               required
             />
           </div>

@@ -1,5 +1,5 @@
 // lib/email/index.ts
-// Centralized email service for Star by Thomson
+// Centralized email service for Trainomics
 
 import 'server-only';
 
@@ -17,7 +17,7 @@ import {
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_EMAIL = 'Star by Thomson <konditionstest@thomsons.se>';
+const FROM_EMAIL = 'Trainomics <noreply@trainomics.se>';
 
 export interface SendEmailResult {
   success: boolean;
@@ -67,7 +67,7 @@ export async function sendWelcomeEmail(
   recipientName: string,
   locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const { subject, html } = getWelcomeEmailTemplate({
     recipientName,
     loginUrl: `${baseUrl}/login`,
@@ -87,7 +87,7 @@ export async function sendReferralRewardEmail(
   rewardValue: number,
   locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const { subject, html } = getReferralRewardEmailTemplate({
     recipientName,
     referredUserName,
@@ -110,7 +110,7 @@ export async function sendSubscriptionConfirmationEmail(
   nextBillingDate: string,
   locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const { subject, html } = getSubscriptionConfirmationEmailTemplate({
     recipientName,
     planName,
@@ -132,7 +132,7 @@ export async function sendSubscriptionCancelledEmail(
   endDate: string,
   locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const { subject, html } = getSubscriptionCancelledEmailTemplate({
     recipientName,
     planName,
@@ -165,7 +165,7 @@ export async function sendPaymentFailedEmail(
     updatePaymentPath?: string
   }
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const updatePaymentUrl =
     options?.updatePaymentUrl ||
     new URL(options?.updatePaymentPath || '/coach/subscription', baseUrl).toString()
@@ -190,7 +190,7 @@ export async function sendReferralInviteEmail(
   recipientName?: string,
   locale: EmailLocale = 'sv'
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const { subject, html } = getReferralInviteEmailTemplate({
     recipientName: recipientName || '',
     referrerName,
@@ -217,7 +217,7 @@ export async function sendApplicationReceivedEmail(
       <h2>Tack för din ansökan, ${contactName}!</h2>
       <p>Vi har mottagit din intresseanmälan för <strong>${organizationName}</strong>.</p>
       <p>Vårt team kommer att granska din ansökan och återkomma inom kort. Du kommer att få ett e-postmeddelande när din ansökan har godkänts.</p>
-      <p>Med vänliga hälsningar,<br/>Star by Thomson</p>
+      <p>Med vänliga hälsningar,<br/>Trainomics</p>
     </div>
   `;
   return sendEmail(to, subject, html);
@@ -244,7 +244,7 @@ export async function sendApplicationApprovedEmail(
         </a>
       </div>
       <p style="color: #666; font-size: 14px;">Länken är giltig i 30 dagar.</p>
-      <p>Med vänliga hälsningar,<br/>Star by Thomson</p>
+      <p>Med vänliga hälsningar,<br/>Trainomics</p>
     </div>
   `;
   return sendEmail(to, subject, html);
@@ -258,7 +258,7 @@ export async function sendJoinRequestNotification(
   requesterName: string,
   businessName: string
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const subject = `Ny förfrågan att gå med i ${businessName}`;
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -270,7 +270,7 @@ export async function sendJoinRequestNotification(
           Granska förfrågan
         </a>
       </div>
-      <p>Med vänliga hälsningar,<br/>Star by Thomson</p>
+      <p>Med vänliga hälsningar,<br/>Trainomics</p>
     </div>
   `;
   return sendEmail(ownerEmail, subject, html);
@@ -284,7 +284,7 @@ export async function sendNewApplicationNotification(
   organizationName: string,
   type: string
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const typeLabel = type === 'GYM' ? 'Gym/Studio' : 'Team/Klubb';
   const subject = `Ny verksamhetsansökan: ${organizationName} (${typeLabel})`;
   const html = `

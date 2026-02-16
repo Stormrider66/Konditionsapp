@@ -554,7 +554,7 @@ export default function TestPage() {
                         test: reportData.test,
                         calculations: reportData.calculations,
                         testLeader: testLeader || 'Henrik Lundholm',
-                        organization: location === 'Skellefteå' ? 'Star by Thomson & Hallberg' : 'Star by Thomson',
+                        organization: 'Trainomics',
                         reportDate: new Date(),
                       }}
                       variant="default"
@@ -568,7 +568,7 @@ export default function TestPage() {
                         test: reportData.test,
                         calculations: reportData.calculations,
                         testLeader: testLeader || 'Henrik Lundholm',
-                        organization: location === 'Skellefteå' ? 'Star by Thomson & Hallberg' : 'Star by Thomson',
+                        organization: 'Trainomics',
                         reportDate: new Date(),
                       }}
                       variant="outline"
@@ -584,7 +584,7 @@ export default function TestPage() {
                 test={reportData.test}
                 calculations={reportData.calculations}
                 testLeader={testLeader || 'Henrik Lundholm'}
-                organization={location === 'Skellefteå' ? 'Star by Thomson & Hallberg' : 'Star by Thomson'}
+                organization={'Trainomics'}
               />
             )}
           </div>

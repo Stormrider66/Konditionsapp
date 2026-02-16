@@ -91,7 +91,7 @@ export async function generateProgramPDFFromElement(
     subject: 'AI-genererat träningsprogram',
     author: data.coachName || data.organization || 'AI Studio',
     keywords: 'träningsprogram, träning, periodisering',
-    creator: data.organization || 'Konditionstest App',
+    creator: data.organization || 'Trainomics',
   });
 
   return pdf.output('blob');

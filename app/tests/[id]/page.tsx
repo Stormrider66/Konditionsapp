@@ -96,7 +96,7 @@ export default function TestDetailPage() {
       <div className="min-h-screen bg-gray-50">
         <header className="gradient-primary text-white shadow-lg">
           <div className="max-w-7xl mx-auto px-4 py-6">
-            <h1 className="text-3xl font-bold">Star by Thomson</h1>
+            <h1 className="text-3xl font-bold">Trainomics</h1>
             <p className="text-white/90 mt-1">Testrapport</p>
           </div>
         </header>
@@ -115,7 +115,7 @@ export default function TestDetailPage() {
       <div className="min-h-screen bg-gray-50">
         <header className="gradient-primary text-white shadow-lg">
           <div className="max-w-7xl mx-auto px-4 py-6">
-            <h1 className="text-3xl font-bold">Star by Thomson</h1>
+            <h1 className="text-3xl font-bold">Trainomics</h1>
             <p className="text-white/90 mt-1">Testrapport</p>
           </div>
         </header>
@@ -147,7 +147,7 @@ export default function TestDetailPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="gradient-primary text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold">Star by Thomson</h1>
+          <h1 className="text-3xl font-bold">Trainomics</h1>
           <p className="text-white/90 mt-1">Testrapport - {client.name}</p>
         </div>
       </header>
@@ -190,7 +190,7 @@ export default function TestDetailPage() {
               test,
               calculations,
               testLeader: 'Henrik Lundholm',
-              organization: 'Star by Thomson',
+              organization: 'Trainomics',
               reportDate: new Date(test.testDate),
             }}
             variant="default"
@@ -212,7 +212,7 @@ export default function TestDetailPage() {
           test={test}
           calculations={calculations}
           testLeader="Henrik Lundholm"
-          organization="Star by Thomson"
+          organization="Trainomics"
         />
 
         {/* Visual test report */}

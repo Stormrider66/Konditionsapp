@@ -215,7 +215,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
         ` : ''}
 
         <div class="footer">
-          <p>Genererad ${format(new Date(), 'PPP HH:mm', { locale: sv })} | Star by Thomson Konditionstest</p>
+          <p>Genererad ${format(new Date(), 'PPP HH:mm', { locale: sv })} | Trainomics</p>
         </div>
       </body>
       </html>

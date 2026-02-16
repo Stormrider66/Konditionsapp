@@ -153,11 +153,11 @@ export async function POST(request: NextRequest) {
         const safeClientName = escapeHtml(client.name)
         const safeEmail = escapeHtml(email)
         const safePassword = escapeHtml(password)
-        const loginUrlRaw = `${process.env.NEXT_PUBLIC_APP_URL || 'https://konditionstest.se'}/login`
+        const loginUrlRaw = `${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.se'}/login`
         const safeLoginUrl = sanitizeAttribute(sanitizeUrl(loginUrlRaw))
 
         await resend.emails.send({
-          from: 'Konditionstest <noreply@konditionstest.se>',
+          from: 'Trainomics <noreply@trainomics.se>',
           to: email,
           subject: 'Välkommen till Konditionstest - Ditt atletkonto är skapat',
           html: `

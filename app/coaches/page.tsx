@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import Image from 'next/image'
 import {
-  Activity,
   Search,
   MapPin,
   Star,
@@ -116,11 +116,8 @@ export default function CoachDirectoryPage() {
       {/* Navigation */}
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground">
-              <Activity className="w-5 h-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">Star by Thomson</span>
+          <Link href="/" className="flex items-center">
+            <Image src="/logo.png" alt="Trainomics" width={140} height={40} className="h-9 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
             <Link href="/#features" className="text-muted-foreground hover:text-primary transition-colors">
@@ -334,11 +331,10 @@ export default function CoachDirectoryPage() {
 
       <footer className="py-8 bg-background border-t">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Activity className="w-5 h-5 text-primary" />
-            <span className="font-bold text-foreground">Star by Thomson</span>
+          <div className="flex items-center justify-center mb-4">
+            <Image src="/logo.png" alt="Trainomics" width={120} height={34} className="h-7 w-auto" />
           </div>
-          <p>&copy; {new Date().getFullYear()} Star by Thomson.</p>
+          <p>&copy; {new Date().getFullYear()} Trainomics.</p>
         </div>
       </footer>
     </div>

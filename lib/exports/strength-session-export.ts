@@ -31,7 +31,7 @@ export interface StrengthSessionData {
  */
 export async function generateStrengthSessionExcel(data: StrengthSessionData): Promise<Blob> {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Star by Thomson'
+  workbook.creator = 'Trainomics'
   workbook.created = new Date()
 
   // Info Sheet
@@ -202,7 +202,7 @@ export function generateStrengthSessionPDF(data: StrengthSessionData): Blob {
   pdf.setFontSize(8)
   pdf.setTextColor(150, 150, 150)
   pdf.text(`Genererad: ${new Date().toLocaleString('sv-SE')}`, margin, 285)
-  pdf.text('Star by Thomson - Strength Studio', pageWidth - margin - 50, 285)
+  pdf.text('Trainomics - Strength Studio', pageWidth - margin - 50, 285)
 
   return pdf.output('blob')
 }

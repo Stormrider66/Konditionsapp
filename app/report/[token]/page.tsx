@@ -101,7 +101,7 @@ export default async function PublicReportPage({ params }: PageProps) {
       calculations={calculations}
       testLeader={testLeaderName}
       location={locationName}
-      organization="Star by Thomson"
+      organization="Trainomics"
     />
   );
 }
@@ -126,6 +126,6 @@ export async function generateMetadata({ params }: PageProps) {
 
   return {
     title: `Konditionstestrapport - ${test.client.name}`,
-    description: 'Din personliga konditionstestrapport från Star by Thomson',
+    description: 'Din personliga konditionstestrapport från Trainomics',
   };
 }

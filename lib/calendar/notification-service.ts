@@ -173,7 +173,7 @@ async function sendNotificationEmail(
 
   try {
     await resend.emails.send({
-      from: 'Star by Thomson <notifications@starcoaching.se>',
+      from: 'Trainomics <notifications@trainomics.se>',
       to: recipient.email,
       subject,
       html,
@@ -226,7 +226,7 @@ function getEmailHtml(
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-    <h1 style="margin: 0; font-size: 24px;">Star by Thomson</h1>
+    <h1 style="margin: 0; font-size: 24px;">Trainomics</h1>
     <p style="margin: 5px 0 0; opacity: 0.9;">Kalendernotifikation</p>
   </div>
 
@@ -257,7 +257,7 @@ function getEmailHtml(
     </div>
 
     <div style="margin-top: 20px; text-align: center;">
-      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://app.starcoaching.se'}/${recipient.role === 'COACH' ? 'coach/clients' : 'athlete/calendar'}"
+      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se'}/${recipient.role === 'COACH' ? 'coach/clients' : 'athlete/calendar'}"
          style="display: inline-block; background: #667eea; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
         Visa i Kalendern
       </a>
@@ -266,7 +266,7 @@ function getEmailHtml(
 
   <div style="padding: 15px 20px; text-align: center; color: #9ca3af; font-size: 12px;">
     <p style="margin: 0;">
-      Detta är ett automatiskt meddelande från Star by Thomson.
+      Detta är ett automatiskt meddelande från Trainomics.
       <br>
       Du får detta mail för att det finns ändringar i en kalender du har tillgång till.
     </p>

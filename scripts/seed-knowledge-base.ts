@@ -61,14 +61,14 @@ function decryptSecret(ciphertext: string): string {
 async function resolveOpenAIKey(): Promise<{ apiKey: string; systemUserId: string }> {
   // Find or create a system user to own the documents
   let systemUser = await prisma.user.findFirst({
-    where: { email: 'system@konditionstest.se' },
+    where: { email: 'system@trainomics.se' },
     select: { id: true },
   });
 
   if (!systemUser) {
     systemUser = await prisma.user.create({
       data: {
-        email: 'system@konditionstest.se',
+        email: 'system@trainomics.se',
         name: 'System Knowledge Base',
         role: 'ADMIN',
       },

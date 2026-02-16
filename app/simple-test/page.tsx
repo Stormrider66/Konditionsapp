@@ -119,7 +119,7 @@ export default function SimpleTestPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="gradient-primary text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold">Star by Thomson</h1>
+          <h1 className="text-3xl font-bold">Trainomics</h1>
           <p className="text-white/90 mt-1">Enkel Test</p>
         </div>
       </header>
@@ -162,7 +162,7 @@ export default function SimpleTestPage() {
                     test: reportData.test,
                     calculations: reportData.calculations,
                     testLeader: 'Henrik Lundholm',
-                    organization: 'Star by Thomson',
+                    organization: 'Trainomics',
                     reportDate: new Date(),
                   }}
                   variant="default"
@@ -176,7 +176,7 @@ export default function SimpleTestPage() {
                 test={reportData.test}
                 calculations={reportData.calculations}
                 testLeader="Henrik Lundholm"
-                organization="Star by Thomson"
+                organization="Trainomics"
               />
             )}
           </div>

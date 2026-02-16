@@ -183,7 +183,7 @@ export async function sendAgentEmailNotification(
       return false
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se'
 
     const html = `
 <!DOCTYPE html>
@@ -225,7 +225,7 @@ export async function sendAgentEmailNotification(
       </p>
     </div>
     <div class="footer">
-      <p>Star by Thomson - Elite Training Platform</p>
+      <p>Trainomics - Elite Training Platform</p>
       <p>This notification was sent by your AI training agent.</p>
     </div>
   </div>
@@ -270,7 +270,7 @@ export async function notifyCoachOfAction(
       action.actionData as Record<string, unknown>
     )
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se'
 
     const html = `
 <!DOCTYPE html>
@@ -319,7 +319,7 @@ export async function notifyCoachOfAction(
 
     </div>
     <div class="footer">
-      <p>Star by Thomson - Elite Training Platform</p>
+      <p>Trainomics - Elite Training Platform</p>
       <p>AI Agent Oversight Notification</p>
     </div>
   </div>

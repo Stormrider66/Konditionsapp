@@ -783,7 +783,7 @@
       "contactPhone": "Telefon",
       "phonePlaceholder": "070-123 45 67",
       "organizationName": "Verksamhetens namn",
-      "gymNamePlaceholder": "T.ex. Star by Thomson",
+      "gymNamePlaceholder": "T.ex. Trainomics",
       "clubNamePlaceholder": "T.ex. Djurgårdens IF",
       "city": "Stad",
       "cityPlaceholder": "T.ex. Stockholm",
@@ -814,7 +814,7 @@
     "pendingReferrals": "Väntande",
     "rewardsAvailable": "Belöningar tillgängliga",
     "yourReferralCode": "Din värvningslänk",
-    "shareCodeDescription": "Dela denna länk med andra coacher för att bjuda in dem till Star by Thomson",
+    "shareCodeDescription": "Dela denna länk med andra coacher för att bjuda in dem till Trainomics",
     "code": "Kod",
     "copy": "Kopiera",
     "copied": "Kopierat!",
@@ -852,13 +852,13 @@
     "completed": "genomförd",
     "howItWorks": "Så fungerar det",
     "step1Title": "1. Dela din länk",
-    "step1Description": "Skicka din unika värvningslänk till andra coacher som kan ha nytta av Star by Thomson",
+    "step1Description": "Skicka din unika värvningslänk till andra coacher som kan ha nytta av Trainomics",
     "step2Title": "2. De registrerar sig",
     "step2Description": "När de registrerar sig via din länk får de en förlängd provperiod och du börjar tjäna",
     "step3Title": "3. Tjäna belöningar",
     "step3Description": "När de prenumererar tjänar ni båda belöningar - en gratis månad för dig!",
-    "emailSubject": "Gå med mig på Star by Thomson",
-    "emailBody": "Hej!\\n\\nJag har använt Star by Thomson för min coachning och jag tror att du också skulle gilla det. Det har fantastiska verktyg för laktattestning, träningsprogram och atlethantering.\\n\\nAnvänd min värvningslänk för att komma igång med en förlängd provperiod:\\n{link}\\n\\nHälsningar,\\n{name}"
+    "emailSubject": "Gå med mig på Trainomics",
+    "emailBody": "Hej!\\n\\nJag har använt Trainomics för min coachning och jag tror att du också skulle gilla det. Det har fantastiska verktyg för laktattestning, träningsprogram och atlethantering.\\n\\nAnvänd min värvningslänk för att komma igång med en förlängd provperiod:\\n{link}\\n\\nHälsningar,\\n{name}"
   },
   "analytics": {
     "title": "Analys",
@@ -930,7 +930,7 @@
   },
   "onboarding": {
     "step": "Steg",
-    "welcomeTitle": "Välkommen till Star by Thomson!",
+    "welcomeTitle": "Välkommen till Trainomics!",
     "welcomeSubtitle": "Din kompletta plattform för konditionstestning och träningsprogrammering",
     "feature1Title": "Laktattestning",
     "feature1Desc": "Professionella testrapporter på minuter",

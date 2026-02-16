@@ -8,7 +8,7 @@ import { CalendarConnectionsClient } from './CalendarConnectionsClient'
 import { Button } from '@/components/ui/button'
 
 export const metadata = {
-  title: 'Kalenderanslutningar | Star by Thomson',
+  title: 'Kalenderanslutningar | Trainomics',
   description: 'Anslut externa kalendrar för att se alla händelser på ett ställe',
 }
 

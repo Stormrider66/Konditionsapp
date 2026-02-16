@@ -82,8 +82,8 @@ export default async function BusinessAthleteTestDetailPage({ params }: Business
               client: client as any,
               test: test as any,
               calculations,
-              testLeader: test.testLeader || 'Star by Thomson',
-              organization: 'Star by Thomson',
+              testLeader: test.testLeader || 'Trainomics',
+              organization: 'Trainomics',
               reportDate: new Date(test.testDate),
             }}
             variant="default"
@@ -98,8 +98,8 @@ export default async function BusinessAthleteTestDetailPage({ params }: Business
           client={client as any}
           test={test as any}
           calculations={calculations}
-          testLeader={test.testLeader || 'Star by Thomson'}
-          organization="Star by Thomson"
+          testLeader={test.testLeader || 'Trainomics'}
+          organization="Trainomics"
         />
 
         {/* Visual test report (read-only for athletes) */}

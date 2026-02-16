@@ -1,5 +1,5 @@
 // lib/email/templates.ts
-// Email templates for Star by Thomson
+// Email templates for Trainomics
 
 import { escapeHtml, sanitizeAttribute, sanitizeUrl } from '@/lib/sanitize'
 
@@ -21,41 +21,41 @@ export function getWelcomeEmailTemplate(data: WelcomeEmailData) {
   const safeLoginUrl = sanitizeAttribute(sanitizeUrl(loginUrl))
 
   const content = locale === 'sv' ? {
-    subject: 'Välkommen till Star by Thomson!',
+    subject: 'Välkommen till Trainomics!',
     greeting: `Hej ${safeRecipientName},`,
-    intro: 'Välkommen till Star by Thomson! Ditt konto har skapats och du kan nu börja använda plattformen.',
+    intro: 'Välkommen till Trainomics! Ditt konto har skapats och du kan nu börja använda plattformen.',
     features: [
       'Skapa och hantera konditionstester',
       'Generera professionella träningsprogram',
       'Övervaka idrottare med avancerad analys',
       'AI-assisterad programplanering'
     ],
-    featuresTitle: 'Med Star by Thomson kan du:',
+    featuresTitle: 'Med Trainomics kan du:',
     ctaText: 'Logga in nu',
     helpText: 'Behöver du hjälp? Svara på detta mail så hjälper vi dig.',
     closing: 'Med vänliga hälsningar,',
-    team: 'Star by Thomson-teamet'
+    team: 'Trainomics-teamet'
   } : {
-    subject: 'Welcome to Star by Thomson!',
+    subject: 'Welcome to Trainomics!',
     greeting: `Hi ${safeRecipientName},`,
-    intro: 'Welcome to Star by Thomson! Your account has been created and you can now start using the platform.',
+    intro: 'Welcome to Trainomics! Your account has been created and you can now start using the platform.',
     features: [
       'Create and manage performance tests',
       'Generate professional training programs',
       'Monitor athletes with advanced analytics',
       'AI-assisted program planning'
     ],
-    featuresTitle: 'With Star by Thomson you can:',
+    featuresTitle: 'With Trainomics you can:',
     ctaText: 'Log in now',
     helpText: 'Need help? Reply to this email and we\'ll assist you.',
     closing: 'Best regards,',
-    team: 'The Star by Thomson Team'
+    team: 'The Trainomics Team'
   };
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 28px;">Star by Thomson</h1>
+        <h1 style="color: white; margin: 0; font-size: 28px;">Trainomics</h1>
       </div>
 
       <div style="padding: 40px 30px;">
@@ -86,7 +86,7 @@ export function getWelcomeEmailTemplate(data: WelcomeEmailData) {
 
       <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
         <p style="color: #888; font-size: 12px; margin: 0;">
-          © ${new Date().getFullYear()} Star by Thomson. All rights reserved.
+          © ${new Date().getFullYear()} Trainomics. All rights reserved.
         </p>
       </div>
     </div>
@@ -138,8 +138,8 @@ export function getReferralRewardEmailTemplate(data: ReferralRewardEmailData) {
     reward: getRewardDescription(),
     ctaText: 'Gå till dashboard',
     claimText: 'Logga in för att hämta din belöning.',
-    closing: 'Tack för att du rekommenderar Star by Thomson!',
-    team: 'Star by Thomson-teamet'
+    closing: 'Tack för att du rekommenderar Trainomics!',
+    team: 'Trainomics-teamet'
   } : {
     subject: `You've earned a referral reward!`,
     greeting: `Hi ${safeRecipientName}!`,
@@ -149,8 +149,8 @@ export function getReferralRewardEmailTemplate(data: ReferralRewardEmailData) {
     reward: getRewardDescription(),
     ctaText: 'Go to dashboard',
     claimText: 'Log in to claim your reward.',
-    closing: 'Thank you for recommending Star by Thomson!',
-    team: 'The Star by Thomson Team'
+    closing: 'Thank you for recommending Trainomics!',
+    team: 'The Trainomics Team'
   };
 
   const html = `
@@ -187,7 +187,7 @@ export function getReferralRewardEmailTemplate(data: ReferralRewardEmailData) {
 
       <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
         <p style="color: #888; font-size: 12px; margin: 0;">
-          © ${new Date().getFullYear()} Star by Thomson. All rights reserved.
+          © ${new Date().getFullYear()} Trainomics. All rights reserved.
         </p>
       </div>
     </div>
@@ -215,7 +215,7 @@ export function getSubscriptionConfirmationEmailTemplate(data: SubscriptionEmail
   const content = locale === 'sv' ? {
     subject: `Bekräftelse på din ${safePlanName}-prenumeration`,
     greeting: `Hej ${safeRecipientName},`,
-    intro: 'Tack för din prenumeration på Star by Thomson!',
+    intro: 'Tack för din prenumeration på Trainomics!',
     detailsTitle: 'Prenumerationsdetaljer:',
     plan: 'Plan',
     amountLabel: 'Belopp',
@@ -223,11 +223,11 @@ export function getSubscriptionConfirmationEmailTemplate(data: SubscriptionEmail
     ctaText: 'Gå till dashboard',
     helpText: 'Har du frågor om din prenumeration? Kontakta oss när som helst.',
     closing: 'Med vänliga hälsningar,',
-    team: 'Star by Thomson-teamet'
+    team: 'Trainomics-teamet'
   } : {
     subject: `Confirmation of your ${safePlanName} subscription`,
     greeting: `Hi ${safeRecipientName},`,
-    intro: 'Thank you for subscribing to Star by Thomson!',
+    intro: 'Thank you for subscribing to Trainomics!',
     detailsTitle: 'Subscription details:',
     plan: 'Plan',
     amountLabel: 'Amount',
@@ -235,7 +235,7 @@ export function getSubscriptionConfirmationEmailTemplate(data: SubscriptionEmail
     ctaText: 'Go to dashboard',
     helpText: 'Have questions about your subscription? Contact us anytime.',
     closing: 'Best regards,',
-    team: 'The Star by Thomson Team'
+    team: 'The Trainomics Team'
   };
 
   const html = `
@@ -283,7 +283,7 @@ export function getSubscriptionConfirmationEmailTemplate(data: SubscriptionEmail
 
       <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
         <p style="color: #888; font-size: 12px; margin: 0;">
-          © ${new Date().getFullYear()} Star by Thomson. All rights reserved.
+          © ${new Date().getFullYear()} Trainomics. All rights reserved.
         </p>
       </div>
     </div>
@@ -315,7 +315,7 @@ export function getSubscriptionCancelledEmailTemplate(data: SubscriptionCancelle
     ctaText: 'Återaktivera prenumeration',
     feedbackText: 'Har du feedback? Vi skulle uppskatta att höra hur vi kan förbättra oss.',
     closing: 'Med vänliga hälsningar,',
-    team: 'Star by Thomson-teamet'
+    team: 'Trainomics-teamet'
   } : {
     subject: 'Your subscription has been cancelled',
     greeting: `Hi ${safeRecipientName},`,
@@ -325,7 +325,7 @@ export function getSubscriptionCancelledEmailTemplate(data: SubscriptionCancelle
     ctaText: 'Reactivate subscription',
     feedbackText: 'Have feedback? We\'d love to hear how we can improve.',
     closing: 'Best regards,',
-    team: 'The Star by Thomson Team'
+    team: 'The Trainomics Team'
   };
 
   const html = `
@@ -361,7 +361,7 @@ export function getSubscriptionCancelledEmailTemplate(data: SubscriptionCancelle
 
       <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
         <p style="color: #888; font-size: 12px; margin: 0;">
-          © ${new Date().getFullYear()} Star by Thomson. All rights reserved.
+          © ${new Date().getFullYear()} Trainomics. All rights reserved.
         </p>
       </div>
     </div>
@@ -393,7 +393,7 @@ export function getPaymentFailedEmailTemplate(data: PaymentFailedEmailData) {
     ctaText: 'Uppdatera betalningsmetod',
     helpText: 'Har du frågor? Kontakta oss så hjälper vi dig.',
     closing: 'Med vänliga hälsningar,',
-    team: 'Star by Thomson-teamet'
+    team: 'Trainomics-teamet'
   } : {
     subject: 'Payment failed - Action required',
     greeting: `Hi ${safeRecipientName},`,
@@ -403,7 +403,7 @@ export function getPaymentFailedEmailTemplate(data: PaymentFailedEmailData) {
     ctaText: 'Update payment method',
     helpText: 'Have questions? Contact us and we\'ll help you.',
     closing: 'Best regards,',
-    team: 'The Star by Thomson Team'
+    team: 'The Trainomics Team'
   };
 
   const html = `
@@ -439,7 +439,7 @@ export function getPaymentFailedEmailTemplate(data: PaymentFailedEmailData) {
 
       <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
         <p style="color: #888; font-size: 12px; margin: 0;">
-          © ${new Date().getFullYear()} Star by Thomson. All rights reserved.
+          © ${new Date().getFullYear()} Trainomics. All rights reserved.
         </p>
       </div>
     </div>
@@ -469,7 +469,7 @@ export function getTrialWarningEmailTemplate(data: TrialWarningEmailData) {
   const content = locale === 'sv' ? {
     subject: `Din provperiod går ut om ${daysRemaining} dag${daysRemaining > 1 ? 'ar' : ''}`,
     greeting: `Hej ${safeRecipientName},`,
-    intro: `Din gratis provperiod av Star by Thomson går ut om <strong>${daysRemaining} dag${daysRemaining > 1 ? 'ar' : ''}</strong>.`,
+    intro: `Din gratis provperiod av Trainomics går ut om <strong>${daysRemaining} dag${daysRemaining > 1 ? 'ar' : ''}</strong>.`,
     benefits: [
       'Obegränsad tillgång till AI-assistent för träningsplanering',
       'Videoanalys av löpteknik och styrketräning',
@@ -483,11 +483,11 @@ export function getTrialWarningEmailTemplate(data: TrialWarningEmailData) {
     ctaText: 'Uppgradera nu',
     helpText: 'Har du frågor? Svara på detta mail så hjälper vi dig.',
     closing: 'Med vänliga hälsningar,',
-    team: 'Star by Thomson-teamet'
+    team: 'Trainomics-teamet'
   } : {
     subject: `Your trial expires in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}`,
     greeting: `Hi ${safeRecipientName},`,
-    intro: `Your free trial of Star by Thomson expires in <strong>${daysRemaining} day${daysRemaining > 1 ? 's' : ''}</strong>.`,
+    intro: `Your free trial of Trainomics expires in <strong>${daysRemaining} day${daysRemaining > 1 ? 's' : ''}</strong>.`,
     benefits: [
       'Unlimited access to AI training assistant',
       'Video analysis for running form and strength training',
@@ -501,7 +501,7 @@ export function getTrialWarningEmailTemplate(data: TrialWarningEmailData) {
     ctaText: 'Upgrade now',
     helpText: 'Have questions? Reply to this email and we\'ll help you.',
     closing: 'Best regards,',
-    team: 'The Star by Thomson Team'
+    team: 'The Trainomics Team'
   };
 
   const urgentStyles = daysRemaining <= 3
@@ -548,7 +548,7 @@ export function getTrialWarningEmailTemplate(data: TrialWarningEmailData) {
 
       <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
         <p style="color: #888; font-size: 12px; margin: 0;">
-          © ${new Date().getFullYear()} Star by Thomson. All rights reserved.
+          © ${new Date().getFullYear()} Trainomics. All rights reserved.
         </p>
       </div>
     </div>
@@ -570,7 +570,7 @@ export function getTrialExpiredEmailTemplate(data: TrialExpiredEmailData) {
   const content = locale === 'sv' ? {
     subject: 'Din provperiod har gått ut',
     greeting: `Hej ${safeRecipientName},`,
-    intro: 'Din gratis provperiod av Star by Thomson har nu gått ut.',
+    intro: 'Din gratis provperiod av Trainomics har nu gått ut.',
     explanation: 'Du har fortfarande tillgång till ditt konto, men premiumfunktioner som AI-assistenten, videoanalys och integrationsynkronisering är nu begränsade.',
     benefits: [
       'AI-assistent för träningsplanering',
@@ -583,11 +583,11 @@ export function getTrialExpiredEmailTemplate(data: TrialExpiredEmailData) {
     missYou: 'Vi hoppas att du har haft en bra upplevelse! Uppgradera idag för att fortsätta använda alla funktioner.',
     helpText: 'Har du frågor? Svara på detta mail så hjälper vi dig.',
     closing: 'Med vänliga hälsningar,',
-    team: 'Star by Thomson-teamet'
+    team: 'Trainomics-teamet'
   } : {
     subject: 'Your trial has expired',
     greeting: `Hi ${safeRecipientName},`,
-    intro: 'Your free trial of Star by Thomson has now expired.',
+    intro: 'Your free trial of Trainomics has now expired.',
     explanation: 'You still have access to your account, but premium features like the AI assistant, video analysis, and integration sync are now limited.',
     benefits: [
       'AI training assistant',
@@ -600,7 +600,7 @@ export function getTrialExpiredEmailTemplate(data: TrialExpiredEmailData) {
     missYou: 'We hope you\'ve had a great experience! Upgrade today to continue using all features.',
     helpText: 'Have questions? Reply to this email and we\'ll help you.',
     closing: 'Best regards,',
-    team: 'The Star by Thomson Team'
+    team: 'The Trainomics Team'
   };
 
   const html = `
@@ -641,7 +641,7 @@ export function getTrialExpiredEmailTemplate(data: TrialExpiredEmailData) {
 
       <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
         <p style="color: #888; font-size: 12px; margin: 0;">
-          © ${new Date().getFullYear()} Star by Thomson. All rights reserved.
+          © ${new Date().getFullYear()} Trainomics. All rights reserved.
         </p>
       </div>
     </div>
@@ -659,25 +659,25 @@ export function getReferralInviteEmailTemplate(data: ReferralInviteEmailData) {
   const safeSignupUrl = sanitizeAttribute(sanitizeUrl(signupUrl))
 
   const content = locale === 'sv' ? {
-    subject: `${safeReferrerName} har bjudit in dig till Star by Thomson`,
+    subject: `${safeReferrerName} har bjudit in dig till Trainomics`,
     greeting: safeRecipientName ? `Hej ${safeRecipientName},` : 'Hej!',
-    intro: `${safeReferrerName} tycker att du skulle älska Star by Thomson och har bjudit in dig att prova plattformen.`,
+    intro: `${safeReferrerName} tycker att du skulle älska Trainomics och har bjudit in dig att prova plattformen.`,
     benefitTitle: 'Du får:',
-    aboutTitle: 'Om Star by Thomson',
-    about: 'Star by Thomson är en komplett plattform för prestationstest och träningsplanering. Skapa konditionstester, generera professionella träningsprogram och övervaka idrottare med avancerad analys.',
+    aboutTitle: 'Om Trainomics',
+    about: 'Trainomics är en komplett plattform för prestationstest och träningsplanering. Skapa konditionstester, generera professionella träningsprogram och övervaka idrottare med avancerad analys.',
     ctaText: 'Registrera dig gratis',
     closing: 'Vi ser fram emot att välkomna dig!',
-    team: 'Star by Thomson-teamet'
+    team: 'Trainomics-teamet'
   } : {
-    subject: `${safeReferrerName} has invited you to Star by Thomson`,
+    subject: `${safeReferrerName} has invited you to Trainomics`,
     greeting: safeRecipientName ? `Hi ${safeRecipientName},` : 'Hi!',
-    intro: `${safeReferrerName} thinks you would love Star by Thomson and has invited you to try the platform.`,
+    intro: `${safeReferrerName} thinks you would love Trainomics and has invited you to try the platform.`,
     benefitTitle: 'You get:',
-    aboutTitle: 'About Star by Thomson',
-    about: 'Star by Thomson is a complete platform for performance testing and training planning. Create performance tests, generate professional training programs, and monitor athletes with advanced analytics.',
+    aboutTitle: 'About Trainomics',
+    about: 'Trainomics is a complete platform for performance testing and training planning. Create performance tests, generate professional training programs, and monitor athletes with advanced analytics.',
     ctaText: 'Sign up for free',
     closing: 'We look forward to welcoming you!',
-    team: 'The Star by Thomson Team'
+    team: 'The Trainomics Team'
   };
 
   const html = `
@@ -715,7 +715,7 @@ export function getReferralInviteEmailTemplate(data: ReferralInviteEmailData) {
 
       <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
         <p style="color: #888; font-size: 12px; margin: 0;">
-          © ${new Date().getFullYear()} Star by Thomson. All rights reserved.
+          © ${new Date().getFullYear()} Trainomics. All rights reserved.
         </p>
       </div>
     </div>

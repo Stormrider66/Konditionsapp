@@ -69,7 +69,7 @@ function getRateLimiter(config: RateLimitConfig): Ratelimit | null {
       redis: redisClient,
       limiter: Ratelimit.slidingWindow(config.limit, `${config.windowSeconds} s`),
       analytics: true, // Enable analytics in Upstash dashboard
-      prefix: 'ratelimit:konditionstest',
+      prefix: 'ratelimit:trainomics',
     })
     rateLimiters.set(key, limiter)
   }

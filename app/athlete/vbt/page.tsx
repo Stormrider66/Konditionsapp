@@ -3,7 +3,7 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils';
 import { VBTDashboard } from '@/components/athlete/VBTDashboard';
 
 export const metadata = {
-  title: 'VBT Data | Star by Thomson',
+  title: 'VBT Data | Trainomics',
   description: 'Velocity-Based Training data och analys',
 };
 

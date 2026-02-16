@@ -58,7 +58,7 @@ const INTENSITY_LABELS: Record<string, string> = {
  */
 export async function generateCardioSessionExcel(data: CardioSessionData): Promise<Blob> {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Star by Thomson'
+  workbook.creator = 'Trainomics'
   workbook.created = new Date()
 
   // Calculate totals
@@ -308,7 +308,7 @@ export function generateCardioSessionPDF(data: CardioSessionData): Blob {
   pdf.setFontSize(8)
   pdf.setTextColor(150, 150, 150)
   pdf.text(`Genererad: ${new Date().toLocaleString('sv-SE')}`, margin, 285)
-  pdf.text('Star by Thomson - Cardio Studio', pageWidth - margin - 50, 285)
+  pdf.text('Trainomics - Cardio Studio', pageWidth - margin - 50, 285)
 
   return pdf.output('blob')
 }

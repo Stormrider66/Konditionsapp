@@ -279,7 +279,7 @@ export default function PDFDemoPage() {
                     test: reportData.test,
                     calculations: reportData.calculations,
                     testLeader: 'Henrik Lundholm',
-                    organization: 'Star by Thomson',
+                    organization: 'Trainomics',
                     reportDate: new Date(),
                   }}
                   variant="default"
@@ -302,7 +302,7 @@ export default function PDFDemoPage() {
             test={reportData.test}
             calculations={reportData.calculations}
             testLeader="Henrik Lundholm"
-            organization="Star by Thomson"
+            organization="Trainomics"
           />
         ) : (
           <div className="bg-white rounded-lg shadow-lg p-12 text-center">

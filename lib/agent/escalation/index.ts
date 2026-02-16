@@ -359,7 +359,7 @@ async function sendWellnessCheckEmail(
   name: string,
   trigger: EscalationTrigger
 ): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se'
 
   const html = `
 <!DOCTYPE html>
@@ -400,7 +400,7 @@ async function sendWellnessCheckEmail(
       </p>
     </div>
     <div class="footer">
-      <p>Star by Thomson - Your AI Training Partner</p>
+      <p>Trainomics - Your AI Training Partner</p>
     </div>
   </div>
 </body>

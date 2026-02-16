@@ -13,7 +13,7 @@ import { AthleteCardioClient } from '@/components/athlete/cardio/AthleteCardioCl
 import { Skeleton } from '@/components/ui/skeleton'
 
 export const metadata = {
-  title: 'Cardio Pass | Star by Thomson',
+  title: 'Cardio Pass | Trainomics',
   description: 'Dina löppass, cykelpass och simpass',
 }
 

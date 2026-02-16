@@ -258,7 +258,7 @@ export async function generateProgramExcel(exportData: ProgramExportData): Promi
   const { program, athleteName, coachName, startDate } = exportData;
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Star by Thomson';
+  workbook.creator = 'Trainomics';
   workbook.created = new Date();
 
   // Add sheets

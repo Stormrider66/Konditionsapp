@@ -5,7 +5,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { Concept2Dashboard } from '@/components/athlete/Concept2Dashboard'
 
 export const metadata = {
-  title: 'Concept2 | Star by Thomson',
+  title: 'Concept2 | Trainomics',
   description: 'Concept2 Logbook data och analys',
 }
 

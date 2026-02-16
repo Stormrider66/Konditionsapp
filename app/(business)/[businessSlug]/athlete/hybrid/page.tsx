@@ -14,7 +14,7 @@ import { AthleteHybridClient } from '@/components/athlete/hybrid/AthleteHybridCl
 import { Skeleton } from '@/components/ui/skeleton'
 
 export const metadata = {
-  title: 'Hybrid Pass | Star by Thomson',
+  title: 'Hybrid Pass | Trainomics',
   description: 'Dina CrossFit, HYROX och funktionella pass',
 }
 

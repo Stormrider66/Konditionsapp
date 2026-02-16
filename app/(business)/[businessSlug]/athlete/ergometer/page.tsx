@@ -5,7 +5,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { ErgometerDashboard } from '@/components/athlete/ErgometerDashboard'
 
 export const metadata = {
-  title: 'Ergometer | Star by Thomson',
+  title: 'Ergometer | Trainomics',
   description: 'Ergometertester, zoner och progression',
 }
 

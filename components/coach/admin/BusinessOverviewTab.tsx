@@ -224,7 +224,7 @@ export function BusinessOverviewTab() {
               </div>
               {getContractStatusBadge(stats.contract.status)}
             </div>
-            <CardDescription>Your current agreement with Star by Thomson</CardDescription>
+            <CardDescription>Your current agreement with Trainomics</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

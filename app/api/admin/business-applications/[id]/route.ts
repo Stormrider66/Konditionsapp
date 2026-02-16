@@ -154,7 +154,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     // Send claim email
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.thomsons.se'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se'
     const claimUrl = `${baseUrl}/register/claim/${result.invitation.code}`
 
     sendApplicationApprovedEmail(
