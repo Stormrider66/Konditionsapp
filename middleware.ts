@@ -2,6 +2,15 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
+type CachedAuthUser = { id: string; email: string | null } | null
+
+// Middleware runs in the Edge runtime. `supabase.auth.getUser()` can be a major bottleneck
+// under load because it may involve network I/O. Cache it briefly and dedupe in-flight
+// lookups to avoid stampeding (especially for k6 which uses a single cookie across VUs).
+const AUTH_USER_CACHE_TTL_MS = 60 * 1000
+const authUserCache = new Map<string, { expiresAt: number; user: CachedAuthUser }>()
+const authUserInFlight = new Map<string, Promise<CachedAuthUser>>()
+
 // Reserved top-level routes that are NOT business slugs
 const RESERVED_ROUTES = [
   'api',
@@ -163,7 +172,60 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   return response
 }
 
+function buildAuthCacheKeyFromRequest(request: NextRequest): string {
+  const cookieHeader = request.headers.get('cookie') || ''
+  const supabaseSessionCookie = cookieHeader
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith('sb-') && part.includes('auth-token='))
+
+  if (supabaseSessionCookie) {
+    return `cookie:${supabaseSessionCookie}`
+  }
+
+  // Avoid unbounded keys; edge instances may handle many anonymous requests.
+  return `cookie:${cookieHeader.slice(0, 256)}`
+}
+
+async function getSupabaseUserCached(
+  request: NextRequest,
+  supabase: ReturnType<typeof createServerClient>
+): Promise<CachedAuthUser> {
+  const cacheKey = buildAuthCacheKeyFromRequest(request)
+  const nowMs = Date.now()
+  const cached = authUserCache.get(cacheKey)
+  if (cached && cached.expiresAt > nowMs) {
+    return cached.user
+  }
+
+  const inFlight = authUserInFlight.get(cacheKey)
+  if (inFlight) {
+    return inFlight
+  }
+
+  const lookupPromise = (async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return null
+    return { id: user.id, email: user.email ?? null }
+  })()
+
+  authUserInFlight.set(cacheKey, lookupPromise)
+  try {
+    const resolved = await lookupPromise
+    authUserCache.set(cacheKey, {
+      expiresAt: nowMs + AUTH_USER_CACHE_TTL_MS,
+      user: resolved,
+    })
+    return resolved
+  } finally {
+    authUserInFlight.delete(cacheKey)
+  }
+}
+
 export async function middleware(request: NextRequest) {
+  const perfT0 = Date.now()
   const pathname = request.nextUrl.pathname
 
   // =========================
@@ -219,6 +281,39 @@ export async function middleware(request: NextRequest) {
     },
   })
 
+  // Load-test auth bypass (local-only opt-in):
+  // Allows k6 to avoid Supabase auth round-trips in middleware when explicitly enabled.
+  const loadTestBypassEnabled =
+    request.nextUrl.hostname === 'localhost' ||
+    request.nextUrl.hostname === '127.0.0.1' ||
+    // k6 on Windows often targets IPv6 loopback to avoid connection-refused issues.
+    request.nextUrl.hostname === '::1'
+  const loadTestSecret = process.env.LOAD_TEST_BYPASS_SECRET
+  const loadTestBypassEmail = process.env.LOAD_TEST_BYPASS_USER_EMAIL
+  const incomingLoadTestSecret = request.headers.get('x-load-test-secret')
+  if (
+    isApiRoute &&
+    loadTestBypassEnabled &&
+    loadTestSecret &&
+    incomingLoadTestSecret === loadTestSecret
+  ) {
+    const forwardedEmail = request.headers.get('x-auth-user-email') || loadTestBypassEmail
+    if (!forwardedEmail) {
+      return addSecurityHeaders(response)
+    }
+    const forwardedHeaders = new Headers(request.headers)
+    forwardedHeaders.set('x-auth-user-email', forwardedEmail)
+    const bypassResponse = NextResponse.next({
+      request: {
+        headers: forwardedHeaders,
+      },
+    })
+    // Helps k6 verify bypass is active (only for local load tests).
+    bypassResponse.headers.set('x-mw-bypass', '1')
+    bypassResponse.headers.set('x-mw-ms', String(Math.max(0, Date.now() - perfT0)))
+    return addSecurityHeaders(bypassResponse)
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -265,11 +360,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired - this is critical for API routes too
-  // Without this, expired access tokens cause 401 errors even with valid refresh tokens
-  const {
-    data: { user: supabaseUser },
-  } = await supabase.auth.getUser()
+  // Refresh session if expired (cached to reduce edge->supabase calls under load).
+  const supabaseUser = await getSupabaseUserCached(request, supabase)
 
   // For API routes, don't do page redirects/auth routing in middleware.
   // API handlers should return JSON 401/403 as appropriate.

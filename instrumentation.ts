@@ -1,9 +1,13 @@
 import * as Sentry from '@sentry/nextjs'
+import { assertEnv } from '@/lib/env'
 
 // Required for capturing errors from nested React Server Components
 export const onRequestError = Sentry.captureRequestError
 
 export async function register() {
+  // Validate environment variables on startup
+  assertEnv()
+
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     // Server-side Sentry initialization
     Sentry.init({

@@ -105,6 +105,8 @@ async function main() {
     `BUSINESS_ID=${businessId}`,
     `TEAM_ID=${teamId}`,
     `AUTH_COOKIE=${authCookie}`,
+    `LOAD_TEST_BYPASS_USER_EMAIL=${email}`,
+    `LOAD_TEST_BYPASS_SECRET=${process.env.LOAD_TEST_BYPASS_SECRET || 'change-me-' + require('crypto').randomBytes(16).toString('hex')}`,
     ''
   ].join('\n');
 
