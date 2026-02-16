@@ -71,7 +71,7 @@ export async function gatherProgressionData(
       raceDate: true,
       raceName: true,
       distance: true,
-      finishTime: true,
+      timeFormatted: true,
       avgPace: true,
     },
     orderBy: { raceDate: 'asc' },
@@ -96,9 +96,9 @@ export async function gatherProgressionData(
     })),
     raceResults: raceResults.map((r) => ({
       date: r.raceDate.toISOString(),
-      raceName: r.raceName,
+      raceName: r.raceName ?? 'Race',
       distance: r.distance,
-      finishTime: r.finishTime,
+      finishTime: r.timeFormatted,
       paceOrSpeed: r.avgPace,
     })),
   }
@@ -222,7 +222,8 @@ export async function gatherTestReportData(
       ? {
           testDate: previousTest.testDate.toISOString(),
           vo2max: previousTest.vo2max,
-          anaerobicThreshold: previousTest.anaerobicThreshold as TestReportData['previousTest'] extends infer T ? T extends null ? never : NonNullable<T>['anaerobicThreshold'] : never,
+          anaerobicThreshold:
+            previousTest.anaerobicThreshold as { value?: number; unit?: string } | null,
         }
       : null,
   }

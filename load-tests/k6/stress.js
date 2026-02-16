@@ -26,7 +26,17 @@ export const options = {
   thresholds: {
     http_req_failed: ['rate<0.03'],
     http_req_duration: ['p(95)<2500', 'p(99)<5000'],
+    // Per-endpoint breakdown (lenient thresholds used only to print p95/p99).
+    'endpoint_duration{endpoint:daily-metrics-post}': ['p(95)<600000', 'p(99)<600000'],
+    'endpoint_failed{endpoint:daily-metrics-post}': ['rate<1.1'],
+    'endpoint_duration{endpoint:daily-metrics-get}': ['p(95)<600000', 'p(99)<600000'],
+    'endpoint_failed{endpoint:daily-metrics-get}': ['rate<1.1'],
+    'endpoint_duration{endpoint:ai-chat-post}': ['p(95)<600000', 'p(99)<600000'],
+    'endpoint_failed{endpoint:ai-chat-post}': ['rate<1.1'],
+    'endpoint_duration{endpoint:strava-webhook-post}': ['p(95)<600000', 'p(99)<600000'],
+    'endpoint_failed{endpoint:strava-webhook-post}': ['rate<1.1'],
   },
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 }
 
 function todayIso() {

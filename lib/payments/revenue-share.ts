@@ -107,6 +107,7 @@ export async function getBusinessRevenueStats(
     FREE: 0,
     STANDARD: 199,
     PRO: 399,
+    ELITE: 399,
   };
 
   let totalRevenue = 0;
@@ -132,6 +133,7 @@ export async function getBusinessRevenueStats(
       FREE: subscriptions.filter((s) => s.tier === 'FREE').length,
       STANDARD: subscriptions.filter((s) => s.tier === 'STANDARD').length,
       PRO: subscriptions.filter((s) => s.tier === 'PRO').length,
+      ELITE: subscriptions.filter((s) => s.tier === 'ELITE').length,
     },
     monthlyRevenue: {
       total: totalRevenue,

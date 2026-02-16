@@ -1975,20 +1975,29 @@ const TIER_CONTEXT_CONFIG = {
   },
 } as const;
 
-export type TierContextConfig = typeof TIER_CONTEXT_CONFIG[AthleteSubscriptionTier];
+type TierContextConfigKey = keyof typeof TIER_CONTEXT_CONFIG
+export type TierContextConfig = (typeof TIER_CONTEXT_CONFIG)[TierContextConfigKey]
+
+function resolveTierContextConfigKey(tier: AthleteSubscriptionTier): TierContextConfigKey {
+  if (tier in TIER_CONTEXT_CONFIG) {
+    return tier as TierContextConfigKey
+  }
+  // Forward compatibility for tiers that should inherit the richest athlete context.
+  return 'PRO'
+}
 
 /**
  * Get context configuration for a subscription tier
  */
 export function getTierContextConfig(tier: AthleteSubscriptionTier): TierContextConfig {
-  return TIER_CONTEXT_CONFIG[tier];
+  return TIER_CONTEXT_CONFIG[resolveTierContextConfigKey(tier)]
 }
 
 /**
  * Check if tier has AI access enabled
  */
 export function tierHasAIAccess(tier: AthleteSubscriptionTier): boolean {
-  return TIER_CONTEXT_CONFIG[tier].maxContextLength !== 0;
+  return TIER_CONTEXT_CONFIG[resolveTierContextConfigKey(tier)].maxContextLength !== 0
 }
 
 /**

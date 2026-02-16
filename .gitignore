@@ -36,6 +36,10 @@ tsconfig.tsbuildinfo
 
 # Playwright
 playwright-report/
+test-results/
+
+# Load test output
+load-tests/cluster-logs/
 
 # Prisma
 prisma/dev.db

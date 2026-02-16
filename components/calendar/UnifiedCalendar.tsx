@@ -120,7 +120,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
 
   // Fetch unified calendar data
   const { data, error, isLoading, mutate } = useSWR(
-    `/api/calendar/unified?clientId=${clientId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
+    `/api/calendar/unified?clientId=${clientId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&itemsMode=light&includeGroupedByDate=false`,
     fetcher,
     {
       revalidateOnFocus: false,
