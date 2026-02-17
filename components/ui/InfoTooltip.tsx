@@ -31,35 +31,38 @@ export function InfoTooltip({
 
   const iconSize = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'
 
-  // Render plain button during SSR/hydration to avoid Radix ID mismatch
+  // Render plain span during SSR/hydration to avoid Radix ID mismatch
+  // Using span instead of button to avoid nested <button> when placed inside interactive elements
   if (!mounted) {
     return (
-      <button
-        type="button"
+      <span
+        role="button"
+        tabIndex={0}
         className={cn(
-          'inline-flex items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+          'inline-flex items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer',
           className
         )}
         aria-label={`Information om ${entry.title}`}
       >
         <Info className={iconSize} />
-      </button>
+      </span>
     )
   }
 
   return (
     <Popover onOpenChange={(open) => { if (!open) setShowDetailed(false) }}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
+        <span
+          role="button"
+          tabIndex={0}
           className={cn(
-            'inline-flex items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+            'inline-flex items-center justify-center rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer',
             className
           )}
           aria-label={`Information om ${entry.title}`}
         >
           <Info className={iconSize} />
-        </button>
+        </span>
       </PopoverTrigger>
       <PopoverContent
         side={side}
