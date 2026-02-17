@@ -19,6 +19,12 @@ export async function getBusinessBySlug(slug: string) {
       slug: true,
       logoUrl: true,
       primaryColor: true,
+      secondaryColor: true,
+      backgroundColor: true,
+      fontFamily: true,
+      faviconUrl: true,
+      pageTitle: true,
+      hidePlatformBranding: true,
     },
   })
 }
@@ -34,7 +40,19 @@ export const validateBusinessMembership = cache(async (
 ): Promise<{
   businessId: string
   role: BusinessMemberRole
-  business: { id: string; name: string; slug: string; logoUrl: string | null; primaryColor: string | null }
+  business: {
+    id: string
+    name: string
+    slug: string
+    logoUrl: string | null
+    primaryColor: string | null
+    secondaryColor: string | null
+    backgroundColor: string | null
+    fontFamily: string | null
+    faviconUrl: string | null
+    pageTitle: string | null
+    hidePlatformBranding: boolean
+  }
 } | null> => {
   const membership = await prisma.businessMember.findFirst({
     where: {
@@ -53,6 +71,12 @@ export const validateBusinessMembership = cache(async (
           slug: true,
           logoUrl: true,
           primaryColor: true,
+          secondaryColor: true,
+          backgroundColor: true,
+          fontFamily: true,
+          faviconUrl: true,
+          pageTitle: true,
+          hidePlatformBranding: true,
         },
       },
     },

@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { logger } from '@/lib/logger'
+import { PLATFORM_NAME } from '@/lib/branding/types'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -173,7 +174,7 @@ async function sendNotificationEmail(
 
   try {
     await resend.emails.send({
-      from: 'Trainomics <notifications@trainomics.se>',
+      from: `${PLATFORM_NAME} <notifications@trainomics.se>`,
       to: recipient.email,
       subject,
       html,
@@ -226,7 +227,7 @@ function getEmailHtml(
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-    <h1 style="margin: 0; font-size: 24px;">Trainomics</h1>
+    <h1 style="margin: 0; font-size: 24px;">${PLATFORM_NAME}</h1>
     <p style="margin: 5px 0 0; opacity: 0.9;">Kalendernotifikation</p>
   </div>
 
@@ -266,7 +267,7 @@ function getEmailHtml(
 
   <div style="padding: 15px 20px; text-align: center; color: #9ca3af; font-size: 12px;">
     <p style="margin: 0;">
-      Detta är ett automatiskt meddelande från Trainomics.
+      Detta är ett automatiskt meddelande från ${PLATFORM_NAME}.
       <br>
       Du får detta mail för att det finns ändringar i en kalender du har tillgång till.
     </p>

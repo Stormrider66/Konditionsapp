@@ -1,5 +1,5 @@
 // lib/email/index.ts
-// Centralized email service for Trainomics
+// Centralized email service with branding support
 
 import 'server-only';
 
@@ -14,10 +14,12 @@ import {
   getPaymentFailedEmailTemplate,
   getReferralInviteEmailTemplate,
 } from './templates';
+import type { EmailBranding } from './email-branding-types';
+import { PLATFORM_NAME } from '@/lib/branding/types';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_EMAIL = 'Trainomics <noreply@trainomics.se>';
+const DEFAULT_FROM_EMAIL = `${PLATFORM_NAME} <noreply@trainomics.se>`;
 
 export interface SendEmailResult {
   success: boolean;
@@ -26,10 +28,11 @@ export interface SendEmailResult {
 }
 
 // ==================== CORE SEND FUNCTION ====================
-async function sendEmail(
+async function sendEmailInternal(
   to: string,
   subject: string,
-  html: string
+  html: string,
+  branding?: EmailBranding
 ): Promise<SendEmailResult> {
   try {
     if (!process.env.RESEND_API_KEY) {
@@ -37,8 +40,13 @@ async function sendEmail(
       return { success: false, error: 'Email service not configured' };
     }
 
+    // Use custom sender name if white-label branding provides one
+    const fromEmail = branding?.senderName && branding.senderName !== PLATFORM_NAME
+      ? `${branding.senderName} <noreply@trainomics.se>`
+      : DEFAULT_FROM_EMAIL;
+
     const { data, error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: fromEmail,
       to: [to],
       subject,
       html,
@@ -65,15 +73,17 @@ async function sendEmail(
 export async function sendWelcomeEmail(
   to: string,
   recipientName: string,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'sv',
+  branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const { subject, html } = getWelcomeEmailTemplate({
     recipientName,
     loginUrl: `${baseUrl}/login`,
     locale,
+    branding,
   });
-  return sendEmail(to, subject, html);
+  return sendEmailInternal(to, subject, html, branding);
 }
 
 /**
@@ -85,7 +95,8 @@ export async function sendReferralRewardEmail(
   referredUserName: string,
   rewardType: 'FREE_MONTH' | 'DISCOUNT_PERCENT' | 'EXTENDED_TRIAL' | 'ATHLETE_SLOTS',
   rewardValue: number,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'sv',
+  branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const { subject, html } = getReferralRewardEmailTemplate({
@@ -95,8 +106,9 @@ export async function sendReferralRewardEmail(
     rewardValue,
     dashboardUrl: `${baseUrl}/coach/referrals`,
     locale,
+    branding,
   });
-  return sendEmail(to, subject, html);
+  return sendEmailInternal(to, subject, html, branding);
 }
 
 /**
@@ -108,7 +120,8 @@ export async function sendSubscriptionConfirmationEmail(
   planName: string,
   amount: string,
   nextBillingDate: string,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'sv',
+  branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const { subject, html } = getSubscriptionConfirmationEmailTemplate({
@@ -118,8 +131,9 @@ export async function sendSubscriptionConfirmationEmail(
     nextBillingDate,
     dashboardUrl: `${baseUrl}/coach`,
     locale,
+    branding,
   });
-  return sendEmail(to, subject, html);
+  return sendEmailInternal(to, subject, html, branding);
 }
 
 /**
@@ -130,7 +144,8 @@ export async function sendSubscriptionCancelledEmail(
   recipientName: string,
   planName: string,
   endDate: string,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'sv',
+  branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const { subject, html } = getSubscriptionCancelledEmailTemplate({
@@ -139,8 +154,9 @@ export async function sendSubscriptionCancelledEmail(
     endDate,
     reactivateUrl: `${baseUrl}/coach/subscription`,
     locale,
+    branding,
   });
-  return sendEmail(to, subject, html);
+  return sendEmailInternal(to, subject, html, branding);
 }
 
 /**
@@ -153,17 +169,10 @@ export async function sendPaymentFailedEmail(
   retryDate: string,
   locale: EmailLocale = 'sv',
   options?: {
-    /**
-     * Full URL for where the recipient updates their payment method.
-     * If omitted, `updatePaymentPath` (or the coach default) is used.
-     */
     updatePaymentUrl?: string
-    /**
-     * Path relative to NEXT_PUBLIC_APP_URL, e.g. "/athlete/subscription".
-     * Defaults to "/coach/subscription" for backward compatibility.
-     */
     updatePaymentPath?: string
-  }
+  },
+  branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const updatePaymentUrl =
@@ -175,8 +184,9 @@ export async function sendPaymentFailedEmail(
     retryDate,
     updatePaymentUrl,
     locale,
+    branding,
   });
-  return sendEmail(to, subject, html);
+  return sendEmailInternal(to, subject, html, branding);
 }
 
 /**
@@ -188,7 +198,8 @@ export async function sendReferralInviteEmail(
   referralCode: string,
   benefit: string,
   recipientName?: string,
-  locale: EmailLocale = 'sv'
+  locale: EmailLocale = 'sv',
+  branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
   const { subject, html } = getReferralInviteEmailTemplate({
@@ -197,8 +208,9 @@ export async function sendReferralInviteEmail(
     signupUrl: `${baseUrl}/register?ref=${referralCode}`,
     benefit,
     locale,
+    branding,
   });
-  return sendEmail(to, subject, html);
+  return sendEmailInternal(to, subject, html, branding);
 }
 
 // ==================== BUSINESS APPLICATION EMAILS ====================
@@ -209,18 +221,21 @@ export async function sendReferralInviteEmail(
 export async function sendApplicationReceivedEmail(
   to: string,
   contactName: string,
-  organizationName: string
+  organizationName: string,
+  branding?: EmailBranding
 ): Promise<SendEmailResult> {
+  const br = branding;
+  const platformName = br?.platformName || PLATFORM_NAME;
   const subject = `Vi har mottagit din ansökan – ${organizationName}`;
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <h2>Tack för din ansökan, ${contactName}!</h2>
       <p>Vi har mottagit din intresseanmälan för <strong>${organizationName}</strong>.</p>
       <p>Vårt team kommer att granska din ansökan och återkomma inom kort. Du kommer att få ett e-postmeddelande när din ansökan har godkänts.</p>
-      <p>Med vänliga hälsningar,<br/>Trainomics</p>
+      <p>Med vänliga hälsningar,<br/>${platformName}</p>
     </div>
   `;
-  return sendEmail(to, subject, html);
+  return sendEmailInternal(to, subject, html, branding);
 }
 
 /**
@@ -230,8 +245,12 @@ export async function sendApplicationApprovedEmail(
   to: string,
   contactName: string,
   organizationName: string,
-  claimUrl: string
+  claimUrl: string,
+  branding?: EmailBranding
 ): Promise<SendEmailResult> {
+  const br = branding;
+  const platformName = br?.platformName || PLATFORM_NAME;
+  const buttonColor = br?.primaryColor || '#3b82f6';
   const subject = `Din ansökan har godkänts – ${organizationName}`;
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -239,15 +258,15 @@ export async function sendApplicationApprovedEmail(
       <p>Din ansökan för <strong>${organizationName}</strong> har godkänts.</p>
       <p>Klicka på knappen nedan för att skapa ditt konto och ta över din verksamhet:</p>
       <div style="text-align: center; margin: 32px 0;">
-        <a href="${claimUrl}" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+        <a href="${claimUrl}" style="background: ${buttonColor}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
           Aktivera ditt konto
         </a>
       </div>
       <p style="color: #666; font-size: 14px;">Länken är giltig i 30 dagar.</p>
-      <p>Med vänliga hälsningar,<br/>Trainomics</p>
+      <p>Med vänliga hälsningar,<br/>${platformName}</p>
     </div>
   `;
-  return sendEmail(to, subject, html);
+  return sendEmailInternal(to, subject, html, branding);
 }
 
 /**
@@ -256,9 +275,13 @@ export async function sendApplicationApprovedEmail(
 export async function sendJoinRequestNotification(
   ownerEmail: string,
   requesterName: string,
-  businessName: string
+  businessName: string,
+  branding?: EmailBranding
 ): Promise<SendEmailResult> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
+  const br = branding;
+  const platformName = br?.platformName || PLATFORM_NAME;
+  const buttonColor = br?.primaryColor || '#3b82f6';
   const subject = `Ny förfrågan att gå med i ${businessName}`;
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -266,14 +289,14 @@ export async function sendJoinRequestNotification(
       <p><strong>${requesterName}</strong> vill gå med i <strong>${businessName}</strong> som tränare.</p>
       <p>Logga in för att granska och godkänna eller avslå förfrågan:</p>
       <div style="text-align: center; margin: 32px 0;">
-        <a href="${baseUrl}/coach/settings" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+        <a href="${baseUrl}/coach/settings" style="background: ${buttonColor}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
           Granska förfrågan
         </a>
       </div>
-      <p>Med vänliga hälsningar,<br/>Trainomics</p>
+      <p>Med vänliga hälsningar,<br/>${platformName}</p>
     </div>
   `;
-  return sendEmail(ownerEmail, subject, html);
+  return sendEmailInternal(ownerEmail, subject, html, branding);
 }
 
 /**
@@ -298,7 +321,7 @@ export async function sendNewApplicationNotification(
       </div>
     </div>
   `;
-  return sendEmail(adminEmail, subject, html);
+  return sendEmailInternal(adminEmail, subject, html);
 }
 
 // ==================== GENERIC SEND EMAIL ====================
@@ -310,12 +333,14 @@ export async function sendGenericEmail({
   to,
   subject,
   html,
+  branding,
 }: {
   to: string;
   subject: string;
   html: string;
+  branding?: EmailBranding;
 }): Promise<SendEmailResult> {
-  return sendEmail(to, subject, html);
+  return sendEmailInternal(to, subject, html, branding);
 }
 
 // Alias for backward compatibility

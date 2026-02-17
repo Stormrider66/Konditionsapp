@@ -1350,9 +1350,24 @@ model Business {
   elitePriceYearly  Int? // null = no yearly option
   eliteDescription  String? @db.Text // PT can describe what's included
 
-  // Branding
+  // Branding (Tier 0: all businesses)
   logoUrl      String?
   primaryColor String? @default("#3b82f6")
+
+  // Branding (Tier 1: CUSTOM_BRANDING feature)
+  secondaryColor  String?  // Accent hex color
+  backgroundColor String?  // Background tint hex
+  fontFamily      String?  // From curated list (Inter, DM Sans, Roboto, Poppins, Lato, Nunito)
+  faviconUrl      String?  // 32x32 PNG/ICO URL
+
+  // Branding (Tier 2: WHITE_LABEL feature)
+  customDomain         String?   @unique
+  domainVerified       Boolean   @default(false)
+  domainVerifiedAt     DateTime?
+  domainTxtRecord      String?   // Generated verification token
+  emailSenderName      String?   // Custom "from" name for emails
+  pageTitle            String?   // Custom HTML <title>
+  hidePlatformBranding Boolean   @default(false)
 
   // Settings
   isActive Boolean @default(true)
@@ -1388,6 +1403,7 @@ model Business {
 
   @@index([slug])
   @@index([isActive])
+  @@index([customDomain])
 }
 
 /// Links users to businesses with roles

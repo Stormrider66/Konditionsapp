@@ -40,6 +40,7 @@ export interface HybridWorkoutExportData {
   coachName?: string
   date?: Date
   themeId?: ThemeId // Theme for PDF styling
+  organization?: string
 }
 
 const formatLabels: Record<string, string> = {
@@ -111,7 +112,7 @@ function getExportColors(themeId?: ThemeId) {
  */
 export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData): Promise<Blob> {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Trainomics'
+  workbook.creator = data.organization || 'Trainomics'
   workbook.created = new Date()
 
   // Get theme colors

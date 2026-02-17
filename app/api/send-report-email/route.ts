@@ -6,6 +6,7 @@ import { escapeHtml, sanitizeForEmail } from '@/lib/sanitize'
 import { getRequestIp, rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
+import { PLATFORM_NAME } from '@/lib/branding/types'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     // Send email using Resend
     const { data, error } = await resend.emails.send({
-      from: 'Trainomics <noreply@trainomics.se>',
+      from: `${PLATFORM_NAME} <noreply@trainomics.se>`,
       to: [to],
       subject: emailSubject,
       html: emailBody,

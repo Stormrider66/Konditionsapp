@@ -13,7 +13,6 @@ import {
   Building2,
   MapPin,
   FileText,
-  Palette,
   Save,
 } from 'lucide-react'
 import { format } from 'date-fns'
@@ -85,8 +84,6 @@ export function BusinessSettingsTab() {
     city: '',
     postalCode: '',
     country: '',
-    logoUrl: '',
-    primaryColor: '',
   })
 
   const fetchSettings = useCallback(async () => {
@@ -107,8 +104,6 @@ export function BusinessSettingsTab() {
         city: result.data.city || '',
         postalCode: result.data.postalCode || '',
         country: result.data.country || '',
-        logoUrl: result.data.logoUrl || '',
-        primaryColor: result.data.primaryColor || '',
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load settings')
@@ -140,8 +135,6 @@ export function BusinessSettingsTab() {
           city: formData.city || null,
           postalCode: formData.postalCode || null,
           country: formData.country || null,
-          logoUrl: formData.logoUrl || null,
-          primaryColor: formData.primaryColor || null,
         }),
       })
 
@@ -311,57 +304,15 @@ export function BusinessSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* Branding */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Palette className="h-5 w-5" />
-            <CardTitle className="text-lg">Branding</CardTitle>
-          </div>
-          <CardDescription>Customize your business appearance</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="logoUrl">Logo URL</Label>
-              <Input
-                id="logoUrl"
-                type="url"
-                value={formData.logoUrl}
-                onChange={(e) => setFormData((prev) => ({ ...prev, logoUrl: e.target.value }))}
-                placeholder="https://example.com/logo.png"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="primaryColor">Primary Color</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="primaryColor"
-                  value={formData.primaryColor}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, primaryColor: e.target.value }))}
-                  placeholder="#3B82F6"
-                  className="flex-1"
-                />
-                {formData.primaryColor && (
-                  <div
-                    className="w-10 h-10 rounded border"
-                    style={{ backgroundColor: formData.primaryColor }}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Save Changes
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Save Button */}
+      <Button onClick={handleSave} disabled={saving}>
+        {saving ? (
+          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Save className="h-4 w-4 mr-2" />
+        )}
+        Save Changes
+      </Button>
 
       {/* Locations */}
       {settings && settings.locations.length > 0 && (

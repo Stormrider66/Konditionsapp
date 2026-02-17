@@ -62,9 +62,10 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
 
     // Fetch business context to check if user is a business admin
     useEffect(() => {
+        const controller = new AbortController()
         const fetchBusinessContext = async () => {
             try {
-                const response = await fetch('/api/coach/admin/context')
+                const response = await fetch('/api/coach/admin/context', { signal: controller.signal })
                 if (response.ok) {
                     const result = await response.json()
                     if (result.data?.role) {
@@ -72,10 +73,12 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                     }
                 }
             } catch (err) {
+                if (controller.signal.aborted) return
                 console.error('[BusinessContext] Failed to fetch:', err)
             }
         }
         fetchBusinessContext()
+        return () => controller.abort()
     }, [])
 
     const handleSignOut = async () => {

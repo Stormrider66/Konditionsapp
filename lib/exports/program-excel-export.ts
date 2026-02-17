@@ -17,6 +17,7 @@ export interface ProgramExportData {
   athleteName?: string;
   coachName?: string;
   startDate?: Date;
+  organization?: string;
 }
 
 /**
@@ -258,7 +259,7 @@ export async function generateProgramExcel(exportData: ProgramExportData): Promi
   const { program, athleteName, coachName, startDate } = exportData;
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Trainomics';
+  workbook.creator = exportData.organization || 'Trainomics';
   workbook.created = new Date();
 
   // Add sheets
