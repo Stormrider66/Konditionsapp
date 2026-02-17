@@ -13,6 +13,8 @@ import type { ThemePreferences } from '@/lib/themes/types'
 import { DEFAULT_THEME_PREFERENCES } from '@/lib/themes/types'
 import { cn } from '@/lib/utils'
 import { BasePathProvider } from '@/lib/contexts/BasePathContext'
+import { BusinessBrandingProvider } from '@/lib/contexts/BusinessBrandingContext'
+import type { BusinessBranding } from '@/lib/branding/types'
 
 interface SportProfile {
   id: string
@@ -35,6 +37,7 @@ interface BusinessAthleteLayoutProps {
   businessName: string
   businessLogo: string | null
   businessColor: string | null
+  branding?: BusinessBranding | null
 }
 
 export function BusinessAthleteLayout({
@@ -43,6 +46,7 @@ export function BusinessAthleteLayout({
   businessName,
   businessLogo,
   businessColor,
+  branding,
 }: BusinessAthleteLayoutProps) {
   const [user, setUser] = useState<User | null>(null)
   const [athleteInfo, setAthleteInfo] = useState<AthleteInfo | null>(null)
@@ -98,26 +102,23 @@ export function BusinessAthleteLayout({
 
   const basePath = `/${businessSlug}`
 
-  if (!user) {
-    return (
-      <BasePathProvider basePath={basePath}>
-        <WorkoutThemeProvider initialPreferences={DEFAULT_THEME_PREFERENCES}>
-          <ThemedContent
-            user={null}
-            athleteInfo={null}
-            businessSlug={businessSlug}
-            businessName={businessName}
-            businessLogo={businessLogo}
-            businessColor={businessColor}
-          >
-            {children}
-          </ThemedContent>
-        </WorkoutThemeProvider>
-      </BasePathProvider>
-    )
-  }
-
-  return (
+  const content = !user ? (
+    <BasePathProvider basePath={basePath}>
+      <WorkoutThemeProvider initialPreferences={DEFAULT_THEME_PREFERENCES}>
+        <ThemedContent
+          user={null}
+          athleteInfo={null}
+          businessSlug={businessSlug}
+          businessName={businessName}
+          businessLogo={businessLogo}
+          businessColor={businessColor}
+          branding={branding}
+        >
+          {children}
+        </ThemedContent>
+      </WorkoutThemeProvider>
+    </BasePathProvider>
+  ) : (
     <BasePathProvider basePath={basePath}>
       <WorkoutThemeProvider
         clientId={athleteInfo?.clientId}
@@ -131,6 +132,7 @@ export function BusinessAthleteLayout({
             businessName={businessName}
             businessLogo={businessLogo}
             businessColor={businessColor}
+            branding={branding}
           >
             {children}
           </ThemedContent>
@@ -138,6 +140,16 @@ export function BusinessAthleteLayout({
       </WorkoutThemeProvider>
     </BasePathProvider>
   )
+
+  if (branding) {
+    return (
+      <BusinessBrandingProvider branding={branding}>
+        {content}
+      </BusinessBrandingProvider>
+    )
+  }
+
+  return content
 }
 
 // Inner component that can use the theme hook
@@ -149,6 +161,7 @@ function ThemedContent({
   businessName,
   businessLogo,
   businessColor,
+  branding,
 }: {
   children: React.ReactNode
   user: User | null
@@ -157,14 +170,28 @@ function ThemedContent({
   businessName: string
   businessLogo: string | null
   businessColor: string | null
+  branding?: BusinessBranding | null
 }) {
   const themeContext = useWorkoutThemeOptional()
   const isDark = themeContext?.appTheme?.id === 'FITAPP_DARK'
 
-  // Apply custom business color as CSS variable if provided
-  const customStyle = businessColor
-    ? { '--business-primary': businessColor } as React.CSSProperties
-    : undefined
+  // Build CSS custom properties from branding
+  const customStyle: Record<string, string> = {}
+  if (businessColor) {
+    customStyle['--business-primary'] = businessColor
+  }
+  if (branding?.secondaryColor) {
+    customStyle['--business-secondary'] = branding.secondaryColor
+  }
+  if (branding?.backgroundColor) {
+    customStyle['--business-bg-tint'] = branding.backgroundColor
+  }
+  if (branding?.fontFamily) {
+    customStyle['--business-font'] = branding.fontFamily
+    customStyle['fontFamily'] = `'${branding.fontFamily}', sans-serif`
+  }
+
+  const hasCustomStyle = Object.keys(customStyle).length > 0
 
   return (
     <div
@@ -174,7 +201,7 @@ function ThemedContent({
           ? "bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black text-slate-200"
           : "bg-gray-50"
       )}
-      style={customStyle}
+      style={hasCustomStyle ? customStyle as React.CSSProperties : undefined}
     >
       {user && (
         <BusinessAthleteHeader
