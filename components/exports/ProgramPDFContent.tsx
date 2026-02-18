@@ -8,6 +8,7 @@
  */
 
 import type { ParsedProgram, ParsedWorkout } from '@/lib/ai/program-parser';
+import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext';
 
 // Day names in Swedish
 const DAY_NAMES = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
@@ -77,10 +78,12 @@ export function ProgramPDFContent({
   organization = '',
   startDate,
 }: ProgramPDFContentProps) {
+  const branding = useBusinessBrandingOptional();
   const generatedDate = new Date().toLocaleDateString('sv-SE');
   const programStartDate = startDate
     ? startDate.toLocaleDateString('sv-SE')
     : new Date().toLocaleDateString('sv-SE');
+  const displayOrg = organization || branding?.businessName || '';
 
   return (
     <div
@@ -90,7 +93,12 @@ export function ProgramPDFContent({
       style={{ width: '1200px', minHeight: '800px' }}
     >
       {/* Header */}
-      <div className="border-b-2 border-gray-800 pb-4 mb-6">
+      <div
+        className="border-b-2 pb-4 mb-6"
+        style={branding?.primaryColor
+          ? { borderColor: branding.primaryColor }
+          : { borderColor: '#1f2937' }}
+      >
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-1">
@@ -99,7 +107,10 @@ export function ProgramPDFContent({
             <p className="text-lg text-gray-600">{program.name}</p>
           </div>
           <div className="text-right text-sm text-gray-600">
-            <p className="font-semibold">{organization}</p>
+            {branding?.logoUrl && (
+              <img src={branding.logoUrl} alt={displayOrg} className="h-8 w-auto ml-auto mb-1" />
+            )}
+            <p className="font-semibold">{displayOrg}</p>
             <p>Genererad: {generatedDate}</p>
           </div>
         </div>

@@ -15,6 +15,8 @@ import { cn } from '@/lib/utils'
 import { BasePathProvider } from '@/lib/contexts/BasePathContext'
 import { BusinessBrandingProvider } from '@/lib/contexts/BusinessBrandingContext'
 import type { BusinessBranding } from '@/lib/branding/types'
+import { PLATFORM_NAME } from '@/lib/branding/types'
+import { DynamicFontLoader } from '@/components/branding/DynamicFontLoader'
 
 interface SportProfile {
   id: string
@@ -203,6 +205,9 @@ function ThemedContent({
       )}
       style={hasCustomStyle ? customStyle as React.CSSProperties : undefined}
     >
+      {branding?.fontFamily && branding.fontFamily !== 'Inter' && (
+        <DynamicFontLoader fontFamily={branding.fontFamily} />
+      )}
       {user && (
         <BusinessAthleteHeader
           user={user}
@@ -226,6 +231,13 @@ function ThemedContent({
           clientId={athleteInfo.clientId}
           athleteName={athleteInfo.clientName}
         />
+      )}
+
+      {/* Powered by footer for white-label businesses */}
+      {branding?.hasWhiteLabel && !branding.hidePlatformBranding && (
+        <div className="text-center py-3 text-xs text-gray-400">
+          Powered by {PLATFORM_NAME}
+        </div>
       )}
     </div>
   )

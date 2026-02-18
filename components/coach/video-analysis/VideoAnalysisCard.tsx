@@ -18,6 +18,8 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { useToast } from '@/hooks/use-toast'
+import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
+import { PLATFORM_NAME } from '@/lib/branding/types'
 import { escapeHtml } from '@/lib/sanitize'
 import {
   Video,
@@ -287,6 +289,8 @@ export function VideoAnalysisCard({
   onAnalysisComplete,
 }: VideoAnalysisCardProps) {
   const { toast } = useToast()
+  const branding = useBusinessBrandingOptional()
+  const printBrandName = branding?.hasWhiteLabel && branding.hidePlatformBranding ? branding.businessName : PLATFORM_NAME
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showVideoDialog, setShowVideoDialog] = useState(false)
@@ -656,7 +660,7 @@ export function VideoAnalysisCard({
         ` : ''}
 
         <div class="footer">
-          <p>Genererad ${format(new Date(), 'PPP HH:mm', { locale: sv })} | Trainomics</p>
+          <p>Genererad ${format(new Date(), 'PPP HH:mm', { locale: sv })} | ${printBrandName}</p>
         </div>
       </body>
       </html>

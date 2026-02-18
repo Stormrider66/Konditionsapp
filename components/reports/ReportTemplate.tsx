@@ -12,6 +12,7 @@ import { StrengthsWeaknesses } from './StrengthsWeaknesses'
 import { PaceZones } from './PaceZones'
 import { TrainingFocus } from './TrainingFocus'
 import { generateFullInterpretation } from '@/lib/calculations/interpretations'
+import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
 
 interface ReportTemplateProps {
   client: Client
@@ -28,6 +29,7 @@ export function ReportTemplate({
   testLeader,
   organization,
 }: ReportTemplateProps) {
+  const branding = useBusinessBrandingOptional()
   const birthDate = client.birthDate instanceof Date ? client.birthDate : new Date(client.birthDate as unknown as string)
   const age = Math.floor((Date.now() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
 
@@ -42,9 +44,21 @@ export function ReportTemplate({
   return (
     <div className="max-w-4xl mx-auto bg-white p-8 print:p-6 print:max-w-none" data-pdf-content>
       {/* Header */}
-      <header className="gradient-primary text-white p-6 rounded-t-lg print:rounded-none">
-        <h1 className="text-3xl font-bold">{organization}</h1>
-        <p className="text-lg mt-2">Konditionstestrapport</p>
+      <header
+        className={`text-white p-6 rounded-t-lg print:rounded-none ${!branding?.primaryColor ? 'gradient-primary' : ''}`}
+        style={branding?.primaryColor
+          ? { background: `linear-gradient(135deg, ${branding.primaryColor} 0%, ${branding.secondaryColor || branding.primaryColor} 100%)` }
+          : undefined}
+      >
+        <div className="flex items-center gap-4">
+          {branding?.logoUrl && (
+            <img src={branding.logoUrl} alt={organization} className="h-10 w-auto" />
+          )}
+          <div>
+            <h1 className="text-3xl font-bold">{organization}</h1>
+            <p className="text-lg mt-1">Konditionstestrapport</p>
+          </div>
+        </div>
       </header>
 
       {/* Klientinformation */}

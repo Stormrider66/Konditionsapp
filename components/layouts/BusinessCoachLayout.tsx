@@ -11,6 +11,8 @@ import type { User } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
 import { BusinessBrandingProvider } from '@/lib/contexts/BusinessBrandingContext'
 import type { BusinessBranding } from '@/lib/branding/types'
+import { PLATFORM_NAME } from '@/lib/branding/types'
+import { DynamicFontLoader } from '@/components/branding/DynamicFontLoader'
 
 function FloatingAIChatWithContext() {
   const pageContextValue = usePageContextOptional()
@@ -100,6 +102,9 @@ function ThemedContent({
       )}
       style={hasCustomStyle ? customStyle as React.CSSProperties : undefined}
     >
+      {branding?.fontFamily && branding.fontFamily !== 'Inter' && (
+        <DynamicFontLoader fontFamily={branding.fontFamily} />
+      )}
       {user && (
         <BusinessCoachGlassHeader user={user} businessSlug={businessSlug} />
       )}
@@ -110,6 +115,13 @@ function ThemedContent({
 
       {/* Floating AI Chat - available on all coach pages with page context */}
       <FloatingAIChatWithContext />
+
+      {/* Powered by footer for white-label businesses */}
+      {branding?.hasWhiteLabel && !branding.hidePlatformBranding && (
+        <div className="text-center py-3 text-xs text-gray-400">
+          Powered by {PLATFORM_NAME}
+        </div>
+      )}
     </div>
   )
 }

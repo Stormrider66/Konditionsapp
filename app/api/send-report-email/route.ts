@@ -7,6 +7,8 @@ import { getRequestIp, rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { PLATFORM_NAME } from '@/lib/branding/types'
+import { resolveEmailBranding } from '@/lib/email/branding'
+import { emailLayout } from '@/lib/email/email-branding-types'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -87,6 +89,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Resolve email branding from coach's primary business
+    const membership = await prisma.businessMember.findFirst({
+      where: { userId: user.id, isActive: true },
+      select: { businessId: true },
+      orderBy: { createdAt: 'asc' },
+    })
+    const emailBranding = await resolveEmailBranding(membership?.businessId ?? null)
+
     // Sanitize all user inputs for XSS protection
     const safeClientName = escapeHtml(clientName)
     const safeTestDate = escapeHtml(testDate)
@@ -94,42 +104,35 @@ export async function POST(request: NextRequest) {
     const safeOrganization = escapeHtml(organization)
     const safeCustomMessage = customMessage ? sanitizeForEmail(customMessage) : ''
 
-    // Format the email with sanitized content
+    // Format the email with branded layout
     const emailSubject = `Ditt konditionstest från ${safeOrganization}`
-    const emailBody = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #667eea;">Konditionstestrapport</h2>
 
-        <p>Hej ${safeClientName},</p>
-
-        <p>Här är resultatet från ditt konditionstest som genomfördes <strong>${safeTestDate}</strong>.</p>
-
-        ${safeCustomMessage ? `<p>${safeCustomMessage}</p>` : ''}
-
-        <div style="background-color: #f7f7f7; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <p style="margin: 5px 0;"><strong>Testledare:</strong> ${safeTestLeader}</p>
-          <p style="margin: 5px 0;"><strong>Organisation:</strong> ${safeOrganization}</p>
-        </div>
-
-        <p>Se bifogad PDF för din fullständiga rapport med resultat och träningszoner.</p>
-
-        <p style="margin-top: 30px;">Med vänliga hälsningar,<br/>
-        <strong>${safeOrganization}</strong></p>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;"/>
-
-        <p style="font-size: 12px; color: #666;">
-          Detta mail är skickat från ${safeOrganization}s konditionstestsystem.
-        </p>
+    const bodyContent = `
+      <h2 style="color: #333; margin-top: 0;">Hej ${safeClientName},</h2>
+      <p style="color: #555; font-size: 16px; line-height: 1.6;">
+        Här är resultatet från ditt konditionstest som genomfördes <strong>${safeTestDate}</strong>.
+      </p>
+      ${safeCustomMessage ? `<p style="color: #555; font-size: 16px;">${safeCustomMessage}</p>` : ''}
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+        <p style="margin: 5px 0; color: #555;"><strong>Testledare:</strong> ${safeTestLeader}</p>
+        <p style="margin: 5px 0; color: #555;"><strong>Organisation:</strong> ${safeOrganization}</p>
       </div>
+      <p style="color: #555; font-size: 16px;">Se bifogad PDF för din fullständiga rapport med resultat och träningszoner.</p>
+      <p style="color: #555; margin-top: 30px;">
+        Med vänliga hälsningar,<br/>
+        <strong>${safeOrganization}</strong>
+      </p>
     `
+
+    const emailBody = emailLayout(emailBranding, 'Konditionstestrapport', bodyContent)
 
     // Sanitize filename
     const safeFilename = `Konditionstest_${safeClientName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')}_${safeTestDate.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`
 
     // Send email using Resend
+    const senderName = emailBranding.senderName || PLATFORM_NAME
     const { data, error } = await resend.emails.send({
-      from: `${PLATFORM_NAME} <noreply@trainomics.se>`,
+      from: `${senderName} <noreply@trainomics.se>`,
       to: [to],
       subject: emailSubject,
       html: emailBody,

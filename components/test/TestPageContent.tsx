@@ -10,6 +10,7 @@ import { EmailReportButton } from '@/components/reports/EmailReportButton'
 import { performAllCalculations } from '@/lib/calculations'
 import { Test, Client, TestCalculations, TestStage, TestType } from '@/types'
 import { CreateTestFormData } from '@/lib/validations/schemas'
+import { PLATFORM_NAME } from '@/lib/branding/types'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
@@ -56,7 +57,7 @@ interface TestPageContentProps {
 
 export function TestPageContent({ businessSlug, organizationName }: TestPageContentProps) {
   const basePath = businessSlug ? `/${businessSlug}/coach` : ''
-  const orgName = organizationName || 'Trainomics'
+  const orgName = organizationName || PLATFORM_NAME
 
   const [testCategory, setTestCategory] = useState<TestCategory>('lactate')
   const [showReport, setShowReport] = useState(false)

@@ -13,6 +13,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
+import { useBusinessBrandingOptional } from '@/lib/contexts/BusinessBrandingContext'
+import { PLATFORM_NAME } from '@/lib/branding/types'
 import {
   Video,
   Play,
@@ -81,6 +83,8 @@ function getScoreLabel(score: number) {
 
 export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: ClientVideoAnalysesProps) {
   const { toast } = useToast()
+  const branding = useBusinessBrandingOptional()
+  const printBrandName = branding?.hasWhiteLabel && branding.hidePlatformBranding ? branding.businessName : PLATFORM_NAME
   const [analyses, setAnalyses] = useState<VideoAnalysis[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAnalysis, setSelectedAnalysis] = useState<VideoAnalysis | null>(null)
@@ -215,7 +219,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
         ` : ''}
 
         <div class="footer">
-          <p>Genererad ${format(new Date(), 'PPP HH:mm', { locale: sv })} | Trainomics</p>
+          <p>Genererad ${format(new Date(), 'PPP HH:mm', { locale: sv })} | ${printBrandName}</p>
         </div>
       </body>
       </html>

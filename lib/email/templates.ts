@@ -415,7 +415,6 @@ export function getTrialWarningEmailTemplate(data: TrialWarningEmailData) {
   const urgentTextColor = daysRemaining <= 3 ? '#991b1b' : '#92400e'
 
   const headerTitle = locale === 'sv' ? '⏰ Provperiod snart slut' : '⏰ Trial Ending Soon'
-  const headerBg = `linear-gradient(135deg, #f59e0b 0%, #d97706 100%)`
 
   const bodyContent = `
     <h2 style="color: #333; margin-top: 0;">${content.greeting}</h2>
@@ -429,11 +428,7 @@ export function getTrialWarningEmailTemplate(data: TrialWarningEmailData) {
         ${content.benefits.map(b => `<li style="margin: 8px 0;">${b}</li>`).join('')}
       </ul>
     </div>
-    <div style="text-align: center; margin: 35px 0;">
-      <a href="${safeUpgradeUrl}" style="background: linear-gradient(135deg, ${br.gradientStart} 0%, ${br.gradientEnd} 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 18px;">
-        ${content.ctaText}
-      </a>
-    </div>
+    ${emailButton(br, safeUpgradeUrl, content.ctaText)}
     <p style="color: #888; font-size: 14px;">${content.helpText}</p>
     <p style="color: #555; margin-top: 30px;">
       ${content.closing}<br/>
@@ -441,21 +436,7 @@ export function getTrialWarningEmailTemplate(data: TrialWarningEmailData) {
     </p>
   `
 
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-      <div style="background: ${headerBg}; padding: 40px 20px; text-align: center;">
-        ${br.logoUrl ? `<img src="${br.logoUrl}" alt="${br.platformName}" style="max-height: 40px; margin-bottom: 12px;" /><br/>` : ''}
-        <h1 style="color: white; margin: 0; font-size: 28px;">${headerTitle}</h1>
-      </div>
-      <div style="padding: 40px 30px;">
-        ${bodyContent}
-      </div>
-      <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
-        <p style="color: #888; font-size: 12px; margin: 0;">${br.footerText}</p>
-        ${br.showPoweredBy ? '<p style="color: #aaa; font-size: 11px; margin-top: 8px;">Powered by Trainomics</p>' : ''}
-      </div>
-    </div>
-  `
+  const html = emailLayout(br, headerTitle, bodyContent, { headerBgColor: '#f59e0b' })
 
   return { subject: content.subject, html }
 }
@@ -520,11 +501,7 @@ export function getTrialExpiredEmailTemplate(data: TrialExpiredEmailData) {
       </ul>
     </div>
     <p style="color: #555; font-size: 16px;">${content.missYou}</p>
-    <div style="text-align: center; margin: 35px 0;">
-      <a href="${safeUpgradeUrl}" style="background: linear-gradient(135deg, ${br.gradientStart} 0%, ${br.gradientEnd} 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 18px;">
-        ${content.ctaText}
-      </a>
-    </div>
+    ${emailButton(br, safeUpgradeUrl, content.ctaText)}
     <p style="color: #888; font-size: 14px;">${content.helpText}</p>
     <p style="color: #555; margin-top: 30px;">
       ${content.closing}<br/>
@@ -586,11 +563,7 @@ export function getReferralInviteEmailTemplate(data: ReferralInviteEmailData) {
       <h3 style="color: ${br.primaryColor}; margin-top: 0;">${content.aboutTitle}</h3>
       <p style="color: #555; margin-bottom: 0;">${content.about}</p>
     </div>
-    <div style="text-align: center; margin: 35px 0;">
-      <a href="${safeSignupUrl}" style="background: linear-gradient(135deg, ${br.gradientStart} 0%, ${br.gradientEnd} 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 18px;">
-        ${content.ctaText}
-      </a>
-    </div>
+    ${emailButton(br, safeSignupUrl, content.ctaText)}
     <p style="color: #555; margin-top: 30px; text-align: center;">
       ${content.closing}<br/><br/>
       <strong>${content.team}</strong>
