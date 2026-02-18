@@ -513,7 +513,7 @@ export async function POST(request: NextRequest) {
 
         // Send email via Resend
         await resend.emails.send({
-          from: process.env.EMAIL_FROM || 'noreply@trainomics.se',
+          from: process.env.EMAIL_FROM || 'noreply@trainomics.app',
           to: coach.email,
           subject,
           html: emailHTML,

@@ -164,7 +164,7 @@ export function CoachSubscriptionClient({
 
     if (tierId === 'ENTERPRISE') {
       // For enterprise, redirect to contact form
-      window.location.href = 'mailto:enterprise@trainomics.se?subject=Enterprise%20förfrågan';
+      window.location.href = 'mailto:enterprise@trainomics.app?subject=Enterprise%20förfrågan';
       return;
     }
 

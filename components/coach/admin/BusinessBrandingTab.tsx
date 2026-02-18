@@ -429,7 +429,7 @@ export function BusinessBrandingTab() {
                     placeholder={data?.name || 'My Business'}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Emails sent as &quot;{form.emailSenderName || 'Trainomics'} &lt;noreply@trainomics.se&gt;&quot;
+                    Emails sent as &quot;{form.emailSenderName || 'Trainomics'} &lt;noreply@trainomics.app&gt;&quot;
                   </p>
                 </div>
               </div>
@@ -465,7 +465,7 @@ export function BusinessBrandingTab() {
                   {!data.domainVerified && data.domainTxtRecord && (
                     <div className="mt-2 p-3 bg-muted rounded text-xs space-y-1">
                       <p className="font-medium">DNS Records Required:</p>
-                      <p>CNAME: {data.customDomain} &rarr; cname.trainomics.se</p>
+                      <p>CNAME: {data.customDomain} &rarr; cname.trainomics.app</p>
                       <p>TXT: _trainomics-verify.{data.customDomain} &rarr; {data.domainTxtRecord}</p>
                     </div>
                   )}

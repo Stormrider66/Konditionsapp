@@ -19,7 +19,7 @@ import { PLATFORM_NAME } from '@/lib/branding/types';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const DEFAULT_FROM_EMAIL = `${PLATFORM_NAME} <noreply@trainomics.se>`;
+const DEFAULT_FROM_EMAIL = `${PLATFORM_NAME} <noreply@trainomics.app>`;
 
 export interface SendEmailResult {
   success: boolean;
@@ -42,7 +42,7 @@ async function sendEmailInternal(
 
     // Use custom sender name if white-label branding provides one
     const fromEmail = branding?.senderName && branding.senderName !== PLATFORM_NAME
-      ? `${branding.senderName} <noreply@trainomics.se>`
+      ? `${branding.senderName} <noreply@trainomics.app>`
       : DEFAULT_FROM_EMAIL;
 
     const { data, error } = await resend.emails.send({
@@ -76,7 +76,7 @@ export async function sendWelcomeEmail(
   locale: EmailLocale = 'sv',
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const { subject, html } = getWelcomeEmailTemplate({
     recipientName,
     loginUrl: `${baseUrl}/login`,
@@ -98,7 +98,7 @@ export async function sendReferralRewardEmail(
   locale: EmailLocale = 'sv',
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const { subject, html } = getReferralRewardEmailTemplate({
     recipientName,
     referredUserName,
@@ -123,7 +123,7 @@ export async function sendSubscriptionConfirmationEmail(
   locale: EmailLocale = 'sv',
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const { subject, html } = getSubscriptionConfirmationEmailTemplate({
     recipientName,
     planName,
@@ -147,7 +147,7 @@ export async function sendSubscriptionCancelledEmail(
   locale: EmailLocale = 'sv',
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const { subject, html } = getSubscriptionCancelledEmailTemplate({
     recipientName,
     planName,
@@ -174,7 +174,7 @@ export async function sendPaymentFailedEmail(
   },
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const updatePaymentUrl =
     options?.updatePaymentUrl ||
     new URL(options?.updatePaymentPath || '/coach/subscription', baseUrl).toString()
@@ -201,7 +201,7 @@ export async function sendReferralInviteEmail(
   locale: EmailLocale = 'sv',
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const { subject, html } = getReferralInviteEmailTemplate({
     recipientName: recipientName || '',
     referrerName,
@@ -278,7 +278,7 @@ export async function sendJoinRequestNotification(
   businessName: string,
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const br = branding;
   const platformName = br?.platformName || PLATFORM_NAME;
   const buttonColor = br?.primaryColor || '#3b82f6';
@@ -307,7 +307,7 @@ export async function sendNewApplicationNotification(
   organizationName: string,
   type: string
 ): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
   const typeLabel = type === 'GYM' ? 'Gym/Studio' : 'Team/Klubb';
   const subject = `Ny verksamhetsansökan: ${organizationName} (${typeLabel})`;
   const html = `

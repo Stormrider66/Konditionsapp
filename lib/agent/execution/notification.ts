@@ -183,7 +183,7 @@ export async function sendAgentEmailNotification(
       return false
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
 
     const html = `
 <!DOCTYPE html>
@@ -270,7 +270,7 @@ export async function notifyCoachOfAction(
       action.actionData as Record<string, unknown>
     )
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
 
     const html = `
 <!DOCTYPE html>

@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     // Send email using Resend
     const senderName = emailBranding.senderName || PLATFORM_NAME
     const { data, error } = await resend.emails.send({
-      from: `${senderName} <noreply@trainomics.se>`,
+      from: `${senderName} <noreply@trainomics.app>`,
       to: [to],
       subject: emailSubject,
       html: emailBody,

@@ -174,7 +174,7 @@ async function sendNotificationEmail(
 
   try {
     await resend.emails.send({
-      from: `${PLATFORM_NAME} <notifications@trainomics.se>`,
+      from: `${PLATFORM_NAME} <notifications@trainomics.app>`,
       to: recipient.email,
       subject,
       html,
@@ -258,7 +258,7 @@ function getEmailHtml(
     </div>
 
     <div style="margin-top: 20px; text-align: center;">
-      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se'}/${recipient.role === 'COACH' ? 'coach/clients' : 'athlete/calendar'}"
+      <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/${recipient.role === 'COACH' ? 'coach/clients' : 'athlete/calendar'}"
          style="display: inline-block; background: #667eea; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
         Visa i Kalendern
       </a>

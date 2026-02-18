@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
         instructions: {
           cname: {
             host: normalizedDomain,
-            value: 'cname.trainomics.se',
+            value: 'cname.trainomics.app',
           },
           txt: {
             host: `_trainomics-verify.${normalizedDomain}`,

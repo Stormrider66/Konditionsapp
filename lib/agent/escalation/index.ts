@@ -359,7 +359,7 @@ async function sendWellnessCheckEmail(
   name: string,
   trigger: EscalationTrigger
 ): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.trainomics.se'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
 
   const html = `
 <!DOCTYPE html>

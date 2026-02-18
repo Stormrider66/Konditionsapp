@@ -419,14 +419,14 @@ export async function searchSimilarChunks(
 
 /**
  * Search system document chunks for knowledge skills auto-retrieval.
- * Looks up the system user (system@trainomics.se) and searches their documents.
+ * Looks up the system user (system@trainomics.app) and searches their documents.
  */
 let cachedSystemUserId: string | null = null;
 
 async function getSystemUserId(): Promise<string | null> {
   if (cachedSystemUserId) return cachedSystemUserId;
   const user = await prisma.user.findFirst({
-    where: { email: 'system@trainomics.se' },
+    where: { email: 'system@trainomics.app' },
     select: { id: true },
   });
   if (user) cachedSystemUserId = user.id;

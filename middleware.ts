@@ -252,7 +252,7 @@ export async function middleware(request: NextRequest) {
   const isCustomDomain = requestHost && requestHost !== defaultHost
     && requestHost !== 'localhost'
     && requestHost !== '127.0.0.1'
-    && !requestHost.endsWith('.trainomics.se')
+    && !requestHost.endsWith('.trainomics.app')
     && !requestHost.endsWith('.vercel.app')
 
   let customDomainSlug: string | null = null
