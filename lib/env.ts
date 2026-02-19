@@ -19,10 +19,10 @@ const ENV_VARS: EnvVar[] = [
   { name: 'SUPABASE_SERVICE_ROLE_KEY', required: true },
   { name: 'DATABASE_URL', required: true },
 
-  // Payments - required in production
-  { name: 'STRIPE_SECRET_KEY', required: true, productionOnly: true },
-  { name: 'STRIPE_WEBHOOK_SECRET', required: true, productionOnly: true },
-  { name: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', required: true, productionOnly: true },
+  // Payments - optional until Stripe is configured
+  { name: 'STRIPE_SECRET_KEY', required: false },
+  { name: 'STRIPE_WEBHOOK_SECRET', required: false },
+  { name: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY', required: false },
 
   // App URL - required in production for redirects
   { name: 'NEXT_PUBLIC_APP_URL', required: true, productionOnly: true },
