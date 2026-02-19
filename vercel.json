@@ -4,7 +4,7 @@
   "regions": ["arn1"],
   "headers": [
     {
-      "source": "/(.*)\\.(?:js|css|woff2?|ttf|otf|eot|ico|svg|png|jpg|jpeg|gif|webp|avif)",
+      "source": "/:path*.(js|css|woff|woff2|ttf|otf|eot|ico|svg|png|jpg|jpeg|gif|webp|avif)",
       "headers": [
         {
           "key": "Cache-Control",
