@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { requireCoachFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 import {
   calculatePhases,
@@ -29,6 +30,10 @@ export async function POST(request: NextRequest) {
   try {
     // Authenticate
     const user = await requireCoach()
+
+    // Subscription gate (coach-level)
+    const denied = await requireCoachFeatureAccess(user.id, 'program_generation')
+    if (denied) return denied
 
     // Rate limit
     const rateLimited = await rateLimitJsonResponse('ai:program-gen:start', user.id, {

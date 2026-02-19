@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import './setup'
 import { expectDeniedResponse, resetTenantBoundaryMocks } from './setup'
 import { prisma } from '@/lib/prisma'
@@ -158,7 +159,7 @@ describe('Tenant boundary - external and business', () => {
     vi.mocked(requireCoach).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
     vi.mocked(prisma.businessMember.findFirst).mockResolvedValue(null as any)
 
-    const request = new Request('http://localhost/api/business/business-a/stats')
+    const request = new NextRequest('http://localhost/api/business/business-a/stats')
     const response = await getBusinessStats(request as any, {
       params: Promise.resolve({ id: 'business-a' }),
     })

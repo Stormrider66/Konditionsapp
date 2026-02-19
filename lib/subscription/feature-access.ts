@@ -3,7 +3,16 @@
 
 import { prisma } from '@/lib/prisma'
 
-export type AthleteFeature = 'ai_chat' | 'video_analysis' | 'strava' | 'garmin'
+export type AthleteFeature =
+  | 'ai_chat'
+  | 'video_analysis'
+  | 'strava'
+  | 'garmin'
+  | 'advanced_intelligence'
+  | 'program_generation'
+  | 'nutrition_planning'
+  | 'concept2'
+  | 'lactate_ocr'
 
 export interface FeatureAccessResult {
   allowed: boolean
@@ -30,24 +39,44 @@ export const ATHLETE_TIER_FEATURES = {
     video_analysis: { enabled: false },
     strava: { enabled: false },
     garmin: { enabled: false },
+    advanced_intelligence: { enabled: false },
+    program_generation: { enabled: false },
+    nutrition_planning: { enabled: false },
+    concept2: { enabled: false },
+    lactate_ocr: { enabled: false },
   },
   STANDARD: {
     ai_chat: { enabled: true, limit: 50 }, // 50 messages per month
     video_analysis: { enabled: false },
     strava: { enabled: true },
     garmin: { enabled: true },
+    advanced_intelligence: { enabled: false },
+    program_generation: { enabled: true },
+    nutrition_planning: { enabled: true },
+    concept2: { enabled: true },
+    lactate_ocr: { enabled: true },
   },
   PRO: {
     ai_chat: { enabled: true, limit: -1 }, // Unlimited
     video_analysis: { enabled: true },
     strava: { enabled: true },
     garmin: { enabled: true },
+    advanced_intelligence: { enabled: true },
+    program_generation: { enabled: true },
+    nutrition_planning: { enabled: true },
+    concept2: { enabled: true },
+    lactate_ocr: { enabled: true },
   },
   ELITE: {
     ai_chat: { enabled: true, limit: -1 }, // Unlimited
     video_analysis: { enabled: true },
     strava: { enabled: true },
     garmin: { enabled: true },
+    advanced_intelligence: { enabled: true },
+    program_generation: { enabled: true },
+    nutrition_planning: { enabled: true },
+    concept2: { enabled: true },
+    lactate_ocr: { enabled: true },
   },
 } as const
 
@@ -191,12 +220,21 @@ export async function checkAthleteFeatureAccess(
       return { allowed: true }
     }
 
-    default:
+    default: {
+      // Tier-based check for features without dedicated DB columns
+      const tier = subscription.tier as keyof typeof ATHLETE_TIER_FEATURES
+      const tierConfig = ATHLETE_TIER_FEATURES[tier] || ATHLETE_TIER_FEATURES.FREE
+      const featureConfig = tierConfig[feature as keyof typeof tierConfig] as { enabled: boolean } | undefined
+      if (featureConfig?.enabled) {
+        return { allowed: true }
+      }
       return {
         allowed: false,
-        reason: 'Unknown feature',
+        reason: `Denna funktion kräver en uppgraderad prenumeration.`,
         code: 'FEATURE_DISABLED',
+        upgradeUrl: '/athlete/subscription',
       }
+    }
   }
 }
 
@@ -318,6 +356,11 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
     video_analysis: { enabled: boolean }
     strava: { enabled: boolean }
     garmin: { enabled: boolean }
+    advanced_intelligence: { enabled: boolean }
+    program_generation: { enabled: boolean }
+    nutrition_planning: { enabled: boolean }
+    concept2: { enabled: boolean }
+    lactate_ocr: { enabled: boolean }
   }
 }> {
   const subscription = await prisma.athleteSubscription.findUnique({
@@ -333,6 +376,11 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
         video_analysis: { enabled: false },
         strava: { enabled: false },
         garmin: { enabled: false },
+        advanced_intelligence: { enabled: false },
+        program_generation: { enabled: false },
+        nutrition_planning: { enabled: false },
+        concept2: { enabled: false },
+        lactate_ocr: { enabled: false },
       },
     }
   }
@@ -344,6 +392,10 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
     )
     trialDaysRemaining = remaining > 0 ? remaining : 0
   }
+
+  // Tier-based lookup for features without dedicated DB columns
+  const tier = subscription.tier as keyof typeof ATHLETE_TIER_FEATURES
+  const tierConfig = ATHLETE_TIER_FEATURES[tier] || ATHLETE_TIER_FEATURES.FREE
 
   return {
     tier: subscription.tier,
@@ -358,6 +410,11 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
       video_analysis: { enabled: subscription.videoAnalysisEnabled },
       strava: { enabled: subscription.stravaEnabled },
       garmin: { enabled: subscription.garminEnabled },
+      advanced_intelligence: { enabled: tierConfig.advanced_intelligence.enabled },
+      program_generation: { enabled: tierConfig.program_generation.enabled },
+      nutrition_planning: { enabled: tierConfig.nutrition_planning.enabled },
+      concept2: { enabled: tierConfig.concept2.enabled },
+      lactate_ocr: { enabled: tierConfig.lactate_ocr.enabled },
     },
   }
 }

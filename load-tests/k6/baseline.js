@@ -46,14 +46,19 @@ const BUSINESS_STATS_INCLUDE_SUBSCRIPTIONS =
 const BUSINESS_STATS_SHORT_WINDOW =
   (__ENV.BUSINESS_STATS_SHORT_WINDOW || 'true').toLowerCase() !== 'false'
 
+const BASELINE_SCALE = Math.max(
+  0.1,
+  Math.min(parseFloat(__ENV.BASELINE_SCALE || '1') || 1, 1)
+)
+
 export const options = {
   scenarios: {
     baseline_reads: {
       executor: 'ramping-vus',
       stages: [
-        { duration: '3m', target: 50 },
-        { duration: '7m', target: 150 },
-        { duration: '3m', target: 300 },
+        { duration: '3m', target: Math.round(50 * BASELINE_SCALE) },
+        { duration: '7m', target: Math.round(150 * BASELINE_SCALE) },
+        { duration: '3m', target: Math.round(300 * BASELINE_SCALE) },
         { duration: '2m', target: 0 },
       ],
       gracefulRampDown: '45s',

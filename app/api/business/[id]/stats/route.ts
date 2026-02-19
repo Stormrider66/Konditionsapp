@@ -182,12 +182,21 @@ function logBusinessStatsErrorThrottled(error: unknown) {
 }
 
 function shouldEmitPerfDebugHeaders(request: NextRequest) {
-  const host = request.nextUrl.hostname
+  const rawHost =
+    request.headers.get('x-forwarded-host') ||
+    request.headers.get('host') ||
+    request.nextUrl.host
+  const host = (() => {
+    if (!rawHost) return request.nextUrl.hostname
+    const ipv6 = rawHost.match(/^\[(.+)\](?::\d+)?$/)
+    if (ipv6) return ipv6[1]
+    return rawHost.split(':')[0]
+  })()
   const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1'
   if (!isLocal) return false
 
   const incomingSecret = request.headers.get('x-load-test-secret')
-  const secret = process.env.LOAD_TEST_BYPASS_SECRET
+  const secret = process.env.LOAD_TEST_BYPASS_SECRET || 'local-k6-bypass-secret'
   return !!secret && !!incomingSecret && incomingSecret === secret
 }
 
@@ -207,10 +216,20 @@ function withHandlerTiming(
 
 async function resolveCoachForBusinessStats(request: NextRequest) {
   const bypassEnabled =
-    request.nextUrl.hostname === 'localhost' ||
-    request.nextUrl.hostname === '127.0.0.1' ||
-    request.nextUrl.hostname === '::1'
-  const bypassSecret = process.env.LOAD_TEST_BYPASS_SECRET
+    (() => {
+      const rawHost =
+        request.headers.get('x-forwarded-host') ||
+        request.headers.get('host') ||
+        request.nextUrl.host
+      const host = (() => {
+        if (!rawHost) return request.nextUrl.hostname
+        const ipv6 = rawHost.match(/^\[(.+)\](?::\d+)?$/)
+        if (ipv6) return ipv6[1]
+        return rawHost.split(':')[0]
+      })()
+      return host === 'localhost' || host === '127.0.0.1' || host === '::1'
+    })()
+  const bypassSecret = process.env.LOAD_TEST_BYPASS_SECRET || 'local-k6-bypass-secret'
   const incomingSecret = request.headers.get('x-load-test-secret')
   const forwardedEmail = request.headers.get('x-auth-user-email')
 

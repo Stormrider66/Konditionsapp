@@ -16,6 +16,7 @@ import {
 } from '@/lib/integrations/strava/client';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
+import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 
 // Schema for POST request
 const initiateAuthSchema = z.object({
@@ -146,6 +147,10 @@ export async function POST(request: NextRequest) {
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+
+    // Subscription gate
+    const denied = await requireFeatureAccess(clientId, 'strava')
+    if (denied) return denied
 
     // Check if already connected
     const isConnected = await hasStravaConnection(clientId);

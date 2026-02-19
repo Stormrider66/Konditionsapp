@@ -120,12 +120,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 function shouldEmitPerfDebugHeaders(request: NextRequest) {
-  const host = request.nextUrl.hostname
+  const rawHost =
+    request.headers.get('x-forwarded-host') ||
+    request.headers.get('host') ||
+    request.nextUrl.host
+  const host = (() => {
+    if (!rawHost) return request.nextUrl.hostname
+    const ipv6 = rawHost.match(/^\[(.+)\](?::\d+)?$/)
+    if (ipv6) return ipv6[1]
+    return rawHost.split(':')[0]
+  })()
   const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1'
   if (!isLocal) return false
 
   const incomingSecret = request.headers.get('x-load-test-secret')
-  const secret = process.env.LOAD_TEST_BYPASS_SECRET
+  const secret = process.env.LOAD_TEST_BYPASS_SECRET || 'local-k6-bypass-secret'
   return !!secret && !!incomingSecret && incomingSecret === secret
 }
 

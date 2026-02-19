@@ -360,12 +360,23 @@ export async function middleware(request: NextRequest) {
 
   // Load-test auth bypass (local-only opt-in):
   // Allows k6 to avoid Supabase auth round-trips in middleware when explicitly enabled.
+  const rawHost =
+    request.headers.get('x-forwarded-host') ||
+    request.headers.get('host') ||
+    request.nextUrl.host
+  const hostnameFromHeaders = (() => {
+    if (!rawHost) return request.nextUrl.hostname
+    // Handle IPv6 host header format: "[::1]:3000"
+    const ipv6 = rawHost.match(/^\[(.+)\](?::\d+)?$/)
+    if (ipv6) return ipv6[1]
+    return rawHost.split(':')[0]
+  })()
   const loadTestBypassEnabled =
-    request.nextUrl.hostname === 'localhost' ||
-    request.nextUrl.hostname === '127.0.0.1' ||
+    hostnameFromHeaders === 'localhost' ||
+    hostnameFromHeaders === '127.0.0.1' ||
     // k6 on Windows often targets IPv6 loopback to avoid connection-refused issues.
-    request.nextUrl.hostname === '::1'
-  const loadTestSecret = process.env.LOAD_TEST_BYPASS_SECRET
+    hostnameFromHeaders === '::1'
+  const loadTestSecret = process.env.LOAD_TEST_BYPASS_SECRET || 'local-k6-bypass-secret'
   const loadTestBypassEmail = process.env.LOAD_TEST_BYPASS_USER_EMAIL
   const incomingLoadTestSecret = request.headers.get('x-load-test-secret')
   if (

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { extractCoachingStyle, applyStyleToPrompt } from '@/lib/ai/advanced-intelligence'
 import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { requireCoachFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
@@ -19,6 +20,10 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Subscription gate (coach-level, no clientId needed)
+    const denied = await requireCoachFeatureAccess(user.id, 'advanced_intelligence')
+    if (denied) return denied
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:coach-style:get', user.id, {
       limit: 10,
@@ -85,6 +90,10 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Subscription gate (coach-level, no clientId needed)
+    const deniedPost = await requireCoachFeatureAccess(user.id, 'advanced_intelligence')
+    if (deniedPost) return deniedPost
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:coach-style:post', user.id, {
       limit: 10,

@@ -16,6 +16,7 @@ import {
 import type { Concept2EquipmentType } from '@/lib/integrations/concept2';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
+import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 
 // Valid equipment types
 const equipmentTypes = [
@@ -53,15 +54,18 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const params = {
-      clientId: searchParams.get('clientId'),
-      startDate: searchParams.get('startDate'),
-      endDate: searchParams.get('endDate'),
-      type: searchParams.get('type'),
-      mappedType: searchParams.get('mappedType'),
-      limit: searchParams.get('limit'),
-      loadDays: searchParams.get('loadDays'),
-    };
+    // Filter out null values so Zod optional() works correctly (searchParams.get returns null, not undefined)
+    const params = Object.fromEntries(
+      Object.entries({
+        clientId: searchParams.get('clientId'),
+        startDate: searchParams.get('startDate'),
+        endDate: searchParams.get('endDate'),
+        type: searchParams.get('type'),
+        mappedType: searchParams.get('mappedType'),
+        limit: searchParams.get('limit'),
+        loadDays: searchParams.get('loadDays'),
+      }).filter(([, v]) => v !== null)
+    );
 
     // Validate
     const validationResult = getResultsSchema.safeParse(params);
@@ -79,6 +83,10 @@ export async function GET(request: NextRequest) {
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+
+    // Subscription gate
+    const denied = await requireFeatureAccess(clientId, 'concept2')
+    if (denied) return denied
 
     // Check if connected
     const token = await prisma.integrationToken.findUnique({
@@ -163,6 +171,10 @@ export async function POST(request: NextRequest) {
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+
+    // Subscription gate
+    const deniedSync = await requireFeatureAccess(clientId, 'concept2')
+    if (deniedSync) return deniedSync
 
     // Check if connected
     const token = await prisma.integrationToken.findUnique({

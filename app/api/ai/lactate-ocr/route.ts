@@ -21,11 +21,16 @@ import { GEMINI_MODELS, getGeminiThinkingOptions } from '@/lib/ai/gemini-config'
 import { LactateMeterOCRSchema } from '@/lib/validations/gemini-schemas';
 import { decryptSecret } from '@/lib/crypto/secretbox';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
+import { requireCoachFeatureAccess, requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
+
+    // Subscription gate (coach-level)
+    const denied = await requireCoachFeatureAccess(user.id, 'lactate_ocr')
+    if (denied) return denied
 
     const rateLimited = await rateLimitJsonResponse('ai:lactate-ocr', user.id, {
       limit: 5,
@@ -95,6 +100,10 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         )
       }
+
+      // Athlete-level subscription gate
+      const athleteDenied = await requireFeatureAccess(clientId, 'lactate_ocr')
+      if (athleteDenied) return athleteDenied
 
       const client = await prisma.client.findUnique({
         where: { id: clientId },

@@ -91,7 +91,7 @@ describe('Tenant boundary - access routes', () => {
   it('GET /api/hybrid-workouts/[id]/results denies coach access for foreign athleteId filter', async () => {
     vi.mocked(getCurrentUser).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
     vi.mocked(resolveAthleteClientId).mockResolvedValue(null)
-    vi.mocked(canAccessAthlete).mockResolvedValue({ allowed: false } as any)
+    vi.mocked(canAccessAthleteScoped).mockResolvedValue({ allowed: false } as any)
 
     const request = new Request(
       'http://localhost/api/hybrid-workouts/workout-1/results?athleteId=client-b'
@@ -108,7 +108,7 @@ describe('Tenant boundary - access routes', () => {
   it('POST /api/hybrid-workouts/[id]/results denies coach write for foreign athleteId', async () => {
     vi.mocked(getCurrentUser).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
     vi.mocked(resolveAthleteClientId).mockResolvedValue(null)
-    vi.mocked(canAccessAthlete).mockResolvedValue({ allowed: false } as any)
+    vi.mocked(canAccessAthleteScoped).mockResolvedValue({ allowed: false } as any)
 
     const request = new Request('http://localhost/api/hybrid-workouts/workout-1/results', {
       method: 'POST',

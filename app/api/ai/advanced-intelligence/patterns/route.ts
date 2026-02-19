@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { analyzeTrainingPatterns } from '@/lib/ai/advanced-intelligence'
 import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 
 /**
@@ -41,6 +42,10 @@ export async function GET(req: NextRequest) {
     if (!allowed) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
+
+    // Subscription gate
+    const denied = await requireFeatureAccess(clientId, 'advanced_intelligence')
+    if (denied) return denied
 
     const patterns = await analyzeTrainingPatterns(clientId, weeks)
 

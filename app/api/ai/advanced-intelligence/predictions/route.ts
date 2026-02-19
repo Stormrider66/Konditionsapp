@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generatePredictiveGoals, predictRaceTimes, calculateTrainingReadiness } from '@/lib/ai/advanced-intelligence'
 import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logPrediction, logPredictionBatch, createRaceTimeInputSnapshot } from '@/lib/data-moat/prediction-logger'
 
@@ -45,6 +46,10 @@ export async function GET(req: NextRequest) {
     if (!allowed) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
+
+    // Subscription gate
+    const denied = await requireFeatureAccess(clientId, 'advanced_intelligence')
+    if (denied) return denied
 
     const result: Record<string, unknown> = {
       success: true,
@@ -158,6 +163,10 @@ export async function POST(req: NextRequest) {
     if (!allowed) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
+
+    // Subscription gate
+    const deniedPost = await requireFeatureAccess(clientId, 'advanced_intelligence')
+    if (deniedPost) return deniedPost
 
     const validDistances = ['5K', '10K', 'HALF', 'MARATHON']
     if (!validDistances.includes(targetDistance)) {

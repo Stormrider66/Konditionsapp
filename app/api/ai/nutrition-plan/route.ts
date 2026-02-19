@@ -8,6 +8,7 @@ import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { decryptSecret } from '@/lib/crypto/secretbox'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import {
   buildNutritionContext,
   generateNutritionPlan,
@@ -60,6 +61,10 @@ export async function POST(req: NextRequest) {
     if (!hasAccess) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
+
+    // Subscription gate
+    const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
+    if (denied) return denied
 
     // Get API key for the user
     const apiKey = await prisma.userApiKey.findUnique({
