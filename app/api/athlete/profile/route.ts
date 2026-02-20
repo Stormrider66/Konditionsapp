@@ -105,19 +105,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const { clientId } = resolved
-
-    // Find or get the athlete account by clientId
-    const athleteAccount = await prisma.athleteAccount.findFirst({
-      where: { clientId },
-    })
-
-    if (!athleteAccount) {
-      return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
-        { status: 404 }
-      )
-    }
+    const { clientId, user } = resolved
 
     const body = await request.json()
     const validation = updateProfileSchema.safeParse(body)
@@ -159,9 +147,15 @@ export async function PUT(request: NextRequest) {
     // Always update the profileLastUpdated timestamp
     updateData.profileLastUpdated = new Date()
 
-    const updated = await prisma.athleteAccount.update({
-      where: { id: athleteAccount.id },
-      data: updateData,
+    // Upsert: create AthleteAccount if it doesn't exist (e.g. admin/coach in athlete mode)
+    const updated = await prisma.athleteAccount.upsert({
+      where: { clientId },
+      update: updateData,
+      create: {
+        clientId,
+        userId: user.id,
+        ...updateData,
+      },
       select: {
         trainingBackground: true,
         longTermAmbitions: true,
