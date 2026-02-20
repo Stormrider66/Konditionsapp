@@ -239,7 +239,7 @@ export const GEMINI_SAFETY_SETTINGS = [
 ] as const;
 
 /**
- * Thinking Mode configuration for Gemini 3 Pro.
+ * Thinking Mode configuration for Gemini 3.1 Pro.
  *
  * thinkingLevel options:
  * - 'DISABLED': No extended thinking (fastest, cheapest)
@@ -287,7 +287,7 @@ export const THINKING_PRESETS: Record<string, ThinkingConfig> = {
 /**
  * Get provider options for Gemini with thinking mode.
  *
- * Note: thinkingConfig is a Gemini 3 Pro feature. When the SDK fully supports it,
+ * Note: thinkingConfig is a Gemini 3.1 Pro feature. When the SDK fully supports it,
  * these options will be passed to the model. For now, we return the configuration
  * structure that can be extended.
  *

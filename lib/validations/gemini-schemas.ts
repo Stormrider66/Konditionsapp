@@ -1,5 +1,5 @@
 /**
- * Gemini 3 Pro Structured Output Schemas
+ * Gemini 3.1 Pro Structured Output Schemas
  *
  * Zod schemas for use with generateObject() in Vercel AI SDK.
  * These schemas define the structured output format for AI responses.
@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 /**
  * Structured output schema for running gait video analysis.
- * Used with Gemini 3 Pro's generateObject() for form-fitted analysis.
+ * Used with Gemini 3.1 Pro's generateObject() for form-fitted analysis.
  */
 export const RunningGaitAnalysisSchema = z.object({
   biometrics: z.object({

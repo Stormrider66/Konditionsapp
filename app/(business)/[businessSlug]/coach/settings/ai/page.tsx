@@ -11,6 +11,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { ApiKeySettingsClient } from '@/app/coach/settings/ai/ApiKeySettingsClient'
 import { DefaultModelSelector } from '@/app/coach/settings/ai/DefaultModelSelector'
+import { AthleteModelSettings } from '@/components/coach/settings/AthleteModelSettings'
 
 interface PageProps {
   params: Promise<{
@@ -41,6 +42,11 @@ export default async function BusinessAISettingsPage({ params }: PageProps) {
       <div className="mb-8">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Standardmodell</h2>
         <DefaultModelSelector />
+      </div>
+
+      {/* Athlete Model Restrictions */}
+      <div className="mb-8">
+        <AthleteModelSettings />
       </div>
 
       {/* API Keys Section */}

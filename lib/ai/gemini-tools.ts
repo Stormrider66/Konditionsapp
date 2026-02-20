@@ -1,5 +1,5 @@
 /**
- * Gemini 3 Pro Function Calling / Tool Use
+ * Gemini 3.1 Pro Function Calling / Tool Use
  *
  * Native tool definitions for AI-assisted coaching actions.
  * These tools allow the AI to take structured actions during conversations.

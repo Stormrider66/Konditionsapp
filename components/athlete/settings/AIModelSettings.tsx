@@ -102,7 +102,7 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
 
   // Group models by provider
   const groupedModels = models.reduce((acc, model) => {
-    const provider = model.provider
+    const provider = (model.provider as string).toLowerCase()
     if (!acc[provider]) {
       acc[provider] = []
     }

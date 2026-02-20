@@ -1,6 +1,6 @@
 // app/api/ai/advanced-intelligence/periodization/route.ts
 // Automatic periodization adjustment API endpoint
-// Supports both algorithmic and Gemini 3 Pro Deep Think analysis
+// Supports both algorithmic and Gemini 3.1 Pro Deep Think analysis
 
 import { NextRequest, NextResponse } from 'next/server'
 import { analyzePeriodization } from '@/lib/ai/advanced-intelligence'
@@ -17,7 +17,7 @@ import { prisma } from '@/lib/prisma'
  * Query params:
  * - clientId: required - athlete ID
  * - programId: optional - specific program ID
- * - useDeepThink: optional - use Gemini 3 Pro Deep Think for complex reasoning
+ * - useDeepThink: optional - use Gemini 3.1 Pro Deep Think for complex reasoning
  * - methodology: optional - POLARIZED | NORWEGIAN | PYRAMIDAL | CANOVA
  */
 export async function GET(req: NextRequest) {

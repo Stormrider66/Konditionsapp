@@ -3,7 +3,7 @@
 /**
  * Running Gait Analysis Dashboard
  *
- * Displays structured running gait analysis from Gemini 3 Pro.
+ * Displays structured running gait analysis from Gemini 3.1 Pro.
  * Features:
  * - Biometrics gauges (cadence, GCT, vertical oscillation)
  * - Injury risk panel with clickable timestamps

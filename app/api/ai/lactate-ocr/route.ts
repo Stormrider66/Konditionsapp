@@ -3,7 +3,7 @@
  *
  * POST /api/ai/lactate-ocr
  *
- * Uses Gemini 3 Pro's multimodal OCR capabilities to extract lactate readings
+ * Uses Gemini 3.1 Pro's multimodal OCR capabilities to extract lactate readings
  * from photos of lactate meters (Lactate Pro 2, Lactate Scout, etc.).
  *
  * Supports:

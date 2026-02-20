@@ -1,7 +1,7 @@
 /**
  * Deep Think Periodization Engine
  *
- * Uses Gemini 3 Pro's "thinkingLevel" capability for sophisticated
+ * Uses Gemini 3.1 Pro's "thinkingLevel" capability for sophisticated
  * multi-week periodization reasoning. This is critical for understanding
  * the interconnectedness of training blocks (e.g., how a missed strength
  * session in Week 4 affects the taper in Week 12).
@@ -48,7 +48,7 @@ export interface DeepThinkPeriodizationResponse extends PeriodizationAnalysis {
 }
 
 /**
- * Generate periodization analysis using Gemini 3 Pro Deep Think
+ * Generate periodization analysis using Gemini 3.1 Pro Deep Think
  *
  * This uses high thinkingLevel for complex multi-week reasoning
  */
@@ -172,7 +172,7 @@ export async function analyzeWithDeepThink(
     apiKey: googleKey,
   });
 
-  // Use Gemini 3 Pro with high thinkingLevel for complex reasoning
+  // Use Gemini 3.1 Pro with high thinkingLevel for complex reasoning
   const result = await generateText({
     model: google(GEMINI_MODELS.VIDEO_ANALYSIS),
     prompt: buildDeepThinkPrompt(contextString),

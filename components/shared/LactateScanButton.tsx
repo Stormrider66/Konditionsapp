@@ -4,7 +4,7 @@
  * Lactate Scan Button
  *
  * Quick camera capture for lactate meter readings during training.
- * Uses Gemini 3 Pro OCR to extract values from meter photos.
+ * Uses Gemini 3.1 Pro OCR to extract values from meter photos.
  *
  * Use cases:
  * - Coach at trackside/ski course taking photos of meter

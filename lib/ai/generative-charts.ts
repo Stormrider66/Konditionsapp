@@ -1,7 +1,7 @@
 /**
  * Generative Chart System
  *
- * Uses Gemini 3 Pro to dynamically generate Recharts configurations
+ * Uses Gemini 3.1 Pro to dynamically generate Recharts configurations
  * based on natural language requests. Instead of static PDFs, the AI
  * returns chart configurations that render client-side.
  *
