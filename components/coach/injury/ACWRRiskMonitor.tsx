@@ -164,21 +164,23 @@ export function ACWRRiskMonitor() {
   // Rich page context for AI chat
   useEffect(() => {
     if (!pageCtx?.setPageContext) return
-    const critical = warnings.filter(w => w.acwrZone === 'CRITICAL').length
-    const danger = warnings.filter(w => w.acwrZone === 'DANGER').length
-    const caution = warnings.filter(w => w.acwrZone === 'CAUTION').length
+    const currentWarnings: ACWRData[] = warningsData?.warnings || []
+    const currentClients = clientsData?.data || []
+    const critical = currentWarnings.filter(w => w.acwrZone === 'CRITICAL').length
+    const danger = currentWarnings.filter(w => w.acwrZone === 'DANGER').length
+    const caution = currentWarnings.filter(w => w.acwrZone === 'CAUTION').length
     pageCtx.setPageContext({
       type: 'acwr-monitor',
       title: 'ACWR Skaderiskmonitor',
       data: {
-        totalWarnings: warnings.length,
+        totalWarnings: currentWarnings.length,
         criticalCount: critical,
         dangerCount: danger,
         cautionCount: caution,
-        totalAthletes: allClients.length,
-        flaggedAthletes: warnings.map(w => ({ name: w.clientName, acwr: w.acwr.toFixed(2), zone: w.acwrZone })),
+        totalAthletes: currentClients.length,
+        flaggedAthletes: currentWarnings.map(w => ({ name: w.clientName, acwr: w.acwr.toFixed(2), zone: w.acwrZone })),
       },
-      summary: `ACWR-monitor: ${critical} kritiska, ${danger} fara, ${caution} varning av ${allClients.length} atleter.`,
+      summary: `ACWR-monitor: ${critical} kritiska, ${danger} fara, ${caution} varning av ${currentClients.length} atleter.`,
       conceptKeys: ['acwr', 'delawarePain', 'rehabPhases', 'tss'],
     })
   }, [warningsData, clientsData, pageCtx])

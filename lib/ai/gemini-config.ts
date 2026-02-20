@@ -1,5 +1,5 @@
 /**
- * Gemini 3 Pro Configuration
+ * Gemini Configuration
  *
  * Centralized configuration for Gemini model selection and capabilities.
  * Used throughout the app for consistent model usage.
@@ -28,7 +28,7 @@ export const GEMINI_MODELS = {
   PRO: 'gemini-2.5-pro',
 
   /** Newest capability, advanced reasoning */
-  PRO_PREVIEW: 'gemini-3-pro-preview',
+  PRO_PREVIEW: 'gemini-3.1-pro-preview',
 
   /** Image generation (fast) */
   IMAGE_GENERATION: 'gemini-2.5-flash-image',
@@ -83,7 +83,7 @@ export const GEMINI_CAPABILITIES = {
  */
 export const GEMINI_PRICING: Record<string, { input: number; output: number }> = {
   // Google Gemini models
-  'gemini-3-pro-preview': {
+  'gemini-3.1-pro-preview': {
     input: 0.002, // $2.00 per 1M input tokens
     output: 0.012, // $12.00 per 1M output tokens
   },
@@ -104,11 +104,11 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
     output: 0.012,
   },
   // Anthropic Claude models
-  'claude-sonnet-4-5-20250929': {
+  'claude-sonnet-4-6': {
     input: 0.003, // $3.00 per 1M input tokens
     output: 0.015, // $15.00 per 1M output tokens
   },
-  'claude-opus-4-5-20251101': {
+  'claude-opus-4-6': {
     input: 0.005, // $5.00 per 1M input tokens
     output: 0.025, // $25.00 per 1M output tokens
   },
@@ -141,7 +141,7 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
  */
 export function estimateVideoCost(
   durationSeconds: number,
-  model: keyof typeof GEMINI_PRICING = 'gemini-3-pro-preview'
+  model: keyof typeof GEMINI_PRICING = 'gemini-3.1-pro-preview'
 ): number {
   // Rough estimate: ~300 tokens per second of video
   const estimatedTokens = durationSeconds * 300;
@@ -163,7 +163,7 @@ export function estimateVideoCost(
  */
 export function estimateAudioCost(
   durationSeconds: number,
-  model: keyof typeof GEMINI_PRICING = 'gemini-3-pro-preview'
+  model: keyof typeof GEMINI_PRICING = 'gemini-3.1-pro-preview'
 ): number {
   // Rough estimate: ~100 tokens per second of audio
   const estimatedTokens = durationSeconds * 100;
@@ -316,7 +316,7 @@ export function estimateCostWithThinking(
   inputTokens: number,
   outputTokens: number,
   thinkingTokens: number,
-  model: keyof typeof GEMINI_PRICING = 'gemini-3-pro-preview'
+  model: keyof typeof GEMINI_PRICING = 'gemini-3.1-pro-preview'
 ): { inputCost: number; outputCost: number; thinkingCost: number; totalCost: number } {
   const pricing = GEMINI_PRICING[model];
 

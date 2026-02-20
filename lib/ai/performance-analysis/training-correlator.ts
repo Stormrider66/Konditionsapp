@@ -4,7 +4,7 @@
  * AI-powered analysis of training-performance correlations.
  */
 
-import Anthropic from '@anthropic-ai/sdk'
+import { generateText } from 'ai'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { buildTrendContext, buildTrainingContext } from './context-builder'
@@ -16,8 +16,8 @@ import {
   TrainingRecommendation,
   PerformancePrediction,
 } from './types'
-
-const anthropic = new Anthropic()
+import { resolveModel, type AvailableKeys } from '@/types/ai-models'
+import { createModelInstance } from '@/lib/ai/create-model'
 
 interface CorrelationOptions {
   lookbackMonths?: number
@@ -28,6 +28,7 @@ interface CorrelationOptions {
  */
 export async function analyzeTrainingCorrelation(
   clientId: string,
+  keys: AvailableKeys,
   options: CorrelationOptions = {}
 ): Promise<TrainingCorrelationResult | null> {
   const { lookbackMonths = 12 } = options
@@ -70,18 +71,20 @@ export async function analyzeTrainingCorrelation(
       context.athlete
     )
 
-    // Call Claude
+    // Resolve best available model
+    const resolved = resolveModel(keys, 'balanced')
+    if (!resolved) {
+      logger.warn('No AI API key available for correlation analysis', { clientId })
+      return null
+    }
+
+    // Call AI
     const startTime = Date.now()
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
+    const response = await generateText({
+      model: createModelInstance(resolved),
       system: PERFORMANCE_ANALYSIS_SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+      prompt,
+      maxOutputTokens: 4000,
     })
 
     const duration = Date.now() - startTime
@@ -89,16 +92,11 @@ export async function analyzeTrainingCorrelation(
       clientId,
       testCount: context.tests.length,
       duration,
-      model: 'claude-sonnet-4-20250514',
+      model: resolved.modelId,
     })
 
     // Parse response
-    const content = response.content[0]
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type')
-    }
-
-    const parsed = parseCorrelationResponse(content.text)
+    const parsed = parseCorrelationResponse(response.text)
 
     // Merge calculated correlations with AI insights
     const mergedCorrelations = mergeCorrelations(correlations, parsed.correlations)
@@ -123,8 +121,8 @@ export async function analyzeTrainingCorrelation(
         recommendedDistribution: { zone1: 10, zone2: 70, zone3: 5, zone4: 10, zone5: 5 },
         methodology: `Baserat på ${context.tests.length} tester över ${lookbackMonths} månader`,
       },
-      tokensUsed: response.usage.input_tokens + response.usage.output_tokens,
-      modelUsed: 'claude-sonnet-4-20250514',
+      tokensUsed: (response.usage?.inputTokens ?? 0) + (response.usage?.outputTokens ?? 0),
+      modelUsed: resolved.modelId,
     }
 
     return result

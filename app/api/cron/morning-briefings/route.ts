@@ -64,16 +64,16 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Get coach's API key
+        // Get coach's API keys
         const apiKeys = await getDecryptedUserApiKeys(athlete.coachUserId)
-        if (!apiKeys.anthropicKey) {
-          logger.warn('No Anthropic API key for coach', { coachId: athlete.coachUserId })
+        if (!apiKeys.anthropicKey && !apiKeys.googleKey && !apiKeys.openaiKey) {
+          logger.warn('No AI API key for coach', { coachId: athlete.coachUserId })
           results.skipped++
           continue
         }
 
         // Generate briefing
-        const briefingId = await createMorningBriefing(athlete.clientId, apiKeys.anthropicKey)
+        const briefingId = await createMorningBriefing(athlete.clientId, apiKeys)
 
         if (briefingId) {
           results.created++

@@ -58,9 +58,9 @@ export const AI_MODELS: AIModelConfig[] = [
   },
   {
     id: 'gemini-3-pro',
-    name: 'Gemini 3 Pro',
+    name: 'Gemini 3.1 Pro',
     provider: 'google',
-    modelId: 'gemini-3-pro-preview',
+    modelId: 'gemini-3.1-pro-preview',
     description: 'Googles bästa modell. 64K output för långa program.',
     costTier: 'medium',
     capabilities: {
@@ -75,7 +75,7 @@ export const AI_MODELS: AIModelConfig[] = [
     },
     bestForLongOutput: true,
   },
-  // Anthropic Models (Claude 4.5)
+  // Anthropic Models (Claude 4.6)
   {
     id: 'claude-haiku',
     name: 'Claude Haiku 4.5',
@@ -96,9 +96,9 @@ export const AI_MODELS: AIModelConfig[] = [
   },
   {
     id: 'claude-sonnet',
-    name: 'Claude Sonnet 4.5',
+    name: 'Claude Sonnet 4.6',
     provider: 'anthropic',
-    modelId: 'claude-sonnet-4-5-20250929',
+    modelId: 'claude-sonnet-4-6',
     description: 'Balanserad prestanda och kostnad. Utmärkt för träning.',
     costTier: 'medium',
     capabilities: {
@@ -115,16 +115,16 @@ export const AI_MODELS: AIModelConfig[] = [
   },
   {
     id: 'claude-opus',
-    name: 'Claude Opus 4.5',
+    name: 'Claude Opus 4.6',
     provider: 'anthropic',
-    modelId: 'claude-opus-4-5-20251101',
-    description: 'Anthropics mest kraftfulla. 64K output för långa program.',
+    modelId: 'claude-opus-4-6',
+    description: 'Anthropics mest kraftfulla. 128K output för långa program.',
     costTier: 'high',
     capabilities: {
       reasoning: 'excellent',
       speed: 'slow',
       contextWindow: 200000,
-      maxOutputTokens: 64000,
+      maxOutputTokens: 128000,
     },
     pricing: {
       input: 5.0,   // $5.00 per 1M tokens
@@ -297,4 +297,105 @@ export function getBestModelForLongOutput(keys: {
 }): AIModelConfig | undefined {
   const models = getModelsForLongOutput(keys)
   return models[0]
+}
+
+// ─── Provider-Agnostic Model Resolution ─────────────────────────────────────
+
+/**
+ * Intent describes what capability tier is needed.
+ * - 'fast':      Cheapest/fastest model. For background tasks, memory extraction, briefings.
+ * - 'balanced':  Good quality at reasonable cost. For chat, nutrition plans, analysis.
+ * - 'powerful':  Best available reasoning. For program generation, deep research.
+ */
+export type ModelIntent = 'fast' | 'balanced' | 'powerful'
+
+export interface ResolvedModel {
+  provider: AIProvider
+  modelId: string
+  apiKey: string
+  displayName: string
+}
+
+export interface AvailableKeys {
+  anthropicKey?: string | null
+  googleKey?: string | null
+  openaiKey?: string | null
+}
+
+export interface ConfiguredProviders {
+  hasAnthropic: boolean
+  hasGoogle: boolean
+  hasOpenai: boolean
+}
+
+/**
+ * Equivalent models across providers, grouped by intent tier.
+ * Priority order: Google → Anthropic → OpenAI (cheapest-first for equal quality).
+ */
+const MODEL_TIERS: Record<ModelIntent, {
+  google:    { modelId: string; displayName: string }
+  anthropic: { modelId: string; displayName: string }
+  openai:    { modelId: string; displayName: string }
+}> = {
+  fast: {
+    google:    { modelId: 'gemini-3-flash-preview',     displayName: 'Gemini 3 Flash' },
+    anthropic: { modelId: 'claude-haiku-4-5-20251016',  displayName: 'Claude Haiku 4.5' },
+    openai:    { modelId: 'gpt-5-nano',                 displayName: 'GPT-5 Nano' },
+  },
+  balanced: {
+    google:    { modelId: 'gemini-3-flash-preview',     displayName: 'Gemini 3 Flash' },
+    anthropic: { modelId: 'claude-sonnet-4-6',          displayName: 'Claude Sonnet 4.6' },
+    openai:    { modelId: 'gpt-5-mini',                 displayName: 'GPT-5 Mini' },
+  },
+  powerful: {
+    google:    { modelId: 'gemini-3.1-pro-preview',     displayName: 'Gemini 3.1 Pro' },
+    anthropic: { modelId: 'claude-sonnet-4-6',          displayName: 'Claude Sonnet 4.6' },
+    openai:    { modelId: 'gpt-5.2',                    displayName: 'GPT-5.2' },
+  },
+}
+
+/**
+ * Resolve the best available model for a given intent (server-side, with actual API keys).
+ * Returns null if no keys are available at all.
+ */
+export function resolveModel(
+  keys: AvailableKeys,
+  intent: ModelIntent = 'balanced'
+): ResolvedModel | null {
+  const tier = MODEL_TIERS[intent]
+
+  if (keys.googleKey) {
+    return { provider: 'google', modelId: tier.google.modelId, apiKey: keys.googleKey, displayName: tier.google.displayName }
+  }
+  if (keys.anthropicKey) {
+    return { provider: 'anthropic', modelId: tier.anthropic.modelId, apiKey: keys.anthropicKey, displayName: tier.anthropic.displayName }
+  }
+  if (keys.openaiKey) {
+    return { provider: 'openai', modelId: tier.openai.modelId, apiKey: keys.openaiKey, displayName: tier.openai.displayName }
+  }
+
+  return null
+}
+
+/**
+ * Client-side model resolution using provider availability flags (no actual keys needed).
+ * Used by UI components that know which providers are configured but don't have the keys.
+ */
+export function resolveModelForClient(
+  configured: ConfiguredProviders,
+  intent: ModelIntent = 'balanced'
+): { provider: AIProvider; modelId: string; displayName: string } | null {
+  const tier = MODEL_TIERS[intent]
+
+  if (configured.hasGoogle) {
+    return { provider: 'google', ...tier.google }
+  }
+  if (configured.hasAnthropic) {
+    return { provider: 'anthropic', ...tier.anthropic }
+  }
+  if (configured.hasOpenai) {
+    return { provider: 'openai', ...tier.openai }
+  }
+
+  return null
 }

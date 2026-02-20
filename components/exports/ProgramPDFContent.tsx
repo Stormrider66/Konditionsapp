@@ -108,6 +108,7 @@ export function ProgramPDFContent({
           </div>
           <div className="text-right text-sm text-gray-600">
             {branding?.logoUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img src={branding.logoUrl} alt={displayOrg} className="h-8 w-auto ml-auto mb-1" />
             )}
             <p className="font-semibold">{displayOrg}</p>

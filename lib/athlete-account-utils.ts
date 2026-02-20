@@ -103,48 +103,63 @@ export async function createAthleteAccountForClient(
       return { success: false, error: `Failed to create athlete account: ${authError?.message}` }
     }
 
-    // Create user in our database
-    const athleteUser = await prisma.user.create({
-      data: {
-        id: authData.user.id,
-        email: client.email,
-        name: client.name,
-        role: 'ATHLETE',
-        language: coach.language, // Inherit coach's language
-      },
-    })
-
-    // Create athlete account linking
-    const athleteAccount = await prisma.athleteAccount.create({
-      data: {
-        clientId,
-        userId: athleteUser.id,
-        notificationPrefs: options?.notificationPrefs || {
-          email: true,
-          push: false,
-          workoutReminders: true,
-        },
-      },
-      include: {
-        client: true,
-        user: true,
-      },
-    })
-
-    // Update subscription athlete count
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: coachId },
-    })
-
-    if (subscription) {
-      await prisma.subscription.update({
-        where: { userId: coachId },
-        data: {
-          currentAthletes: {
-            increment: 1,
+    // Wrap all DB operations in a transaction to prevent partial state
+    let athleteAccount
+    try {
+      athleteAccount = await prisma.$transaction(async (tx) => {
+        // Create user in our database
+        const athleteUser = await tx.user.create({
+          data: {
+            id: authData.user.id,
+            email: client.email!,
+            name: client.name,
+            role: 'ATHLETE',
+            language: coach.language, // Inherit coach's language
           },
-        },
+        })
+
+        // Create athlete account linking
+        const account = await tx.athleteAccount.create({
+          data: {
+            clientId,
+            userId: athleteUser.id,
+            notificationPrefs: options?.notificationPrefs || {
+              email: true,
+              push: false,
+              workoutReminders: true,
+            },
+          },
+          include: {
+            client: true,
+            user: true,
+          },
+        })
+
+        // Update subscription athlete count
+        const subscription = await tx.subscription.findUnique({
+          where: { userId: coachId },
+        })
+
+        if (subscription) {
+          await tx.subscription.update({
+            where: { userId: coachId },
+            data: {
+              currentAthletes: {
+                increment: 1,
+              },
+            },
+          })
+        }
+
+        return account
       })
+    } catch (txError) {
+      // Clean up Supabase user if DB transaction failed
+      logger.error('Athlete account DB transaction failed, cleaning up auth user', { clientId, coachId }, txError)
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id).catch((cleanupErr) => {
+        logger.error('Failed to clean up Supabase user after transaction failure', { userId: authData.user.id }, cleanupErr)
+      })
+      return { success: false, error: 'Database transaction failed while creating athlete account' }
     }
 
     // Note: Password is NOT returned in the result for security

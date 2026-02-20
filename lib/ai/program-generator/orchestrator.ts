@@ -270,7 +270,7 @@ async function callAnthropic(prompt: string, apiKey: string, modelId?: string): 
   const { generateText } = await import('ai')
 
   const anthropic = createAnthropic({ apiKey })
-  const model = modelId || 'claude-sonnet-4-5-20250929'
+  const model = modelId || 'claude-sonnet-4-6'
 
   const result = await generateText({
     model: anthropic(model),

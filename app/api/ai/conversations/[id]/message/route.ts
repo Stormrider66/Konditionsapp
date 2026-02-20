@@ -9,7 +9,10 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { searchSimilarChunks, getUserOpenAIKey } from '@/lib/ai/embeddings'
 import Anthropic from '@anthropic-ai/sdk'
+import { generateText } from 'ai'
 import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { resolveModel } from '@/types/ai-models'
+import { createModelInstance } from '@/lib/ai/create-model'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 
@@ -187,7 +190,7 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
         })
 
         const response = await anthropic.messages.create({
-          model: conversation.modelUsed || 'claude-sonnet-4-20250514',
+          model: conversation.modelUsed || 'claude-sonnet-4-6',
           max_tokens: 4096,
           system: systemPrompt,
           messages: messageHistory,
@@ -207,7 +210,7 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
       // Google/Gemini API call
       try {
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1/models/${conversation.modelUsed || 'gemini-pro'}:generateContent?key=${decryptedKeys.googleKey}`,
+          `https://generativelanguage.googleapis.com/v1/models/${conversation.modelUsed || 'gemini-3-flash-preview'}:generateContent?key=${decryptedKeys.googleKey}`,
           {
             method: 'POST',
             headers: {
@@ -248,13 +251,33 @@ När du föreslår träningsprogram, var specifik med intensiteter, volymer och 
         )
       }
     } else {
-      return NextResponse.json(
-        {
-          error: 'No valid API key for selected provider',
-          provider: conversation.provider,
-        },
-        { status: 400 }
-      )
+      // Selected provider's key not available — try any available provider
+      const resolved = resolveModel(decryptedKeys, 'balanced')
+      if (!resolved) {
+        return NextResponse.json(
+          { error: 'Ingen AI API-nyckel konfigurerad. Konfigurera minst en API-nyckel i inställningarna.' },
+          { status: 400 }
+        )
+      }
+      try {
+        const response = await generateText({
+          model: createModelInstance(resolved),
+          system: systemPrompt,
+          messages: messageHistory.map(m => ({
+            role: m.role as 'user' | 'assistant',
+            content: String(m.content),
+          })),
+          maxOutputTokens: 4096,
+        })
+        assistantResponse = response.text
+        inputTokens = response.usage?.inputTokens ?? 0
+        outputTokens = response.usage?.outputTokens ?? 0
+      } catch (error) {
+        logger.error('AI fallback API error', { provider: resolved.provider }, error)
+        throw new Error(
+          `AI API error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        )
+      }
     }
 
     const latencyMs = Date.now() - startTime

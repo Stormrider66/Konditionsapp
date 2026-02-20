@@ -1153,7 +1153,7 @@ model Subscription {
 
   // Billing
   stripeCustomerId       String?
-  stripeSubscriptionId   String?
+  stripeSubscriptionId   String?  @unique
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
 
@@ -1271,7 +1271,7 @@ model AthleteSubscription {
 
   // Stripe integration
   stripeCustomerId     String?
-  stripeSubscriptionId String?
+  stripeSubscriptionId String?  @unique
   billingCycle         String? // "MONTHLY" | "YEARLY"
 
   // Revenue sharing (if paymentSource = BUSINESS)
@@ -4671,7 +4671,7 @@ model AIGeneratedWOD {
   // Usage & metrics
   tokensUsed       Int?
   generationTimeMs Int?
-  modelUsed        String? // e.g., "claude-sonnet-4-5-20250929"
+  modelUsed        String? // e.g., "claude-sonnet-4-6"
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

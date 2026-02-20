@@ -68,10 +68,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // Get API key from coach settings
+    // Get API keys from coach settings
     const apiKeys = await getDecryptedUserApiKeys(client.userId)
-    const apiKey = apiKeys.anthropicKey
-    if (!apiKey) {
+    if (!apiKeys.anthropicKey && !apiKeys.googleKey && !apiKeys.openaiKey) {
       return NextResponse.json(
         { error: 'No AI API key configured' },
         { status: 400 }
@@ -81,7 +80,7 @@ export async function POST(request: Request) {
     // Extract memories from conversation
     const extractedMemories = await extractMemoriesFromConversation(
       messages,
-      apiKey
+      apiKeys
     )
 
     // Save memories to database

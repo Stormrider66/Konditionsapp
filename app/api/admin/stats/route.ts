@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
         where: { status: 'COMPLETED' },
       }),
 
-      // Daily registrations
+      // Daily registrations (capped to prevent unbounded results)
       prisma.user.findMany({
         where: {
           createdAt: { gte: startDate, lte: endDate },
@@ -141,6 +141,7 @@ export async function GET(request: NextRequest) {
         orderBy: {
           createdAt: 'asc',
         },
+        take: 10000,
       }),
     ]);
 

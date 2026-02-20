@@ -95,8 +95,8 @@ export async function POST(req: NextRequest) {
       data: {
         userId: user.id,
         category: 'performance_analysis',
-        provider: 'ANTHROPIC',
-        model: result.modelUsed ?? 'claude-sonnet-4-20250514',
+        provider: result.modelUsed?.startsWith('gemini') ? 'GOOGLE' : result.modelUsed?.startsWith('gpt') ? 'OPENAI' : 'ANTHROPIC',
+        model: result.modelUsed ?? 'unknown',
         inputTokens: Math.floor((result.tokensUsed ?? 0) * 0.7),
         outputTokens: Math.floor((result.tokensUsed ?? 0) * 0.3),
         estimatedCost: (result.tokensUsed ?? 0) * 0.000003,

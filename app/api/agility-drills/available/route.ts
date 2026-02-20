@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
     const developmentStage = searchParams.get('developmentStage') as DevelopmentStage | null
     const includeGapAnalysis = searchParams.get('includeGapAnalysis') === 'true'
 
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '500') || 500), 1000)
+
     // Get all drills (system drills and coach's custom drills)
     let allDrills = await prisma.agilityDrill.findMany({
       where: {
@@ -38,7 +40,8 @@ export async function GET(request: NextRequest) {
         { category: 'asc' },
         { difficultyLevel: 'asc' },
         { name: 'asc' }
-      ]
+      ],
+      take: limit,
     })
 
     // Filter by development stage if specified (manual filter since Prisma enum doesn't support lte/gte)

@@ -85,43 +85,59 @@ export async function POST(request: NextRequest) {
     // Calculate revenue share (business gets revenueSharePercent, platform gets the rest)
     const businessShare = business.enterpriseContract.revenueSharePercent
     const platformShare = 100 - businessShare
+    const referer = request.headers.get('referer')
 
-    // Create user in database with referral tracking
-    const user = await prisma.user.create({
-      data: {
-        id: authData.user.id,
-        email: data.email,
-        name: data.name,
-        role: 'ATHLETE', // Partner referrals are typically athletes
-        language: data.language,
-        referredByBusinessId: business.id,
-      }
-    })
+    // Wrap all DB operations in a transaction to prevent partial state
+    let user
+    try {
+      user = await prisma.$transaction(async (tx) => {
+        // Create user in database with referral tracking
+        const newUser = await tx.user.create({
+          data: {
+            id: authData.user.id,
+            email: data.email,
+            name: data.name,
+            role: 'ATHLETE', // Partner referrals are typically athletes
+            language: data.language,
+            referredByBusinessId: business.id,
+          }
+        })
 
-    // Create partner referral record
-    await prisma.partnerReferral.create({
-      data: {
-        businessId: business.id,
-        userId: user.id,
-        referralCode: data.referralCode,
-        referralSource: data.referralSource,
-        landingPage: request.headers.get('referer'),
-        status: 'PENDING', // Will become ACTIVE when they subscribe
-        revenueSharePercent: businessShare,
-        platformSharePercent: platformShare,
-      }
-    })
+        // Create partner referral record
+        await tx.partnerReferral.create({
+          data: {
+            businessId: business.id,
+            userId: newUser.id,
+            referralCode: data.referralCode,
+            referralSource: data.referralSource,
+            landingPage: referer,
+            status: 'PENDING', // Will become ACTIVE when they subscribe
+            revenueSharePercent: businessShare,
+            platformSharePercent: platformShare,
+          }
+        })
 
-    // Add user as MEMBER of the business
-    await prisma.businessMember.create({
-      data: {
-        businessId: business.id,
-        userId: user.id,
-        role: 'MEMBER',
-        isActive: true,
-        acceptedAt: new Date(),
-      }
-    })
+        // Add user as MEMBER of the business
+        await tx.businessMember.create({
+          data: {
+            businessId: business.id,
+            userId: newUser.id,
+            role: 'MEMBER',
+            isActive: true,
+            acceptedAt: new Date(),
+          }
+        })
+
+        return newUser
+      })
+    } catch (txError) {
+      // Clean up Supabase user if DB transaction failed
+      logger.error('Partner registration DB transaction failed, cleaning up auth user', { email: data.email }, txError)
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id).catch((cleanupErr: unknown) => {
+        logger.error('Failed to clean up Supabase user after transaction failure', { userId: authData.user.id }, cleanupErr)
+      })
+      throw txError
+    }
 
     return NextResponse.json({
       success: true,

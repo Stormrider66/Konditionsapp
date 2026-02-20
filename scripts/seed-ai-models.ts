@@ -9,12 +9,12 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const AI_MODELS = [
-  // Anthropic Models (Current as of December 2025)
-  // Source: https://docs.anthropic.com/en/docs/about-claude/models/overview
+  // Anthropic Models (Current as of February 2026)
+  // Source: https://platform.claude.com/docs/en/about-claude/models/overview
   {
     provider: 'ANTHROPIC' as const,
-    modelId: 'claude-sonnet-4-5-20250929',
-    displayName: 'Claude Sonnet 4.5',
+    modelId: 'claude-sonnet-4-6',
+    displayName: 'Claude Sonnet 4.6',
     description: 'Snabb och intelligent, bra för de flesta uppgifter',
     capabilities: ['text', 'code', 'vision'],
     maxTokens: 200000,
@@ -26,12 +26,12 @@ const AI_MODELS = [
   },
   {
     provider: 'ANTHROPIC' as const,
-    modelId: 'claude-opus-4-5-20251101',
-    displayName: 'Claude Opus 4.5',
+    modelId: 'claude-opus-4-6',
+    displayName: 'Claude Opus 4.6',
     description: 'Mest kapabel modell, bäst för komplexa uppgifter',
     capabilities: ['text', 'code', 'vision', 'reasoning'],
     maxTokens: 200000,
-    maxOutputTokens: 64000,
+    maxOutputTokens: 128000,
     inputCostPer1k: 0.005,
     outputCostPer1k: 0.025,
     isActive: true,
@@ -50,9 +50,9 @@ const AI_MODELS = [
     isActive: true,
     isDefault: false,
   },
-  // Google Models (December 2025)
+  // Google Models (February 2026)
   // Source: https://ai.google.dev/gemini-api/docs/models
-  // Model IDs: gemini-3-flash-preview, gemini-2.5-pro, gemini-3-pro-preview
+  // Model IDs: gemini-3-flash-preview, gemini-2.5-pro, gemini-3.1-pro-preview
   {
     provider: 'GOOGLE' as const,
     modelId: 'gemini-3-flash-preview',
@@ -81,8 +81,8 @@ const AI_MODELS = [
   },
   {
     provider: 'GOOGLE' as const,
-    modelId: 'gemini-3-pro-preview',
-    displayName: 'Gemini 3 Pro (Preview)',
+    modelId: 'gemini-3.1-pro-preview',
+    displayName: 'Gemini 3.1 Pro',
     description: 'Nyaste modellen med avancerat resonemang',
     capabilities: ['text', 'code', 'vision', 'audio', 'video', 'reasoning'],
     maxTokens: 1000000,

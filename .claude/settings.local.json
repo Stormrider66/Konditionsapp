@@ -38,7 +38,8 @@
       "Bash(npx prisma db execute:*)",
       "Bash(1 <<'SQL'\nSELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'KnowledgeChunk' AND indexname LIKE '%embedding%';\nSQL)",
       "WebFetch(domain:www.anthropic.com)",
-      "WebFetch(domain:www.nightfall.ai)"
+      "WebFetch(domain:www.nightfall.ai)",
+      "WebFetch(domain:ai.google.dev)"
     ],
     "deny": [],
     "ask": []

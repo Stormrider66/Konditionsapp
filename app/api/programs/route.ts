@@ -137,8 +137,14 @@ export async function GET(request: NextRequest) {
         },
       })
     } else {
-      // Admins see all programs
+      // Admins see all programs (optionally filtered by client)
+      const adminWhere: any = {}
+      if (clientId) {
+        adminWhere.clientId = clientId
+      }
+
       programs = await prisma.trainingProgram.findMany({
+        where: adminWhere,
         include: {
           client: {
             select: {

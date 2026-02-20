@@ -413,10 +413,10 @@ export async function fetchAsBase64(
  * Get the recommended model for video/audio tasks.
  * Maps our config to actual model IDs.
  *
- * Available models (December 2025):
+ * Available models (February 2026):
  * - gemini-3-flash-preview: Fast, stable, video support (newest flash model)
  * - gemini-2.5-pro: Advanced reasoning
- * - gemini-3-pro-preview: Newest capability
+ * - gemini-3.1-pro-preview: Newest capability
  *
  * Note: Do NOT use date-stamped versions like gemini-2.5-pro-preview-05-06
  * The SDK handles API versioning automatically.

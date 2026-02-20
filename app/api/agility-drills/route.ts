@@ -50,6 +50,8 @@ export async function GET(request: NextRequest) {
     const difficulty = searchParams.get('difficulty')
     const systemOnly = searchParams.get('systemOnly') === 'true'
     const coachId = searchParams.get('coachId')
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '200') || 200), 500)
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0)
 
     const where: Record<string, unknown> = {}
 
@@ -108,23 +110,31 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    const drills = await prisma.agilityDrill.findMany({
-      where,
-      orderBy: [
-        { difficultyLevel: 'asc' },
-        { name: 'asc' }
-      ],
-      include: {
-        progressionDrill: {
-          select: { id: true, name: true }
+    const [drills, total] = await Promise.all([
+      prisma.agilityDrill.findMany({
+        where,
+        orderBy: [
+          { difficultyLevel: 'asc' },
+          { name: 'asc' }
+        ],
+        include: {
+          progressionDrill: {
+            select: { id: true, name: true }
+          },
+          regressionDrill: {
+            select: { id: true, name: true }
+          }
         },
-        regressionDrill: {
-          select: { id: true, name: true }
-        }
-      }
-    })
+        take: limit,
+        skip: offset,
+      }),
+      prisma.agilityDrill.count({ where }),
+    ])
 
-    return NextResponse.json(drills)
+    return NextResponse.json({
+      data: drills,
+      pagination: { total, limit, offset, hasMore: offset + drills.length < total },
+    })
   } catch (error) {
     console.error('Error fetching agility drills:', error)
     return NextResponse.json(

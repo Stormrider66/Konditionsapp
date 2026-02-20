@@ -128,39 +128,44 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Ensure user exists in database (create if needed from Supabase Auth)
-    let dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-    })
+    // Wrap user upsert + client creation in a transaction to prevent partial state
+    const { dbUser, client } = await prisma.$transaction(async (tx) => {
+      // Ensure user exists in database (create if needed from Supabase Auth)
+      let txUser = await tx.user.findUnique({
+        where: { id: user.id },
+      })
 
-    if (!dbUser) {
-      // Create user record from Supabase Auth user
-      dbUser = await prisma.user.create({
+      if (!txUser) {
+        // Create user record from Supabase Auth user
+        txUser = await tx.user.create({
+          data: {
+            id: user.id,
+            email: user.email!,
+            name: user.user_metadata?.name || user.email!.split('@')[0],
+            role: 'COACH', // Default role for users creating clients
+            language: 'sv',
+          },
+        })
+        logger.info('Created user record for', { email: user.email })
+      }
+
+      // Convert birthDate string to Date
+      const txClient = await tx.client.create({
         data: {
-          id: user.id,
-          email: user.email!,
-          name: user.user_metadata?.name || user.email!.split('@')[0],
-          role: 'COACH', // Default role for users creating clients
-          language: 'sv',
+          userId: txUser.id,
+          name: data.name,
+          email: data.email || null,
+          phone: data.phone || null,
+          gender: data.gender,
+          birthDate: new Date(data.birthDate),
+          height: data.height,
+          weight: data.weight,
+          notes: data.notes || null,
+          teamId: data.teamId && data.teamId !== '' ? data.teamId : null,
         },
       })
-      logger.info('Created user record for', { email: user.email })
-    }
 
-    // Convert birthDate string to Date
-    const client = await prisma.client.create({
-      data: {
-        userId: dbUser.id,
-        name: data.name,
-        email: data.email || null,
-        phone: data.phone || null,
-        gender: data.gender,
-        birthDate: new Date(data.birthDate),
-        height: data.height,
-        weight: data.weight,
-        notes: data.notes || null,
-        teamId: data.teamId && data.teamId !== '' ? data.teamId : null,
-      },
+      return { dbUser: txUser, client: txClient }
     })
 
     // Automatically create athlete account if client has an email

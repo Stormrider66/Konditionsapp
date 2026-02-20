@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -261,10 +262,13 @@ export function BusinessBrandingTab() {
               </p>
               <div className="flex items-center gap-3">
                 {form.logoUrl && (
-                  <img
+                  <Image
                     src={form.logoUrl}
                     alt="Logo preview"
+                    width={32}
+                    height={32}
                     className="h-8 w-8 object-contain rounded"
+                    unoptimized
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                   />
                 )}

@@ -50,6 +50,8 @@ export async function GET(request: NextRequest) {
     const coachId = searchParams.get('coachId')
     const templatesOnly = searchParams.get('templatesOnly') === 'true'
     const search = searchParams.get('search')
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '100') || 100), 500)
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0') || 0)
 
     const where: Record<string, unknown> = {}
 
@@ -93,31 +95,39 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    const workouts = await prisma.agilityWorkout.findMany({
-      where,
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        coach: {
-          select: { id: true, name: true }
-        },
-        drills: {
-          orderBy: { order: 'asc' },
-          include: {
-            drill: {
-              select: { id: true, name: true, nameSv: true, category: true, difficultyLevel: true }
+    const [workouts, total] = await Promise.all([
+      prisma.agilityWorkout.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          coach: {
+            select: { id: true, name: true }
+          },
+          drills: {
+            orderBy: { order: 'asc' },
+            include: {
+              drill: {
+                select: { id: true, name: true, nameSv: true, category: true, difficultyLevel: true }
+              }
+            }
+          },
+          _count: {
+            select: {
+              assignments: true,
+              results: true
             }
           }
         },
-        _count: {
-          select: {
-            assignments: true,
-            results: true
-          }
-        }
-      }
-    })
+        take: limit,
+        skip: offset,
+      }),
+      prisma.agilityWorkout.count({ where }),
+    ])
 
-    return NextResponse.json(workouts)
+    return NextResponse.json({
+      data: workouts,
+      pagination: { total, limit, offset, hasMore: offset + workouts.length < total },
+    })
   } catch (error) {
     console.error('Error fetching agility workouts:', error)
     return NextResponse.json(

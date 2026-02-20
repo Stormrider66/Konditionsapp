@@ -9,6 +9,8 @@ import { streamText, type CoreMessage, type LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
+import { resolveModel } from '@/types/ai-models';
+import { createModelInstance } from '@/lib/ai/create-model';
 import { requireCoach, resolveAthleteClientId, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { checkAthleteFeatureAccess, incrementAIChatUsage } from '@/lib/subscription/feature-access';
@@ -592,7 +594,7 @@ ${pageContext}
       const anthropic = createAnthropic({
         apiKey: decryptedKeys.anthropicKey,
       });
-      aiModel = anthropic(model || 'claude-sonnet-4-5-20250929');
+      aiModel = anthropic(model || 'claude-sonnet-4-6');
     } else if (provider === 'GOOGLE' && decryptedKeys.googleKey) {
       const google = createGoogleGenerativeAI({
         apiKey: decryptedKeys.googleKey,
@@ -610,10 +612,21 @@ ${pageContext}
       // OpenAI SDK returns LanguageModelV2 which is compatible with streamText
       aiModel = openai(model || 'gpt-5.2');
     } else {
-      return new Response(
-        JSON.stringify({ error: 'No valid API key for selected provider' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      // Selected provider's key not available — try any available provider
+      const resolved = resolveModel(decryptedKeys, 'balanced');
+      if (resolved) {
+        aiModel = createModelInstance(resolved);
+        logger.info('Falling back to available provider', {
+          requestedProvider: provider,
+          fallbackProvider: resolved.provider,
+          fallbackModel: resolved.modelId,
+        });
+      } else {
+        return new Response(
+          JSON.stringify({ error: 'Ingen AI API-nyckel konfigurerad. Konfigurera minst en API-nyckel i inställningarna.' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Convert UIMessage format to CoreMessage format for streamText
@@ -637,7 +650,7 @@ ${pageContext}
     // Set max output tokens per provider
     const maxTokensByProvider: Record<string, number> = {
       OPENAI: 128000,    // GPT-5.2 supports 128k output
-      ANTHROPIC: 64000,  // Claude Opus 4.5 & Sonnet 4.5 support 64k output
+      ANTHROPIC: 64000,  // Claude Sonnet 4.6 supports 64k, Opus 4.6 supports 128k
       GOOGLE: 65536,     // Gemini
     };
     const maxOutputTokens = maxTokensByProvider[provider] || 16384;
@@ -730,14 +743,14 @@ ${pageContext}
             (async () => {
               try {
                 const apiKeys = await getDecryptedUserApiKeys(apiKeyUserId);
-                if (apiKeys.anthropicKey) {
+                if (apiKeys.anthropicKey || apiKeys.googleKey || apiKeys.openaiKey) {
                   const conversationForMemory = [
                     { role: 'user' as const, content: getMessageContent(lastUserMessage) },
                     { role: 'assistant' as const, content: text },
                   ];
                   const extractedMemories = await extractMemoriesFromConversation(
                     conversationForMemory,
-                    apiKeys.anthropicKey
+                    apiKeys
                   );
                   if (extractedMemories.length > 0) {
                     const savedCount = await saveMemories(athleteClientId, extractedMemories);

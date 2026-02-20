@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ChatMessage } from './ChatMessage'
+import { resolveModelForClient } from '@/types/ai-models'
 
 interface QuickAction {
   label: string
@@ -60,10 +61,6 @@ const DEFAULT_TEST_ACTIONS: QuickAction[] = [
   { label: 'Rekommendera träningszoner', prompt: 'Baserat på testresultaten, rekommendera optimala träningszoner' },
 ]
 
-// Constants for AI model (ensures consistency across all calls)
-const MODEL = 'claude-sonnet-4-5-20250929'
-const PROVIDER = 'ANTHROPIC' as const
-
 export function AIContextButton({
   athleteId,
   athleteName,
@@ -78,6 +75,28 @@ export function AIContextButton({
   const [conversationId, setConversationId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Resolve model dynamically based on available API keys
+  const [modelConfig, setModelConfig] = useState<{ model: string; provider: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/ai/config')
+      .then(res => res.json())
+      .then(data => {
+        const resolved = resolveModelForClient({
+          hasGoogle: !!data?.apiKeys?.googleKey?.configured,
+          hasAnthropic: !!data?.apiKeys?.anthropicKey?.configured,
+          hasOpenai: !!data?.apiKeys?.openaiKey?.configured,
+        }, 'balanced')
+        if (resolved) {
+          setModelConfig({ model: resolved.modelId, provider: resolved.provider.toUpperCase() })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const MODEL = modelConfig?.model || 'gemini-3-flash-preview'
+  const PROVIDER = modelConfig?.provider || 'GOOGLE'
 
   const actions = quickActions || (athleteId ? DEFAULT_ATHLETE_ACTIONS : DEFAULT_TEST_ACTIONS)
 

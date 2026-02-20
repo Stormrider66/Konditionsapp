@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const range = parseInt(searchParams.get('range') || '24') // Hours
     const granularity = searchParams.get('granularity') || 'hour' // hour, day
 
+    const limit = Math.min(parseInt(searchParams.get('limit') || '5000'), 10000)
     const since = new Date(Date.now() - range * 60 * 60 * 1000)
 
     const where: Record<string, unknown> = {
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
     const metrics = await prisma.systemMetric.findMany({
       where,
       orderBy: { timestamp: 'asc' },
+      take: limit,
     })
 
     // Group by metric name for charting

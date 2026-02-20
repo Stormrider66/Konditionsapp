@@ -5,9 +5,11 @@
  * training schedule, readiness data, and recent activities.
  */
 
-import Anthropic from '@anthropic-ai/sdk'
+import { generateText } from 'ai'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { resolveModel, type AvailableKeys } from '@/types/ai-models'
+import { createModelInstance } from '@/lib/ai/create-model'
 
 export interface BriefingContext {
   athleteName: string
@@ -195,31 +197,29 @@ async function getTodaysWorkout(clientId: string): Promise<BriefingContext['toda
  */
 export async function generateMorningBriefing(
   context: BriefingContext,
-  apiKey: string
+  keys: AvailableKeys
 ): Promise<GeneratedBriefing> {
-  const client = new Anthropic({ apiKey })
+  const resolved = resolveModel(keys, 'fast')
+  if (!resolved) {
+    return getDefaultBriefing(context)
+  }
 
   const prompt = buildBriefingPrompt(context)
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+    const response = await generateText({
+      model: createModelInstance(resolved),
+      prompt,
+      maxOutputTokens: 1024,
     })
 
-    const textContent = response.content.find((c) => c.type === 'text')
-    if (!textContent || textContent.type !== 'text') {
+    const textContent = response.text
+    if (!textContent) {
       return getDefaultBriefing(context)
     }
 
     // Parse JSON response
-    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
+    const jsonMatch = textContent.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       return getDefaultBriefing(context)
     }
@@ -373,7 +373,7 @@ function getDefaultBriefing(context: BriefingContext): GeneratedBriefing {
  */
 export async function createMorningBriefing(
   clientId: string,
-  apiKey: string
+  keys: AvailableKeys
 ): Promise<string | null> {
   try {
     // Build context
@@ -384,7 +384,7 @@ export async function createMorningBriefing(
     }
 
     // Generate briefing
-    const briefing = await generateMorningBriefing(context, apiKey)
+    const briefing = await generateMorningBriefing(context, keys)
 
     // Save to database
     const saved = await prisma.aIBriefing.create({
@@ -399,7 +399,7 @@ export async function createMorningBriefing(
         alerts: briefing.alerts,
         quickActions: briefing.quickActions,
         scheduledFor: new Date(),
-        modelUsed: 'claude-3-5-haiku-20241022',
+        modelUsed: resolveModel(keys, 'fast')?.modelId ?? 'unknown',
       },
     })
 

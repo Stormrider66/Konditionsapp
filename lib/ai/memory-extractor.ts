@@ -5,8 +5,10 @@
  * Used to build long-term memory that personalizes future interactions.
  */
 
-import Anthropic from '@anthropic-ai/sdk'
+import { generateText } from 'ai'
 import { prisma } from '@/lib/prisma'
+import { resolveModel, type AvailableKeys } from '@/types/ai-models'
+import { createModelInstance } from '@/lib/ai/create-model'
 
 // Memory types that can be extracted
 export const MEMORY_TYPES = {
@@ -41,13 +43,16 @@ interface ConversationMessage {
  */
 export async function extractMemoriesFromConversation(
   messages: ConversationMessage[],
-  apiKey: string
+  keys: AvailableKeys
 ): Promise<ExtractedMemory[]> {
   if (messages.length === 0) {
     return []
   }
 
-  const client = new Anthropic({ apiKey })
+  const resolved = resolveModel(keys, 'fast')
+  if (!resolved) {
+    return []
+  }
 
   // Format conversation for analysis
   const conversationText = messages
@@ -107,25 +112,14 @@ Om inga minnesvärda fakta finns, returnera: {"memories": []}
 `
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: extractionPrompt,
-        },
-      ],
+    const response = await generateText({
+      model: createModelInstance(resolved),
+      prompt: extractionPrompt,
+      maxOutputTokens: 1024,
     })
 
-    // Extract text content
-    const textContent = response.content.find((c) => c.type === 'text')
-    if (!textContent || textContent.type !== 'text') {
-      return []
-    }
-
     // Parse JSON response
-    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
+    const jsonMatch = response.text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       return []
     }

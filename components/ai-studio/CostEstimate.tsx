@@ -46,7 +46,7 @@ export function CostEstimate({
   inputText,
   inputTokens,
   outputTokens,
-  model = 'gemini-3-pro-preview',
+  model = 'gemini-3.1-pro-preview',
   detailed = false,
   sessionTotalTokens,
   className,

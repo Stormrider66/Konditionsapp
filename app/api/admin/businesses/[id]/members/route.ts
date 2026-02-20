@@ -115,44 +115,39 @@ export async function POST(
       }, { status: 404 })
     }
 
-    // Check if user is already a member
-    const existingMember = await prisma.businessMember.findUnique({
-      where: {
-        businessId_userId: {
+    // Use create with unique constraint handling to avoid race conditions
+    let member
+    try {
+      member = await prisma.businessMember.create({
+        data: {
           businessId,
           userId,
+          role: validatedData.role,
+          permissions: validatedData.permissions === null
+            ? Prisma.JsonNull
+            : validatedData.permissions,
+          acceptedAt: new Date(), // Admin-added members are auto-accepted
         },
-      },
-    })
-
-    if (existingMember) {
-      return NextResponse.json({
-        success: false,
-        error: 'User is already a member of this business',
-      }, { status: 400 })
-    }
-
-    const member = await prisma.businessMember.create({
-      data: {
-        businessId,
-        userId,
-        role: validatedData.role,
-        permissions: validatedData.permissions === null
-          ? Prisma.JsonNull
-          : validatedData.permissions,
-        acceptedAt: new Date(), // Admin-added members are auto-accepted
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
           },
         },
-      },
-    })
+      })
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return NextResponse.json({
+          success: false,
+          error: 'User is already a member of this business',
+        }, { status: 400 })
+      }
+      throw error
+    }
 
     return NextResponse.json({
       success: true,

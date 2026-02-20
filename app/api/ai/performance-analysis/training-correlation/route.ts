@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { analyzeTrainingCorrelation } from '@/lib/ai/performance-analysis'
+import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
@@ -94,9 +95,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Perform correlation analysis
+    // Get API keys and perform correlation analysis
+    const apiKeys = await getDecryptedUserApiKeys(user.id)
     const startTime = Date.now()
-    const result = await analyzeTrainingCorrelation(clientId, { lookbackMonths })
+    const result = await analyzeTrainingCorrelation(clientId, apiKeys, { lookbackMonths })
 
     if (!result) {
       return NextResponse.json(
@@ -112,8 +114,8 @@ export async function POST(req: NextRequest) {
       data: {
         userId: user.id,
         category: 'performance_analysis',
-        provider: 'ANTHROPIC',
-        model: result.modelUsed ?? 'claude-sonnet-4-20250514',
+        provider: result.modelUsed?.startsWith('gemini') ? 'GOOGLE' : result.modelUsed?.startsWith('gpt') ? 'OPENAI' : 'ANTHROPIC',
+        model: result.modelUsed ?? 'unknown',
         inputTokens: Math.floor((result.tokensUsed ?? 0) * 0.7),
         outputTokens: Math.floor((result.tokensUsed ?? 0) * 0.3),
         estimatedCost: (result.tokensUsed ?? 0) * 0.000003,

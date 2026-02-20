@@ -109,43 +109,58 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user in our database
-    const athleteUser = await prisma.user.create({
-      data: {
-        id: authData.user.id,
-        email: email,
-        name: client.name,
-        role: 'ATHLETE',
-        language: coach.language, // Inherit coach's language
-      },
-    })
+    // Wrap all DB operations in a transaction to prevent partial state
+    let athleteAccount
+    try {
+      athleteAccount = await prisma.$transaction(async (tx) => {
+        // Create user in our database
+        const athleteUser = await tx.user.create({
+          data: {
+            id: authData.user.id,
+            email: email,
+            name: client.name,
+            role: 'ATHLETE',
+            language: coach.language, // Inherit coach's language
+          },
+        })
 
-    // Create athlete account linking
-    const athleteAccount = await prisma.athleteAccount.create({
-      data: {
-        clientId,
-        userId: athleteUser.id,
-        notificationPrefs: notificationPrefs || {
-          email: true,
-          push: false,
-          workoutReminders: true,
-        },
-      },
-      include: {
-        client: true,
-        user: true,
-      },
-    })
+        // Create athlete account linking
+        const account = await tx.athleteAccount.create({
+          data: {
+            clientId,
+            userId: athleteUser.id,
+            notificationPrefs: notificationPrefs || {
+              email: true,
+              push: false,
+              workoutReminders: true,
+            },
+          },
+          include: {
+            client: true,
+            user: true,
+          },
+        })
 
-    // Update subscription athlete count
-    await prisma.subscription.update({
-      where: { userId: coach.id },
-      data: {
-        currentAthletes: {
-          increment: 1,
-        },
-      },
-    })
+        // Update subscription athlete count
+        await tx.subscription.update({
+          where: { userId: coach.id },
+          data: {
+            currentAthletes: {
+              increment: 1,
+            },
+          },
+        })
+
+        return account
+      })
+    } catch (txError) {
+      // Clean up Supabase user if DB transaction failed
+      logger.error('Athlete account DB transaction failed, cleaning up auth user', { email, clientId }, txError)
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id).catch((cleanupErr) => {
+        logger.error('Failed to clean up Supabase user after transaction failure', { userId: authData.user.id }, cleanupErr)
+      })
+      throw txError
+    }
 
     // Send welcome email with temporary password
     if (resend) {

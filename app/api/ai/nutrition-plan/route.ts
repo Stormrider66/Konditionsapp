@@ -6,9 +6,12 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-import { decryptSecret } from '@/lib/crypto/secretbox'
+import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
+import { resolveModel } from '@/types/ai-models'
+import { createModelInstance } from '@/lib/ai/create-model'
+import { generateText } from 'ai'
 import {
   buildNutritionContext,
   generateNutritionPlan,
@@ -66,24 +69,13 @@ export async function POST(req: NextRequest) {
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
 
-    // Get API key for the user
-    const apiKey = await prisma.userApiKey.findUnique({
-      where: { userId: user.id },
-    })
+    // Get API keys for the user
+    const apiKeys = await getDecryptedUserApiKeys(user.id)
+    const resolved = resolveModel(apiKeys, 'balanced')
 
-    let anthropicKey: string | undefined
-    if (apiKey?.anthropicKeyEncrypted) {
-      try {
-        anthropicKey = decryptSecret(apiKey.anthropicKeyEncrypted)
-      } catch {
-        anthropicKey = undefined
-      }
-    }
-    anthropicKey = anthropicKey || process.env.ANTHROPIC_API_KEY || undefined
-
-    if (!anthropicKey) {
+    if (!resolved) {
       return NextResponse.json(
-        { error: 'API-nyckel saknas. Konfigurera din Anthropic API-nyckel i inställningarna.' },
+        { error: 'API-nyckel saknas. Konfigurera minst en AI API-nyckel i inställningarna.' },
         { status: 400 }
       )
     }
@@ -161,34 +153,14 @@ export async function POST(req: NextRequest) {
       wellnessData, // Gap 6: Include wellness data
     })
 
-    // Call Claude API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-      }),
+    // Call AI
+    const aiResponse = await generateText({
+      model: createModelInstance(resolved),
+      prompt,
+      maxOutputTokens: 4000,
     })
 
-    if (!response.ok) {
-      const error = await response.json()
-      logger.error('Claude API error', { error })
-      throw new Error(error.error?.message || 'AI-tjänsten är inte tillgänglig')
-    }
-
-    const aiResponse = await response.json()
-    const aiContent = aiResponse.content[0]?.text || ''
+    const aiContent = aiResponse.text || ''
 
     // Parse AI response into structured plan
     const nutritionPlanResult = parseAINutritionPlan(aiContent)

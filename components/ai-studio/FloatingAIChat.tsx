@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
+import { resolveModelForClient } from '@/types/ai-models'
 import {
   Bot,
   Send,
@@ -117,81 +118,50 @@ export function FloatingAIChat({
           const googleKey = data.keys.find((k: { provider: string }) => k.provider === 'google')
           const openaiKey = data.keys.find((k: { provider: string }) => k.provider === 'openai')
 
-          // Use default model if set and provider is configured
+          const configured = {
+            hasGoogle: !!googleKey?.configured,
+            hasAnthropic: !!anthropicKey?.configured,
+            hasOpenai: !!openaiKey?.configured,
+          }
+
+          // Use default model if set and provider key is available
           if (data.defaultModel) {
             const defaultModel = data.defaultModel
             const provider = defaultModel.provider as 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
+            const providerKeyAvailable =
+              (provider === 'GOOGLE' && configured.hasGoogle) ||
+              (provider === 'ANTHROPIC' && configured.hasAnthropic) ||
+              (provider === 'OPENAI' && configured.hasOpenai)
 
-            // Verify the provider's API key is configured
-            if (provider === 'GOOGLE' && googleKey?.configured) {
+            if (providerKeyAvailable) {
               setModelConfig({
                 model: defaultModel.modelId,
-                provider: 'GOOGLE',
+                provider,
                 displayName: defaultModel.displayName || defaultModel.modelId,
-              })
-              setHasApiKey(true)
-            } else if (provider === 'ANTHROPIC' && anthropicKey?.configured) {
-              setModelConfig({
-                model: defaultModel.modelId,
-                provider: 'ANTHROPIC',
-                displayName: defaultModel.displayName || defaultModel.modelId,
-              })
-              setHasApiKey(true)
-            } else if (provider === 'OPENAI' && openaiKey?.configured) {
-              setModelConfig({
-                model: defaultModel.modelId,
-                provider: 'OPENAI',
-                displayName: defaultModel.displayName || defaultModel.modelId,
-              })
-              setHasApiKey(true)
-            } else if (googleKey?.configured) {
-              // Fallback to Google if available (user wanted Gemini)
-              setModelConfig({
-                model: 'gemini-2.5-pro-preview-06-05',
-                provider: 'GOOGLE',
-                displayName: 'Gemini 2.5 Pro',
-              })
-              setHasApiKey(true)
-            } else if (anthropicKey?.configured) {
-              // Fallback to Anthropic if available
-              setModelConfig({
-                model: 'claude-sonnet-4-5-20250929',
-                provider: 'ANTHROPIC',
-                displayName: 'Claude Sonnet 4',
-              })
-              setHasApiKey(true)
-            } else if (openaiKey?.configured) {
-              // Fallback to OpenAI if available
-              setModelConfig({
-                model: 'gpt-4.1',
-                provider: 'OPENAI',
-                displayName: 'GPT-4.1',
               })
               setHasApiKey(true)
             } else {
-              setHasApiKey(false)
+              // Default model's provider not available — fall back to best available
+              const resolved = resolveModelForClient(configured, 'balanced')
+              if (resolved) {
+                setModelConfig({
+                  model: resolved.modelId,
+                  provider: resolved.provider.toUpperCase() as 'GOOGLE' | 'ANTHROPIC' | 'OPENAI',
+                  displayName: resolved.displayName,
+                })
+                setHasApiKey(true)
+              } else {
+                setHasApiKey(false)
+              }
             }
           } else {
-            // No default model set - use first available (prioritize Google/Gemini)
-            if (googleKey?.configured) {
+            // No default model — pick best available
+            const resolved = resolveModelForClient(configured, 'balanced')
+            if (resolved) {
               setModelConfig({
-                model: 'gemini-2.5-pro-preview-06-05',
-                provider: 'GOOGLE',
-                displayName: 'Gemini 2.5 Pro',
-              })
-              setHasApiKey(true)
-            } else if (anthropicKey?.configured) {
-              setModelConfig({
-                model: 'claude-sonnet-4-5-20250929',
-                provider: 'ANTHROPIC',
-                displayName: 'Claude Sonnet 4',
-              })
-              setHasApiKey(true)
-            } else if (openaiKey?.configured) {
-              setModelConfig({
-                model: 'gpt-4.1',
-                provider: 'OPENAI',
-                displayName: 'GPT-4.1',
+                model: resolved.modelId,
+                provider: resolved.provider.toUpperCase() as 'GOOGLE' | 'ANTHROPIC' | 'OPENAI',
+                displayName: resolved.displayName,
               })
               setHasApiKey(true)
             } else {
