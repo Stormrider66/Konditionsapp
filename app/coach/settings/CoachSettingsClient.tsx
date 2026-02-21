@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Settings, ChevronLeft, Bot, Palette, ChevronRight } from 'lucide-react'
+import { Settings, ChevronLeft, Bot, Palette, ChevronRight, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
@@ -84,6 +84,22 @@ export function CoachSettingsClient({ user, businessSlug }: CoachSettingsClientP
                                     <div>
                                         <p className="font-semibold text-slate-900 dark:text-white">AI Modell & Konfiguration</p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">Hantera AI-modeller och system promptar</p>
+                                    </div>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+                            </div>
+                        </div>
+                    </Link>
+                    <Link href={`${basePath}/settings/ai-kostnader`}>
+                        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group mt-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-500/10 flex items-center justify-center border border-green-200 dark:border-green-500/20">
+                                        <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-slate-900 dark:text-white">AI-kostnader</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Se kostnad per funktion och atlet</p>
                                     </div>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />

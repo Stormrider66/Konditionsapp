@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { rateLimitJsonResponse, getRequestIp } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
+import { createCheckoutSession } from '@/lib/payments/stripe'
 
 // Validation schema for athlete signup
 const signupSchema = z.object({
@@ -29,6 +30,8 @@ const signupSchema = z.object({
   inviteCode: z.string().optional(),
   // AI-coached mode - athlete uses AI as primary coach
   aiCoached: z.boolean().optional(),
+  // Desired subscription tier (default: FREE)
+  tier: z.enum(['FREE', 'STANDARD', 'PRO']).optional().default('FREE'),
 });
 
 export async function POST(request: NextRequest) {
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, name, birthDate, gender, inviteCode, aiCoached } = validationResult.data;
+    const { email, password, name, birthDate, gender, inviteCode, aiCoached, tier } = validationResult.data;
 
     // Check if email is already registered
     const existingUser = await prisma.user.findUnique({
@@ -223,9 +226,25 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // All athletes go to standard onboarding
-    // AI-coached upgrade happens after payment
-    const redirectUrl = '/athlete/onboarding';
+    // For paid tiers, create Stripe checkout session and redirect there
+    let redirectUrl = '/athlete/onboarding'
+
+    if (tier && tier !== 'FREE') {
+      try {
+        const origin = request.headers.get('origin') || 'http://localhost:3000'
+        const checkoutUrl = await createCheckoutSession(
+          result.client.id,
+          tier,
+          'MONTHLY',
+          `${origin}/athlete/onboarding?upgraded=true`,
+          `${origin}/athlete/onboarding`,
+        )
+        redirectUrl = checkoutUrl
+      } catch (stripeError) {
+        // If Stripe checkout fails, still let them in with FREE tier
+        logger.error('Stripe checkout creation failed during signup', {}, stripeError)
+      }
+    }
 
     return NextResponse.json(
       {
