@@ -35,7 +35,7 @@ export interface CoachSubscriptionStatus {
 // Tier feature limits configuration
 export const ATHLETE_TIER_FEATURES = {
   FREE: {
-    ai_chat: { enabled: false, limit: 0 },
+    ai_chat: { enabled: true, limit: 10 }, // 10 messages per month
     video_analysis: { enabled: false },
     strava: { enabled: false },
     garmin: { enabled: false },
@@ -108,9 +108,32 @@ export async function checkAthleteFeatureAccess(
   clientId: string,
   feature: AthleteFeature
 ): Promise<FeatureAccessResult> {
-  const subscription = await prisma.athleteSubscription.findUnique({
+  let subscription = await prisma.athleteSubscription.findUnique({
     where: { clientId },
   })
+
+  // Auto-create a STANDARD trial subscription if none exists
+  // This gives athletes immediate access to AI chat and core features
+  if (!subscription) {
+    try {
+      await createDefaultAthleteSubscription(clientId, {
+        tier: 'STANDARD',
+        trialDays: 14,
+      })
+      subscription = await prisma.athleteSubscription.findUnique({
+        where: { clientId },
+      })
+    } catch (error) {
+      // If auto-creation fails (e.g., invalid clientId), return the original error
+      console.warn('Failed to auto-create athlete subscription:', error)
+      return {
+        allowed: false,
+        reason: 'No subscription found. Please subscribe to access this feature.',
+        code: 'NO_SUBSCRIPTION',
+        upgradeUrl: '/athlete/subscription',
+      }
+    }
+  }
 
   if (!subscription) {
     return {
@@ -363,16 +386,32 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
     lactate_ocr: { enabled: boolean }
   }
 }> {
-  const subscription = await prisma.athleteSubscription.findUnique({
+  let subscription = await prisma.athleteSubscription.findUnique({
     where: { clientId },
   })
 
+  // Auto-create subscription if none exists (same as checkAthleteFeatureAccess)
   if (!subscription) {
+    try {
+      await createDefaultAthleteSubscription(clientId, {
+        tier: 'STANDARD',
+        trialDays: 14,
+      })
+      subscription = await prisma.athleteSubscription.findUnique({
+        where: { clientId },
+      })
+    } catch {
+      // Fall through to default response
+    }
+  }
+
+  if (!subscription) {
+    const freeFeatures = ATHLETE_TIER_FEATURES.FREE
     return {
       tier: 'FREE',
       status: 'NONE',
       features: {
-        ai_chat: { enabled: false },
+        ai_chat: { enabled: freeFeatures.ai_chat.enabled, limit: freeFeatures.ai_chat.limit },
         video_analysis: { enabled: false },
         strava: { enabled: false },
         garmin: { enabled: false },

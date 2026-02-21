@@ -153,19 +153,21 @@ export async function POST(request: NextRequest) {
       apiKeyUserId = clientRecord.userId; // Use coach's API keys
       athleteName = clientRecord.name;
 
-      // Check subscription for AI chat access
-      const access = await checkAthleteFeatureAccess(athleteClientId, 'ai_chat');
-      if (!access.allowed) {
-        return new Response(
-          JSON.stringify({
-            error: access.reason || 'AI chat requires a subscription',
-            code: access.code || 'SUBSCRIPTION_REQUIRED',
-            upgradeUrl: access.upgradeUrl || '/athlete/subscription',
-            currentUsage: access.currentUsage,
-            limit: access.limit,
-          }),
-          { status: 403, headers: { 'Content-Type': 'application/json' } }
-        );
+      // Skip subscription check for coaches/admins in athlete mode (they own the API keys)
+      if (!resolved.isCoachInAthleteMode) {
+        const access = await checkAthleteFeatureAccess(athleteClientId, 'ai_chat');
+        if (!access.allowed) {
+          return new Response(
+            JSON.stringify({
+              error: access.reason || 'AI chat requires a subscription',
+              code: access.code || 'SUBSCRIPTION_REQUIRED',
+              upgradeUrl: access.upgradeUrl || '/athlete/subscription',
+              currentUsage: access.currentUsage,
+              limit: access.limit,
+            }),
+            { status: 403, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
       }
 
       // Get current program window and subscription info for capabilities
