@@ -2,18 +2,7 @@
 
 ## Project Overview
 
-**Elite Training Platform** - Enterprise-grade Next.js 15 SaaS for physiological testing, AI-powered training programs, and athlete management. Multi-tenant architecture supporting coaches, athletes, and physiotherapists.
-
-**Core Capabilities:**
-1. **Physiological Testing** - Lab VO2max/lactate tests with D-max threshold detection, training zone calculation
-2. **AI Training Engine** - Multi-model AI (Claude/Gemini/GPT) with document RAG, program generation, daily WOD
-3. **Training Programs** - Year-round periodization with 4 methodologies (Polarized, Norwegian, Canova, Pyramidal)
-4. **Strength Training** - 5-phase periodization, 84-exercise library, 1RM estimation, 2-for-2 progression
-5. **Multi-Sport** - 17 sports (endurance, team, racket) with sport-specific dashboards and testing
-6. **External Integrations** - Strava, Garmin, Concept2, VBT devices with automatic sync
-7. **Video Analysis** - Running gait, skiing technique, HYROX analysis (MediaPipe + Gemini)
-8. **Physio System** - Rehabilitation programs, training restrictions, care team coordination
-9. **Data Moat** - Proprietary ML system for coach decision tracking and performance predictions
+**Elite Training Platform** - Next.js 15 SaaS for physiological testing, AI training programs, and athlete management. Multi-tenant architecture for coaches, athletes, and physiotherapists.
 
 ## Commands
 
@@ -23,8 +12,6 @@ npm run build        # Production build
 npm run lint         # ESLint
 npm test             # Vitest
 npm run test:e2e     # Playwright
-
-# Database
 npx prisma generate  # After schema changes
 npx prisma db push   # Push schema (dev)
 npx prisma studio    # View/edit data
@@ -33,33 +20,26 @@ npx prisma migrate dev --name <name>  # Create migration
 
 ## Tech Stack
 
-Next.js 15 (App Router) | TypeScript (strict) | PostgreSQL/Supabase | Prisma ORM (173 models) | Supabase Auth | Tailwind + shadcn/ui | React Hook Form + Zod | Recharts | jsPDF | Stripe
+Next.js 15 (App Router) | TypeScript (strict) | PostgreSQL/Supabase | Prisma ORM (192 models) | Supabase Auth | Tailwind + shadcn/ui (40 components) | React Hook Form + Zod | Recharts | jsPDF | Stripe | Remotion (video) | Vercel AI SDK
 
 ## Architecture
 
 ```
 app/
 ├── (business)/[businessSlug]/    → Multi-tenant routes (primary)
-│   ├── athlete/                  → 38+ athlete pages
-│   ├── coach/                    → 60+ coach pages
-│   └── physio/                   → 9 physio pages
-├── api/                          → 402 API routes (82 categories)
+│   ├── athlete/                  → 53 athlete pages
+│   ├── coach/                    → 66 coach pages
+│   └── physio/                   → 8 physio pages
+├── api/                          → 463 API routes
 ├── athlete/, coach/, physio/     → Legacy routes (redirect to business-scoped)
 └── (public routes)               → login, signup, pricing, etc.
 
-components/                       → 440+ components
-├── athlete/                      → Sport dashboards, workout logging, WOD
-├── coach/                        → Program builder, monitoring, studios
-├── ai-studio/                    → AI chat, program generation, RAG
-├── hybrid-studio/                → Multi-workout builder
-├── agility-studio/               → Agility training, timing gates
-└── ui/                           → shadcn/ui (39 components)
-
+components/                       → 574 components
 lib/
 ├── calculations/                 → Threshold detection, zones, VDOT
-├── training-engine/              → 25+ modules (methodologies, injury, ergometer)
+├── training-engine/              → 28 modules (methodologies, sport-specific, injury, ergometer)
 ├── program-generator/            → Periodization, workout building
-├── ai/                           → Multi-provider AI, RAG, analysis
+├── ai/                           → Multi-provider AI, RAG, video analysis, voice, cost tracking
 ├── integrations/                 → Strava, Garmin, Concept2, VBT
 ├── subscription/                 → Feature gating, trial management
 └── data-moat/                    → ML predictions, coach decisions
@@ -80,116 +60,59 @@ lib/
 - Handle Prisma errors (unique constraints, FK violations)
 - Use transactions for multi-step operations
 
-### Test Types
+### Test Types & Sports
 ```typescript
 type TestType = 'RUNNING' | 'CYCLING' | 'SKIING'
 ```
+18 sport types: Endurance (Running, Cycling, Skiing, Swimming, Triathlon) | Functional (HYROX, General Fitness, Functional Fitness, Strength) | Team (Football, Ice Hockey, Handball, Floorball, Basketball, Volleyball) | Racket (Tennis, Padel)
 
-## User Roles & Subscriptions
+## Roles & Subscriptions
 
 **Roles:** `COACH` | `ATHLETE` | `PHYSIO` | `ADMIN`
 
 **Coach Tiers:** FREE (trial, 1 athlete) → BASIC (5) → PRO (50) → ENTERPRISE (unlimited)
-**Athlete Tiers:** FREE → STANDARD → PRO
+**Athlete Tiers:** FREE → STANDARD → PRO → ELITE
 
-**Feature Gating:** AI chat, video analysis, Strava/Garmin sync, workout logging
+Route protection in `middleware.ts` (includes custom domain white-label support, CSRF protection). Subscription enforcement via `lib/subscription/feature-access.ts`.
 
-Route protection in `middleware.ts`. Subscription enforcement via `lib/subscription/feature-access.ts`.
+## AI System
+
+**Providers (BYOK - encrypted user API keys):**
+- Anthropic: Haiku 4.5, Sonnet 4.6, Opus 4.6
+- Google: Gemini 3 Flash, Gemini 3.1 Pro
+- OpenAI: GPT-5 Nano, GPT-5 Mini, GPT-5.2
+
+**ModelIntent:** `fast` | `balanced` | `powerful` — provider-agnostic model selection
+
+**Capabilities:** Program generation, daily WOD (readiness/injury-aware), nutrition, video analysis (MediaPipe + Gemini), voice workouts, document RAG (pgvector), web search, mental prep, pattern/milestone detection, conversation memory, cost tracking
+
+## Training Engine (`lib/training-engine/`)
+
+**Methodologies:** Polarized (80/20), Norwegian (double threshold), Canova (marathon %), Pyramidal
+**Sport Modules:** Basketball, Football, Hockey, Handball, Floorball, Volleyball, Tennis, Padel
+**Threshold Detection:** Standard D-max, Modified D-max (Bishop), Smart D-max
+**Injury Management:** Delaware pain rules, ACWR monitoring (OPTIMAL/CAUTION/DANGER/CRITICAL)
+**Progression:** 1RM estimation (Epley/Brzycki), 2-for-2 rule, plateau detection
+**Ergometer:** 11+ protocols, Concept2/Wattbike/Air Bikes, critical power analysis
+
+## Cron Jobs (`app/api/cron/`)
+
+17 scheduled jobs: `calculate-acwr` (nightly), `expire-trials`, `trial-warnings`, `morning-briefings`, `pattern-detection`, `milestone-detection`, `reset-ai-usage`, `reset-budgets`, `weekly-summary`, `injury-digest`, `coach-alerts`, `mental-prep`, `post-workout-checkins`, `preworkout-nudges`, `poll-program-generation`, `poll-research`, `agent/*`
 
 ## Environment Variables
 
 ```env
 # Core
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-DATABASE_URL=
-
+NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY / DATABASE_URL
 # Services
-RESEND_API_KEY=              # Email
-STRIPE_SECRET_KEY=           # Payments
-STRAVA_CLIENT_ID/SECRET=     # Strava OAuth
-GARMIN_CONSUMER_KEY/SECRET=  # Garmin OAuth
+RESEND_API_KEY / STRIPE_SECRET_KEY / NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY / STRIPE_WEBHOOK_SECRET
+# Integrations
+STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET / GARMIN_CONSUMER_KEY / GARMIN_CONSUMER_SECRET
+# Optional
+NEXT_PUBLIC_SENTRY_DSN / UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN / YOUTUBE_API_KEY
 ```
 
-## Key Systems
-
-### Training Engine (`lib/training-engine/`)
-- **Methodologies:** Polarized (80/20), Norwegian (double threshold), Canova (marathon %), Pyramidal
-- **Threshold Detection:** Standard D-max, Modified D-max (Bishop), Smart D-max
-- **Injury Management:** Delaware pain rules, ACWR monitoring (OPTIMAL/CAUTION/DANGER/CRITICAL)
-- **Progression:** 1RM estimation (Epley/Brzycki), 2-for-2 rule, plateau detection
-- **Cross-Training:** Modality equivalencies, automatic substitution, fitness retention
-
-### AI Systems (`lib/ai/`)
-- **Providers:** Claude, Gemini, GPT-4.5 with BYOK support
-- **RAG:** Document embeddings (pgvector), semantic search
-- **Generation:** Programs, daily WOD (readiness/injury-aware), nutrition plans
-- **Analysis:** Performance trends, training correlation, pattern detection
-- **Memory:** Conversation persistence, athlete context extraction
-
-### Ergometer Testing (`lib/training-engine/ergometer/`)
-- **Protocols:** 4×4 intervals, 3-min all-out, CP tests, 2K/1K TT, MAP ramp (11+ total)
-- **Devices:** Concept2 (Row/SkiErg/BikeErg), Wattbike, Air Bikes
-- **Analysis:** Critical power, threshold detection, zone calculation, team leaderboards
-
-### Physio System (`app/api/physio/`)
-- **Rehab Phases:** ACUTE → SUBACUTE → REMODELING → FUNCTIONAL → RETURN_TO_SPORT
-- **Restrictions:** Body part/exercise blocking, intensity caps (integrated with AI WOD)
-- **Treatment:** SOAP-format documentation
-- **Care Team:** Thread-based messaging (physio, coach, athlete)
-
-### Data Moat (`lib/data-moat/`)
-- Coach decision logging with outcome tracking
-- Performance predictions with validation
-- Training-to-outcome correlation analysis
-- Athlete cohort benchmarking
-
-### External Integrations (`lib/integrations/`)
-| Service | Features | Auth |
-|---------|----------|------|
-| Strava | Activity import, HR/power/cadence | OAuth2 |
-| Garmin | GPS routes, HR data | OAuth1 |
-| Concept2 | Ergometer workouts | API Key |
-| VBT | Load-velocity profiles | Direct upload |
-
-## Cron Jobs (`app/api/cron/`)
-
-| Job | Schedule | Purpose |
-|-----|----------|---------|
-| `calculate-acwr` | Nightly | ACWR injury risk calculation |
-| `expire-trials` | Daily | Expire ended trial subscriptions |
-| `trial-warnings` | Daily | Email trials expiring in 3 days |
-| `morning-briefings` | Morning | Daily athlete briefings |
-| `pattern-detection` | Daily | Detect training patterns |
-| `milestone-detection` | Daily | Auto-detect PRs and achievements |
-| `reset-ai-usage` | Daily | Reset daily AI token budgets |
-| `weekly-summary` | Weekly | Generate weekly summaries |
-| `injury-digest` | Weekly | Injury status summaries |
-
-## Documentation
-
-| Topic | Location |
-|-------|----------|
-| API Reference (402 routes) | `docs/API_REFERENCE.md` |
-| Database Schema (173 models) | `prisma/schema.prisma` |
-| Training Engine | `docs/training-engine/` |
-| Physio System | `docs/physio-system/` |
-| TypeScript Types | `types/index.ts` |
-
-## Chrome Debugging
-
-```powershell
-# Start Chrome with debugging (close all Chrome first)
-& "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir=C:/temp/chrome-debug http://localhost:3000
-```
-
-```bash
-node scripts/chrome-debug.js tabs           # List tabs
-node scripts/chrome-debug.js screenshot     # Screenshot
-node scripts/chrome-debug.js console        # Console logs
-node scripts/chrome-debug.js eval "..."     # Execute JS
-```
+Note: AI provider API keys are managed per-user (encrypted in DB), not via env vars.
 
 ## Known Issues
 
