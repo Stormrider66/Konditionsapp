@@ -162,7 +162,7 @@ export function EnhancedProgramPreview({
     phaseIndex: number
     dayName: string
   } | null>(null)
-  const [newWorkoutType, setNewWorkoutType] = useState<string>('RUNNING')
+  const [newWorkoutType, setNewWorkoutType] = useState<ParsedWorkout['type']>('RUNNING')
   const [newWorkoutName, setNewWorkoutName] = useState('')
   const [newWorkoutDuration, setNewWorkoutDuration] = useState('60')
   const [newWorkoutIntensity, setNewWorkoutIntensity] = useState<string>('moderate')
@@ -951,7 +951,7 @@ export function EnhancedProgramPreview({
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>Typ</Label>
-              <Select value={newWorkoutType} onValueChange={setNewWorkoutType}>
+              <Select value={newWorkoutType} onValueChange={(v) => setNewWorkoutType(v as ParsedWorkout['type'])}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
