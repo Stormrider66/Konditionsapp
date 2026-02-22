@@ -24,6 +24,18 @@ export interface IndividualizedThresholdInput {
   lactate?: number
 }
 
+/**
+ * Field test data for Tier 2 zone calculation
+ * Derived from 30-min TT (LT2) and/or HR drift test (LT1)
+ */
+export interface FieldTestZoneInput {
+  lt2HR?: number      // From 30-min TT (bpm)
+  lt2Speed?: number   // km/h, derived from 30-min TT pace
+  lt1HR?: number      // From HR drift test (bpm)
+  lt1Speed?: number   // km/h, derived from HR drift pace
+  testType?: TestType
+}
+
 export interface IndividualizedZoneRequest {
   maxHR?: number
   lt1?: IndividualizedThresholdInput
@@ -92,7 +104,8 @@ export function calculateTrainingZones(
   aerobicThreshold: Threshold | undefined | null,
   anaerobicThreshold: Threshold | undefined | null,
   testType: TestType,
-  fitnessEstimate?: FitnessEstimate
+  fitnessEstimate?: FitnessEstimate,
+  fieldTestData?: FieldTestZoneInput
 ): ZoneCalculationResult {
   // Tier 1: Lactate test data exists (Gold Standard)
   if (aerobicThreshold && anaerobicThreshold && maxHR) {
@@ -105,9 +118,10 @@ export function calculateTrainingZones(
   }
 
   // Tier 2: Field test data (Silver Standard)
-  // TODO: Implement when Phase 4 is complete
-  // This would use 30-min TT, HR drift, or critical velocity tests
-  // to estimate LT1/LT2
+  // Uses 30-min TT (→ LT2) and HR drift (→ LT1) to estimate thresholds
+  if (fieldTestData?.lt2HR && maxHR) {
+    return calculateZonesFromFieldTest(client, maxHR, fieldTestData, testType)
+  }
 
   // Tier 3/3+: Fallback to %HRmax estimation (Bronze/Bronze+ Standard)
   // If fitnessEstimate is provided, use fitness-adjusted percentages
@@ -223,6 +237,70 @@ function calculateZonesFromLactateTest(
     confidence: 'HIGH',
     method: 'LACTATE_TEST',
     warning: useNarrowZones ? `Obs: LT1 och LT2 ligger nära varandra (${hrGap} slag/min). Zonerna är anpassade för detta.` : undefined
+  }
+}
+
+/**
+ * Tier 2: Calculate zones from field test data
+ *
+ * Uses 30-min TT results for LT2 and HR drift test for LT1.
+ * If only LT2 is available, estimates LT1 as ~85% of LT2 HR.
+ *
+ * Confidence: MEDIUM (±3-5 bpm compared to lactate test)
+ */
+function calculateZonesFromFieldTest(
+  client: Client,
+  maxHR: number,
+  fieldTest: FieldTestZoneInput,
+  testType: TestType
+): ZoneCalculationResult {
+  const lt2HR = fieldTest.lt2HR!
+  // If only LT2 available, estimate LT1 as ~85% of LT2 HR
+  const lt1HR = fieldTest.lt1HR || Math.round(lt2HR * 0.85)
+  const lt1Estimated = !fieldTest.lt1HR
+
+  const effectiveTestType = fieldTest.testType || testType
+
+  // Determine unit based on test type
+  const unit: Threshold['unit'] = effectiveTestType === 'CYCLING'
+    ? 'watt'
+    : effectiveTestType === 'SKIING'
+      ? 'min/km'
+      : 'km/h'
+
+  // Build synthetic thresholds from field test results
+  const lt1: Threshold = {
+    heartRate: lt1HR,
+    value: fieldTest.lt1Speed || 0,
+    unit,
+    percentOfMax: Math.round((lt1HR / maxHR) * 100),
+  }
+
+  const lt2: Threshold = {
+    heartRate: lt2HR,
+    value: fieldTest.lt2Speed || 0,
+    unit,
+    percentOfMax: Math.round((lt2HR / maxHR) * 100),
+  }
+
+  // Use the same zone calculation logic as lactate test
+  const lactateResult = calculateZonesFromLactateTest(maxHR, lt1, lt2, effectiveTestType)
+
+  // Build warning message
+  const warnings: string[] = []
+  if (lt1Estimated) {
+    warnings.push('LT1 uppskattad till 85% av LT2 puls. Gör ett HR drift-test för bättre noggrannhet.')
+  }
+  warnings.push('Zoner baserade på fälttest. Laktattest ger högre noggrannhet (±1-2 slag/min).')
+  if (lactateResult.warning) {
+    warnings.push(lactateResult.warning)
+  }
+
+  return {
+    zones: lactateResult.zones,
+    confidence: 'MEDIUM',
+    method: 'FIELD_TEST',
+    warning: warnings.join(' '),
   }
 }
 

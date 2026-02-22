@@ -12,10 +12,9 @@
  * - Progression path tracking
  */
 
-import { PrismaClient, BiomechanicalPillar, ProgressionLevel, StrengthPhase } from '@prisma/client'
+import { BiomechanicalPillar, ProgressionLevel, StrengthPhase } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { STRENGTH_PHASES } from '../quality-programming/strength-periodization'
-
-const prisma = new PrismaClient()
 
 export interface ExerciseSelectionCriteria {
   strengthPhase: StrengthPhase

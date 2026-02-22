@@ -9,8 +9,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
+import { sendGenericEmail } from '@/lib/email';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
+import crypto from 'crypto'
 
 // Validation schema for inviting a member
 const inviteMemberSchema = z.object({
@@ -130,13 +132,67 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!invitedUser) {
-      // TODO: In the future, create an invitation record and send email
+      // Create invitation for non-existing user
+      const invitationCode = crypto.randomUUID()
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + 30) // 30-day expiry
+
+      const business = await prisma.business.findUnique({
+        where: { id },
+        select: { name: true },
+      })
+
+      const invitation = await prisma.invitation.create({
+        data: {
+          code: invitationCode,
+          type: 'BUSINESS_CLAIM',
+          senderId: user.id,
+          businessId: id,
+          recipientEmail: email,
+          expiresAt,
+          metadata: { role, businessName: business?.name },
+        },
+      })
+
+      // Send invitation email
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+      const acceptLink = `${appUrl}/signup?invitation=${invitationCode}`
+
+      try {
+        await sendGenericEmail({
+          to: email,
+          subject: `Inbjudan till ${business?.name || 'ett team'}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2>Du har blivit inbjuden!</h2>
+              <p>Du har blivit inbjuden att gå med i <strong>${business?.name || 'ett team'}</strong> som ${role === 'ADMIN' ? 'administratör' : 'medlem'}.</p>
+              <p>
+                <a href="${acceptLink}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                  Acceptera inbjudan
+                </a>
+              </p>
+              <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+                Denna inbjudan är giltig i 30 dagar.
+              </p>
+            </div>
+          `,
+        })
+      } catch (emailError) {
+        logError('Failed to send invitation email:', emailError)
+      }
+
       return NextResponse.json(
         {
-          error: 'User not found. They must create an account first.',
-          suggestion: 'Send them an invitation link to create an account',
+          invitation: {
+            id: invitation.id,
+            code: invitationCode,
+            email,
+            role,
+            expiresAt,
+          },
+          message: `Invitation sent to ${email}`,
         },
-        { status: 404 }
+        { status: 201 }
       );
     }
 

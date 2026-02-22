@@ -13,11 +13,26 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import {
   Calendar,
   CalendarDays,
@@ -142,6 +157,16 @@ export function EnhancedProgramPreview({
     phaseName: string
   } | null>(null)
 
+  // State for add workout dialog
+  const [addWorkoutTarget, setAddWorkoutTarget] = useState<{
+    phaseIndex: number
+    dayName: string
+  } | null>(null)
+  const [newWorkoutType, setNewWorkoutType] = useState<string>('RUNNING')
+  const [newWorkoutName, setNewWorkoutName] = useState('')
+  const [newWorkoutDuration, setNewWorkoutDuration] = useState('60')
+  const [newWorkoutIntensity, setNewWorkoutIntensity] = useState<string>('moderate')
+
   // Try to parse program from content
   const parseResult = parseAIProgram(content)
 
@@ -244,6 +269,39 @@ export function EnhancedProgramPreview({
       phaseName,
     })
   }, [])
+
+  // Handler for adding a new workout to a day
+  const handleAddWorkout = useCallback(() => {
+    if (!addWorkoutTarget) return
+
+    const workout: ParsedWorkout = {
+      type: newWorkoutType,
+      name: newWorkoutName || newWorkoutType,
+      duration: parseInt(newWorkoutDuration) || 60,
+      intensity: newWorkoutIntensity as ParsedWorkout['intensity'],
+      description: '',
+    }
+
+    setDraft(prev => {
+      const newPhases = [...prev.phases]
+      const phase = { ...newPhases[addWorkoutTarget.phaseIndex] }
+      if (!phase.weeklyTemplate) {
+        phase.weeklyTemplate = {}
+      }
+      phase.weeklyTemplate = {
+        ...phase.weeklyTemplate,
+        [addWorkoutTarget.dayName]: workout,
+      }
+      newPhases[addWorkoutTarget.phaseIndex] = phase
+      return { ...prev, phases: newPhases }
+    })
+    setIsDirty(true)
+    setAddWorkoutTarget(null)
+    setNewWorkoutType('RUNNING')
+    setNewWorkoutName('')
+    setNewWorkoutDuration('60')
+    setNewWorkoutIntensity('moderate')
+  }, [addWorkoutTarget, newWorkoutType, newWorkoutName, newWorkoutDuration, newWorkoutIntensity])
 
   // If no program found, don't render anything (after all hooks)
   if (!parseResult.success || !parseResult.program) {
@@ -515,13 +573,7 @@ export function EnhancedProgramPreview({
                     ) : (
                       <button
                         className="w-full p-2 rounded border border-dashed border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500 transition text-xs"
-                        onClick={() => {
-                          // TODO: Add workout
-                          toast({
-                            title: 'Kommer snart',
-                            description: 'Lägg till pass-funktionen implementeras snart.',
-                          })
-                        }}
+                        onClick={() => setAddWorkoutTarget({ phaseIndex, dayName: dayNames[idx] })}
                       >
                         <Plus className="h-3 w-3 mx-auto" />
                       </button>
@@ -889,6 +941,76 @@ export function EnhancedProgramPreview({
           onSave={handleSaveEditedWorkout}
         />
       )}
+
+      {/* Add Workout Dialog */}
+      <Dialog open={!!addWorkoutTarget} onOpenChange={(open) => { if (!open) setAddWorkoutTarget(null) }}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Lägg till pass</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Typ</Label>
+              <Select value={newWorkoutType} onValueChange={setNewWorkoutType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="RUNNING">Löpning</SelectItem>
+                  <SelectItem value="CYCLING">Cykling</SelectItem>
+                  <SelectItem value="SWIMMING">Simning</SelectItem>
+                  <SelectItem value="STRENGTH">Styrka</SelectItem>
+                  <SelectItem value="CROSS_TRAINING">Crosstraining</SelectItem>
+                  <SelectItem value="RECOVERY">Återhämtning</SelectItem>
+                  <SelectItem value="HYROX">HYROX</SelectItem>
+                  <SelectItem value="REHAB">Rehab</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Namn</Label>
+              <Input
+                value={newWorkoutName}
+                onChange={(e) => setNewWorkoutName(e.target.value)}
+                placeholder="T.ex. Lätt löpning"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Varaktighet (min)</Label>
+              <Input
+                type="number"
+                value={newWorkoutDuration}
+                onChange={(e) => setNewWorkoutDuration(e.target.value)}
+                min="10"
+                max="300"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Intensitet</Label>
+              <Select value={newWorkoutIntensity} onValueChange={setNewWorkoutIntensity}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Lätt</SelectItem>
+                  <SelectItem value="moderate">Måttlig</SelectItem>
+                  <SelectItem value="hard">Hård</SelectItem>
+                  <SelectItem value="race_pace">Tävlingstempo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddWorkoutTarget(null)}>
+              Avbryt
+            </Button>
+            <Button onClick={handleAddWorkout}>
+              <Plus className="h-4 w-4 mr-1" />
+              Lägg till
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

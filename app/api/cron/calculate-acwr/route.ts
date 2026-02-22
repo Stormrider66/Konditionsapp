@@ -29,10 +29,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-
-const prisma = new PrismaClient()
 
 // EWMA smoothing factor
 const ACUTE_ALPHA = 0.4 // 7-day EWMA

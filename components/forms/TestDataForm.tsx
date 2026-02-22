@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays } from 'lucide-react'
-import { createTestSchema, CreateTestFormData } from '@/lib/validations/schemas'
+import { createTestSchema, CreateTestFormData, detectLactateDecreases } from '@/lib/validations/schemas'
 import { TestType, TestTemplate } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -131,6 +131,12 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
 
   const inclineUnit = watch('inclineUnit') || 'PERCENT'
   const inclineLabel = inclineUnit === 'DEGREES' ? 'Lutning (°)' : 'Lutning (%)'
+
+  const watchedStages = watch('stages')
+  const lactateWarnings = useMemo(
+    () => detectLactateDecreases(watchedStages || []),
+    [watchedStages]
+  )
 
   const [templates, setTemplates] = useState<TestTemplate[]>([])
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -592,6 +598,24 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
             </CardContent>
           </Card>
         ))}
+
+        {/* Lactate decrease warnings */}
+        {lactateWarnings.length > 0 && (
+          <Alert className="bg-yellow-50 border-yellow-300">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-800 text-sm">
+              <strong>Varning: Sjunkande laktatvärden</strong>
+              <ul className="list-disc list-inside mt-1 space-y-0.5">
+                {lactateWarnings.map((w, i) => (
+                  <li key={i}>
+                    Laktat sjönk med {w.drop} mmol/L från steg {w.fromStage} till steg {w.toStage}.
+                    Små variationer kan vara normala, men kontrollera att värdena stämmer.
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Add stage button at bottom right */}
         <div className="flex justify-end">

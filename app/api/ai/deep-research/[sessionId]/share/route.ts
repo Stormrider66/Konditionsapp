@@ -11,6 +11,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
+import { sendGenericEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
 
 // ============================================
 // Validation Schemas
@@ -154,17 +156,36 @@ export async function POST(
     // Send notification if requested and athlete has account
     if (notify && athlete.athleteAccount && athlete.email) {
       try {
-        // TODO: Implement email notification
-        // For now, just mark as notified
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const viewLink = `${appUrl}/athlete/research/${sessionId}`
+
+        await sendGenericEmail({
+          to: athlete.email,
+          subject: `Ny forskningsrapport delad: ${session.query}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2>Forskningsrapport delad med dig</h2>
+              <p>Hej ${athlete.name},</p>
+              <p>Din coach har delat en forskningsrapport med dig:</p>
+              <p style="font-weight: bold; color: #1f2937;">${session.query}</p>
+              <p>
+                <a href="${viewLink}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">
+                  Visa rapport
+                </a>
+              </p>
+              <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+                Detta meddelande skickades automatiskt.
+              </p>
+            </div>
+          `,
+        })
+
         await prisma.sharedResearchAccess.update({
           where: { id: share.id },
           data: { notified: true },
         })
-
-        // Could also create an in-app notification here
-        // await prisma.notification.create({ ... })
       } catch (notifyError) {
-        console.error('Error sending share notification:', notifyError)
+        logger.error('Error sending share notification', { sessionId, athleteId }, notifyError)
         // Continue even if notification fails
       }
     }
@@ -178,7 +199,7 @@ export async function POST(
       message: `Research shared with ${athlete.name}`,
     })
   } catch (error) {
-    console.error('Error sharing deep research:', error)
+    logger.error('Error sharing deep research', {}, error)
     return NextResponse.json(
       { error: 'Failed to share research' },
       { status: 500 }
@@ -251,7 +272,7 @@ export async function GET(
       totalShares: shares.length,
     })
   } catch (error) {
-    console.error('Error listing research shares:', error)
+    logger.error('Error listing research shares', {}, error)
     return NextResponse.json(
       { error: 'Failed to list shares' },
       { status: 500 }
@@ -341,7 +362,7 @@ export async function DELETE(
       message: 'Share removed successfully',
     })
   } catch (error) {
-    console.error('Error removing research share:', error)
+    logger.error('Error removing research share', {}, error)
     return NextResponse.json(
       { error: 'Failed to remove share' },
       { status: 500 }

@@ -2043,7 +2043,8 @@ model AthleteAccount {
   userId   String @unique
 
   // Athlete preferences
-  notificationPrefs   Json? // { email: boolean, push: boolean, workoutReminders: boolean }
+  notificationPrefs          Json? // { email: boolean, push: boolean, workoutReminders: boolean }
+  crossTrainingPreferences   Json? // { preferredModalities: string[], equipmentAccess: string[] }
   preferredLocationId String? // Preferred gym location for WOD generation
 
   // Athlete self-description (for AI personalization)

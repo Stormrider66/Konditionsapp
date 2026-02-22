@@ -9,11 +9,9 @@
  * - Recovery week: Auto-scheduling
  */
 
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { calculate1RMTrend } from './rm-estimation'
 import { logger } from '@/lib/logger'
-
-const prisma = new PrismaClient()
 
 export interface PlateauAnalysis {
   isPlateau: boolean
@@ -347,17 +345,35 @@ export async function createPlateauNotification(
 
   if (!client || !exercise) return
 
-  // In a real system, this would create a notification
-  // For now, we'll log it
-  logger.debug('Plateau notification created', {
+  const title = analysis.recommendation === 'DELOAD'
+    ? `Platå upptäckt: ${exercise.name} — Deload rekommenderas`
+    : `Platå upptäckt: ${exercise.name} — Variation rekommenderas`
+
+  const message = `${client.name} har inte gjort framsteg på ${exercise.name} på ${analysis.weeksWithoutProgress} veckor. ${analysis.reasoning}`
+
+  await prisma.aINotification.create({
+    data: {
+      clientId,
+      notificationType: 'PATTERN_ALERT',
+      title,
+      message,
+      priority: analysis.recommendation === 'DELOAD' ? 'HIGH' : 'MEDIUM',
+      contextData: {
+        exerciseId,
+        exerciseName: exercise.name,
+        recommendation: analysis.recommendation,
+        weeksWithoutProgress: analysis.weeksWithoutProgress,
+        suggestedActions: analysis.suggestedActions,
+      },
+      expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
+    },
+  })
+
+  logger.info('Plateau notification created', {
     clientName: client.name,
     exerciseName: exercise.name,
     recommendation: analysis.recommendation,
-    reasoning: analysis.reasoning,
-    suggestedActions: analysis.suggestedActions,
   })
-
-  // TODO: Create actual notification in Message table or notification system
 }
 
 /**

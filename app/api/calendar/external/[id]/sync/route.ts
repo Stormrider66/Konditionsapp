@@ -14,7 +14,7 @@ import {
   fetchAndParseICalUrl,
   convertToCalendarEvents,
 } from '@/lib/calendar/ical-parser'
-import { decryptIntegrationSecret } from '@/lib/integrations/crypto'
+import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -321,22 +321,197 @@ async function syncGoogleCalendar(
       )
     }
 
-    // TODO: Refresh the token using Google OAuth
-    // For now, return an error
+    const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID
+    const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET
+    if (!clientId || !clientSecret) {
+      logger.error('Google Calendar OAuth not configured: missing GOOGLE_CALENDAR_CLIENT_ID or GOOGLE_CALENDAR_CLIENT_SECRET')
+      return NextResponse.json(
+        { error: 'Google Calendar integration not configured' },
+        { status: 500 }
+      )
+    }
+
+    // Refresh the token using Google OAuth
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: 'refresh_token',
+      }),
+    })
+
+    if (!tokenResponse.ok) {
+      const errorData = await tokenResponse.json().catch(() => ({}))
+      logger.error('Google token refresh failed', { status: tokenResponse.status, error: errorData })
+      await prisma.externalCalendarConnection.update({
+        where: { id: connection.id },
+        data: {
+          lastSyncError: `Token refresh failed: ${errorData.error_description || tokenResponse.statusText}`,
+          syncEnabled: false,
+        },
+      })
+      return NextResponse.json(
+        { error: 'Failed to refresh access token. Please reconnect your Google Calendar.' },
+        { status: 401 }
+      )
+    }
+
+    const tokenData = await tokenResponse.json()
+    accessToken = tokenData.access_token
+
+    // Store the new encrypted token and expiry
+    const newExpiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000)
+    await prisma.externalCalendarConnection.update({
+      where: { id: connection.id },
+      data: {
+        accessToken: encryptIntegrationSecret(accessToken),
+        expiresAt: newExpiresAt,
+        // Google may issue a new refresh token
+        ...(tokenData.refresh_token
+          ? { refreshToken: encryptIntegrationSecret(tokenData.refresh_token) }
+          : {}),
+      },
+    })
+  }
+
+  // Fetch events from Google Calendar API
+  const now = new Date()
+  const timeMin = now.toISOString()
+  const timeMax = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days ahead
+
+  const eventsUrl = new URL(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(connection.calendarId)}/events`
+  )
+  eventsUrl.searchParams.set('timeMin', timeMin)
+  eventsUrl.searchParams.set('timeMax', timeMax)
+  eventsUrl.searchParams.set('singleEvents', 'true')
+  eventsUrl.searchParams.set('orderBy', 'startTime')
+  eventsUrl.searchParams.set('maxResults', '250')
+
+  const eventsResponse = await fetch(eventsUrl.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+
+  if (!eventsResponse.ok) {
+    const errorData = await eventsResponse.json().catch(() => ({}))
+    logger.error('Google Calendar events fetch failed', { status: eventsResponse.status, error: errorData })
+    await prisma.externalCalendarConnection.update({
+      where: { id: connection.id },
+      data: { lastSyncError: `Events fetch failed: ${errorData.error?.message || eventsResponse.statusText}` },
+    })
     return NextResponse.json(
-      { error: 'Token refresh not yet implemented' },
-      { status: 501 }
+      { error: 'Failed to fetch events from Google Calendar' },
+      { status: 502 }
     )
   }
 
-  // TODO: Implement Google Calendar API fetch
-  // Use the Google Calendar API to fetch events
-  // https://developers.google.com/calendar/api/v3/reference/events/list
+  const eventsData = await eventsResponse.json()
+  const googleEvents: Array<{
+    id: string
+    summary?: string
+    description?: string
+    start: { dateTime?: string; date?: string }
+    end: { dateTime?: string; date?: string }
+  }> = eventsData.items || []
 
-  return NextResponse.json(
-    { error: 'Google Calendar sync not yet implemented' },
-    { status: 501 }
+  // Track sync stats
+  let created = 0
+  let updated = 0
+  let deleted = 0
+
+  // Get existing events for this connection
+  const existingEvents = await prisma.calendarEvent.findMany({
+    where: {
+      clientId: connection.clientId,
+      externalCalendarType: 'GOOGLE',
+      externalCalendarName: connection.calendarName,
+      isReadOnly: true,
+    },
+    select: { id: true, externalCalendarId: true },
+  })
+
+  const existingEventMap = new Map(
+    existingEvents.map((e) => [e.externalCalendarId, e.id])
   )
+  const processedIds = new Set<string>()
+
+  // Upsert events
+  for (const gEvent of googleEvents) {
+    if (!gEvent.id) continue
+    processedIds.add(gEvent.id)
+
+    const isAllDay = !gEvent.start.dateTime
+    const startDate = new Date(gEvent.start.dateTime || gEvent.start.date || now)
+    const endDate = new Date(gEvent.end.dateTime || gEvent.end.date || now)
+
+    const existingId = existingEventMap.get(gEvent.id)
+
+    if (existingId) {
+      await prisma.calendarEvent.update({
+        where: { id: existingId },
+        data: {
+          title: gEvent.summary || 'Untitled',
+          description: gEvent.description || null,
+          startDate,
+          endDate,
+          allDay: isAllDay,
+          lastSyncedAt: new Date(),
+        },
+      })
+      updated++
+    } else {
+      await prisma.calendarEvent.create({
+        data: {
+          clientId: connection.clientId,
+          type: connection.importAsType,
+          title: gEvent.summary || 'Untitled',
+          description: gEvent.description || null,
+          startDate,
+          endDate,
+          allDay: isAllDay,
+          trainingImpact: connection.defaultImpact,
+          isReadOnly: true,
+          externalCalendarId: gEvent.id,
+          externalCalendarType: 'GOOGLE',
+          externalCalendarName: connection.calendarName,
+          lastSyncedAt: new Date(),
+          color: connection.color,
+          createdById: userId,
+        },
+      })
+      created++
+    }
+  }
+
+  // Delete events no longer in Google Calendar
+  for (const [uid, eventId] of existingEventMap) {
+    if (uid && !processedIds.has(uid)) {
+      await prisma.calendarEvent.delete({ where: { id: eventId } })
+      deleted++
+    }
+  }
+
+  // Update connection sync status
+  await prisma.externalCalendarConnection.update({
+    where: { id: connection.id },
+    data: {
+      lastSyncAt: new Date(),
+      lastSyncError: null,
+    },
+  })
+
+  return NextResponse.json({
+    success: true,
+    stats: {
+      total: googleEvents.length,
+      created,
+      updated,
+      deleted,
+    },
+  })
 }
 
 /**

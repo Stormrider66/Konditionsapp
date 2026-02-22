@@ -16,9 +16,8 @@
  * - Continuous jumps: 1 contact per rep
  */
 
-import { PrismaClient, PlyometricIntensity } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { PlyometricIntensity } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 
 export interface PlyometricExercise {
   id: string

@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio, resolveAthleteClientId } from '@/lib/auth-utils'
+import { sendCareTeamNotification } from '@/lib/notifications/care-team'
+import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
 // Validation schema for creating an acute injury report
@@ -151,7 +153,7 @@ export async function GET(request: NextRequest) {
       offset,
     })
   } catch (error) {
-    console.error('Error fetching acute injury reports:', error)
+    logger.error('Error fetching acute injury reports', {}, error)
     return NextResponse.json(
       { error: 'Failed to fetch acute injury reports' },
       { status: 500 }
@@ -239,12 +241,66 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // TODO: Send notifications to assigned physios and coaches
-    // This would be done through a notification service
+    // Notify coach and assigned physios about the acute injury
+    try {
+      // Get the client's coach
+      const client = await prisma.client.findUnique({
+        where: { id: validatedData.clientId },
+        select: {
+          userId: true,
+          physioAssignments: {
+            where: { isActive: true },
+            select: { physioUserId: true },
+          },
+        },
+      })
+
+      const priority = validatedData.urgency === 'EMERGENCY' || validatedData.urgency === 'URGENT'
+        ? 'URGENT' as const
+        : validatedData.urgency === 'MODERATE'
+        ? 'HIGH' as const
+        : 'NORMAL' as const
+
+      const notifyRecipients: string[] = []
+
+      // Notify coach if reporter is not the coach
+      if (client?.userId && client.userId !== user.id) {
+        notifyRecipients.push(client.userId)
+      }
+
+      // Notify assigned physios
+      if (client?.physioAssignments) {
+        for (const assignment of client.physioAssignments) {
+          if (assignment.physioUserId !== user.id) {
+            notifyRecipients.push(assignment.physioUserId)
+          }
+        }
+      }
+
+      for (const recipientId of notifyRecipients) {
+        await sendCareTeamNotification({
+          type: 'RESTRICTION_CREATED',
+          senderId: user.id,
+          recipientId,
+          clientId: validatedData.clientId,
+          priority,
+          contextData: {
+            acuteReportId: report.id,
+            bodyPart: validatedData.bodyPart,
+            mechanism: validatedData.mechanism,
+            urgency: validatedData.urgency,
+            severity: validatedData.initialSeverity,
+          },
+        })
+      }
+    } catch (notifyError) {
+      logger.error('Failed to send acute injury notifications', { reportId: report.id }, notifyError)
+      // Don't block report creation if notification fails
+    }
 
     return NextResponse.json(report, { status: 201 })
   } catch (error) {
-    console.error('Error creating acute injury report:', error)
+    logger.error('Error creating acute injury report', {}, error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation error', details: error.errors },

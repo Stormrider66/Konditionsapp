@@ -34,6 +34,14 @@ import { DayActionMenu, useDayActionMenu, type DayActionType } from './DayAction
 import { QuickWorkoutDialog } from './QuickWorkoutDialog'
 import { FullWorkoutDialog } from './FullWorkoutDialog'
 import { ScheduleTestDialog } from './ScheduleTestDialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { useSwipeNavigation, useIsMobile } from './hooks/useSwipeNavigation'
 import { UnifiedCalendarItem } from './types'
 import type { Conflict, ConflictResolution } from '@/lib/calendar/conflict-detection'
@@ -90,6 +98,10 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
   const [isRescheduling, setIsRescheduling] = useState(false)
   const [showConflictDialog, setShowConflictDialog] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+
+  // Intensity modification state
+  const [showIntensityDialog, setShowIntensityDialog] = useState(false)
+  const [selectedIntensity, setSelectedIntensity] = useState<string>('moderate')
 
   // Day action menu (for coach creating workouts/events on empty days)
   const dayActionMenu = useDayActionMenu()
@@ -441,8 +453,9 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         // Proceed with original reschedule
         executeReschedule(undefined, true)
       } else if (resolution?.type === 'MODIFY_INTENSITY') {
-        // TODO: Apply intensity modification first, then reschedule
-        executeReschedule(undefined, true)
+        // Show intensity selection dialog before rescheduling
+        setShowConflictDialog(false)
+        setShowIntensityDialog(true)
       } else {
         // For other resolutions, proceed with reschedule
         executeReschedule(undefined, true)
@@ -671,6 +684,67 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             isLoading={isRescheduling}
           />
         )}
+
+        {/* Intensity Modification Dialog */}
+        <Dialog open={showIntensityDialog} onOpenChange={setShowIntensityDialog}>
+          <DialogContent className="sm:max-w-[360px]">
+            <DialogHeader>
+              <DialogTitle>Justera intensitet</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                Välj ny intensitet för{' '}
+                <span className="font-medium">{rescheduleState?.workoutName}</span> innan flytt.
+              </p>
+              <div className="space-y-2">
+                <Label>Intensitet</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'easy', label: 'Lätt', color: 'bg-green-100 border-green-400 text-green-800' },
+                    { value: 'moderate', label: 'Måttlig', color: 'bg-yellow-100 border-yellow-400 text-yellow-800' },
+                    { value: 'hard', label: 'Hård', color: 'bg-red-100 border-red-400 text-red-800' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      className={cn(
+                        'rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all',
+                        selectedIntensity === opt.value
+                          ? opt.color
+                          : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                      )}
+                      onClick={() => setSelectedIntensity(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowIntensityDialog(false)
+                  setRescheduleState(null)
+                }}
+              >
+                Avbryt
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowIntensityDialog(false)
+                  executeReschedule(`Intensitet justerad till ${selectedIntensity}`, true)
+                }}
+                disabled={isRescheduling}
+              >
+                {isRescheduling ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : null}
+                Flytta med ny intensitet
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Coach Action Menu and Dialogs */}
         {isCoachView && dayActionMenu.date && (
@@ -984,6 +1058,67 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           isLoading={isRescheduling}
         />
       )}
+
+      {/* Intensity Modification Dialog */}
+      <Dialog open={showIntensityDialog} onOpenChange={setShowIntensityDialog}>
+        <DialogContent className="sm:max-w-[360px]">
+          <DialogHeader>
+            <DialogTitle>Justera intensitet</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Välj ny intensitet för{' '}
+              <span className="font-medium">{rescheduleState?.workoutName}</span> innan flytt.
+            </p>
+            <div className="space-y-2">
+              <Label>Intensitet</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: 'easy', label: 'Lätt', color: 'bg-green-100 border-green-400 text-green-800' },
+                  { value: 'moderate', label: 'Måttlig', color: 'bg-yellow-100 border-yellow-400 text-yellow-800' },
+                  { value: 'hard', label: 'Hård', color: 'bg-red-100 border-red-400 text-red-800' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    className={cn(
+                      'rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all',
+                      selectedIntensity === opt.value
+                        ? opt.color
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                    )}
+                    onClick={() => setSelectedIntensity(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowIntensityDialog(false)
+                setRescheduleState(null)
+              }}
+            >
+              Avbryt
+            </Button>
+            <Button
+              onClick={() => {
+                setShowIntensityDialog(false)
+                executeReschedule(`Intensitet justerad till ${selectedIntensity}`, true)
+              }}
+              disabled={isRescheduling}
+            >
+              {isRescheduling ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : null}
+              Flytta med ny intensitet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

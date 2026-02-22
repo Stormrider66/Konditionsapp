@@ -172,15 +172,18 @@ export async function POST(request: NextRequest) {
     // Validate Google key if provided
     if (googleKey) {
       try {
-        // Simple validation - check format
-        if (googleKey.length < 20) {
+        const googleResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(googleKey)}`
+        );
+
+        if (googleResponse.ok) {
+          validationResults.google = { valid: true };
+        } else {
+          const errorData = await googleResponse.json().catch(() => ({}));
           validationResults.google = {
             valid: false,
-            error: 'Invalid Google API key format',
+            error: errorData.error?.message || `API returned status ${googleResponse.status}`,
           };
-        } else {
-          // TODO: Make actual API call to validate
-          validationResults.google = { valid: true };
         }
       } catch (error) {
         validationResults.google = {

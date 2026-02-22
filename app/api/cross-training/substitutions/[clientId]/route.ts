@@ -91,11 +91,36 @@ async function getAthletePreferredModality(
   clientId: string,
   injuryType: string | null
 ): Promise<Modality> {
-  // TODO: Fetch from athlete preferences when that API is built
-  // For now, use injury-based recommendations
+  // Fetch athlete cross-training preferences if available
+  const clientWithAccount = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: {
+      athleteAccount: {
+        select: { crossTrainingPreferences: true },
+      },
+    },
+  })
 
+  const prefs = clientWithAccount?.athleteAccount?.crossTrainingPreferences as {
+    preferredModalities?: string[]
+    equipmentAccess?: string[]
+  } | null
+
+  if (prefs?.preferredModalities?.length) {
+    // Filter by injury-safe modalities if there's an active injury
+    const safeModalities = injuryType && INJURY_MODALITY_MAP[injuryType]
+      ? INJURY_MODALITY_MAP[injuryType]
+      : (Object.keys(MODALITY_RETENTION) as Modality[])
+
+    // Find first preferred modality that is also injury-safe
+    const preferred = prefs.preferredModalities.find((m) =>
+      safeModalities.includes(m as Modality)
+    )
+    if (preferred) return preferred as Modality
+  }
+
+  // Fall back to injury-based recommendations
   if (injuryType && INJURY_MODALITY_MAP[injuryType]) {
-    // Return first recommended modality for this injury
     return INJURY_MODALITY_MAP[injuryType][0]
   }
 

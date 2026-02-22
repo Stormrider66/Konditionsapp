@@ -24,7 +24,7 @@ export interface StrengthTemplate {
   nameSv: string
   description: string
   descriptionSv: string
-  category: 'RUNNER' | 'BEGINNER' | 'MARATHON' | 'INJURY_PREVENTION' | 'POWER' | 'MAINTENANCE'
+  category: 'RUNNER' | 'BEGINNER' | 'MARATHON' | 'INJURY_PREVENTION' | 'POWER' | 'MAINTENANCE' | 'HALF_MARATHON' | 'STRENGTH_BASE'
   phase: StrengthPhase
   sessionsPerWeek: 1 | 2 | 3
   estimatedDuration: number // minutes

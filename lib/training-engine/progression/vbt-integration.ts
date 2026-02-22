@@ -10,7 +10,7 @@
  * - Auto-regulation recommendations based on velocity
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import {
   calculateLoadVelocityProfile,
   predictVelocity,
@@ -20,8 +20,6 @@ import {
   type LoadVelocityProfileResult,
 } from '@/lib/integrations/vbt';
 import { estimate1RMWithConfidence } from './rm-estimation';
-
-const prisma = new PrismaClient();
 
 // ============================================
 // Types

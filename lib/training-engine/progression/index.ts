@@ -9,7 +9,7 @@
  * - Plateau detection
  */
 
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import {
   estimate1RMWithConfidence,
   calculateAverage1RM,
@@ -38,8 +38,6 @@ import {
   updatePlateauStatus,
   type PlateauAnalysis,
 } from './plateau-detection'
-
-const prisma = new PrismaClient()
 
 /**
  * Complete progression calculation for a workout log

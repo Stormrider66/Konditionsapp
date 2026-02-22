@@ -16,12 +16,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { logger } from '@/lib/logger'
 import { sanitizeForEmail } from '@/lib/sanitize'
-
-const prisma = new PrismaClient()
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 interface DigestData {

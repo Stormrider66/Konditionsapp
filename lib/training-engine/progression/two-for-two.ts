@@ -11,9 +11,7 @@
  * - Lower body: 5-10% (5-10kg)
  */
 
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 export interface TwoForTwoResult {
   readyForIncrease: boolean
