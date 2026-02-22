@@ -26,6 +26,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import { useState, useMemo } from 'react'
@@ -46,6 +57,11 @@ export function ProgramOverview({ program, basePath = '/coach' }: ProgramOvervie
   const router = useRouter()
   const { toast } = useToast()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [editName, setEditName] = useState(program.name)
+  const [editDescription, setEditDescription] = useState(program.description || '')
+  const [editGoalType, setEditGoalType] = useState(program.goalType || '')
 
   const currentWeek = getCurrentWeek(program)
   const totalWeeks = program.weeks?.length || 0
@@ -57,6 +73,40 @@ export function ProgramOverview({ program, basePath = '/coach' }: ProgramOvervie
     () => convertDatabaseProgramToParsed(program),
     [program]
   )
+
+  async function handleSaveEdit() {
+    setIsSaving(true)
+    try {
+      const response = await fetch(`/api/programs/${program.id}/edit`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName,
+          description: editDescription,
+          goalType: editGoalType,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Misslyckades med att uppdatera program')
+      }
+
+      toast({
+        title: 'Program uppdaterat',
+        description: 'Ändringarna har sparats',
+      })
+      setIsEditOpen(false)
+      router.refresh()
+    } catch (error: any) {
+      toast({
+        title: 'Något gick fel',
+        description: error.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   async function handleDelete() {
     setIsDeleting(true)
@@ -134,7 +184,12 @@ export function ProgramOverview({ program, basePath = '/coach' }: ProgramOvervie
             startDate={new Date(program.startDate)}
             size="sm"
           />
-          <Button variant="outline" size="sm" className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"
+            onClick={() => setIsEditOpen(true)}
+          >
             <Edit className="mr-2 h-4 w-4" />
             Redigera
           </Button>
@@ -245,6 +300,49 @@ export function ProgramOverview({ program, basePath = '/coach' }: ProgramOvervie
           </GlassCardContent>
         </GlassCard>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redigera program</DialogTitle>
+            <DialogDescription>Ändra programmets namn, mål och beskrivning.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Programnamn</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-goal">Måltyp</Label>
+              <Input
+                id="edit-goal"
+                value={editGoalType}
+                onChange={(e) => setEditGoalType(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Beskrivning</Label>
+              <Textarea
+                id="edit-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Avbryt</Button>
+            <Button onClick={handleSaveEdit} disabled={isSaving}>
+              {isSaving ? 'Sparar...' : 'Spara'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Test Info */}
       {program.test && (
