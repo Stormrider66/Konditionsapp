@@ -157,7 +157,7 @@ export async function PUT(request: NextRequest) {
 
       if (adminRole !== oldAdminRole) {
         await logAuditEvent({
-          action: 'ADMIN_ROLE_CHANGE',
+          action: 'USER_ROLE_CHANGE',
           userId: adminUser.id,
           targetId: userId,
           targetType: 'User',
