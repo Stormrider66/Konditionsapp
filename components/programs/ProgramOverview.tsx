@@ -62,6 +62,8 @@ export function ProgramOverview({ program, basePath = '/coach' }: ProgramOvervie
   const [editName, setEditName] = useState(program.name)
   const [editDescription, setEditDescription] = useState(program.description || '')
   const [editGoalType, setEditGoalType] = useState(program.goalType || '')
+  const [editStartDate, setEditStartDate] = useState(format(new Date(program.startDate), 'yyyy-MM-dd'))
+  const [editEndDate, setEditEndDate] = useState(format(new Date(program.endDate), 'yyyy-MM-dd'))
 
   const currentWeek = getCurrentWeek(program)
   const totalWeeks = program.weeks?.length || 0
@@ -84,6 +86,8 @@ export function ProgramOverview({ program, basePath = '/coach' }: ProgramOvervie
           name: editName,
           description: editDescription,
           goalType: editGoalType,
+          startDate: editStartDate,
+          endDate: editEndDate,
         }),
       })
 
@@ -324,6 +328,26 @@ export function ProgramOverview({ program, basePath = '/coach' }: ProgramOvervie
                 value={editGoalType}
                 onChange={(e) => setEditGoalType(e.target.value)}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-start-date">Startdatum</Label>
+                <Input
+                  id="edit-start-date"
+                  type="date"
+                  value={editStartDate}
+                  onChange={(e) => setEditStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-end-date">Slutdatum</Label>
+                <Input
+                  id="edit-end-date"
+                  type="date"
+                  value={editEndDate}
+                  onChange={(e) => setEditEndDate(e.target.value)}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description">Beskrivning</Label>

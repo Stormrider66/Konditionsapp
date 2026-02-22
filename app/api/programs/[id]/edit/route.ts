@@ -140,14 +140,16 @@ export async function DELETE(
  * Edit program metadata
  */
 async function editProgramMetadata(programId: string, body: any) {
-  const { name, description, goalType } = body
+  const { name, description, goalType, startDate, endDate } = body
 
   const updated = await prisma.trainingProgram.update({
     where: { id: programId },
     data: {
       ...(name && { name }),
-      ...(description && { description }),
+      ...(description !== undefined && { description }),
       ...(goalType && { goalType }),
+      ...(startDate && { startDate: new Date(startDate) }),
+      ...(endDate && { endDate: new Date(endDate) }),
     },
   })
 
