@@ -12,24 +12,42 @@ import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { encryptIntegrationSecret } from '@/lib/integrations/crypto';
 import { logger } from '@/lib/logger'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+/** Parse state parameter which may contain businessSlug as "clientId:businessSlug" */
+function parseState(state: string): { clientId: string; businessSlug?: string } {
+  const separatorIndex = state.indexOf(':');
+  if (separatorIndex > 0) {
+    return {
+      clientId: state.substring(0, separatorIndex),
+      businessSlug: state.substring(separatorIndex + 1),
+    };
+  }
+  return { clientId: state };
+}
+
+/** Build settings redirect path, preferring business-scoped route */
+function settingsPath(businessSlug?: string): string {
+  return businessSlug ? `/${businessSlug}/athlete/settings` : '/athlete/settings';
+}
 
 /**
  * GET - Handle OAuth callback from Concept2
  *
  * Query params:
  * - code: Authorization code from Concept2
- * - state: Client ID (passed during auth initiation)
+ * - state: Client ID (passed during auth initiation), optionally with businessSlug
  * - error: Error message (if auth was denied)
  * - error_description: Detailed error message
  */
 export async function GET(request: NextRequest) {
+  const APP_URL = request.nextUrl.origin;
   const searchParams = request.nextUrl.searchParams;
 
   const code = searchParams.get('code');
-  const state = searchParams.get('state'); // This is the clientId
+  const stateParam = searchParams.get('state');
   const error = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
+
+  const { clientId, businessSlug } = stateParam ? parseState(stateParam) : { clientId: '', businessSlug: undefined };
 
   // Handle authorization denial
   if (error) {
@@ -38,33 +56,31 @@ export async function GET(request: NextRequest) {
       hasErrorDescription: Boolean(errorDescription),
     })
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings?error=concept2_denied&message=${encodeURIComponent(errorDescription || error)}`
+      `${APP_URL}${settingsPath(businessSlug)}?error=concept2_denied&message=${encodeURIComponent(errorDescription || error)}`
     );
   }
 
   // Validate required params
-  if (!code || !state) {
+  if (!code || !stateParam) {
     logger.warn('Missing code or state in Concept2 callback')
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings?error=concept2_invalid_callback`
+      `${APP_URL}${settingsPath(businessSlug)}?error=concept2_invalid_callback`
     );
   }
-
-  const clientId = state;
 
   try {
     // Verify user is authenticated and allowed to connect integrations for this client
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.redirect(
-        `${APP_URL}/login?redirect=${encodeURIComponent('/athlete/settings')}`
+        `${APP_URL}/login?redirect=${encodeURIComponent(settingsPath(businessSlug))}`
       );
     }
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.redirect(
-        `${APP_URL}/athlete/settings?error=concept2_forbidden`
+        `${APP_URL}${settingsPath(businessSlug)}?error=concept2_forbidden`
       );
     }
 
@@ -77,12 +93,12 @@ export async function GET(request: NextRequest) {
     if (!client) {
       logger.warn('Client not found in Concept2 callback', { clientId })
       return NextResponse.redirect(
-        `${APP_URL}/athlete/settings?error=concept2_client_not_found`
+        `${APP_URL}${settingsPath(businessSlug)}?error=concept2_client_not_found`
       );
     }
 
     // Exchange code for tokens
-    const tokenResponse = await exchangeConcept2Code(code);
+    const tokenResponse = await exchangeConcept2Code(code, APP_URL);
 
     // Calculate expiration time
     const expiresAt = new Date(Date.now() + tokenResponse.expires_in * 1000);
@@ -155,7 +171,7 @@ export async function GET(request: NextRequest) {
     logger.info('Concept2 connected', { clientId, userId: userId || undefined })
 
     // Redirect to success page
-    const successUrl = new URL(`${APP_URL}/athlete/settings`);
+    const successUrl = new URL(`${APP_URL}${settingsPath(businessSlug)}`);
     successUrl.searchParams.set('success', 'concept2_connected');
     if (userId) successUrl.searchParams.set('userId', userId);
     if (username) successUrl.searchParams.set('username', username);
@@ -166,7 +182,7 @@ export async function GET(request: NextRequest) {
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings?error=concept2_callback_failed&message=${encodeURIComponent(errorMessage)}`
+      `${APP_URL}${settingsPath(businessSlug)}?error=concept2_callback_failed&message=${encodeURIComponent(errorMessage)}`
     );
   }
 }

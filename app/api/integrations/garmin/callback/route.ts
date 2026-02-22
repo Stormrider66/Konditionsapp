@@ -11,7 +11,19 @@ import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto';
 import { logger } from '@/lib/logger'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+/** Look up business slug for a user to redirect to business-scoped route */
+async function getBusinessSlug(userId: string): Promise<string | undefined> {
+  const membership = await prisma.businessMember.findFirst({
+    where: { userId, isActive: true },
+    include: { business: { select: { slug: true } } },
+  });
+  return membership?.business?.slug;
+}
+
+/** Build settings redirect path, preferring business-scoped route */
+function settingsPath(businessSlug?: string): string {
+  return businessSlug ? `/${businessSlug}/athlete/settings` : '/athlete/settings';
+}
 
 /**
  * GET - Handle OAuth 2.0 PKCE callback from Garmin
@@ -21,6 +33,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
  * - state: State parameter (used to recover clientId and validate CSRF)
  */
 export async function GET(request: NextRequest) {
+  const APP_URL = request.nextUrl.origin;
   const searchParams = request.nextUrl.searchParams;
 
   const code = searchParams.get('code');
@@ -61,10 +74,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Look up business slug for business-scoped redirect
+    const businessSlug = await getBusinessSlug(user.id);
+
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.redirect(
-        `${APP_URL}/athlete/settings?error=garmin_forbidden`
+        `${APP_URL}${settingsPath(businessSlug)}?error=garmin_forbidden`
       );
     }
 
@@ -81,7 +97,7 @@ export async function GET(request: NextRequest) {
     if (!storedPKCE || storedPKCE.state !== state || storedPKCE.expiresAt < new Date()) {
       logger.warn('Invalid or expired PKCE state in Garmin callback')
       return NextResponse.redirect(
-        `${APP_URL}/athlete/settings?error=garmin_invalid_state`
+        `${APP_URL}${settingsPath(businessSlug)}?error=garmin_invalid_state`
       );
     }
 
@@ -90,7 +106,7 @@ export async function GET(request: NextRequest) {
     if (!codeVerifier) {
       logger.warn('Failed to decrypt code_verifier')
       return NextResponse.redirect(
-        `${APP_URL}/athlete/settings?error=garmin_callback_failed`
+        `${APP_URL}${settingsPath(businessSlug)}?error=garmin_callback_failed`
       );
     }
 
@@ -98,7 +114,7 @@ export async function GET(request: NextRequest) {
     await prisma.oAuthRequestToken.delete({ where: { id: storedPKCE.id } });
 
     // Exchange authorization code for tokens
-    const tokens = await exchangeGarminCode(code, codeVerifier);
+    const tokens = await exchangeGarminCode(code, codeVerifier, APP_URL);
 
     // Calculate token expiry
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
@@ -132,7 +148,7 @@ export async function GET(request: NextRequest) {
 
     // Redirect to success page
     return NextResponse.redirect(
-      `${APP_URL}/athlete/settings?success=garmin_connected`
+      `${APP_URL}${settingsPath(businessSlug)}?success=garmin_connected`
     );
   } catch (err) {
     logger.error('Garmin callback error', {}, err)

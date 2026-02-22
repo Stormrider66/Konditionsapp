@@ -32,9 +32,10 @@ const CONCEPT2_OAUTH_BASE = process.env.CONCEPT2_USE_DEV_SERVER === 'true'
 // Environment variables
 const CONCEPT2_CLIENT_ID = process.env.CONCEPT2_CLIENT_ID!;
 const CONCEPT2_CLIENT_SECRET = process.env.CONCEPT2_CLIENT_SECRET!;
-const CONCEPT2_REDIRECT_URI = process.env.NEXT_PUBLIC_APP_URL
-  ? `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/concept2/callback`
-  : 'http://localhost:3000/api/integrations/concept2/callback';
+function getConcept2RedirectUri(origin?: string): string {
+  const base = process.env.NEXT_PUBLIC_APP_URL || origin || 'http://localhost:3000';
+  return `${base}/api/integrations/concept2/callback`;
+}
 
 // Default scopes - request read access for user profile and results
 const CONCEPT2_SCOPES = 'user:read,results:read';
@@ -42,13 +43,13 @@ const CONCEPT2_SCOPES = 'user:read,results:read';
 /**
  * Generate Concept2 OAuth authorization URL
  */
-export function getConcept2AuthUrl(clientId: string, state?: string): string {
+export function getConcept2AuthUrl(clientId: string, options?: { state?: string; origin?: string }): string {
   const params = new URLSearchParams({
     client_id: CONCEPT2_CLIENT_ID,
-    redirect_uri: CONCEPT2_REDIRECT_URI,
+    redirect_uri: getConcept2RedirectUri(options?.origin),
     response_type: 'code',
     scope: CONCEPT2_SCOPES,
-    state: state || clientId,
+    state: options?.state || clientId,
   });
 
   return `${CONCEPT2_OAUTH_BASE}/authorize?${params.toString()}`;
@@ -57,7 +58,7 @@ export function getConcept2AuthUrl(clientId: string, state?: string): string {
 /**
  * Exchange authorization code for tokens
  */
-export async function exchangeConcept2Code(code: string): Promise<Concept2TokenResponse> {
+export async function exchangeConcept2Code(code: string, origin?: string): Promise<Concept2TokenResponse> {
   const response = await fetchWithTimeoutAndRetry(
     `${CONCEPT2_OAUTH_BASE}/access_token`,
     {
@@ -70,7 +71,7 @@ export async function exchangeConcept2Code(code: string): Promise<Concept2TokenR
         client_secret: CONCEPT2_CLIENT_SECRET,
         code,
         grant_type: 'authorization_code',
-        redirect_uri: CONCEPT2_REDIRECT_URI,
+        redirect_uri: getConcept2RedirectUri(origin),
         scope: CONCEPT2_SCOPES,
       }).toString(),
     },

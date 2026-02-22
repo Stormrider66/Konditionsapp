@@ -22,6 +22,7 @@ import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 // Schema for POST request
 const initiateAuthSchema = z.object({
   clientId: z.string().uuid(),
+  businessSlug: z.string().optional(),
 });
 
 /**
@@ -165,7 +166,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Build OAuth 2.0 PKCE authorization URL
-    const { authUrl } = await getGarminAuthUrl(clientId);
+    const origin = request.nextUrl.origin;
+    const { authUrl } = await getGarminAuthUrl(clientId, { origin });
 
     return NextResponse.json({ authUrl });
   } catch (error) {

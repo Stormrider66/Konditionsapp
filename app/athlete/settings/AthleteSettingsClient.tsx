@@ -254,7 +254,7 @@ export function AthleteSettingsClient({
             <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Integrationer</h3>
           </div>
-          <IntegrationsSettings clientId={clientId} variant="glass" />
+          <IntegrationsSettings clientId={clientId} businessSlug={basePath.replace(/^\//, '')} variant="glass" />
         </div>
       </div>
     </div>

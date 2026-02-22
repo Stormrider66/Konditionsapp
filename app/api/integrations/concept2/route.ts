@@ -21,6 +21,7 @@ import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 // Schema for POST request
 const initiateAuthSchema = z.object({
   clientId: z.string().uuid(),
+  businessSlug: z.string().optional(),
 });
 
 /**
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { clientId } = validationResult.data;
+    const { clientId, businessSlug } = validationResult.data;
 
     // Access control (also verifies client existence for this user)
     const hasAccess = await canAccessClient(user.id, clientId)
@@ -175,8 +176,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate auth URL with client ID as state
-    const authUrl = getConcept2AuthUrl(clientId);
+    // Generate auth URL with client ID as state, encoding businessSlug
+    const origin = request.nextUrl.origin;
+    const state = businessSlug ? `${clientId}:${businessSlug}` : clientId;
+    const authUrl = getConcept2AuthUrl(clientId, { state, origin });
 
     return NextResponse.json({ authUrl });
   } catch (error) {

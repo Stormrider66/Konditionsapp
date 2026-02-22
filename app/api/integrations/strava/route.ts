@@ -21,6 +21,7 @@ import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 // Schema for POST request
 const initiateAuthSchema = z.object({
   clientId: z.string().uuid(),
+  businessSlug: z.string().optional(),
 });
 
 /**
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { clientId } = validationResult.data;
+    const { clientId, businessSlug } = validationResult.data;
 
     // Access control: ensure the authenticated user can access this client
     const hasAccess = await canAccessClient(user.id, clientId)
@@ -161,8 +162,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate auth URL with client ID as state
-    const authUrl = getStravaAuthUrl(clientId);
+    // Encode businessSlug in state so callback can redirect to the right route
+    const origin = request.nextUrl.origin;
+    const state = businessSlug ? `${clientId}:${businessSlug}` : clientId;
+    const authUrl = getStravaAuthUrl(clientId, { state, origin });
 
     return NextResponse.json({ authUrl });
   } catch (error) {

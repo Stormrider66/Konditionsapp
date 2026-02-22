@@ -26,9 +26,10 @@ const GARMIN_TOKEN_URL = 'https://diauth.garmin.com/di-oauth2-service/oauth/toke
 // Environment variables (OAuth 2.0 naming)
 const GARMIN_CLIENT_ID = process.env.GARMIN_CLIENT_ID || process.env.GARMIN_CONSUMER_KEY || '';
 const GARMIN_CLIENT_SECRET = process.env.GARMIN_CLIENT_SECRET || process.env.GARMIN_CONSUMER_SECRET || '';
-const GARMIN_REDIRECT_URI = process.env.NEXT_PUBLIC_APP_URL
-  ? `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/garmin/callback`
-  : 'http://localhost:3000/api/integrations/garmin/callback';
+function getGarminRedirectUri(origin?: string): string {
+  const base = process.env.NEXT_PUBLIC_APP_URL || origin || 'http://localhost:3000';
+  return `${base}/api/integrations/garmin/callback`;
+}
 
 // Types for Garmin data
 export interface GarminActivity {
@@ -209,7 +210,7 @@ export function isGarminConfigured(): boolean {
  * in OAuthRequestToken for retrieval in the callback, and returns
  * the authorization URL to redirect the user to.
  */
-export async function getGarminAuthUrl(clientId: string): Promise<{ authUrl: string }> {
+export async function getGarminAuthUrl(clientId: string, options?: { origin?: string }): Promise<{ authUrl: string }> {
   if (!isGarminConfigured()) {
     throw new Error('Garmin API is not configured');
   }
@@ -243,7 +244,7 @@ export async function getGarminAuthUrl(clientId: string): Promise<{ authUrl: str
 
   const params = new URLSearchParams({
     client_id: GARMIN_CLIENT_ID,
-    redirect_uri: GARMIN_REDIRECT_URI,
+    redirect_uri: getGarminRedirectUri(options?.origin),
     response_type: 'code',
     scope: 'CONNECT_READ CONNECT_WRITE',
     code_challenge: codeChallenge,
@@ -320,7 +321,8 @@ export async function findClientIdByState(state: string): Promise<string | null>
  */
 export async function exchangeGarminCode(
   code: string,
-  codeVerifier: string
+  codeVerifier: string,
+  origin?: string
 ): Promise<GarminTokenResponse> {
   if (!isGarminConfigured()) {
     throw new Error('Garmin API is not configured');
@@ -332,7 +334,7 @@ export async function exchangeGarminCode(
     code,
     code_verifier: codeVerifier,
     grant_type: 'authorization_code',
-    redirect_uri: GARMIN_REDIRECT_URI,
+    redirect_uri: getGarminRedirectUri(origin),
   });
 
   const response = await fetchWithTimeoutAndRetry(

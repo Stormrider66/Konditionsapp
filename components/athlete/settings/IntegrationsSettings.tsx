@@ -33,10 +33,11 @@ import { cn } from '@/lib/utils'
 
 interface IntegrationsSettingsProps {
   clientId: string
+  businessSlug?: string
   variant?: 'default' | 'glass'
 }
 
-export function IntegrationsSettings({ clientId, variant = 'default' }: IntegrationsSettingsProps) {
+export function IntegrationsSettings({ clientId, businessSlug, variant = 'default' }: IntegrationsSettingsProps) {
   const { toast } = useToast()
   const isGlass = variant === 'glass'
   const [stravaStatus, setStravaStatus] = useState<IntegrationStatus | null>(null)
@@ -94,7 +95,7 @@ export function IntegrationsSettings({ clientId, variant = 'default' }: Integrat
       const response = await fetch('/api/integrations/strava', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId }),
+        body: JSON.stringify({ clientId, businessSlug }),
       })
       const data = await response.json()
 
@@ -190,7 +191,7 @@ export function IntegrationsSettings({ clientId, variant = 'default' }: Integrat
       const response = await fetch('/api/integrations/garmin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId }),
+        body: JSON.stringify({ clientId, businessSlug }),
       })
       const data = await response.json()
 
@@ -286,7 +287,7 @@ export function IntegrationsSettings({ clientId, variant = 'default' }: Integrat
       const response = await fetch('/api/integrations/concept2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId }),
+        body: JSON.stringify({ clientId, businessSlug }),
       })
       const data = await response.json()
 

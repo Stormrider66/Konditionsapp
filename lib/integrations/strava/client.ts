@@ -18,9 +18,10 @@ const STRAVA_OAUTH_BASE = 'https://www.strava.com/oauth';
 // Environment variables
 const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID!;
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET!;
-const STRAVA_REDIRECT_URI = process.env.NEXT_PUBLIC_APP_URL
-  ? `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/strava/callback`
-  : 'http://localhost:3000/api/integrations/strava/callback';
+function getStravaRedirectUri(origin?: string): string {
+  const base = process.env.NEXT_PUBLIC_APP_URL || origin || 'http://localhost:3000';
+  return `${base}/api/integrations/strava/callback`;
+}
 
 // Strava API types
 export interface StravaAthlete {
@@ -107,13 +108,13 @@ export interface StravaTokenResponse {
 /**
  * Generate Strava OAuth authorization URL
  */
-export function getStravaAuthUrl(clientId: string, state?: string): string {
+export function getStravaAuthUrl(clientId: string, options?: { state?: string; origin?: string }): string {
   const params = new URLSearchParams({
     client_id: STRAVA_CLIENT_ID,
-    redirect_uri: STRAVA_REDIRECT_URI,
+    redirect_uri: getStravaRedirectUri(options?.origin),
     response_type: 'code',
     scope: 'read,activity:read_all,profile:read_all',
-    state: state || clientId,
+    state: options?.state || clientId,
   });
 
   return `${STRAVA_OAUTH_BASE}/authorize?${params.toString()}`;
