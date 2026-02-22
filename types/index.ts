@@ -947,6 +947,17 @@ export interface TestCalculations {
   economyData?: EconomyData[]
   cyclingData?: CyclingData
   dmaxVisualization?: DmaxVisualization | null  // Always stored for chart display
+  warnings?: CalculationWarning[]
+}
+
+export interface CalculationWarning {
+  type: 'BASELINE_CORRECTION' | 'LOW_CONFIDENCE' | 'DATA_QUALITY'
+  severity: 'info' | 'warning'
+  message: string
+  details?: {
+    correctedStages?: { stage: number; original: number; corrected: number }[]
+    trueBaseline?: number
+  }
 }
 
 export interface EconomyData {

@@ -46,32 +46,132 @@ export interface EnsembleResult {
     baselinePlus: ThresholdResult | null;
     dmax: ThresholdResult | null;
   };
+  baselineCorrection?: BaselineCorrectionResult;
+}
+
+export interface BaselineCorrectionResult {
+  correctedData: LactateDataPoint[];
+  wasApplied: boolean;
+  trueBaseline: number;
+  trueBaselineIndex: number;
+  correctedIndices: number[];
+  description: string;
+  originalValues: { index: number; original: number; corrected: number }[];
 }
 
 /**
- * Pre-process lactate data to handle noise and artifacts
+ * Detect elevated baseline in early stages of a lactate test.
  *
- * Implements:
- * - "Startle" filter for elevated first reading
- * - Basic smoothing for analyzer noise
+ * Common causes: sweat contamination of blood samples, sympathetic nervous
+ * system activation (test anxiety), or the aerobic system not yet being
+ * fully engaged. Example: Stage 1: 3.1 → Stage 2: 1.9 → Stage 3: 2.1
+ * (true baseline is 1.9, not 3.1).
+ *
+ * Algorithm:
+ * 1. Look at early window: first min(3, 40% of stages)
+ * 2. Find minimum lactate in that window
+ * 3. If minimum is not at index 0, check for "dip then rise" pattern
+ * 4. Only correct if elevation > 0.15 mmol/L (analyzer noise threshold)
+ * 5. Replace elevated stages' lactate with the minimum value
  */
-export function preprocessData(data: LactateDataPoint[]): LactateDataPoint[] {
-  if (data.length < 3) return data;
+export function detectElevatedBaseline(data: LactateDataPoint[]): BaselineCorrectionResult {
+  const noop: BaselineCorrectionResult = {
+    correctedData: data,
+    wasApplied: false,
+    trueBaseline: data[0]?.lactate ?? 0,
+    trueBaselineIndex: 0,
+    correctedIndices: [],
+    description: '',
+    originalValues: [],
+  };
 
-  const processed = [...data];
+  if (data.length < 3) return noop;
 
-  // Startle Filter: If first reading is elevated due to nervousness
-  // Rule: If Lac_Step1 > Lac_Step2 + 0.2, use Lac_Step2 for baseline
-  if (processed[0].lactate > processed[1].lactate + 0.2) {
-    logger.debug('Startle filter applied - first reading elevated, adjusting baseline', {
-      originalLactate: data[0].lactate,
-      adjustedLactate: processed[1].lactate
-    });
-    // Don't discard, but flag it
-    processed[0] = { ...processed[0], lactate: processed[1].lactate };
+  // Early window: first min(3, 40% of stages)
+  const earlyWindowSize = Math.min(3, Math.max(2, Math.floor(data.length * 0.4)));
+  const earlyWindow = data.slice(0, earlyWindowSize);
+
+  // Find the minimum lactate value in the early window
+  let minLactate = earlyWindow[0].lactate;
+  let minIndex = 0;
+  for (let i = 1; i < earlyWindow.length; i++) {
+    if (earlyWindow[i].lactate < minLactate) {
+      minLactate = earlyWindow[i].lactate;
+      minIndex = i;
+    }
   }
 
-  return processed;
+  // If minimum is already at index 0, no correction needed
+  if (minIndex === 0) return noop;
+
+  // Verify "dip then rise" pattern: at least one of the next stages after the
+  // minimum should show rising lactate (otherwise we might be on a continuously
+  // declining curve and should not correct)
+  let hasRise = false;
+  for (let i = minIndex + 1; i < Math.min(minIndex + 3, data.length); i++) {
+    if (data[i].lactate > minLactate) {
+      hasRise = true;
+      break;
+    }
+  }
+
+  if (!hasRise) return noop;
+
+  // Only correct stages before the minimum that are elevated > 0.15 mmol/L
+  // above it (analyzer noise threshold)
+  const NOISE_THRESHOLD = 0.15;
+  const correctedIndices: number[] = [];
+  const originalValues: BaselineCorrectionResult['originalValues'] = [];
+
+  const correctedData = data.map((point, i) => {
+    if (i < minIndex && point.lactate > minLactate + NOISE_THRESHOLD) {
+      correctedIndices.push(i);
+      originalValues.push({ index: i, original: point.lactate, corrected: minLactate });
+      return { ...point, lactate: minLactate };
+    }
+    return point;
+  });
+
+  if (correctedIndices.length === 0) return noop;
+
+  const stageNumbers = correctedIndices.map(i => i + 1).join(', ');
+  const description =
+    `Förhöjd baslinje upptäckt: steg ${stageNumbers} hade förhöjda laktatvärden ` +
+    `(trolig orsak: svett­kontaminering eller nervositet). ` +
+    `Värden korrigerades till den verkliga baslinjen ${minLactate.toFixed(1)} mmol/L ` +
+    `(steg ${minIndex + 1}) för korrekt tröskelberäkning.`;
+
+  logger.debug('Elevated baseline detected and corrected', {
+    trueBaseline: minLactate,
+    trueBaselineIndex: minIndex,
+    correctedIndices,
+    originalValues,
+  });
+
+  return {
+    correctedData,
+    wasApplied: true,
+    trueBaseline: minLactate,
+    trueBaselineIndex: minIndex,
+    correctedIndices,
+    description,
+    originalValues,
+  };
+}
+
+/**
+ * Pre-process lactate data with full metadata about corrections applied.
+ */
+export function preprocessDataWithMetadata(data: LactateDataPoint[]): BaselineCorrectionResult {
+  return detectElevatedBaseline(data);
+}
+
+/**
+ * Pre-process lactate data to handle noise and artifacts.
+ * Backward-compatible wrapper — returns only the corrected data array.
+ */
+export function preprocessData(data: LactateDataPoint[]): LactateDataPoint[] {
+  return detectElevatedBaseline(data).correctedData;
 }
 
 /**
@@ -403,8 +503,9 @@ function interpolateHeartRate(data: LactateDataPoint[], targetIntensity: number)
  * - If divergence > ±1.5 units, fallback to conservative estimate
  */
 export function detectEliteThresholds(data: LactateDataPoint[]): EnsembleResult {
-  // Pre-process data
-  const processedData = preprocessData(data);
+  // Pre-process data with metadata for baseline correction reporting
+  const baselineResult = preprocessDataWithMetadata(data);
+  const processedData = baselineResult.correctedData;
 
   // Classify athlete profile
   const profile = classifyAthleteProfile(processedData);
@@ -457,7 +558,8 @@ export function detectEliteThresholds(data: LactateDataPoint[]): EnsembleResult 
       logLog: logLogResult,
       baselinePlus: baselinePlusResult,
       dmax: null
-    }
+    },
+    baselineCorrection: baselineResult.wasApplied ? baselineResult : undefined,
   };
 }
 

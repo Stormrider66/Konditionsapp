@@ -134,6 +134,43 @@ export function ReportTemplate({
         primaryStrength={interpretation.strengths[0]}
       />
 
+      {/* Baseline correction warnings */}
+      {calculations.warnings?.filter(w => w.type === 'BASELINE_CORRECTION').map((warning, i) => (
+        <section key={`warning-${i}`} className="mt-6">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 mr-2 mt-0.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900">Automatisk baslinjekorrigering</p>
+                <p className="text-sm text-blue-800 mt-1">{warning.message}</p>
+                {warning.details?.correctedStages && warning.details.correctedStages.length > 0 && (
+                  <table className="mt-2 text-sm text-blue-900">
+                    <thead>
+                      <tr>
+                        <th className="pr-4 text-left font-medium">Steg</th>
+                        <th className="pr-4 text-left font-medium">Uppmätt (mmol/L)</th>
+                        <th className="text-left font-medium">Korrigerat (mmol/L)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {warning.details.correctedStages.map((s) => (
+                        <tr key={s.stage}>
+                          <td className="pr-4">{s.stage}</td>
+                          <td className="pr-4">{s.original.toFixed(1)}</td>
+                          <td>{s.corrected.toFixed(1)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      ))}
+
       {/* Testresultat */}
       <section className="mt-6 border-b pb-6">
         <h2 className="text-2xl font-semibold mb-4">Testresultat</h2>

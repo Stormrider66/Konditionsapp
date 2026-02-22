@@ -1,5 +1,5 @@
 // lib/calculations/index.ts
-import { Test, Client, TestCalculations } from '@/types'
+import { Test, Client, TestCalculations, CalculationWarning } from '@/types'
 import { logger } from '@/lib/logger'
 import { calculateBMI, calculateAge } from './basic'
 import {
@@ -14,7 +14,7 @@ import { calculateTrainingZones } from './zones'
 import { calculateAllEconomy } from './economy'
 import { identifyVO2max } from './vo2max'
 import { calculateCyclingData, calculateStageWattsPerKg } from './cycling'
-import { convertToLactateData, classifyAthleteProfile } from './elite-threshold-detection'
+import { convertToLactateData, classifyAthleteProfile, preprocessDataWithMetadata } from './elite-threshold-detection'
 
 /**
  * Manual threshold overrides set by test leader
@@ -32,6 +32,26 @@ export async function performAllCalculations(
 ): Promise<TestCalculations> {
   const stages = test.testStages.sort((a, b) => a.sequence - b.sequence)
   const age = calculateAge(client.birthDate)
+
+  // Run baseline detection on lactate data for warnings
+  const warnings: CalculationWarning[] = []
+  const lactateDataForBaseline = convertToLactateData(stages)
+  const baselineResult = preprocessDataWithMetadata(lactateDataForBaseline)
+  if (baselineResult.wasApplied) {
+    warnings.push({
+      type: 'BASELINE_CORRECTION',
+      severity: 'info',
+      message: baselineResult.description,
+      details: {
+        correctedStages: baselineResult.originalValues.map(v => ({
+          stage: v.index + 1,
+          original: v.original,
+          corrected: v.corrected,
+        })),
+        trueBaseline: baselineResult.trueBaseline,
+      },
+    })
+  }
 
   // Grundläggande
   const bmi = calculateBMI(client.weight, client.height)
@@ -178,6 +198,7 @@ export async function performAllCalculations(
     economyData,
     cyclingData,
     dmaxVisualization,
+    ...(warnings.length > 0 ? { warnings } : {}),
   }
 }
 
