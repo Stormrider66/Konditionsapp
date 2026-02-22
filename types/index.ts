@@ -816,6 +816,7 @@ export interface User {
   email: string
   name: string
   role: UserRole
+  adminRole: AdminRole | null
   language: string
   createdAt: Date
   updatedAt: Date
