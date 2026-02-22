@@ -474,7 +474,7 @@ export async function middleware(request: NextRequest) {
     // Query user role from Supabase (edge-compatible, no Prisma)
     const { data: userData, error } = await supabase
       .from('User')
-      .select('role')
+      .select('role, adminRole')
       .eq('email', supabaseUser.email!)
       .single()
 
@@ -634,7 +634,8 @@ export async function middleware(request: NextRequest) {
       }
 
       if (pathname.startsWith('/admin')) {
-        if (role !== 'ADMIN') {
+        const adminRole = userData.adminRole
+        if (role !== 'ADMIN' && !adminRole) {
           if (role === 'COACH') {
             return NextResponse.redirect(new URL('/coach/dashboard', request.url))
           }

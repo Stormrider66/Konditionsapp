@@ -12,6 +12,7 @@ import { z } from 'zod';
 const updateUserSchema = z.object({
   userId: z.string().uuid(),
   role: z.enum(['COACH', 'ATHLETE', 'ADMIN']).optional(),
+  adminRole: z.enum(['SUPER_ADMIN', 'ADMIN', 'SUPPORT']).nullable().optional(),
   tier: z.enum(['FREE', 'BASIC', 'PRO', 'ENTERPRISE']).optional(),
 });
 
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
           email: true,
           name: true,
           role: true,
+          adminRole: true,
           language: true,
           createdAt: true,
           updatedAt: true,
@@ -109,13 +111,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { userId, role, tier } = validation.data;
+    const { userId, role, adminRole, tier } = validation.data;
 
     // Get current user state for audit log
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
       select: {
         role: true,
+        adminRole: true,
         subscription: { select: { tier: true } },
       },
     });
@@ -142,6 +145,28 @@ export async function PUT(request: NextRequest) {
         role,
         request
       );
+    }
+
+    // Update platform admin role if provided (including clearing it with null)
+    if (adminRole !== undefined) {
+      const oldAdminRole = targetUser.adminRole;
+      await prisma.user.update({
+        where: { id: userId },
+        data: { adminRole },
+      });
+
+      if (adminRole !== oldAdminRole) {
+        await logAuditEvent({
+          action: 'ADMIN_ROLE_CHANGE',
+          userId: adminUser.id,
+          targetId: userId,
+          targetType: 'User',
+          oldValue: { adminRole: oldAdminRole },
+          newValue: { adminRole },
+          ipAddress: getIpFromRequest(request),
+          userAgent: getUserAgentFromRequest(request),
+        });
+      }
     }
 
     // Update subscription tier if provided

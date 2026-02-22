@@ -22,7 +22,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: context,
+      data: {
+        ...context,
+        adminRole: user.adminRole || null,
+      },
     })
   } catch (error) {
     return handleApiError(error, 'GET /api/coach/admin/context')

@@ -35,6 +35,7 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
         email: true,
         name: true,
         role: true,
+        adminRole: true,
         language: true,
         createdAt: true,
         updatedAt: true,
@@ -48,6 +49,7 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
             email: true,
             name: true,
             role: true,
+            adminRole: true,
             language: true,
             createdAt: true,
             updatedAt: true,
@@ -84,6 +86,7 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
       email: true,
       name: true,
       role: true,
+      adminRole: true,
       language: true,
       createdAt: true,
       updatedAt: true,
@@ -147,10 +150,22 @@ export async function requireAthlete(): Promise<User> {
 }
 
 /**
- * Require user to be an ADMIN
+ * Require user to be a platform admin (User.role = ADMIN or User.adminRole is set)
+ * This is for the platform-level admin panel, NOT business-level admin roles.
  */
 export async function requireAdmin(): Promise<User> {
-  return requireRole('ADMIN')
+  const user = await getCurrentUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  // Allow if user has platform role ADMIN or has any platform adminRole (SUPER_ADMIN, ADMIN, SUPPORT)
+  if (user.role !== 'ADMIN' && !user.adminRole) {
+    throw new Error('Access denied. Platform admin access required.')
+  }
+
+  return user
 }
 
 /**

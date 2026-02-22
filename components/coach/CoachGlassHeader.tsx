@@ -57,6 +57,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
     const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
     const [businessRole, setBusinessRole] = useState<BusinessMemberRole | null>(null)
+    const [platformAdminRole, setPlatformAdminRole] = useState<string | null>(null)
     const displayName = user?.email || 'Coach'
     // Assuming we might want to show coach name if available in metadata later, but user.email is safe fallback
 
@@ -70,6 +71,9 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                     const result = await response.json()
                     if (result.data?.role) {
                         setBusinessRole(result.data.role as BusinessMemberRole)
+                    }
+                    if (result.data?.adminRole) {
+                        setPlatformAdminRole(result.data.adminRole)
                     }
                 }
             } catch (err) {
@@ -131,9 +135,13 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
     // Compute more items with optional Admin link
     const moreItems = [
         ...navGroups.more.items,
-        // Add Admin link if user is OWNER or ADMIN
+        // Add Business Admin link if user is OWNER or ADMIN of business
         ...((businessRole === 'OWNER' || businessRole === 'ADMIN')
             ? [{ href: '/coach/admin', label: 'Admin', icon: Shield }]
+            : []),
+        // Add Platform Admin link if user has a platform adminRole
+        ...(platformAdminRole
+            ? [{ href: '/admin', label: 'Platform Admin', icon: Shield }]
             : [])
     ]
 

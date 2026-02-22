@@ -106,6 +106,7 @@ interface User {
   email: string;
   name: string | null;
   role: string;
+  adminRole: string | null;
   language: string;
   createdAt: string;
   subscription: {
@@ -228,6 +229,21 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
       }
     } catch (error) {
       console.error('Error updating user:', error);
+    }
+  };
+
+  const updateAdminRole = async (userId: string, adminRole: string | null) => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, adminRole }),
+      });
+      if (response.ok) {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error updating admin role:', error);
     }
   };
 
@@ -577,6 +593,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                           <TableHead>{t('name')}</TableHead>
                           <TableHead>{t('email')}</TableHead>
                           <TableHead>{t('role')}</TableHead>
+                          <TableHead>Platform</TableHead>
                           <TableHead>{t('tier')}</TableHead>
                           <TableHead>{t('clients')}</TableHead>
                           <TableHead>{t('joined')}</TableHead>
@@ -599,6 +616,22 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                   <SelectItem value="COACH">Coach</SelectItem>
                                   <SelectItem value="ATHLETE">Athlete</SelectItem>
                                   <SelectItem value="ADMIN">Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={user.adminRole || 'NONE'}
+                                onValueChange={(v) => updateAdminRole(user.id, v === 'NONE' ? null : v)}
+                              >
+                                <SelectTrigger className="w-[130px] h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="NONE">-</SelectItem>
+                                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                                  <SelectItem value="ADMIN">Admin</SelectItem>
+                                  <SelectItem value="SUPPORT">Support</SelectItem>
                                 </SelectContent>
                               </Select>
                             </TableCell>
