@@ -40,6 +40,7 @@ interface HYROXSettings {
 
 interface HYROXDashboardProps {
   settings: HYROXSettings
+  gender?: 'MALE' | 'FEMALE'
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -184,7 +185,7 @@ function getStationProgress(time: number | null, targetTime: number): number {
   return Math.min(progress, 150)
 }
 
-export function HYROXDashboard({ settings }: HYROXDashboardProps) {
+export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -247,7 +248,7 @@ export function HYROXDashboard({ settings }: HYROXDashboardProps) {
           wallBalls: settings.wallBallTime,
         }}
         averageRunPace={settings.fiveKmTime ? Math.round(settings.fiveKmTime / 5 * 1.1) : undefined}
-        gender={'male'} // TODO: Get from sport profile
+        gender={gender === 'FEMALE' ? 'female' : 'male'}
         targetLevel={settings.experienceLevel === 'elite' ? 'elite' :
                      settings.experienceLevel === 'advanced' ? 'advanced' :
                      settings.experienceLevel === 'intermediate' ? 'intermediate' : 'beginner'}

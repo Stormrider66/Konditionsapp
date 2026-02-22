@@ -31,14 +31,16 @@ import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface GarminActivity {
   id: string
-  garminId: string
-  name: string
-  type: string
-  startDate: string
-  distance: number
-  movingTime: number
-  elevationGain: number
-  averageHeartrate?: number
+  activityId: string
+  activityName: string | null
+  activityType: string
+  startTime: string
+  distance: number | null
+  duration: number | null
+  elevationGain: number | null
+  averageHR: number | null
+  maxHR: number | null
+  calories: number | null
   alreadyImported: boolean
 }
 
@@ -206,33 +208,33 @@ export default function GarminImportPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold truncate">{activity.name}</h3>
+                      <h3 className="font-semibold truncate">{activity.activityName || activity.activityType}</h3>
                       <Badge variant="outline" className="shrink-0">
-                        {activity.type}
+                        {activity.activityType}
                       </Badge>
                     </div>
 
                     <p className="text-sm text-muted-foreground mb-2">
-                      {format(new Date(activity.startDate), 'PPP', { locale: sv })}
+                      {format(new Date(activity.startTime), 'PPP', { locale: sv })}
                     </p>
 
                     <div className="flex flex-wrap gap-4 text-sm">
-                      {activity.distance > 0 && (
+                      {activity.distance != null && activity.distance > 0 && (
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <MapPin className="h-3.5 w-3.5" />
                           {formatDistance(activity.distance)}
                         </div>
                       )}
-                      {activity.movingTime > 0 && (
+                      {activity.duration != null && activity.duration > 0 && (
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Clock className="h-3.5 w-3.5" />
-                          {formatDuration(activity.movingTime)}
+                          {formatDuration(activity.duration)}
                         </div>
                       )}
-                      {activity.averageHeartrate && (
+                      {activity.averageHR != null && (
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Heart className="h-3.5 w-3.5" />
-                          {Math.round(activity.averageHeartrate)} bpm
+                          {Math.round(activity.averageHR)} bpm
                         </div>
                       )}
                     </div>
@@ -247,10 +249,10 @@ export default function GarminImportPage() {
                     ) : (
                       <Button
                         size="sm"
-                        onClick={() => handleImport(activity.garminId)}
+                        onClick={() => handleImport(activity.activityId)}
                         disabled={importing !== null}
                       >
-                        {importing === activity.garminId ? (
+                        {importing === activity.activityId ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           'Importera'

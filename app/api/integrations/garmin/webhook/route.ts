@@ -27,9 +27,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { createCustomRateLimiter } from '@/lib/rate-limit-redis'
 import { getRequestIp } from '@/lib/api/rate-limit'
-import { decryptIntegrationSecret } from '@/lib/integrations/crypto'
 import { logger } from '@/lib/logger'
 import {
   GarminDailySummary,
@@ -243,24 +243,22 @@ export async function POST(request: NextRequest) {
 
 /**
  * Handle user deregistration (revoked access)
+ *
+ * With OAuth 2.0, Garmin identifies users by userId in webhook payloads.
  */
-async function handleDeregistration(dereg: { userId?: string; userAccessToken?: string }) {
-  // Find token by external user ID (preferred) or by access token (fallback).
-  // Note: access tokens are stored encrypted at rest, so direct equality won't work.
-  let token: { id: string; clientId: string } | null =
-    dereg.userId
-      ? await prisma.integrationToken.findFirst({
-          where: {
-            type: 'GARMIN',
-            externalUserId: dereg.userId,
-          },
-          select: { id: true, clientId: true },
-        })
-      : null
-
-  if (!token && dereg.userAccessToken) {
-    token = await findGarminTokenByAccessToken(dereg.userAccessToken)
+async function handleDeregistration(dereg: { userId?: string }) {
+  if (!dereg.userId) {
+    logger.warn('Garmin deregistration missing userId')
+    return
   }
+
+  const token = await prisma.integrationToken.findFirst({
+    where: {
+      type: 'GARMIN',
+      externalUserId: dereg.userId,
+    },
+    select: { id: true, clientId: true },
+  })
 
   if (token) {
     await prisma.integrationToken.update({
@@ -277,8 +275,8 @@ async function handleDeregistration(dereg: { userId?: string; userAccessToken?: 
 /**
  * Process daily summary from webhook
  */
-async function processDailySummary(summary: GarminDailySummary & { userId?: string; userAccessToken?: string }) {
-  const clientId = await findClientId(summary.userId, summary.userAccessToken);
+async function processDailySummary(summary: GarminDailySummary & { userId?: string }) {
+  const clientId = await findClientId(summary.userId);
   if (!clientId) {
     logger.warn('No client found for Garmin daily summary')
     return;
@@ -347,10 +345,10 @@ async function processDailySummary(summary: GarminDailySummary & { userId?: stri
 }
 
 /**
- * Process activity from webhook
+ * Process activity from webhook — stores in GarminActivity model (consistent with pull sync)
  */
-async function processActivity(activity: GarminActivity & { userId?: string; userAccessToken?: string }) {
-  const clientId = await findClientId(activity.userId, activity.userAccessToken);
+async function processActivity(activity: GarminActivity & { userId?: string }) {
+  const clientId = await findClientId(activity.userId);
   if (!clientId) {
     logger.warn('No client found for Garmin activity')
     return;
@@ -368,74 +366,78 @@ async function processActivity(activity: GarminActivity & { userId?: string; use
     activity.averagePowerInWatts
   );
 
-  // Store in DailyMetrics factorScores
-  const date = new Date(activity.startTimeInSeconds * 1000);
-  date.setHours(0, 0, 0, 0);
+  const startDate = new Date(activity.startTimeInSeconds * 1000);
 
-  const existingMetrics = await prisma.dailyMetrics.findUnique({
-    where: {
-      clientId_date: {
-        clientId,
-        date,
-      },
-    },
-  });
+  const isIndoor = activity.activityType?.includes('INDOOR') ||
+                   activity.activityType?.includes('TREADMILL') ||
+                   activity.activityType?.includes('TRAINER');
 
-  const activityData = {
-    activityId: activity.activityId,
-    type: activity.activityType,
-    mappedType: typeInfo.type,
-    mappedIntensity: typeInfo.intensity,
-    duration: activity.activityDurationInSeconds,
-    distance: activity.distanceInMeters,
-    avgHR: activity.averageHeartRateInBeatsPerMinute,
-    maxHR: activity.maxHeartRateInBeatsPerMinute,
-    avgSpeed: activity.averageSpeedInMetersPerSecond,
-    avgPower: activity.averagePowerInWatts,
-    calories: activity.activeKilocalories,
-    tss,
-    source: 'webhook',
-  };
-
-  const factorScores = (existingMetrics?.factorScores as Record<string, unknown>) || {};
-  const garminActivities = (factorScores.garminActivities as object[]) || [];
-
-  // Check if activity already exists (by activityId)
-  const existingIndex = garminActivities.findIndex(
-    (a: { activityId?: number }) => a.activityId === activity.activityId
-  );
-  if (existingIndex >= 0) {
-    garminActivities[existingIndex] = activityData;
-  } else {
-    garminActivities.push(activityData);
+  // Map intensity from HR ratio (same logic as sync.ts)
+  let mappedIntensity = typeInfo.intensity;
+  if (activity.averageHeartRateInBeatsPerMinute) {
+    const hrRatio = activity.averageHeartRateInBeatsPerMinute / 185;
+    if (hrRatio < 0.65) mappedIntensity = 'EASY';
+    else if (hrRatio < 0.80) mappedIntensity = 'MODERATE';
+    else if (hrRatio < 0.90) mappedIntensity = 'HARD';
+    else mappedIntensity = 'MAX';
   }
 
-  await prisma.dailyMetrics.upsert({
+  await prisma.garminActivity.upsert({
     where: {
-      clientId_date: {
-        clientId,
-        date,
-      },
+      garminActivityId: BigInt(activity.activityId),
     },
     update: {
-      factorScores: { ...factorScores, garminActivities },
+      type: activity.activityType,
+      startDate,
+      distance: activity.distanceInMeters || null,
+      duration: activity.activityDurationInSeconds || null,
+      averageSpeed: activity.averageSpeedInMetersPerSecond || null,
+      maxSpeed: activity.maxSpeedInMetersPerSecond || null,
+      averageHeartrate: activity.averageHeartRateInBeatsPerMinute || null,
+      maxHeartrate: activity.maxHeartRateInBeatsPerMinute || null,
+      averageCadence: activity.averageCadenceInRoundsPerMinute || null,
+      averageWatts: activity.averagePowerInWatts || null,
+      normalizedPower: activity.normalizedPowerInWatts || null,
+      calories: activity.activeKilocalories || null,
+      indoor: isIndoor,
+      tss,
+      mappedType: typeInfo.type,
+      mappedIntensity,
       updatedAt: new Date(),
     },
     create: {
       clientId,
-      date,
-      factorScores: { garminActivities: [activityData] },
+      garminActivityId: BigInt(activity.activityId),
+      type: activity.activityType,
+      startDate,
+      distance: activity.distanceInMeters || null,
+      duration: activity.activityDurationInSeconds || null,
+      averageSpeed: activity.averageSpeedInMetersPerSecond || null,
+      maxSpeed: activity.maxSpeedInMetersPerSecond || null,
+      averageHeartrate: activity.averageHeartRateInBeatsPerMinute || null,
+      maxHeartrate: activity.maxHeartRateInBeatsPerMinute || null,
+      averageCadence: activity.averageCadenceInRoundsPerMinute || null,
+      averageWatts: activity.averagePowerInWatts || null,
+      normalizedPower: activity.normalizedPowerInWatts || null,
+      calories: activity.activeKilocalories || null,
+      indoor: isIndoor,
+      manual: false,
+      tss,
+      mappedType: typeInfo.type,
+      mappedIntensity,
+      laps: Prisma.JsonNull,
+      splits: Prisma.JsonNull,
     },
   });
 
-  logger.debug('Synced Garmin activity', { clientId, activityId: activity.activityId })
+  logger.debug('Synced Garmin activity to GarminActivity model', { clientId, activityId: activity.activityId })
 }
 
 /**
  * Process sleep data from webhook
  */
-async function processSleepData(sleep: GarminSleepData & { userId?: string; userAccessToken?: string }) {
-  const clientId = await findClientId(sleep.userId, sleep.userAccessToken);
+async function processSleepData(sleep: GarminSleepData & { userId?: string }) {
+  const clientId = await findClientId(sleep.userId);
   if (!clientId) {
     logger.warn('No client found for Garmin sleep data')
     return;
@@ -496,8 +498,8 @@ async function processSleepData(sleep: GarminSleepData & { userId?: string; user
 /**
  * Process HRV data from webhook
  */
-async function processHRVData(hrv: GarminHRVData & { userId?: string; userAccessToken?: string }) {
-  const clientId = await findClientId(hrv.userId, hrv.userAccessToken);
+async function processHRVData(hrv: GarminHRVData & { userId?: string }) {
+  const clientId = await findClientId(hrv.userId);
   if (!clientId) {
     logger.warn('No client found for Garmin HRV data')
     return;
@@ -553,50 +555,24 @@ async function processHRVData(hrv: GarminHRVData & { userId?: string; userAccess
 }
 
 /**
- * Find clientId from Garmin userId or userAccessToken
+ * Find clientId from Garmin userId
+ *
+ * With OAuth 2.0, Garmin webhook payloads identify users by userId
+ * (the externalUserId stored during the OAuth callback).
  */
-async function findClientId(userId?: string, userAccessToken?: string): Promise<string | null> {
-  if (!userId && !userAccessToken) {
+async function findClientId(userId?: string): Promise<string | null> {
+  if (!userId) {
     return null;
   }
 
-  if (userId) {
-    const token = await prisma.integrationToken.findFirst({
-      where: {
-        type: 'GARMIN',
-        syncEnabled: true,
-        externalUserId: userId,
-      },
-      select: { clientId: true },
-    })
-    if (token?.clientId) return token.clientId
-  }
-
-  if (userAccessToken) {
-    const token = await findGarminTokenByAccessToken(userAccessToken)
-    return token?.clientId ?? null
-  }
-
-  return null
-}
-
-async function findGarminTokenByAccessToken(
-  userAccessToken: string
-): Promise<{ id: string; clientId: string } | null> {
-  // Fallback only: Garmin sometimes sends `userAccessToken` on webhook payloads.
-  // Since we encrypt tokens at rest, we match by decrypting candidate rows.
-  const candidates = await prisma.integrationToken.findMany({
-    where: { type: 'GARMIN', syncEnabled: true },
-    select: { id: true, clientId: true, accessToken: true },
-    take: 500,
+  const token = await prisma.integrationToken.findFirst({
+    where: {
+      type: 'GARMIN',
+      syncEnabled: true,
+      externalUserId: userId,
+    },
+    select: { clientId: true },
   })
 
-  for (const c of candidates) {
-    const decrypted = decryptIntegrationSecret(c.accessToken)
-    if (decrypted && decrypted === userAccessToken) {
-      return { id: c.id, clientId: c.clientId }
-    }
-  }
-
-  return null
+  return token?.clientId ?? null
 }

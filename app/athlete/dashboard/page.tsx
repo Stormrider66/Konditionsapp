@@ -160,7 +160,7 @@ export default async function AthleteDashboardPage() {
           />
         )
       case 'HYROX':
-        return <HYROXDashboard settings={sportProfile.hyroxSettings as any} />
+        return <HYROXDashboard settings={sportProfile.hyroxSettings as any} gender={client.gender} />
       case 'GENERAL_FITNESS':
         return <GeneralFitnessDashboard settings={sportProfile.generalFitnessSettings as any} />
       case 'FUNCTIONAL_FITNESS':

@@ -645,6 +645,9 @@ model User {
   // Visual Report System relations
   visualReports VisualReport[] @relation("CoachVisualReports")
 
+  // Exercise Favorites
+  exerciseFavorites ExerciseFavorite[]
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -1776,14 +1779,14 @@ model IntegrationToken {
   @@index([lastSyncAt])
 }
 
-/// Temporary OAuth 1.0a request tokens (for Garmin OAuth flow)
-/// These are short-lived and cleaned up after use or expiration
+/// Temporary OAuth PKCE state (stores code_verifier + state during authorization redirect)
+/// Short-lived (10 min), cleaned up after use or expiration
 model OAuthRequestToken {
   id           String   @id @default(uuid())
   clientId     String // Client initiating the OAuth flow
   provider     String // e.g., "GARMIN"
-  requestToken String // OAuth 1.0a request token
-  tokenSecret  String // OAuth 1.0a token secret
+  codeVerifier String // PKCE code_verifier — encrypted
+  state        String // Random state parameter for CSRF protection
   createdAt    DateTime @default(now())
   expiresAt    DateTime // Auto-expire after 10 minutes
 
@@ -2355,6 +2358,21 @@ model Exercise {
   @@index([isRehabExercise])
   @@index([progressionExerciseId])
   @@index([regressionExerciseId])
+
+  favorites ExerciseFavorite[]
+}
+
+model ExerciseFavorite {
+  id         String   @id @default(uuid())
+  userId     String
+  exerciseId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exerciseId])
+  @@index([userId])
 }
 
 // ==================== WORKOUT LOGGING ====================

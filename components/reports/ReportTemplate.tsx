@@ -51,8 +51,8 @@ export function ReportTemplate({
           : undefined}
       >
         <div className="flex items-center gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           {branding?.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={branding.logoUrl} alt={organization} className="h-10 w-auto" />
           )}
           <div>

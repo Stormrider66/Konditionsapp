@@ -128,63 +128,21 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
     setIsLoading(true)
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/workouts/history?clientId=${clientId}&type=${filterType}&range=${timeRange}`)
-      // const data = await response.json()
+      const params = new URLSearchParams({
+        type: filterType,
+        range: timeRange,
+      })
+      const response = await fetch(`/api/athletes/${clientId}/workout-history?${params}`)
+      if (!response.ok) throw new Error('Failed to fetch workout history')
 
-      // Mock data for now
-      const mockWorkouts: WorkoutLog[] = [
-        {
-          id: '1',
-          workoutId: 'w1',
-          date: new Date('2024-01-15'),
-          workoutType: 'STRENGTH',
-          workoutDescription: 'Maximum Strength - Lower Body',
-          duration: 65,
-          plannedDuration: 60,
-          overallRPE: 8,
-          exerciseCount: 4,
-          personalRecords: 1,
-          completed: true,
-          notes: 'Felt strong today, hit a PR on squats!',
-          exercises: [
-            {
-              name: 'Back Squat',
-              setsCompleted: 5,
-              repsCompleted: 5,
-              loadUsed: 100,
-              rpe: 9,
-              personalRecord: true,
-            },
-            {
-              name: 'Romanian Deadlift',
-              setsCompleted: 3,
-              repsCompleted: 8,
-              loadUsed: 80,
-              rpe: 7,
-              personalRecord: false,
-            },
-          ],
-        },
-        {
-          id: '2',
-          workoutId: 'w2',
-          date: new Date('2024-01-12'),
-          workoutType: 'STRENGTH',
-          workoutDescription: 'Maximum Strength - Upper Body',
-          duration: 55,
-          plannedDuration: 60,
-          overallRPE: 7,
-          exerciseCount: 4,
-          personalRecords: 0,
-          completed: true,
-          notes: 'Good session, felt a bit tired',
-          exercises: [],
-        },
-      ]
+      const data = await response.json()
+      const workoutData: WorkoutLog[] = (data.data || []).map((w: any) => ({
+        ...w,
+        date: new Date(w.date),
+      }))
 
-      setWorkouts(mockWorkouts)
-      calculateStats(mockWorkouts)
+      setWorkouts(workoutData)
+      calculateStats(workoutData)
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -194,7 +152,6 @@ export function WorkoutHistory({ clientId }: WorkoutHistoryProps) {
     } finally {
       setIsLoading(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- clientId, filterType, timeRange will be used when real API is implemented
   }, [clientId, filterType, timeRange, toast, calculateStats])
 
   useEffect(() => {

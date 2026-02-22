@@ -11,7 +11,6 @@ import {
   Cake,
   Star,
   X,
-  Share2,
   Loader2,
   Sparkles,
   TrendingUp,
@@ -238,18 +237,6 @@ export function MilestoneCelebrationCard() {
                   )}
                 </div>
 
-                {/* Share button (future feature) */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn('h-8 opacity-60 hover:opacity-100', colors.textColor)}
-                  onClick={() => {
-                    // TODO: implement sharing
-                  }}
-                >
-                  <Share2 className="h-4 w-4 mr-1" />
-                  Dela
-                </Button>
               </div>
             </CardContent>
           </Card>

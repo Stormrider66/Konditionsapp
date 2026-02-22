@@ -60,9 +60,9 @@ interface WorkoutListProps {
   workouts: AgilityWorkout[]
   athletes: Athlete[]
   searchQuery: string
-  onEdit: (workout: AgilityWorkout) => void
+  onEdit?: (workout: AgilityWorkout) => void
   onDelete: (workoutId: string) => void
-  onDuplicate: (workout: AgilityWorkout) => void
+  onDuplicate?: (workout: AgilityWorkout) => void
 }
 
 export function WorkoutList({
@@ -201,10 +201,12 @@ export function WorkoutList({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(workout)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        {t('workout.edit')}
-                      </DropdownMenuItem>
+                      {onEdit && (
+                        <DropdownMenuItem onClick={() => onEdit(workout)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          {t('workout.edit')}
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => {
                         setSelectedWorkout(workout)
                         setAssignDialogOpen(true)
@@ -212,10 +214,12 @@ export function WorkoutList({
                         <Users className="h-4 w-4 mr-2" />
                         {t('workout.assign')}
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onDuplicate(workout)}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        {t('workout.duplicate')}
-                      </DropdownMenuItem>
+                      {onDuplicate && (
+                        <DropdownMenuItem onClick={() => onDuplicate(workout)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          {t('workout.duplicate')}
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={() => {

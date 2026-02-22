@@ -167,15 +167,7 @@ export default function AgilityStudioClient({
             workouts={workouts}
             athletes={initialAthletes}
             searchQuery={searchQuery}
-            onEdit={(workout) => {
-              // TODO: Open workout editor
-              void workout.id
-            }}
             onDelete={handleWorkoutDeleted}
-            onDuplicate={(workout) => {
-              // TODO: Duplicate workout
-              void workout.id
-            }}
           />
         </TabsContent>
 

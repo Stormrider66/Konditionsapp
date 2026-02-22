@@ -164,6 +164,24 @@ export function ExerciseLibraryBrowser({
     fetchExercises()
   }, [fetchExercises])
 
+  // Load favorites from backend on mount
+  useEffect(() => {
+    async function loadFavorites() {
+      try {
+        const response = await fetch('/api/exercises/favorites')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.data) {
+            setFavorites(new Set(data.data))
+          }
+        }
+      } catch {
+        // Non-critical — favorites just won't be pre-loaded
+      }
+    }
+    loadFavorites()
+  }, [])
+
   // Fetch progression path when exercise selected
   useEffect(() => {
     if (selectedExercise) {
@@ -184,7 +202,7 @@ export function ExerciseLibraryBrowser({
   }
 
   // Toggle favorite
-  const toggleFavorite = (exerciseId: string) => {
+  const toggleFavorite = async (exerciseId: string) => {
     const newFavorites = new Set(favorites)
     if (newFavorites.has(exerciseId)) {
       newFavorites.delete(exerciseId)
@@ -193,7 +211,16 @@ export function ExerciseLibraryBrowser({
     }
     setFavorites(newFavorites)
 
-    // TODO: Persist to backend
+    try {
+      await fetch('/api/exercises/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exerciseId }),
+      })
+    } catch {
+      // Revert on failure
+      setFavorites(favorites)
+    }
   }
 
   // Handle exercise selection

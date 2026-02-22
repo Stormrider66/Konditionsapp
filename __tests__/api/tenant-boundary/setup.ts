@@ -180,7 +180,7 @@ vi.mock('@/lib/integrations/strava/client', () => ({
 
 vi.mock('@/lib/integrations/garmin/client', () => ({
   isGarminConfigured: vi.fn().mockReturnValue(true),
-  getGarminRequestToken: vi.fn(),
+  getGarminAuthUrl: vi.fn(),
   hasGarminConnection: vi.fn(),
   disconnectGarmin: vi.fn(),
 }))

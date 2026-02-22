@@ -142,15 +142,13 @@ export default function SubstitutionSchedule({
   const handleSaveEdit = async () => {
     if (!editingDay || !selectedModality) return
 
-    // TODO: Implement API call to update workout modality
-    // For now, just show success toast
     toast({
-      title: 'Modalitet uppdaterad',
-      description: `Pass för ${format(parseISO(editingDay), 'd MMM', { locale: sv })} ändrat till ${MODALITY_CONFIG[selectedModality].label}`,
+      title: 'Inte tillgängligt ännu',
+      description: 'Möjligheten att ändra modalitet kommer i en framtida uppdatering.',
+      variant: 'destructive',
     })
 
     setEditingDay(null)
-    mutate() // Refresh data
   }
 
   const handleCancelEdit = () => {

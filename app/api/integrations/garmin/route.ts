@@ -11,7 +11,7 @@ import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import {
   isGarminConfigured,
-  getGarminRequestToken,
+  getGarminAuthUrl,
   hasGarminConnection,
   disconnectGarmin,
 } from '@/lib/integrations/garmin/client';
@@ -164,8 +164,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get request token and auth URL
-    const { authUrl } = await getGarminRequestToken(clientId);
+    // Build OAuth 2.0 PKCE authorization URL
+    const { authUrl } = await getGarminAuthUrl(clientId);
 
     return NextResponse.json({ authUrl });
   } catch (error) {

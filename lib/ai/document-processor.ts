@@ -342,8 +342,8 @@ export async function parsePDF(
 ): Promise<ProcessedDocument | ProcessingError> {
   try {
     // Dynamic import to avoid breaking if not installed
-    // eslint-disable-next-line
-    const pdfParse = require('pdf-parse');
+    const pdfParseModule: any = await import('pdf-parse');
+    const pdfParse = pdfParseModule.default ?? pdfParseModule;
 
     let buffer: Buffer
     if (fileUrl.startsWith('data:')) {

@@ -103,29 +103,52 @@ export function ExerciseInstructionsModal({
       const progressionResponse = await fetch(`/api/exercises/${id}/progression-path`)
       const progressionData = progressionResponse.ok ? await progressionResponse.json() : null
 
-      // TODO: Fetch personal performance data if clientId provided
-      // const performanceResponse = await fetch(`/api/clients/${clientId}/progression/${id}`)
+      // Fetch personal performance data if clientId provided
+      let personalBest: ExerciseWithProgression['personalBest'] = undefined
+      let lastPerformed: ExerciseWithProgression['lastPerformed'] = undefined
+
+      if (clientId) {
+        try {
+          const perfResponse = await fetch(`/api/clients/${clientId}/progression/${id}?limit=20`)
+          if (perfResponse.ok) {
+            const perfData = await perfResponse.json()
+            const history = perfData.history || []
+
+            if (history.length > 0) {
+              // Find personal best (highest weight)
+              const best = history.reduce((max: any, h: any) =>
+                h.weight > (max?.weight || 0) ? h : max, null)
+              if (best) {
+                personalBest = {
+                  load: best.weight,
+                  reps: best.reps,
+                  date: new Date(best.date),
+                }
+              }
+
+              // Most recent session
+              const latest = history[0]
+              if (latest) {
+                lastPerformed = {
+                  load: latest.weight,
+                  reps: latest.reps,
+                  sets: 1,
+                  date: new Date(latest.date),
+                  rpe: 0,
+                }
+              }
+            }
+          }
+        } catch {
+          // Non-critical — show exercise without performance data
+        }
+      }
 
       setExercise({
         ...exerciseData,
         progressionPath: progressionData,
-        // Mock personal best data
-        personalBest: clientId
-          ? {
-              load: 100,
-              reps: 5,
-              date: new Date('2024-01-15'),
-            }
-          : undefined,
-        lastPerformed: clientId
-          ? {
-              load: 95,
-              reps: 5,
-              sets: 3,
-              date: new Date('2024-01-20'),
-              rpe: 8,
-            }
-          : undefined,
+        personalBest,
+        lastPerformed,
       })
     } catch (error: any) {
       toast({

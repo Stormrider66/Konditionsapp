@@ -1,52 +1,53 @@
 /**
- * Garmin OAuth Callback
+ * Garmin OAuth 2.0 Callback
  *
- * GET /api/integrations/garmin/callback - Handle OAuth callback from Garmin
+ * GET /api/integrations/garmin/callback - Handle OAuth 2.0 PKCE callback from Garmin
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { exchangeGarminVerifier } from '@/lib/integrations/garmin/client';
+import { exchangeGarminCode, findClientIdByState } from '@/lib/integrations/garmin/client';
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
-import { encryptIntegrationSecret } from '@/lib/integrations/crypto';
+import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto';
 import { logger } from '@/lib/logger'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 /**
- * GET - Handle OAuth 1.0a callback from Garmin
+ * GET - Handle OAuth 2.0 PKCE callback from Garmin
  *
  * Query params:
- * - oauth_token: The request token
- * - oauth_verifier: Verification code from Garmin
- *
- * Note: Client ID is stored in memory during request token phase
+ * - code: Authorization code
+ * - state: State parameter (used to recover clientId and validate CSRF)
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
 
-  const oauthToken = searchParams.get('oauth_token');
-  const oauthVerifier = searchParams.get('oauth_verifier');
+  const code = searchParams.get('code');
+  const state = searchParams.get('state');
+  const error = searchParams.get('error');
 
   // Handle authorization denial
-  if (!oauthToken || !oauthVerifier) {
-    logger.warn('Missing oauth_token or oauth_verifier in Garmin callback')
+  if (error) {
+    logger.warn('Garmin OAuth denied', { error })
+    return NextResponse.redirect(
+      `${APP_URL}/athlete/settings?error=garmin_denied`
+    );
+  }
+
+  if (!code || !state) {
+    logger.warn('Missing code or state in Garmin callback')
     return NextResponse.redirect(
       `${APP_URL}/athlete/settings?error=garmin_invalid_callback`
     );
   }
 
   try {
-    // We need to look up which client this token belongs to
-    // This is done by checking our temporary storage in the client module
-    // For a production system, you'd want to use a proper session store
-
-    // Try to find the client by iterating through recent integration tokens
-    // that have the oauth_token stored (we'll use a query param or cookie for this)
-    const clientId = searchParams.get('state');
+    // Recover clientId from state parameter
+    const clientId = await findClientIdByState(state);
 
     if (!clientId) {
-      logger.warn('No client ID found for Garmin callback')
+      logger.warn('No client ID found for Garmin callback (state not in OAuthRequestToken table)')
       return NextResponse.redirect(
         `${APP_URL}/athlete/settings?error=garmin_no_client`
       );
@@ -67,15 +68,42 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Exchange verifier for access token
-    const { accessToken, tokenSecret } = await exchangeGarminVerifier(
-      clientId,
-      oauthToken,
-      oauthVerifier
-    );
+    // Retrieve and delete stored PKCE code_verifier (validates state + expiry)
+    const storedPKCE = await prisma.oAuthRequestToken.findUnique({
+      where: {
+        clientId_provider: {
+          clientId,
+          provider: 'GARMIN',
+        },
+      },
+    });
+
+    if (!storedPKCE || storedPKCE.state !== state || storedPKCE.expiresAt < new Date()) {
+      logger.warn('Invalid or expired PKCE state in Garmin callback')
+      return NextResponse.redirect(
+        `${APP_URL}/athlete/settings?error=garmin_invalid_state`
+      );
+    }
+
+    const codeVerifier = decryptIntegrationSecret(storedPKCE.codeVerifier);
+
+    if (!codeVerifier) {
+      logger.warn('Failed to decrypt code_verifier')
+      return NextResponse.redirect(
+        `${APP_URL}/athlete/settings?error=garmin_callback_failed`
+      );
+    }
+
+    // Delete PKCE state (one-time use)
+    await prisma.oAuthRequestToken.delete({ where: { id: storedPKCE.id } });
+
+    // Exchange authorization code for tokens
+    const tokens = await exchangeGarminCode(code, codeVerifier);
+
+    // Calculate token expiry
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
     // Store tokens in database
-    // Note: For Garmin OAuth 1.0a, we store the token secret in refreshToken field
     await prisma.integrationToken.upsert({
       where: {
         clientId_type: {
@@ -84,18 +112,18 @@ export async function GET(request: NextRequest) {
         },
       },
       update: {
-        accessToken: encryptIntegrationSecret(accessToken)!,
-        refreshToken: encryptIntegrationSecret(tokenSecret), // Store token secret here
-        expiresAt: null, // Garmin tokens don't expire
+        accessToken: encryptIntegrationSecret(tokens.access_token)!,
+        refreshToken: encryptIntegrationSecret(tokens.refresh_token),
+        expiresAt,
         lastSyncError: null,
         syncEnabled: true,
       },
       create: {
         clientId,
         type: 'GARMIN',
-        accessToken: encryptIntegrationSecret(accessToken)!,
-        refreshToken: encryptIntegrationSecret(tokenSecret),
-        expiresAt: null,
+        accessToken: encryptIntegrationSecret(tokens.access_token)!,
+        refreshToken: encryptIntegrationSecret(tokens.refresh_token),
+        expiresAt,
         syncEnabled: true,
       },
     });
@@ -106,10 +134,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       `${APP_URL}/athlete/settings?success=garmin_connected`
     );
-  } catch (error) {
-    logger.error('Garmin callback error', {}, error)
+  } catch (err) {
+    logger.error('Garmin callback error', {}, err)
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.redirect(
       `${APP_URL}/athlete/settings?error=garmin_callback_failed&message=${encodeURIComponent(errorMessage)}`
     );
