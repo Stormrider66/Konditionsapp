@@ -191,10 +191,32 @@ export async function uploadFileFromBuffer(
     config: { mimeType, displayName },
   });
 
-  return {
-    uri: result.uri || '',
-    mimeType: result.mimeType || mimeType,
-  };
+  const fileName = result.name;
+  if (!fileName) {
+    throw new Error('File upload returned no name');
+  }
+
+  // Poll until file is ACTIVE (Google processes uploads asynchronously)
+  const maxWaitMs = 120_000; // 2 minutes max
+  const pollIntervalMs = 2_000;
+  const start = Date.now();
+
+  while (Date.now() - start < maxWaitMs) {
+    const file = await client.files.get({ name: fileName });
+    if (file.state === 'ACTIVE') {
+      return {
+        uri: file.uri || result.uri || '',
+        mimeType: file.mimeType || mimeType,
+      };
+    }
+    if (file.state === 'FAILED') {
+      throw new Error(`File processing failed: ${fileName}`);
+    }
+    // Still PROCESSING — wait and retry
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+
+  throw new Error(`File not ready after ${maxWaitMs / 1000}s: ${fileName}`);
 }
 
 /**
