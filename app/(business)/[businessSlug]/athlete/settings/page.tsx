@@ -49,6 +49,7 @@ export default async function BusinessAthleteSettingsPage({ params }: BusinessSe
       sportProfile={client.sportProfile}
       basePath={basePath}
       userEmail={supabaseUser?.email || ''}
+      business={membership.role !== 'OWNER' ? { id: membership.businessId, name: membership.business.name, role: membership.role } : undefined}
     />
   )
 }

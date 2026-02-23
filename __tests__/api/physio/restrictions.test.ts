@@ -77,12 +77,12 @@ describe('Training Restriction API', () => {
         createdById: 'physio-user-id',
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
       vi.mocked(canAccessAthleteAsPhysio).mockResolvedValue(true)
-      vi.mocked(prisma.trainingRestriction.create).mockResolvedValue(mockRestriction)
+      vi.mocked(prisma.trainingRestriction.create).mockResolvedValue(mockRestriction as any)
 
       const result = await prisma.trainingRestriction.create({
-        data: mockRestriction,
+        data: mockRestriction as any,
       })
 
       expect(result.type).toBe('NO_RUNNING')
@@ -161,12 +161,12 @@ describe('Training Restriction API', () => {
         },
       ]
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
       vi.mocked(prisma.athleteAccount.findUnique).mockResolvedValue({
         userId: mockUser.id,
         clientId: 'client-id',
-      })
-      vi.mocked(prisma.trainingRestriction.findMany).mockResolvedValue(mockRestrictions)
+      } as any)
+      vi.mocked(prisma.trainingRestriction.findMany).mockResolvedValue(mockRestrictions as any)
 
       const result = await prisma.trainingRestriction.findMany({
         where: {
@@ -232,7 +232,7 @@ describe('Training Restriction API', () => {
         email: 'physio@test.com',
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
       vi.mocked(canAccessAthleteAsPhysio).mockResolvedValue(true)
 
       const hasAccess = await canAccessAthleteAsPhysio(mockUser.id, 'client-id')
@@ -246,7 +246,7 @@ describe('Training Restriction API', () => {
         email: 'coach@test.com',
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
       vi.mocked(canAccessClient).mockResolvedValue(true)
 
       const hasAccess = await canAccessClient(mockUser.id, 'client-id')
@@ -270,8 +270,8 @@ describe('Training Restriction API', () => {
         isActive: true,
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.trainingRestriction.update).mockResolvedValue(updatedRestriction)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.trainingRestriction.update).mockResolvedValue(updatedRestriction as any)
 
       const result = await prisma.trainingRestriction.update({
         where: { id: 'restriction-id' },
@@ -293,8 +293,8 @@ describe('Training Restriction API', () => {
         isActive: false,
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.trainingRestriction.update).mockResolvedValue(deactivatedRestriction)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.trainingRestriction.update).mockResolvedValue(deactivatedRestriction as any)
 
       const result = await prisma.trainingRestriction.update({
         where: { id: 'restriction-id' },
@@ -316,8 +316,8 @@ describe('Training Restriction API', () => {
         severity: 'MILD', // Reduced from MODERATE
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.trainingRestriction.update).mockResolvedValue(updatedRestriction)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.trainingRestriction.update).mockResolvedValue(updatedRestriction as any)
 
       const result = await prisma.trainingRestriction.update({
         where: { id: 'restriction-id' },

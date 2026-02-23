@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { Settings, ChevronLeft, Bot, Bell, ChevronRight, Target, User, DollarSign, Lock, CreditCard } from 'lucide-react'
+import { Settings, ChevronLeft, Bot, Bell, ChevronRight, Target, User, DollarSign, Lock, CreditCard, LogOut, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
@@ -33,6 +33,7 @@ interface AthleteSettingsClientProps {
   sportProfile: SportProfile | null
   basePath?: string
   userEmail?: string
+  business?: { id: string; name: string; role: string }
 }
 
 export function AthleteSettingsClient({
@@ -41,8 +42,11 @@ export function AthleteSettingsClient({
   sportProfile,
   basePath = '',
   userEmail = '',
+  business,
 }: AthleteSettingsClientProps) {
   const { toast } = useToast()
+  const [leavingBusiness, setLeavingBusiness] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
   const primarySport = (sportProfile?.primarySport || 'RUNNING') as SportType
 
   // Get current intensity targets from sport settings
@@ -306,6 +310,84 @@ export function AthleteSettingsClient({
           </div>
           <IntegrationsSettings clientId={clientId} businessSlug={basePath.replace(/^\//, '')} variant="glass" />
         </div>
+
+        {/* Leave Business */}
+        {business && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 px-2">
+              <div className="w-1.5 h-4 bg-red-500 rounded-full" />
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Företag</h3>
+            </div>
+            <GlassCard>
+              <GlassCardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-white/10">
+                    <Building2 className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">{business.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Du är medlem i detta företag</p>
+                  </div>
+                </div>
+                {!confirmLeave ? (
+                  <Button
+                    variant="outline"
+                    className="w-full text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-500/20 dark:hover:bg-red-500/10"
+                    onClick={() => setConfirmLeave(true)}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Lämna {business.name}
+                  </Button>
+                ) : (
+                  <div className="space-y-3 p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                      Är du säker? Du förlorar åtkomst till företagets tjänster. Din data (tester, program) bevaras.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setConfirmLeave(false)}
+                        className="flex-1"
+                      >
+                        Avbryt
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1"
+                        disabled={leavingBusiness}
+                        onClick={async () => {
+                          setLeavingBusiness(true)
+                          try {
+                            const res = await fetch('/api/athlete/leave-business', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ businessId: business.id }),
+                            })
+                            const data = await res.json()
+                            if (data.success) {
+                              toast({ title: 'Klart', description: `Du har lämnat ${business.name}` })
+                              window.location.href = '/athlete'
+                            } else {
+                              toast({ title: 'Fel', description: data.error, variant: 'destructive' })
+                            }
+                          } catch {
+                            toast({ title: 'Fel', description: 'Något gick fel', variant: 'destructive' })
+                          } finally {
+                            setLeavingBusiness(false)
+                          }
+                        }}
+                      >
+                        {leavingBusiness ? 'Lämnar...' : 'Bekräfta'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </GlassCardContent>
+            </GlassCard>
+          </div>
+        )}
       </div>
     </div>
   )

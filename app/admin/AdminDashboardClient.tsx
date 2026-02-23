@@ -22,6 +22,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Shield,
   Users,
   Activity,
@@ -39,6 +46,8 @@ import {
   Monitor,
   Building2,
   Bot,
+  Plus,
+  X,
 } from 'lucide-react';
 import { useTranslations } from '@/i18n/client';
 import { ContractsTable } from '@/components/admin/contracts/ContractsTable';
@@ -149,6 +158,42 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
   const [roleFilter, setRoleFilter] = useState('ALL');
   const [businessFilter, setBusinessFilter] = useState('ALL');
   const [businessOptions, setBusinessOptions] = useState<BusinessOption[]>([]);
+
+  // Business assignment dialog
+  const [assignDialogUser, setAssignDialogUser] = useState<User | null>(null);
+  const [selectedBusinessId, setSelectedBusinessId] = useState('');
+
+  const assignUserToBusiness = async (userId: string, businessId: string) => {
+    try {
+      const response = await fetch('/api/admin/users/assign-business', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, businessId }),
+      });
+      if (response.ok) {
+        setAssignDialogUser(null);
+        setSelectedBusinessId('');
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error assigning user to business:', error);
+    }
+  };
+
+  const removeUserFromBusiness = async (userId: string, businessId: string) => {
+    try {
+      const response = await fetch('/api/admin/users/assign-business', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, businessId }),
+      });
+      if (response.ok) {
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error removing user from business:', error);
+    }
+  };
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
@@ -701,17 +746,28 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                             </TableCell>
                             <TableCell>{user.clientsCount}</TableCell>
                             <TableCell>
-                              {user.businesses.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                  {user.businesses.map((b) => (
-                                    <Badge key={b.id} variant="outline" className="text-xs">
-                                      {b.name}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">Standard</span>
-                              )}
+                              <div className="flex flex-wrap items-center gap-1">
+                                {user.businesses.map((b) => (
+                                  <Badge key={b.id} variant="outline" className="text-xs group">
+                                    {b.name}
+                                    <button
+                                      onClick={() => removeUserFromBusiness(user.id, b.id)}
+                                      className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      title={`Ta bort från ${b.name}`}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </Badge>
+                                ))}
+                                <button
+                                  onClick={() => setAssignDialogUser(user)}
+                                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                  title="Tilldela företag"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                  {user.businesses.length === 0 && 'Tilldela'}
+                                </button>
+                              </div>
                             </TableCell>
                             <TableCell>
                               {format(new Date(user.createdAt), 'yyyy-MM-dd')}
@@ -777,6 +833,43 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
           <AIModelsManager />
         </TabsContent>
       </Tabs>
+
+      {/* Assign Business Dialog */}
+      <Dialog open={!!assignDialogUser} onOpenChange={(open) => { if (!open) { setAssignDialogUser(null); setSelectedBusinessId(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tilldela företag</DialogTitle>
+            <DialogDescription>
+              Tilldela {assignDialogUser?.name || assignDialogUser?.email} till ett företag.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select value={selectedBusinessId} onValueChange={setSelectedBusinessId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Välj företag..." />
+              </SelectTrigger>
+              <SelectContent>
+                {businessOptions
+                  .filter((b) => !assignDialogUser?.businesses.some((ub) => ub.id === b.id))
+                  .map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setAssignDialogUser(null); setSelectedBusinessId(''); }}>
+                Avbryt
+              </Button>
+              <Button
+                disabled={!selectedBusinessId}
+                onClick={() => assignDialogUser && assignUserToBusiness(assignDialogUser.id, selectedBusinessId)}
+              >
+                Tilldela
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

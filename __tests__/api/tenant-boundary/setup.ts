@@ -28,7 +28,6 @@ vi.mock('@/lib/auth-utils', () => ({
   getCurrentUser: vi.fn(),
   resolveAthleteClientId: vi.fn(),
   canAccessClient: vi.fn(),
-  canAccessAthlete: vi.fn(),
   canAccessAthleteAsPhysio: vi.fn(),
 }))
 

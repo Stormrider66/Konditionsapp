@@ -91,9 +91,9 @@ describe('Rehab Program API', () => {
         createdAt: new Date(),
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
       vi.mocked(canAccessAthleteAsPhysio).mockResolvedValue(true)
-      vi.mocked(prisma.rehabProgram.create).mockResolvedValue(mockProgram)
+      vi.mocked(prisma.rehabProgram.create).mockResolvedValue(mockProgram as any)
 
       const result = await prisma.rehabProgram.create({
         data: {
@@ -162,8 +162,8 @@ describe('Rehab Program API', () => {
         },
       ]
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.rehabProgram.findMany).mockResolvedValue(mockPrograms)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.rehabProgram.findMany).mockResolvedValue(mockPrograms as any)
 
       const result = await prisma.rehabProgram.findMany({
         where: { physioUserId: mockUser.id },
@@ -185,8 +185,8 @@ describe('Rehab Program API', () => {
         { id: 'program-1', status: 'ACTIVE' },
       ]
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.rehabProgram.findMany).mockResolvedValue(mockActivePrograms)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.rehabProgram.findMany).mockResolvedValue(mockActivePrograms as any)
 
       const result = await prisma.rehabProgram.findMany({
         where: { physioUserId: mockUser.id, status: 'ACTIVE' },
@@ -211,8 +211,8 @@ describe('Rehab Program API', () => {
         status: 'ACTIVE',
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.rehabProgram.update).mockResolvedValue(updatedProgram)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.rehabProgram.update).mockResolvedValue(updatedProgram as any)
 
       const result = await prisma.rehabProgram.update({
         where: { id: 'program-id' },
@@ -235,8 +235,8 @@ describe('Rehab Program API', () => {
         currentPhase: 'RETURN_TO_SPORT',
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.rehabProgram.update).mockResolvedValue(completedProgram)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.rehabProgram.update).mockResolvedValue(completedProgram as any)
 
       const result = await prisma.rehabProgram.update({
         where: { id: 'program-id' },
@@ -261,7 +261,7 @@ describe('Rehab Program API', () => {
         notes: 'Focus on controlled movement',
       }
 
-      vi.mocked(prisma.rehabExercise.create).mockResolvedValue(mockExercise)
+      vi.mocked(prisma.rehabExercise.create).mockResolvedValue(mockExercise as any)
 
       const result = await prisma.rehabExercise.create({
         data: mockExercise,
@@ -281,19 +281,19 @@ describe('Rehab Program API', () => {
         name: 'Full ROM achieved',
         description: 'Patient can achieve full range of motion without pain',
         targetDate: new Date('2024-03-01'),
-        achieved: false,
-        achievedAt: null,
+        isAchieved: false,
+        achievedDate: null,
         criteria: ['0-130 degrees flexion', 'No pain at end range'],
       }
 
-      vi.mocked(prisma.rehabMilestone.create).mockResolvedValue(mockMilestone)
+      vi.mocked(prisma.rehabMilestone.create).mockResolvedValue(mockMilestone as any)
 
       const result = await prisma.rehabMilestone.create({
-        data: mockMilestone,
+        data: mockMilestone as any,
       })
 
       expect(result.name).toBe('Full ROM achieved')
-      expect(result.achieved).toBe(false)
+      expect(result.isAchieved).toBe(false)
     })
 
     it('should mark milestone as achieved', async () => {
@@ -301,19 +301,19 @@ describe('Rehab Program API', () => {
         id: 'milestone-id',
         programId: 'program-id',
         name: 'Full ROM achieved',
-        achieved: true,
-        achievedAt: new Date(),
+        isAchieved: true,
+        achievedDate: new Date(),
       }
 
-      vi.mocked(prisma.rehabMilestone.update).mockResolvedValue(achievedMilestone)
+      vi.mocked(prisma.rehabMilestone.update).mockResolvedValue(achievedMilestone as any)
 
       const result = await prisma.rehabMilestone.update({
         where: { id: 'milestone-id' },
-        data: { achieved: true, achievedAt: new Date() },
+        data: { isAchieved: true, achievedDate: new Date() },
       })
 
-      expect(result.achieved).toBe(true)
-      expect(result.achievedAt).not.toBeNull()
+      expect(result.isAchieved).toBe(true)
+      expect(result.achievedDate).not.toBeNull()
     })
   })
 
@@ -332,14 +332,14 @@ describe('Rehab Program API', () => {
         loggedAt: new Date(),
       }
 
-      vi.mocked(prisma.rehabProgressLog.create).mockResolvedValue(mockProgressLog)
+      vi.mocked(prisma.rehabProgressLog.create).mockResolvedValue(mockProgressLog as any)
 
       const result = await prisma.rehabProgressLog.create({
-        data: mockProgressLog,
+        data: mockProgressLog as any,
       })
 
       expect(result.painDuring).toBe(2)
-      expect(result.overallFeeling).toBe('GOOD')
+      expect((result as any).overallFeeling).toBe('GOOD')
     })
 
     it('should trigger notification when pain exceeds threshold', async () => {

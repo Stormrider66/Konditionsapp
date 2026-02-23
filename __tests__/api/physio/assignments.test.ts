@@ -69,8 +69,8 @@ describe('Physio Assignment API', () => {
         createdAt: new Date(),
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.physioAssignment.create).mockResolvedValue(mockAssignment)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.physioAssignment.create).mockResolvedValue(mockAssignment as any)
 
       // Note: In a real test, we would call the actual API route handler
       // For now, we verify the mocks are set up correctly
@@ -85,14 +85,14 @@ describe('Physio Assignment API', () => {
         email: 'athlete@test.com',
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
 
       // The API should reject this request
       expect(mockUser.role).not.toBe('PHYSIO')
     })
 
     it('should require clientId, teamId, or organizationId', async () => {
-      const invalidAssignmentData = {
+      const invalidAssignmentData: Record<string, string> = {
         physioUserId: 'physio-user-id',
         role: 'PRIMARY',
         // Missing clientId, teamId, and organizationId
@@ -135,11 +135,11 @@ describe('Physio Assignment API', () => {
         },
       ]
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.physioAssignment.findMany).mockResolvedValue(mockAssignments)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.physioAssignment.findMany).mockResolvedValue(mockAssignments as any)
 
       const result = await prisma.physioAssignment.findMany({
-        where: { physioUserId: mockUser.id, active: true },
+        where: { physioUserId: mockUser.id, isActive: true },
       })
 
       expect(result).toHaveLength(2)
@@ -163,14 +163,14 @@ describe('Physio Assignment API', () => {
         },
       ]
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.physioAssignment.findMany).mockResolvedValue(mockActiveAssignments)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.physioAssignment.findMany).mockResolvedValue(mockActiveAssignments as any)
 
       const result = await prisma.physioAssignment.findMany({
-        where: { physioUserId: mockUser.id, active: true },
+        where: { physioUserId: mockUser.id, isActive: true },
       })
 
-      expect(result.every((a) => a.active === true)).toBe(true)
+      expect(result.every((a) => a.isActive === true)).toBe(true)
     })
   })
 
@@ -196,9 +196,9 @@ describe('Physio Assignment API', () => {
         canCreateRestrictions: true,
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.physioAssignment.findUnique).mockResolvedValue(existingAssignment)
-      vi.mocked(prisma.physioAssignment.update).mockResolvedValue(updatedAssignment)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.physioAssignment.findUnique).mockResolvedValue(existingAssignment as any)
+      vi.mocked(prisma.physioAssignment.update).mockResolvedValue(updatedAssignment as any)
 
       const result = await prisma.physioAssignment.update({
         where: { id: 'assignment-id' },
@@ -226,15 +226,15 @@ describe('Physio Assignment API', () => {
         active: false,
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
-      vi.mocked(prisma.physioAssignment.update).mockResolvedValue(deactivatedAssignment)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
+      vi.mocked(prisma.physioAssignment.update).mockResolvedValue(deactivatedAssignment as any)
 
       const result = await prisma.physioAssignment.update({
         where: { id: 'assignment-id' },
-        data: { active: false },
+        data: { isActive: false },
       })
 
-      expect(result.active).toBe(false)
+      expect(result.isActive).toBe(false)
     })
   })
 
@@ -246,12 +246,12 @@ describe('Physio Assignment API', () => {
         email: 'admin@test.com',
       }
 
-      vi.mocked(getCurrentUser).mockResolvedValue(mockUser)
+      vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)
       vi.mocked(prisma.physioAssignment.delete).mockResolvedValue({
         id: 'assignment-id',
         physioUserId: 'physio-user-id',
         clientId: 'client-id',
-      })
+      } as any)
 
       const result = await prisma.physioAssignment.delete({
         where: { id: 'assignment-id' },

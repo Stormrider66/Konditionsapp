@@ -39,10 +39,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
     const coachUserIds = businessCoaches.map(m => m.userId)
 
-    // Fetch clients from all coaches in the business
+    // Fetch clients belonging to the business OR owned by business coaches (fallback for un-migrated clients)
     const clients = await prisma.client.findMany({
       where: {
-        userId: { in: coachUserIds },
+        OR: [
+          { businessId: businessId },
+          { userId: { in: coachUserIds } },
+        ],
       },
       include: {
         team: true,

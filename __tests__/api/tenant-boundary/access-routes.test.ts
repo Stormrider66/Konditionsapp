@@ -3,7 +3,6 @@ import { NextRequest } from 'next/server'
 import './setup'
 import { prisma } from '@/lib/prisma'
 import {
-  canAccessAthlete,
   canAccessClient,
   getCurrentUser,
   requireAthlete,

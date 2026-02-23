@@ -149,10 +149,18 @@ export async function POST(request: NextRequest) {
         logger.info('Created user record for', { email: user.email })
       }
 
+      // Look up coach's business membership to auto-assign businessId
+      const businessMembership = await tx.businessMember.findFirst({
+        where: { userId: txUser.id, isActive: true, role: { in: ['OWNER', 'ADMIN', 'COACH'] } },
+        orderBy: { createdAt: 'asc' },
+        select: { businessId: true },
+      })
+
       // Convert birthDate string to Date
       const txClient = await tx.client.create({
         data: {
           userId: txUser.id,
+          businessId: businessMembership?.businessId ?? null,
           name: data.name,
           email: data.email || null,
           phone: data.phone || null,
