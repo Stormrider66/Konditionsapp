@@ -49,7 +49,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: {
-        canUseAthleteMode: hasProfile,
+        canUseAthleteMode: true,
         hasAthleteProfile: hasProfile,
         isAthleteModeActive: isActive && hasProfile,
         athleteProfile,

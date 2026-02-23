@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     );
     const search = searchParams.get('search') || '';
     const role = searchParams.get('role') || '';
+    const business = searchParams.get('business') || '';
 
     const where = {
       ...(search ? {
@@ -37,6 +38,11 @@ export async function GET(request: NextRequest) {
         ],
       } : {}),
       ...(role ? { role: role as 'COACH' | 'ATHLETE' | 'ADMIN' } : {}),
+      ...(business === 'NONE'
+        ? { businessMemberships: { none: { isActive: true } } }
+        : business
+          ? { businessMemberships: { some: { businessId: business, isActive: true } } }
+          : {}),
     };
 
     const [users, total] = await Promise.all([
@@ -59,6 +65,13 @@ export async function GET(request: NextRequest) {
               stripeCurrentPeriodEnd: true,
             },
           },
+          businessMemberships: {
+            select: {
+              role: true,
+              business: { select: { id: true, name: true, slug: true } },
+            },
+            where: { isActive: true },
+          },
           _count: {
             select: {
               clients: true,
@@ -78,6 +91,13 @@ export async function GET(request: NextRequest) {
         users: users.map((user) => ({
           ...user,
           clientsCount: user._count.clients,
+          businesses: user.businessMemberships.map((m) => ({
+            id: m.business.id,
+            name: m.business.name,
+            slug: m.business.slug,
+            role: m.role,
+          })),
+          businessMemberships: undefined,
           _count: undefined,
         })),
         pagination: {

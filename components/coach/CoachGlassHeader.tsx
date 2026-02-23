@@ -95,7 +95,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
     const mainNavItems = [
         { href: '/coach/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { href: '/coach/calendar', label: 'Kalender', icon: CalendarDays },
-        { href: '/clients', label: 'Atleter', icon: Users },
+        { href: '/coach/clients', label: 'Atleter', icon: Users },
         { href: '/coach/programs', label: 'Program', icon: FileStack },
     ]
 
@@ -105,7 +105,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
             label: 'Verktyg',
             icon: Wrench,
             items: [
-                { href: '/test', label: 'Nytt Test', icon: Activity }, // Changed icon to generic Activity or TestTube if available
+                { href: '/coach/test', label: 'Nytt Test', icon: Activity },
                 { href: '/coach/ai-studio', label: 'AI Studio', icon: Sparkles },
                 { href: '/coach/hybrid-studio', label: 'Hybrid Studio', icon: Flame },
                 { href: '/coach/strength', label: 'Strength Studio', icon: Dumbbell },
@@ -122,7 +122,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
             icon: Menu,
             items: [
                 { href: '/coach/analytics', label: 'Analys', icon: BarChart3 },
-                { href: '/teams', label: 'Lag', icon: Users2 },
+                { href: '/coach/teams', label: 'Lag', icon: Users2 },
                 { href: '/coach/organizations', label: 'Organisationer', icon: Building2 },
                 { href: '/coach/documents', label: 'Dokument', icon: FileStack },
                 { href: '/coach/messages', label: 'Meddelanden', icon: MessageSquare },

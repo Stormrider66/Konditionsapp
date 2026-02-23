@@ -101,6 +101,13 @@ interface AdminStats {
   };
 }
 
+interface UserBusiness {
+  id: string;
+  name: string;
+  slug: string;
+  role: string;
+}
+
 interface User {
   id: string;
   email: string;
@@ -115,6 +122,12 @@ interface User {
     maxAthletes: number;
   } | null;
   clientsCount: number;
+  businesses: UserBusiness[];
+}
+
+interface BusinessOption {
+  id: string;
+  name: string;
 }
 
 export function AdminDashboardClient({ userId, userName }: AdminDashboardClientProps) {
@@ -134,6 +147,8 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('ALL');
+  const [businessFilter, setBusinessFilter] = useState('ALL');
+  const [businessOptions, setBusinessOptions] = useState<BusinessOption[]>([]);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
@@ -158,6 +173,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
         limit: '20',
         ...(debouncedSearch && { search: debouncedSearch }),
         ...(roleFilter !== 'ALL' && { role: roleFilter }),
+        ...(businessFilter !== 'ALL' && { business: businessFilter }),
       });
       const response = await fetch(`/api/admin/users?${params}`);
       const result = await response.json();
@@ -170,7 +186,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
     } finally {
       setUsersLoading(false);
     }
-  }, [page, debouncedSearch, roleFilter]);
+  }, [page, debouncedSearch, roleFilter, businessFilter]);
 
   useEffect(() => {
     fetchStats();
@@ -184,10 +200,29 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Reset page when search or role filter changes
+  // Reset page when search or filter changes
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, roleFilter]);
+  }, [debouncedSearch, roleFilter, businessFilter]);
+
+  // Fetch businesses for filter dropdown when users tab is first opened
+  useEffect(() => {
+    if (activeTab === 'users' && businessOptions.length === 0) {
+      fetch('/api/admin/businesses?limit=100')
+        .then((res) => res.json())
+        .then((result) => {
+          if (result.success) {
+            setBusinessOptions(
+              result.data.businesses.map((b: { id: string; name: string }) => ({
+                id: b.id,
+                name: b.name,
+              }))
+            );
+          }
+        })
+        .catch(console.error);
+    }
+  }, [activeTab, businessOptions.length]);
 
   // Fetch users when tab active and params change
   useEffect(() => {
@@ -577,6 +612,18 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                     <SelectItem value="ADMIN">Admin</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={businessFilter} onValueChange={setBusinessFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Alla företag" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Alla företag</SelectItem>
+                    <SelectItem value="NONE">Standard (inget företag)</SelectItem>
+                    {businessOptions.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Users Table */}
@@ -596,6 +643,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                           <TableHead>Platform</TableHead>
                           <TableHead>{t('tier')}</TableHead>
                           <TableHead>{t('clients')}</TableHead>
+                          <TableHead>Företag</TableHead>
                           <TableHead>{t('joined')}</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -652,6 +700,19 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                               </Select>
                             </TableCell>
                             <TableCell>{user.clientsCount}</TableCell>
+                            <TableCell>
+                              {user.businesses.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {user.businesses.map((b) => (
+                                    <Badge key={b.id} variant="outline" className="text-xs">
+                                      {b.name}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">Standard</span>
+                              )}
+                            </TableCell>
                             <TableCell>
                               {format(new Date(user.createdAt), 'yyyy-MM-dd')}
                             </TableCell>

@@ -69,6 +69,10 @@ const COACH_REDIRECT_ROUTES = [
   '/coach/injuries',
   '/coach/field-tests',
   '/coach/organizations',
+  '/coach/calendar',
+  '/coach/agility-studio',
+  '/coach/teams',
+  '/coach/test',
 ]
 
 // Athlete routes that should be redirected to business-scoped routes
@@ -625,7 +629,34 @@ export async function middleware(request: NextRequest) {
             // No athlete profile set up - redirect to setup page
             return NextResponse.redirect(new URL('/coach/settings/athlete-profile', request.url))
           }
-          // Has athlete profile - allow access to athlete routes
+
+          // Redirect coach in athlete mode to business-scoped athlete routes
+          const shouldRedirectCoachAthlete = ATHLETE_REDIRECT_ROUTES.some(
+            (route) => pathname === route || pathname.startsWith(route + '/')
+          )
+
+          if (shouldRedirectCoachAthlete) {
+            const { data: coachBizMembership } = await supabase
+              .from('BusinessMember')
+              .select('businessId, Business!inner(slug)')
+              .eq('userId', supabaseUser.id)
+              .eq('isActive', true)
+              .order('createdAt', { ascending: true })
+              .limit(1)
+              .single()
+
+            if (coachBizMembership && coachBizMembership.Business) {
+              const coachBizSlug = Array.isArray(coachBizMembership.Business)
+                ? coachBizMembership.Business[0]?.slug
+                : (coachBizMembership.Business as { slug: string }).slug
+
+              if (coachBizSlug) {
+                const newCoachAthletePath = pathname.replace('/athlete/', `/${coachBizSlug}/athlete/`)
+                return NextResponse.redirect(new URL(newCoachAthletePath, request.url))
+              }
+            }
+          }
+          // If no business membership, allow access to legacy routes
         } else if (role === 'COACH' || role === 'ADMIN') {
           // Coach/Admin NOT in athlete mode - redirect to coach dashboard
           return NextResponse.redirect(new URL('/coach/dashboard', request.url))
