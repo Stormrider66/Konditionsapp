@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { Settings, ChevronLeft, Bot, Bell, ChevronRight, Target, User, DollarSign } from 'lucide-react'
+import { Settings, ChevronLeft, Bot, Bell, ChevronRight, Target, User, DollarSign, Lock, CreditCard } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
@@ -17,6 +17,8 @@ import { AIModelSettings } from '@/components/athlete/settings/AIModelSettings'
 import { IntensityTargetsEditor } from '@/components/athlete/settings/IntensityTargetsEditor'
 import { LocationSettings } from '@/components/athlete/settings/LocationSettings'
 import { AboutMeSettings } from '@/components/athlete/settings/AboutMeSettings'
+import { ProfileSettings } from '@/components/settings/ProfileSettings'
+import { PasswordChangeForm } from '@/components/settings/PasswordChangeForm'
 import type { SportProfile } from '@prisma/client'
 import { SportType, IntensityTargets } from '@/types'
 import { getTargetsFromSettings } from '@/lib/training/intensity-targets'
@@ -30,6 +32,7 @@ interface AthleteSettingsClientProps {
   clientName: string
   sportProfile: SportProfile | null
   basePath?: string
+  userEmail?: string
 }
 
 export function AthleteSettingsClient({
@@ -37,6 +40,7 @@ export function AthleteSettingsClient({
   clientName,
   sportProfile,
   basePath = '',
+  userEmail = '',
 }: AthleteSettingsClientProps) {
   const { toast } = useToast()
   const primarySport = (sportProfile?.primarySport || 'RUNNING') as SportType
@@ -148,6 +152,52 @@ export function AthleteSettingsClient({
             </div>
           </GlassCardContent>
         </GlassCard>
+
+        {/* Profile Settings */}
+        {userEmail && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 px-2">
+              <div className="w-1.5 h-4 bg-slate-500 rounded-full" />
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Profil</h3>
+            </div>
+            <ProfileSettings userName={clientName} userEmail={userEmail} />
+          </div>
+        )}
+
+        {/* Password Change */}
+        {userEmail && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 px-2">
+              <div className="w-1.5 h-4 bg-red-500 rounded-full" />
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Lösenord</h3>
+            </div>
+            <PasswordChangeForm userEmail={userEmail} />
+          </div>
+        )}
+
+        {/* Subscription Link */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-2">
+            <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Prenumeration</h3>
+          </div>
+          <Link href={`${basePath}/athlete/subscription`}>
+            <div className="bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 rounded-2xl p-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all cursor-pointer group">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center border border-emerald-200 dark:border-emerald-500/20">
+                    <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Prenumeration</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Hantera din plan och betalning</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white transition-colors" />
+              </div>
+            </div>
+          </Link>
+        </div>
 
         {/* About Me Settings */}
         <div className="space-y-4">

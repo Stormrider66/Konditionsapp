@@ -50,15 +50,18 @@ export function ProgramInfographic({
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Failed to generate')
+        const data = await res.json().catch(() => null)
+        const serverError = data?.error || `HTTP ${res.status}`
+        throw new Error(serverError)
       }
 
       const data = await res.json()
       setUrl(data.url)
       toast.success(t('success'))
     } catch (err) {
-      toast.error(t('error'))
+      const message = err instanceof Error ? err.message : t('error')
+      console.error('Infographic generation failed:', message)
+      toast.error(message)
     } finally {
       setIsGenerating(false)
     }

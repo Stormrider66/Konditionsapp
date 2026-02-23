@@ -97,26 +97,33 @@ Design requirements:
 
 export async function generateProgramInfographic(
   options: GenerateInfographicOptions
-): Promise<string | null> {
+): Promise<string> {
   const { programId, programData, coachId, locale, model } = options
   const selectedModel = model || GEMINI_MODELS.IMAGE_GENERATION
 
   const apiKey = await resolveGoogleApiKey(coachId)
   if (!apiKey) {
     logger.warn('No Google API key available for infographic generation', { programId, coachId })
-    return null
+    throw new Error('NO_API_KEY')
   }
 
   const ai = new GoogleGenAI({ apiKey })
   const prompt = buildInfographicPrompt(programData, locale)
 
-  const response = await ai.models.generateContent({
-    model: selectedModel,
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    config: {
-      responseModalities: ['IMAGE', 'TEXT'],
-    },
-  })
+  let response
+  try {
+    response = await ai.models.generateContent({
+      model: selectedModel,
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
+        responseModalities: ['IMAGE', 'TEXT'],
+      },
+    })
+  } catch (geminiError) {
+    const msg = geminiError instanceof Error ? geminiError.message : String(geminiError)
+    logger.error('Gemini API call failed', { programId, model: selectedModel, error: msg }, geminiError)
+    throw new Error(`GEMINI_ERROR: ${msg}`)
+  }
 
   // Extract image from response
   const parts = response.candidates?.[0]?.content?.parts
@@ -125,8 +132,13 @@ export async function generateProgramInfographic(
   )
 
   if (!imagePart?.inlineData?.data) {
-    logger.warn('No image in Gemini response', { programId, model: selectedModel })
-    return null
+    logger.warn('No image in Gemini response', {
+      programId,
+      model: selectedModel,
+      hasCandidates: !!response.candidates?.length,
+      partTypes: parts?.map((p) => p.text ? 'text' : p.inlineData ? 'inlineData' : 'unknown'),
+    })
+    throw new Error('NO_IMAGE_IN_RESPONSE')
   }
 
   const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64')

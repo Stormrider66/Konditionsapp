@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
 import { AthleteSettingsClient } from './AthleteSettingsClient'
 
 export const metadata = {
@@ -11,6 +12,9 @@ export const metadata = {
 
 export default async function AthleteSettingsPage() {
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
+
+  const supabase = await createClient()
+  const { data: { user: supabaseUser } } = await supabase.auth.getUser()
 
   // Get client with sport profile
   const client = await prisma.client.findUnique({
@@ -29,6 +33,7 @@ export default async function AthleteSettingsPage() {
       clientId={clientId}
       clientName={client.name}
       sportProfile={client.sportProfile}
+      userEmail={supabaseUser?.email || ''}
     />
   )
 }
