@@ -185,7 +185,7 @@ export async function uploadFileFromBuffer(
   mimeType: string,
   displayName?: string,
 ): Promise<{ uri: string; mimeType: string }> {
-  const blob = new Blob([buffer], { type: mimeType });
+  const blob = new Blob([new Uint8Array(buffer)], { type: mimeType });
   const result = await client.files.upload({
     file: blob,
     config: { mimeType, displayName },
