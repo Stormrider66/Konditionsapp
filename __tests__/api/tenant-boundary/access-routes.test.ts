@@ -169,13 +169,19 @@ describe('Tenant boundary - access routes', () => {
     vi.mocked(requireCoach).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
     vi.mocked(canAccessClient).mockResolvedValue(false)
 
-    const formData = new FormData()
-    formData.append('file', new File(['video-content'], 'clip.mp4', { type: 'video/mp4' }))
-    formData.append('videoType', 'STRENGTH')
-    formData.append('athleteId', '11111111-1111-4111-8111-111111111111')
-
     const response = await postVideoUpload(
-      new Request('http://localhost/api/video-analysis/upload', { method: 'POST', body: formData }) as any
+      new Request('http://localhost/api/video-analysis/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'get-upload-url',
+          fileName: 'clip.mp4',
+          fileType: 'video/mp4',
+          fileSize: 1024,
+          videoType: 'STRENGTH',
+          athleteId: '11111111-1111-4111-8111-111111111111',
+        }),
+      }) as any
     )
 
     expect(response.status).toBe(404)

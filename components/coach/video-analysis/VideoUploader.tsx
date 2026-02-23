@@ -192,23 +192,55 @@ export function VideoUploader({
     setIsUploading(true)
 
     try {
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      formData.append('videoType', videoType)
-      if (cameraAngle) formData.append('cameraAngle', cameraAngle)
-      if (athleteId) formData.append('athleteId', athleteId)
-      if (exerciseId) formData.append('exerciseId', exerciseId)
-      if (hyroxStation) formData.append('hyroxStation', hyroxStation)
-
-      const response = await fetch('/api/video-analysis/upload', {
+      // Step 1: Get presigned upload URL
+      const urlRes = await fetch('/api/video-analysis/upload', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'get-upload-url',
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+          fileSize: selectedFile.size,
+          videoType,
+          cameraAngle: cameraAngle || undefined,
+          athleteId: athleteId || undefined,
+        }),
       })
 
-      const data = await response.json()
+      const urlData = await urlRes.json()
+      if (!urlRes.ok) {
+        throw new Error(urlData.error || 'Kunde inte skapa uppladdnings-URL')
+      }
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Uppladdning misslyckades')
+      // Step 2: Upload directly to Supabase Storage via presigned URL
+      const uploadRes = await fetch(urlData.signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': urlData.contentType },
+        body: selectedFile,
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error('Uppladdning till lagring misslyckades')
+      }
+
+      // Step 3: Confirm upload and create DB record
+      const confirmRes = await fetch('/api/video-analysis/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirm-upload',
+          uploadPath: urlData.path,
+          videoType,
+          cameraAngle: cameraAngle || undefined,
+          athleteId: athleteId || undefined,
+          exerciseId: exerciseId || undefined,
+          hyroxStation: hyroxStation || undefined,
+        }),
+      })
+
+      const confirmData = await confirmRes.json()
+      if (!confirmRes.ok) {
+        throw new Error(confirmData.error || 'Kunde inte bekräfta uppladdningen')
       }
 
       toast({

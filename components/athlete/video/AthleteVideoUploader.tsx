@@ -77,34 +77,57 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
     setUploadProgress(0)
 
     try {
-      // Create form data
-      const formData = new FormData()
-      formData.append('file', selectedFile)
-      formData.append('clientId', clientId)
-      formData.append('videoType', videoType)
-      if (hyroxStation) {
-        formData.append('hyroxStation', hyroxStation)
-      }
-      if (notes) {
-        formData.append('notes', notes)
-      }
-
-      // Simulate progress (real implementation would use XMLHttpRequest for progress)
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => Math.min(prev + 10, 90))
-      }, 200)
-
-      const response = await fetch('/api/video-analysis/upload', {
+      // Step 1: Get presigned upload URL
+      setUploadProgress(10)
+      const urlRes = await fetch('/api/video-analysis/upload', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'get-upload-url',
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+          fileSize: selectedFile.size,
+          videoType,
+        }),
       })
 
-      clearInterval(progressInterval)
+      const urlData = await urlRes.json()
+      if (!urlRes.ok) {
+        throw new Error(urlData.error || 'Kunde inte skapa uppladdnings-URL')
+      }
+
+      // Step 2: Upload directly to Supabase Storage
+      setUploadProgress(30)
+      const uploadRes = await fetch(urlData.signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': urlData.contentType },
+        body: selectedFile,
+      })
+
+      if (!uploadRes.ok) {
+        throw new Error('Uppladdning till lagring misslyckades')
+      }
+
+      setUploadProgress(80)
+
+      // Step 3: Confirm upload and create DB record
+      const confirmRes = await fetch('/api/video-analysis/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirm-upload',
+          uploadPath: urlData.path,
+          videoType,
+          athleteId: clientId,
+          hyroxStation: hyroxStation || undefined,
+        }),
+      })
+
+      const confirmData = await confirmRes.json()
       setUploadProgress(100)
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Kunde inte ladda upp video')
+      if (!confirmRes.ok) {
+        throw new Error(confirmData.error || 'Kunde inte bekräfta uppladdningen')
       }
 
       setUploadSuccess(true)

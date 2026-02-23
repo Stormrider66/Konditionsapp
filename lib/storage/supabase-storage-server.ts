@@ -3,6 +3,15 @@ import 'server-only'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { EXERCISE_IMAGES_BUCKET } from '@/lib/storage/supabase-storage'
 
+export async function createSignedUploadUrl(bucket: string, path: string) {
+  const admin = createAdminSupabaseClient()
+  const { data, error } = await admin.storage.from(bucket).createSignedUploadUrl(path)
+  if (error || !data) {
+    throw error || new Error('Failed to create signed upload URL')
+  }
+  return { signedUrl: data.signedUrl, token: data.token, path: data.path }
+}
+
 export async function createSignedUrl(bucket: string, path: string, expiresInSeconds = 60 * 10) {
   const admin = createAdminSupabaseClient()
   const { data, error } = await admin.storage.from(bucket).createSignedUrl(path, expiresInSeconds)
