@@ -273,6 +273,30 @@ export function PoseAnalyzer({
   } | null>(null)
   const poseRef = useRef<any>(null)
   const framesRef = useRef<PoseFrame[]>([])
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
+
+  // Fetch video as blob to bypass CORS restrictions on signed URLs
+  useEffect(() => {
+    let revoke: string | null = null
+    const fetchBlob = async () => {
+      try {
+        const res = await fetch(videoUrl)
+        if (!res.ok) throw new Error(`Failed to fetch video: ${res.status}`)
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        revoke = url
+        setBlobUrl(url)
+      } catch (err) {
+        console.error('Failed to load video as blob:', err)
+        // Fallback to direct URL
+        setBlobUrl(videoUrl)
+      }
+    }
+    fetchBlob()
+    return () => {
+      if (revoke) URL.revokeObjectURL(revoke)
+    }
+  }, [videoUrl])
 
   // Playback review state
   const [isReviewMode, setIsReviewMode] = useState(false)
@@ -1385,9 +1409,8 @@ export function PoseAnalyzer({
           <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
             <video
               ref={videoRef}
-              src={videoUrl}
+              src={blobUrl || videoUrl}
               className={isAnalyzing || isReviewMode ? 'hidden' : 'w-full h-full object-contain'}
-              crossOrigin="anonymous"
               playsInline
               muted
               onEnded={() => {
@@ -1409,11 +1432,11 @@ export function PoseAnalyzer({
               onMouseLeave={handleCanvasMouseLeave}
             />
 
-            {!poseLoaded && (
+            {(!poseLoaded || !blobUrl) && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                 <div className="text-center text-white">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                  <p>Laddar posemodell...</p>
+                  <p>{!blobUrl ? 'Laddar video...' : 'Laddar posemodell...'}</p>
                 </div>
               </div>
             )}
