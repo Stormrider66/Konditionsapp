@@ -380,6 +380,51 @@ export function VideoUploader({
             </div>
           )}
 
+          {/* Athlete & Exercise selection */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="athlete">Atlet (valfritt)</Label>
+              <Select
+                value={athleteId || "none"}
+                onValueChange={(val) => setAthleteId(val === "none" ? "" : val)}
+              >
+                <SelectTrigger id="athlete">
+                  <SelectValue placeholder="Välj atlet" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Ingen vald</SelectItem>
+                  {athletes.map((athlete) => (
+                    <SelectItem key={athlete.id} value={athlete.id}>
+                      {athlete.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {videoType === 'STRENGTH' && (
+              <div className="space-y-2">
+                <Label htmlFor="exercise">Övning (valfritt)</Label>
+                <Select
+                  value={exerciseId || "none"}
+                  onValueChange={(val) => setExerciseId(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger id="exercise">
+                    <SelectValue placeholder="Välj övning" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Ingen vald</SelectItem>
+                    {exercises.map((exercise) => (
+                      <SelectItem key={exercise.id} value={exercise.id}>
+                        {exercise.nameSv || exercise.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
           {/* Dropzone */}
           {!selectedFile ? (
             <div
@@ -433,51 +478,6 @@ export function VideoUploader({
               </div>
             </div>
           )}
-
-          {/* Optional fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="athlete">Atlet (valfritt)</Label>
-              <Select
-                value={athleteId || "none"}
-                onValueChange={(val) => setAthleteId(val === "none" ? "" : val)}
-              >
-                <SelectTrigger id="athlete">
-                  <SelectValue placeholder="Välj atlet" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Ingen vald</SelectItem>
-                  {athletes.map((athlete) => (
-                    <SelectItem key={athlete.id} value={athlete.id}>
-                      {athlete.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {videoType === 'STRENGTH' && (
-              <div className="space-y-2">
-                <Label htmlFor="exercise">Övning (valfritt)</Label>
-                <Select
-                  value={exerciseId || "none"}
-                  onValueChange={(val) => setExerciseId(val === "none" ? "" : val)}
-                >
-                  <SelectTrigger id="exercise">
-                    <SelectValue placeholder="Välj övning" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Ingen vald</SelectItem>
-                    {exercises.map((exercise) => (
-                      <SelectItem key={exercise.id} value={exercise.id}>
-                        {exercise.nameSv || exercise.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
 
           {/* Info about selected type */}
           {selectedVideoType && (
