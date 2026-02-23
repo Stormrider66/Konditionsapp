@@ -171,6 +171,33 @@ export async function uploadFile(
 }
 
 /**
+ * Upload a Buffer to Gemini's File API (for serverless environments without local files).
+ *
+ * @param client - GoogleGenAI client instance
+ * @param buffer - File content as Buffer
+ * @param mimeType - MIME type of the file
+ * @param displayName - Optional display name for the file
+ * @returns File URI for use in generateContent
+ */
+export async function uploadFileFromBuffer(
+  client: GoogleGenAI,
+  buffer: Buffer,
+  mimeType: string,
+  displayName?: string,
+): Promise<{ uri: string; mimeType: string }> {
+  const blob = new Blob([buffer], { type: mimeType });
+  const result = await client.files.upload({
+    file: blob,
+    config: { mimeType, displayName },
+  });
+
+  return {
+    uri: result.uri || '',
+    mimeType: result.mimeType || mimeType,
+  };
+}
+
+/**
  * Create inline data part from base64-encoded content.
  *
  * @param base64Data - Base64 encoded data

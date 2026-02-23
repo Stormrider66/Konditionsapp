@@ -21,28 +21,32 @@ export async function createSignedUrl(bucket: string, path: string, expiresInSec
   return data.signedUrl
 }
 
-export async function downloadAsBase64(
+export async function downloadAsBuffer(
   bucket: string,
   path: string,
   options?: { maxBytes?: number }
-): Promise<{ base64: string; mimeType?: string }> {
+): Promise<{ buffer: Buffer; mimeType?: string }> {
   const admin = createAdminSupabaseClient()
   const { data, error } = await admin.storage.from(bucket).download(path)
   if (error || !data) {
     throw error || new Error('Failed to download object')
   }
 
-  const maxBytes = options?.maxBytes
-  if (maxBytes && typeof (data as any).size === 'number' && (data as any).size > maxBytes) {
-    throw new Error('FILE_TOO_LARGE')
-  }
   const arrayBuffer = await data.arrayBuffer()
+  const maxBytes = options?.maxBytes
   if (maxBytes && arrayBuffer.byteLength > maxBytes) {
     throw new Error('FILE_TOO_LARGE')
   }
-  const base64 = Buffer.from(arrayBuffer).toString('base64')
-  const mimeType = data.type || undefined
-  return { base64, mimeType }
+  return { buffer: Buffer.from(arrayBuffer), mimeType: data.type || undefined }
+}
+
+export async function downloadAsBase64(
+  bucket: string,
+  path: string,
+  options?: { maxBytes?: number }
+): Promise<{ base64: string; mimeType?: string }> {
+  const { buffer, mimeType } = await downloadAsBuffer(bucket, path, options)
+  return { base64: buffer.toString('base64'), mimeType }
 }
 
 /**

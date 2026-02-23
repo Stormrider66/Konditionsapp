@@ -20,12 +20,14 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import {
   createGoogleGenAIClient,
   generateContent,
-  generateStructuredContent,
   fetchAsBase64,
   createInlineData,
+  createFileData,
   createText,
   getGeminiModelId,
+  uploadFileFromBuffer,
   type VideoMetadata,
+  type ContentPart,
 } from '@/lib/ai/google-genai-client';
 
 // Frame rates for different video analysis types
@@ -40,7 +42,7 @@ const VIDEO_FPS = {
 } as const;
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
 import { isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
-import { downloadAsBase64 as downloadFromStorage } from '@/lib/storage/supabase-storage-server';
+import { downloadAsBuffer as downloadBufferFromStorage } from '@/lib/storage/supabase-storage-server';
 import {
   buildSkiingPrompt,
   isSkiingVideoType,
@@ -59,29 +61,45 @@ import {
 import { parseHyroxAnalysisResponse } from '@/lib/validations/hyrox-analysis';
 
 const VIDEO_BUCKET = 'video-analysis';
-const MAX_VIDEO_BYTES = 20 * 1024 * 1024 // 20MB (Gemini inline_data practical limit)
+const INLINE_DATA_MAX_BYTES = 20 * 1024 * 1024 // 20MB (Gemini inline_data practical limit)
+const FILE_API_MAX_BYTES = 100 * 1024 * 1024   // 100MB (match upload limit)
 
 /**
- * Fetch video as base64 from either a full URL or Supabase storage path.
+ * Get video content part for Gemini. Uses inline base64 for small files (<20MB)
+ * and Google's File API for larger files (20-100MB).
  */
-async function getVideoAsBase64(videoUrl: string): Promise<{ base64: string; mimeType: string }> {
-  // Prefer converting URLs to storage paths so we always download via Supabase Storage (no SSRF).
+async function getVideoContentPart(
+  videoUrl: string,
+  client: ReturnType<typeof createGoogleGenAIClient>,
+  videoMetadata?: VideoMetadata,
+): Promise<ContentPart> {
   const path = normalizeStoragePath(VIDEO_BUCKET, videoUrl)
+  if (!path && !isHttpUrl(videoUrl)) {
+    throw new Error('Invalid video URL')
+  }
+
   if (path) {
-    const result = await downloadFromStorage(VIDEO_BUCKET, path, { maxBytes: MAX_VIDEO_BYTES });
-    return {
-      base64: result.base64,
-      mimeType: result.mimeType || 'video/mp4',
-    };
+    const { buffer, mimeType: rawMime } = await downloadBufferFromStorage(VIDEO_BUCKET, path, { maxBytes: FILE_API_MAX_BYTES })
+    const mimeType = rawMime || 'video/mp4'
+
+    if (buffer.byteLength <= INLINE_DATA_MAX_BYTES) {
+      return createInlineData(buffer.toString('base64'), mimeType, videoMetadata)
+    }
+
+    // Large file: upload to Google File API
+    logger.info('Video too large for inline data, using File API', {
+      size: `${(buffer.byteLength / (1024 * 1024)).toFixed(1)}MB`,
+      path,
+    })
+    const fileRef = await uploadFileFromBuffer(client, buffer, mimeType, `video-${Date.now()}`)
+    return createFileData(fileRef.uri, fileRef.mimeType)
   }
 
-  if (isHttpUrl(videoUrl)) {
-    // Full URL - fetch directly (restricted by fetchAsBase64 allowlist)
-    return fetchAsBase64(videoUrl, { maxBytes: MAX_VIDEO_BYTES });
-  }
-
-  throw new Error('Invalid video URL')
+  // HTTP URL fallback (for legacy URLs)
+  const { base64, mimeType } = await fetchAsBase64(videoUrl, { maxBytes: INLINE_DATA_MAX_BYTES })
+  return createInlineData(base64, mimeType, videoMetadata)
 }
+
 
 interface AnalysisResult {
   formScore: number;
@@ -198,19 +216,19 @@ export async function POST(
       // For STRENGTH and other types, use text-based approach
       const prompt = buildAnalysisPrompt(analysis);
 
-      // Fetch video and convert to base64 (handles both URLs and storage paths)
-      const { base64, mimeType } = await getVideoAsBase64(analysis.videoUrl);
-
       // Configure video metadata with appropriate FPS for the video type
       const fps = analysis.videoType === 'STRENGTH' ? VIDEO_FPS.STRENGTH : VIDEO_FPS.DEFAULT;
       const videoMetadata: VideoMetadata = { fps };
 
       logger.debug('Video analysis: starting', { videoType: analysis.videoType, fps });
 
+      // Get video content (inline for <20MB, File API for larger)
+      const videoPart = await getVideoContentPart(analysis.videoUrl, client, videoMetadata);
+
       // Call Gemini with video and metadata for proper frame sampling
       const result = await generateContent(client, modelId, [
         createText(prompt),
-        createInlineData(base64, mimeType, videoMetadata),
+        videoPart,
       ]);
 
       // Parse the AI response
@@ -499,19 +517,19 @@ async function analyzeSkiingTechnique(
     } | undefined,
   });
 
-  // Fetch video as base64
-  const { base64, mimeType } = await getVideoAsBase64(analysis.videoUrl);
-
   // Get appropriate FPS for skiing video type
   const fps = getSkiingFPS(videoType);
   const videoMetadata: VideoMetadata = { fps };
 
   logger.debug('Video analysis: skiing technique starting', { videoType, fps });
 
+  // Get video content (inline for <20MB, File API for larger)
+  const videoPart = await getVideoContentPart(analysis.videoUrl, client, videoMetadata);
+
   // Call Gemini with video
   const result = await generateContent(client, modelId, [
     createText(prompt),
-    createInlineData(base64, mimeType, videoMetadata),
+    videoPart,
   ]);
 
   // Parse the structured response
@@ -739,9 +757,6 @@ async function analyzeHyroxStation(
   // Build the prompt with station-specific focus
   const prompt = buildHyroxPrompt(stationType, athleteContext);
 
-  // Fetch video and convert to base64
-  const { base64, mimeType } = await getVideoAsBase64(analysis.videoUrl);
-
   // Configure video metadata with appropriate FPS
   const fps = getHyroxFPS();
   const videoMetadata: VideoMetadata = { fps };
@@ -752,10 +767,13 @@ async function analyzeHyroxStation(
     fps,
   });
 
+  // Get video content (inline for <20MB, File API for larger)
+  const videoPart = await getVideoContentPart(analysis.videoUrl, client, videoMetadata);
+
   // Call Gemini with video
   const result = await generateContent(client, modelId, [
     createText(prompt),
-    createInlineData(base64, mimeType, videoMetadata),
+    videoPart,
   ]);
 
   // Parse the response
@@ -1027,9 +1045,6 @@ SVARA I FÖLJANDE JSON-FORMAT:
 \`\`\``;
 
   try {
-    // Fetch video and convert to base64 (handles both URLs and storage paths)
-    const { base64, mimeType } = await getVideoAsBase64(analysis.videoUrl);
-
     // Configure video metadata with higher FPS for running gait analysis
     // This ensures Gemini samples more frames for accurate motion analysis
     const videoMetadata: VideoMetadata = {
@@ -1038,10 +1053,13 @@ SVARA I FÖLJANDE JSON-FORMAT:
 
     logger.debug(`Video analysis: running gait @ ${videoMetadata.fps} FPS`);
 
+    // Get video content (inline for <20MB, File API for larger)
+    const videoPart = await getVideoContentPart(analysis.videoUrl, client, videoMetadata);
+
     // Generate analysis with video metadata for proper frame sampling
     const result = await generateContent(client, modelId, [
       createText(prompt),
-      createInlineData(base64, mimeType, videoMetadata),
+      videoPart,
     ]);
 
     // Parse the structured response
