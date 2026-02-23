@@ -606,7 +606,7 @@ export function WODGeneratorModal({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 max-h-[40vh] overflow-y-auto pr-1">
               {EQUIPMENT_BY_TYPE[selectedWorkoutType].map(({ value, label, icon }) => {
                 const isSelected = selectedEquipment.includes(value)
                 return (

@@ -334,7 +334,7 @@ async function parseFromImage(
   const response = await generateContent(
     client,
     modelId,
-    [createInlineData(mimeType, base64Data), createText(prompt)],
+    [createInlineData(base64Data, mimeType), createText(prompt)],
     {
       maxOutputTokens: 4096,
       temperature: 0.3,
@@ -379,7 +379,7 @@ async function parseFromVoice(
   const transcriptionResponse = await generateContent(
     client,
     modelId,
-    [createInlineData(mimeType, base64Data), createText(transcriptionPrompt)],
+    [createInlineData(base64Data, mimeType), createText(transcriptionPrompt)],
     {
       maxOutputTokens: 2048,
       temperature: 0.1,
