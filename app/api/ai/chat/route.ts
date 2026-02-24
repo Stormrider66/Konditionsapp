@@ -21,7 +21,7 @@ import { buildAthleteSystemPrompt, MemoryContext, AthleteCapabilities } from '@/
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
 import { getConsentStatus } from '@/lib/agent/gdpr/consent-manager';
 import { extractMemoriesFromConversation, saveMemories } from '@/lib/ai/memory-extractor';
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
+import { getResolvedAiKeys } from '@/lib/user-api-keys';
 import { buildCalendarContext } from '@/lib/ai/calendar-context-builder';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { matchKnowledgeSkills, fetchSkillContext } from '@/lib/ai/knowledge-skills';
@@ -221,13 +221,10 @@ export async function POST(request: NextRequest) {
     })
     if (rateLimited) return rateLimited
 
-    // Get API keys (either coach's own or athlete's coach's)
-    const apiKeysRow = await prisma.userApiKey.findUnique({
-      where: { userId: apiKeyUserId },
-    })
-    const decryptedKeys = await getDecryptedUserApiKeys(apiKeyUserId)
+    // Get API keys (user's own → business keys → none)
+    const decryptedKeys = await getResolvedAiKeys(apiKeyUserId)
 
-    if (!apiKeysRow) {
+    if (!decryptedKeys.anthropicKey && !decryptedKeys.googleKey && !decryptedKeys.openaiKey) {
       const errorMsg = isAthleteChat
         ? 'Din coach har inte konfigurerat AI-nycklar ännu'
         : 'API keys not configured';
@@ -744,7 +741,7 @@ ${pageContext}
             // Run memory extraction in background without blocking
             (async () => {
               try {
-                const apiKeys = await getDecryptedUserApiKeys(apiKeyUserId);
+                const apiKeys = await getResolvedAiKeys(apiKeyUserId);
                 if (apiKeys.anthropicKey || apiKeys.googleKey || apiKeys.openaiKey) {
                   const conversationForMemory = [
                     { role: 'user' as const, content: getMessageContent(lastUserMessage) },

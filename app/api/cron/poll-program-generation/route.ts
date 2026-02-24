@@ -17,7 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { generateMultiPartProgram, type GenerationContext } from '@/lib/ai/program-generator'
 
 // ============================================
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Get API key for provider
-        const apiKeys = await getDecryptedUserApiKeys(session.coachId)
+        const apiKeys = await getResolvedAiKeys(session.coachId)
         const provider = (session.provider as 'ANTHROPIC' | 'GOOGLE' | 'OPENAI') || 'ANTHROPIC'
 
         let apiKey: string | null = null

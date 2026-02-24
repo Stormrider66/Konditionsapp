@@ -471,11 +471,18 @@ export const CALORIES_PER_HOUR_BY_INTENSITY: Record<WorkoutIntensity, number> = 
 // ==========================================
 
 /**
- * Calculate pre-workout carbohydrate target based on timing and body weight
+ * Calculate pre-workout carbohydrate target based on timing, body weight,
+ * workout intensity, and time of day.
+ *
+ * Optional parameters (backwards-compatible):
+ * - intensity: scales carbs down for easier workouts
+ * - workoutHour: reduces carbs for early morning sessions (before 9am)
  */
 export function calculatePreWorkoutCarbs(
   hoursBeforeWorkout: number,
-  weightKg: number
+  weightKg: number,
+  intensity?: WorkoutIntensity,
+  workoutHour?: number
 ): { carbsG: number; rule: PreWorkoutRule } {
   let ruleKey: string
 
@@ -492,8 +499,41 @@ export function calculatePreWorkoutCarbs(
   }
 
   const rule = PRE_WORKOUT_TIMING[ruleKey]
+  let carbsG = weightKg * rule.carbsPerKg
+
+  // Apply intensity scaling — lower intensity workouts need less pre-workout fuel
+  if (intensity) {
+    const intensityScale: Record<WorkoutIntensity, number> = {
+      RECOVERY: 0.40,
+      EASY: 0.50,
+      MODERATE: 0.70,
+      THRESHOLD: 0.85,
+      INTERVAL: 1.0,
+      MAX: 1.0,
+    }
+    carbsG *= intensityScale[intensity]
+  }
+
+  // Morning reduction — stomach tolerance is lower before 9am
+  if (workoutHour !== undefined && workoutHour < 9) {
+    carbsG *= 0.65
+  }
+
+  // Practical caps by time window (grams)
+  const maxCarbsByWindow: Record<string, number> = {
+    '4_HOURS': 200,
+    '3_HOURS': 150,
+    '2_HOURS': 100,
+    '1_HOUR': 60,
+    '15_MINS': 30,
+  }
+  const cap = maxCarbsByWindow[ruleKey]
+  if (cap !== undefined) {
+    carbsG = Math.min(carbsG, cap)
+  }
+
   return {
-    carbsG: Math.round(weightKg * rule.carbsPerKg),
+    carbsG: Math.round(carbsG),
     rule,
   }
 }
@@ -549,7 +589,20 @@ export function calculateDailyCarbs(
   }
 
   const target = DAILY_CARB_TARGETS[loadCategory]
-  let carbsPerKg = (target.minGPerKg + target.maxGPerKg) / 2
+
+  // Use intensity-aware positioning within the IOC range instead of midpoint.
+  // Lower intensities use the lower end; higher intensities use more of the range.
+  const intensityRangePosition: Record<WorkoutIntensity, number> = {
+    RECOVERY: 0.15,
+    EASY: 0.20,
+    MODERATE: 0.35,
+    THRESHOLD: 0.50,
+    INTERVAL: 0.65,
+    MAX: 0.80,
+  }
+  const position = intensityRangePosition[intensity]
+  const range = target.maxGPerKg - target.minGPerKg
+  let carbsPerKg = target.minGPerKg + range * position
 
   // Adjust for double training days
   if (isDoubleDay) {

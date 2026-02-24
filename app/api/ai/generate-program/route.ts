@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireCoachFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Get API key
     const selectedProvider = provider || 'ANTHROPIC'
-    const apiKeys = await getDecryptedUserApiKeys(user.id)
+    const apiKeys = await getResolvedAiKeys(user.id)
 
     let apiKey: string | null = null
     switch (selectedProvider) {

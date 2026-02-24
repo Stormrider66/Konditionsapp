@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { analyzeTrainingCorrelation } from '@/lib/ai/performance-analysis'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get API keys and perform correlation analysis
-    const apiKeys = await getDecryptedUserApiKeys(user.id)
+    const apiKeys = await getResolvedAiKeys(user.id)
     const startTime = Date.now()
     const result = await analyzeTrainingCorrelation(clientId, apiKeys, { lookbackMonths })
 

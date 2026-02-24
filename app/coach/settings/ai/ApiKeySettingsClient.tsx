@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, X, Eye, EyeOff, ExternalLink, Trash2 } from 'lucide-react';
+import { Loader2, Check, X, Eye, EyeOff, ExternalLink, Trash2, Info } from 'lucide-react';
 
 interface ApiKeyStatus {
   provider: string;
@@ -59,10 +59,12 @@ export function ApiKeySettingsClient() {
   const [keyValues, setKeyValues] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState<Record<string, boolean>>({});
+  const [keySource, setKeySource] = useState<{ source: 'user' | 'business' | 'none'; businessName?: string } | null>(null);
 
-  // Fetch current key status
+  // Fetch current key status and key source
   useEffect(() => {
     fetchKeyStatus();
+    fetchKeySource();
   }, []);
 
   async function fetchKeyStatus() {
@@ -77,6 +79,18 @@ export function ApiKeySettingsClient() {
       console.error('Failed to fetch API key status:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchKeySource() {
+    try {
+      const response = await fetch('/api/settings/ai-key-source');
+      const data = await response.json();
+      if (data.success) {
+        setKeySource({ source: data.source, businessName: data.businessName });
+      }
+    } catch {
+      // Non-critical, silently fail
     }
   }
 
@@ -109,6 +123,7 @@ export function ApiKeySettingsClient() {
         setSuccess({ ...success, [provider]: true });
         setKeyValues({ ...keyValues, [provider]: '' });
         await fetchKeyStatus();
+        await fetchKeySource();
 
         // Clear success after 3 seconds
         setTimeout(() => {
@@ -151,6 +166,7 @@ export function ApiKeySettingsClient() {
       });
 
       await fetchKeyStatus();
+      await fetchKeySource();
     } catch (error) {
       console.error('Failed to remove key:', error);
     } finally {
@@ -172,6 +188,32 @@ export function ApiKeySettingsClient() {
 
   return (
     <div className="space-y-6">
+      {/* Key source banner */}
+      {keySource && keySource.source === 'business' && (
+        <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+          <p className="text-sm text-blue-800 dark:text-blue-300">
+            Du använder <strong>{keySource.businessName}</strong>s AI-nycklar. Lägg till egna nedan för att använda dem istället.
+          </p>
+        </div>
+      )}
+      {keySource && keySource.source === 'user' && (
+        <div className="flex items-start gap-3 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <Info className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
+          <p className="text-sm text-green-800 dark:text-green-300">
+            Du använder egna AI-nycklar. Ta bort dem för att använda verksamhetens nycklar.
+          </p>
+        </div>
+      )}
+      {keySource && keySource.source === 'none' && (
+        <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-sm text-amber-800 dark:text-amber-300">
+            Inga AI-nycklar konfigurerade. Lägg till nycklar nedan för att aktivera AI-funktioner.
+          </p>
+        </div>
+      )}
+
       {PROVIDERS.map((provider) => {
         const status = getStatusForProvider(provider.id);
         const isConfigured = status?.configured ?? false;

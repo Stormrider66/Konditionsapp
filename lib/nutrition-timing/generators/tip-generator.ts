@@ -159,8 +159,13 @@ function generatePreWorkoutTip(
     }
   }
 
-  // Calculate carb target based on timing
-  const { carbsG, rule } = calculatePreWorkoutCarbs(hoursUntil, weightKg)
+  // Calculate carb target based on timing, intensity, and time of day
+  const { carbsG, rule } = calculatePreWorkoutCarbs(
+    hoursUntil,
+    weightKg,
+    workout.intensity,
+    workout.scheduledTime?.getHours()
+  )
 
   // Get food suggestions filtered by preferences
   const carbSuggestions = getPreWorkoutCarbs(preferences)
@@ -343,14 +348,14 @@ function generateRestDayWithTomorrowWorkoutTip(
 }
 
 function generateHydrationTip(weightKg: number): NutritionTip {
-  // Basic hydration: ~35ml per kg body weight
-  const dailyMl = Math.round(weightKg * 35)
+  // Drinking water: ~28ml per kg (excludes ~20% water from food)
+  const dailyMl = Math.round(weightKg * 28)
   const liters = (dailyMl / 1000).toFixed(1)
 
   return {
     type: 'HYDRATION',
     title: 'Vätska',
-    message: `Sikta på minst ${liters} liter vatten idag. Öka med 500-800ml per träningstimme. Elektrolyter (salt) behövs vid pass över 60 minuter.`,
+    message: `Sikta på minst ${liters} liter dricksvatten idag (exklusive vatten i mat). Öka med 400-600ml per träningstimme. Elektrolyter (salt) behövs vid pass över 60 minuter.`,
     priority: 'LOW',
   }
 }

@@ -10,7 +10,6 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-// getDecryptedUserApiKeys no longer needed - using userKeys.xxxKeyValid flags
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import type { AIModel as PrismaAIModel, AIProvider } from '@prisma/client'
@@ -76,32 +75,53 @@ export async function GET() {
       coachUserId = user.id
     }
 
-    // Get coach's API keys and valid providers
+    // Get coach's API keys (check user keys first, then business keys)
     const userKeys = await prisma.userApiKey.findUnique({
       where: { userId: coachUserId },
     })
 
-    if (!userKeys) {
-      return NextResponse.json({
-        success: true,
-        models: [],
-        defaultModelId: null,
-        message: 'No API keys configured',
-      })
+    // Determine which providers have valid keys (user-level)
+    const validProviders: AIProvider[] = []
+    let businessAllowedModelIds: string[] = []
+    let businessAllowedAthleteModelIds: string[] = []
+    let businessAthleteDefaultModelId: string | null = null
+
+    if (userKeys) {
+      if (userKeys.googleKeyValid) validProviders.push('GOOGLE')
+      if (userKeys.anthropicKeyValid) validProviders.push('ANTHROPIC')
+      if (userKeys.openaiKeyValid) validProviders.push('OPENAI')
     }
 
-    // Determine which providers have valid keys
-    const validProviders: AIProvider[] = []
-    if (userKeys.googleKeyValid) validProviders.push('GOOGLE')
-    if (userKeys.anthropicKeyValid) validProviders.push('ANTHROPIC')
-    if (userKeys.openaiKeyValid) validProviders.push('OPENAI')
+    // If no valid user keys, check business keys
+    if (validProviders.length === 0) {
+      const membership = await prisma.businessMember.findFirst({
+        where: { userId: coachUserId, isActive: true },
+        select: {
+          business: {
+            select: {
+              aiKeys: true,
+            },
+          },
+        },
+      })
+
+      const bk = membership?.business?.aiKeys
+      if (bk) {
+        if (bk.googleKeyValid) validProviders.push('GOOGLE')
+        if (bk.anthropicKeyValid) validProviders.push('ANTHROPIC')
+        if (bk.openaiKeyValid) validProviders.push('OPENAI')
+        businessAllowedModelIds = bk.allowedModelIds || []
+        businessAllowedAthleteModelIds = bk.allowedAthleteModelIds || []
+        businessAthleteDefaultModelId = bk.athleteDefaultModelId
+      }
+    }
 
     if (validProviders.length === 0) {
       return NextResponse.json({
         success: true,
         models: [],
         defaultModelId: null,
-        message: 'No API keys with valid credentials',
+        message: 'No API keys configured',
       })
     }
 
@@ -121,6 +141,14 @@ export async function GET() {
     // Transform to expected format
     let availableModels = dbModels.map(transformDbModel)
 
+    // Apply business-level model restrictions
+    if (businessAllowedModelIds.length > 0) {
+      const filtered = availableModels.filter(model => businessAllowedModelIds.includes(model.id))
+      if (filtered.length > 0) {
+        availableModels = filtered
+      }
+    }
+
     if (availableModels.length === 0) {
       return NextResponse.json({
         success: true,
@@ -130,9 +158,10 @@ export async function GET() {
       })
     }
 
-    // If athlete, filter by coach's allowed models
+    // If athlete, filter by coach's allowed models (then business athlete restrictions)
     if (isAthlete) {
-      if (userKeys.allowedAthleteModelIds?.length) {
+      // Coach-level athlete restrictions (from userKeys)
+      if (userKeys?.allowedAthleteModelIds?.length) {
         const allowedIds = userKeys.allowedAthleteModelIds
         const filtered = availableModels.filter(model => allowedIds.includes(model.id))
         if (filtered.length > 0) {
@@ -140,8 +169,16 @@ export async function GET() {
         }
       }
 
+      // Business-level athlete restrictions
+      if (businessAllowedAthleteModelIds.length > 0) {
+        const filtered = availableModels.filter(model => businessAllowedAthleteModelIds.includes(model.id))
+        if (filtered.length > 0) {
+          availableModels = filtered
+        }
+      }
+
       // Determine default model for athlete
-      let defaultModelId = userKeys.athleteDefaultModelId
+      let defaultModelId = userKeys?.athleteDefaultModelId || businessAthleteDefaultModelId
       if (!defaultModelId || !availableModels.find(m => m.id === defaultModelId)) {
         const defaultModel = availableModels.find(m => m.recommended) || availableModels[0]
         defaultModelId = defaultModel?.id || null

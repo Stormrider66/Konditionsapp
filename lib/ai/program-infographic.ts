@@ -7,7 +7,7 @@
 
 import { GoogleGenAI } from '@google/genai'
 import { prisma } from '@/lib/prisma'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
 import { PROGRAM_INFOGRAPHICS_BUCKET } from '@/lib/storage/supabase-storage'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
@@ -46,7 +46,7 @@ export interface InfographicProgramData {
 
 export async function resolveGoogleApiKey(coachId: string): Promise<string | null> {
   try {
-    const keys = await getDecryptedUserApiKeys(coachId)
+    const keys = await getResolvedAiKeys(coachId)
     if (keys.googleKey) return keys.googleKey
   } catch {
     // Fall through to env

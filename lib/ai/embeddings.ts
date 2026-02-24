@@ -7,7 +7,7 @@
 
 import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys';
+import { getResolvedAiKeys } from '@/lib/user-api-keys';
 import { logger } from '@/lib/logger';
 
 // Default embedding model
@@ -169,7 +169,7 @@ export function chunkText(
  * Get user's OpenAI API key from database
  */
 export async function getUserOpenAIKey(userId: string): Promise<string | null> {
-  const keys = await getDecryptedUserApiKeys(userId)
+  const keys = await getResolvedAiKeys(userId)
   return keys.openaiKey
 }
 

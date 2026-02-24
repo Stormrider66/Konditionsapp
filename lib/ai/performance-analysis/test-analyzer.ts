@@ -20,7 +20,7 @@ import {
   createText,
 } from '@/lib/ai/google-genai-client'
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 interface AnalyzeTestOptions {
   includePredictions?: boolean
@@ -71,7 +71,7 @@ export async function analyzeTest(
     let apiKey: string | null = null
 
     if (userId) {
-      const decryptedKeys = await getDecryptedUserApiKeys(userId)
+      const decryptedKeys = await getResolvedAiKeys(userId)
       apiKey = decryptedKeys.googleKey
     }
 

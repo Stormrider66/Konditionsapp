@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { resolveModel } from '@/types/ai-models'
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     if (denied) return denied
 
     // Get API keys for the user
-    const apiKeys = await getDecryptedUserApiKeys(user.id)
+    const apiKeys = await getResolvedAiKeys(user.id)
     const resolved = resolveModel(apiKeys, 'balanced')
 
     if (!resolved) {

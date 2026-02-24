@@ -1781,7 +1781,7 @@ export function buildSportSpecificContext(athlete: AthleteData): string {
 
   // Add athlete self-description if available (NEW)
   if (athlete.athleteProfile) {
-    context += buildAthleteProfileContextForCoach(athlete.athleteProfile);
+    context += buildAthleteProfileContextForCoach(athlete.athleteProfile, athlete.sportProfile ?? undefined);
   }
 
   // Add coach notes if available (NEW)
@@ -1893,7 +1893,10 @@ function buildStrengthContextForCoach(sessions: StrengthSessionData[]): string {
   return context;
 }
 
-function buildAthleteProfileContextForCoach(profile: AthleteProfileData): string {
+function buildAthleteProfileContextForCoach(
+  profile: AthleteProfileData,
+  sportProfile?: { runningSettings: unknown; equipment?: unknown; preferredSessionLength?: number | null } | null,
+): string {
   const fields = [
     { key: 'trainingBackground' as const, label: 'Träningsbakgrund' },
     { key: 'longTermAmbitions' as const, label: 'Långsiktiga mål' },
@@ -1906,7 +1909,10 @@ function buildAthleteProfileContextForCoach(profile: AthleteProfileData): string
 
   const filledFields = fields.filter(f => profile[f.key]);
 
-  if (filledFields.length === 0) {
+  const settings = (sportProfile?.runningSettings ?? {}) as Record<string, unknown>;
+  const equipmentObj = sportProfile?.equipment as Record<string, boolean> | null;
+
+  if (filledFields.length === 0 && !settings) {
     return '';
   }
 
@@ -1919,6 +1925,53 @@ function buildAthleteProfileContextForCoach(profile: AthleteProfileData): string
       const truncated = value.length > 200 ? value.slice(0, 200) + '...' : value;
       context += `- **${field.label}**: ${truncated}\n`;
     }
+  }
+
+  // Structured fields from SportProfile
+  const truncate = (v: unknown) => {
+    if (!v || typeof v !== 'string') return null;
+    return v.length > 200 ? v.slice(0, 200) + '...' : v;
+  };
+
+  const workoutTypes = settings.preferredWorkoutTypes as string[] | undefined;
+  if (workoutTypes?.length) {
+    context += `- **Föredragna passtyper**: ${workoutTypes.join(', ')}\n`;
+  }
+  const favExercises = truncate(settings.favoriteExercises);
+  if (favExercises) {
+    context += `- **Favoritövningar**: ${favExercises}\n`;
+  }
+  if (equipmentObj) {
+    const available = Object.entries(equipmentObj).filter(([, v]) => v).map(([k]) => k);
+    if (available.length > 0) {
+      context += `- **Utrustning**: ${available.join(', ')}\n`;
+    }
+  }
+  const weak = truncate(settings.weakPoints);
+  if (weak) {
+    context += `- **Svagheter**: ${weak}\n`;
+  }
+  const strong = truncate(settings.strongPoints);
+  if (strong) {
+    context += `- **Styrkor**: ${strong}\n`;
+  }
+  const injuries = truncate(settings.injuriesLimitations);
+  if (injuries) {
+    context += `- **Skador/begränsningar**: ${injuries}\n`;
+  }
+  const avoid = truncate(settings.areasToAvoid);
+  if (avoid) {
+    context += `- **Undvik**: ${avoid}\n`;
+  }
+  if (settings.workoutVarietyPreference) {
+    context += `- **Variationspreferens**: ${settings.workoutVarietyPreference}\n`;
+  }
+  if (settings.feedbackStyle) {
+    context += `- **Feedbackstil**: ${settings.feedbackStyle}\n`;
+  }
+  const notes = truncate(settings.additionalNotes);
+  if (notes) {
+    context += `- **Övriga anteckningar**: ${notes}\n`;
   }
 
   return context;

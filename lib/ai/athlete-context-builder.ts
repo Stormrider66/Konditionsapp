@@ -471,7 +471,10 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
 
   // Athlete self-description section (NEW)
   if (athleteAccount) {
-    context += buildAthleteProfileContext(athleteAccount as AthleteProfileData)
+    context += buildAthleteProfileContext(
+      athleteAccount as AthleteProfileData,
+      sportProfile ?? undefined,
+    )
   }
 
   // Sport profile section
@@ -979,7 +982,14 @@ function buildIntegrationSummary(
   return context
 }
 
-function buildAthleteProfileContext(profile: AthleteProfileData): string {
+function buildAthleteProfileContext(
+  profile: AthleteProfileData,
+  sportProfile?: {
+    runningSettings: unknown
+    equipment: unknown
+    preferredSessionLength: number | null
+  },
+): string {
   const fields = [
     { key: 'trainingBackground', label: 'Träningsbakgrund' },
     { key: 'longTermAmbitions', label: 'Långsiktiga ambitioner' },
@@ -992,7 +1002,23 @@ function buildAthleteProfileContext(profile: AthleteProfileData): string {
 
   const filledFields = fields.filter((f) => profile[f.key])
 
-  if (filledFields.length === 0) {
+  // Check if there is any structured sport-profile data
+  const settings = (sportProfile?.runningSettings ?? {}) as Record<string, unknown>
+  const equipmentObj = sportProfile?.equipment as Record<string, boolean> | null
+  const hasStructuredData = !!(
+    (settings.preferredWorkoutTypes as string[] | undefined)?.length ||
+    settings.favoriteExercises ||
+    settings.weakPoints ||
+    settings.strongPoints ||
+    settings.injuriesLimitations ||
+    settings.areasToAvoid ||
+    settings.workoutVarietyPreference ||
+    settings.feedbackStyle ||
+    settings.additionalNotes ||
+    (equipmentObj && Object.values(equipmentObj).some(Boolean))
+  )
+
+  if (filledFields.length === 0 && !hasStructuredData) {
     return ''
   }
 
@@ -1000,6 +1026,49 @@ function buildAthleteProfileContext(profile: AthleteProfileData): string {
 
   for (const field of filledFields) {
     context += `\n### ${field.label}\n${profile[field.key]}\n`
+  }
+
+  // Structured fields from SportProfile
+  if (hasStructuredData) {
+    context += `\n### Träningspreferenser (strukturerad)\n`
+
+    const workoutTypes = settings.preferredWorkoutTypes as string[] | undefined
+    if (workoutTypes?.length) {
+      context += `- **Föredragna passtyper**: ${workoutTypes.join(', ')}\n`
+    }
+    if (settings.favoriteExercises) {
+      context += `- **Favoritövningar**: ${settings.favoriteExercises}\n`
+    }
+    if (settings.preferredTimeOfDay) {
+      context += `- **Föredragen träningstid**: ${settings.preferredTimeOfDay}\n`
+    }
+    if (equipmentObj) {
+      const available = Object.entries(equipmentObj).filter(([, v]) => v).map(([k]) => k)
+      if (available.length > 0) {
+        context += `- **Tillgänglig utrustning**: ${available.join(', ')}\n`
+      }
+    }
+    if (settings.weakPoints) {
+      context += `- **Svagheter/förbättringsområden**: ${settings.weakPoints}\n`
+    }
+    if (settings.strongPoints) {
+      context += `- **Styrkor**: ${settings.strongPoints}\n`
+    }
+    if (settings.injuriesLimitations) {
+      context += `- **Skador/begränsningar**: ${settings.injuriesLimitations}\n`
+    }
+    if (settings.areasToAvoid) {
+      context += `- **Undvik övningar/rörelser**: ${settings.areasToAvoid}\n`
+    }
+    if (settings.workoutVarietyPreference) {
+      context += `- **Variationspreferens**: ${settings.workoutVarietyPreference}\n`
+    }
+    if (settings.feedbackStyle) {
+      context += `- **Feedbackstil**: ${settings.feedbackStyle}\n`
+    }
+    if (settings.additionalNotes) {
+      context += `- **Övriga anteckningar**: ${settings.additionalNotes}\n`
+    }
   }
 
   return context + '\n'

@@ -10,7 +10,7 @@ import { prisma } from '@/lib/prisma'
 import { searchSimilarChunks, getUserOpenAIKey } from '@/lib/ai/embeddings'
 import Anthropic from '@anthropic-ai/sdk'
 import { generateText } from 'ai'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
@@ -83,7 +83,7 @@ export async function POST(
     const apiKeysRow = await prisma.userApiKey.findUnique({
       where: { userId: user.id },
     })
-    const decryptedKeys = await getDecryptedUserApiKeys(user.id)
+    const decryptedKeys = await getResolvedAiKeys(user.id)
 
     if (!apiKeysRow) {
       return NextResponse.json(

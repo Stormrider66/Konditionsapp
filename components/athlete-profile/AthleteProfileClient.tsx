@@ -1,16 +1,14 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Activity, Trophy, Scale, Calendar, Heart, Gauge, Video, Target, Settings2, Sparkles } from 'lucide-react'
+import { ArrowLeft, Activity, Trophy, Scale, Calendar, Heart, Gauge, Video, Target } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 import { ProfileHeroSection } from './ProfileHeroSection'
 import { AIContextSidebar } from './AIContextSidebar'
 import { ManageSportsSection } from './ManageSportsSection'
-import { AITrainingPreferences } from './AITrainingPreferences'
 import { PhysiologyTab } from './tabs/PhysiologyTab'
 import { PerformanceTab } from './tabs/PerformanceTab'
 import { BodyCompositionTab } from './tabs/BodyCompositionTab'
@@ -51,8 +49,6 @@ export function AthleteProfileClient({
   const searchParams = useSearchParams()
   const currentTab = searchParams.get('tab') || initialTab
   const isAthlete = viewMode === 'athlete'
-  const [isAIPreferencesOpen, setIsAIPreferencesOpen] = useState(false)
-
   const client = data.identity.client!
   const backLink = viewMode === 'coach' ? `${basePath}/coach/clients/${client.id}` : `${basePath}/athlete/dashboard`
 
@@ -185,28 +181,6 @@ export function AthleteProfileClient({
           </div>
         )}
 
-        {/* AI Preferences Button (Athlete only) */}
-        {isAthlete && (
-          <div className="fixed bottom-20 right-4 z-50">
-            <Button
-              size="lg"
-              onClick={() => setIsAIPreferencesOpen(true)}
-              className="rounded-full shadow-lg gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-            >
-              <Sparkles className="h-5 w-5" />
-              AI Preferenser
-            </Button>
-          </div>
-        )}
-
-        {/* AI Training Preferences Dialog */}
-        <AITrainingPreferences
-          data={data}
-          clientId={client.id}
-          isOpen={isAIPreferencesOpen}
-          onClose={() => setIsAIPreferencesOpen(false)}
-          variant={isAthlete ? "glass" : "default"}
-        />
       </main>
     </div>
   )

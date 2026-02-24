@@ -324,6 +324,40 @@ export async function sendNewApplicationNotification(
   return sendEmailInternal(adminEmail, subject, html);
 }
 
+// ==================== COACH INVITE EMAIL ====================
+
+/**
+ * Send invite email to a new coach/team member being added to a business.
+ * Contains a "Skapa lösenord" (Create password) button.
+ */
+export async function sendCoachInviteEmail(
+  to: string,
+  recipientName: string,
+  businessName: string,
+  setPasswordUrl: string,
+  branding?: EmailBranding
+): Promise<SendEmailResult> {
+  const br = branding;
+  const platformName = br?.platformName || PLATFORM_NAME;
+  const buttonColor = br?.primaryColor || '#3b82f6';
+  const subject = `Du har bjudits in till ${businessName}`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>Välkommen, ${recipientName}!</h2>
+      <p>Du har bjudits in att gå med i <strong>${businessName}</strong> på ${platformName}.</p>
+      <p>Klicka på knappen nedan för att skapa ditt lösenord och komma igång:</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${setPasswordUrl}" style="background: ${buttonColor}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+          Skapa lösenord
+        </a>
+      </div>
+      <p style="color: #666; font-size: 14px;">Om du inte förväntar dig detta e-postmeddelande kan du ignorera det.</p>
+      <p>Med vänliga hälsningar,<br/>${platformName}</p>
+    </div>
+  `;
+  return sendEmailInternal(to, subject, html, branding);
+}
+
 // ==================== GENERIC SEND EMAIL ====================
 
 /**

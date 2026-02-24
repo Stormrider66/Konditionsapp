@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createMorningBriefing } from '@/lib/ai/briefing-generator'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
 
 // Allow longer execution time for batch processing
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Get coach's API keys
-        const apiKeys = await getDecryptedUserApiKeys(athlete.coachUserId)
+        const apiKeys = await getResolvedAiKeys(athlete.coachUserId)
         if (!apiKeys.anthropicKey && !apiKeys.googleKey && !apiKeys.openaiKey) {
           logger.warn('No AI API key for coach', { coachId: athlete.coachUserId })
           results.skipped++

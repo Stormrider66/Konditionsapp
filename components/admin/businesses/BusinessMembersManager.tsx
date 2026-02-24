@@ -36,12 +36,14 @@ import {
 import {
   Plus,
   UserPlus,
+  Mail,
   Trash2,
   Crown,
   Shield,
   User,
   Beaker,
   RefreshCw,
+  Check,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -86,10 +88,17 @@ export function BusinessMembersManager({
   onUpdate,
 }: BusinessMembersManagerProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [addMode, setAddMode] = useState<'existing' | 'invite'>('existing');
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [addSuccess, setAddSuccess] = useState<string | null>(null);
   const [newMember, setNewMember] = useState({
     userEmail: '',
+    role: 'MEMBER' as MemberRole,
+  });
+  const [inviteMember, setInviteMember] = useState({
+    name: '',
+    email: '',
     role: 'MEMBER' as MemberRole,
   });
   const [editingMember, setEditingMember] = useState<BusinessMember | null>(null);
@@ -117,6 +126,41 @@ export function BusinessMembersManager({
 
       setIsAddOpen(false);
       setNewMember({ userEmail: '', role: 'MEMBER' });
+      onUpdate();
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  const handleInviteMember = async () => {
+    if (!inviteMember.email || !inviteMember.name) return;
+
+    setAddLoading(true);
+    setAddError(null);
+    setAddSuccess(null);
+
+    try {
+      const response = await fetch('/api/admin/users/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: inviteMember.email,
+          name: inviteMember.name,
+          businessId,
+          role: inviteMember.role,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to invite member');
+      }
+
+      setAddSuccess(`Inbjudan skickad till ${inviteMember.email}`);
+      setInviteMember({ name: '', email: '', role: 'MEMBER' });
       onUpdate();
     } catch (err) {
       setAddError(err instanceof Error ? err.message : 'An error occurred');
@@ -197,55 +241,141 @@ export function BusinessMembersManager({
               <DialogHeader>
                 <DialogTitle>Add Member</DialogTitle>
                 <DialogDescription>
-                  Add an existing user to this business
+                  {addMode === 'existing'
+                    ? 'Add an existing user to this business'
+                    : 'Invite a new user — they will receive an email to set their password'}
                 </DialogDescription>
               </DialogHeader>
+              {/* Mode toggle */}
+              <div className="flex gap-2 border-b pb-3">
+                <Button
+                  variant={addMode === 'existing' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => { setAddMode('existing'); setAddError(null); setAddSuccess(null); }}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Lägg till befintlig
+                </Button>
+                <Button
+                  variant={addMode === 'invite' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => { setAddMode('invite'); setAddError(null); setAddSuccess(null); }}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Bjud in ny
+                </Button>
+              </div>
               <div className="space-y-4 py-4">
                 {addError && (
                   <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
                     {addError}
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label htmlFor="userEmail">User Email</Label>
-                  <Input
-                    id="userEmail"
-                    type="email"
-                    value={newMember.userEmail}
-                    onChange={(e) =>
-                      setNewMember((prev) => ({ ...prev, userEmail: e.target.value }))
-                    }
-                    placeholder="user@example.com"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select
-                    value={newMember.role}
-                    onValueChange={(value) =>
-                      setNewMember((prev) => ({ ...prev, role: value as MemberRole }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OWNER">Owner</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="MEMBER">Member</SelectItem>
-                      <SelectItem value="COACH">Coach</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {addSuccess && (
+                  <div className="p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md flex items-center gap-2">
+                    <Check className="h-4 w-4" />
+                    {addSuccess}
+                  </div>
+                )}
+                {addMode === 'existing' ? (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="userEmail">User Email</Label>
+                      <Input
+                        id="userEmail"
+                        type="email"
+                        value={newMember.userEmail}
+                        onChange={(e) =>
+                          setNewMember((prev) => ({ ...prev, userEmail: e.target.value }))
+                        }
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="role">Role</Label>
+                      <Select
+                        value={newMember.role}
+                        onValueChange={(value) =>
+                          setNewMember((prev) => ({ ...prev, role: value as MemberRole }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="OWNER">Owner</SelectItem>
+                          <SelectItem value="ADMIN">Admin</SelectItem>
+                          <SelectItem value="MEMBER">Member</SelectItem>
+                          <SelectItem value="COACH">Coach</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="inviteName">Name</Label>
+                      <Input
+                        id="inviteName"
+                        value={inviteMember.name}
+                        onChange={(e) =>
+                          setInviteMember((prev) => ({ ...prev, name: e.target.value }))
+                        }
+                        placeholder="John Doe"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="inviteEmail">Email</Label>
+                      <Input
+                        id="inviteEmail"
+                        type="email"
+                        value={inviteMember.email}
+                        onChange={(e) =>
+                          setInviteMember((prev) => ({ ...prev, email: e.target.value }))
+                        }
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="inviteRole">Role</Label>
+                      <Select
+                        value={inviteMember.role}
+                        onValueChange={(value) =>
+                          setInviteMember((prev) => ({ ...prev, role: value as MemberRole }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="OWNER">Owner</SelectItem>
+                          <SelectItem value="ADMIN">Admin</SelectItem>
+                          <SelectItem value="MEMBER">Member</SelectItem>
+                          <SelectItem value="COACH">Coach</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddMember} disabled={addLoading || !newMember.userEmail}>
-                  {addLoading && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
-                  Add Member
-                </Button>
+                {addMode === 'existing' ? (
+                  <Button onClick={handleAddMember} disabled={addLoading || !newMember.userEmail}>
+                    {addLoading && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                    Add Member
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleInviteMember}
+                    disabled={addLoading || !inviteMember.email || !inviteMember.name}
+                  >
+                    {addLoading && <RefreshCw className="h-4 w-4 mr-2 animate-spin" />}
+                    Skicka inbjudan
+                  </Button>
+                )}
               </DialogFooter>
             </DialogContent>
           </Dialog>

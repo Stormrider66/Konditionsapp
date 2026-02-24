@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createProvider } from '@/lib/ai/deep-research'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { logUsage } from '@/lib/ai/deep-research/budget-manager'
 import { DeepResearchProvider } from '@prisma/client'
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Get API key for provider
-        const decryptedKeys = await getDecryptedUserApiKeys(session.coachId)
+        const decryptedKeys = await getResolvedAiKeys(session.coachId)
 
         let apiKey: string | null = null
         if (session.provider === 'GEMINI') {

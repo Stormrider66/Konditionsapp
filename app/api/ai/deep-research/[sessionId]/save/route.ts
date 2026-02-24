@@ -11,7 +11,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { storeChunkEmbeddings, chunkText } from '@/lib/ai/embeddings'
 
 // ============================================
@@ -136,7 +136,7 @@ export async function POST(
     let chunkCount = 0
 
     if (embedForRAG) {
-      const decryptedKeys = await getDecryptedUserApiKeys(user.id)
+      const decryptedKeys = await getResolvedAiKeys(user.id)
 
       if (decryptedKeys.openaiKey) {
         try {

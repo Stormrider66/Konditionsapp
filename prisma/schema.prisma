@@ -1388,6 +1388,7 @@ model Business {
   enterpriseContract EnterpriseContract?
   pricingOverrides   PricingOverride[]
   apiKeys            BusinessApiKey[]
+  aiKeys             BusinessAiKeys?
 
   // Partner Referral System
   partnerReferrals PartnerReferral[]
@@ -1464,6 +1465,35 @@ model BusinessApiKey {
 
   @@index([businessId])
   @@index([keyHash])
+}
+
+/// Business-level AI API keys (shared across all members)
+model BusinessAiKeys {
+  id         String @id @default(uuid())
+  businessId String @unique
+
+  anthropicKeyEncrypted String?
+  googleKeyEncrypted    String?
+  openaiKeyEncrypted    String?
+
+  anthropicKeyValid Boolean @default(false)
+  googleKeyValid    Boolean @default(false)
+  openaiKeyValid    Boolean @default(false)
+
+  anthropicKeyLastValidated DateTime?
+  googleKeyLastValidated    DateTime?
+  openaiKeyLastValidated    DateTime?
+
+  defaultModelId         String?
+  allowedModelIds        String[] @default([])
+  allowedAthleteModelIds String[] @default([])
+  athleteDefaultModelId  String?
+
+  business  Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessId])
 }
 
 // ==================== PARTNER REFERRAL SYSTEM ====================

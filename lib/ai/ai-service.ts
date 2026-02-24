@@ -9,7 +9,7 @@
  */
 
 import { generateText } from 'ai'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel, type AvailableKeys } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 
@@ -37,7 +37,7 @@ export async function generateAIResponse(
   const { maxTokens = 1000, temperature = 0.7 } = options
 
   // Get user's API keys
-  const userKeys = await getDecryptedUserApiKeys(userId)
+  const userKeys = await getResolvedAiKeys(userId)
 
   // Try user keys first
   const resolved = resolveModel(userKeys, 'fast')

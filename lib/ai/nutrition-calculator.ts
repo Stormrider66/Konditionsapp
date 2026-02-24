@@ -486,17 +486,18 @@ export function calculateHydration(
   activityLevel: ActivityLevel,
   climate: 'COLD' | 'MODERATE' | 'HOT' = 'MODERATE'
 ): { baseML: number; withActivityML: number; recommendation: string } {
-  // Base: 30-35 ml per kg body weight
-  const baseML = Math.round(weightKg * 33);
+  // Base: ~33 ml/kg total water need × 0.80 = ~26 ml/kg drinking water
+  // (roughly 20% of daily water comes from food)
+  const baseML = Math.round(weightKg * 33 * 0.80);
 
-  // Add for activity
+  // Add for activity (reduced — original values assumed total water need)
   const activityAddition = {
     SEDENTARY: 0,
-    LIGHT: 500,
-    MODERATE: 750,
-    ACTIVE: 1000,
-    VERY_ACTIVE: 1500,
-    ATHLETE: 2000,
+    LIGHT: 300,
+    MODERATE: 500,
+    ACTIVE: 750,
+    VERY_ACTIVE: 1000,
+    ATHLETE: 1500,
   };
 
   // Climate adjustment
@@ -513,7 +514,7 @@ export function calculateHydration(
   return {
     baseML,
     withActivityML,
-    recommendation: `Sikta på ${Math.round(withActivityML / 1000 * 10) / 10} liter vatten per dag, mer vid intensiv träning.`,
+    recommendation: `Sikta på ${Math.round(withActivityML / 1000 * 10) / 10} liter dricksvatten per dag (exklusive vatten i mat), mer vid intensiv träning.`,
   };
 }
 

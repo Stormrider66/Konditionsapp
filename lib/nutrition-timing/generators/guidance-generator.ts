@@ -207,9 +207,24 @@ function calculateDailyTargets(
     carbsG = Math.round(carbsG * 1.1)
   }
 
-  // Hydration: 35ml per kg + extra for training
-  const baseHydration = weightKg * 35
-  const trainingHydration = workouts.reduce((sum, w) => sum + ((w.duration || 60) / 60) * 600, 0)
+  // TDEE sanity cap: if BMR is available, estimate TDEE and cap macro-derived
+  // calories at TDEE + 10% to catch extreme cases from IOC ranges
+  if (bmrKcal) {
+    const estimatedTDEE = Math.round(bmrKcal * (isRestDay ? 1.2 : 1.55))
+    const maxCalories = Math.round(estimatedTDEE * 1.1)
+    if (caloriesKcal > maxCalories) {
+      // Reduce carbs proportionally (never below 3g/kg)
+      const excessKcal = caloriesKcal - maxCalories
+      const carbReductionG = Math.floor(excessKcal / 4)
+      const minCarbsG = Math.round(weightKg * 3)
+      carbsG = Math.max(carbsG - carbReductionG, minCarbsG)
+      caloriesKcal = carbsG * 4 + proteinG * 4 + fatG * 9
+    }
+  }
+
+  // Hydration: 28ml per kg drinking water + extra for training
+  const baseHydration = weightKg * 28
+  const trainingHydration = workouts.reduce((sum, w) => sum + ((w.duration || 60) / 60) * 500, 0)
   const hydrationMl = Math.round(baseHydration + trainingHydration)
 
   return {
@@ -241,7 +256,12 @@ function generatePreWorkoutGuidanceList(
         ? (workout.scheduledTime.getTime() - currentTime.getTime()) / (1000 * 60 * 60)
         : 3
 
-      const { carbsG, rule } = calculatePreWorkoutCarbs(hoursUntil, weightKg)
+      const { carbsG, rule } = calculatePreWorkoutCarbs(
+        hoursUntil,
+        weightKg,
+        workout.intensity,
+        workout.scheduledTime?.getHours()
+      )
       const proteinG = Math.round(weightKg * rule.proteinPerKg)
 
       // Get filtered food suggestions
@@ -414,7 +434,7 @@ function generateDailyTips(
   tips.push({
     type: 'HYDRATION',
     title: 'Vätska',
-    message: `Sikta på minst ${((weightKg * 35) / 1000).toFixed(1)} liter vatten idag${!isRestDay ? ', plus 500-800ml extra per träningstimme' : ''}.`,
+    message: `Sikta på minst ${((weightKg * 28) / 1000).toFixed(1)} liter dricksvatten idag (exklusive vatten i mat)${!isRestDay ? ', plus 400-600ml extra per träningstimme' : ''}.`,
     priority: 'LOW',
   })
 

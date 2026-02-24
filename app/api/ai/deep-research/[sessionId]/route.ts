@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { createProvider } from '@/lib/ai/deep-research'
 
 // ============================================
@@ -187,7 +187,7 @@ export async function DELETE(
 
     if (session.status === 'RUNNING' && session.externalJobId) {
       try {
-        const decryptedKeys = await getDecryptedUserApiKeys(user.id)
+        const decryptedKeys = await getResolvedAiKeys(user.id)
 
         let apiKey: string | null = null
         if (session.provider === 'GEMINI') {

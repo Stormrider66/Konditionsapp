@@ -11,7 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { createProvider, PROVIDER_COST_ESTIMATES, ResearchConfig } from '@/lib/ai/deep-research'
 import { checkBudget, logUsage } from '@/lib/ai/deep-research/budget-manager'
 import { searchSimilarChunks } from '@/lib/ai/embeddings'
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get API keys
-    const decryptedKeys = await getDecryptedUserApiKeys(user.id)
+    const decryptedKeys = await getResolvedAiKeys(user.id)
 
     // Determine which key is needed
     let apiKey: string | null = null

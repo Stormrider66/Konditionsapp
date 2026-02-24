@@ -16,7 +16,7 @@ import { IntegrationsSettings } from '@/components/athlete/settings/Integrations
 import { AIModelSettings } from '@/components/athlete/settings/AIModelSettings'
 import { IntensityTargetsEditor } from '@/components/athlete/settings/IntensityTargetsEditor'
 import { LocationSettings } from '@/components/athlete/settings/LocationSettings'
-import { AboutMeSettings } from '@/components/athlete/settings/AboutMeSettings'
+import { AIContextSettings } from '@/components/athlete/settings/AIContextSettings'
 import { ProfileSettings } from '@/components/settings/ProfileSettings'
 import { PasswordChangeForm } from '@/components/settings/PasswordChangeForm'
 import type { SportProfile } from '@prisma/client'
@@ -203,13 +203,13 @@ export function AthleteSettingsClient({
           </Link>
         </div>
 
-        {/* About Me Settings */}
+        {/* AI Profile Settings */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-pink-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Om mig</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">AI-profil</h3>
           </div>
-          <AboutMeSettings variant="glass" />
+          <AIContextSettings clientId={clientId} variant="glass" />
         </div>
 
         {/* Theme Settings */}

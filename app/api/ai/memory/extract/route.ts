@@ -13,7 +13,7 @@ import {
   extractMemoriesFromConversation,
   saveMemories,
 } from '@/lib/ai/memory-extractor'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 interface ExtractRequest {
   clientId: string
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     }
 
     // Get API keys from coach settings
-    const apiKeys = await getDecryptedUserApiKeys(client.userId)
+    const apiKeys = await getResolvedAiKeys(client.userId)
     if (!apiKeys.anthropicKey && !apiKeys.googleKey && !apiKeys.openaiKey) {
       return NextResponse.json(
         { error: 'No AI API key configured' },

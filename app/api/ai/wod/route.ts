@@ -27,7 +27,7 @@ import type {
   WODMetadata,
   WODMode,
 } from '@/types/wod'
-import { getDecryptedUserApiKeys } from '@/lib/user-api-keys'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { getModelById, getDefaultModel, AI_MODELS } from '@/types/ai-models'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 
     if (coachId) {
       try {
-        apiKeys = await getDecryptedUserApiKeys(coachId)
+        apiKeys = await getResolvedAiKeys(coachId)
       } catch {
         apiKeys = envApiKeys
       }

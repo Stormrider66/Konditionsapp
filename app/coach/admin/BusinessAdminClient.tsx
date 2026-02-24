@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { BusinessOverviewTab } from '@/components/coach/admin/BusinessOverviewTab'
 import { BusinessMembersTab } from '@/components/coach/admin/BusinessMembersTab'
 import { BusinessApiKeysTab } from '@/components/coach/admin/BusinessApiKeysTab'
+import { BusinessAiKeysTab } from '@/components/coach/admin/BusinessAiKeysTab'
 import { BusinessReferralsTab } from '@/components/coach/admin/BusinessReferralsTab'
 import { BusinessSettingsTab } from '@/components/coach/admin/BusinessSettingsTab'
 import { BusinessLocationsTab } from '@/components/coach/admin/BusinessLocationsTab'
@@ -13,6 +14,7 @@ import {
   LayoutDashboard,
   Users,
   Key,
+  Brain,
   Gift,
   Settings,
   MapPin,
@@ -41,7 +43,7 @@ export function BusinessAdminClient({ businessName, businessRole }: BusinessAdmi
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <LayoutDashboard className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -58,9 +60,13 @@ export function BusinessAdminClient({ businessName, businessRole }: BusinessAdmi
             <Palette className="h-4 w-4" />
             <span className="hidden sm:inline">Branding</span>
           </TabsTrigger>
+          <TabsTrigger value="ai-keys" className="flex items-center gap-2">
+            <Brain className="h-4 w-4" />
+            <span className="hidden sm:inline">AI Keys</span>
+          </TabsTrigger>
           <TabsTrigger value="api-keys" className="flex items-center gap-2">
             <Key className="h-4 w-4" />
-            <span className="hidden sm:inline">API Keys</span>
+            <span className="hidden sm:inline">Integrations</span>
           </TabsTrigger>
           <TabsTrigger value="referrals" className="flex items-center gap-2">
             <Gift className="h-4 w-4" />
@@ -86,6 +92,10 @@ export function BusinessAdminClient({ businessName, businessRole }: BusinessAdmi
 
         <TabsContent value="branding">
           <BusinessBrandingTab />
+        </TabsContent>
+
+        <TabsContent value="ai-keys">
+          <BusinessAiKeysTab />
         </TabsContent>
 
         <TabsContent value="api-keys">
