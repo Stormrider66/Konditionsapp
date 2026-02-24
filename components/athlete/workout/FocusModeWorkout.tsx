@@ -302,7 +302,7 @@ export function FocusModeWorkout({
   }
 
   const sectionConfig = currentExercise
-    ? SECTION_CONFIG[currentExercise.section]
+    ? (SECTION_CONFIG[currentExercise.section] || SECTION_CONFIG.MAIN)
     : SECTION_CONFIG.MAIN
 
   // Next set number

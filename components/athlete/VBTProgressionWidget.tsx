@@ -175,7 +175,7 @@ export function VBTProgressionWidget({ clientId }: VBTProgressionWidgetProps) {
     );
   }
 
-  const trendConfig = TREND_CONFIG[data.avgVelocityTrend];
+  const trendConfig = TREND_CONFIG[data.avgVelocityTrend] || TREND_CONFIG.STABLE;
   const TrendIcon = trendConfig.icon;
 
   return (

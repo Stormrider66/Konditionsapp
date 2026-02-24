@@ -258,7 +258,7 @@ export function WODPreviewScreen({
         {/* Sections */}
         <div className="space-y-3 mb-6">
           {workout.sections.map(section => {
-            const config = SECTION_CONFIG[section.type]
+            const config = SECTION_CONFIG[section.type] || SECTION_CONFIG.MAIN
             const Icon = config.icon
             const isOpen = openSections.includes(section.type)
 

@@ -380,7 +380,7 @@ export function WorkoutStartScreen({
             </h3>
 
             {data.sections.map((section) => {
-              const config = SECTION_CONFIG[section.type]
+              const config = SECTION_CONFIG[section.type] || SECTION_CONFIG.MAIN
               const Icon = config.icon
               const exercises = getExercisesForSection(section.type)
               const isExpanded = expandedSections.has(section.type)

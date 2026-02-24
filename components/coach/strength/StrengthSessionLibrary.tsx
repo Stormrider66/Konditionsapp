@@ -529,11 +529,11 @@ export function StrengthSessionLibrary({
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {templates.map((template) => {
                 const categoryInfo = CATEGORY_LABELS[template.category] || {
-                  label: template.category,
+                  label: template.category || 'Okänd',
                   icon: Dumbbell,
                   color: 'bg-gray-100 text-gray-800',
                 };
-                const CategoryIcon = categoryInfo.icon;
+                const CategoryIcon = categoryInfo?.icon || Dumbbell;
 
                 return (
                   <Card

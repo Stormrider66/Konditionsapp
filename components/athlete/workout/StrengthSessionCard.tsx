@@ -105,7 +105,7 @@ export function StrengthSessionCard({
   const [showFocusMode, setShowFocusMode] = useState(false)
 
   const { session, progress, status } = assignment
-  const statusConfig = STATUS_CONFIG[status]
+  const statusConfig = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING
   const phaseConfig = PHASE_LABELS[session.phase] || {
     label: session.phase,
     color: 'bg-gray-100 text-gray-800',

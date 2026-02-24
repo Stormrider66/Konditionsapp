@@ -226,7 +226,7 @@ export function TeamRankCard({ clientId, variant = 'default' }: TeamRankCardProp
                   {selectedRanking.rank} av {selectedRanking.totalAthletes}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {ERGOMETER_CONFIG[selectedRanking.ergometerType].shortLabel} •{' '}
+                  {(ERGOMETER_CONFIG[selectedRanking.ergometerType] || ERGOMETER_CONFIG.CONCEPT2_ROW).shortLabel} •{' '}
                   {PROTOCOL_LABELS[selectedRanking.testProtocol]}
                 </p>
               </div>
@@ -259,9 +259,9 @@ export function TeamRankCard({ clientId, variant = 'default' }: TeamRankCardProp
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted hover:bg-muted/80'
                   }`}
-                  title={`${ERGOMETER_CONFIG[ranking.ergometerType].label} - ${PROTOCOL_LABELS[ranking.testProtocol]}`}
+                  title={`${(ERGOMETER_CONFIG[ranking.ergometerType] || ERGOMETER_CONFIG.CONCEPT2_ROW).label} - ${PROTOCOL_LABELS[ranking.testProtocol] || ranking.testProtocol}`}
                 >
-                  {ERGOMETER_CONFIG[ranking.ergometerType].icon}
+                  {(ERGOMETER_CONFIG[ranking.ergometerType] || ERGOMETER_CONFIG.CONCEPT2_ROW).icon}
                 </button>
               ))}
             </div>
@@ -269,7 +269,7 @@ export function TeamRankCard({ clientId, variant = 'default' }: TeamRankCardProp
         </div>
         {selectedRanking && (
           <CardDescription>
-            {selectedRanking.teamName} • {ERGOMETER_CONFIG[selectedRanking.ergometerType].label} •{' '}
+            {selectedRanking.teamName} • {(ERGOMETER_CONFIG[selectedRanking.ergometerType] || ERGOMETER_CONFIG.CONCEPT2_ROW).label} •{' '}
             {PROTOCOL_LABELS[selectedRanking.testProtocol]}
           </CardDescription>
         )}

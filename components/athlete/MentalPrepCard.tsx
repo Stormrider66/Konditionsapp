@@ -162,7 +162,7 @@ export function MentalPrepCard() {
     return null
   }
 
-  const config = PREP_TYPE_CONFIG[notification.prepType]
+  const config = PREP_TYPE_CONFIG[notification.prepType] || PREP_TYPE_CONFIG.VISUALIZATION
   const Icon = config.icon
   const distanceLabel = DISTANCE_LABELS[notification.distance] || notification.distance
 

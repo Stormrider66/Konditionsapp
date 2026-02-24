@@ -226,7 +226,7 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
       {/* Quick Summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {thresholds.slice(0, 4).map((threshold) => {
-          const config = ERGOMETER_CONFIG[threshold.ergometerType];
+          const config = ERGOMETER_CONFIG[threshold.ergometerType] || ERGOMETER_CONFIG.CONCEPT2_ROW;
           const mainValue = threshold.criticalPower || threshold.ftp;
           const isActive = threshold.ergometerType === activeTab;
 
@@ -273,8 +273,8 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  {ERGOMETER_CONFIG[activeTab].icon}
-                  {ERGOMETER_CONFIG[activeTab].label} Zoner
+                  {(ERGOMETER_CONFIG[activeTab] || ERGOMETER_CONFIG.CONCEPT2_ROW).icon}
+                  {(ERGOMETER_CONFIG[activeTab] || ERGOMETER_CONFIG.CONCEPT2_ROW).label} Zoner
                   <InfoTooltip conceptKey="criticalPower" />
                 </CardTitle>
                 {currentThreshold && (
@@ -375,7 +375,7 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
       {availableErgometers.length > 1 && (
         <div className="flex justify-center gap-2">
           {availableErgometers.map((type) => {
-            const config = ERGOMETER_CONFIG[type];
+            const config = ERGOMETER_CONFIG[type] || ERGOMETER_CONFIG.CONCEPT2_ROW;
             const isActive = type === activeTab;
             return (
               <Button

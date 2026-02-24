@@ -75,7 +75,7 @@ export function HabitCard({
   onDelete
 }: HabitCardProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const categoryConfig = CATEGORY_CONFIG[habit.category]
+  const categoryConfig = CATEGORY_CONFIG[habit.category] || CATEGORY_CONFIG.TRAINING
   const Icon = categoryConfig.icon
 
   const handleToggle = async () => {

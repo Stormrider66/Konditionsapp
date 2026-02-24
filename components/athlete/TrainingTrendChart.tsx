@@ -225,7 +225,7 @@ export function TrainingTrendChart({
     );
   }
 
-  const metricConfig = METRIC_CONFIG[selectedMetric];
+  const metricConfig = METRIC_CONFIG[selectedMetric] || METRIC_CONFIG.tss;
 
   return (
     <Card className={cardClass}>

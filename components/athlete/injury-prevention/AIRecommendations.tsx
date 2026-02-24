@@ -69,7 +69,7 @@ export function AIRecommendations({ recommendations, className }: AIRecommendati
 
       <div className="space-y-2">
         {recommendations.map((rec, index) => {
-          const config = TYPE_CONFIG[rec.type]
+          const config = TYPE_CONFIG[rec.type] || TYPE_CONFIG.SUGGESTION
           const Icon = config.icon
 
           return (

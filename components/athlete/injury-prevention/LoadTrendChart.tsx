@@ -45,7 +45,8 @@ const TREND_CONFIG: Record<LoadTrend, { icon: typeof TrendingUp; label: string; 
 }
 
 export function LoadTrendChart({ loadHistory, trend, className }: LoadTrendChartProps) {
-  const TrendIcon = TREND_CONFIG[trend].icon
+  const trendCfg = TREND_CONFIG[trend] || TREND_CONFIG.STABLE
+  const TrendIcon = trendCfg.icon
 
   // Format date for display
   const formattedData = loadHistory.map((entry) => ({
@@ -68,9 +69,9 @@ export function LoadTrendChart({ loadHistory, trend, className }: LoadTrendChart
         <h4 className="text-sm font-medium text-muted-foreground">
           Belastningstrend (14 dagar)
         </h4>
-        <div className={cn('flex items-center gap-1', TREND_CONFIG[trend].color)}>
+        <div className={cn('flex items-center gap-1', trendCfg.color)}>
           <TrendIcon className="h-4 w-4" />
-          <span className="text-xs font-medium">{TREND_CONFIG[trend].label}</span>
+          <span className="text-xs font-medium">{trendCfg.label}</span>
         </div>
       </div>
 

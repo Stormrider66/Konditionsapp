@@ -239,7 +239,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
 }
 
 function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActivity, variant?: 'default' | 'glass' }) {
-  const sourceConfig = SOURCE_CONFIG[activity.source]
+  const sourceConfig = SOURCE_CONFIG[activity.source] || SOURCE_CONFIG.manual
   const typeIcon = TYPE_ICONS[activity.type] || <Activity className="h-4 w-4" />
 
   if (variant === 'glass') {
