@@ -92,7 +92,8 @@ export function CyclingDashboard({
       },
       summary: `Cykling för ${clientName}: FTP ${ftp ? `${ftp}W` : 'ej registrerad'}${wpkg ? `, ${wpkg.toFixed(2)} W/kg` : ''}. ${cyclingSettings.weeklyHours}h/vecka, disciplin: ${cyclingSettings.primaryDiscipline || 'ej angiven'}. ${pzones ? `${pzones.length} träningszoner beräknade.` : 'Inga zoner beräknade.'}`,
     })
-  }, [cyclingSettings, clientName, pageCtx])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cyclingSettings, clientName])
 
   if (!cyclingSettings) {
     return (

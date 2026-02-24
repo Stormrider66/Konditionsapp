@@ -142,7 +142,8 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
       },
       summary: `Progression för ${clientName}: ${exerciseSummaries.length} övningar spåras. ${plateauExercises.length} i platå, ${readyForIncrease.length} redo för belastningsökning.${selectedSummary ? ` Vald övning: ${selectedSummary.exercise.name} med 1RM ${selectedSummary.current1RM.toFixed(1)} kg (${selectedSummary.currentStatus}).` : ''}`,
     })
-  }, [exerciseSummaries, selectedExercise, clientName, pageCtx])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exerciseSummaries, selectedExercise, clientName])
 
   // Fetch weekly progression summary
   const fetchProgressionSummary = useCallback(async () => {

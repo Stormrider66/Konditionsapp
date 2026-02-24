@@ -183,7 +183,8 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
       summary: `Beredskap: ${data.current.readinessScore || 'N/A'}/10 (${data.current.readinessLevel || 'Ingen data'}). Trend: ${data.trend.direction}. HRV: ${data.current.factors?.hrv?.value?.toFixed(1) || 'N/A'} ms.`,
       conceptKeys: ['readiness', 'hrv', 'rhrDeviation', 'sleepBreakdown'],
     })
-  }, [data, garminData, pageCtx])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, garminData])
 
   if (isLoading) {
     return (

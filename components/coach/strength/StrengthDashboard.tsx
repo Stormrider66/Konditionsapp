@@ -87,7 +87,8 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
       },
       summary: `Styrketräning: ${stats.totalExercises} övningar, ${stats.activePrograms} aktiva pass, ${stats.complianceRate}% genomförande, ${stats.prsThisWeek} PR denna vecka.`,
     })
-  }, [stats, pageCtx])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats])
 
   // Fetch stats on mount
   useEffect(() => {

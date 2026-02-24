@@ -72,7 +72,8 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
       summary: `Monitoreringsdata för atlet. Senaste HRV: ${latest.hrvRMSSD?.toFixed(1) || 'N/A'} ms, Vilopuls: ${latest.restingHR || 'N/A'} bpm, Beredskap: ${latest.readinessScore || 'N/A'}.`,
       conceptKeys: ['readiness', 'hrv', 'tss', 'acwr', 'trainingZones', 'rhrDeviation'],
     });
-  }, [data, timeRange, pageCtx]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, timeRange]);
 
   if (loading) {
     return <div>Loading monitoring data...</div>;

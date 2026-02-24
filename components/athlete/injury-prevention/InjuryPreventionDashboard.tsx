@@ -101,7 +101,8 @@ export function InjuryPreventionDashboard({ className }: InjuryPreventionDashboa
       },
       summary: `Skadeförebyggande: ACWR ${acwr.current?.toFixed(2) ?? 'ej beräknad'} (${acwr.zone ?? 'okänd zon'}), ${activeInjuries.length} aktiva skador, ${recommendations.length} rekommendationer (${warningCount} varningar).`,
     })
-  }, [data, pageCtx])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data])
 
   if (isLoading) {
     return (

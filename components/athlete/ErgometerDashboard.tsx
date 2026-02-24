@@ -138,7 +138,8 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
       },
       summary: `Ergometer: ${availableErgometers.length} maskiner med zoner.${activeThreshold ? ` Aktiv: ${activeTab} med ${activeThreshold.criticalPower ? `CP ${activeThreshold.criticalPower}W` : `FTP ${activeThreshold.ftp}W`}${activeThreshold.wPrime ? `, W' ${(activeThreshold.wPrime / 1000).toFixed(1)}kJ` : ''}.` : ''} ${activeZones.length} traningszoner.`,
     });
-  }, [thresholds, zones, activeTab, pageCtx]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [thresholds, zones, activeTab]);
 
   useEffect(() => {
     async function fetchData() {

@@ -183,7 +183,8 @@ export function ACWRRiskMonitor() {
       summary: `ACWR-monitor: ${critical} kritiska, ${danger} fara, ${caution} varning av ${currentClients.length} atleter.`,
       conceptKeys: ['acwr', 'delawarePain', 'rehabPhases', 'tss'],
     })
-  }, [warningsData, clientsData, pageCtx])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warningsData, clientsData])
 
   return (
     <div className="space-y-6">
