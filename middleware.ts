@@ -73,6 +73,10 @@ const COACH_REDIRECT_ROUTES = [
   '/coach/agility-studio',
   '/coach/teams',
   '/coach/test',
+  '/coach/subscription',
+  '/coach/invitations',
+  '/coach/onboarding',
+  '/coach/exercises',
 ]
 
 // Athlete routes that should be redirected to business-scoped routes

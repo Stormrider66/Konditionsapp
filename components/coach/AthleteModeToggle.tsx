@@ -52,11 +52,9 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
 
-  // Extract business slug from current path
-  // We only use the URL-based slug to keep routes consistent:
-  // - Business-scoped routes (/star-by-thomson/...) stay business-scoped
-  // - Legacy routes (/coach/..., /athlete/...) stay legacy
-  const businessSlug = extractBusinessSlug(pathname)
+  // Extract business slug from current path, falling back to API-provided slug
+  const urlBusinessSlug = extractBusinessSlug(pathname)
+  const businessSlug = urlBusinessSlug || status?.businessSlug || null
 
   // Determine if we're currently on an athlete route
   const isOnAthleteRoute = pathname.includes('/athlete/')

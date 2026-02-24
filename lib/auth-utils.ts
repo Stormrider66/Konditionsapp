@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { User, UserRole, AdminRole, BusinessAdminUser, BusinessMemberRole } from '@/types'
 import { redirect } from 'next/navigation'
 import { isAthleteModeActive, getAthleteModeAccess } from '@/lib/athlete-mode'
+import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import { createCoachTrialSubscription } from '@/lib/subscription/feature-access'
 import { logger } from '@/lib/logger'
 
@@ -217,15 +218,17 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
     const athleteMode = await isAthleteModeActive()
 
     if (!athleteMode) {
-      // Not in athlete mode, redirect to coach dashboard
-      redirect('/coach')
+      // Not in athlete mode, redirect to coach dashboard (business-aware)
+      const bizSlug = await getUserPrimaryBusinessSlug(user.id)
+      redirect(bizSlug ? `/${bizSlug}/coach/dashboard` : '/coach')
     }
 
     // Check subscription status for athlete mode access
     const access = await getAthleteModeAccess(user.id)
     if (!access.allowed) {
-      // Subscription expired or invalid, redirect to subscription page
-      redirect('/coach/subscription?reason=trial_expired')
+      // Subscription expired or invalid, redirect to subscription page (business-aware)
+      const bizSlug = await getUserPrimaryBusinessSlug(user.id)
+      redirect(bizSlug ? `/${bizSlug}/coach/subscription?reason=trial_expired` : '/coach/subscription?reason=trial_expired')
     }
 
     // Get the coach's self athlete client ID
@@ -235,8 +238,9 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
     })
 
     if (!fullUser?.selfAthleteClientId) {
-      // No athlete profile set up, redirect to setup page
-      redirect('/coach/settings/athlete-profile')
+      // No athlete profile set up, redirect to setup page (business-aware)
+      const bizSlug = await getUserPrimaryBusinessSlug(user.id)
+      redirect(bizSlug ? `/${bizSlug}/coach/settings/athlete-profile` : '/coach/settings/athlete-profile')
     }
 
     return {
