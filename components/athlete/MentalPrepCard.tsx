@@ -237,12 +237,14 @@ export function MentalPrepCard() {
           </div>
 
           {/* Preview or full content */}
-          <p className="text-sm text-purple-800 dark:text-purple-200">
-            {isExpanded ? notification.content.mainContent : notification.content.preview}
-          </p>
+          {notification.content && (
+            <p className="text-sm text-purple-800 dark:text-purple-200">
+              {isExpanded ? notification.content.mainContent : notification.content.preview}
+            </p>
+          )}
 
           {/* Bullet points when expanded */}
-          {isExpanded && notification.content.bulletPoints.length > 0 && (
+          {isExpanded && notification.content?.bulletPoints?.length > 0 && (
             <ul className="mt-2 space-y-1 pl-4">
               {notification.content.bulletPoints.map((point, index) => (
                 <li
