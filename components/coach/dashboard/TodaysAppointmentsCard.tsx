@@ -328,7 +328,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
       </GlassCardHeader>
       <GlassCardContent className="space-y-3">
         {appointments.slice(0, 5).map((appointment) => {
-          const Icon = TYPE_ICONS[appointment.type];
+          const Icon = TYPE_ICONS[appointment.type] || CalendarCheck;
           const locationDisplay = appointment.locationName || appointment.location?.name;
 
           return (
