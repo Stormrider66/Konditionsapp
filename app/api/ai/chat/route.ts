@@ -27,6 +27,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { matchKnowledgeSkills, fetchSkillContext } from '@/lib/ai/knowledge-skills';
 import { logger } from '@/lib/logger'
 import { buildConstitutionPreamble } from '@/lib/ai/constitution'
+import { createChatTools } from '@/lib/ai/chat-tools'
 
 // Allow longer execution time for AI streaming responses (60 seconds)
 export const maxDuration = 60;
@@ -661,6 +662,13 @@ ${pageContext}
       messages: coreMessages,
       maxOutputTokens,
       experimental_telemetry: { isEnabled: false },
+      // Tool calling for athlete chat (create workouts etc.)
+      ...(isAthleteChat && athleteClientId && {
+        tools: createChatTools(athleteClientId, conversationId, athleteCapabilities
+          ? { canGenerateProgram: athleteCapabilities.canGenerateProgram }
+          : undefined),
+        maxSteps: 2,
+      }),
       // Provider-specific options for Gemini Deep Think
       ...(provider === 'GOOGLE' && deepThinkEnabled && {
         providerOptions: {

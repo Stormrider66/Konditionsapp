@@ -2,21 +2,26 @@
  * AI Save Program API
  *
  * POST /api/ai/save-program - Save an AI-generated training program to the database
+ *
+ * Supports both coach auth (requireCoach) and athlete auth (resolveAthleteClientId).
+ * Athletes can pass `mergedProgram` directly (from the orchestrator) to skip re-parsing.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { canAccessClient, requireCoach } from '@/lib/auth-utils';
+import { canAccessClient, requireCoach, resolveAthleteClientId } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { parseAIProgram, convertToDbFormat, validateProgramCompleteness } from '@/lib/ai/program-parser';
 import { generateProgramInfographic, parsedProgramToInfographicData } from '@/lib/ai/program-infographic';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
+import type { MergedProgram } from '@/lib/ai/program-generator'
 
 type ProgramType = 'MAIN' | 'COMPLEMENTARY';
 type ExistingProgramAction = 'KEEP' | 'DEACTIVATE' | 'REPLACE';
 
 interface SaveProgramRequest {
-  aiOutput: string;
+  aiOutput?: string;
+  mergedProgram?: MergedProgram;
   clientId: string;
   conversationId?: string;
   // New publish options
@@ -28,9 +33,41 @@ interface SaveProgramRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireCoach();
+    // Dual auth: try coach first, then athlete
+    let coachUserId: string;
+    let isAthleteAuth = false;
+    let athleteClientId: string | undefined;
 
-    const rateLimited = await rateLimitJsonResponse('ai:save-program', user.id, {
+    try {
+      const user = await requireCoach();
+      coachUserId = user.id;
+    } catch {
+      // Fallback: try athlete auth
+      const resolved = await resolveAthleteClientId();
+      if (!resolved) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+      isAthleteAuth = true;
+      athleteClientId = resolved.clientId;
+
+      // Get the coach user ID from the client record
+      const clientRecord = await prisma.client.findUnique({
+        where: { id: resolved.clientId },
+        select: { userId: true },
+      });
+      if (!clientRecord?.userId) {
+        return NextResponse.json(
+          { error: 'Athlete account not properly linked' },
+          { status: 400 }
+        );
+      }
+      coachUserId = clientRecord.userId;
+    }
+
+    const rateLimited = await rateLimitJsonResponse('ai:save-program', coachUserId, {
       limit: 10,
       windowSeconds: 60,
     })
@@ -39,6 +76,7 @@ export async function POST(request: NextRequest) {
     const body: SaveProgramRequest = await request.json();
     const {
       aiOutput,
+      mergedProgram: mergedProgramInput,
       clientId,
       conversationId,
       programType = 'MAIN',
@@ -50,36 +88,86 @@ export async function POST(request: NextRequest) {
     // Parse start date if provided
     const customStartDate = startDateStr ? new Date(startDateStr) : undefined;
 
-    if (!aiOutput || !clientId) {
+    // Athlete auth: verify clientId matches their own
+    if (isAthleteAuth && clientId !== athleteClientId) {
       return NextResponse.json(
-        { error: 'Missing required fields: aiOutput, clientId' },
+        { error: 'Access denied: clientId mismatch' },
+        { status: 403 }
+      );
+    }
+
+    // Need either aiOutput or mergedProgram
+    if (!mergedProgramInput && !aiOutput) {
+      return NextResponse.json(
+        { error: 'Missing required fields: aiOutput or mergedProgram' },
         { status: 400 }
       );
     }
 
-    const hasAccess = await canAccessClient(user.id, clientId)
-    if (!hasAccess) {
+    if (!clientId) {
       return NextResponse.json(
-        { error: 'Client not found or access denied' },
-        { status: 404 }
+        { error: 'Missing required field: clientId' },
+        { status: 400 }
       );
     }
 
-    // Parse the AI output
-    const parseResult = parseAIProgram(aiOutput);
-    if (!parseResult.success || !parseResult.program) {
-      return NextResponse.json(
-        {
-          error: 'Failed to parse AI output',
-          details: parseResult.error,
-          rawJson: parseResult.rawJson
-        },
-        { status: 400 }
-      );
+    // Coach auth: verify access to client
+    if (!isAthleteAuth) {
+      const hasAccess = await canAccessClient(coachUserId, clientId)
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: 'Client not found or access denied' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Build the parsed program — either from mergedProgram or by parsing aiOutput
+    let parsedProgram: ReturnType<typeof parseAIProgram>['program'];
+    let rawJson: object | undefined;
+
+    if (mergedProgramInput) {
+      // mergedProgram comes directly from the orchestrator — convert to ParsedProgram format
+      parsedProgram = {
+        name: mergedProgramInput.name,
+        description: mergedProgramInput.description,
+        totalWeeks: mergedProgramInput.totalWeeks,
+        methodology: mergedProgramInput.methodology,
+        weeklySchedule: mergedProgramInput.weeklySchedule
+          ? {
+              sessionsPerWeek: mergedProgramInput.weeklySchedule.sessionsPerWeek,
+              restDays: mergedProgramInput.weeklySchedule.restDays?.map(Number).filter(n => !isNaN(n)) || [],
+            }
+          : undefined,
+        phases: mergedProgramInput.phases.map(phase => ({
+          name: phase.name,
+          weeks: phase.weeks,
+          focus: phase.focus,
+          weeklyTemplate: phase.weeklyTemplate as Record<string, unknown>,
+          keyWorkouts: phase.keyWorkouts,
+          volumeGuidance: phase.volumeGuidance,
+        })),
+      };
+      rawJson = mergedProgramInput as unknown as object;
+    } else {
+      // Parse the AI output text
+      const parseResult = parseAIProgram(aiOutput!);
+      if (!parseResult.success || !parseResult.program) {
+        return NextResponse.json(
+          {
+            error: 'Failed to parse AI output',
+            details: parseResult.error,
+            rawJson: parseResult.rawJson
+          },
+          { status: 400 }
+        );
+      }
+      parsedProgram = parseResult.program;
+      rawJson = (parseResult.rawJson ?? {}) as object;
     }
 
     // Validate program completeness
-    const validation = validateProgramCompleteness(parseResult.program);
+    const validation = validateProgramCompleteness(parsedProgram!);
     if (!validation.valid) {
       return NextResponse.json(
         {
@@ -93,10 +181,10 @@ export async function POST(request: NextRequest) {
 
     // Convert to database format
     const { programData, weeksData } = convertToDbFormat(
-      parseResult.program,
+      parsedProgram!,
       clientId,
-      user.id,
-      customStartDate // Pass custom start date
+      coachUserId,
+      customStartDate
     );
 
     // Save to database in a transaction (large programs create many rows)
@@ -187,7 +275,7 @@ export async function POST(request: NextRequest) {
             data: {
               conversationId,
               programId: program.id,
-              programJson: (parseResult.rawJson ?? {}) as object,
+              programJson: rawJson ?? {},
               isSaved: true,
             },
           });
@@ -198,14 +286,16 @@ export async function POST(request: NextRequest) {
     }, { timeout: 15000 });
 
     // Fire-and-forget infographic generation (don't await, don't block response)
-    generateProgramInfographic({
-      programId: savedProgram.id,
-      programData: parsedProgramToInfographicData(parseResult.program),
-      coachId: user.id,
-      locale: request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en',
-    }).catch((err) => {
-      logger.warn('Background infographic generation failed', { programId: savedProgram.id }, err)
-    })
+    if (parsedProgram) {
+      generateProgramInfographic({
+        programId: savedProgram.id,
+        programData: parsedProgramToInfographicData(parsedProgram),
+        coachId: coachUserId,
+        locale: request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en',
+      }).catch((err) => {
+        logger.warn('Background infographic generation failed', { programId: savedProgram.id }, err)
+      })
+    }
 
     // Return the saved program with summary
     const programWithDetails = await prisma.trainingProgram.findUnique({
@@ -235,9 +325,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Send notification to athlete if requested
+    // Send notification to athlete if requested (only for coach flow)
     let notificationSent = false;
-    if (notifyAthlete) {
+    if (notifyAthlete && !isAthleteAuth) {
       try {
         // Check if athlete has an account
         const athleteAccount = await prisma.athleteAccount.findFirst({
@@ -249,7 +339,7 @@ export async function POST(request: NextRequest) {
           // Create an in-app message notification
           await prisma.message.create({
             data: {
-              senderId: user.id,
+              senderId: coachUserId,
               receiverId: athleteAccount.userId,
               content: `Ett nytt träningsprogram har publicerats: "${savedProgram.name}". Gå till din dashboard för att se det.`,
               isRead: false,

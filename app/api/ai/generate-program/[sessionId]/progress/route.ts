@@ -9,7 +9,7 @@
 
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireCoach } from '@/lib/auth-utils'
+import { requireCoach, resolveAthleteClientId } from '@/lib/auth-utils'
 import type { ProgressEvent } from '@/lib/ai/program-generator'
 
 // ============================================
@@ -22,21 +22,23 @@ export async function GET(
 ) {
   const { sessionId } = await params
 
-  // Authenticate
-  let userId: string
+  // Dual auth: try coach first, then athlete
+  let sessionWhereFilter: { id: string; coachId?: string; athleteId?: string }
   try {
     const user = await requireCoach()
-    userId = user.id
+    sessionWhereFilter = { id: sessionId, coachId: user.id }
   } catch {
-    return new Response('Unauthorized', { status: 401 })
+    // Fallback: try athlete auth
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+    sessionWhereFilter = { id: sessionId, athleteId: resolved.clientId }
   }
 
-  // Verify session ownership
+  // Verify session ownership (coach via coachId or athlete via athleteId)
   const session = await prisma.programGenerationSession.findFirst({
-    where: {
-      id: sessionId,
-      coachId: userId,
-    },
+    where: sessionWhereFilter,
     select: {
       id: true,
       status: true,

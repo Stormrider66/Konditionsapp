@@ -32,6 +32,11 @@ import { getInfoEntriesByKeys } from '@/lib/info-content'
 import { ATHLETE_QUICK_PROMPTS, MemoryContext } from '@/lib/ai/athlete-prompts'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { MemoryIndicator } from './MemoryIndicator'
+import { ChatWorkoutCard } from './ChatWorkoutCard'
+import { ChatProgramProgressCard } from './ChatProgramProgressCard'
+import { ChatProgramPreviewCard } from './ChatProgramPreviewCard'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
+import type { MergedProgram } from '@/lib/ai/program-generator'
 import { AIChatUsageMeter, AIChatUsageCompact } from '@/components/athlete/AIChatUsageMeter'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import Link from 'next/link'
@@ -60,6 +65,7 @@ export function AthleteFloatingChat({
   athleteName,
 }: AthleteFloatingChatProps) {
   const { toast } = useToast()
+  const basePath = useBasePath()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pageCtx = usePageContextOptional()
@@ -89,9 +95,12 @@ export function AthleteFloatingChat({
   const [consentHealthData, setConsentHealthData] = useState(false)
   const [isGrantingConsent, setIsGrantingConsent] = useState(false)
 
-  // Program detection state
+  // Program detection state (text-based, for coach-generated programs in chat)
   const [detectedProgram, setDetectedProgram] = useState<ParseResult | null>(null)
   const [isPublishing, setIsPublishing] = useState(false)
+
+  // Tool-based program generation state (orchestrator programs)
+  const [completedPrograms, setCompletedPrograms] = useState<Map<string, MergedProgram>>(new Map())
 
   // Fetch AI config from coach
   useEffect(() => {
@@ -837,16 +846,75 @@ export function AthleteFloatingChat({
                 ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
                 .map((part) => part.text)
                 .join('') || ''
+
+              // Check for workout tool results (AI SDK v5: type is "tool-{name}", state is "output-available")
+              const workoutToolPart = (message.parts as any[])?.find( // eslint-disable-line
+                part => part.type === 'tool-createTodayWorkout' && part.state === 'output-available' && part.output?.success
+              )
+              const workoutResult = workoutToolPart ? workoutToolPart.output : null
+
+              // Check for program generation tool results
+              const programToolPart = (message.parts as any[])?.find( // eslint-disable-line
+                part => part.type === 'tool-generateTrainingProgram' && part.state === 'output-available' && part.output?.success
+              )
+              const programResult = programToolPart ? programToolPart.output : null
+
               return (
-                <ChatMessage
-                  key={`${message.id}-${index}`}
-                  message={{
-                    id: message.id,
-                    role: message.role as 'user' | 'assistant' | 'system',
-                    content: textContent,
-                    createdAt: new Date(),
-                  }}
-                />
+                <div key={`${message.id}-${index}`}>
+                  {textContent && (
+                    <ChatMessage
+                      message={{
+                        id: message.id,
+                        role: message.role as 'user' | 'assistant' | 'system',
+                        content: textContent,
+                        createdAt: new Date(),
+                      }}
+                    />
+                  )}
+                  {workoutResult && (
+                    <ChatWorkoutCard
+                      wodId={workoutResult.wodId}
+                      title={workoutResult.title}
+                      subtitle={workoutResult.subtitle}
+                      duration={workoutResult.duration}
+                      workoutType={workoutResult.workoutType}
+                      intensity={workoutResult.intensity}
+                      exerciseCount={workoutResult.exerciseCount}
+                      sectionCount={workoutResult.sectionCount}
+                      basePath={basePath}
+                    />
+                  )}
+                  {programResult && (
+                    completedPrograms.has(programResult.sessionId) ? (
+                      <ChatProgramPreviewCard
+                        sessionId={programResult.sessionId}
+                        program={completedPrograms.get(programResult.sessionId)!}
+                        clientId={clientId}
+                        conversationId={conversationId}
+                        basePath={basePath}
+                      />
+                    ) : (
+                      <ChatProgramProgressCard
+                        sessionId={programResult.sessionId}
+                        sport={programResult.sport}
+                        totalWeeks={programResult.totalWeeks}
+                        totalPhases={programResult.totalPhases}
+                        estimatedMinutes={programResult.estimatedMinutes}
+                        goal={programResult.goal}
+                        onComplete={(program) => {
+                          setCompletedPrograms(prev => {
+                            const next = new Map(prev)
+                            next.set(programResult.sessionId, program)
+                            return next
+                          })
+                        }}
+                        onError={(error) => {
+                          console.error('Program generation error:', error)
+                        }}
+                      />
+                    )
+                  )}
+                </div>
               )
             })}
             {knowledgeSkills.length > 0 && !isLoading && (
