@@ -160,6 +160,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   const scriptSrc = [
     "'self'",
     "'unsafe-inline'",
+    "'wasm-unsafe-eval'", // Required for MediaPipe WASM (pose analysis)
     ...(isProd ? [] : ["'unsafe-eval'"]),
     'https://cdn.jsdelivr.net',
   ].join(' ')
