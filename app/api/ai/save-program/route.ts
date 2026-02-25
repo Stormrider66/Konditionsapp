@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { canAccessClient, requireCoach, resolveAthleteClientId } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
-import { parseAIProgram, convertToDbFormat, validateProgramCompleteness } from '@/lib/ai/program-parser';
+import { parseAIProgram, convertToDbFormat, validateProgramCompleteness, type ParsedPhase } from '@/lib/ai/program-parser';
 import { generateProgramInfographic, parsedProgramToInfographicData } from '@/lib/ai/program-infographic';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
@@ -139,14 +139,9 @@ export async function POST(request: NextRequest) {
               restDays: mergedProgramInput.weeklySchedule.restDays?.map(Number).filter(n => !isNaN(n)) || [],
             }
           : undefined,
-        phases: mergedProgramInput.phases.map(phase => ({
-          name: phase.name,
-          weeks: phase.weeks,
-          focus: phase.focus,
-          weeklyTemplate: phase.weeklyTemplate as Record<string, unknown>,
-          keyWorkouts: phase.keyWorkouts,
-          volumeGuidance: phase.volumeGuidance,
-        })),
+        // MergedProgram phases are structurally compatible with ParsedPhase[];
+        // weeklyTemplate uses typed day keys vs Record<string, DayTemplate>
+        phases: mergedProgramInput.phases as unknown as ParsedPhase[],
       };
       rawJson = mergedProgramInput as unknown as object;
     } else {
