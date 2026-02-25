@@ -274,13 +274,17 @@ export function PoseAnalyzer({
   const poseRef = useRef<any>(null)
   const framesRef = useRef<PoseFrame[]>([])
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
+  const [videoReady, setVideoReady] = useState(false)
+  const [videoError, setVideoError] = useState(false)
 
   // Fetch video as blob to bypass CORS restrictions on signed URLs
   useEffect(() => {
     let revoke: string | null = null
+    setVideoReady(false)
+    setVideoError(false)
     const fetchBlob = async () => {
       try {
-        const res = await fetch(videoUrl)
+        const res = await fetch(videoUrl, { mode: 'cors' })
         if (!res.ok) throw new Error(`Failed to fetch video: ${res.status}`)
         const blob = await res.blob()
         const url = URL.createObjectURL(blob)
@@ -288,7 +292,7 @@ export function PoseAnalyzer({
         setBlobUrl(url)
       } catch (err) {
         console.error('Failed to load video as blob:', err)
-        // Fallback to direct URL
+        // Fallback to direct URL with crossOrigin for canvas access
         setBlobUrl(videoUrl)
       }
     }
@@ -852,7 +856,16 @@ export function PoseAnalyzer({
       return
     }
 
-    await pose.send({ image: video })
+    try {
+      await pose.send({ image: video })
+    } catch (err) {
+      console.error('MediaPipe pose.send() error:', err)
+      setError('Posemodellen kunde inte bearbeta videon. Kontrollera att videon är tillgänglig.')
+      setIsAnalyzing(false)
+      setIsPlaying(false)
+      video.pause()
+      return
+    }
     setProgress((video.currentTime / video.duration) * 100)
 
     animationFrameRef.current = requestAnimationFrame(processFrame)
@@ -1029,7 +1042,13 @@ export function PoseAnalyzer({
 
     // Clear and prepare canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height)
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    try {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    } catch {
+      // Cross-origin video may taint canvas - fill with dark background instead
+      ctx.fillStyle = '#1a1a1a'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+    }
 
     // Draw connections
     const connections = [
@@ -1406,13 +1425,25 @@ export function PoseAnalyzer({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Video and Canvas overlay */}
-          <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+          <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9', maxHeight: '50vh' }}>
             <video
               ref={videoRef}
               src={blobUrl || videoUrl}
+              crossOrigin="anonymous"
+              preload="auto"
               className={isAnalyzing || isReviewMode ? 'hidden' : 'w-full h-full object-contain'}
               playsInline
               muted
+              onLoadedData={() => setVideoReady(true)}
+              onError={() => {
+                console.error('Video failed to load:', blobUrl || videoUrl)
+                setVideoError(true)
+                // If blob URL failed, try direct URL
+                if (blobUrl && blobUrl !== videoUrl) {
+                  setBlobUrl(videoUrl)
+                  setVideoError(false)
+                }
+              }}
               onEnded={() => {
                 setIsPlaying(false)
                 if (framesRef.current.length > 0) {
@@ -1432,11 +1463,21 @@ export function PoseAnalyzer({
               onMouseLeave={handleCanvasMouseLeave}
             />
 
-            {(!poseLoaded || !blobUrl) && (
+            {videoError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                <div className="text-center text-white">
+                  <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-yellow-400" />
+                  <p>Kunde inte ladda videon</p>
+                  <p className="text-sm text-gray-400 mt-1">Kontrollera att videon fortfarande finns tillgänglig</p>
+                </div>
+              </div>
+            )}
+
+            {!videoError && (!poseLoaded || !blobUrl || !videoReady) && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                 <div className="text-center text-white">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                  <p>{!blobUrl ? 'Laddar video...' : 'Laddar posemodell...'}</p>
+                  <p>{!blobUrl ? 'Laddar video...' : !videoReady ? 'Buffrar video...' : 'Laddar posemodell...'}</p>
                 </div>
               </div>
             )}
@@ -1458,10 +1499,10 @@ export function PoseAnalyzer({
             {!isAnalyzing && !isAnalysisComplete ? (
               <Button
                 onClick={startAnalysis}
-                disabled={!poseLoaded}
+                disabled={!poseLoaded || !videoReady || videoError}
                 className="flex-1"
               >
-                {poseLoaded ? (
+                {poseLoaded && videoReady ? (
                   <>
                     <Scan className="h-4 w-4 mr-2" />
                     Starta poseanalys
