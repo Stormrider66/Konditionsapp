@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -856,6 +857,7 @@ export function VideoAnalysisCard({
               {typeInfo.label}
               {analysis.athlete && ` - ${analysis.athlete.name}`}
             </DialogTitle>
+            <DialogDescription className="sr-only">Videouppspelning</DialogDescription>
           </DialogHeader>
           <div className="aspect-video bg-black rounded-lg overflow-hidden">
             <video
@@ -1116,6 +1118,7 @@ export function VideoAnalysisCard({
               Poseanalys - Skelettspårning
               {analysis.athlete && ` - ${analysis.athlete.name}`}
             </DialogTitle>
+            <DialogDescription className="sr-only">MediaPipe BlazePose skelettspårning och analys</DialogDescription>
           </DialogHeader>
           <PoseAnalyzer
             videoUrl={analysis.videoUrl}
