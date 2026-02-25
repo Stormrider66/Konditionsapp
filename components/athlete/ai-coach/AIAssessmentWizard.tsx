@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -114,6 +115,7 @@ export function AIAssessmentWizard({
   hasConsent,
 }: AIAssessmentWizardProps) {
   const router = useRouter()
+  const basePath = useBasePath()
   const [currentStep, setCurrentStep] = useState(0)
   const [data, setData] = useState<AssessmentData>({
     ...initialData,
@@ -190,7 +192,7 @@ export function AIAssessmentWizard({
       }
 
       toast.success('Your personalized training program is ready!')
-      router.push('/athlete/dashboard')
+      router.push(`${basePath}/athlete/dashboard`)
     } catch (error) {
       toast.error('Failed to generate program. Please try again.')
       setIsGenerating(false)

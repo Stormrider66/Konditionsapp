@@ -8,7 +8,6 @@ import { SportType } from '@prisma/client'
 import { addDays, startOfDay, endOfDay, subDays, format, differenceInWeeks } from 'date-fns'
 import Link from 'next/link'
 import { getTranslations } from '@/i18n/server'
-import { TodaysWorkouts } from '@/components/athlete/TodaysWorkouts'
 import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
 import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
 import { TrainingLoadWidget } from '@/components/athlete/TrainingLoadWidget'
@@ -44,7 +43,7 @@ import {
   Stethoscope
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
-import { HeroWorkoutCard, RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, AssignmentHeroCard, WODHeroCard } from '@/components/athlete/dashboard'
+import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider } from '@/components/athlete/dashboard'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
@@ -639,8 +638,8 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     }
     return 0
   })
-  const heroItem: DashboardItem | null = sortedTodayItems[0] || null
-  const remainingTodayItems = sortedTodayItems.slice(1)
+  // First incomplete item for "Start Session" button
+  const firstIncompleteItem = sortedTodayItems.find(item => !isItemCompleted(item)) || sortedTodayItems[0] || null
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
@@ -661,16 +660,16 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         <div className="flex gap-3">
           <LogWorkoutButton variant="button" className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border-0 h-10 px-4 transition-all" />
           <Link href={
-            heroItem?.kind === 'program'
-              ? `${basePath}/athlete/workouts/${heroItem.workout.id}/log`
-              : heroItem?.kind === 'assignment'
-                ? getAssignmentRoute(heroItem, basePath)
-                : heroItem?.kind === 'wod'
-                  ? getWODRoute(heroItem, basePath)
+            firstIncompleteItem?.kind === 'program'
+              ? `${basePath}/athlete/workouts/${firstIncompleteItem.workout.id}/log`
+              : firstIncompleteItem?.kind === 'assignment'
+                ? getAssignmentRoute(firstIncompleteItem, basePath)
+                : firstIncompleteItem?.kind === 'wod'
+                  ? getWODRoute(firstIncompleteItem, basePath)
                   : `${basePath}/athlete/programs`
           }>
             <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 h-10 px-6 transition-all">
-              <Zap className="w-4 h-4 mr-2" /> {heroItem ? 'Start Session' : 'Find Workout'}
+              <Zap className="w-4 h-4 mr-2" /> {firstIncompleteItem ? 'Start Session' : 'Find Workout'}
             </Button>
           </Link>
         </div>
@@ -725,22 +724,10 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
       {/* Main Grid - Hero Card + Readiness Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* HERO CARD (Left 2/3) */}
-        {heroItem?.kind === 'program' ? (
-          <HeroWorkoutCard
-            workout={heroItem.workout}
-            athleteName={client.name.split(' ')[0]}
-            basePath={basePath}
-          />
-        ) : heroItem?.kind === 'assignment' ? (
-          <AssignmentHeroCard
-            assignment={heroItem}
-            athleteName={client.name.split(' ')[0]}
-            basePath={basePath}
-          />
-        ) : heroItem?.kind === 'wod' ? (
-          <WODHeroCard
-            wod={heroItem}
+        {/* HERO CARD(S) (Left 2/3) */}
+        {sortedTodayItems.length > 0 ? (
+          <HeroCardSlider
+            items={sortedTodayItems}
             athleteName={client.name.split(' ')[0]}
             basePath={basePath}
           />
@@ -770,11 +757,6 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
         {/* Left Column (2/3) */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Today's Workouts (If more than 1, show the rest) */}
-          {remainingTodayItems.length > 0 && (
-            <TodaysWorkouts items={remainingTodayItems} variant="glass" clientId={clientId} basePath={basePath} />
-          )}
-
           {/* Upcoming Workouts */}
           <UpcomingWorkouts items={upcomingItems} variant="glass" basePath={basePath} />
 

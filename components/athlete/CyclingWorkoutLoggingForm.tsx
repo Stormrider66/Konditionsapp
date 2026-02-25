@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -82,6 +83,7 @@ export function CyclingWorkoutLoggingForm({
   athleteFtp,
 }: CyclingWorkoutLoggingFormProps) {
   const router = useRouter()
+  const basePath = useBasePath()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -185,7 +187,7 @@ export function CyclingWorkoutLoggingForm({
         description: 'Din cykelträning har sparats.',
       })
 
-      router.push(`/athlete/programs/${workout.id}`)
+      router.push(`${basePath}/athlete/programs/${workout.id}`)
       router.refresh()
     } catch (error) {
       toast({

@@ -4727,6 +4727,10 @@ model AIGeneratedWOD {
   generationTimeMs Int?
   modelUsed        String? // e.g., "claude-sonnet-4-6"
 
+  // Source tracking
+  source              String?  // "generator" | "chat" | "cron"
+  chatConversationId  String?  // Link back to AI conversation
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

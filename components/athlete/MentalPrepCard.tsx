@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface MentalPrepContent {
   title: string
@@ -71,6 +72,7 @@ const DISTANCE_LABELS: Record<string, string> = {
 
 export function MentalPrepCard() {
   const router = useRouter()
+  const basePath = useBasePath()
   const [notification, setNotification] = useState<MentalPrepNotification | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDismissing, setIsDismissing] = useState(false)
@@ -150,7 +152,7 @@ export function MentalPrepCard() {
   }
 
   function handleChatWithAI() {
-    router.push('/athlete/chat')
+    router.push(`${basePath}/athlete/chat`)
   }
 
   // Don't render if loading or no notification

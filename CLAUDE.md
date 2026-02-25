@@ -13,9 +13,27 @@ npm run lint         # ESLint
 npm test             # Vitest
 npm run test:e2e     # Playwright
 npx prisma generate  # After schema changes
-npx prisma db push   # Push schema (dev)
+npx prisma db push   # Push schema (dev) — must load env vars, see below
 npx prisma studio    # View/edit data
 npx prisma migrate dev --name <name>  # Create migration
+```
+
+### Prisma & Database Connection
+
+Env vars are in `.env.local` (not `.env`). Prisma doesn't auto-load `.env.local`, so load them manually:
+
+```bash
+export $(grep -E '^(DATABASE_URL|DIRECT_DATABASE_URL)=' .env.local | xargs) && npx prisma db push
+```
+
+**DIRECT_DATABASE_URL** must use the Supabase **Session Mode (port 5432)** pooler hostname — the old `db.*.supabase.co` hostname is IPv6-only and unreachable from most local networks:
+
+```
+# ✅ Correct — pooler on port 5432
+postgresql://postgres.rzvznvaxpxsfqfmhbept:[pw]@aws-1-eu-north-1.pooler.supabase.com:5432/postgres
+
+# ❌ Wrong — IPv6-only, unreachable locally
+postgresql://postgres:[pw]@db.rzvznvaxpxsfqfmhbept.supabase.co:5432/postgres
 ```
 
 ## Tech Stack

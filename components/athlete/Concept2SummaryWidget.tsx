@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useBasePath } from '@/lib/contexts/BasePathContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +58,7 @@ const EQUIPMENT_LABELS: Record<string, string> = {
 };
 
 export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) {
+  const basePath = useBasePath();
   const [results, setResults] = useState<Concept2Result[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(true);
@@ -114,7 +116,7 @@ export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) 
             <Ship className="h-4 w-4" />
             Concept2
           </CardTitle>
-          <Link href="/athlete/concept2">
+          <Link href={`${basePath}/athlete/concept2`}>
             <Button variant="ghost" size="sm" className="h-7 text-xs">
               Visa allt
               <ArrowRight className="ml-1 h-3 w-3" />
@@ -129,7 +131,7 @@ export function Concept2SummaryWidget({ clientId }: Concept2SummaryWidgetProps) 
             <p className="text-sm text-muted-foreground mb-3">
               Anslut Concept2 Logbook
             </p>
-            <Link href="/athlete/settings">
+            <Link href={`${basePath}/athlete/settings`}>
               <Button variant="outline" size="sm">
                 Anslut
               </Button>

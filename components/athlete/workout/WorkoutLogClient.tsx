@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/collapsible'
 import { WorkoutLoggingForm } from '@/components/athlete/WorkoutLoggingForm'
 import { WorkoutFocusMode } from './WorkoutFocusMode'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface WorkoutLogClientProps {
   workout: any
@@ -79,9 +80,11 @@ export function WorkoutLogClient({
   workout,
   athleteId,
   existingLog,
-  basePath = '',
+  basePath: basePathProp = '',
 }: WorkoutLogClientProps) {
   const router = useRouter()
+  const contextBasePath = useBasePath()
+  const basePath = basePathProp || contextBasePath
   const [viewMode, setViewMode] = useState<ViewMode>('choosing')
   const [focusModeData, setFocusModeData] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -178,7 +181,7 @@ export function WorkoutLogClient({
             </Button>
           )}
           {!focusModeData?.hasExercises && (
-            <Link href={`/athlete/programs/${workout.day?.week?.program?.id || ''}`}>
+            <Link href={`${basePath}/athlete/programs/${workout.day?.week?.program?.id || ''}`}>
               <Button variant="ghost">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Tillbaka till program
@@ -224,6 +227,7 @@ export function WorkoutLogClient({
           workout={workout}
           athleteId={athleteId}
           existingLog={existingLog}
+          basePath={basePath}
         />
       </div>
     )
@@ -238,7 +242,7 @@ export function WorkoutLogClient({
   return (
     <div className="container mx-auto py-8 px-4 max-w-3xl">
       {/* Header */}
-      <Link href={`/athlete/programs/${workout.day?.week?.program?.id || ''}`}>
+      <Link href={`${basePath}/athlete/programs/${workout.day?.week?.program?.id || ''}`}>
         <Button variant="ghost" className="mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Tillbaka till program

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ export function ChangeSportDialog({
   currentSecondarySports = [],
 }: ChangeSportDialogProps) {
   const router = useRouter()
+  const basePath = useBasePath()
   const { toast } = useToast()
   const [selectedPrimarySport, setSelectedPrimarySport] = useState<SportType>(currentSport)
   const [selectedSecondarySports, setSelectedSecondarySports] = useState<SportType[]>(currentSecondarySports)
@@ -128,7 +130,7 @@ export function ChangeSportDialog({
 
       // Navigate to onboarding if reset and primary changed, otherwise refresh
       if (resetOnboarding && primaryChanged) {
-        router.push('/athlete/onboarding')
+        router.push(`${basePath}/athlete/onboarding`)
       } else {
         router.refresh()
       }

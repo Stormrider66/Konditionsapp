@@ -24,6 +24,7 @@ import { Slider } from '@/components/ui/slider'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, Waves } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
 
 // Extended schema with cycling fields
@@ -57,6 +58,7 @@ interface WorkoutLoggingFormProps {
   workout: any
   athleteId: string
   existingLog?: any
+  basePath?: string
 }
 
 // Define which fields are shown for each workout type
@@ -202,9 +204,12 @@ export function WorkoutLoggingForm({
   workout,
   athleteId,
   existingLog,
+  basePath: basePathProp = '',
 }: WorkoutLoggingFormProps) {
   const router = useRouter()
   const { toast } = useToast()
+  const contextBasePath = useBasePath()
+  const basePath = basePathProp || contextBasePath
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Get field config for this workout type
@@ -270,7 +275,7 @@ export function WorkoutLoggingForm({
 
       // Gap 7: Refresh to revalidate dashboard data before navigation
       router.refresh()
-      router.push(`/athlete/dashboard`)
+      router.push(`${basePath}/athlete/dashboard`)
     } catch (error: any) {
       console.error('Error saving workout log:', error)
       toast({

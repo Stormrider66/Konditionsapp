@@ -40,6 +40,7 @@ import { SetLoggingForm, SetLogData } from './SetLoggingForm'
 import { RestTimer } from './RestTimer'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { ExerciseHeader } from '@/components/themed/ExerciseHeader'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { Player } from '@remotion/player'
 import { ExerciseAnimation } from '@/remotion/exercises/ExerciseAnimation'
 
@@ -108,6 +109,7 @@ interface WorkoutData {
 interface FocusModeWorkoutProps {
   assignmentId: string
   onClose?: () => void
+  basePath?: string
 }
 
 const SECTION_CONFIG = {
@@ -144,7 +146,10 @@ const SECTION_CONFIG = {
 export function FocusModeWorkout({
   assignmentId,
   onClose,
+  basePath: basePathProp = '',
 }: FocusModeWorkoutProps) {
+  const contextBasePath = useBasePath()
+  const basePath = basePathProp || contextBasePath
   const router = useRouter()
   const [data, setData] = useState<WorkoutData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -255,7 +260,7 @@ export function FocusModeWorkout({
       if (onClose) {
         onClose()
       } else {
-        router.push('/athlete/dashboard')
+        router.push(`${basePath}/athlete/dashboard`)
       }
     } catch (err) {
       console.error('Error completing workout:', err)

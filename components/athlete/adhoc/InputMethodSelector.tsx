@@ -28,6 +28,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface InputMethodSelectorProps {
   open: boolean
@@ -96,6 +97,7 @@ const INPUT_METHODS: InputMethod[] = [
 
 export function InputMethodSelector({ open, onOpenChange }: InputMethodSelectorProps) {
   const router = useRouter()
+  const basePath = useBasePath()
   const [loading, setLoading] = useState<string | null>(null)
 
   const handleSelectMethod = async (method: InputMethod) => {
@@ -106,22 +108,22 @@ export function InputMethodSelector({ open, onOpenChange }: InputMethodSelectorP
     // Navigate to the appropriate input page
     switch (method.id) {
       case 'photo':
-        router.push('/athlete/log-workout/photo')
+        router.push(`${basePath}/athlete/log-workout/photo`)
         break
       case 'voice':
-        router.push('/athlete/log-workout/voice')
+        router.push(`${basePath}/athlete/log-workout/voice`)
         break
       case 'text':
-        router.push('/athlete/log-workout/text')
+        router.push(`${basePath}/athlete/log-workout/text`)
         break
       case 'strava':
-        router.push('/athlete/log-workout/import/strava')
+        router.push(`${basePath}/athlete/log-workout/import/strava`)
         break
       case 'garmin':
-        router.push('/athlete/log-workout/import/garmin')
+        router.push(`${basePath}/athlete/log-workout/import/garmin`)
         break
       case 'manual':
-        router.push('/athlete/log-workout/manual')
+        router.push(`${basePath}/athlete/log-workout/manual`)
         break
     }
 

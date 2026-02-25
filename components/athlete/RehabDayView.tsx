@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -83,6 +84,7 @@ export function RehabDayView({
   compact = false,
 }: RehabDayViewProps) {
   const router = useRouter()
+  const basePath = useBasePath()
   const isGlass = variant === 'glass'
   const [programs, setPrograms] = useState<RehabProgram[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -194,7 +196,7 @@ export function RehabDayView({
             {/* Program header */}
             <div
               className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors"
-              onClick={() => onProgramClick ? onProgramClick(program.id) : router.push(`/athlete/rehab/${program.id}`)}
+              onClick={() => onProgramClick ? onProgramClick(program.id) : router.push(`${basePath}/athlete/rehab/${program.id}`)}
             >
               <div>
                 <p className="font-bold text-white">{program.name}</p>

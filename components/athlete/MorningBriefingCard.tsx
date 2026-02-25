@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface BriefingAlert {
   type: 'warning' | 'info' | 'success'
@@ -46,6 +47,7 @@ interface Briefing {
 
 export function MorningBriefingCard() {
   const router = useRouter()
+  const basePath = useBasePath()
   const [briefing, setBriefing] = useState<Briefing | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDismissing, setIsDismissing] = useState(false)
@@ -99,7 +101,7 @@ export function MorningBriefingCard() {
   function handleAction(action: string) {
     switch (action) {
       case 'log_workout':
-        router.push('/athlete/training')
+        router.push(`${basePath}/athlete/training`)
         break
       case 'open_chat':
         // Open the floating chat - this would need to be connected to a global state
@@ -107,10 +109,10 @@ export function MorningBriefingCard() {
         document.querySelector('[data-chat-trigger]')?.scrollIntoView({ behavior: 'smooth' })
         break
       case 'check_in':
-        router.push('/athlete/check-in')
+        router.push(`${basePath}/athlete/check-in`)
         break
       case 'view_program':
-        router.push('/athlete/program')
+        router.push(`${basePath}/athlete/program`)
         break
       default:
         // Unknown action - no-op
