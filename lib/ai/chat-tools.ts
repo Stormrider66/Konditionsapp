@@ -35,7 +35,7 @@ export function createChatTools(
   conversationId?: string,
   capabilities?: ChatToolCapabilities
 ) {
-  const tools: Record<string, ReturnType<typeof tool>> = {
+  const tools: Record<string, any> = { // eslint-disable-line
     createTodayWorkout: tool({
       description:
         'Skapa ett träningspass åt atleten för idag. Passet sparas på dashboarden och i kalendern. ' +
