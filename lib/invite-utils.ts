@@ -134,24 +134,31 @@ export async function inviteUserToBusiness({
     }
 
     // Generate recovery link for password setup
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email,
+      options: {
+        redirectTo: `${appUrl}/reset-password`,
+      },
     })
 
     if (linkError) {
       logger.error('Invite: recovery link generation failed', { email }, linkError)
-      // User was created successfully, just couldn't generate the link
-      // They can use "forgot password" flow instead
     }
 
+    // Use generated recovery link, or fall back to forgot-password page
     const setPasswordUrl = linkData?.properties?.action_link
+      || `${appUrl}/forgot-password`
 
-    // Send invite email
-    if (setPasswordUrl) {
-      await sendCoachInviteEmail(email, name, business.name, setPasswordUrl).catch((emailErr) => {
-        logger.error('Invite: failed to send invite email', { email }, emailErr)
-      })
+    // Always send invite email
+    const emailResult = await sendCoachInviteEmail(email, name, business.name, setPasswordUrl).catch((emailErr) => {
+      logger.error('Invite: failed to send invite email', { email }, emailErr)
+      return { success: false, error: 'Email send failed' }
+    })
+
+    if (!emailResult?.success) {
+      logger.warn('Invite: user created but invite email not sent', { email, userId: authData.user.id })
     }
 
     return { success: true, userId: authData.user.id, memberId }
