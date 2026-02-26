@@ -40,7 +40,7 @@ export function createChatTools(
       description:
         'Skapa ett träningspass åt atleten för idag. Passet sparas på dashboarden och i kalendern. ' +
         'Använd detta verktyg när atleten ber dig skapa, skriva, föreslå eller ge dem ett pass.',
-      parameters: z.object({
+      inputSchema: z.object({
         title: z.string().describe('Kort, motiverande svensk titel (t.ex. "Explosiv Styrka")'),
         subtitle: z.string().optional().describe('Motiverande undertitel'),
         description: z.string().describe('Kort beskrivning av vad passet fokuserar på'),
@@ -166,7 +166,7 @@ export function createChatTools(
         'Starta generering av ett komplett flervekkors träningsprogram åt atleten. ' +
         'Programmet genereras i bakgrunden (1-10 min). ' +
         'Använd detta verktyg EFTER att du samlat in sport, mål, programlängd och pass per vecka från atleten.',
-      parameters: z.object({
+      inputSchema: z.object({
         sport: z.string().describe('Primär sport (t.ex. "Running", "Cycling", "Swimming", "HYROX")'),
         totalWeeks: z.number().min(1).max(52).describe('Programlängd i veckor'),
         sessionsPerWeek: z.number().min(1).max(14).optional()
@@ -245,25 +245,25 @@ export function createChatTools(
 
           // Fetch athlete test data for zones/thresholds
           const [latestTest, injuries] = await Promise.all([
-            prisma.lactateTest.findFirst({
+            prisma.test.findFirst({
               where: { clientId },
               orderBy: { testDate: 'desc' },
               select: {
                 vo2max: true,
-                maxHeartRate: true,
+                maxHR: true,
                 anaerobicThreshold: true,
-                stages: {
+                testStages: {
                   orderBy: { sequence: 'asc' },
                   select: { heartRate: true, speed: true, power: true },
                 },
               },
             }),
-            prisma.injury.findMany({
+            prisma.injuryAssessment.findMany({
               where: {
                 clientId,
-                status: { in: ['ACTIVE', 'RECOVERING'] },
+                status: { in: ['ACTIVE', 'MONITORING'] },
               },
-              select: { type: true, status: true, notes: true },
+              select: { injuryType: true, status: true, notes: true },
             }),
           ])
 
@@ -281,12 +281,12 @@ export function createChatTools(
             athleteHeight: sportProfile?.height as number | undefined,
             experienceLevel: sportProfile?.experienceLevel as string | undefined,
             vo2max: latestTest?.vo2max ?? undefined,
-            maxHR: latestTest?.maxHeartRate ?? undefined,
+            maxHR: latestTest?.maxHR ?? undefined,
             lactateThreshold: latestTest?.anaerobicThreshold
-              ? { hr: latestTest.anaerobicThreshold as number }
+              ? { hr: (latestTest.anaerobicThreshold as { hr?: number })?.hr }
               : undefined,
             injuries: injuries.map(i => ({
-              type: i.type,
+              type: i.injuryType || 'unknown',
               status: i.status,
               notes: i.notes || undefined,
             })),
