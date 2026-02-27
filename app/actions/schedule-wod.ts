@@ -53,14 +53,14 @@ export async function scheduleWODToDashboard(wodId: string, clientId: string) {
     const sections = workoutData.sections || []
 
     // Map workoutType to WorkoutType enum
-    const typeMap: Record<string, 'STRENGTH' | 'RUNNING' | 'CYCLING' | 'SWIMMING' | 'CROSS_TRAINING' | 'CORE'> = {
+    const typeMap: Record<string, 'STRENGTH' | 'RUNNING' | 'CYCLING' | 'SWIMMING' | 'HYROX' | 'CORE' | 'OTHER'> = {
       strength: 'STRENGTH',
-      cardio: 'RUNNING', // Defaulting cardio to running
-      mixed: 'CROSS_TRAINING',
+      cardio: 'RUNNING',
+      mixed: 'HYROX',
       core: 'CORE'
     }
 
-    const wType = (wod.workoutType && typeMap[wod.workoutType]) || 'CROSS_TRAINING'
+    const wType = (wod.workoutType && typeMap[wod.workoutType]) || 'OTHER'
 
     // Map intensity to enum
     const intensityMap: Record<string, 'RECOVERY' | 'EASY' | 'MODERATE' | 'THRESHOLD' | 'INTERVAL' | 'MAX'> = {
@@ -75,8 +75,9 @@ export async function scheduleWODToDashboard(wodId: string, clientId: string) {
     const categoryMap: Record<string, string> = {
       STRENGTH: 'STYRKA',
       RUNNING: 'LÖPNING',
-      CROSS_TRAINING: 'EXPLOSIVITET',
-      CORE: 'CORE STABILITET'
+      HYROX: 'EXPLOSIVITET',
+      CORE: 'CORE STABILITET',
+      OTHER: 'TRÄNING'
     }
 
     // 4. Create the official Workout record
