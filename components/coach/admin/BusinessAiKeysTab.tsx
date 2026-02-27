@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Users,
 } from 'lucide-react'
+import { BusinessModelSharingSection } from '@/components/coach/admin/BusinessModelSharingSection'
 
 interface KeyStatus {
   provider: string
@@ -342,6 +343,9 @@ export function BusinessAiKeysTab() {
           </Card>
         )
       })}
+
+      {/* Model sharing section — only visible when at least one key is valid */}
+      {hasAnyKeys && <BusinessModelSharingSection />}
     </div>
   )
 }

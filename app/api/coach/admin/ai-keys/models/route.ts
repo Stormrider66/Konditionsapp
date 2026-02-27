@@ -18,7 +18,7 @@ const updateModelsSchema = z.object({
   defaultModelId: z.string().nullable().optional(),
 })
 
-// GET - Get model restrictions
+// GET - Get model restrictions + eligible models for each valid provider
 export async function GET() {
   try {
     const admin = await requireBusinessAdminRole()
@@ -30,8 +30,38 @@ export async function GET() {
         allowedAthleteModelIds: true,
         athleteDefaultModelId: true,
         defaultModelId: true,
+        anthropicKeyValid: true,
+        googleKeyValid: true,
+        openaiKeyValid: true,
       },
     })
+
+    // Determine which providers have valid keys
+    const validProviders: ('ANTHROPIC' | 'GOOGLE' | 'OPENAI')[] = []
+    if (aiKeys?.anthropicKeyValid) validProviders.push('ANTHROPIC')
+    if (aiKeys?.googleKeyValid) validProviders.push('GOOGLE')
+    if (aiKeys?.openaiKeyValid) validProviders.push('OPENAI')
+
+    // Fetch eligible models for valid providers
+    const eligibleModels = validProviders.length > 0
+      ? await prisma.aIModel.findMany({
+          where: {
+            provider: { in: validProviders },
+            isActive: true,
+          },
+          select: {
+            id: true,
+            modelId: true,
+            provider: true,
+            displayName: true,
+            isDefault: true,
+            inputCostPer1k: true,
+            outputCostPer1k: true,
+            availableForAthletes: true,
+          },
+          orderBy: [{ provider: 'asc' }, { displayName: 'asc' }],
+        })
+      : []
 
     return NextResponse.json({
       success: true,
@@ -40,6 +70,7 @@ export async function GET() {
         allowedAthleteModelIds: aiKeys?.allowedAthleteModelIds ?? [],
         athleteDefaultModelId: aiKeys?.athleteDefaultModelId ?? null,
         defaultModelId: aiKeys?.defaultModelId ?? null,
+        eligibleModels,
       },
     })
   } catch (error) {

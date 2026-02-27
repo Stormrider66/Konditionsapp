@@ -30,6 +30,12 @@ import { cn } from '@/lib/utils'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { getInfoEntriesByKeys } from '@/lib/info-content'
 import { ATHLETE_QUICK_PROMPTS, MemoryContext } from '@/lib/ai/athlete-prompts'
+import {
+  MENTAL_PREP_CHAT_EVENT,
+  buildMentalPrepMessage,
+  buildMentalPrepPageContext,
+  type MentalPrepChatEvent,
+} from '@/lib/events/mental-prep-chat'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { MemoryIndicator } from './MemoryIndicator'
 import { ChatWorkoutCard } from './ChatWorkoutCard'
@@ -102,6 +108,10 @@ export function AthleteFloatingChat({
   // Tool-based program generation state (orchestrator programs)
   const [completedPrograms, setCompletedPrograms] = useState<Map<string, MergedProgram>>(new Map())
 
+  // Mental prep context (set when opened from MentalPrepCard)
+  const [mentalPrepContext, setMentalPrepContext] = useState<MentalPrepChatEvent | null>(null)
+  const mentalPrepContextRef = useRef<MentalPrepChatEvent | null>(null)
+
   // Fetch AI config from coach
   useEffect(() => {
     async function fetchConfig() {
@@ -170,6 +180,22 @@ export function AthleteFloatingChat({
     }
     checkConsent()
   }, [isOpen])
+
+  // Listen for mental prep chat events from MentalPrepCard
+  useEffect(() => {
+    function handleMentalPrepEvent(e: Event) {
+      const event = e as CustomEvent<MentalPrepChatEvent>
+      const detail = event.detail
+      setMentalPrepContext(detail)
+      mentalPrepContextRef.current = detail
+      setIsOpen(true)
+    }
+
+    window.addEventListener(MENTAL_PREP_CHAT_EVENT, handleMentalPrepEvent)
+    return () => {
+      window.removeEventListener(MENTAL_PREP_CHAT_EVENT, handleMentalPrepEvent)
+    }
+  }, [])
 
   async function handleGrantConsent() {
     setIsGrantingConsent(true)
@@ -309,6 +335,60 @@ export function AthleteFloatingChat({
 
   const isLoading = status === 'streaming' || status === 'submitted'
 
+  // Auto-send mental prep message once chat is ready (consent granted + config loaded)
+  useEffect(() => {
+    if (!mentalPrepContext || !modelConfig || consentStatus !== 'granted' || isLoading) return
+
+    // Only auto-send if this is a fresh conversation (no messages yet)
+    if (messages.length > 0) return
+
+    const message = buildMentalPrepMessage(mentalPrepContext)
+
+    // Create conversation + send message
+    async function startMentalPrepChat() {
+      let convId = conversationId
+      if (!convId) {
+        try {
+          const response = await fetch('/api/ai/conversations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              modelUsed: modelConfig!.model,
+              provider: modelConfig!.provider,
+            }),
+          })
+          const data = await response.json()
+          if (data.conversation?.id) {
+            convId = data.conversation.id
+            setConversationId(convId)
+          }
+        } catch (error) {
+          console.error('Failed to create conversation:', error)
+        }
+      }
+
+      const mentalPrepPageContext = buildMentalPrepPageContext(mentalPrepContext!)
+
+      sendMessage({ text: message }, {
+        body: {
+          conversationId: convId,
+          model: modelConfig!.model,
+          provider: modelConfig!.provider,
+          isAthleteChat: true,
+          clientId,
+          memoryContext: memoryContext || undefined,
+          pageContext: mentalPrepPageContext,
+        },
+      })
+
+      // Clear mental prep context after sending (so it doesn't re-trigger)
+      setMentalPrepContext(null)
+    }
+
+    startMentalPrepChat()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mentalPrepContext, modelConfig, consentStatus, messages.length])
+
   // Scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -418,6 +498,15 @@ export function AthleteFloatingChat({
 
     const messageContent = input.trim()
     setInput('')
+
+    // Include mental prep context if active (for follow-up messages in the session)
+    const mentalPrepPageCtx = mentalPrepContextRef.current
+      ? buildMentalPrepPageContext(mentalPrepContextRef.current)
+      : ''
+    const combinedPageContext = [pageContextRef.current, mentalPrepPageCtx]
+      .filter(Boolean)
+      .join('\n')
+
     sendMessage({ text: messageContent }, {
       body: {
         conversationId,
@@ -426,7 +515,7 @@ export function AthleteFloatingChat({
         isAthleteChat: true, // This triggers athlete mode
         clientId,
         memoryContext: memoryContext || undefined,
-        pageContext: pageContextRef.current || undefined,
+        pageContext: combinedPageContext || undefined,
       },
     })
   }
@@ -443,12 +532,16 @@ export function AthleteFloatingChat({
     setMessages([])
     setConversationId(null)
     setInput('')
+    setMentalPrepContext(null)
+    mentalPrepContextRef.current = null
   }
 
   function handleNewChat() {
     setMessages([])
     setConversationId(null)
     setInput('')
+    setMentalPrepContext(null)
+    mentalPrepContextRef.current = null
   }
 
   function handleQuickPrompt(prompt: string) {
@@ -545,7 +638,7 @@ export function AthleteFloatingChat({
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 z-50"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 z-50 fixed-bottom-safe"
         size="icon"
       >
         <Sparkles className="h-6 w-6 text-white" />
