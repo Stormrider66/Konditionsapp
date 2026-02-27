@@ -74,48 +74,11 @@ export function createChatTools(
           // Fetch athlete context for readiness-aware creation
           const context = await buildWODContext(clientId)
 
-          // Get coach ID for API keys
-          const clientRecord = await prisma.client.findUnique({
-            where: { id: clientId },
-            select: { userId: true }
-          })
-          const coachId = clientRecord?.userId || ''
-
-          // Lookup or generate exercises
-          const hydratedSections = await Promise.all(sections.map(async (section) => {
-            const hydratedExercises = await Promise.all(section.exercises.map(async (ex) => {
-              try {
-                // Determine if it's a complex movement (heuristics)
-                const isComplex = ['burpee', 'clean', 'snatch', 'get-up'].some(kw => 
-                  ex.name.toLowerCase().includes(kw) || ex.nameSv.toLowerCase().includes(kw)
-                )
-
-                const generated = await lookupOrGenerateExercise({
-                  exerciseNameSv: ex.nameSv,
-                  exerciseNameEn: ex.name,
-                  muscleGroups: [workoutType], // Using workout type as fallback
-                  isComplexMovement: isComplex,
-                  coachId
-                })
-
-                return {
-                  ...ex,
-                  exerciseId: generated.id,
-                  imageUrls: generated.imageUrls
-                }
-              } catch (err) {
-                logger.error('Failed to lookup/generate exercise in tool', { exercise: ex.name, err })
-                return { ...ex, exerciseId: undefined, imageUrls: [] }
-              }
-            }))
-            return { ...section, exercises: hydratedExercises }
-          }))
-
           // Calculate totals
-          const totalExercises = hydratedSections.reduce(
+          const totalExercises = sections.reduce(
             (sum, s) => sum + s.exercises.length, 0
           )
-          const totalSets = hydratedSections.reduce(
+          const totalSets = sections.reduce(
             (sum, s) => s.exercises.reduce((eSum, e) => eSum + (e.sets || 1), 0) + sum, 0
           )
 
@@ -124,7 +87,7 @@ export function createChatTools(
             title,
             subtitle: subtitle || '',
             description,
-            sections: hydratedSections.map(s => ({
+            sections: sections.map(s => ({
               type: s.type,
               name: s.name,
               duration: s.duration,
@@ -139,8 +102,6 @@ export function createChatTools(
                 distance: e.distance,
                 zone: e.zone,
                 instructions: e.notes,
-                exerciseId: e.exerciseId,
-                imageUrls: e.imageUrls
               })),
             })),
             coachNotes: `Skapat via AI-chatt baserat på atletens önskemål.`,
@@ -177,11 +138,34 @@ export function createChatTools(
             exerciseCount: totalExercises,
           })
 
-          // Extract some preview image URLs to display in the chat card
-          const previewImages = workoutJson.sections
-            .flatMap(s => s.exercises)
-            .flatMap(e => e.imageUrls || [])
-            .slice(0, 3)
+          // Fire-and-forget: generate exercise images in background
+          // This avoids blocking the chat response (Vercel 60s timeout)
+          const clientRecord = await prisma.client.findUnique({
+            where: { id: clientId },
+            select: { userId: true }
+          })
+          const coachId = clientRecord?.userId || ''
+
+          void (async () => {
+            try {
+              for (const section of sections) {
+                for (const ex of section.exercises) {
+                  const isComplex = ['burpee', 'clean', 'snatch', 'get-up'].some(kw =>
+                    ex.name.toLowerCase().includes(kw) || ex.nameSv.toLowerCase().includes(kw)
+                  )
+                  await lookupOrGenerateExercise({
+                    exerciseNameSv: ex.nameSv,
+                    exerciseNameEn: ex.name,
+                    muscleGroups: [workoutType],
+                    isComplexMovement: isComplex,
+                    coachId
+                  })
+                }
+              }
+            } catch (err) {
+              logger.error('Background exercise image generation failed', { wodId: savedWOD.id, err })
+            }
+          })()
 
           return {
             success: true,
@@ -193,7 +177,6 @@ export function createChatTools(
             intensity: intensity || null,
             exerciseCount: totalExercises,
             sectionCount: sections.length,
-            previewImages,
           }
         } catch (error) {
           logger.error('Failed to create WOD via chat tool', { clientId }, error)
