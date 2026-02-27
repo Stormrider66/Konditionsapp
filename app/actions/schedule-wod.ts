@@ -60,7 +60,7 @@ export async function scheduleWODToDashboard(wodId: string, clientId: string) {
       core: 'CORE'
     }
 
-    const wType = typeMap[wod.workoutType] || 'CROSS_TRAINING'
+    const wType = (wod.workoutType && typeMap[wod.workoutType]) || 'CROSS_TRAINING'
 
     // Map intensity to enum
     const intensityMap: Record<string, 'RECOVERY' | 'EASY' | 'MODERATE' | 'THRESHOLD' | 'INTERVAL' | 'MAX'> = {
