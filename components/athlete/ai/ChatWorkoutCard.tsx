@@ -52,18 +52,9 @@ export function ChatWorkoutCard({
   const [isScheduled, setIsScheduled] = useState(false)
 
   const handleSchedule = async () => {
-    // We need the clientId. For simplicity in the UI component, we can extract it from the path
-    // or pass it as a prop. Assuming the basePath includes the business slug, we can use an API call 
-    // or just rely on the server action handling the current auth context if we adapt it.
-    // To keep it secure and simple, we'll just fire the action. 
-    // *Note: In a full production env, we'd pass clientId explicitly from AthleteFloatingChat*
-    
     setIsScheduling(true)
     try {
-      // We pass a dummy string for clientId here, but the server action should idealistically verify via auth
-      // or we pass it down. Let's assume the action gets updated to use `getCurrentUser()` inside.
-      // For now, we will pass a placeholder and let the action handle it.
-      const res = await scheduleWODToDashboard(wodId, 'extract-from-auth-on-server')
+      const res = await scheduleWODToDashboard(wodId)
       
       if (res.success) {
         setIsScheduled(true)

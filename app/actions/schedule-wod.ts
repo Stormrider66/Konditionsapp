@@ -3,22 +3,39 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { createClient } from '@/lib/supabase/server'
 
-export async function scheduleWODToDashboard(wodId: string, clientId: string) {
+export async function scheduleWODToDashboard(wodId: string) {
   try {
-    // 1. Fetch the drafted WOD
+    // 1. Authenticate
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return { success: false, error: 'Ej inloggad' }
+    }
+
+    // 2. Look up client from auth user
+    const client = await prisma.client.findFirst({
+      where: { userId: user.id }
+    })
+
+    if (!client) {
+      return { success: false, error: 'Klientprofil hittades inte' }
+    }
+
+    // 3. Fetch the WOD and verify ownership
     const wod = await prisma.aIGeneratedWOD.findUnique({
       where: { id: wodId }
     })
 
-    if (!wod || wod.clientId !== clientId) {
-      throw new Error('WOD not found or unauthorized')
+    if (!wod || wod.clientId !== client.id) {
+      return { success: false, error: 'Passet hittades inte' }
     }
 
-    // 2. Find or create today's Training Day for this athlete
-    // To do this properly, we need the active program week
+    // 4. Find today's Training Day for this athlete
     const activeProgram = await prisma.trainingProgram.findFirst({
-      where: { clientId, isActive: true },
+      where: { clientId: client.id, isActive: true },
       include: {
         weeks: {
           include: {
@@ -31,24 +48,19 @@ export async function scheduleWODToDashboard(wodId: string, clientId: string) {
     let targetDayId: string
 
     if (activeProgram) {
-      // Find today's date in the program
-      // For simplicity in this action, we'll just grab the most recent day or create an ad-hoc one
-      // In a full implementation, you'd match by actual date.
       const firstWeek = activeProgram.weeks[0]
       const firstDay = firstWeek?.days[0]
-      
+
       if (firstDay) {
         targetDayId = firstDay.id
       } else {
-        throw new Error('No valid training days found in active program')
+        return { success: false, error: 'Inga träningsdagar hittades i ditt aktiva program' }
       }
     } else {
-      // If no active program, create an ad-hoc Workout not tied to a specific day, 
-      // or handle your ad-hoc structure. For this example, we assume we need a Day.
-      throw new Error('Athlete must have an active program to schedule a workout')
+      return { success: false, error: 'Du behöver ett aktivt träningsprogram för att schemalägga pass' }
     }
 
-    // 3. Parse the WOD JSON structure
+    // 5. Parse the WOD JSON structure
     const workoutData = wod.workoutJson as any
     const sections = workoutData.sections || []
 
@@ -71,7 +83,6 @@ export async function scheduleWODToDashboard(wodId: string, clientId: string) {
     }
     const wIntensity = wod.intensityAdjusted ? (intensityMap[wod.intensityAdjusted] || 'MODERATE') : 'MODERATE'
 
-    // Determine Hero category based on type
     const categoryMap: Record<string, string> = {
       STRENGTH: 'STYRKA',
       RUNNING: 'LÖPNING',
@@ -80,7 +91,7 @@ export async function scheduleWODToDashboard(wodId: string, clientId: string) {
       OTHER: 'TRÄNING'
     }
 
-    // 4. Create the official Workout record
+    // 6. Create the official Workout record
     const officialWorkout = await prisma.workout.create({
       data: {
         dayId: targetDayId,
@@ -91,13 +102,10 @@ export async function scheduleWODToDashboard(wodId: string, clientId: string) {
         duration: wod.requestedDuration,
         status: 'PLANNED',
         isCustom: true,
-        // Hero Card fields
         heroTitle: wod.title,
         heroDescription: wod.subtitle || wod.description || 'AI Genererat pass',
         heroCategory: categoryMap[wType] || 'STYRKA',
         focusGeneratedBy: 'AI',
-        
-        // Nested segments creation
         segments: {
           create: sections.map((section: any, sIdx: number) => ({
             order: sIdx + 1,
@@ -105,9 +113,6 @@ export async function scheduleWODToDashboard(wodId: string, clientId: string) {
             duration: section.duration,
             section: section.type === 'WARMUP' ? 'WARMUP' : section.type === 'COOLDOWN' ? 'COOLDOWN' : 'MAIN',
             description: section.name,
-            // If the section only has one exercise, we can map it here.
-            // Complex WOD to Segment mapping usually requires one segment per exercise for strength.
-            // For simplicity, mapping the first exercise to the segment.
             exerciseId: section.exercises?.[0]?.exerciseId,
             sets: section.exercises?.[0]?.sets,
             repsCount: section.exercises?.[0]?.reps,
@@ -119,7 +124,6 @@ export async function scheduleWODToDashboard(wodId: string, clientId: string) {
 
     logger.info('Scheduled AI WOD to Hero Card', { wodId, workoutId: officialWorkout.id })
 
-    // 5. Revalidate the dashboard so the HeroCard updates instantly
     revalidatePath('/athlete/dashboard')
 
     return { success: true, workoutId: officialWorkout.id }
