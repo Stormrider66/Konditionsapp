@@ -974,6 +974,7 @@ export function AthleteFloatingChat({
                       intensity={workoutResult.intensity}
                       exerciseCount={workoutResult.exerciseCount}
                       sectionCount={workoutResult.sectionCount}
+                      previewImages={workoutResult.previewImages}
                       basePath={basePath}
                     />
                   )}
