@@ -33,13 +33,15 @@ const DISTANCE_LABELS: Record<string, string> = {
  * Build the initial user message for the mental prep chat session
  */
 export function buildMentalPrepMessage(event: MentalPrepChatEvent): string {
-  const distance = DISTANCE_LABELS[event.distance] || event.distance
-  const prepLabel = PREP_TYPE_LABELS[event.prepType]
+  const distance = DISTANCE_LABELS[event.distance] || event.distance || ''
+  const prepLabel = PREP_TYPE_LABELS[event.prepType] || 'mental förberedelse'
+  const raceName = event.raceName || 'mitt lopp'
   const daysText = event.daysUntilRace === 1
     ? 'imorgon'
-    : `om ${event.daysUntilRace} dagar`
+    : `om ${event.daysUntilRace || 0} dagar`
 
-  let message = `Jag vill göra mental förberedelse inför ${event.raceName} (${distance}) som är ${daysText}. `
+  const distancePart = distance ? ` (${distance})` : ''
+  let message = `Jag vill göra mental förberedelse inför ${raceName}${distancePart} som är ${daysText}. `
   message += `Dagens fokus är ${prepLabel}. `
 
   if (event.targetTime) {
@@ -55,17 +57,18 @@ export function buildMentalPrepMessage(event: MentalPrepChatEvent): string {
  * Build additional page context for the AI system prompt
  */
 export function buildMentalPrepPageContext(event: MentalPrepChatEvent): string {
-  const distance = DISTANCE_LABELS[event.distance] || event.distance
-  const prepLabel = PREP_TYPE_LABELS[event.prepType]
+  const distance = DISTANCE_LABELS[event.distance] || event.distance || 'okänd'
+  const prepLabel = PREP_TYPE_LABELS[event.prepType] || 'mental förberedelse'
+  const raceName = event.raceName || 'Lopp'
 
   return `
 ## MENTAL FÖRBEREDELSE — AKTIV SESSION
 
 Atleten har startat en guidad mental förberedelseövning. Du ska agera som mental coach.
 
-**Lopp:** ${event.raceName}
+**Lopp:** ${raceName}
 **Distans:** ${distance}
-**Dagar kvar:** ${event.daysUntilRace}
+**Dagar kvar:** ${event.daysUntilRace || 0}
 ${event.targetTime ? `**Måltid:** ${event.targetTime}` : ''}
 **Övning:** ${prepLabel}
 

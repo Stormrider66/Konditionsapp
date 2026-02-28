@@ -4,11 +4,11 @@
  * GET /api/athlete/notifications - Get active notifications
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const resolved = await resolveAthleteClientId()
 
@@ -18,16 +18,28 @@ export async function GET() {
 
     const { clientId } = resolved
 
+    // Parse optional query params
+    const { searchParams } = new URL(request.url)
+    const type = searchParams.get('type')
+    const limitParam = searchParams.get('limit')
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined
+
+    const now = new Date()
+
     // Get active notifications (not dismissed, not expired)
     const notifications = await prisma.aINotification.findMany({
       where: {
         clientId,
         dismissedAt: null,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
+        ...(type ? { notificationType: type } : {}),
+        AND: [
+          // Not expired
+          { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+          // Only return notifications that are due (not scheduled for the future)
+          { OR: [{ scheduledFor: null }, { scheduledFor: { lte: now } }] },
         ],
       },
+      ...(limit && limit > 0 ? { take: limit } : {}),
       orderBy: [
         { priority: 'desc' },
         { createdAt: 'desc' },

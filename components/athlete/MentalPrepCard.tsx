@@ -77,7 +77,16 @@ export function MentalPrepCard() {
           const data = await response.json()
           if (data.notifications && data.notifications.length > 0) {
             const notif = data.notifications[0]
+
+            // Defense in depth: verify this is actually a mental prep notification
+            if (notif.notificationType !== 'MENTAL_PREP') return
+
             const contextData = notif.contextData as Record<string, unknown>
+
+            // Skip if essential fields are missing
+            const prepType = contextData.prepType as MentalPrepNotification['prepType'] | undefined
+            const raceName = contextData.raceName as string | undefined
+            if (!prepType || !raceName) return
 
             // Calculate daysUntilRace from raceDate if missing or invalid
             let daysUntilRace = contextData.daysUntilRace as number
@@ -98,12 +107,12 @@ export function MentalPrepCard() {
 
             setNotification({
               id: notif.id,
-              prepType: contextData.prepType as MentalPrepNotification['prepType'],
-              raceId: contextData.raceId as string,
-              raceName: contextData.raceName as string,
-              raceDate: contextData.raceDate as string,
-              distance: contextData.distance as string,
-              targetTime: contextData.targetTime as string | null,
+              prepType,
+              raceId: (contextData.raceId as string) || '',
+              raceName,
+              raceDate: (contextData.raceDate as string) || '',
+              distance: (contextData.distance as string) || '',
+              targetTime: (contextData.targetTime as string) || null,
               daysUntilRace,
               content: contextData.content as MentalPrepContent,
               readAt: notif.readAt,
