@@ -13,6 +13,7 @@ import { Loader2, AlertCircle, Shield, ChevronRight, Activity } from 'lucide-rea
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 type ACWRZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 
@@ -66,6 +67,7 @@ const ZONE_CONFIG: Record<ACWRZone, { label: string; color: string; bgColor: str
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function InjuryPreventionWidget({ className }: InjuryPreventionWidgetProps) {
+  const basePath = useBasePath()
   const { data, error, isLoading } = useSWR<InjuryPreventionResponse>(
     '/api/athlete/injury-prevention',
     fetcher,
@@ -169,7 +171,7 @@ export function InjuryPreventionWidget({ className }: InjuryPreventionWidgetProp
         )}
 
         {/* Link to full dashboard */}
-        <Link href="/athlete/injury-prevention" className="block">
+        <Link href={`${basePath}/athlete/injury-prevention`} className="block">
           <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground hover:text-foreground">
             <span>Visa dashboard</span>
             <ChevronRight className="h-4 w-4" />

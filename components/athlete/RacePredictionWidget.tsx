@@ -24,6 +24,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import Link from 'next/link'
 
 interface RacePrediction {
@@ -113,6 +114,7 @@ export function RacePredictionWidget({
   variant = 'default',
   className,
 }: RacePredictionWidgetProps) {
+  const basePath = useBasePath()
   const [data, setData] = useState<PredictionResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -377,7 +379,7 @@ export function RacePredictionWidget({
 
         {/* Link to full view */}
         {predictions.length > 0 && (
-          <Link href="/athlete/predictions" className="block">
+          <Link href={`${basePath}/athlete/predictions`} className="block">
             <Button
               variant="ghost"
               size="sm"

@@ -19,11 +19,13 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Utensils, Clock, Droplets, X, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import type { DailyNutritionGuidance } from '@/lib/nutrition-timing'
 
 const DISMISS_KEY = 'nutritionTimingDismissed'
 
 export function NutritionTimingCard() {
+  const basePath = useBasePath()
   const [guidance, setGuidance] = useState<DailyNutritionGuidance | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDismissed, setIsDismissed] = useState(false)
@@ -213,7 +215,7 @@ export function NutritionTimingCard() {
                        dark:border-emerald-700 dark:hover:bg-emerald-900/50
                        text-emerald-700 dark:text-emerald-300 ml-auto"
           >
-            <Link href="/athlete/settings/nutrition">Kostinställningar</Link>
+            <Link href={`${basePath}/athlete/settings/nutrition`}>Kostinställningar</Link>
           </Button>
         </div>
       </CardContent>

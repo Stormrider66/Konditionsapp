@@ -28,6 +28,7 @@ import {
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { NutritionTargets, NutritionTargetsSkeleton } from './NutritionTargets'
 import { WorkoutNutritionCard, WorkoutNutritionCardSkeleton } from './WorkoutNutritionCard'
 import { NutritionTipCard } from './NutritionTipCard'
@@ -38,6 +39,7 @@ interface NutritionDashboardProps {
 }
 
 export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
+  const basePath = useBasePath()
   const [guidance, setGuidance] = useState<DailyNutritionGuidance | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -95,7 +97,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
               Ställ in dina kostpreferenser för att få personliga rekommendationer
             </p>
             <Button asChild variant="outline" className="gap-2 bg-white/5 border-white/10 hover:bg-white/10 text-white">
-              <Link href="/athlete/settings/nutrition">
+              <Link href={`${basePath}/athlete/settings/nutrition`}>
                 <Settings className="h-4 w-4" />
                 Inställningar
               </Link>
@@ -128,7 +130,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title="Inställningar">
-            <Link href="/athlete/settings/nutrition">
+            <Link href={`${basePath}/athlete/settings/nutrition`}>
               <Settings className="h-4 w-4" />
             </Link>
           </Button>
