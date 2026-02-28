@@ -191,22 +191,33 @@ export async function GET(request: NextRequest) {
       chronicLoad += tss
     }
 
+    // Count days with actual data in the 28-day window
+    const daysWithData = dates.filter(dateStr => new Date(dateStr) >= twentyEightDaysAgo).length
+
     // Calculate averages
     const weeklyTSS = acuteLoad
     const dailyAvgTSS = Math.round(acuteLoad / 7)
     const chronicAvg = Math.round(chronicLoad / 28)
 
-    // ACWR calculation (using 28-day chronic)
-    const acwr = chronicAvg > 0 ? (dailyAvgTSS / chronicAvg) : 0
+    // ACWR calculation — require at least 21 days of data for reliability
+    let acwr: number
+    let riskLevel: 'low' | 'optimal' | 'high' | 'very_high' | 'insufficient_data'
 
-    // Determine risk level based on ACWR
-    let riskLevel: 'low' | 'optimal' | 'high' | 'very_high' = 'optimal'
-    if (acwr < 0.8) {
-      riskLevel = 'low'
-    } else if (acwr > 1.5) {
-      riskLevel = 'very_high'
-    } else if (acwr > 1.3) {
-      riskLevel = 'high'
+    if (daysWithData < 21) {
+      acwr = 0
+      riskLevel = 'insufficient_data'
+    } else {
+      acwr = chronicAvg > 0 ? (dailyAvgTSS / chronicAvg) : 0
+
+      // Determine risk level based on ACWR
+      riskLevel = 'optimal'
+      if (acwr < 0.8) {
+        riskLevel = 'low'
+      } else if (acwr > 1.5) {
+        riskLevel = 'very_high'
+      } else if (acwr > 1.3) {
+        riskLevel = 'high'
+      }
     }
 
     // Determine trend
@@ -227,6 +238,7 @@ export async function GET(request: NextRequest) {
       trend,
       riskLevel,
       // Deduplication info for debugging/transparency
+      daysWithData,
       deduplication: {
         totalActivities: allActivities.length + manualTrainingLoads.length,
         duplicatesRemoved,

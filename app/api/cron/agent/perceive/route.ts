@@ -9,7 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createPerception } from '@/lib/agent/perception'
+import { createPerception, storePerception } from '@/lib/agent/perception'
 import { logger } from '@/lib/logger'
 
 // Verify cron secret to prevent unauthorized access
@@ -65,7 +65,11 @@ export async function GET(request: Request) {
       const batch = eligibleClients.slice(i, i + batchSize)
 
       const results = await Promise.allSettled(
-        batch.map((client) => createPerception(client.id))
+        batch.map(async (client) => {
+          const perception = await createPerception(client.id)
+          await storePerception(perception)
+          return perception
+        })
       )
 
       results.forEach((result, index) => {

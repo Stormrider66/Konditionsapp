@@ -9,7 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { makeDecisions } from '@/lib/agent/decision/engine'
+import { makeDecisions, storeDecisions } from '@/lib/agent/decision/engine'
 import { getLatestPerception } from '@/lib/agent/perception'
 import { logger } from '@/lib/logger'
 
@@ -86,6 +86,7 @@ export async function GET(request: Request) {
             throw new Error('Perception not found')
           }
           const result = await makeDecisions(perception)
+          await storeDecisions(result, perceptionData.id, perceptionData.clientId)
           return result
         })
       )

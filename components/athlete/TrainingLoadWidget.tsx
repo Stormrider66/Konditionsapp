@@ -32,7 +32,7 @@ interface TrainingLoadData {
   acwr: number // Acute:Chronic ratio
   byType: Record<string, { count: number; tss: number; distance: number }>
   trend: 'increasing' | 'stable' | 'decreasing'
-  riskLevel: 'low' | 'optimal' | 'high' | 'very_high'
+  riskLevel: 'low' | 'optimal' | 'high' | 'very_high' | 'insufficient_data'
 }
 
 interface TrainingLoadWidgetProps {
@@ -155,6 +155,8 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
         return { color: 'text-orange-600', bg: 'bg-orange-100', label: 'Hög belastning', icon: '⚠️' }
       case 'very_high':
         return { color: 'text-red-600', bg: 'bg-red-100', label: 'Varning!', icon: '🔴' }
+      case 'insufficient_data':
+        return { color: 'text-gray-600', bg: 'bg-gray-100', label: 'Otillräcklig data', icon: '📊' }
       default:
         return { color: 'text-gray-600', bg: 'bg-gray-100', label: 'Okänd', icon: '❓' }
     }
@@ -196,18 +198,28 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-600 dark:text-slate-400 transition-colors">ACWR (Akut:Kronisk)</span>
-              <span className="font-medium text-slate-900 dark:text-white transition-colors">{data.acwr.toFixed(2)}</span>
+              {data.riskLevel !== 'insufficient_data' && (
+                <span className="font-medium text-slate-900 dark:text-white transition-colors">{data.acwr.toFixed(2)}</span>
+              )}
             </div>
-            <div className="relative">
-              <Progress value={acwrPercent} className="h-2 bg-slate-200 dark:bg-slate-800 transition-colors" indicatorClassName="bg-cyan-600 dark:bg-cyan-500" />
-              {/* Optimal zone indicator */}
-              <div className="absolute top-0 left-[53%] w-[27%] h-2 border-l-2 border-r-2 border-green-500/50 opacity-50" />
-            </div>
-            <div className="flex justify-between text-xs text-slate-500">
-              <span>0.8 (Låg)</span>
-              <span className="text-green-600 dark:text-green-500">0.8-1.3 (Optimal)</span>
-              <span>1.5+ (Hög)</span>
-            </div>
+            {data.riskLevel === 'insufficient_data' ? (
+              <p className="text-xs text-slate-500">
+                Minst 21 dagars data krävs för tillförlitlig ACWR
+              </p>
+            ) : (
+              <>
+                <div className="relative">
+                  <Progress value={acwrPercent} className="h-2 bg-slate-200 dark:bg-slate-800 transition-colors" indicatorClassName="bg-cyan-600 dark:bg-cyan-500" />
+                  {/* Optimal zone indicator */}
+                  <div className="absolute top-0 left-[53%] w-[27%] h-2 border-l-2 border-r-2 border-green-500/50 opacity-50" />
+                </div>
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>0.8 (Låg)</span>
+                  <span className="text-green-600 dark:text-green-500">0.8-1.3 (Optimal)</span>
+                  <span>1.5+ (Hög)</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Activity breakdown */}
@@ -279,18 +291,28 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">ACWR (Akut:Kronisk)</span>
-            <span className="font-medium">{data.acwr.toFixed(2)}</span>
+            {data.riskLevel !== 'insufficient_data' && (
+              <span className="font-medium">{data.acwr.toFixed(2)}</span>
+            )}
           </div>
-          <div className="relative">
-            <Progress value={acwrPercent} className="h-2" />
-            {/* Optimal zone indicator */}
-            <div className="absolute top-0 left-[53%] w-[27%] h-2 border-l-2 border-r-2 border-green-500 opacity-50" />
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>0.8 (Låg)</span>
-            <span className="text-green-600">0.8-1.3 (Optimal)</span>
-            <span>1.5+ (Hög)</span>
-          </div>
+          {data.riskLevel === 'insufficient_data' ? (
+            <p className="text-xs text-muted-foreground">
+              Minst 21 dagars data krävs för tillförlitlig ACWR
+            </p>
+          ) : (
+            <>
+              <div className="relative">
+                <Progress value={acwrPercent} className="h-2" />
+                {/* Optimal zone indicator */}
+                <div className="absolute top-0 left-[53%] w-[27%] h-2 border-l-2 border-r-2 border-green-500 opacity-50" />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>0.8 (Låg)</span>
+                <span className="text-green-600">0.8-1.3 (Optimal)</span>
+                <span>1.5+ (Hög)</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Activity breakdown */}

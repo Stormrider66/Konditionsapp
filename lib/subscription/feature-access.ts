@@ -251,6 +251,36 @@ export async function checkAthleteFeatureAccess(
       if (featureConfig?.enabled) {
         return { allowed: true }
       }
+
+      // Fallback: check if this client's user has a coach subscription that grants access
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { userId: true },
+      })
+
+      if (client?.userId) {
+        const coachSub = await prisma.subscription.findUnique({
+          where: { userId: client.userId },
+        })
+
+        if (coachSub) {
+          const isActive = coachSub.status === 'ACTIVE' ||
+            (coachSub.status === 'TRIAL' && coachSub.trialEndsAt && coachSub.trialEndsAt > new Date())
+
+          if (isActive) {
+            const coachTier = coachSub.tier as string
+            // PRO/ENTERPRISE coaches get all athlete features
+            if (coachTier === 'PRO' || coachTier === 'ENTERPRISE') {
+              return { allowed: true }
+            }
+            // BASIC coaches get most features but not advanced_intelligence
+            if (coachTier === 'BASIC' && feature !== 'advanced_intelligence') {
+              return { allowed: true }
+            }
+          }
+        }
+      }
+
       return {
         allowed: false,
         reason: `Denna funktion kräver en uppgraderad prenumeration.`,
