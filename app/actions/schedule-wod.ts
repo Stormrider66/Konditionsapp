@@ -3,39 +3,31 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { createClient } from '@/lib/supabase/server'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 
 export async function scheduleWODToDashboard(wodId: string) {
   try {
-    // 1. Authenticate
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // 1. Authenticate and resolve correct clientId (handles both ATHLETE and COACH in athlete mode)
+    const resolved = await resolveAthleteClientId()
 
-    if (!user) {
+    if (!resolved) {
       return { success: false, error: 'Ej inloggad' }
     }
 
-    // 2. Look up client from auth user
-    const client = await prisma.client.findFirst({
-      where: { userId: user.id }
-    })
+    const clientId = resolved.clientId
 
-    if (!client) {
-      return { success: false, error: 'Klientprofil hittades inte' }
-    }
-
-    // 3. Fetch the WOD and verify ownership
+    // 2. Fetch the WOD and verify ownership
     const wod = await prisma.aIGeneratedWOD.findUnique({
       where: { id: wodId }
     })
 
-    if (!wod || wod.clientId !== client.id) {
+    if (!wod || wod.clientId !== clientId) {
       return { success: false, error: 'Passet hittades inte' }
     }
 
-    // 4. Find today's Training Day for this athlete
+    // 3. Find today's Training Day for this athlete
     const activeProgram = await prisma.trainingProgram.findFirst({
-      where: { clientId: client.id, isActive: true },
+      where: { clientId, isActive: true },
       include: {
         weeks: {
           include: {
@@ -60,7 +52,7 @@ export async function scheduleWODToDashboard(wodId: string) {
       return { success: false, error: 'Du behöver ett aktivt träningsprogram för att schemalägga pass' }
     }
 
-    // 5. Parse the WOD JSON structure
+    // 4. Parse the WOD JSON structure
     const workoutData = wod.workoutJson as any
     const sections = workoutData.sections || []
 
@@ -91,7 +83,7 @@ export async function scheduleWODToDashboard(wodId: string) {
       OTHER: 'TRÄNING'
     }
 
-    // 6. Create the official Workout record
+    // 5. Create the official Workout record
     const officialWorkout = await prisma.workout.create({
       data: {
         dayId: targetDayId,
@@ -124,7 +116,9 @@ export async function scheduleWODToDashboard(wodId: string) {
 
     logger.info('Scheduled AI WOD to Hero Card', { wodId, workoutId: officialWorkout.id })
 
+    // Revalidate both standard and business-scoped dashboard paths
     revalidatePath('/athlete/dashboard')
+    revalidatePath('/[businessSlug]/athlete/dashboard', 'page')
 
     return { success: true, workoutId: officialWorkout.id }
   } catch (error) {

@@ -9,7 +9,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { generateEmbedding, searchSystemChunks, getVectorType } from '@/lib/ai/embeddings'
+import { generateEmbedding, searchSystemChunks, getVectorType, ensureVectorColumn } from '@/lib/ai/embeddings'
 import { logger } from '@/lib/logger'
 
 export interface MatchedSkill {
@@ -37,6 +37,55 @@ interface KnowledgeSkillRow {
 
 // Max total tokens of auto-retrieved content (~4 chars per token)
 const MAX_SKILL_CONTEXT_CHARS = 12000 // ~3000 tokens
+
+// Track whether skill embeddings have been backfilled this server lifecycle
+let skillEmbeddingsChecked = false
+
+/**
+ * Backfill embeddings for KnowledgeSkill rows that are missing them.
+ */
+async function ensureSkillEmbeddings(
+  skills: KnowledgeSkillRow[],
+  apiKey: string
+): Promise<void> {
+  if (skillEmbeddingsChecked) return
+
+  try {
+    const skillsWithEmbedding = await prisma.$queryRawUnsafe<{ id: string }[]>(
+      `SELECT id FROM "KnowledgeSkill" WHERE embedding IS NOT NULL`
+    )
+    const embeddedIds = new Set(skillsWithEmbedding.map(s => s.id))
+    const missingSkills = skills.filter(s => !embeddedIds.has(s.id))
+
+    if (missingSkills.length === 0) {
+      skillEmbeddingsChecked = true
+      return
+    }
+
+    logger.info(`Backfilling embeddings for ${missingSkills.length} knowledge skills`)
+    const vtype = await getVectorType()
+
+    for (const skill of missingSkills) {
+      try {
+        const text = `${skill.name} ${skill.nameEn || ''} ${skill.description} ${skill.keywords.join(' ')}`
+        const { embedding } = await generateEmbedding(text, apiKey)
+        const embeddingArray = `[${embedding.join(',')}]`
+
+        await prisma.$executeRawUnsafe(
+          `UPDATE "KnowledgeSkill" SET embedding = $1::${vtype} WHERE id = $2`,
+          embeddingArray,
+          skill.id
+        )
+      } catch (error) {
+        logger.warn(`Failed to embed knowledge skill ${skill.id}`, {}, error)
+      }
+    }
+
+    skillEmbeddingsChecked = true
+  } catch (error) {
+    logger.warn('Failed to backfill skill embeddings', {}, error)
+  }
+}
 
 /**
  * Match knowledge skills to a user query using keyword and/or embedding similarity.
@@ -104,6 +153,10 @@ export async function matchKnowledgeSkills(
 
   // Tier 2: Embedding similarity (only if keyword matching found < 2 results)
   try {
+    // Ensure the embedding column exists and skills have embeddings
+    await ensureVectorColumn('KnowledgeSkill')
+    await ensureSkillEmbeddings(skills, openaiKey)
+
     const { embedding: queryEmbedding } = await generateEmbedding(query, openaiKey)
     const validatedEmbedding = queryEmbedding.map((val, idx) => {
       const num = Number(val)

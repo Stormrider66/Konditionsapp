@@ -173,8 +173,8 @@ export async function getUserOpenAIKey(userId: string): Promise<string | null> {
   return keys.openaiKey
 }
 
-// Track if we've initialized the vector column
-let vectorColumnInitialized = false;
+// Track if we've initialized vector columns per table
+const vectorColumnsInitialized: Record<string, boolean> = {};
 
 // Cache the working vector type to avoid repeated errors
 // Supabase typically uses 'extensions.vector', local/other setups use 'vector'
@@ -195,33 +195,33 @@ export async function getVectorType(): Promise<'extensions.vector' | 'vector'> {
 }
 
 /**
- * Ensure the embedding column exists with the correct type
+ * Ensure the embedding column exists on a table with the correct vector type.
  */
-async function ensureVectorColumn(): Promise<void> {
-  if (vectorColumnInitialized) return;
+export async function ensureVectorColumn(tableName: string = 'KnowledgeChunk'): Promise<void> {
+  if (vectorColumnsInitialized[tableName]) return;
 
   try {
-    // Check if the column exists
-    const columnCheck = await prisma.$queryRaw<{ exists: boolean }[]>`
-      SELECT EXISTS (
+    const columnCheck = await prisma.$queryRawUnsafe<{ exists: boolean }[]>(
+      `SELECT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'KnowledgeChunk' AND column_name = 'embedding'
-      ) as exists
-    `;
+        WHERE table_name = $1 AND column_name = 'embedding'
+      ) as exists`,
+      tableName
+    );
 
     if (!columnCheck[0]?.exists) {
-      logger.debug('Creating embedding column');
+      logger.debug(`Creating embedding column on ${tableName}`);
       const vtype = await getVectorType();
       await prisma.$executeRawUnsafe(`
-        ALTER TABLE "KnowledgeChunk"
+        ALTER TABLE "${tableName}"
         ADD COLUMN IF NOT EXISTS embedding ${vtype}(1536)
       `);
-      logger.debug('Embedding column created');
+      logger.debug(`Embedding column created on ${tableName}`);
     }
 
-    vectorColumnInitialized = true;
+    vectorColumnsInitialized[tableName] = true;
   } catch (error) {
-    logger.error('Failed to ensure vector column', undefined, error);
+    logger.error(`Failed to ensure vector column on ${tableName}`, undefined, error);
     throw error;
   }
 }
