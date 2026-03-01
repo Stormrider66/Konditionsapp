@@ -12,7 +12,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Activity, Flame, Timer, Dumbbell, Play, Zap, Route, TrendingUp, Clock, MapPin } from 'lucide-react'
+import { Activity, Flame, Timer, Dumbbell, Play, Zap, Route, TrendingUp, Clock, MapPin, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
@@ -33,6 +33,7 @@ interface HeroWorkoutCardProps {
   /** Workout modification from injury/readiness system (Gap 4 fix) */
   modification?: WorkoutModification
   basePath?: string
+  onRemove?: () => void
 }
 
 // Map category/pillar to image paths
@@ -288,7 +289,7 @@ function formatVolume(volume: number): string {
   return `${Math.round(volume)} kg`
 }
 
-export function HeroWorkoutCard({ workout, athleteName, modification, basePath = '' }: HeroWorkoutCardProps) {
+export function HeroWorkoutCard({ workout, athleteName, modification, basePath = '', onRemove }: HeroWorkoutCardProps) {
   // Generate focus if not already set
   const focus: WorkoutFocus = useMemo(() => {
     if (workout.heroTitle && workout.heroDescription && workout.heroCategory) {
@@ -321,6 +322,17 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
 
   return (
     <GlassCard className="lg:col-span-2 rounded-2xl group transition-all">
+      {/* Remove button */}
+      {!isCompleted && onRemove && (
+        <button
+          onClick={onRemove}
+          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-black/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-black/20 dark:hover:bg-white/20 transition-all"
+          aria-label="Ta bort pass"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+
       {/* Hover gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 

@@ -402,6 +402,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   // Fetch workouts with program info
   const todaysWorkoutsWithProgram = await prisma.workout.findMany({
     where: {
+      status: { not: 'CANCELLED' },
       day: {
         date: { gte: todayStartTz, lte: todayEndTz },
         week: { program: { clientId: clientId, isActive: true } }
@@ -426,6 +427,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
   const upcomingWorkoutsWithProgram = await prisma.workout.findMany({
     where: {
+      status: { not: 'CANCELLED' },
       day: {
         date: { gte: upcomingStartTz, lte: upcomingEndTz },
         week: { program: { clientId: clientId, isActive: true } }

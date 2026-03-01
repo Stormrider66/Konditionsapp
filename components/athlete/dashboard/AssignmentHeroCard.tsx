@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Play, TrendingUp, Clock, MapPin, Timer } from 'lucide-react'
+import { Play, TrendingUp, Clock, MapPin, Timer, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import {
@@ -16,9 +16,10 @@ interface AssignmentHeroCardProps {
   assignment: DashboardAssignment
   athleteName?: string
   basePath?: string
+  onRemove?: () => void
 }
 
-export function AssignmentHeroCard({ assignment, athleteName, basePath = '' }: AssignmentHeroCardProps) {
+export function AssignmentHeroCard({ assignment, athleteName, basePath = '', onRemove }: AssignmentHeroCardProps) {
   const isCompleted = assignment.status === 'COMPLETED'
   const TypeIcon = getAssignmentTypeIcon(assignment.assignmentType)
   const typeLabel = getAssignmentTypeLabel(assignment.assignmentType)
@@ -27,6 +28,17 @@ export function AssignmentHeroCard({ assignment, athleteName, basePath = '' }: A
 
   return (
     <GlassCard className="lg:col-span-2 rounded-2xl group transition-all">
+      {/* Remove button */}
+      {!isCompleted && onRemove && (
+        <button
+          onClick={onRemove}
+          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-black/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-black/20 dark:hover:bg-white/20 transition-all"
+          aria-label="Ta bort pass"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+
       {/* Hover gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 

@@ -2,11 +2,14 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { HeroWorkoutCard } from './HeroWorkoutCard'
 import { AssignmentHeroCard } from './AssignmentHeroCard'
 import { WODHeroCard } from './WODHeroCard'
+import { RemoveWorkoutDialog } from './RemoveWorkoutDialog'
+import { removeDashboardItem } from '@/app/actions/remove-dashboard-item'
 import type { DashboardItem } from '@/types/dashboard-items'
 import { isItemCompleted } from '@/types/dashboard-items'
 
@@ -16,11 +19,26 @@ interface HeroCardSliderProps {
   basePath?: string
 }
 
+function buildPayload(item: DashboardItem) {
+  switch (item.kind) {
+    case 'wod':
+      return { kind: 'wod' as const, id: item.id }
+    case 'program':
+      return { kind: 'program' as const, workoutId: item.workout.id, isCustom: item.workout.isCustom }
+    case 'assignment':
+      return { kind: 'assignment' as const, assignmentType: item.assignmentType, id: item.id }
+  }
+}
+
 export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderProps) {
   // Auto-focus on first incomplete item
   const initialIndex = items.findIndex(item => !isItemCompleted(item))
   const [activeIndex, setActiveIndex] = useState(Math.max(0, initialIndex))
   const touchStartX = useRef<number | null>(null)
+
+  // Remove dialog state
+  const [removeTarget, setRemoveTarget] = useState<DashboardItem | null>(null)
+  const [isRemoving, setIsRemoving] = useState(false)
 
   // Update activeIndex if items change (e.g. new WOD created via chat)
   useEffect(() => {
@@ -50,9 +68,40 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
     }
   }, [goNext, goPrev])
 
+  const handleRemoveConfirm = useCallback(async () => {
+    if (!removeTarget) return
+    setIsRemoving(true)
+    try {
+      const result = await removeDashboardItem(buildPayload(removeTarget))
+      if (!result.success) {
+        toast.error(result.error || 'Kunde inte ta bort passet')
+      }
+    } catch {
+      toast.error('Något gick fel')
+    } finally {
+      setIsRemoving(false)
+      setRemoveTarget(null)
+    }
+  }, [removeTarget])
+
+  const handleRemoveRequest = useCallback((item: DashboardItem) => {
+    setRemoveTarget(item)
+  }, [])
+
   // Single item - no slider needed
   if (items.length === 1) {
-    return renderItem(items[0], athleteName, basePath)
+    return (
+      <>
+        {renderItem(items[0], athleteName, basePath, () => handleRemoveRequest(items[0]))}
+        <RemoveWorkoutDialog
+          item={removeTarget}
+          open={!!removeTarget}
+          onOpenChange={(open) => { if (!open) setRemoveTarget(null) }}
+          onConfirm={handleRemoveConfirm}
+          isRemoving={isRemoving}
+        />
+      </>
+    )
   }
 
   const current = items[activeIndex]
@@ -86,7 +135,7 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
       )}
 
       {/* Hero card content */}
-      {renderItem(current, athleteName, basePath)}
+      {renderItem(current, athleteName, basePath, () => handleRemoveRequest(current))}
 
       {/* Dot indicators + counter */}
       <div className="flex items-center justify-center gap-2 mt-3">
@@ -116,11 +165,20 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
           })}
         </div>
       </div>
+
+      {/* Shared remove dialog */}
+      <RemoveWorkoutDialog
+        item={removeTarget}
+        open={!!removeTarget}
+        onOpenChange={(open) => { if (!open) setRemoveTarget(null) }}
+        onConfirm={handleRemoveConfirm}
+        isRemoving={isRemoving}
+      />
     </div>
   )
 }
 
-function renderItem(item: DashboardItem, athleteName?: string, basePath?: string) {
+function renderItem(item: DashboardItem, athleteName?: string, basePath?: string, onRemove?: () => void) {
   switch (item.kind) {
     case 'program':
       return (
@@ -128,6 +186,7 @@ function renderItem(item: DashboardItem, athleteName?: string, basePath?: string
           workout={item.workout}
           athleteName={athleteName}
           basePath={basePath}
+          onRemove={onRemove}
         />
       )
     case 'assignment':
@@ -136,6 +195,7 @@ function renderItem(item: DashboardItem, athleteName?: string, basePath?: string
           assignment={item}
           athleteName={athleteName}
           basePath={basePath}
+          onRemove={onRemove}
         />
       )
     case 'wod':
@@ -144,6 +204,7 @@ function renderItem(item: DashboardItem, athleteName?: string, basePath?: string
           wod={item}
           athleteName={athleteName}
           basePath={basePath}
+          onRemove={onRemove}
         />
       )
   }

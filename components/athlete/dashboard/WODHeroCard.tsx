@@ -8,7 +8,7 @@
  */
 
 import Link from 'next/link'
-import { Sparkles, Timer, Activity, Play, TrendingUp, Clock } from 'lucide-react'
+import { Sparkles, Timer, Activity, Play, TrendingUp, Clock, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import {
@@ -22,15 +22,27 @@ interface WODHeroCardProps {
   wod: DashboardWOD
   athleteName?: string
   basePath?: string
+  onRemove?: () => void
 }
 
-export function WODHeroCard({ wod, athleteName, basePath = '' }: WODHeroCardProps) {
+export function WODHeroCard({ wod, athleteName, basePath = '', onRemove }: WODHeroCardProps) {
   const isCompleted = wod.status === 'COMPLETED'
   const isStarted = wod.status === 'STARTED'
   const route = getWODRoute(wod, basePath)
 
   return (
     <GlassCard className="lg:col-span-2 rounded-2xl group overflow-hidden transition-all">
+      {/* Remove button */}
+      {!isCompleted && onRemove && (
+        <button
+          onClick={onRemove}
+          className="absolute top-4 right-4 z-20 p-1.5 rounded-full bg-black/10 dark:bg-white/10 text-slate-600 dark:text-slate-300 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:bg-black/20 dark:hover:bg-white/20 transition-all"
+          aria-label="Ta bort pass"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+
       {/* Emerald gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-teal-500/5 pointer-events-none" />
 
