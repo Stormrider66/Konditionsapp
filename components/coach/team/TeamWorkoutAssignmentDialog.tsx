@@ -212,7 +212,7 @@ export function TeamWorkoutAssignmentDialog({
         : 'Hybridpass'
 
   const dialogContent = (
-    <DialogContent className="sm:max-w-md">
+    <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
@@ -223,7 +223,7 @@ export function TeamWorkoutAssignmentDialog({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-4 py-4">
+      <div className="space-y-4 py-4 overflow-y-auto min-h-0">
         {/* Team Selection */}
         <div className="space-y-2">
           <Label>V\u00e4lj lag</Label>
@@ -301,6 +301,7 @@ export function TeamWorkoutAssignmentDialog({
                         <Checkbox
                           checked={isIncluded}
                           onCheckedChange={() => toggleMemberExclusion(member.id)}
+                          onClick={(e) => e.stopPropagation()}
                         />
                         <div className="flex-1">
                           <div className="font-medium text-sm">{member.name}</div>

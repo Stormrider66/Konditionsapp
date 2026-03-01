@@ -286,6 +286,7 @@ export function ShareResearchDialog({
                       <Checkbox
                         checked={selectedAthletes.includes(linkedAthleteId)}
                         onCheckedChange={() => toggleAthlete(linkedAthleteId)}
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                         <UserPlus className="h-4 w-4 text-primary" />
@@ -310,6 +311,7 @@ export function ShareResearchDialog({
                         <Checkbox
                           checked={selectedAthletes.includes(client.id)}
                           onCheckedChange={() => toggleAthlete(client.id)}
+                          onClick={(e) => e.stopPropagation()}
                         />
                         <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                           <User className="h-4 w-4 text-muted-foreground" />

@@ -173,7 +173,7 @@ export function CardioSessionAssignmentDialog({
   }
 
   const dialogContent = (
-    <DialogContent className="sm:max-w-md">
+    <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
@@ -184,7 +184,7 @@ export function CardioSessionAssignmentDialog({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-4 py-4">
+      <div className="space-y-4 py-4 overflow-y-auto min-h-0">
         {/* Date Selection */}
         <div className="space-y-2">
           <Label htmlFor="assignedDate" className="flex items-center gap-2">
@@ -228,6 +228,7 @@ export function CardioSessionAssignmentDialog({
                     <Checkbox
                       checked={selectedAthletes.includes(athlete.id)}
                       onCheckedChange={() => toggleAthlete(athlete.id)}
+                      onClick={(e) => e.stopPropagation()}
                     />
                     <div className="flex-1">
                       <div className="font-medium text-sm">{athlete.name}</div>
