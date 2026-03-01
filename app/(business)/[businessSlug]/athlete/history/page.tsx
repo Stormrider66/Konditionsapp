@@ -93,15 +93,8 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
     },
   }
 
-  // Filter by workout type
-  if (sp.type) {
-    whereClause.workout = {
-      type: sp.type,
-    }
-  }
-
-  // Fetch workout logs and ad-hoc workouts in parallel
-  const [logs, adHocWorkouts] = await Promise.all([
+  // Fetch workout logs, ad-hoc workouts, and all 4 assignment types in parallel
+  const [logs, adHocWorkouts, strengthAssignments, cardioAssignments, hybridAssignments, agilityAssignments] = await Promise.all([
     prisma.workoutLog.findMany({
       where: whereClause,
       include: {
@@ -148,6 +141,54 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
         workoutDate: 'desc',
       },
     }),
+    // Completed strength session assignments
+    prisma.strengthSessionAssignment.findMany({
+      where: {
+        athleteId: user.id,
+        status: 'COMPLETED',
+        completedAt: { gte: startDate, lte: now },
+      },
+      include: {
+        session: { select: { name: true } },
+      },
+      orderBy: { completedAt: 'desc' },
+    }),
+    // Completed cardio session assignments
+    prisma.cardioSessionAssignment.findMany({
+      where: {
+        athleteId: user.id,
+        status: 'COMPLETED',
+        completedAt: { gte: startDate, lte: now },
+      },
+      include: {
+        session: { select: { name: true, sport: true } },
+      },
+      orderBy: { completedAt: 'desc' },
+    }),
+    // Completed hybrid workout assignments
+    prisma.hybridWorkoutAssignment.findMany({
+      where: {
+        athleteId: user.id,
+        status: 'COMPLETED',
+        completedAt: { gte: startDate, lte: now },
+      },
+      include: {
+        workout: { select: { name: true, format: true } },
+      },
+      orderBy: { completedAt: 'desc' },
+    }),
+    // Completed agility workout assignments
+    prisma.agilityWorkoutAssignment.findMany({
+      where: {
+        athleteId: user.id,
+        status: 'COMPLETED',
+        completedAt: { gte: startDate, lte: now },
+      },
+      include: {
+        workout: { select: { name: true } },
+      },
+      orderBy: { completedAt: 'desc' },
+    }),
   ])
 
   // Parse ad-hoc workout data
@@ -167,16 +208,70 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
     }
   })
 
-  // Calculate stats (including ad-hoc workouts)
-  const totalWorkouts = logs.length + adHocWorkouts.length
+  // Map assignment items for stats and merging
+  const strengthItems = strengthAssignments.map((a) => ({
+    id: a.id,
+    date: a.completedAt!,
+    name: a.session.name,
+    type: 'STRENGTH' as const,
+    duration: a.duration || null, // already in minutes
+    perceivedEffort: a.rpe || null,
+    distance: null as number | null,
+    source: 'strength-assignment' as const,
+    linkHref: `${basePath}/athlete/workout/${a.id}`,
+  }))
+
+  const cardioItems = cardioAssignments.map((a) => ({
+    id: a.id,
+    date: a.completedAt!,
+    name: a.session.name,
+    type: 'CARDIO' as const,
+    duration: a.actualDuration ? Math.round(a.actualDuration / 60) : null, // seconds → minutes
+    perceivedEffort: null as number | null,
+    distance: a.actualDistance ? a.actualDistance / 1000 : null, // meters → km
+    source: 'cardio-assignment' as const,
+    linkHref: `${basePath}/athlete/cardio`,
+  }))
+
+  const hybridItems = hybridAssignments.map((a) => ({
+    id: a.id,
+    date: a.completedAt!,
+    name: a.workout.name,
+    type: 'HYBRID' as const,
+    duration: null as number | null,
+    perceivedEffort: null as number | null,
+    distance: null as number | null,
+    source: 'hybrid-assignment' as const,
+    linkHref: `${basePath}/athlete/hybrid/${a.id}`,
+  }))
+
+  const agilityItems = agilityAssignments.map((a) => ({
+    id: a.id,
+    date: a.completedAt!,
+    name: a.workout.name,
+    type: 'AGILITY' as const,
+    duration: null as number | null,
+    perceivedEffort: null as number | null,
+    distance: null as number | null,
+    source: 'agility-assignment' as const,
+    linkHref: `${basePath}/athlete/agility/${a.id}`,
+  }))
+
+  const allAssignmentItems = [...strengthItems, ...cardioItems, ...hybridItems, ...agilityItems]
+
+  // Calculate stats (including ad-hoc workouts and assignments)
+  const totalWorkouts = logs.length + adHocWorkouts.length + allAssignmentItems.length
   const totalDistance = logs.reduce((sum, log) => sum + (log.distance || 0), 0) +
-    adHocWithParsedData.reduce((sum, w) => sum + (w.distance || 0), 0)
+    adHocWithParsedData.reduce((sum, w) => sum + (w.distance || 0), 0) +
+    allAssignmentItems.reduce((sum, a) => sum + (a.distance || 0), 0)
   const totalDuration = logs.reduce((sum, log) => sum + (log.duration || 0), 0) +
-    adHocWithParsedData.reduce((sum, w) => sum + (w.duration || 0), 0)
+    adHocWithParsedData.reduce((sum, w) => sum + (w.duration || 0), 0) +
+    allAssignmentItems.reduce((sum, a) => sum + (a.duration || 0), 0)
 
   const allEfforts = [
     ...logs.filter(log => log.perceivedEffort).map(log => log.perceivedEffort!),
     ...adHocWithParsedData.filter(w => w.perceivedEffort).map(w => w.perceivedEffort!),
+    ...allAssignmentItems.filter(a => a.perceivedEffort).map(a => a.perceivedEffort!),
   ]
   const avgRPE = allEfforts.length > 0
     ? (allEfforts.reduce((sum, e) => sum + e, 0) / allEfforts.length).toFixed(1)
@@ -195,6 +290,8 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
     isAdHoc: boolean
     inputType?: string
     workoutId?: string
+    source?: string
+    linkHref?: string
   }
 
   const historyItems: HistoryItem[] = [
@@ -222,7 +319,22 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
       isAdHoc: true,
       inputType: w.inputType,
     })),
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    ...allAssignmentItems.map((a) => ({
+      id: a.id,
+      date: a.date,
+      name: a.name,
+      type: a.type,
+      programName: undefined,
+      distance: a.distance,
+      duration: a.duration,
+      perceivedEffort: a.perceivedEffort,
+      isAdHoc: false,
+      source: a.source,
+      linkHref: a.linkHref,
+    })),
+  ]
+    .filter((item) => !sp.type || item.type === sp.type)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-7xl mx-auto">
@@ -391,6 +503,21 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
                     Styrka
                   </Badge>
                 </Link>
+                <Link href={`${basePath}/athlete/history?timeframe=${timeframe}&type=CARDIO`}>
+                  <Badge variant={sp.type === 'CARDIO' ? 'default' : 'outline'}>
+                    Kondition
+                  </Badge>
+                </Link>
+                <Link href={`${basePath}/athlete/history?timeframe=${timeframe}&type=HYBRID`}>
+                  <Badge variant={sp.type === 'HYBRID' ? 'default' : 'outline'}>
+                    Hybrid
+                  </Badge>
+                </Link>
+                <Link href={`${basePath}/athlete/history?timeframe=${timeframe}&type=AGILITY`}>
+                  <Badge variant={sp.type === 'AGILITY' ? 'default' : 'outline'}>
+                    Agility
+                  </Badge>
+                </Link>
               </div>
             </div>
           </div>
@@ -447,9 +574,14 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
                                 Ad-hoc
                               </span>
                             )}
+                            {item.source && (
+                              <span className="inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                Studio
+                              </span>
+                            )}
                           </div>
                           <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                            {item.programName || (item.isAdHoc ? 'Eget pass' : '-')}
+                            {item.programName || (item.isAdHoc ? 'Eget pass' : item.source ? 'Studio-pass' : '-')}
                           </div>
                         </div>
                       </TableCell>
@@ -481,6 +613,12 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
                           <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 opacity-50 cursor-default" disabled>
                             -
                           </Button>
+                        ) : item.linkHref ? (
+                          <Link href={item.linkHref}>
+                            <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
+                              Visa
+                            </Button>
+                          </Link>
                         ) : (
                           <Link href={`${basePath}/athlete/workouts/${item.workoutId}`}>
                             <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
@@ -515,6 +653,7 @@ function formatWorkoutType(type: string): string {
     // Ad-hoc workout types
     CARDIO: 'Kondition',
     HYBRID: 'Blandat',
+    AGILITY: 'Agility',
     MIXED: 'Mixat',
     SWIMMING: 'Simning',
     ROWING: 'Rodd',

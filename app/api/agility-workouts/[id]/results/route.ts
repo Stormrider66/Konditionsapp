@@ -155,6 +155,44 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     })
 
+    // Create TrainingLoad entry for agility workout
+    const durationMinutes = (validatedData.totalDuration || 0) / 60
+    if (durationMinutes > 0) {
+      const rpeValue = validatedData.perceivedEffort || 6
+      const agilityTSS = Math.round(durationMinutes * (rpeValue / 10) * 0.9)
+      const intensity = rpeValue <= 3 ? 'EASY' : rpeValue <= 5 ? 'MODERATE' : rpeValue <= 7 ? 'HARD' : 'VERY_HARD'
+
+      const existingLoad = await prisma.trainingLoad.findFirst({
+        where: {
+          clientId,
+          date: today,
+          workoutType: 'AGILITY',
+        },
+      })
+
+      if (existingLoad) {
+        await prisma.trainingLoad.update({
+          where: { id: existingLoad.id },
+          data: {
+            dailyLoad: existingLoad.dailyLoad + agilityTSS,
+            duration: existingLoad.duration + durationMinutes,
+          },
+        })
+      } else {
+        await prisma.trainingLoad.create({
+          data: {
+            clientId,
+            date: today,
+            dailyLoad: agilityTSS,
+            loadType: 'AGILITY_TSS',
+            duration: durationMinutes,
+            intensity,
+            workoutType: 'AGILITY',
+          },
+        })
+      }
+    }
+
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {

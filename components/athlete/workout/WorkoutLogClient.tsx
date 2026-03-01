@@ -427,6 +427,7 @@ function formatWorkoutType(type: string): string {
     RECOVERY: 'Återhämtning',
     SKIING: 'Skidåkning',
     HYROX: 'HYROX',
+    AGILITY: 'Agility',
     OTHER: 'Annat',
   }
   return types[type] || type
