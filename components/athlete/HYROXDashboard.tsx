@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -203,9 +204,13 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
     { key: 'wall_balls', time: settings.wallBallTime, icon: Target, color: 'text-pink-500' },
   ]
 
-  const daysUntilRace = settings.targetRaceDate
-    ? Math.ceil((new Date(settings.targetRaceDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : null
+  // Computed client-side to avoid SSR/client timezone mismatch
+  const [daysUntilRace, setDaysUntilRace] = useState<number | null>(null)
+  useEffect(() => {
+    if (settings.targetRaceDate) {
+      setDaysUntilRace(Math.ceil((new Date(settings.targetRaceDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    }
+  }, [settings.targetRaceDate])
 
   return (
     <div className="space-y-6">

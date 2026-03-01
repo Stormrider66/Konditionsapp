@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -153,6 +154,18 @@ export function SkiingDashboard({
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
+  // Days since test & snow season (computed client-side to avoid SSR/client timezone mismatch)
+  const [daysSinceTest, setDaysSinceTest] = useState<number | null>(null)
+  const [isSnowSeason, setIsSnowSeason] = useState(false)
+  useEffect(() => {
+    const testDate = skiingSettings?.thresholdTestDate
+    if (testDate) {
+      setDaysSinceTest(Math.floor((Date.now() - new Date(testDate).getTime()) / (1000 * 60 * 60 * 24)))
+    }
+    const currentMonth = new Date().getMonth()
+    setIsSnowSeason(currentMonth >= 10 || currentMonth <= 3)
+  }, [skiingSettings?.thresholdTestDate])
+
   if (!skiingSettings) {
     return (
       <Card
@@ -194,13 +207,6 @@ export function SkiingDashboard({
 
   // Parse threshold test date
   const testDate = thresholdTestDate ? new Date(thresholdTestDate) : null
-  const daysSinceTest = testDate
-    ? Math.floor((Date.now() - testDate.getTime()) / (1000 * 60 * 60 * 24))
-    : null
-
-  // Check if currently in snow season (roughly Nov-Apr in Scandinavia)
-  const currentMonth = new Date().getMonth()
-  const isSnowSeason = currentMonth >= 10 || currentMonth <= 3
 
   // Calculate training methods display
   const hasRollerSki = trainingMethods?.includes('roller_ski')

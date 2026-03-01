@@ -13,7 +13,7 @@
  */
 
 import Link from 'next/link'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Moon, Sunrise, Heart, Battery, Calendar, ChevronRight, Sparkles, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -69,7 +69,7 @@ const RECOVERY_MESSAGES = [
   },
 ]
 
-// Get message based on readiness or random
+// Get message based on readiness (deterministic to avoid hydration mismatch)
 function getRecoveryMessage(readinessScore: number | null) {
   if (readinessScore !== null) {
     // Low readiness = emphasize rest
@@ -83,28 +83,28 @@ function getRecoveryMessage(readinessScore: number | null) {
     // High readiness = mental prep
     return RECOVERY_MESSAGES[3] // Sparkles - Mental prep
   }
-  // Random if no readiness data
-  const index = Math.floor(Date.now() / (1000 * 60 * 60)) % RECOVERY_MESSAGES.length
-  return RECOVERY_MESSAGES[index]
+  // Default when no readiness data (stable across SSR/client)
+  return RECOVERY_MESSAGES[0]
 }
 
-// Format date for next workout display
+// Format date for next workout display (absolute format, hydration-safe)
 function formatNextWorkoutDate(date: Date): string {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   const workoutDate = new Date(date)
-  workoutDate.setHours(0, 0, 0, 0)
-
-  const diffDays = Math.round((workoutDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-
-  if (diffDays === 1) return 'Imorgon'
-  if (diffDays === 2) return 'I övermorgon'
-
   const dayNames = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag']
   const monthNames = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
-
   return `${dayNames[workoutDate.getDay()]} ${workoutDate.getDate()} ${monthNames[workoutDate.getMonth()]}`
+}
+
+// Relative date label (client-only, uses current time)
+function getRelativeDateLabel(date: Date): string | null {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const workoutDate = new Date(date)
+  workoutDate.setHours(0, 0, 0, 0)
+  const diffDays = Math.round((workoutDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  if (diffDays === 1) return 'Imorgon'
+  if (diffDays === 2) return 'I övermorgon'
+  return null
 }
 
 // Get workout intensity color
@@ -142,6 +142,19 @@ export function RestDayHeroCard({
 }: RestDayHeroCardProps) {
   const message = useMemo(() => getRecoveryMessage(readinessScore), [readinessScore])
   const MessageIcon = message.icon
+
+  // Relative date labels (client-only to avoid SSR/client timezone mismatch)
+  const [relativeDateLabel, setRelativeDateLabel] = useState<string | null>(null)
+  useEffect(() => {
+    if (nextItem) {
+      const date = nextItem.kind === 'program'
+        ? nextItem.workout.dayDate
+        : nextItem.kind === 'assignment'
+          ? nextItem.assignedDate
+          : nextItem.createdAt
+      setRelativeDateLabel(getRelativeDateLabel(date))
+    }
+  }, [nextItem])
 
   // WOD state
   const [showWODModal, setShowWODModal] = useState(false)
@@ -257,7 +270,7 @@ export function RestDayHeroCard({
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className="text-xs text-orange-600 dark:text-orange-400 font-medium transition-colors">
-                        {formatNextWorkoutDate(nextItem.workout.dayDate)}
+                        {relativeDateLabel || formatNextWorkoutDate(nextItem.workout.dayDate)}
                       </span>
                       <span className={`px-2 py-0.5 rounded text-xs border ${getIntensityBadgeStyle(nextItem.workout.intensity)}`}>
                         {formatIntensity(nextItem.workout.intensity)}
@@ -304,7 +317,7 @@ export function RestDayHeroCard({
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="text-xs text-orange-600 dark:text-orange-400 font-medium transition-colors">
-                          {formatNextWorkoutDate(nextItem.assignedDate)}
+                          {relativeDateLabel || formatNextWorkoutDate(nextItem.assignedDate)}
                         </span>
                         <span className={`px-2 py-0.5 rounded text-xs border inline-flex items-center gap-1 ${nextBadgeStyle}`}>
                           <NextTypeIcon className="w-3 h-3" />
@@ -344,7 +357,7 @@ export function RestDayHeroCard({
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium transition-colors">
-                        {formatNextWorkoutDate(nextItem.createdAt)}
+                        {relativeDateLabel || formatNextWorkoutDate(nextItem.createdAt)}
                       </span>
                       <span className="px-2 py-0.5 rounded text-xs border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 inline-flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />

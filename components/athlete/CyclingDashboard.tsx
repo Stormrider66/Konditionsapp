@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -61,6 +61,15 @@ export function CyclingDashboard({
   const pageCtx = usePageContextOptional()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+
+  // Days since FTP test (computed client-side to avoid SSR/client timezone mismatch)
+  const [daysSinceFtpTest, setDaysSinceFtpTest] = useState<number | null>(null)
+  useEffect(() => {
+    const ftpTestDate = cyclingSettings?.ftpTestDate
+    if (ftpTestDate) {
+      setDaysSinceFtpTest(Math.floor((Date.now() - new Date(ftpTestDate).getTime()) / (1000 * 60 * 60 * 24)))
+    }
+  }, [cyclingSettings?.ftpTestDate])
 
   // Set rich page context for AI chat
   useEffect(() => {
@@ -129,9 +138,6 @@ export function CyclingDashboard({
 
   // Parse FTP test date
   const ftpDate = ftpTestDate ? new Date(ftpTestDate) : null
-  const daysSinceFtpTest = ftpDate
-    ? Math.floor((Date.now() - ftpDate.getTime()) / (1000 * 60 * 60 * 24))
-    : null
 
   return (
     <div className="space-y-6">
