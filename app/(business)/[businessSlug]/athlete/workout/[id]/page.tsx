@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
-import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { StrengthSessionCard } from '@/components/athlete/workout/StrengthSessionCard'
 
@@ -9,11 +8,9 @@ interface PageProps {
 }
 
 export default async function BusinessAthleteWorkoutPage({ params }: PageProps) {
-  const { businessSlug, id: sessionId } = await params
-  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
-
-  const membership = await validateBusinessMembership(businessSlug, user.id)
-  if (!membership) notFound()
+  const { id: sessionId } = await params
+  const { clientId } = await requireAthleteOrCoachInAthleteMode()
+  // Business membership is already validated by the parent layout
 
   // Find the athlete's most recent assignment for this strength session
   const assignment = await prisma.strengthSessionAssignment.findFirst({
