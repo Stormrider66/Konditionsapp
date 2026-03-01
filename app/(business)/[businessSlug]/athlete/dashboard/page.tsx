@@ -6,6 +6,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { SportType } from '@prisma/client'
 import { addDays, startOfDay, endOfDay, subDays, format, differenceInWeeks } from 'date-fns'
+import { tzSafeDayStart, tzSafeDayEnd } from '@/lib/date-utils'
 import Link from 'next/link'
 import { getTranslations } from '@/i18n/server'
 import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
@@ -198,8 +199,13 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   const now = new Date()
   const todayStart = startOfDay(now)
   const todayEnd = endOfDay(now)
+  // Timezone-safe boundaries for training day dates (may be stored at CET/CEST midnight)
+  const todayStartTz = tzSafeDayStart(now)
+  const todayEndTz = tzSafeDayEnd(now)
   const upcomingStart = startOfDay(addDays(now, 1))
   const upcomingEnd = endOfDay(addDays(now, 7))
+  const upcomingStartTz = tzSafeDayStart(addDays(now, 1))
+  const upcomingEndTz = tzSafeDayEnd(addDays(now, 7))
 
   // Parallel data fetching for better performance
   const [
@@ -397,7 +403,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   const todaysWorkoutsWithProgram = await prisma.workout.findMany({
     where: {
       day: {
-        date: { gte: todayStart, lte: todayEnd },
+        date: { gte: todayStartTz, lte: todayEndTz },
         week: { program: { clientId: clientId, isActive: true } }
       }
     },
@@ -421,7 +427,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   const upcomingWorkoutsWithProgram = await prisma.workout.findMany({
     where: {
       day: {
-        date: { gte: upcomingStart, lte: upcomingEnd },
+        date: { gte: upcomingStartTz, lte: upcomingEndTz },
         week: { program: { clientId: clientId, isActive: true } }
       }
     },
@@ -463,7 +469,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     prisma.strengthSessionAssignment.findMany({
       where: {
         athleteId: clientId,
-        assignedDate: { gte: todayStart, lte: upcomingEnd },
+        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
         status: { not: 'SKIPPED' },
       },
       include: {
@@ -477,7 +483,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     prisma.cardioSessionAssignment.findMany({
       where: {
         athleteId: clientId,
-        assignedDate: { gte: todayStart, lte: upcomingEnd },
+        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
         status: { not: 'SKIPPED' },
       },
       include: {
@@ -491,7 +497,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     prisma.hybridWorkoutAssignment.findMany({
       where: {
         athleteId: clientId,
-        assignedDate: { gte: todayStart, lte: upcomingEnd },
+        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
         status: { not: 'SKIPPED' },
       },
       include: {
@@ -505,7 +511,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     prisma.agilityWorkoutAssignment.findMany({
       where: {
         athleteId: clientId,
-        assignedDate: { gte: todayStart, lte: upcomingEnd },
+        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
         status: { notIn: ['SKIPPED'] },
       },
       include: {

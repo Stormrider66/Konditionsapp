@@ -138,6 +138,30 @@ export function createChatTools(
             exerciseCount: totalExercises,
           })
 
+          // Fetch existing exercise images for preview (non-blocking best-effort)
+          const exerciseNamesEn = sections.flatMap(s => s.exercises.map(e => e.name))
+          const exerciseNamesSv = sections.flatMap(s => s.exercises.map(e => e.nameSv))
+          let previewImages: string[] = []
+          try {
+            const existingExercises = await prisma.exercise.findMany({
+              where: {
+                OR: [
+                  { nameEn: { in: exerciseNamesEn, mode: 'insensitive' } },
+                  { nameSv: { in: exerciseNamesSv, mode: 'insensitive' } },
+                  { name: { in: exerciseNamesEn, mode: 'insensitive' } },
+                ],
+                imageUrls: { not: { equals: null } },
+              },
+              select: { imageUrls: true },
+              take: 6,
+            })
+            previewImages = existingExercises
+              .flatMap(e => Array.isArray(e.imageUrls) ? e.imageUrls as string[] : [])
+              .slice(0, 6)
+          } catch (imgErr) {
+            logger.warn('Failed to fetch preview images', { wodId: savedWOD.id }, imgErr)
+          }
+
           // Fire-and-forget: generate exercise images in background
           // This avoids blocking the chat response (Vercel 60s timeout)
           const clientRecord = await prisma.client.findUnique({
@@ -177,6 +201,7 @@ export function createChatTools(
             intensity: intensity || null,
             exerciseCount: totalExercises,
             sectionCount: sections.length,
+            previewImages,
           }
         } catch (error) {
           logger.error('Failed to create WOD via chat tool', { clientId }, error)

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { tzSafeDayStart, tzSafeDayEnd } from '@/lib/date-utils'
 
 export async function scheduleWODToDashboard(wodId: string) {
   try {
@@ -26,31 +27,20 @@ export async function scheduleWODToDashboard(wodId: string) {
     }
 
     // 3. Find today's Training Day for this athlete
-    const activeProgram = await prisma.trainingProgram.findFirst({
-      where: { clientId, isActive: true },
-      include: {
-        weeks: {
-          include: {
-            days: true
-          }
-        }
-      }
+    const now = new Date()
+    const todayDay = await prisma.trainingDay.findFirst({
+      where: {
+        date: { gte: tzSafeDayStart(now), lte: tzSafeDayEnd(now) },
+        week: { program: { clientId, isActive: true } }
+      },
+      orderBy: { date: 'desc' },
     })
 
-    let targetDayId: string
-
-    if (activeProgram) {
-      const firstWeek = activeProgram.weeks[0]
-      const firstDay = firstWeek?.days[0]
-
-      if (firstDay) {
-        targetDayId = firstDay.id
-      } else {
-        return { success: false, error: 'Inga träningsdagar hittades i ditt aktiva program' }
-      }
-    } else {
-      return { success: false, error: 'Du behöver ett aktivt träningsprogram för att schemalägga pass' }
+    if (!todayDay) {
+      return { success: false, error: 'Ingen träningsdag hittades för idag i ditt aktiva program' }
     }
+
+    const targetDayId = todayDay.id
 
     // 4. Parse the WOD JSON structure
     const workoutData = wod.workoutJson as any
