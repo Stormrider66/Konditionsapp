@@ -78,6 +78,39 @@ export default async function BusinessAIStudioPage({ params, searchParams }: Pag
     },
   })
 
+  // If user has no valid personal keys, check business keys as fallback
+  let effectiveKeyStatus = {
+    anthropic: apiKeys?.anthropicKeyValid ?? false,
+    google: apiKeys?.googleKeyValid ?? false,
+    openai: apiKeys?.openaiKeyValid ?? false,
+  }
+
+  if (!effectiveKeyStatus.anthropic && !effectiveKeyStatus.google && !effectiveKeyStatus.openai) {
+    const businessAiKeys = await prisma.businessAiKeys.findFirst({
+      where: {
+        business: {
+          members: {
+            some: { userId: user.id, isActive: true },
+          },
+        },
+      },
+      select: {
+        anthropicKeyValid: true,
+        googleKeyValid: true,
+        openaiKeyValid: true,
+        defaultModelId: true,
+      },
+    })
+
+    if (businessAiKeys) {
+      effectiveKeyStatus = {
+        anthropic: businessAiKeys.anthropicKeyValid,
+        google: businessAiKeys.googleKeyValid,
+        openai: businessAiKeys.openaiKeyValid,
+      }
+    }
+  }
+
   // Fetch recent conversations
   const conversations = await prisma.aIConversation.findMany({
     where: {
@@ -102,7 +135,7 @@ export default async function BusinessAIStudioPage({ params, searchParams }: Pag
     take: 10,
   })
 
-  const hasApiKeys = !!(apiKeys?.anthropicKeyValid || apiKeys?.googleKeyValid)
+  const hasApiKeys = !!(effectiveKeyStatus.anthropic || effectiveKeyStatus.google || effectiveKeyStatus.openai)
 
   // Find the user's default model or fallback to system default
   const defaultModelId = apiKeys?.defaultModelId
@@ -116,11 +149,7 @@ export default async function BusinessAIStudioPage({ params, searchParams }: Pag
       documents={documents}
       conversations={conversations}
       hasApiKeys={hasApiKeys}
-      apiKeyStatus={{
-        anthropic: apiKeys?.anthropicKeyValid ?? false,
-        google: apiKeys?.googleKeyValid ?? false,
-        openai: apiKeys?.openaiKeyValid ?? false,
-      }}
+      apiKeyStatus={effectiveKeyStatus}
       defaultModel={defaultModel || null}
       initialMode={queryParams.mode}
       initialClientId={queryParams.clientId}

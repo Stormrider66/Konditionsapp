@@ -163,6 +163,19 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Functional Fitness</CardTitle>
+          <CardDescription>
+            Slutför onboarding för att se din dashboard med benchmarks, erfarenhetsnivå och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const targets = BENCHMARK_TARGETS[settings.experienceLevel]
 
   const benchmarks = [

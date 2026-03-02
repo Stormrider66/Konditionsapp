@@ -61,6 +61,19 @@ const STRENGTH_LABELS: Record<string, string> = {
 }
 
 export function FloorballDashboard({ settings }: FloorballDashboardProps) {
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Innebandy</CardTitle>
+          <CardDescription>
+            Slutför onboarding för att se din innebandydashboard med position, säsongsfas och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const position = settings.position
   const positionProfile = FLOORBALL_POSITION_PROFILES[position]
   const seasonPhase = FLOORBALL_SEASON_PHASES[settings.seasonPhase]

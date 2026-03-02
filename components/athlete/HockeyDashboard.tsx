@@ -125,6 +125,19 @@ export function HockeyDashboard({ settings }: HockeyDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">Ishockey</CardTitle>
+          <CardDescription>
+            Slutför onboarding för att se din ishockeydashboard med position, säsongsfas och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const phaseInfo = PHASE_INFO[settings.seasonPhase]
   const PhaseIcon = phaseInfo?.icon || Flame
 

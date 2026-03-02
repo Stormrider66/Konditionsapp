@@ -62,6 +62,19 @@ const STRENGTH_LABELS: Record<string, string> = {
 }
 
 export function VolleyballDashboard({ settings }: VolleyballDashboardProps) {
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Volleyboll</CardTitle>
+          <CardDescription>
+            Slutför onboarding för att se din volleybolldashboard med position, säsongsfas och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const position = settings.position
   const positionProfile = VOLLEYBALL_POSITION_PROFILES[position]
   const seasonPhase = VOLLEYBALL_SEASON_PHASES[settings.seasonPhase]

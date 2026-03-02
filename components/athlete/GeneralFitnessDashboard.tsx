@@ -112,6 +112,19 @@ export function GeneralFitnessDashboard({ settings }: GeneralFitnessDashboardPro
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Allmän fitness</CardTitle>
+          <CardDescription>
+            Slutför onboarding för att se din fitnessdashboard med mål, benchmarks och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const goalConfig = GOAL_CONFIG[settings.primaryGoal]
   const GoalIcon = goalConfig?.icon || Target
   const fitnessLevel = FITNESS_LEVEL_LABELS[settings.fitnessLevel]

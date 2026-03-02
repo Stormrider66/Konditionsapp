@@ -69,6 +69,19 @@ const STRENGTH_LABELS: Record<string, string> = {
 }
 
 export function HandballDashboard({ settings }: HandballDashboardProps) {
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Handboll</CardTitle>
+          <CardDescription>
+            Slutför onboarding för att se din handbolldashboard med position, säsongsfas och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const position = settings.position
   const positionProfile = HANDBALL_POSITION_PROFILES[position]
   const seasonPhase = HANDBALL_SEASON_PHASES[settings.seasonPhase]

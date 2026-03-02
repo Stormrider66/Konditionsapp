@@ -72,6 +72,19 @@ const STRENGTH_LABELS: Record<string, string> = {
 }
 
 export function TennisDashboard({ settings }: TennisDashboardProps) {
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Tennis</CardTitle>
+          <CardDescription>
+            Slutför onboarding för att se din tennisdashboard med spelstil, säsongsfas och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const playStyle = settings.playStyle
   const playStyleProfile = TENNIS_PLAYSTYLE_PROFILES[playStyle]
   const seasonPhase = TENNIS_SEASON_PHASES[settings.seasonPhase]

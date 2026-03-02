@@ -22,7 +22,7 @@ import type { FootballSettings } from '@/components/onboarding/FootballOnboardin
 import { MatchScheduleWidget } from './MatchScheduleWidget'
 
 interface FootballDashboardProps {
-  settings: FootballSettings
+  settings: FootballSettings | null | undefined
   recentGPSData?: GPSMatchData[]
 }
 
@@ -151,6 +151,22 @@ const PHASE_FOCUS: Record<string, { focus: string[]; icon: typeof Flame }> = {
 export function FootballDashboard({ settings, recentGPSData = [] }: FootballDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-green-500" />
+            Fotboll
+          </CardTitle>
+          <CardDescription>
+            Du har valt fotboll som din sport. Slutför onboarding för att se din fotbollsdashboard med position, säsongsfas, tester och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
 
   const phaseFocus = PHASE_FOCUS[settings.seasonPhase]
   const PhaseIcon = phaseFocus?.icon || Flame

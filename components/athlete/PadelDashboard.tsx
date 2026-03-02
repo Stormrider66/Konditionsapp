@@ -65,6 +65,19 @@ const STRENGTH_LABELS: Record<string, string> = {
 }
 
 export function PadelDashboard({ settings }: PadelDashboardProps) {
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Padel</CardTitle>
+          <CardDescription>
+            Slutför onboarding för att se din padeldashboard med position, säsongsfas och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const position = settings.position
   const positionProfile = PADEL_POSITION_PROFILES[position]
   const seasonPhase = PADEL_SEASON_PHASES[settings.seasonPhase]

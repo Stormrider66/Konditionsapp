@@ -63,6 +63,19 @@ const STRENGTH_LABELS: Record<string, string> = {
 }
 
 export function BasketballDashboard({ settings }: BasketballDashboardProps) {
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Basket</CardTitle>
+          <CardDescription>
+            Slutför onboarding för att se din basketdashboard med position, säsongsfas och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const position = settings.position
   const positionProfile = BASKETBALL_POSITION_PROFILES[position]
   const seasonPhase = BASKETBALL_SEASON_PHASES[settings.seasonPhase]

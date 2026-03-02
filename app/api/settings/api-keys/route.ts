@@ -42,30 +42,76 @@ export async function GET() {
       where: { userId: user.id },
     });
 
+    const hasPersonalKeys = !!(
+      apiKeys?.anthropicKeyValid ||
+      apiKeys?.googleKeyValid ||
+      apiKeys?.openaiKeyValid
+    )
+
+    // If no valid personal keys, check business keys as fallback
+    let businessKeys: {
+      anthropicKeyEncrypted: string | null
+      googleKeyEncrypted: string | null
+      openaiKeyEncrypted: string | null
+      anthropicKeyValid: boolean
+      googleKeyValid: boolean
+      openaiKeyValid: boolean
+      anthropicKeyLastValidated: Date | null
+      googleKeyLastValidated: Date | null
+      openaiKeyLastValidated: Date | null
+    } | null = null
+
+    if (!hasPersonalKeys) {
+      businessKeys = await prisma.businessAiKeys.findFirst({
+        where: {
+          business: {
+            members: {
+              some: { userId: user.id, isActive: true },
+            },
+          },
+        },
+        select: {
+          anthropicKeyEncrypted: true,
+          googleKeyEncrypted: true,
+          openaiKeyEncrypted: true,
+          anthropicKeyValid: true,
+          googleKeyValid: true,
+          openaiKeyValid: true,
+          anthropicKeyLastValidated: true,
+          googleKeyLastValidated: true,
+          openaiKeyLastValidated: true,
+        },
+      })
+    }
+
+    // Use business keys as fallback if no personal keys
+    const effectiveKeys = hasPersonalKeys ? apiKeys : businessKeys
+
     const status: ApiKeyStatus[] = [
       {
         provider: 'anthropic',
-        configured: !!apiKeys?.anthropicKeyEncrypted,
-        valid: apiKeys?.anthropicKeyValid ?? false,
-        lastValidated: apiKeys?.anthropicKeyLastValidated?.toISOString() ?? null,
+        configured: !!(effectiveKeys as typeof apiKeys)?.anthropicKeyEncrypted,
+        valid: effectiveKeys?.anthropicKeyValid ?? false,
+        lastValidated: effectiveKeys?.anthropicKeyLastValidated?.toISOString() ?? null,
       },
       {
         provider: 'google',
-        configured: !!apiKeys?.googleKeyEncrypted,
-        valid: apiKeys?.googleKeyValid ?? false,
-        lastValidated: apiKeys?.googleKeyLastValidated?.toISOString() ?? null,
+        configured: !!(effectiveKeys as typeof apiKeys)?.googleKeyEncrypted,
+        valid: effectiveKeys?.googleKeyValid ?? false,
+        lastValidated: effectiveKeys?.googleKeyLastValidated?.toISOString() ?? null,
       },
       {
         provider: 'openai',
-        configured: !!apiKeys?.openaiKeyEncrypted,
-        valid: apiKeys?.openaiKeyValid ?? false,
-        lastValidated: apiKeys?.openaiKeyLastValidated?.toISOString() ?? null,
+        configured: !!(effectiveKeys as typeof apiKeys)?.openaiKeyEncrypted,
+        valid: effectiveKeys?.openaiKeyValid ?? false,
+        lastValidated: effectiveKeys?.openaiKeyLastValidated?.toISOString() ?? null,
       },
     ];
 
     return NextResponse.json({
       success: true,
       keys: status,
+      source: hasPersonalKeys ? 'user' : (businessKeys ? 'business' : 'none'),
     });
   } catch (error) {
     logger.error('Get API keys error', {}, error)

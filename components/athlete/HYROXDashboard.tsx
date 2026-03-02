@@ -190,6 +190,19 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
+  if (!settings) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>HYROX</CardTitle>
+          <CardDescription>
+            Slutför onboarding för att se din HYROX-dashboard med stationstider, erfarenhetsnivå och mer.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
   const estimatedTotal = estimateTotalTime(settings)
   const targets = TARGET_TIMES[settings.experienceLevel]
 
