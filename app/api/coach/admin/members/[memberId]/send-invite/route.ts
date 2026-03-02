@@ -1,0 +1,93 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { requireBusinessAdminRole } from '@/lib/auth-utils'
+import { handleApiError } from '@/lib/api-error'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
+import { sendCoachInviteEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
+
+// POST /api/coach/admin/members/[memberId]/send-invite
+export async function POST(
+  _request: NextRequest,
+  { params }: { params: Promise<{ memberId: string }> }
+) {
+  try {
+    const admin = await requireBusinessAdminRole()
+    const businessId = admin.businessId
+    const { memberId } = await params
+
+    // Find the member in this business
+    const member = await prisma.businessMember.findFirst({
+      where: {
+        id: memberId,
+        businessId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    if (!member) {
+      return NextResponse.json(
+        { success: false, error: 'Member not found' },
+        { status: 404 }
+      )
+    }
+
+    const { user } = member
+    const businessName = admin.business.name
+
+    // Generate recovery link for password setup
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+    const supabaseAdmin = createAdminSupabaseClient()
+
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: user.email,
+      options: {
+        redirectTo: `${appUrl}/reset-password`,
+      },
+    })
+
+    if (linkError) {
+      logger.error('Send invite: recovery link generation failed', { email: user.email }, linkError)
+    }
+
+    // Use generated recovery link, or fall back to forgot-password page
+    const setPasswordUrl = linkData?.properties?.action_link || `${appUrl}/forgot-password`
+
+    // Send the invite email
+    const emailResult = await sendCoachInviteEmail(
+      user.email,
+      user.name || user.email,
+      businessName,
+      setPasswordUrl
+    ).catch((emailErr) => {
+      logger.error('Send invite: failed to send email', { email: user.email }, emailErr)
+      return { success: false, error: 'Email send failed' }
+    })
+
+    const emailSent = emailResult?.success ?? false
+
+    if (!emailSent) {
+      return NextResponse.json(
+        { success: false, error: 'Kunde inte skicka e-post. Försök igen senare.' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      emailSent: true,
+      message: `Inbjudan skickad till ${user.email}`,
+    })
+  } catch (error) {
+    return handleApiError(error, 'POST /api/coach/admin/members/[memberId]/send-invite')
+  }
+}

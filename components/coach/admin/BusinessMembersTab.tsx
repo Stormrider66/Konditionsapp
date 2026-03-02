@@ -101,6 +101,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
   const [editingMember, setEditingMember] = useState<BusinessMember | null>(null)
   const [editRole, setEditRole] = useState<MemberRole>('MEMBER')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null)
 
   const fetchMembers = useCallback(async () => {
     setLoading(true)
@@ -224,6 +225,28 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
       fetchMembers()
     } catch (err) {
       console.error('Failed to remove member:', err)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleSendInvite = async (memberId: string) => {
+    setActionLoading(`invite-${memberId}`)
+    setInviteSuccess(null)
+    try {
+      const response = await fetch(`/api/coach/admin/members/${memberId}/send-invite`, {
+        method: 'POST',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to send invite')
+      }
+
+      setInviteSuccess(result.message)
+    } catch (err) {
+      console.error('Failed to send invite:', err)
     } finally {
       setActionLoading(null)
     }
@@ -413,6 +436,12 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
         </div>
       </CardHeader>
       <CardContent>
+        {inviteSuccess && (
+          <div className="mb-3 p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md dark:bg-green-950/20 dark:border-green-900/30 dark:text-green-400 flex items-center gap-2">
+            <Check className="h-4 w-4 flex-shrink-0" />
+            {inviteSuccess}
+          </div>
+        )}
         {members.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
             No members in this business
@@ -517,6 +546,22 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
+
+                    {/* Send Invite Button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                      disabled={actionLoading === `invite-${member.id}`}
+                      title="Skicka inbjudan med lösenordslänk"
+                      onClick={() => handleSendInvite(member.id)}
+                    >
+                      {actionLoading === `invite-${member.id}` ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Mail className="h-4 w-4" />
+                      )}
+                    </Button>
 
                     {/* Remove Button */}
                     <AlertDialog>
