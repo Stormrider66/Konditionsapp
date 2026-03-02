@@ -65,6 +65,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
 
 // Types
 type SectionType = 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
@@ -218,6 +219,7 @@ export function SectionWorkoutBuilder({
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [targetSection, setTargetSection] = useState<SectionType>('MAIN')
+  const [showExerciseCreator, setShowExerciseCreator] = useState(false)
 
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -322,29 +324,30 @@ export function SectionWorkoutBuilder({
   }, [initialData])
 
   // Fetch exercises
-  useEffect(() => {
-    async function fetchExercises() {
-      try {
-        const res = await fetch('/api/exercises')
-        if (res.ok) {
-          const data = await res.json()
-          const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
-          setAvailableExercises(
-            exercisesList.map((e: any) => ({
-              id: e.id,
-              name: e.nameSv || e.name,
-              category: e.category,
-              pillar: e.biomechanicalPillar,
-              muscleGroup: e.muscleGroup,
-            }))
-          )
-        }
-      } catch (e) {
-        console.error('Failed to fetch exercises', e)
+  const fetchExercises = useCallback(async () => {
+    try {
+      const res = await fetch('/api/exercises?limit=100')
+      if (res.ok) {
+        const data = await res.json()
+        const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
+        setAvailableExercises(
+          exercisesList.map((e: any) => ({
+            id: e.id,
+            name: e.nameSv || e.name,
+            category: e.category,
+            pillar: e.biomechanicalPillar,
+            muscleGroup: e.muscleGroup,
+          }))
+        )
       }
+    } catch (e) {
+      console.error('Failed to fetch exercises', e)
     }
-    fetchExercises()
   }, [])
+
+  useEffect(() => {
+    fetchExercises()
+  }, [fetchExercises])
 
   // Filter exercises
   const filteredExercises = availableExercises.filter((ex) => {
@@ -611,6 +614,7 @@ export function SectionWorkoutBuilder({
   }
 
   return (
+    <>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Main Builder Area */}
       <div className="lg:col-span-2 space-y-4">
@@ -806,9 +810,20 @@ export function SectionWorkoutBuilder({
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium">Övningsbibliotek</CardTitle>
-              <Badge variant="outline" className="text-xs">
-                → {SECTION_DEFAULTS[targetSection].label}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setShowExerciseCreator(true)}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Ny övning
+                </Button>
+                <Badge variant="outline" className="text-xs">
+                  → {SECTION_DEFAULTS[targetSection].label}
+                </Badge>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -856,7 +871,7 @@ export function SectionWorkoutBuilder({
             </div>
 
             <div className="space-y-1 max-h-[350px] overflow-y-auto pr-1">
-              {filteredExercises.slice(0, 20).map((ex) => (
+              {filteredExercises.map((ex) => (
                 <Button
                   key={ex.id}
                   variant="outline"
@@ -874,11 +889,6 @@ export function SectionWorkoutBuilder({
                   </div>
                 </Button>
               ))}
-              {filteredExercises.length > 20 && (
-                <p className="text-xs text-center text-muted-foreground py-2">
-                  +{filteredExercises.length - 20} fler övningar
-                </p>
-              )}
               {filteredExercises.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Inga övningar hittades
@@ -954,6 +964,16 @@ export function SectionWorkoutBuilder({
         </Card>
       </div>
     </div>
+
+    <CustomExerciseCreator
+      open={showExerciseCreator}
+      onClose={() => setShowExerciseCreator(false)}
+      onSuccess={() => {
+        setShowExerciseCreator(false)
+        fetchExercises()
+      }}
+    />
+    </>
   )
 }
 

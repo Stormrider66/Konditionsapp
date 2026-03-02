@@ -14,7 +14,7 @@ const ExerciseLibraryBrowser = dynamic(
   () => import('@/components/coach/exercise-library/ExerciseLibraryBrowser').then(mod => mod.ExerciseLibraryBrowser),
   { ssr: false, loading: () => <div className="p-8 text-center text-muted-foreground">Laddar övningsbibliotek...</div> }
 )
-import { ExerciseCreator } from './ExerciseCreator'
+import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
 import { SessionBuilder } from './SessionBuilder'
 import { SectionWorkoutBuilder } from './SectionWorkoutBuilder'
 import { StrengthSessionLibrary } from './StrengthSessionLibrary'
@@ -199,19 +199,21 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
     setActiveTab('builder')
   }
 
-  if (showCreator) {
-    return (
-      <div className="container mx-auto py-6">
-        <Button 
-          variant="ghost" 
-          onClick={() => setShowCreator(false)}
-          className="mb-4"
-        >
-          ← Back to Dashboard
-        </Button>
-        <ExerciseCreator onClose={() => setShowCreator(false)} />
-      </div>
-    )
+  const handleExerciseCreated = (_exerciseId: string) => {
+    setShowCreator(false)
+    // Refresh stats to reflect the new exercise
+    async function refreshStats() {
+      try {
+        const url = businessId
+          ? `/api/business/${businessId}/strength/stats`
+          : '/api/coach/strength/stats'
+        const res = await fetch(url)
+        if (res.ok) {
+          setStats(await res.json())
+        }
+      } catch {}
+    }
+    refreshStats()
   }
 
   return (
@@ -235,7 +237,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           />
           <Button onClick={() => setShowCreator(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            New Exercise
+            Ny Övning
           </Button>
         </div>
       </div>
@@ -447,6 +449,13 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           businessSlug={businessSlug}
         />
       )}
+
+      {/* Custom Exercise Creator Dialog */}
+      <CustomExerciseCreator
+        open={showCreator}
+        onClose={() => setShowCreator(false)}
+        onSuccess={handleExerciseCreated}
+      />
     </div>
   )
 }

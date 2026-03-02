@@ -57,7 +57,6 @@ interface CustomExerciseCreatorProps {
   open: boolean
   onClose: () => void
   onSuccess: (exerciseId: string) => void
-  userId: string
 }
 
 interface ExerciseFormData {
@@ -82,7 +81,6 @@ export function CustomExerciseCreator({
   open,
   onClose,
   onSuccess,
-  userId,
 }: CustomExerciseCreatorProps) {
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
@@ -187,7 +185,6 @@ export function CustomExerciseCreator({
           imageUrl: formData.imageUrl || null,
           plyometricIntensity: formData.plyometricIntensity || null,
           contactsPerRep: formData.contactsPerRep || null,
-          userId,
         }),
       })
 
