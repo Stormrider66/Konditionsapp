@@ -85,6 +85,8 @@ export async function POST(
         // External links
         dataFileUrl: body.dataFileUrl,
         stravaUrl: body.stravaUrl,
+        // Per-interval results
+        intervalResults: body.intervalResults || undefined,
       },
     })
 

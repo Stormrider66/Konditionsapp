@@ -2448,6 +2448,9 @@ model WorkoutLog {
   dataFileUrl String?
   stravaUrl   String?
 
+  // Per-interval results (JSON array of segment results with reps)
+  intervalResults Json?
+
   // Coach feedback
   coachFeedback String?   @db.Text
   coachViewedAt DateTime?

@@ -1,7 +1,7 @@
 // components/athlete/WorkoutLoggingForm.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,10 +22,34 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, Waves } from 'lucide-react'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, Waves, ChevronDown, ChevronUp, Timer } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
+
+// Per-interval rep schema
+const intervalRepSchema = z.object({
+  repNumber: z.number(),
+  pace: z.string().optional(),
+  avgHR: z.number().min(0).max(220).optional(),
+  maxHR: z.number().min(0).max(220).optional(),
+  duration: z.number().min(0).optional(),
+  distance: z.number().min(0).optional(),
+  avgPower: z.number().min(0).optional(),
+  notes: z.string().optional(),
+})
+
+const intervalSegmentSchema = z.object({
+  segmentId: z.string(),
+  segmentLabel: z.string(),
+  workoutType: z.string(),
+  reps: z.array(intervalRepSchema),
+})
 
 // Extended schema with cycling fields
 const formSchema = z.object({
@@ -50,6 +74,8 @@ const formSchema = z.object({
   // External
   dataFileUrl: z.string().optional(),
   stravaUrl: z.string().optional(),
+  // Per-interval results
+  intervalResults: z.array(intervalSegmentSchema).optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -211,10 +237,45 @@ export function WorkoutLoggingForm({
   const contextBasePath = useBasePath()
   const basePath = basePathProp || contextBasePath
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [intervalOpen, setIntervalOpen] = useState(true)
 
   // Get field config for this workout type
   const workoutType = (workout.type as WorkoutType) || 'OTHER'
   const fieldConfig = FIELD_CONFIG[workoutType] || FIELD_CONFIG.OTHER
+
+  // Derive interval segments that qualify for per-rep logging
+  const intervalSegments = (workout.segments || []).filter((seg: any) => {
+    const type = seg.type?.toLowerCase()
+    const isIntervalType = type === 'interval' || type === 'work'
+    const reps = seg.sets || seg.reps || seg.repsCount || 0
+    return isIntervalType && reps >= 2
+  })
+
+  // Build default interval results from existing log or empty reps
+  function buildDefaultIntervalResults() {
+    if (existingLog?.intervalResults && Array.isArray(existingLog.intervalResults)) {
+      return existingLog.intervalResults
+    }
+    return intervalSegments.map((seg: any) => {
+      const reps = seg.sets || seg.reps || seg.repsCount || 2
+      const label = buildSegmentLabel(seg)
+      return {
+        segmentId: seg.id,
+        segmentLabel: label,
+        workoutType: workoutType,
+        reps: Array.from({ length: reps }, (_, i) => ({
+          repNumber: i + 1,
+          pace: '',
+          avgHR: undefined,
+          maxHR: undefined,
+          duration: undefined,
+          distance: undefined,
+          avgPower: undefined,
+          notes: '',
+        })),
+      }
+    })
+  }
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -237,8 +298,24 @@ export function WorkoutLoggingForm({
       notes: existingLog?.notes || '',
       dataFileUrl: existingLog?.dataFileUrl || '',
       stravaUrl: existingLog?.stravaUrl || '',
+      intervalResults: intervalSegments.length > 0 ? buildDefaultIntervalResults() : undefined,
     },
   })
+
+  // Helper to update a specific rep field
+  const updateIntervalRep = useCallback((segmentIndex: number, repIndex: number, field: string, value: any) => {
+    const current = form.getValues('intervalResults') || []
+    const updated = [...current]
+    if (updated[segmentIndex] && updated[segmentIndex].reps[repIndex]) {
+      updated[segmentIndex] = {
+        ...updated[segmentIndex],
+        reps: updated[segmentIndex].reps.map((rep, ri) =>
+          ri === repIndex ? { ...rep, [field]: value } : rep
+        ),
+      }
+      form.setValue('intervalResults', updated)
+    }
+  }, [form])
 
   async function onSubmit(data: FormData) {
     setIsSubmitting(true)
@@ -249,6 +326,22 @@ export function WorkoutLoggingForm({
         ? `/api/workouts/${workout.id}/logs/${existingLog.id}`
         : `/api/workouts/${workout.id}/logs`
 
+      // Clean empty interval data before sending
+      let cleanedIntervalResults = data.intervalResults
+      if (cleanedIntervalResults && cleanedIntervalResults.length > 0) {
+        cleanedIntervalResults = cleanedIntervalResults
+          .map((seg) => ({
+            ...seg,
+            reps: seg.reps.filter((rep) => {
+              return rep.pace || rep.avgHR || rep.maxHR || rep.duration || rep.distance || rep.avgPower || rep.notes
+            }),
+          }))
+          .filter((seg) => seg.reps.length > 0)
+        if (cleanedIntervalResults.length === 0) {
+          cleanedIntervalResults = undefined
+        }
+      }
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -256,6 +349,7 @@ export function WorkoutLoggingForm({
         },
         body: JSON.stringify({
           ...data,
+          intervalResults: cleanedIntervalResults,
           workoutId: workout.id,
           athleteId,
           completedAt: new Date().toISOString(),
@@ -779,6 +873,135 @@ export function WorkoutLoggingForm({
           </Card>
         )}
 
+        {/* Per-Interval Results */}
+        {intervalSegments.length > 0 && (
+          <Card>
+            <Collapsible open={intervalOpen} onOpenChange={setIntervalOpen}>
+              <CardHeader className="cursor-pointer" onClick={() => setIntervalOpen(!intervalOpen)}>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Timer className="h-5 w-5" />
+                      Intervallresultat
+                    </CardTitle>
+                    {intervalOpen ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </CollapsibleTrigger>
+              </CardHeader>
+              <CollapsibleContent>
+                <CardContent className="space-y-6">
+                  {(form.watch('intervalResults') || []).map((segment: any, segIdx: number) => (
+                    <div key={segment.segmentId} className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{segment.segmentLabel}</Badge>
+                      </div>
+                      <div className="space-y-3">
+                        {segment.reps.map((rep: any, repIdx: number) => (
+                          <div
+                            key={repIdx}
+                            className="border rounded-lg p-3 space-y-2"
+                          >
+                            <p className="text-sm font-medium text-muted-foreground">
+                              Intervall {rep.repNumber} av {segment.reps.length}
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                              {/* Pace field - for running, swimming, other */}
+                              {(workoutType === 'RUNNING' || workoutType === 'SWIMMING' || workoutType === 'OTHER') && (
+                                <div>
+                                  <label className="text-xs text-muted-foreground">
+                                    {workoutType === 'SWIMMING' ? 'Tempo (min/100m)' : 'Tempo (min/km)'}
+                                  </label>
+                                  <Input
+                                    placeholder={workoutType === 'SWIMMING' ? '1:45' : '4:52'}
+                                    className="h-9 text-sm"
+                                    value={rep.pace || ''}
+                                    onChange={(e) => updateIntervalRep(segIdx, repIdx, 'pace', e.target.value)}
+                                  />
+                                </div>
+                              )}
+                              {/* Power field - for cycling */}
+                              {workoutType === 'CYCLING' && (
+                                <div>
+                                  <label className="text-xs text-muted-foreground">Medeleffekt (W)</label>
+                                  <Input
+                                    type="number"
+                                    inputMode="numeric"
+                                    min={0}
+                                    className="h-9 text-sm"
+                                    value={rep.avgPower || ''}
+                                    onChange={(e) => updateIntervalRep(segIdx, repIdx, 'avgPower', e.target.value ? parseInt(e.target.value) : undefined)}
+                                  />
+                                </div>
+                              )}
+                              {/* Avg HR */}
+                              <div>
+                                <label className="text-xs text-muted-foreground">Snittpuls</label>
+                                <Input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={0}
+                                  max={220}
+                                  className="h-9 text-sm"
+                                  value={rep.avgHR || ''}
+                                  onChange={(e) => updateIntervalRep(segIdx, repIdx, 'avgHR', e.target.value ? parseInt(e.target.value) : undefined)}
+                                />
+                              </div>
+                              {/* Max HR */}
+                              <div>
+                                <label className="text-xs text-muted-foreground">Maxpuls</label>
+                                <Input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={0}
+                                  max={220}
+                                  className="h-9 text-sm"
+                                  value={rep.maxHR || ''}
+                                  onChange={(e) => updateIntervalRep(segIdx, repIdx, 'maxHR', e.target.value ? parseInt(e.target.value) : undefined)}
+                                />
+                              </div>
+                              {/* Duration (seconds) */}
+                              <div>
+                                <label className="text-xs text-muted-foreground">Tid (sek)</label>
+                                <Input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={0}
+                                  className="h-9 text-sm"
+                                  value={rep.duration || ''}
+                                  onChange={(e) => updateIntervalRep(segIdx, repIdx, 'duration', e.target.value ? parseInt(e.target.value) : undefined)}
+                                />
+                              </div>
+                              {/* Distance */}
+                              <div>
+                                <label className="text-xs text-muted-foreground">
+                                  {workoutType === 'SWIMMING' ? 'Distans (m)' : 'Distans (km)'}
+                                </label>
+                                <Input
+                                  type="number"
+                                  inputMode="decimal"
+                                  min={0}
+                                  step={workoutType === 'SWIMMING' ? 25 : 0.01}
+                                  className="h-9 text-sm"
+                                  value={rep.distance || ''}
+                                  onChange={(e) => updateIntervalRep(segIdx, repIdx, 'distance', e.target.value ? parseFloat(e.target.value) : undefined)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+        )}
+
         {/* Subjective Feedback */}
         <Card>
           <CardHeader>
@@ -1046,6 +1269,17 @@ function getDifficultyLabel(difficulty: number): string {
   if (difficulty <= 5) return 'Som förväntat'
   if (difficulty <= 7) return 'Svårare än förväntat'
   return 'Mycket svårt'
+}
+
+function buildSegmentLabel(segment: any): string {
+  const reps = segment.sets || segment.reps || segment.repsCount || 2
+  const duration = segment.duration ? `${segment.duration} min` : ''
+  const desc = segment.exercise?.nameSv || segment.exercise?.name || segment.description || ''
+  const pace = segment.pace ? ` ${segment.pace}` : ''
+  if (duration && desc) return `${reps}x${duration} ${desc}${pace}`
+  if (duration) return `${reps}x${duration}${pace}`
+  if (desc) return `${reps}x ${desc}${pace}`
+  return `${reps} intervaller`
 }
 
 function getEffortBadgeClass(effort: number): string {

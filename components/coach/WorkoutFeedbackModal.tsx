@@ -306,6 +306,63 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
               </div>
             )}
 
+            {/* Interval Results */}
+            {log.intervalResults && Array.isArray(log.intervalResults) && log.intervalResults.length > 0 && (
+              <div className="pt-2 border-t">
+                <p className="text-sm text-muted-foreground mb-2 font-medium">
+                  Intervallresultat
+                </p>
+                <div className="space-y-3">
+                  {(log.intervalResults as any[]).map((segment: any, segIdx: number) => (
+                    <div key={segIdx} className="space-y-1">
+                      <Badge variant="secondary" className="text-xs mb-1">
+                        {segment.segmentLabel}
+                      </Badge>
+                      <div className="space-y-1">
+                        {segment.reps?.map((rep: any, repIdx: number) => (
+                          <div
+                            key={repIdx}
+                            className="flex items-center gap-3 text-sm pl-2"
+                          >
+                            <span className="text-muted-foreground font-mono w-5">#{rep.repNumber}</span>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {rep.pace && (
+                                <span>Tempo: <strong>{rep.pace}</strong></span>
+                              )}
+                              {rep.avgPower && (
+                                <span>Effekt: <strong>{rep.avgPower}W</strong></span>
+                              )}
+                              {rep.avgHR && (
+                                <span>
+                                  <Heart className="inline h-3 w-3 mr-0.5" />
+                                  <strong>{rep.avgHR}</strong>
+                                  {rep.maxHR && (
+                                    <span className="text-muted-foreground"> (max {rep.maxHR})</span>
+                                  )}
+                                </span>
+                              )}
+                              {!rep.avgHR && rep.maxHR && (
+                                <span>
+                                  <Heart className="inline h-3 w-3 mr-0.5 text-red-500" />
+                                  max <strong>{rep.maxHR}</strong>
+                                </span>
+                              )}
+                              {rep.duration && (
+                                <span className="text-muted-foreground">{rep.duration}s</span>
+                              )}
+                              {rep.distance && (
+                                <span className="text-muted-foreground">{rep.distance} km</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Athlete Notes */}
             {(log.feeling || log.notes) && (
               <div className="pt-2 border-t">

@@ -82,6 +82,8 @@ export async function PUT(
         // External links
         dataFileUrl: body.dataFileUrl,
         stravaUrl: body.stravaUrl,
+        // Per-interval results
+        intervalResults: body.intervalResults || undefined,
         // Coaches can add feedback
         ...(user.role === 'COACH' || user.role === 'ADMIN'
           ? {
