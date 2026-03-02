@@ -47,13 +47,46 @@ export async function POST(
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
     const supabaseAdmin = createAdminSupabaseClient()
 
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    // Try to generate recovery link — if user doesn't exist in Supabase Auth, create them first
+    let { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'recovery',
       email: user.email,
       options: {
         redirectTo: `${appUrl}/reset-password`,
       },
     })
+
+    if (linkError?.message?.includes('not found')) {
+      // User exists in DB but not in Supabase Auth — create the auth account
+      logger.info('Send invite: creating missing Supabase Auth account', { email: user.email })
+
+      const { error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: user.email,
+        email_confirm: true,
+        user_metadata: {
+          name: user.name || undefined,
+        },
+      })
+
+      if (createError) {
+        logger.error('Send invite: failed to create auth account', { email: user.email }, createError)
+        return NextResponse.json(
+          { success: false, error: 'Kunde inte skapa autentiseringskonto. Försök igen senare.' },
+          { status: 500 }
+        )
+      }
+
+      // Retry recovery link generation
+      const retryResult = await supabaseAdmin.auth.admin.generateLink({
+        type: 'recovery',
+        email: user.email,
+        options: {
+          redirectTo: `${appUrl}/reset-password`,
+        },
+      })
+      linkData = retryResult.data
+      linkError = retryResult.error
+    }
 
     if (linkError) {
       logger.error('Send invite: recovery link generation failed', { email: user.email }, linkError)
