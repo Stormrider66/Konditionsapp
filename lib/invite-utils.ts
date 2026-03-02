@@ -15,6 +15,7 @@ export interface InviteUserResult {
   userId?: string
   memberId?: string
   error?: string
+  emailSent?: boolean
 }
 
 /**
@@ -157,11 +158,12 @@ export async function inviteUserToBusiness({
       return { success: false, error: 'Email send failed' }
     })
 
-    if (!emailResult?.success) {
+    const emailSent = emailResult?.success ?? false
+    if (!emailSent) {
       logger.warn('Invite: user created but invite email not sent', { email, userId: authData.user.id })
     }
 
-    return { success: true, userId: authData.user.id, memberId }
+    return { success: true, userId: authData.user.id, memberId, emailSent }
   } catch (error) {
     logger.error('Invite: unexpected error', { email, businessId }, error)
     return { success: false, error: 'Ett oväntat fel inträffade' }

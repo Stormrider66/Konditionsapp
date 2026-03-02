@@ -76,6 +76,15 @@ function RoleSelectorContent() {
     return null
   }
 
+  // If there's a business invitation code, redirect to coach signup
+  const invitation = searchParams.get('invitation')
+  if (invitation) {
+    if (typeof window !== 'undefined') {
+      window.location.href = `/signup/coach?invitation=${encodeURIComponent(invitation)}`
+    }
+    return null
+  }
+
   const mode = searchParams.get('mode')
 
   return (

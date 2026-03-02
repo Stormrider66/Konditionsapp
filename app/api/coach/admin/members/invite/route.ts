@@ -48,6 +48,8 @@ export async function POST(request: NextRequest) {
           userId: result.userId,
           memberId: result.memberId,
         },
+        emailSent: result.emailSent,
+        warning: result.emailSent === false ? 'Användaren skapades men inbjudningsmejlet kunde inte skickas' : undefined,
       },
       { status: 201 }
     )

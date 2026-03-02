@@ -24,5 +24,6 @@ export { FullWorkoutDialog } from './FullWorkoutDialog'
 export { ScheduleTestDialog } from './ScheduleTestDialog'
 export { CalendarWorkoutDetailSheet } from './CalendarWorkoutDetailSheet'
 export { ProgramSelector } from './ProgramSelector'
+export { CalendarAssignDialog } from './CalendarAssignDialog'
 
 export * from './types'

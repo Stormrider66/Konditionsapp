@@ -17,7 +17,7 @@ import crypto from 'crypto'
 // Validation schema for inviting a member
 const inviteMemberSchema = z.object({
   email: z.string().email('Valid email is required'),
-  role: z.enum(['ADMIN', 'MEMBER']).default('MEMBER'),
+  role: z.enum(['ADMIN', 'MEMBER', 'COACH']).default('MEMBER'),
 });
 
 // Validation schema for removing a member
@@ -199,6 +199,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         userId: invitedUser.id,
         businessId: id,
         role,
+        acceptedAt: new Date(),
       },
       include: {
         user: {

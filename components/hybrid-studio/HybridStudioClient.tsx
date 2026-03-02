@@ -9,7 +9,8 @@
  * - Create new workout dialog
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -65,6 +66,7 @@ import { WorkoutDetailSheet } from './WorkoutDetailSheet';
 import { WorkoutAssignmentDialog } from './WorkoutAssignmentDialog';
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog';
 import type { HybridWorkoutWithSections, HybridSectionData } from '@/types';
+import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog';
 
 interface HybridMovement {
   id: string;
@@ -132,12 +134,16 @@ const scalingLabels: Record<string, { label: string; color: string }> = {
 };
 
 export function HybridStudioClient() {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [workouts, setWorkouts] = useState<HybridWorkout[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [formatFilter, setFormatFilter] = useState<string>('all');
   const [benchmarkOnly, setBenchmarkOnly] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(
+    searchParams.get('fromCalendar') === 'true'
+  );
   const [activeTab, setActiveTab] = useState('all');
   const [selectedWorkout, setSelectedWorkout] = useState<HybridWorkout | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -148,6 +154,19 @@ export function HybridStudioClient() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [isTeamAssignOpen, setIsTeamAssignOpen] = useState(false);
+
+  // Calendar assignment flow
+  const fromCalendar = searchParams.get('fromCalendar') === 'true';
+  const calendarClientId = searchParams.get('clientId');
+  const calendarDate = searchParams.get('date');
+  const [calendarAssignSessionId, setCalendarAssignSessionId] = useState<string | null>(null);
+
+  const businessSlug = useMemo(() => {
+    if (!pathname) return undefined;
+    const match = pathname.match(/^\/([^/]+)\/coach\//);
+    if (match && match[1] !== 'coach') return match[1];
+    return undefined;
+  }, [pathname]);
 
   const handleDelete = async () => {
     if (!deleteWorkout) return;
@@ -291,9 +310,14 @@ export function HybridStudioClient() {
               </DialogDescription>
             </DialogHeader>
             <HybridWorkoutBuilder
-              onSave={() => {
-                setIsCreateOpen(false);
-                fetchWorkouts();
+              onSave={(workoutId) => {
+                if (fromCalendar && calendarClientId && calendarDate && workoutId) {
+                  setIsCreateOpen(false);
+                  setCalendarAssignSessionId(workoutId);
+                } else {
+                  setIsCreateOpen(false);
+                  fetchWorkouts();
+                }
               }}
               onCancel={() => setIsCreateOpen(false)}
             />
@@ -532,6 +556,21 @@ export function HybridStudioClient() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Calendar Assignment Dialog */}
+      {calendarAssignSessionId && calendarClientId && calendarDate && (
+        <CalendarAssignDialog
+          open={!!calendarAssignSessionId}
+          onOpenChange={(open) => {
+            if (!open) setCalendarAssignSessionId(null);
+          }}
+          sessionType="hybrid"
+          sessionId={calendarAssignSessionId}
+          clientId={calendarClientId}
+          date={calendarDate}
+          businessSlug={businessSlug}
+        />
+      )}
     </div>
   );
 }

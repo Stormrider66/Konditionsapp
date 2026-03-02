@@ -124,7 +124,7 @@ export function FullWorkoutDialog({
       }
 
       const prefix = businessSlug ? `/${businessSlug}` : ''
-      router.push(`${prefix}${option.path}?clientId=${clientId}&date=${dateString}`)
+      router.push(`${prefix}${option.path}?clientId=${clientId}&date=${dateString}&fromCalendar=true`)
       onOpenChange(false)
     },
     [router, clientId, date, onOpenChange, onOpenEventDialog, businessSlug]

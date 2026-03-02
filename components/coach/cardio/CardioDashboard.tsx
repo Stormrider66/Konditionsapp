@@ -1,6 +1,7 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useMemo } from 'react'
+import { useSearchParams, usePathname } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Activity, Calendar, Library, Plus, Timer, TrendingUp, Sparkles, BookOpen } from 'lucide-react'
@@ -10,11 +11,27 @@ import { CardioSessionLibrary } from './CardioSessionLibrary'
 import { CardioTemplateLibrary } from './CardioTemplateLibrary'
 import { AutoCardioDialog } from './AutoCardioDialog'
 import type { CardioSessionData } from '@/types'
+import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog'
 
 export function CardioDashboard() {
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [activeTab, setActiveTab] = React.useState('builder')
   const [editSession, setEditSession] = React.useState<CardioSessionData | null>(null)
   const [showAutoGenerate, setShowAutoGenerate] = React.useState(false)
+
+  // Calendar assignment flow
+  const fromCalendar = searchParams.get('fromCalendar') === 'true'
+  const calendarClientId = searchParams.get('clientId')
+  const calendarDate = searchParams.get('date')
+  const [calendarAssignSessionId, setCalendarAssignSessionId] = useState<string | null>(null)
+
+  const businessSlug = useMemo(() => {
+    if (!pathname) return undefined
+    const match = pathname.match(/^\/([^/]+)\/coach\//)
+    if (match && match[1] !== 'coach') return match[1]
+    return undefined
+  }, [pathname])
 
   return (
     <div className="container mx-auto py-6 space-y-8">
@@ -99,9 +116,13 @@ export function CardioDashboard() {
         <TabsContent value="builder">
           <CardioSessionBuilder
             initialData={editSession}
-            onSaved={() => {
-              setEditSession(null)
-              setActiveTab('library')
+            onSaved={(sessionId) => {
+              if (fromCalendar && calendarClientId && calendarDate && sessionId) {
+                setCalendarAssignSessionId(sessionId)
+              } else {
+                setEditSession(null)
+                setActiveTab('library')
+              }
             }}
             onCancel={editSession ? () => {
               setEditSession(null)
@@ -161,6 +182,21 @@ export function CardioDashboard() {
           setShowAutoGenerate(false)
         }}
       />
+
+      {/* Calendar Assignment Dialog */}
+      {calendarAssignSessionId && calendarClientId && calendarDate && (
+        <CalendarAssignDialog
+          open={!!calendarAssignSessionId}
+          onOpenChange={(open) => {
+            if (!open) setCalendarAssignSessionId(null)
+          }}
+          sessionType="cardio"
+          sessionId={calendarAssignSessionId}
+          clientId={calendarClientId}
+          date={calendarDate}
+          businessSlug={businessSlug}
+        />
+      )}
     </div>
   )
 }

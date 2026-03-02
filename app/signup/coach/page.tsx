@@ -56,6 +56,7 @@ function CoachSignupForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [referralInfo, setReferralInfo] = useState<ReferralInfo | null>(null)
   const [referralValidated, setReferralValidated] = useState(false)
+  const [invitationInfo, setInvitationInfo] = useState<{ code: string; businessName: string } | null>(null)
 
   // Gym join state
   const [gymSearch, setGymSearch] = useState('')
@@ -69,6 +70,24 @@ function CoachSignupForm() {
       validateReferralCode(refCode)
     }
   }, [searchParams, referralValidated])
+
+  // Check for business invitation
+  useEffect(() => {
+    const invitationCode = searchParams.get('invitation')
+    if (invitationCode) {
+      fetch(`/api/business/invitations/validate?code=${encodeURIComponent(invitationCode)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.valid) {
+            setInvitationInfo({ code: invitationCode, businessName: data.businessName || 'ett team' })
+          }
+        })
+        .catch(() => {
+          // Invitation may still be valid, keep the code for acceptance
+          setInvitationInfo({ code: invitationCode, businessName: 'ett team' })
+        })
+    }
+  }, [searchParams])
 
   const validateReferralCode = async (code: string) => {
     try {
@@ -175,7 +194,26 @@ function CoachSignupForm() {
           console.warn('Could not create user in database')
         }
 
-        if (selectedGym) {
+        // Accept business invitation if present
+        const invitationCode = searchParams.get('invitation')
+        let acceptedBusiness: { slug: string } | null = null
+        if (invitationCode) {
+          try {
+            const acceptRes = await fetch('/api/business/invitations/accept', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: invitationCode }),
+            })
+            const acceptData = await acceptRes.json()
+            if (acceptData.success && acceptData.business?.slug) {
+              acceptedBusiness = { slug: acceptData.business.slug }
+            }
+          } catch {
+            // Non-blocking - user can accept later
+          }
+        }
+
+        if (selectedGym && !acceptedBusiness) {
           try {
             await fetch(`/api/business/${selectedGym.id}/join-requests`, {
               method: 'POST',
@@ -203,7 +241,12 @@ function CoachSignupForm() {
           description: referralInfo ? t('accountCreatedWithReferral') : t('accountCreatedSuccess'),
         })
 
-        router.push('/')
+        // Redirect to business if invitation was accepted, otherwise home
+        if (acceptedBusiness) {
+          router.push(`/${acceptedBusiness.slug}/coach`)
+        } else {
+          router.push('/')
+        }
         router.refresh()
       }
     } catch {
@@ -219,6 +262,24 @@ function CoachSignupForm() {
 
   return (
     <>
+      {/* Business Invitation Banner */}
+      {invitationInfo && (
+        <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-3 rounded-t-lg -mt-6 -mx-6 mb-6">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5" />
+            <div className="flex-1">
+              <p className="font-medium text-sm">
+                Du har blivit inbjuden till {invitationInfo.businessName}
+              </p>
+              <p className="text-xs opacity-90">
+                <CheckCircle2 className="h-3 w-3 inline mr-1" />
+                Skapa ditt konto för att gå med i teamet
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Referral Banner */}
       {referralInfo && (
         <div className="bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-3 rounded-t-lg -mt-6 -mx-6 mb-6">

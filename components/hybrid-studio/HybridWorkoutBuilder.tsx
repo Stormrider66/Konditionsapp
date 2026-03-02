@@ -94,7 +94,7 @@ interface WorkoutMovement {
 }
 
 interface HybridWorkoutBuilderProps {
-  onSave: () => void;
+  onSave: (workoutId?: string) => void;
   onCancel: () => void;
   initialData?: {
     id?: string;
@@ -510,7 +510,8 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData }: HybridWo
       });
 
       if (response.ok) {
-        onSave();
+        const result = await response.json();
+        onSave(result.id || initialData?.id);
       } else {
         console.error('Failed to save workout');
       }

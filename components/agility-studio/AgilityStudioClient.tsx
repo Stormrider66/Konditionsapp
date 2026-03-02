@@ -3,7 +3,8 @@
 // components/agility-studio/AgilityStudioClient.tsx
 // Main client component for Agility Studio
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useSearchParams, usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ import type {
   DevelopmentStage,
   TimingGateSession
 } from '@/types'
+import { CalendarAssignDialog } from '@/components/calendar/CalendarAssignDialog'
 
 interface Athlete {
   id: string
@@ -50,18 +52,39 @@ export default function AgilityStudioClient({
   initialTimingSessions
 }: AgilityStudioClientProps) {
   const t = useTranslations('agilityStudio')
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
   const [activeTab, setActiveTab] = useState('drills')
   const [searchQuery, setSearchQuery] = useState('')
   const [developmentStage, setDevelopmentStage] = useState<DevelopmentStage | 'all'>('all')
-  const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false)
+  const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(
+    searchParams.get('fromCalendar') === 'true'
+  )
   const [drills, setDrills] = useState(initialDrills)
   const [workouts, setWorkouts] = useState(initialWorkouts)
   const [timingSessions, setTimingSessions] = useState(initialTimingSessions)
 
+  // Calendar assignment flow
+  const fromCalendar = searchParams.get('fromCalendar') === 'true'
+  const calendarClientId = searchParams.get('clientId')
+  const calendarDate = searchParams.get('date')
+  const [calendarAssignSessionId, setCalendarAssignSessionId] = useState<string | null>(null)
+
+  const businessSlug = useMemo(() => {
+    if (!pathname) return undefined
+    const match = pathname.match(/^\/([^/]+)\/coach\//)
+    if (match && match[1] !== 'coach') return match[1]
+    return undefined
+  }, [pathname])
+
   const handleWorkoutCreated = (newWorkout: AgilityWorkout) => {
     setWorkouts(prev => [newWorkout, ...prev])
     setShowWorkoutBuilder(false)
-    setActiveTab('workouts')
+    if (fromCalendar && calendarClientId && calendarDate && newWorkout.id) {
+      setCalendarAssignSessionId(newWorkout.id)
+    } else {
+      setActiveTab('workouts')
+    }
   }
 
   const handleWorkoutDeleted = (workoutId: string) => {
@@ -194,6 +217,21 @@ export default function AgilityStudioClient({
           drills={drills}
           onSave={handleWorkoutCreated}
           onClose={() => setShowWorkoutBuilder(false)}
+        />
+      )}
+
+      {/* Calendar Assignment Dialog */}
+      {calendarAssignSessionId && calendarClientId && calendarDate && (
+        <CalendarAssignDialog
+          open={!!calendarAssignSessionId}
+          onOpenChange={(open) => {
+            if (!open) setCalendarAssignSessionId(null)
+          }}
+          sessionType="agility"
+          sessionId={calendarAssignSessionId}
+          clientId={calendarClientId}
+          date={calendarDate}
+          businessSlug={businessSlug}
         />
       )}
     </div>

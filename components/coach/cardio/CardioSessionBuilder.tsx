@@ -84,7 +84,7 @@ const decimalToPace = (decimal: number): string => {
 
 interface CardioSessionBuilderProps {
   initialData?: CardioSessionData | null
-  onSaved?: () => void
+  onSaved?: (sessionId?: string) => void
   onCancel?: () => void
 }
 
@@ -229,10 +229,11 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
       })
 
       if (response.ok) {
+        const result = await response.json()
         toast.success(isEditing ? 'Pass uppdaterat!' : 'Pass sparat!', {
           description: `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
         })
-        onSaved?.()
+        onSaved?.(result.id || initialData?.id)
       } else {
         const data = await response.json()
         toast.error('Kunde inte spara', {
