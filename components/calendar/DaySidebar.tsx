@@ -68,6 +68,7 @@ interface DaySidebarProps {
   onEventDeleted: () => void
   isCoachView?: boolean
   variant?: 'default' | 'glass'
+  onViewWorkoutDetails?: (workoutId: string) => void
 }
 
 export function DaySidebar({
@@ -81,6 +82,7 @@ export function DaySidebar({
   onEventDeleted,
   isCoachView,
   variant = 'default',
+  onViewWorkoutDetails,
 }: DaySidebarProps) {
   const isGlass = variant === 'glass'
 
@@ -290,6 +292,7 @@ export function DaySidebar({
                   workout={selectedItem}
                   isCoachView={isCoachView}
                   isGlass={true}
+                  onViewWorkoutDetails={onViewWorkoutDetails}
                 />
               )}
             </>
@@ -473,6 +476,7 @@ export function DaySidebar({
               <WorkoutDetailPanel
                 workout={selectedItem}
                 isCoachView={isCoachView}
+                onViewWorkoutDetails={onViewWorkoutDetails}
               />
             )}
           </>
@@ -916,9 +920,10 @@ interface WorkoutDetailPanelProps {
   workout: UnifiedCalendarItem
   isCoachView?: boolean
   isGlass?: boolean
+  onViewWorkoutDetails?: (workoutId: string) => void
 }
 
-function WorkoutDetailPanel({ workout, isCoachView, isGlass = false }: WorkoutDetailPanelProps) {
+function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorkoutDetails }: WorkoutDetailPanelProps) {
   const meta = workout.metadata
   const workoutType = (meta.workoutType as string) || 'RUNNING'
   const intensity = (meta.intensity as string) || 'MODERATE'
@@ -1006,6 +1011,22 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false }: WorkoutDe
         )}
 
         {/* Action Buttons */}
+        {workoutId && isCoachView && onViewWorkoutDetails && (
+          <div className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "w-full font-bold text-[10px] uppercase tracking-widest h-9",
+                isGlass ? "bg-white/5 border-white/10 text-slate-400 hover:text-white" : ""
+              )}
+              onClick={() => onViewWorkoutDetails(workoutId)}
+            >
+              <Activity className="h-3.5 w-3.5 mr-1.5" />
+              Visa detaljer
+            </Button>
+          </div>
+        )}
         {workoutId && !isCoachView && (
           <div className="flex gap-2 pt-2">
             {!isCompleted ? (

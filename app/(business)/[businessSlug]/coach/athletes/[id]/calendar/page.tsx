@@ -74,6 +74,7 @@ export default async function BusinessAthleteCalendarPage({
         clientId={client.id}
         clientName={client.name}
         isCoachView={true}
+        businessSlug={businessSlug}
       />
     </div>
   )

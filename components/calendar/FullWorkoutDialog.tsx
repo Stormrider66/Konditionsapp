@@ -3,11 +3,12 @@
 /**
  * Full Workout Dialog
  *
- * Shows options for creating a detailed workout using different "studios":
- * - AI Studio: Conversational AI-assisted workout creation
- * - Manual Builder: Step-by-step workout segment editor
- * - Program Wizard: Full program generation
- * - Free Text: Quick note/annotation
+ * Shows options for creating a detailed workout using different studios:
+ * - Strength Studio
+ * - Cardio Studio
+ * - Hybrid Studio
+ * - Agility Studio
+ * - Free Text (notes)
  */
 
 import { useCallback } from 'react'
@@ -15,9 +16,10 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import {
-  Sparkles,
-  Wrench,
-  Wand2,
+  Dumbbell,
+  HeartPulse,
+  Layers,
+  Zap,
   FileText,
   ChevronRight,
 } from 'lucide-react'
@@ -31,38 +33,51 @@ import {
 } from '@/components/ui/dialog'
 
 interface StudioOption {
-  id: 'ai-studio' | 'manual-builder' | 'program-wizard' | 'free-text'
+  id: 'strength' | 'cardio' | 'hybrid' | 'agility' | 'free-text'
   label: string
   description: string
   icon: React.ComponentType<{ className?: string }>
   color: string
   bgColor: string
+  path: string
 }
 
 const STUDIO_OPTIONS: StudioOption[] = [
   {
-    id: 'ai-studio',
-    label: 'AI Studio',
-    description: 'Skapa pass med AI-assistent',
-    icon: Sparkles,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-50 hover:bg-purple-100',
+    id: 'strength',
+    label: 'Styrka',
+    description: 'Skapa styrkepass med övningar och set',
+    icon: Dumbbell,
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-50 hover:bg-orange-100',
+    path: '/coach/strength',
   },
   {
-    id: 'manual-builder',
-    label: 'Manuell byggare',
-    description: 'Bygg pass steg för steg',
-    icon: Wrench,
+    id: 'cardio',
+    label: 'Kondition',
+    description: 'Bygg konditionspass med intervaller och zoner',
+    icon: HeartPulse,
     color: 'text-blue-600',
     bgColor: 'bg-blue-50 hover:bg-blue-100',
+    path: '/coach/cardio',
   },
   {
-    id: 'program-wizard',
-    label: 'Programguide',
-    description: 'Skapa helt träningsprogram',
-    icon: Wand2,
+    id: 'hybrid',
+    label: 'Hybrid',
+    description: 'Kombinera styrka och kondition',
+    icon: Layers,
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50 hover:bg-purple-100',
+    path: '/coach/hybrid-studio',
+  },
+  {
+    id: 'agility',
+    label: 'Agility',
+    description: 'Snabbhet, smidighet och koordination',
+    icon: Zap,
     color: 'text-green-600',
     bgColor: 'bg-green-50 hover:bg-green-100',
+    path: '/coach/agility-studio',
   },
   {
     id: 'free-text',
@@ -71,22 +86,18 @@ const STUDIO_OPTIONS: StudioOption[] = [
     icon: FileText,
     color: 'text-gray-600',
     bgColor: 'bg-gray-50 hover:bg-gray-100',
+    path: '',
   },
 ]
 
 interface FullWorkoutDialogProps {
-  /** Whether the dialog is open */
   open: boolean
-  /** Called when dialog open state changes */
   onOpenChange: (open: boolean) => void
-  /** Client ID */
   clientId: string
-  /** Client name for display */
   clientName?: string
-  /** Selected date */
   date: Date
-  /** Called when calendar event should open (for free text) */
   onOpenEventDialog?: () => void
+  businessSlug?: string
 }
 
 export function FullWorkoutDialog({
@@ -96,39 +107,27 @@ export function FullWorkoutDialog({
   clientName,
   date,
   onOpenEventDialog,
+  businessSlug,
 }: FullWorkoutDialogProps) {
   const router = useRouter()
 
   const handleStudioSelect = useCallback(
-    (studioId: StudioOption['id']) => {
+    (option: StudioOption) => {
       const dateString = format(date, 'yyyy-MM-dd')
 
-      switch (studioId) {
-        case 'ai-studio':
-          // Navigate to AI Studio with context
-          router.push(`/coach/ai-studio?clientId=${clientId}&date=${dateString}`)
-          break
-        case 'manual-builder':
-          // Navigate to session builder/editor
-          // The manual builder needs a program context, so we go to cardio builder
-          router.push(`/coach/cardio?clientId=${clientId}&date=${dateString}`)
-          break
-        case 'program-wizard':
-          // Navigate to program creation wizard
-          router.push(`/programs/new?clientId=${clientId}&startDate=${dateString}`)
-          break
-        case 'free-text':
-          // Open the event dialog for a note
-          onOpenChange(false)
-          if (onOpenEventDialog) {
-            onOpenEventDialog()
-          }
-          return // Don't close dialog yet, let event dialog handle it
+      if (option.id === 'free-text') {
+        onOpenChange(false)
+        if (onOpenEventDialog) {
+          onOpenEventDialog()
+        }
+        return
       }
 
+      const prefix = businessSlug ? `/${businessSlug}` : ''
+      router.push(`${prefix}${option.path}?clientId=${clientId}&date=${dateString}`)
       onOpenChange(false)
     },
-    [router, clientId, date, onOpenChange, onOpenEventDialog]
+    [router, clientId, date, onOpenChange, onOpenEventDialog, businessSlug]
   )
 
   const formattedDate = format(date, 'EEEE d MMMM yyyy', { locale: sv })
@@ -152,7 +151,7 @@ export function FullWorkoutDialog({
           {STUDIO_OPTIONS.map((option) => (
             <button
               key={option.id}
-              onClick={() => handleStudioSelect(option.id)}
+              onClick={() => handleStudioSelect(option)}
               className={cn(
                 'w-full flex items-center gap-3 p-4 rounded-lg transition-colors text-left',
                 option.bgColor

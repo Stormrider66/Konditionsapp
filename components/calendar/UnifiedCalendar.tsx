@@ -33,6 +33,7 @@ import { MobileCalendarFAB } from './MobileCalendarFAB'
 import { DayActionMenu, useDayActionMenu, type DayActionType } from './DayActionMenu'
 import { QuickWorkoutDialog } from './QuickWorkoutDialog'
 import { FullWorkoutDialog } from './FullWorkoutDialog'
+import { CalendarWorkoutDetailSheet } from './CalendarWorkoutDetailSheet'
 import { ScheduleTestDialog } from './ScheduleTestDialog'
 import {
   Dialog,
@@ -73,9 +74,10 @@ interface UnifiedCalendarProps {
   clientName?: string
   isCoachView?: boolean
   variant?: 'default' | 'glass'
+  businessSlug?: string
 }
 
-export function UnifiedCalendar({ clientId, clientName, isCoachView = false, variant = 'default' }: UnifiedCalendarProps) {
+export function UnifiedCalendar({ clientId, clientName, isCoachView = false, variant = 'default', businessSlug }: UnifiedCalendarProps) {
   const { toast } = useToast()
   const isGlass = variant === 'glass'
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -117,6 +119,10 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
   // Schedule test dialog state
   const [isScheduleTestOpen, setIsScheduleTestOpen] = useState(false)
   const [scheduleTestDate, setScheduleTestDate] = useState<Date>(new Date())
+
+  // Workout detail sheet state
+  const [detailWorkoutId, setDetailWorkoutId] = useState<string | null>(null)
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false)
 
   // Swipe navigation for mobile
   const { ref: swipeRef, swipeOffset, isSwiping } = useSwipeNavigation({
@@ -307,6 +313,21 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
       setIsEventDialogOpen(true)
     }
   }, [])
+
+  // Handle viewing full workout details
+  const handleViewWorkoutDetails = useCallback((workoutId: string) => {
+    setDetailWorkoutId(workoutId)
+    setIsDetailSheetOpen(true)
+  }, [])
+
+  // Handle sidebar add event (for coach view, open DayActionMenu instead of EventFormDialog)
+  const handleSidebarAddEvent = useCallback(() => {
+    if (isCoachView && selectedDate) {
+      dayActionMenu.openMenu(selectedDate)
+    } else {
+      handleAddEvent(selectedDate || undefined)
+    }
+  }, [isCoachView, selectedDate, dayActionMenu, handleAddEvent])
 
   // Handle drag-and-drop reschedule
   const handleReschedule = useCallback(
@@ -596,11 +617,12 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             items={selectedDateItems}
             selectedItem={selectedItem}
             onItemClick={handleItemClick}
-            onAddEvent={() => handleAddEvent(selectedDate || undefined)}
+            onAddEvent={handleSidebarAddEvent}
             onEditEvent={handleEditEvent}
             onEventDeleted={handleEventDeleted}
             isCoachView={isCoachView}
             variant="glass"
+            onViewWorkoutDetails={isCoachView ? handleViewWorkoutDetails : undefined}
           />
         </div>
 
@@ -778,6 +800,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             clientName={clientName}
             date={fullWorkoutDate}
             onOpenEventDialog={() => handleAddEvent(fullWorkoutDate)}
+            businessSlug={businessSlug}
           />
         )}
 
@@ -792,6 +815,14 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             }}
           />
         )}
+
+        {/* Workout Detail Sheet */}
+        <CalendarWorkoutDetailSheet
+          workoutId={detailWorkoutId}
+          open={isDetailSheetOpen}
+          onOpenChange={setIsDetailSheetOpen}
+          variant="glass"
+        />
       </div>
     )
   }
@@ -920,10 +951,11 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           items={selectedDateItems}
           selectedItem={selectedItem}
           onItemClick={handleItemClick}
-          onAddEvent={() => handleAddEvent(selectedDate || undefined)}
+          onAddEvent={handleSidebarAddEvent}
           onEditEvent={handleEditEvent}
           onEventDeleted={handleEventDeleted}
           isCoachView={isCoachView}
+          onViewWorkoutDetails={isCoachView ? handleViewWorkoutDetails : undefined}
         />
       </div>
 
@@ -1013,6 +1045,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           clientName={clientName}
           date={fullWorkoutDate}
           onOpenEventDialog={() => handleAddEvent(fullWorkoutDate)}
+          businessSlug={businessSlug}
         />
       )}
 
@@ -1028,6 +1061,13 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           }}
         />
       )}
+
+      {/* Workout Detail Sheet */}
+      <CalendarWorkoutDetailSheet
+        workoutId={detailWorkoutId}
+        open={isDetailSheetOpen}
+        onOpenChange={setIsDetailSheetOpen}
+      />
 
       {/* Conflict Dialog */}
       {rescheduleState && (

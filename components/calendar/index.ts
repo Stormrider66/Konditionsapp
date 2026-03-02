@@ -22,6 +22,7 @@ export { DayActionMenu, useDayActionMenu, type DayActionType } from './DayAction
 export { QuickWorkoutDialog } from './QuickWorkoutDialog'
 export { FullWorkoutDialog } from './FullWorkoutDialog'
 export { ScheduleTestDialog } from './ScheduleTestDialog'
+export { CalendarWorkoutDetailSheet } from './CalendarWorkoutDetailSheet'
 export { ProgramSelector } from './ProgramSelector'
 
 export * from './types'
