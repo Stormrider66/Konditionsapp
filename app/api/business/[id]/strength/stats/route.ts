@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { requireBusinessMembership } from '@/lib/auth-utils'
 import { startOfWeek, endOfWeek, startOfMonth, subMonths } from 'date-fns'
 
 interface RouteParams {
@@ -12,18 +13,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const user = await requireAuth()
     const { id: businessId } = await params
 
-    // Check if user has access to this business
-    const membership = await prisma.businessMember.findFirst({
-      where: {
-        userId: user.id,
-        businessId: businessId,
-        isActive: true,
-      },
-    })
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }
+    await requireBusinessMembership(user.id, businessId)
 
     const now = new Date()
     const weekStart = startOfWeek(now, { weekStartsOn: 1 })

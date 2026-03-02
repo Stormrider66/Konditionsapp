@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCoach } from '@/lib/auth-utils';
+import { requireCoach, requireBusinessMembership } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { sendGenericEmail } from '@/lib/email';
 import { z } from 'zod';
@@ -29,36 +29,12 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-async function canManageMembers(userId: string, businessId: string) {
-  const membership = await prisma.businessMember.findFirst({
-    where: {
-      userId,
-      businessId,
-      role: { in: ['OWNER', 'ADMIN'] },
-      isActive: true,
-    },
-  });
-
-  return membership !== null;
-}
-
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireCoach();
     const { id } = await params;
 
-    // Check if user has access to this business
-    const membership = await prisma.businessMember.findFirst({
-      where: {
-        userId: user.id,
-        businessId: id,
-        isActive: true,
-      },
-    });
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+    const { role: currentUserRole } = await requireBusinessMembership(user.id, id)
 
     const members = await prisma.businessMember.findMany({
       where: { businessId: id },
@@ -85,7 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         role: m.role,
         joinedAt: m.createdAt,
       })),
-      currentUserRole: membership.role,
+      currentUserRole,
     });
   } catch (error) {
     logError('Get business members error:', error);
@@ -107,13 +83,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await request.json();
 
-    // Check if user can manage members
-    if (!(await canManageMembers(user.id, id))) {
-      return NextResponse.json(
-        { error: 'Only owners and admins can invite members' },
-        { status: 403 }
-      );
-    }
+    await requireBusinessMembership(user.id, id, { roles: ['OWNER', 'ADMIN'] })
 
     // Validate input
     const validationResult = inviteMemberSchema.safeParse(body);
@@ -284,18 +254,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     const { userId: targetUserId } = validationResult.data;
 
-    // Get current user's membership
-    const currentMembership = await prisma.businessMember.findFirst({
-      where: {
-        userId: user.id,
-        businessId: id,
-        isActive: true,
-      },
-    });
-
-    if (!currentMembership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+    const currentMembership = await requireBusinessMembership(user.id, id)
 
     // Get target user's membership
     const targetMembership = await prisma.businessMember.findFirst({

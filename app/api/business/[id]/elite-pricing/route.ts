@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireCoach } from '@/lib/auth-utils'
+import { requireCoach, requireBusinessMembership } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
@@ -29,26 +29,12 @@ const elitePricingSchema = z.object({
   { message: 'Yearly price must be less than 12x monthly (should be a discount)', path: ['elitePriceYearly'] }
 )
 
-async function requireBusinessOwnerOrAdmin(userId: string, businessId: string) {
-  const membership = await prisma.businessMember.findFirst({
-    where: {
-      userId,
-      businessId,
-      role: { in: ['OWNER', 'ADMIN'] },
-    },
-  })
-  return membership
-}
-
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireCoach()
     const { id: businessId } = await params
 
-    const membership = await requireBusinessOwnerOrAdmin(user.id, businessId)
-    if (!membership) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-    }
+    await requireBusinessMembership(user.id, businessId, { roles: ['OWNER', 'ADMIN'] })
 
     const business = await prisma.business.findUnique({
       where: { id: businessId },
@@ -83,10 +69,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const user = await requireCoach()
     const { id: businessId } = await params
 
-    const membership = await requireBusinessOwnerOrAdmin(user.id, businessId)
-    if (!membership) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-    }
+    await requireBusinessMembership(user.id, businessId, { roles: ['OWNER', 'ADMIN'] })
 
     const body = await request.json()
     const data = elitePricingSchema.parse(body)

@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireCoach } from '@/lib/auth-utils';
+import { requireCoach, requireBusinessMembership } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -35,36 +35,12 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-async function canManageBusiness(userId: string, businessId: string) {
-  const membership = await prisma.businessMember.findFirst({
-    where: {
-      userId,
-      businessId,
-      role: { in: ['OWNER', 'ADMIN'] },
-      isActive: true,
-    },
-  });
-
-  return membership !== null;
-}
-
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireCoach();
     const { id } = await params;
 
-    // Check if user has access to this business
-    const membership = await prisma.businessMember.findFirst({
-      where: {
-        userId: user.id,
-        businessId: id,
-        isActive: true,
-      },
-    });
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-    }
+    const { role: memberRole } = await requireBusinessMembership(user.id, id)
 
     const business = await prisma.business.findUnique({
       where: { id },
@@ -110,7 +86,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         athleteCount: business._count.athleteSubscriptions,
         _count: undefined,
       },
-      userRole: membership.role,
+      userRole: memberRole,
     });
   } catch (error) {
     logError('Get business error:', error);
@@ -132,13 +108,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const body = await request.json();
 
-    // Check if user can manage this business
-    if (!(await canManageBusiness(user.id, id))) {
-      return NextResponse.json(
-        { error: 'Only owners and admins can update the business' },
-        { status: 403 }
-      );
-    }
+    await requireBusinessMembership(user.id, id, { roles: ['OWNER', 'ADMIN'] })
 
     // Validate input
     const validationResult = updateBusinessSchema.safeParse(body);
@@ -189,22 +159,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const user = await requireCoach();
     const { id } = await params;
 
-    // Only owner can delete/deactivate business
-    const membership = await prisma.businessMember.findFirst({
-      where: {
-        userId: user.id,
-        businessId: id,
-        role: 'OWNER',
-        isActive: true,
-      },
-    });
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: 'Only the owner can deactivate the business' },
-        { status: 403 }
-      );
-    }
+    await requireBusinessMembership(user.id, id, { roles: ['OWNER'] })
 
     // Soft delete - mark as inactive
     await prisma.business.update({

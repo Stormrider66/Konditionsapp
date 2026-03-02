@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireCoach } from '@/lib/auth-utils'
+import { requireCoach, requireBusinessMembership } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
@@ -23,18 +23,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const user = await requireCoach()
     const { id: businessId, requestId } = await params
 
-    // Check user is owner/admin of business
-    const membership = await prisma.businessMember.findFirst({
-      where: {
-        userId: user.id,
-        businessId,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-    })
-
-    if (!membership) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-    }
+    await requireBusinessMembership(user.id, businessId, { roles: ['OWNER', 'ADMIN'] })
 
     const joinRequest = await prisma.businessJoinRequest.findUnique({
       where: { id: requestId },

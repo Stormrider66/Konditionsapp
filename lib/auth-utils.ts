@@ -8,6 +8,7 @@ import { isAthleteModeActive, getAthleteModeAccess } from '@/lib/athlete-mode'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import { createCoachTrialSubscription } from '@/lib/subscription/feature-access'
 import { logger } from '@/lib/logger'
+import { ApiError } from '@/lib/api-error'
 
 /**
  * Get the currently authenticated user from Supabase session
@@ -905,6 +906,37 @@ export async function hasBusinessAdminRole(): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+/**
+ * Require that a user is an active member of a specific business.
+ * For use in API routes under /api/business/[id]/*.
+ *
+ * @param userId  - The authenticated user's ID
+ * @param businessId - The business ID from the route params
+ * @param options.roles - Optional array of required roles (e.g. ['OWNER','ADMIN'])
+ * @throws ApiError 403 if user is not a member (or lacks required role)
+ */
+export async function requireBusinessMembership(
+  userId: string,
+  businessId: string,
+  options?: { roles?: string[] }
+): Promise<{ membershipId: string; role: string }> {
+  const membership = await prisma.businessMember.findFirst({
+    where: {
+      userId,
+      businessId,
+      isActive: true,
+      ...(options?.roles ? { role: { in: options.roles } } : {}),
+    },
+    select: { id: true, role: true },
+  })
+
+  if (!membership) {
+    throw ApiError.forbidden('Not a member of this business')
+  }
+
+  return { membershipId: membership.id, role: membership.role }
 }
 
 // ============================================
