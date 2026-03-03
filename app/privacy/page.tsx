@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
                 <Section title="1. Introduction">
                   <p>
                     Trainomics (&quot;we&quot;, &quot;us&quot;, &quot;our&quot;) operates the Trainomics platform
-                    (www.trainomics.app), a training and physiological testing platform for athletes, coaches,
+                    (trainomics.app), a training and physiological testing platform for athletes, coaches,
                     and physiotherapists. We are committed to protecting your privacy and processing your
                     personal data in accordance with the EU General Data Protection Regulation (GDPR) and
                     applicable Swedish data protection laws.
@@ -45,7 +45,7 @@ export default function PrivacyPolicyPage() {
                   <address className="not-italic bg-muted/50 rounded-lg p-4 text-sm">
                     Trainomics<br />
                     Email: privacy@trainomics.app<br />
-                    Website: www.trainomics.app
+                    Website: trainomics.app
                   </address>
                 </Section>
 
@@ -242,7 +242,7 @@ export default function PrivacyPolicyPage() {
                   <address className="not-italic bg-muted/50 rounded-lg p-4 text-sm">
                     Trainomics<br />
                     Email: <a href="mailto:privacy@trainomics.app" className="text-primary hover:underline">privacy@trainomics.app</a><br />
-                    Website: www.trainomics.app
+                    Website: trainomics.app
                   </address>
                   <p>
                     You also have the right to lodge a complaint with the Swedish Authority for Privacy
