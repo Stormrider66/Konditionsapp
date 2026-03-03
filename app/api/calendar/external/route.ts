@@ -324,7 +324,7 @@ export async function GET(request: NextRequest) {
  * Get OAuth URL for a provider with secure CSRF state token
  */
 async function getOAuthUrl(provider: string, connectionId: string): Promise<string> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
 
   switch (provider) {
     case 'GOOGLE':

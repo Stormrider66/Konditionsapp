@@ -93,7 +93,16 @@ export async function POST(
     }
 
     // Use generated recovery link, or fall back to forgot-password page
-    const setPasswordUrl = linkData?.properties?.action_link || `${appUrl}/forgot-password`
+    // Replace localhost base URL in action_link (happens when Supabase Site URL is misconfigured)
+    let setPasswordUrl = linkData?.properties?.action_link || `${appUrl}/forgot-password`
+    if (setPasswordUrl.includes('localhost')) {
+      const url = new URL(setPasswordUrl)
+      const prodUrl = new URL(appUrl)
+      url.protocol = prodUrl.protocol
+      url.host = prodUrl.host
+      url.port = ''
+      setPasswordUrl = url.toString()
+    }
 
     // Send the invite email
     const emailResult = await sendCoachInviteEmail(

@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (rateLimited) return rateLimited
 
     // Build return URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
     const returnUrl = `${baseUrl}/coach/subscription`;
 
     // Create billing portal session

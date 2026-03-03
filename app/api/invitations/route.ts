@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Generate the invitation URL
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
     const inviteUrl = type === 'REPORT_VIEW'
       ? `${appUrl}/report/${code}`
       : `${appUrl}/invite/${code}`;

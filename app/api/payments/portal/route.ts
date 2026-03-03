@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build return URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
     const returnUrl = `${baseUrl}/athlete/subscription`;
 
     // Create portal session

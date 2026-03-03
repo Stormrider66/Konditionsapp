@@ -156,7 +156,7 @@ export async function POST(
     // Send notification if requested and athlete has account
     if (notify && athlete.athleteAccount && athlete.email) {
       try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
         const viewLink = `${appUrl}/athlete/research/${sessionId}`
 
         await sendGenericEmail({

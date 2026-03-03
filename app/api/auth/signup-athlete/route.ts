@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
 
     if (tier && tier !== 'FREE') {
       try {
-        const origin = request.headers.get('origin') || 'http://localhost:3000'
+        const origin = request.headers.get('origin') || 'https://trainomics.app'
         const checkoutUrl = await createCheckoutSession(
           result.client.id,
           tier,

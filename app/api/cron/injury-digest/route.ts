@@ -158,7 +158,7 @@ function generateEmailHTML(data: DigestData): string {
               )
               .join('')}
             <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">
-              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/coach/injury/modifications" style="color: #3b82f6;">Granska modifieringar</a>
+              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/injury/modifications" style="color: #3b82f6;">Granska modifieringar</a>
             </p>
           </div>
           `
@@ -189,7 +189,7 @@ function generateEmailHTML(data: DigestData): string {
               )
               .join('')}
             <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">
-              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/coach/injury/active" style="color: #3b82f6;">Se skadeöversikt</a>
+              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/injury/active" style="color: #3b82f6;">Se skadeöversikt</a>
             </p>
           </div>
           `
@@ -217,7 +217,7 @@ function generateEmailHTML(data: DigestData): string {
               )
               .join('')}
             <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">
-              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/coach/monitoring" style="color: #3b82f6;">Se ACWR-övervakning</a>
+              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/monitoring" style="color: #3b82f6;">Se ACWR-övervakning</a>
             </p>
           </div>
           `
@@ -245,7 +245,7 @@ function generateEmailHTML(data: DigestData): string {
               )
               .join('')}
             <p style="font-size: 14px; color: #6b7280; margin-top: 15px;">
-              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/coach/monitoring" style="color: #3b82f6;">Se beredskapsöversikt</a>
+              → <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/monitoring" style="color: #3b82f6;">Se beredskapsöversikt</a>
             </p>
           </div>
           `
@@ -256,7 +256,7 @@ function generateEmailHTML(data: DigestData): string {
           <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
             <p style="color: #6b7280; font-size: 14px; margin: 0;">
               Detta meddelande skickades automatiskt kl. 07:00 varje dag.<br>
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/coach/settings" style="color: #3b82f6;">Ändra aviseringsinställningar</a>
+              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/settings" style="color: #3b82f6;">Ändra aviseringsinställningar</a>
             </p>
           </div>
         </div>

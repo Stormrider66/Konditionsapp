@@ -57,7 +57,7 @@ export async function POST(
     // Check if test already has a valid public token
     if (test.publicToken && test.publicExpiresAt && test.publicExpiresAt > new Date()) {
       // Return existing token
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
       return NextResponse.json({
         success: true,
         publicUrl: `${baseUrl}/report/${test.publicToken}`,
@@ -79,7 +79,7 @@ export async function POST(
       },
     });
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
 
     return NextResponse.json({
       success: true,
@@ -187,7 +187,7 @@ export async function GET(
     }
 
     const isExpired = test.publicExpiresAt < new Date();
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
 
     return NextResponse.json({
       hasPublicLink: !isExpired,

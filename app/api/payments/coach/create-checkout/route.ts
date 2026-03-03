@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const { tier, cycle } = checkoutSchema.parse(body);
 
     // Build success and cancel URLs
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
     const successUrl = `${baseUrl}/coach/subscription?success=true`;
     const cancelUrl = `${baseUrl}/coach/subscription?cancelled=true`;
 
