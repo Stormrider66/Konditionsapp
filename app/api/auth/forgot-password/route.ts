@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
     // Rate limit: 3 requests per 15 minutes per IP
     const ip = getRequestIp(request)
     const rateLimited = await rateLimitJsonResponse('forgot-password', ip, {
-      maxRequests: 3,
-      windowMs: 15 * 60 * 1000,
+      limit: 3,
+      windowSeconds: 15 * 60,
     })
     if (rateLimited) return rateLimited
 
