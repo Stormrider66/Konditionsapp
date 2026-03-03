@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 import { sendCoachInviteEmail } from '@/lib/email'
+import { fixLocalhostUrl } from '@/lib/url-utils'
 
 type BusinessMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH'
 
@@ -149,8 +150,11 @@ export async function inviteUserToBusiness({
     }
 
     // Use generated recovery link, or fall back to forgot-password page
-    const setPasswordUrl = linkData?.properties?.action_link
-      || `${appUrl}/forgot-password`
+    // Fix localhost URLs when Supabase Site URL is misconfigured
+    const setPasswordUrl = fixLocalhostUrl(
+      linkData?.properties?.action_link || `${appUrl}/forgot-password`,
+      appUrl
+    )
 
     // Always send invite email
     const emailResult = await sendCoachInviteEmail(email, name, business.name, setPasswordUrl).catch((emailErr) => {

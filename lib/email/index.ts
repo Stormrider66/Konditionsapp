@@ -358,6 +358,39 @@ export async function sendCoachInviteEmail(
   return sendEmailInternal(to, subject, html, branding);
 }
 
+// ==================== PASSWORD RESET EMAIL ====================
+
+/**
+ * Send password reset email via Resend (replaces Supabase built-in email).
+ */
+export async function sendPasswordResetEmail(
+  to: string,
+  resetUrl: string,
+  recipientName?: string,
+  branding?: EmailBranding
+): Promise<SendEmailResult> {
+  const br = branding;
+  const platformName = br?.platformName || PLATFORM_NAME;
+  const buttonColor = br?.primaryColor || '#3b82f6';
+  const greeting = recipientName ? `Hej ${recipientName},` : 'Hej,';
+  const subject = 'Återställ ditt lösenord';
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>${greeting}</h2>
+      <p>Vi fick en förfrågan om att återställa lösenordet för ditt konto på ${platformName}.</p>
+      <p>Klicka på knappen nedan för att välja ett nytt lösenord:</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${resetUrl}" style="background: ${buttonColor}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+          Återställ lösenord
+        </a>
+      </div>
+      <p style="color: #666; font-size: 14px;">Om du inte begärde denna återställning kan du ignorera detta e-postmeddelande. Länken upphör att gälla efter 24 timmar.</p>
+      <p>Med vänliga hälsningar,<br/>${platformName}</p>
+    </div>
+  `;
+  return sendEmailInternal(to, subject, html, branding);
+}
+
 // ==================== GENERIC SEND EMAIL ====================
 
 /**

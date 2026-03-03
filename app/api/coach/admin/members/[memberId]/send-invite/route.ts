@@ -5,6 +5,7 @@ import { handleApiError } from '@/lib/api-error'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { sendCoachInviteEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
+import { fixLocalhostUrl } from '@/lib/url-utils'
 
 // POST /api/coach/admin/members/[memberId]/send-invite
 export async function POST(
@@ -93,16 +94,11 @@ export async function POST(
     }
 
     // Use generated recovery link, or fall back to forgot-password page
-    // Replace localhost base URL in action_link (happens when Supabase Site URL is misconfigured)
-    let setPasswordUrl = linkData?.properties?.action_link || `${appUrl}/forgot-password`
-    if (setPasswordUrl.includes('localhost')) {
-      const url = new URL(setPasswordUrl)
-      const prodUrl = new URL(appUrl)
-      url.protocol = prodUrl.protocol
-      url.host = prodUrl.host
-      url.port = ''
-      setPasswordUrl = url.toString()
-    }
+    // Fix localhost URLs when Supabase Site URL is misconfigured
+    const setPasswordUrl = fixLocalhostUrl(
+      linkData?.properties?.action_link || `${appUrl}/forgot-password`,
+      appUrl
+    )
 
     // Send the invite email
     const emailResult = await sendCoachInviteEmail(
