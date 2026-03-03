@@ -288,7 +288,7 @@ export function WorkoutList({
               {t('workout.assignDescription', { name: selectedWorkout?.name ?? '' })}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
             {/* Date Picker */}
             <div className="space-y-2">
               <Label>{tCommon('date')}</Label>
