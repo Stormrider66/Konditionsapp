@@ -6,7 +6,7 @@
  */
 
 import { redirect, notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { SubscriptionClient } from '@/app/athlete/subscription/SubscriptionClient'
@@ -22,10 +22,7 @@ interface BusinessSubscriptionPageProps {
 
 export default async function BusinessSubscriptionPage({ params }: BusinessSubscriptionPageProps) {
   const { businessSlug } = await params
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect('/login')

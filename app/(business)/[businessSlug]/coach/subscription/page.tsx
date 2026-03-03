@@ -4,7 +4,7 @@
  */
 
 import { redirect, notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { CoachSubscriptionClient } from '@/app/coach/subscription/CoachSubscriptionClient'
@@ -17,14 +17,7 @@ interface PageProps {
 
 export default async function BusinessCoachSubscriptionPage({ params }: PageProps) {
   const { businessSlug } = await params
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
+  const user = await requireCoach()
 
   // Validate business membership
   const membership = await validateBusinessMembership(user.id, businessSlug)

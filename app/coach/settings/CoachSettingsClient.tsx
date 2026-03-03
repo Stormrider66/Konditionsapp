@@ -8,17 +8,14 @@ import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
 import { ProfileSettings } from '@/components/settings/ProfileSettings'
 import { PasswordChangeForm } from '@/components/settings/PasswordChangeForm'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
-import type { User } from '@supabase/supabase-js'
-
 interface CoachSettingsClientProps {
-    user: User
+    userEmail: string
     businessSlug?: string
     userName?: string
 }
 
-export function CoachSettingsClient({ user, businessSlug, userName = '' }: CoachSettingsClientProps) {
-    const displayName = userName || user.email || 'Coach'
-    const userEmail = user.email || ''
+export function CoachSettingsClient({ userEmail, businessSlug, userName = '' }: CoachSettingsClientProps) {
+    const displayName = userName || userEmail || 'Coach'
     const basePath = businessSlug ? `/${businessSlug}/coach` : '/coach'
 
     return (

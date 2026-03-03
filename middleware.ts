@@ -483,14 +483,16 @@ export async function middleware(request: NextRequest) {
   // If authenticated, check role-based access
   if (supabaseUser) {
     // Query user role from Supabase (edge-compatible, no Prisma)
+    // Select id to handle legacy users where DB User.id differs from Supabase Auth ID
     const { data: userData, error } = await supabase
       .from('User')
-      .select('role, adminRole')
+      .select('id, role, adminRole')
       .eq('email', supabaseUser.email!)
       .single()
 
     if (!error && userData) {
       const role = userData.role
+      const dbUserId = userData.id
 
       // Check if this is a business-scoped route (e.g., /star-by-thomson/coach/dashboard or /star-by-thomson/athlete/dashboard or /star-by-thomson/physio/dashboard)
       const pathSegments = pathname.split('/').filter(Boolean)
@@ -508,7 +510,7 @@ export async function middleware(request: NextRequest) {
         const { data: membership, error: membershipError } = await supabase
           .from('BusinessMember')
           .select('id, Business!inner(slug, isActive)')
-          .eq('userId', supabaseUser.id)
+          .eq('userId', dbUserId)
           .eq('isActive', true)
           .eq('Business.slug', businessSlug)
           .eq('Business.isActive', true)
@@ -520,7 +522,7 @@ export async function middleware(request: NextRequest) {
           const { data: userMembership } = await supabase
             .from('BusinessMember')
             .select('Business!inner(slug)')
-            .eq('userId', supabaseUser.id)
+            .eq('userId', dbUserId)
             .eq('isActive', true)
             .order('createdAt', { ascending: true })
             .limit(1)
@@ -565,7 +567,7 @@ export async function middleware(request: NextRequest) {
           const { data: membership } = await supabase
             .from('BusinessMember')
             .select('businessId, Business!inner(slug)')
-            .eq('userId', supabaseUser.id)
+            .eq('userId', dbUserId)
             .eq('isActive', true)
             .order('createdAt', { ascending: true })
             .limit(1)
@@ -602,7 +604,7 @@ export async function middleware(request: NextRequest) {
             const { data: athleteMembership } = await supabase
               .from('BusinessMember')
               .select('businessId, Business!inner(slug)')
-              .eq('userId', supabaseUser.id)
+              .eq('userId', dbUserId)
               .eq('isActive', true)
               .order('createdAt', { ascending: true })
               .limit(1)
@@ -627,7 +629,7 @@ export async function middleware(request: NextRequest) {
           const { data: userWithSelfAthlete } = await supabase
             .from('User')
             .select('selfAthleteClientId')
-            .eq('id', supabaseUser.id)
+            .eq('id', dbUserId)
             .single()
 
           if (!userWithSelfAthlete?.selfAthleteClientId) {
@@ -644,7 +646,7 @@ export async function middleware(request: NextRequest) {
             const { data: coachBizMembership } = await supabase
               .from('BusinessMember')
               .select('businessId, Business!inner(slug)')
-              .eq('userId', supabaseUser.id)
+              .eq('userId', dbUserId)
               .eq('isActive', true)
               .order('createdAt', { ascending: true })
               .limit(1)
@@ -709,7 +711,7 @@ export async function middleware(request: NextRequest) {
           const { data: physioMembership } = await supabase
             .from('BusinessMember')
             .select('businessId, Business!inner(slug)')
-            .eq('userId', supabaseUser.id)
+            .eq('userId', dbUserId)
             .eq('isActive', true)
             .order('createdAt', { ascending: true })
             .limit(1)
@@ -738,7 +740,7 @@ export async function middleware(request: NextRequest) {
           const { data: athleteLoginMembership } = await supabase
             .from('BusinessMember')
             .select('Business!inner(slug)')
-            .eq('userId', supabaseUser.id)
+            .eq('userId', dbUserId)
             .eq('isActive', true)
             .order('createdAt', { ascending: true })
             .limit(1)
@@ -761,7 +763,7 @@ export async function middleware(request: NextRequest) {
           const { data: membership } = await supabase
             .from('BusinessMember')
             .select('Business!inner(slug)')
-            .eq('userId', supabaseUser.id)
+            .eq('userId', dbUserId)
             .eq('isActive', true)
             .order('createdAt', { ascending: true })
             .limit(1)
@@ -784,7 +786,7 @@ export async function middleware(request: NextRequest) {
           const { data: physioLoginMembership } = await supabase
             .from('BusinessMember')
             .select('Business!inner(slug)')
-            .eq('userId', supabaseUser.id)
+            .eq('userId', dbUserId)
             .eq('isActive', true)
             .order('createdAt', { ascending: true })
             .limit(1)

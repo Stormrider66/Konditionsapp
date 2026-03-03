@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { PhysioGlassHeader } from '@/components/physio/PhysioGlassHeader'
 
@@ -13,20 +13,13 @@ export default async function BusinessPhysioLayout({
     params,
 }: PhysioLayoutProps) {
     const { businessSlug } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
         redirect('/login')
     }
 
-    // Verify user is a physio
-    const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-    })
-
-    if (dbUser?.role !== 'PHYSIO' && dbUser?.role !== 'ADMIN') {
+    if (user.role !== 'PHYSIO' && user.role !== 'ADMIN') {
         redirect('/login')
     }
 
@@ -49,7 +42,7 @@ export default async function BusinessPhysioLayout({
         },
     })
 
-    if (!membership && dbUser?.role !== 'ADMIN') {
+    if (!membership && user.role !== 'ADMIN') {
         redirect('/physio/dashboard')
     }
 
