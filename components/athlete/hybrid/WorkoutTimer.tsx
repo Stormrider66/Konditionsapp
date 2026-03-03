@@ -226,7 +226,8 @@ export function WorkoutTimer({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, mode, totalSeconds, workSeconds, restSeconds, rounds, currentRound, isWorkPeriod, elapsedMs, playBeep, onComplete, onRoundComplete]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- elapsedMs, currentRound, isWorkPeriod are updated inside the interval and must NOT be deps (causes startTimeRef reset loop)
+  }, [isRunning, mode, totalSeconds, workSeconds, restSeconds, rounds, playBeep, onComplete, onRoundComplete]);
 
   // Reset timer
   const reset = () => {
