@@ -1017,7 +1017,7 @@ model Test {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  client           Client            @relation(fields: [clientId], references: [id])
+  client           Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   user             User              @relation(fields: [userId], references: [id])
   testStages       TestStage[]
   report           Report?
@@ -7158,7 +7158,7 @@ model LiveHRParticipant {
   sessionId String
   session   LiveHRSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   clientId  String
-  client    Client        @relation(fields: [clientId], references: [id])
+  client    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   joinedAt    DateTime  @default(now())
   lastReading DateTime?
@@ -7743,7 +7743,7 @@ model CoachDecision {
   // Relationships
   coach     User   @relation("CoachDecisions", fields: [coachId], references: [id])
   coachId   String
-  athlete   Client @relation("AthleteDecisions", fields: [athleteId], references: [id])
+  athlete   Client @relation("AthleteDecisions", fields: [athleteId], references: [id], onDelete: Cascade)
   athleteId String
 
   // AI Suggestion
@@ -7811,7 +7811,7 @@ model AIPrediction {
   inputDataSnapshot Json
 
   // Context
-  athlete   Client  @relation("AthletePredictions", fields: [athleteId], references: [id])
+  athlete   Client  @relation("AthletePredictions", fields: [athleteId], references: [id], onDelete: Cascade)
   athleteId String
   coach     User?   @relation("CoachPredictions", fields: [coachId], references: [id])
   coachId   String?
@@ -9374,7 +9374,7 @@ model CoachEarnings {
   createdAt DateTime @default(now())
 
   coach   User   @relation("CoachEarnings", fields: [coachUserId], references: [id])
-  athlete Client @relation("AthleteCoachEarnings", fields: [athleteClientId], references: [id])
+  athlete Client @relation("AthleteCoachEarnings", fields: [athleteClientId], references: [id], onDelete: Cascade)
 
   @@index([coachUserId, status])
   @@index([periodStart])
