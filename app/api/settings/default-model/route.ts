@@ -51,12 +51,26 @@ export async function GET() {
     // If no default model set, find the first available model the user has a key for
     let effectiveModel = userSettings?.defaultModel;
 
-    if (!effectiveModel && userSettings) {
-      // Determine which providers the user has valid keys for
+    if (!effectiveModel) {
+      // Determine which providers the user has valid keys for (personal + business fallback)
       const validProviders: AIProvider[] = [];
-      if (userSettings.googleKeyValid) validProviders.push('GOOGLE');
-      if (userSettings.anthropicKeyValid) validProviders.push('ANTHROPIC');
-      if (userSettings.openaiKeyValid) validProviders.push('OPENAI');
+      if (userSettings?.googleKeyValid) validProviders.push('GOOGLE');
+      if (userSettings?.anthropicKeyValid) validProviders.push('ANTHROPIC');
+      if (userSettings?.openaiKeyValid) validProviders.push('OPENAI');
+
+      // If no personal keys, check business-level keys
+      if (validProviders.length === 0) {
+        const businessKeys = await prisma.businessAiKeys.findFirst({
+          where: {
+            business: {
+              members: { some: { userId: user.id, isActive: true } },
+            },
+          },
+        });
+        if (businessKeys?.googleKeyValid) validProviders.push('GOOGLE');
+        if (businessKeys?.anthropicKeyValid) validProviders.push('ANTHROPIC');
+        if (businessKeys?.openaiKeyValid) validProviders.push('OPENAI');
+      }
 
       if (validProviders.length > 0) {
         // Find a default model for an available provider
@@ -150,15 +164,30 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      // Check if user has a valid API key for this provider
+      // Check if user has a valid API key for this provider (personal or business-level)
       const userKeys = await prisma.userApiKey.findUnique({
         where: { userId: user.id },
       });
 
-      const hasValidKey =
+      let hasValidKey =
         (model.provider === 'ANTHROPIC' && userKeys?.anthropicKeyValid) ||
         (model.provider === 'GOOGLE' && userKeys?.googleKeyValid) ||
         (model.provider === 'OPENAI' && userKeys?.openaiKeyValid);
+
+      // Fallback: check business-level keys
+      if (!hasValidKey) {
+        const businessKeys = await prisma.businessAiKeys.findFirst({
+          where: {
+            business: {
+              members: { some: { userId: user.id, isActive: true } },
+            },
+          },
+        });
+        hasValidKey =
+          (model.provider === 'ANTHROPIC' && businessKeys?.anthropicKeyValid) ||
+          (model.provider === 'GOOGLE' && businessKeys?.googleKeyValid) ||
+          (model.provider === 'OPENAI' && businessKeys?.openaiKeyValid);
+      }
 
       if (!hasValidKey) {
         return NextResponse.json(
