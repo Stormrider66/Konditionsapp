@@ -34,9 +34,6 @@ export async function POST(request: NextRequest) {
 
     const { email } = parsed.data
 
-    // Always return success to prevent email enumeration
-    const successResponse = NextResponse.json({ success: true })
-
     // Look up user for name personalization (optional)
     const user = await prisma.user.findUnique({
       where: { email },
@@ -45,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       // User doesn't exist — return success anyway (no enumeration)
-      return successResponse
+      return NextResponse.json({ success: true, step: 'no-user' })
     }
 
     // Generate recovery link via Supabase Admin
@@ -62,21 +59,34 @@ export async function POST(request: NextRequest) {
 
     if (linkError || !linkData?.properties?.action_link) {
       logger.error('Forgot password: recovery link generation failed', { email }, linkError)
-      return successResponse
+      return NextResponse.json({
+        success: false,
+        step: 'generate-link',
+        error: linkError?.message || 'No action_link returned',
+      }, { status: 500 })
     }
 
     // Fix localhost URLs when Supabase Site URL is misconfigured
     const resetUrl = fixLocalhostUrl(linkData.properties.action_link, appUrl)
 
     // Send via Resend
-    await sendPasswordResetEmail(email, resetUrl, user.name || undefined).catch((err) => {
-      logger.error('Forgot password: email send failed', { email }, err)
-    })
+    const emailResult = await sendPasswordResetEmail(email, resetUrl, user.name || undefined)
 
-    return successResponse
+    if (!emailResult.success) {
+      return NextResponse.json({
+        success: false,
+        step: 'send-email',
+        error: emailResult.error,
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, step: 'sent' })
   } catch (error) {
     logger.error('Forgot password: unexpected error', {}, error)
-    // Still return success to prevent information leakage
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: false,
+      step: 'exception',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    }, { status: 500 })
   }
 }

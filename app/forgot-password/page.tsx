@@ -18,6 +18,7 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
 
   const {
     register,
@@ -31,16 +32,21 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      await fetch('/api/auth/forgot-password', {
+      const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: data.email }),
       })
+      const json = await res.json()
 
-      // Always show success (don't reveal if email exists)
+      // DEBUG: temporarily show API response for troubleshooting
+      if (!json.success) {
+        setDebugInfo(`Step: ${json.step}, Error: ${json.error}`)
+      }
+
       setIsSubmitted(true)
-    } catch {
-      // Still show success for security
+    } catch (err) {
+      setDebugInfo(`Fetch error: ${err instanceof Error ? err.message : 'unknown'}`)
       setIsSubmitted(true)
     } finally {
       setIsLoading(false)
@@ -69,6 +75,11 @@ export default function ForgotPasswordPage() {
               <p className="text-sm text-muted-foreground">
                 Om det finns ett konto kopplat till den e-postadressen har vi skickat en länk för att återställa ditt lösenord. Kolla din inkorg och skräppost.
               </p>
+              {debugInfo && (
+                <p className="text-xs text-red-500 mt-2 font-mono bg-red-50 p-2 rounded">
+                  DEBUG: {debugInfo}
+                </p>
+              )}
             </div>
           ) : (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
