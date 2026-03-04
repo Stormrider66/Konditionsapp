@@ -474,6 +474,7 @@ function buildSummary(
       COLD: 'förkylning',
       HEADACHE: 'huvudvärk',
       GENERAL_ILLNESS: 'sjukdom',
+      CHRONIC: 'kronisk sjukdom',
     }
     parts.push(`Möjlig ${illnessLabels[illness.type]} nämnd i anteckningar`)
   }
