@@ -165,8 +165,9 @@ export async function POST(request: NextRequest) {
           tier: 'FREE', // Always start FREE - upgrade requires payment
           status: 'ACTIVE',
           paymentSource: 'DIRECT',
-          // All premium features disabled by default - require subscription upgrade
-          aiChatEnabled: false,
+          // Match ATHLETE_TIER_FEATURES.FREE: AI chat enabled with 10 msg/month limit
+          aiChatEnabled: true,
+          aiChatMessagesLimit: 10,
           videoAnalysisEnabled: false,
           garminEnabled: false,
           stravaEnabled: false,

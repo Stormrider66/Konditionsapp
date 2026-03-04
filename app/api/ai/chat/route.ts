@@ -154,6 +154,17 @@ export async function POST(request: NextRequest) {
       apiKeyUserId = clientRecord.userId; // Use coach's API keys
       athleteName = clientRecord.name;
 
+      // Direct athlete: client.userId is the athlete themselves → fall back to platform admin
+      if (apiKeyUserId === userId && !resolved.isCoachInAthleteMode) {
+        const admin = await prisma.user.findFirst({
+          where: { adminRole: 'SUPER_ADMIN' },
+          select: { id: true },
+        })
+        if (admin) {
+          apiKeyUserId = admin.id
+        }
+      }
+
       // Skip subscription check for coaches/admins in athlete mode (they own the API keys)
       if (!resolved.isCoachInAthleteMode) {
         const access = await checkAthleteFeatureAccess(athleteClientId, 'ai_chat');

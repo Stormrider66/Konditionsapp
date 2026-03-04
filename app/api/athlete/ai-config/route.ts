@@ -42,9 +42,20 @@ export async function GET() {
     // Determine the coach whose API keys to use
     // For coach-in-athlete-mode: the coach IS the user
     // For regular athletes: the coach is client.userId
-    const coachId = isCoachInAthleteMode ? user.id : client?.userId
+    let effectiveCoachId = isCoachInAthleteMode ? user.id : client?.userId
 
-    if (!coachId) {
+    // Direct athlete: client.userId is the athlete themselves → fall back to platform admin
+    if (effectiveCoachId && effectiveCoachId === user.id && !isCoachInAthleteMode) {
+      const admin = await prisma.user.findFirst({
+        where: { adminRole: 'SUPER_ADMIN' },
+        select: { id: true },
+      })
+      if (admin) {
+        effectiveCoachId = admin.id
+      }
+    }
+
+    if (!effectiveCoachId) {
       return NextResponse.json(
         { error: 'Athlete account not properly linked to coach' },
         { status: 400 }
@@ -55,7 +66,7 @@ export async function GET() {
 
     // Fetch coach's API keys and athlete model settings
     const apiKeys = await prisma.userApiKey.findUnique({
-      where: { userId: coachId },
+      where: { userId: effectiveCoachId },
       select: {
         anthropicKeyValid: true,
         googleKeyValid: true,
