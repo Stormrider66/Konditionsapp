@@ -134,7 +134,7 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
         <GlassCardContent className="p-6 text-center text-slate-500 dark:text-slate-400">
           <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">Inga AI-modeller tillgängliga</p>
-          <p className="text-xs mt-1">Din coach behöver konfigurera API-nycklar</p>
+          <p className="text-xs mt-1">Inga AI-modeller tillgängliga just nu</p>
         </GlassCardContent>
       </GlassCard>
     )

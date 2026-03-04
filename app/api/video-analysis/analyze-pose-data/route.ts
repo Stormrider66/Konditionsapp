@@ -9,7 +9,7 @@ import {
   createText,
   getGeminiModelId,
 } from '@/lib/ai/google-genai-client'
-import { decryptSecret } from '@/lib/crypto/secretbox'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 export const maxDuration = 120
 
@@ -80,20 +80,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get user's API key
-    const apiKeys = await prisma.userApiKey.findUnique({
-      where: { userId: user.id },
-      include: { defaultModel: true },
-    })
-
-    let googleKey: string | undefined
-    if (apiKeys?.googleKeyEncrypted) {
-      try {
-        googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
-      } catch {
-        googleKey = undefined
-      }
-    }
+    // Get user's API key (with fallback to business keys / platform admin)
+    const resolvedKeys = await getResolvedAiKeys(user.id)
+    const googleKey = resolvedKeys.googleKey
 
     if (!googleKey) {
       return NextResponse.json(
@@ -129,12 +118,7 @@ export async function POST(request: NextRequest) {
     const client = createGoogleGenAIClient(googleKey)
 
     // Determine model
-    let modelId: string
-    if (apiKeys?.defaultModel?.provider === 'GOOGLE' && apiKeys?.defaultModel?.modelId) {
-      modelId = apiKeys.defaultModel.modelId
-    } else {
-      modelId = getGeminiModelId('chat')
-    }
+    const modelId = getGeminiModelId('chat')
 
     // Build context about the exercise
     const exerciseContext = exerciseNameSv || exerciseName || getVideoTypeLabel(videoType)

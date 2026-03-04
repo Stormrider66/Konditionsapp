@@ -59,7 +59,17 @@ export async function getUserAIConfig(): Promise<UserAIConfig | null> {
       return null
     }
 
-    coachId = athleteAccount.client.userId
+    // If client.userId is the athlete themselves (direct registration, no coach),
+    // fall back to platform admin
+    if (athleteAccount.client.userId === user.id) {
+      const admin = await prisma.user.findFirst({
+        where: { adminRole: 'SUPER_ADMIN' },
+        select: { id: true },
+      })
+      coachId = admin?.id ?? user.id
+    } else {
+      coachId = athleteAccount.client.userId
+    }
   }
 
   // Get the coach's API keys

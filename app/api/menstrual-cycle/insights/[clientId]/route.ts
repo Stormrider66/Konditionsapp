@@ -13,7 +13,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { CycleInsightsSchema } from '@/lib/validations/gemini-schemas';
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
-import { decryptSecret } from '@/lib/crypto/secretbox';
+import { getResolvedAiKeys } from '@/lib/user-api-keys';
 import { logError } from '@/lib/logger-console'
 
 export async function GET(
@@ -91,18 +91,8 @@ export async function GET(
     // Try to get AI insights if API key is configured
     let aiInsights = null;
 
-    const apiKeys = await prisma.userApiKey.findUnique({
-      where: { userId: client.userId },
-    });
-
-    let googleKey: string | undefined
-    if (apiKeys?.googleKeyEncrypted) {
-      try {
-        googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
-      } catch {
-        googleKey = undefined
-      }
-    }
+    const resolvedKeys = await getResolvedAiKeys(client.userId);
+    const googleKey = resolvedKeys.googleKey;
 
     if (googleKey && allLogs.length >= 10) {
       try {

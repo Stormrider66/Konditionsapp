@@ -116,6 +116,24 @@ export async function GET() {
       }
     }
 
+    // 3. Fall back to platform admin keys (for direct athletes without a coach)
+    if (validProviders.length === 0) {
+      const admin = await prisma.user.findFirst({
+        where: { adminRole: 'SUPER_ADMIN' },
+        select: { id: true },
+      })
+      if (admin) {
+        const adminKeys = await prisma.userApiKey.findUnique({
+          where: { userId: admin.id },
+        })
+        if (adminKeys) {
+          if (adminKeys.googleKeyValid) validProviders.push('GOOGLE')
+          if (adminKeys.anthropicKeyValid) validProviders.push('ANTHROPIC')
+          if (adminKeys.openaiKeyValid) validProviders.push('OPENAI')
+        }
+      }
+    }
+
     if (validProviders.length === 0) {
       return NextResponse.json({
         success: true,

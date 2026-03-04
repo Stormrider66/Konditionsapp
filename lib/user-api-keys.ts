@@ -93,11 +93,23 @@ export async function getResolvedAiKeys(userId: string): Promise<DecryptedUserAp
     select: { businessId: true },
   })
 
-  if (!membership) {
-    return userKeys // no keys
+  if (membership) {
+    const businessKeys = await getDecryptedBusinessAiKeys(membership.businessId)
+    if (businessKeys.anthropicKey || businessKeys.googleKey || businessKeys.openaiKey) {
+      return businessKeys
+    }
   }
 
-  return getDecryptedBusinessAiKeys(membership.businessId)
+  // 3. Fall back to platform admin keys (for athletes without a coach)
+  const admin = await prisma.user.findFirst({
+    where: { adminRole: 'SUPER_ADMIN' },
+    select: { id: true },
+  })
+  if (admin) {
+    return getDecryptedUserApiKeys(admin.id)
+  }
+
+  return userKeys // no keys
 }
 
 export async function getAiKeySource(userId: string): Promise<{
