@@ -12,7 +12,7 @@
  * Check https://ai.google.dev/gemini-api/docs/models for current model IDs.
  */
 export const GEMINI_MODELS = {
-  /** Best for video/audio analysis - fast, stable (December 2025) */
+  /** Best for video/audio analysis - fast, stable */
   VIDEO_ANALYSIS: 'gemini-3-flash-preview',
 
   /** Best for audio transcription and extraction */
@@ -91,6 +91,10 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
     input: 0.00125, // $1.25 per 1M input tokens
     output: 0.005, // $5.00 per 1M output tokens
   },
+  'gemini-3.1-flash-lite-preview': {
+    input: 0.00025, // $0.25 per 1M input tokens
+    output: 0.0015, // $1.50 per 1M output tokens
+  },
   'gemini-3-flash-preview': {
     input: 0.0005, // $0.50 per 1M input tokens
     output: 0.003, // $3.00 per 1M output tokens
@@ -125,7 +129,7 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
     input: 0.005, // $5.00 per 1M input tokens
     output: 0.015, // $15.00 per 1M output tokens
   },
-  'gpt-5.2-instant': {
+  'gpt-5.3-instant': {
     input: 0.001, // $1.00 per 1M input tokens
     output: 0.003, // $3.00 per 1M output tokens
   },

@@ -235,8 +235,12 @@ export function AICostInfoClient({ businessSlug }: AICostInfoClientProps) {
                 <Lightbulb className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
                 <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Daglig träning → Gemini Flash / GPT-5 Nano</p>
-                    <p className="text-xs">Snabbast och billigast. Perfekt för WOD, chatt och briefings.</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">Bakgrundsuppgifter → Flash Lite / GPT-5.3 Instant</p>
+                    <p className="text-xs">Billigast. Perfekt för briefings, minnesextraktion och nudges.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Daglig träning → Gemini Flash / Claude Haiku</p>
+                    <p className="text-xs">Snabb och prisvärd. Bra för WOD, chatt och enklare frågor.</p>
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900 dark:text-white">Längre program → Claude Opus / GPT-5.2</p>

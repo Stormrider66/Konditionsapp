@@ -38,11 +38,29 @@ export interface AIModelConfig {
 export const AI_MODELS: AIModelConfig[] = [
   // Google Models (Gemini 3)
   {
+    id: 'gemini-3.1-flash-lite',
+    name: 'Gemini 3.1 Flash Lite',
+    provider: 'google',
+    modelId: 'gemini-3.1-flash-lite-preview',
+    description: 'Snabbaste och billigaste. Perfekt för bakgrundsuppgifter.',
+    costTier: 'low',
+    capabilities: {
+      reasoning: 'good',
+      speed: 'fast',
+      contextWindow: 1048576,
+      maxOutputTokens: 65536,
+    },
+    pricing: {
+      input: 0.25,  // $0.25 per 1M tokens
+      output: 1.5,  // $1.50 per 1M tokens
+    },
+  },
+  {
     id: 'gemini-3-flash',
     name: 'Gemini 3 Flash',
     provider: 'google',
     modelId: 'gemini-3-flash-preview',
-    description: 'Snabb och kostnadseffektiv. Gratis tier tillgänglig.',
+    description: 'Snabb och kostnadseffektiv. Bra för chatt och interaktiva uppgifter.',
     costTier: 'low',
     capabilities: {
       reasoning: 'good',
@@ -134,10 +152,10 @@ export const AI_MODELS: AIModelConfig[] = [
   },
   // OpenAI Models (GPT-5)
   {
-    id: 'gpt-5-nano',
-    name: 'GPT-5 Nano',
+    id: 'gpt-5.3-instant',
+    name: 'GPT-5.3 Instant',
     provider: 'openai',
-    modelId: 'gpt-5-nano',
+    modelId: 'gpt-5.3-instant',
     description: 'Snabbast och billigast. Bra för enklare uppgifter.',
     costTier: 'low',
     capabilities: {
@@ -338,9 +356,9 @@ const MODEL_TIERS: Record<ModelIntent, {
   openai:    { modelId: string; displayName: string }
 }> = {
   fast: {
-    google:    { modelId: 'gemini-3-flash-preview',     displayName: 'Gemini 3 Flash' },
-    anthropic: { modelId: 'claude-haiku-4-5-20251016',  displayName: 'Claude Haiku 4.5' },
-    openai:    { modelId: 'gpt-5-nano',                 displayName: 'GPT-5 Nano' },
+    google:    { modelId: 'gemini-3.1-flash-lite-preview', displayName: 'Gemini 3.1 Flash Lite' },
+    anthropic: { modelId: 'claude-haiku-4-5-20251016',    displayName: 'Claude Haiku 4.5' },
+    openai:    { modelId: 'gpt-5.3-instant',              displayName: 'GPT-5.3 Instant' },
   },
   balanced: {
     google:    { modelId: 'gemini-3-flash-preview',     displayName: 'Gemini 3 Flash' },

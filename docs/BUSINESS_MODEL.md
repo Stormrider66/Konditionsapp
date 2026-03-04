@@ -157,7 +157,7 @@ For athletes registered directly (not via coach):
 
 **Cost calculation assumptions:**
 - Average message: ~1,000 input tokens + 500 output tokens
-- **Default model: Gemini 3 Flash** ($0.075/$0.30 per M tokens)
+- **Default model: Gemini 3.1 Flash Lite** ($0.25/$1.50 per M tokens) for background, **Gemini 3 Flash** ($0.50/$3.00) for interactive
 - Per message cost: ~$0.0002-0.0005
 - 500 messages × $0.002 = ~$1 typical cost
 
@@ -204,7 +204,8 @@ This routing strategy keeps costs minimal for 90%+ of interactions while reservi
 | Model | Input (per 1M tokens) | Output (per 1M tokens) |
 |-------|----------------------|------------------------|
 | Gemini 3 Pro | $1.25 | $5.00 |
-| Gemini 3 Flash | $0.075 | $0.30 |
+| Gemini 3.1 Flash Lite | $0.25 | $1.50 |
+| Gemini 3 Flash | $0.50 | $3.00 |
 
 ### 4.4 AI Budget Management System
 

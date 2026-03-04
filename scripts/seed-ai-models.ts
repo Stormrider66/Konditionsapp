@@ -50,14 +50,27 @@ const AI_MODELS = [
     isActive: true,
     isDefault: false,
   },
-  // Google Models (February 2026)
+  // Google Models (March 2026)
   // Source: https://ai.google.dev/gemini-api/docs/models
-  // Model IDs: gemini-3-flash-preview, gemini-2.5-pro, gemini-3.1-pro-preview
+  // Model IDs: gemini-3.1-flash-lite-preview, gemini-3-flash-preview, gemini-2.5-pro, gemini-3.1-pro-preview
+  {
+    provider: 'GOOGLE' as const,
+    modelId: 'gemini-3.1-flash-lite-preview',
+    displayName: 'Gemini 3.1 Flash Lite',
+    description: 'Snabbaste och billigaste, perfekt för bakgrundsuppgifter',
+    capabilities: ['text', 'code', 'vision', 'audio', 'video'],
+    maxTokens: 1000000,
+    maxOutputTokens: 64000,
+    inputCostPer1k: 0.00025,
+    outputCostPer1k: 0.0015,
+    isActive: true,
+    isDefault: false,
+  },
   {
     provider: 'GOOGLE' as const,
     modelId: 'gemini-3-flash-preview',
     displayName: 'Gemini 3 Flash',
-    description: 'Snabb och kostnadseffektiv, senaste flash-modellen (rekommenderad)',
+    description: 'Snabb och kostnadseffektiv, bra för chatt och interaktiva uppgifter (rekommenderad)',
     capabilities: ['text', 'code', 'vision', 'audio', 'video'],
     maxTokens: 1000000,
     maxOutputTokens: 64000,
@@ -122,8 +135,8 @@ const AI_MODELS = [
   },
   {
     provider: 'OPENAI' as const,
-    modelId: 'gpt-5.2-instant',
-    displayName: 'GPT-5.2 Instant',
+    modelId: 'gpt-5.3-instant',
+    displayName: 'GPT-5.3 Instant',
     description: 'Snabb och billig för vardagsuppgifter',
     capabilities: ['text', 'code', 'vision'],
     maxTokens: 128000,
