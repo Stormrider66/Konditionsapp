@@ -238,8 +238,7 @@ export async function POST(request: NextRequest) {
 
     // Parse JSON from response (avoid logging the raw response)
     logger.debug('WOD AI response received', {
-      provider: selectedModelConfig.provider,
-      modelId: selectedModelConfig.modelId,
+      model: modelName,
       responseLength: responseText.length,
     })
 
@@ -247,8 +246,7 @@ export async function POST(request: NextRequest) {
 
     if (!workout) {
       logger.warn('Failed to parse WOD from AI response', {
-        provider: selectedModelConfig.provider,
-        modelId: selectedModelConfig.modelId,
+        model: modelName,
         responseLength: responseText.length,
       })
       return NextResponse.json(
