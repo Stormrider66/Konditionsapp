@@ -135,7 +135,7 @@ export default function CoachDirectoryPage() {
             <Link href="/login">
               <Button variant="ghost" size="sm">{t('Log in', 'Logga in')}</Button>
             </Link>
-            <Link href="/register">
+            <Link href="/signup">
               <Button size="sm" className="bg-primary hover:bg-primary/90">
                 {t('Get Started', 'Kom igång')}
               </Button>
@@ -320,7 +320,7 @@ export default function CoachDirectoryPage() {
                 'Gå med i vår marknadsplats och anslut till atleter som letar efter professionell coaching.'
               )}
             </p>
-            <Link href="/register?role=coach">
+            <Link href="/signup/coach">
               <Button size="lg">
                 {t('Create Your Coach Profile', 'Skapa din coachprofil')}
               </Button>

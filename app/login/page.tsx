@@ -162,7 +162,7 @@ export default function LoginPage() {
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center text-muted-foreground">
             {t('noAccount')}{' '}
-            <Link href="/register" className="text-blue-600 hover:underline">
+            <Link href="/signup" className="text-blue-600 hover:underline">
               {t('signUpLink')}
             </Link>
           </div>

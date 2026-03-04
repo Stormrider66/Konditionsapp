@@ -249,7 +249,7 @@ export default function CoachProfilePage({ params }: Props) {
                 <Link href="/login">
                   <Button variant="ghost" size="sm">{t('Log in', 'Logga in')}</Button>
                 </Link>
-                <Link href="/register">
+                <Link href="/signup">
                   <Button size="sm" className="bg-primary hover:bg-primary/90">
                     {t('Get Started', 'Kom igång')}
                   </Button>

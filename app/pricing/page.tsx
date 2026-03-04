@@ -169,7 +169,7 @@ export default function PricingPage() {
                     </ul>
 
                     {/* CTA Button */}
-                    <Link href={plan.id === 'enterprise' ? '/contact' : '/register'} className="block">
+                    <Link href={plan.id === 'enterprise' ? '/contact' : '/signup'} className="block">
                       <Button
                         className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
                         variant={plan.popular ? 'default' : 'outline'}
@@ -240,7 +240,7 @@ export default function PricingPage() {
           title={tLanding('cta.title')}
           description={tLanding('cta.description')}
           buttonText={tLanding('cta.button')}
-          buttonHref="/register"
+          buttonHref="/signup"
           subText={tLanding('cta.noCreditCard')}
         />
       </main>

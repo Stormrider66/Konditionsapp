@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
           id: supabaseUser.id,
           email: supabaseUser.email!,
           name,
-          role: 'COACH',
+          role: 'ATHLETE',
           language: 'sv',
         },
       })

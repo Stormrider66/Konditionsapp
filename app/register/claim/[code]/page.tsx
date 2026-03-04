@@ -135,7 +135,7 @@ export default function ClaimBusinessPage() {
         <Card className="w-full max-w-md text-center">
           <CardContent className="pt-6">
             <p className="text-red-500 mb-4">{error}</p>
-            <Button onClick={() => router.push('/register')} variant="outline">
+            <Button onClick={() => router.push('/signup')} variant="outline">
               {t('registerButton')}
             </Button>
           </CardContent>

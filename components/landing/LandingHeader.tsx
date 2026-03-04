@@ -34,7 +34,7 @@ export function LandingHeader({ activeLink }: { activeLink?: string }) {
           <Link href="/login">
             <Button variant="ghost" size="sm">{t('nav.login')}</Button>
           </Link>
-          <Link href="/register">
+          <Link href="/signup">
             <Button size="sm" className="bg-primary hover:bg-primary/90">
               {t('nav.startNow')}
             </Button>

@@ -80,7 +80,7 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
       id: supabaseUser.id,
       email,
       name: nameFromMetadata,
-      role: 'COACH',
+      role: 'ATHLETE',
       language: 'sv',
     },
     select: {
@@ -94,14 +94,6 @@ export const getCurrentUser = cache(async (): Promise<User | null> => {
       updatedAt: true,
     },
   })
-
-  // Auto-create trial subscription for new coach (14-day trial)
-  try {
-    await createCoachTrialSubscription(user.id, 14)
-  } catch (error) {
-    // Subscription may already exist if created through another flow
-    logger.error('Failed to create coach trial subscription', {}, error)
-  }
 
   return user
 })

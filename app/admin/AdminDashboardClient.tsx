@@ -29,6 +29,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Shield,
   Users,
   Activity,
@@ -48,6 +58,7 @@ import {
   Bot,
   Plus,
   X,
+  Trash2,
 } from 'lucide-react';
 import { useTranslations } from '@/i18n/client';
 import { ContractsTable } from '@/components/admin/contracts/ContractsTable';
@@ -163,6 +174,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
   const [assignDialogUser, setAssignDialogUser] = useState<User | null>(null);
   const [selectedBusinessId, setSelectedBusinessId] = useState('');
 
+  // Delete user dialog
+  const [deleteDialogUser, setDeleteDialogUser] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const assignUserToBusiness = async (userId: string, businessId: string) => {
     try {
       const response = await fetch('/api/admin/users/assign-business', {
@@ -192,6 +207,27 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
       }
     } catch (error) {
       console.error('Error removing user from business:', error);
+    }
+  };
+
+  const deleteUser = async (targetUserId: string) => {
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/users/${targetUserId}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      if (result.success) {
+        setDeleteDialogUser(null);
+        fetchUsers();
+      } else {
+        alert(result.error || 'Kunde inte ta bort användaren');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Ett fel uppstod vid borttagning av användaren');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -690,6 +726,7 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                           <TableHead>{t('clients')}</TableHead>
                           <TableHead>Företag</TableHead>
                           <TableHead>{t('joined')}</TableHead>
+                          <TableHead></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -771,6 +808,18 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                             </TableCell>
                             <TableCell>
                               {format(new Date(user.createdAt), 'yyyy-MM-dd')}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={() => setDeleteDialogUser(user)}
+                                title="Ta bort användare"
+                                disabled={user.id === userId}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -870,6 +919,33 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <AlertDialog open={!!deleteDialogUser} onOpenChange={(open) => { if (!open) setDeleteDialogUser(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ta bort användare</AlertDialogTitle>
+            <AlertDialogDescription>
+              Är du säker på att du vill ta bort <strong>{deleteDialogUser?.name || deleteDialogUser?.email}</strong>
+              {deleteDialogUser?.name && <> ({deleteDialogUser.email})</>}?
+              All data kopplad till användaren raderas permanent. Denna åtgärd kan inte ångras.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                if (deleteDialogUser) deleteUser(deleteDialogUser.id);
+              }}
+            >
+              {deleting ? 'Tar bort...' : 'Ta bort'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -5,5 +5,5 @@ import { redirect } from 'next/navigation'
  * Kept so old bookmarks and links still work.
  */
 export default function RegisterPage() {
-  redirect('/signup/coach')
+  redirect('/signup')
 }

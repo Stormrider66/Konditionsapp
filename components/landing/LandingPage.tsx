@@ -106,7 +106,7 @@ export function LandingPage() {
           title={t('cta.title')}
           description={t('cta.description')}
           buttonText={t('cta.button')}
-          buttonHref="/register"
+          buttonHref="/signup"
           subText={t('cta.noCreditCard')}
         />
       </main>

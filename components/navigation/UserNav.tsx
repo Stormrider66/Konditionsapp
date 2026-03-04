@@ -44,7 +44,7 @@ export function UserNav({ user }: UserNavProps) {
         <Link href="/login" className="w-full sm:w-auto">
           <Button variant="outline" className="w-full sm:w-auto min-h-[44px]">{t('login')}</Button>
         </Link>
-        <Link href="/register" className="w-full sm:w-auto">
+        <Link href="/signup" className="w-full sm:w-auto">
           <Button className="gradient-primary w-full sm:w-auto min-h-[44px]">{t('register')}</Button>
         </Link>
       </div>

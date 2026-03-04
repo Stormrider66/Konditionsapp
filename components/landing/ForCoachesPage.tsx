@@ -63,7 +63,7 @@ export function ForCoachesPage() {
                 {t('segments.coaches.hero.description')}
               </p>
               <div className="pt-4">
-                <Link href="/register">
+                <Link href="/signup/coach">
                   <Button size="lg" className="h-14 text-lg bg-emerald-600 hover:bg-emerald-500 border-0 shadow-lg shadow-emerald-900/20">
                     {t('segments.coaches.cta.button')}
                     <ArrowRight className="ml-2 w-5 h-5" />
@@ -103,7 +103,7 @@ export function ForCoachesPage() {
           title={t('segments.coaches.cta.title')}
           description={t('segments.coaches.cta.description')}
           buttonText={t('segments.coaches.cta.button')}
-          buttonHref="/register"
+          buttonHref="/signup/coach"
           subText={t('segments.coaches.cta.subText')}
         />
       </main>
