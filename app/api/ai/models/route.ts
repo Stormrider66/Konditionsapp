@@ -13,6 +13,8 @@ import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import type { AIModel as PrismaAIModel, AIProvider } from '@prisma/client'
+import { INTENT_TIER_LABELS, isModelIntent, legacyModelIdToIntent } from '@/types/ai-models'
+import type { ModelIntent } from '@/types/ai-models'
 
 // Transform database model to match the expected interface
 function transformDbModel(dbModel: PrismaAIModel) {
@@ -176,36 +178,57 @@ export async function GET() {
       })
     }
 
-    // If athlete, filter by coach's allowed models (then business athlete restrictions)
+    // If athlete, return intent-based tiers instead of raw model list
     if (isAthlete) {
-      // Coach-level athlete restrictions (from userKeys)
-      if (userKeys?.allowedAthleteModelIds?.length) {
-        const allowedIds = userKeys.allowedAthleteModelIds
-        const filtered = availableModels.filter(model => allowedIds.includes(model.id))
-        if (filtered.length > 0) {
-          availableModels = filtered
+      // Determine allowed tiers from coach settings
+      // allowedAthleteModelIds may contain tier strings ('fast','balanced','powerful') or legacy model IDs
+      const rawAllowed = userKeys?.allowedAthleteModelIds || []
+      const businessRawAllowed = businessAllowedAthleteModelIds || []
+
+      let allowedTiers: ModelIntent[] = ['fast', 'balanced', 'powerful']
+
+      // Coach-level tier restrictions
+      if (rawAllowed.length > 0) {
+        const tiers = rawAllowed
+          .map(id => isModelIntent(id) ? id : legacyModelIdToIntent(id))
+          .filter((v, i, a) => a.indexOf(v) === i) as ModelIntent[]
+        if (tiers.length > 0) {
+          allowedTiers = tiers
         }
       }
 
-      // Business-level athlete restrictions
-      if (businessAllowedAthleteModelIds.length > 0) {
-        const filtered = availableModels.filter(model => businessAllowedAthleteModelIds.includes(model.id))
-        if (filtered.length > 0) {
-          availableModels = filtered
+      // Business-level tier restrictions (intersect)
+      if (businessRawAllowed.length > 0) {
+        const bizTiers = businessRawAllowed
+          .map(id => isModelIntent(id) ? id : legacyModelIdToIntent(id))
+          .filter((v, i, a) => a.indexOf(v) === i) as ModelIntent[]
+        if (bizTiers.length > 0) {
+          allowedTiers = allowedTiers.filter(t => bizTiers.includes(t))
+          if (allowedTiers.length === 0) allowedTiers = bizTiers // fallback
         }
       }
 
-      // Determine default model for athlete
-      let defaultModelId = userKeys?.athleteDefaultModelId || businessAthleteDefaultModelId
-      if (!defaultModelId || !availableModels.find(m => m.id === defaultModelId)) {
-        const defaultModel = availableModels.find(m => m.recommended) || availableModels[0]
-        defaultModelId = defaultModel?.id || null
+      // Determine default intent
+      const rawDefault = userKeys?.athleteDefaultModelId || businessAthleteDefaultModelId
+      let defaultIntent: ModelIntent = 'balanced'
+      if (rawDefault) {
+        defaultIntent = isModelIntent(rawDefault) ? rawDefault : legacyModelIdToIntent(rawDefault)
       }
+      if (!allowedTiers.includes(defaultIntent)) {
+        defaultIntent = allowedTiers.includes('balanced') ? 'balanced' : allowedTiers[0]
+      }
+
+      // Build tier objects for the client
+      const tiers = allowedTiers.map(intent => ({
+        intent,
+        ...INTENT_TIER_LABELS[intent],
+      }))
 
       return NextResponse.json({
         success: true,
-        models: availableModels,
-        defaultModelId,
+        mode: 'intent' as const,
+        tiers,
+        defaultIntent,
       })
     }
 

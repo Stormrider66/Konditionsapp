@@ -28,7 +28,8 @@ import type {
   WODMode,
 } from '@/types/wod'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
-import { getModelById, getDefaultModel, AI_MODELS } from '@/types/ai-models'
+import { getModelById, getDefaultModel, AI_MODELS, resolveModel, isModelIntent } from '@/types/ai-models'
+import { createModelInstance } from '@/lib/ai/create-model'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 
@@ -37,6 +38,7 @@ export const maxDuration = 30
 
 interface RequestBody extends WODRequest {
   modelId?: string
+  intent?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -65,6 +67,7 @@ export async function POST(request: NextRequest) {
       equipment = ['none'],
       focusArea,
       modelId: requestedModelId,
+      intent: requestedIntent,
     } = body
 
     // Get client details for coach ID and subscription tier
@@ -145,66 +148,85 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine which model to use
-    let selectedModelConfig = requestedModelId ? getModelById(requestedModelId) : null
-
-    // If no model requested or invalid, use default based on available keys
-    if (!selectedModelConfig) {
-      selectedModelConfig = getDefaultModel(apiKeys)
-    }
-
-    // Verify we have the API key for the selected model's provider
-    if (selectedModelConfig) {
-      const providerKey =
-        selectedModelConfig.provider === 'anthropic'
-          ? apiKeys.anthropicKey
-          : selectedModelConfig.provider === 'google'
-          ? apiKeys.googleKey
-          : apiKeys.openaiKey
-
-      if (!providerKey) {
-        // Try to find another model we have keys for
-        selectedModelConfig = getDefaultModel(apiKeys)
-      }
-    }
-
-    if (!selectedModelConfig) {
-      return NextResponse.json(
-        { error: 'No API key available for AI generation' },
-        { status: 500 }
-      )
-    }
-
-    // Create the AI model based on provider
     let model: LanguageModel
-    const modelName = selectedModelConfig.modelId
+    let modelName = 'unknown'
 
-    logger.debug('WOD generation model selected', {
-      requestedModelId: requestedModelId || undefined,
-      selectedModelId: selectedModelConfig.modelId,
-      provider: selectedModelConfig.provider,
-    })
-
-    switch (selectedModelConfig.provider) {
-      case 'anthropic': {
-        const anthropic = createAnthropic({ apiKey: apiKeys.anthropicKey! })
-        model = anthropic(selectedModelConfig.modelId) as LanguageModel
-        break
-      }
-      case 'google': {
-        const google = createGoogleGenerativeAI({ apiKey: apiKeys.googleKey! })
-        model = google(selectedModelConfig.modelId) as LanguageModel
-        break
-      }
-      case 'openai': {
-        const openai = createOpenAI({ apiKey: apiKeys.openaiKey! })
-        model = openai(selectedModelConfig.modelId) as LanguageModel
-        break
-      }
-      default:
+    // Intent-based resolution (new athlete flow)
+    if (requestedIntent && isModelIntent(requestedIntent)) {
+      const resolved = resolveModel(apiKeys, requestedIntent)
+      if (!resolved) {
         return NextResponse.json(
-          { error: 'Unsupported AI provider' },
+          { error: 'No API key available for AI generation' },
           { status: 500 }
         )
+      }
+      model = createModelInstance(resolved) as LanguageModel
+      modelName = resolved.modelId
+      logger.debug('WOD generation model resolved via intent', {
+        intent: requestedIntent,
+        provider: resolved.provider,
+        modelId: resolved.modelId,
+      })
+    } else {
+      // Legacy model ID flow
+      let selectedModelConfig = requestedModelId ? getModelById(requestedModelId) : null
+
+      // If no model requested or invalid, use default based on available keys
+      if (!selectedModelConfig) {
+        selectedModelConfig = getDefaultModel(apiKeys)
+      }
+
+      // Verify we have the API key for the selected model's provider
+      if (selectedModelConfig) {
+        const providerKey =
+          selectedModelConfig.provider === 'anthropic'
+            ? apiKeys.anthropicKey
+            : selectedModelConfig.provider === 'google'
+            ? apiKeys.googleKey
+            : apiKeys.openaiKey
+
+        if (!providerKey) {
+          selectedModelConfig = getDefaultModel(apiKeys)
+        }
+      }
+
+      if (!selectedModelConfig) {
+        return NextResponse.json(
+          { error: 'No API key available for AI generation' },
+          { status: 500 }
+        )
+      }
+
+      modelName = selectedModelConfig.modelId
+
+      logger.debug('WOD generation model selected', {
+        requestedModelId: requestedModelId || undefined,
+        selectedModelId: selectedModelConfig.modelId,
+        provider: selectedModelConfig.provider,
+      })
+
+      switch (selectedModelConfig.provider) {
+        case 'anthropic': {
+          const anthropic = createAnthropic({ apiKey: apiKeys.anthropicKey! })
+          model = anthropic(selectedModelConfig.modelId) as LanguageModel
+          break
+        }
+        case 'google': {
+          const google = createGoogleGenerativeAI({ apiKey: apiKeys.googleKey! })
+          model = google(selectedModelConfig.modelId) as LanguageModel
+          break
+        }
+        case 'openai': {
+          const openai = createOpenAI({ apiKey: apiKeys.openaiKey! })
+          model = openai(selectedModelConfig.modelId) as LanguageModel
+          break
+        }
+        default:
+          return NextResponse.json(
+            { error: 'Unsupported AI provider' },
+            { status: 500 }
+          )
+      }
     }
 
     // Generate workout

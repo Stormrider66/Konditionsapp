@@ -92,7 +92,7 @@ export default function LogWorkoutPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={`${basePath}/athlete`}>
+          <Link href={`${basePath}/athlete/dashboard`}>
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </Button>

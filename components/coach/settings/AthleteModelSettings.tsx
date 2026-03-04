@@ -14,52 +14,32 @@ import {
 } from '@/components/ui/select'
 import { Loader2, Save, Users } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { INTENT_TIER_LABELS, MODEL_TIERS } from '@/types/ai-models'
+import type { ModelIntent } from '@/types/ai-models'
 
-interface EligibleModel {
-  id: string
-  modelId: string
-  provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
-  displayName: string
-  isDefault: boolean
-  inputCostPer1k: number | null
-  outputCostPer1k: number | null
-}
+const ALL_TIERS: ModelIntent[] = ['fast', 'balanced', 'powerful']
 
-const providerColors: Record<string, string> = {
-  ANTHROPIC: 'bg-orange-100 text-orange-800',
-  GOOGLE: 'bg-blue-100 text-blue-800',
-  OPENAI: 'bg-green-100 text-green-800',
-}
-
-const providerNames: Record<string, string> = {
-  ANTHROPIC: 'Claude',
-  GOOGLE: 'Gemini',
-  OPENAI: 'GPT',
-}
-
-function getCostTier(model: EligibleModel): string {
-  const cost = model.inputCostPer1k ?? 0
-  if (cost >= 0.01) return 'Hög'
-  if (cost >= 0.001) return 'Medel'
-  return 'Låg'
+function getTierModelNames(intent: ModelIntent): string {
+  const tier = MODEL_TIERS[intent]
+  return [tier.google.displayName, tier.anthropic.displayName, tier.openai.displayName].join(', ')
 }
 
 export function AthleteModelSettings() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [eligibleModels, setEligibleModels] = useState<EligibleModel[]>([])
-  const [allowedIds, setAllowedIds] = useState<string[]>([])
-  const [defaultModelId, setDefaultModelId] = useState<string | null>(null)
+  const [allowedTiers, setAllowedTiers] = useState<ModelIntent[]>([])
+  const [defaultTier, setDefaultTier] = useState<ModelIntent | null>(null)
+  const [hasKeys, setHasKeys] = useState(false)
 
   const fetchSettings = useCallback(async () => {
     try {
       const response = await fetch('/api/settings/athlete-models')
       const data = await response.json()
       if (data.success) {
-        setEligibleModels(data.data.eligibleModels)
-        setAllowedIds(data.data.allowedAthleteModelIds)
-        setDefaultModelId(data.data.athleteDefaultModelId)
+        setAllowedTiers(data.data.allowedTiers || [])
+        setDefaultTier(data.data.defaultTier || null)
+        setHasKeys(data.data.hasKeys ?? true)
       }
     } catch (error) {
       console.error('Failed to fetch athlete model settings:', error)
@@ -72,15 +52,15 @@ export function AthleteModelSettings() {
     fetchSettings()
   }, [fetchSettings])
 
-  function handleToggleModel(modelId: string, checked: boolean) {
-    setAllowedIds(prev => {
+  function handleToggleTier(tier: ModelIntent, checked: boolean) {
+    setAllowedTiers(prev => {
       if (checked) {
-        return [...prev, modelId]
+        return [...prev, tier]
       } else {
-        const next = prev.filter(id => id !== modelId)
+        const next = prev.filter(t => t !== tier)
         // If we remove the default from allowed, clear it
-        if (modelId === defaultModelId) {
-          setDefaultModelId(null)
+        if (tier === defaultTier) {
+          setDefaultTier(null)
         }
         return next
       }
@@ -94,15 +74,15 @@ export function AthleteModelSettings() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          allowedModelIds: allowedIds,
-          defaultModelId,
+          allowedTiers,
+          defaultTier,
         }),
       })
       const data = await response.json()
       if (data.success) {
         toast({
           title: 'Inställningar sparade',
-          description: 'Atleternas modellåtkomst har uppdaterats.',
+          description: 'Atleternas AI-kvalitetsnivåer har uppdaterats.',
         })
       } else {
         toast({
@@ -122,10 +102,8 @@ export function AthleteModelSettings() {
     }
   }
 
-  // Models available for the default dropdown (allowed ones, or all if unrestricted)
-  const defaultCandidates = allowedIds.length > 0
-    ? eligibleModels.filter(m => allowedIds.includes(m.id))
-    : eligibleModels
+  // Tiers available for default dropdown (allowed ones, or all if unrestricted)
+  const defaultCandidates = allowedTiers.length > 0 ? allowedTiers : ALL_TIERS
 
   if (loading) {
     return (
@@ -137,19 +115,18 @@ export function AthleteModelSettings() {
     )
   }
 
-  if (eligibleModels.length === 0) {
+  if (!hasKeys) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <Users className="h-5 w-5" />
-            Atleternas AI-modeller
+            Atleternas AI-kvalitet
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Inga AI-modeller är tillgängliga. Se till att du har giltiga API-nycklar konfigurerade
-            och att administratören har aktiverat modeller för atleter.
+            Inga AI-modeller är tillgängliga. Se till att du har giltiga API-nycklar konfigurerade.
           </p>
         </CardContent>
       </Card>
@@ -161,60 +138,69 @@ export function AthleteModelSettings() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Users className="h-5 w-5" />
-          Atleternas AI-modeller
+          Atleternas AI-kvalitet
         </CardTitle>
         <CardDescription>
-          Välj vilka AI-modeller dina atleter kan använda. Lämna alla omarkerade för att tillåta alla tillgängliga modeller.
+          Välj vilka kvalitetsnivåer dina atleter kan använda. Lämna alla omarkerade för att tillåta alla nivåer.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Model checklist */}
+        {/* Tier checklist */}
         <div className="space-y-3">
-          {eligibleModels.map((model) => (
-            <label
-              key={model.id}
-              className="flex items-center gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
-            >
-              <Checkbox
-                checked={allowedIds.includes(model.id)}
-                onCheckedChange={(checked) => handleToggleModel(model.id, checked === true)}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{model.displayName}</span>
-                  <Badge className={`text-xs ${providerColors[model.provider]}`}>
-                    {providerNames[model.provider]}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {getCostTier(model)} kostnad
-                  </Badge>
+          {ALL_TIERS.map((tier) => {
+            const tierInfo = INTENT_TIER_LABELS[tier]
+            return (
+              <label
+                key={tier}
+                className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 cursor-pointer transition-colors"
+              >
+                <Checkbox
+                  className="mt-0.5"
+                  checked={allowedTiers.includes(tier)}
+                  onCheckedChange={(checked) => handleToggleTier(tier, checked === true)}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">{tierInfo.label}</span>
+                    {tier === 'balanced' && (
+                      <Badge variant="outline" className="text-xs">
+                        Rekommenderad
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {tierInfo.description}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/70 mt-1">
+                    Modeller: {getTierModelNames(tier)}
+                  </p>
                 </div>
-              </div>
-            </label>
-          ))}
+              </label>
+            )
+          })}
         </div>
 
-        {allowedIds.length === 0 && (
+        {allowedTiers.length === 0 && (
           <p className="text-xs text-muted-foreground">
-            Inga modeller markerade = alla tillgängliga modeller tillåtna.
+            Inga nivåer markerade = alla kvalitetsnivåer tillåtna.
           </p>
         )}
 
-        {/* Default model dropdown */}
+        {/* Default tier dropdown */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Standardmodell för atleter</label>
+          <label className="text-sm font-medium">Standardnivå för atleter</label>
           <Select
-            value={defaultModelId ?? 'auto'}
-            onValueChange={(v) => setDefaultModelId(v === 'auto' ? null : v)}
+            value={defaultTier ?? 'auto'}
+            onValueChange={(v) => setDefaultTier(v === 'auto' ? null : v as ModelIntent)}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Automatisk (systemstandard)" />
+              <SelectValue placeholder="Automatisk (Balanserad)" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="auto">Automatisk (systemstandard)</SelectItem>
-              {defaultCandidates.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  {model.displayName} ({providerNames[model.provider]})
+              <SelectItem value="auto">Automatisk (Balanserad)</SelectItem>
+              {defaultCandidates.map((tier) => (
+                <SelectItem key={tier} value={tier}>
+                  {INTENT_TIER_LABELS[tier].label}
                 </SelectItem>
               ))}
             </SelectContent>

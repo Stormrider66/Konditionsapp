@@ -52,18 +52,14 @@ interface AthleteFloatingChatProps {
   athleteName?: string
 }
 
-interface ModelConfig {
-  model: string
-  provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
-  displayName: string
-}
+import type { ModelIntent } from '@/types/ai-models'
+import { INTENT_TIER_LABELS } from '@/types/ai-models'
 
-interface AvailableModel {
-  id: string
-  modelId: string
-  provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI'
-  displayName: string
-  isDefault: boolean
+interface IntentTierOption {
+  intent: ModelIntent
+  label: string
+  description: string
+  icon: string
 }
 
 export function AthleteFloatingChat({
@@ -80,9 +76,10 @@ export function AthleteFloatingChat({
   const [isExpanded, setIsExpanded] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [hasAIAccess, setHasAIAccess] = useState<boolean | null>(null)
-  const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null)
-  const [availableModels, setAvailableModels] = useState<AvailableModel[]>([])
+  const [selectedIntent, setSelectedIntent] = useState<ModelIntent>('balanced')
+  const [availableIntents, setAvailableIntents] = useState<IntentTierOption[]>([])
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
+  const [configReady, setConfigReady] = useState(false)
   const [memoryContext, setMemoryContext] = useState<MemoryContext | null>(null)
   const [subscriptionStatus, setSubscriptionStatus] = useState<{
     aiChatEnabled: boolean
@@ -120,13 +117,10 @@ export function AthleteFloatingChat({
         const data = await response.json()
 
         if (data.success && data.hasAIAccess) {
-          setModelConfig({
-            model: data.model,
-            provider: data.provider,
-            displayName: data.displayName,
-          })
-          setAvailableModels(data.availableModels || [])
+          setSelectedIntent(data.intent || 'balanced')
+          setAvailableIntents(data.availableIntents || [])
           setHasAIAccess(true)
+          setConfigReady(true)
         } else {
           setHasAIAccess(false)
         }
@@ -337,7 +331,7 @@ export function AthleteFloatingChat({
 
   // Auto-send mental prep message once chat is ready (consent granted + config loaded)
   useEffect(() => {
-    if (!mentalPrepContext || !modelConfig || consentStatus !== 'granted' || isLoading) return
+    if (!mentalPrepContext || !configReady || consentStatus !== 'granted' || isLoading) return
 
     // Only auto-send if this is a fresh conversation (no messages yet)
     if (messages.length > 0) return
@@ -353,8 +347,8 @@ export function AthleteFloatingChat({
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              modelUsed: modelConfig!.model,
-              provider: modelConfig!.provider,
+              modelUsed: selectedIntent,
+              provider: 'INTENT',
             }),
           })
           const data = await response.json()
@@ -372,8 +366,7 @@ export function AthleteFloatingChat({
       sendMessage({ text: message }, {
         body: {
           conversationId: convId,
-          model: modelConfig!.model,
-          provider: modelConfig!.provider,
+          intent: selectedIntent,
           isAthleteChat: true,
           clientId,
           memoryContext: memoryContext || undefined,
@@ -387,7 +380,7 @@ export function AthleteFloatingChat({
 
     startMentalPrepChat()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mentalPrepContext, modelConfig, consentStatus, messages.length])
+  }, [mentalPrepContext, configReady, consentStatus, messages.length])
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -474,7 +467,7 @@ export function AthleteFloatingChat({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!input.trim() || isLoading || !modelConfig) return
+    if (!input.trim() || isLoading || !configReady) return
 
     // Create conversation if none exists
     if (!conversationId) {
@@ -483,8 +476,8 @@ export function AthleteFloatingChat({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            modelUsed: modelConfig.model,
-            provider: modelConfig.provider,
+            modelUsed: selectedIntent,
+            provider: 'INTENT',
           }),
         })
         const data = await response.json()
@@ -510,8 +503,7 @@ export function AthleteFloatingChat({
     sendMessage({ text: messageContent }, {
       body: {
         conversationId,
-        model: modelConfig?.model,
-        provider: modelConfig?.provider,
+        intent: selectedIntent,
         isAthleteChat: true, // This triggers athlete mode
         clientId,
         memoryContext: memoryContext || undefined,
@@ -549,76 +541,60 @@ export function AthleteFloatingChat({
     textareaRef.current?.focus()
   }
 
-  const providerColors: Record<string, string> = {
-    ANTHROPIC: 'bg-orange-100 text-orange-800',
-    GOOGLE: 'bg-blue-100 text-blue-800',
-    OPENAI: 'bg-green-100 text-green-800',
-  }
-  const providerShortNames: Record<string, string> = {
-    ANTHROPIC: 'Claude',
-    GOOGLE: 'Gemini',
-    OPENAI: 'GPT',
-  }
-
-  async function handleSelectModel(model: AvailableModel) {
-    setModelConfig({
-      model: model.modelId,
-      provider: model.provider,
-      displayName: model.displayName,
-    })
+  async function handleSelectIntent(intent: ModelIntent) {
+    setSelectedIntent(intent)
     // Persist preference
     try {
       await fetch('/api/ai/models/preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelId: model.id }),
+        body: JSON.stringify({ intent }),
       })
     } catch {
-      // Silent failure - model is already switched locally
+      // Silent failure - intent is already switched locally
     }
   }
 
-  // Render provider badge (static or as picker trigger)
+  // Render intent tier badge (static or as picker trigger)
   function renderModelBadge() {
-    if (!modelConfig) return null
+    if (!configReady) return null
 
-    // Only 1 model available → static badge
-    if (availableModels.length <= 1) {
+    const tierLabel = INTENT_TIER_LABELS[selectedIntent]?.label || 'Balanserad'
+
+    // Only 1 intent available → static badge
+    if (availableIntents.length <= 1) {
       return (
-        <Badge variant="secondary" className={cn('text-xs', providerColors[modelConfig.provider])}>
-          {providerShortNames[modelConfig.provider]}
+        <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">
+          {tierLabel}
         </Badge>
       )
     }
 
-    // Multiple models → clickable picker
+    // Multiple intents → clickable picker
     return (
       <Popover>
         <PopoverTrigger asChild>
-          <button className={cn(
-            'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors hover:opacity-80',
-            providerColors[modelConfig.provider]
-          )}>
-            {modelConfig.displayName}
+          <button className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors hover:opacity-80 bg-orange-100 text-orange-800">
+            {tierLabel}
             <ChevronDown className="h-3 w-3" />
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-56 p-2" align="start" side="bottom">
-          <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">Välj AI-modell</p>
-          {availableModels.map((model) => (
+          <p className="text-xs font-medium text-muted-foreground px-2 py-1 mb-1">Välj AI-kvalitet</p>
+          {availableIntents.map((tier) => (
             <button
-              key={model.id}
-              onClick={() => handleSelectModel(model)}
+              key={tier.intent}
+              onClick={() => handleSelectIntent(tier.intent)}
               className={cn(
                 'w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left text-sm transition-colors hover:bg-muted',
-                model.modelId === modelConfig.model && 'bg-muted'
+                tier.intent === selectedIntent && 'bg-muted'
               )}
             >
-              <Badge className={cn('text-[10px] px-1.5 py-0', providerColors[model.provider])}>
-                {providerShortNames[model.provider]}
-              </Badge>
-              <span className="flex-1 truncate">{model.displayName}</span>
-              {model.modelId === modelConfig.model && (
+              <span className="flex-1 truncate">{tier.label}</span>
+              {tier.intent === 'balanced' && (
+                <Badge variant="outline" className="text-[10px] px-1 py-0">Rek.</Badge>
+              )}
+              {tier.intent === selectedIntent && (
                 <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
               )}
             </button>

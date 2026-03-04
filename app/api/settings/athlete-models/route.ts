@@ -1,8 +1,8 @@
 /**
  * Coach Athlete Model Settings API
  *
- * GET  /api/settings/athlete-models - Get coach's athlete model restrictions
- * PUT  /api/settings/athlete-models - Update allowed models and default for athletes
+ * GET  /api/settings/athlete-models - Get coach's athlete tier restrictions
+ * PUT  /api/settings/athlete-models - Update allowed tiers and default for athletes
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,13 +10,14 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
+import { isModelIntent, legacyModelIdToIntent } from '@/types/ai-models'
+import type { ModelIntent } from '@/types/ai-models'
 
-// GET - Get eligible models and current restrictions
+// GET - Get current tier restrictions
 export async function GET() {
   try {
     const user = await requireCoach()
 
-    // Get coach's API keys and current athlete settings
     const userKeys = await prisma.userApiKey.findUnique({
       where: { userId: user.id },
       select: {
@@ -28,37 +29,31 @@ export async function GET() {
       },
     })
 
-    // Build valid providers
-    const validProviders: string[] = []
-    if (userKeys?.anthropicKeyValid) validProviders.push('ANTHROPIC')
-    if (userKeys?.googleKeyValid) validProviders.push('GOOGLE')
-    if (userKeys?.openaiKeyValid) validProviders.push('OPENAI')
+    const hasKeys =
+      userKeys?.anthropicKeyValid ||
+      userKeys?.googleKeyValid ||
+      userKeys?.openaiKeyValid ||
+      false
 
-    // Get models that are admin-allowed for athletes and have valid provider keys
-    const eligibleModels = await prisma.aIModel.findMany({
-      where: {
-        isActive: true,
-        availableForAthletes: true,
-        provider: { in: validProviders as ('ANTHROPIC' | 'GOOGLE' | 'OPENAI')[] },
-      },
-      orderBy: [{ provider: 'asc' }, { displayName: 'asc' }],
-      select: {
-        id: true,
-        modelId: true,
-        provider: true,
-        displayName: true,
-        isDefault: true,
-        inputCostPer1k: true,
-        outputCostPer1k: true,
-      },
-    })
+    // Convert stored values to tiers (handles both tier strings and legacy model IDs)
+    const rawAllowed = userKeys?.allowedAthleteModelIds || []
+    const allowedTiers: ModelIntent[] = rawAllowed.length > 0
+      ? rawAllowed
+          .map(id => isModelIntent(id) ? id : legacyModelIdToIntent(id))
+          .filter((v, i, a) => a.indexOf(v) === i) as ModelIntent[]
+      : []
+
+    const rawDefault = userKeys?.athleteDefaultModelId
+    const defaultTier: ModelIntent | null = rawDefault
+      ? (isModelIntent(rawDefault) ? rawDefault : legacyModelIdToIntent(rawDefault))
+      : null
 
     return NextResponse.json({
       success: true,
       data: {
-        allowedAthleteModelIds: userKeys?.allowedAthleteModelIds ?? [],
-        athleteDefaultModelId: userKeys?.athleteDefaultModelId ?? null,
-        eligibleModels,
+        allowedTiers,
+        defaultTier,
+        hasKeys,
       },
     })
   } catch (error) {
@@ -67,57 +62,37 @@ export async function GET() {
 }
 
 const updateSchema = z.object({
-  allowedModelIds: z.array(z.string()),
-  defaultModelId: z.string().nullable(),
+  allowedTiers: z.array(z.enum(['fast', 'balanced', 'powerful'])),
+  defaultTier: z.enum(['fast', 'balanced', 'powerful']).nullable(),
 })
 
-// PUT - Update athlete model restrictions
+// PUT - Update athlete tier restrictions
 export async function PUT(request: NextRequest) {
   try {
     const user = await requireCoach()
 
     const body = await request.json()
-    const { allowedModelIds, defaultModelId } = updateSchema.parse(body)
-
-    // Validate all model IDs exist and are available for athletes
-    if (allowedModelIds.length > 0) {
-      const validModels = await prisma.aIModel.findMany({
-        where: {
-          id: { in: allowedModelIds },
-          isActive: true,
-          availableForAthletes: true,
-        },
-        select: { id: true },
-      })
-
-      const validIds = new Set(validModels.map(m => m.id))
-      const invalidIds = allowedModelIds.filter(id => !validIds.has(id))
-      if (invalidIds.length > 0) {
-        return NextResponse.json(
-          { error: `Invalid model IDs: ${invalidIds.join(', ')}` },
-          { status: 400 }
-        )
-      }
-    }
+    const { allowedTiers, defaultTier } = updateSchema.parse(body)
 
     // If default is set, make sure it's in allowed list (or allowed is empty)
-    if (defaultModelId && allowedModelIds.length > 0 && !allowedModelIds.includes(defaultModelId)) {
+    if (defaultTier && allowedTiers.length > 0 && !allowedTiers.includes(defaultTier)) {
       return NextResponse.json(
-        { error: 'Default model must be in the allowed models list' },
+        { error: 'Default tier must be in the allowed tiers list' },
         { status: 400 }
       )
     }
 
+    // Store tier strings in the existing DB fields
     await prisma.userApiKey.upsert({
       where: { userId: user.id },
       update: {
-        allowedAthleteModelIds: allowedModelIds,
-        athleteDefaultModelId: defaultModelId,
+        allowedAthleteModelIds: allowedTiers,
+        athleteDefaultModelId: defaultTier,
       },
       create: {
         userId: user.id,
-        allowedAthleteModelIds: allowedModelIds,
-        athleteDefaultModelId: defaultModelId,
+        allowedAthleteModelIds: allowedTiers,
+        athleteDefaultModelId: defaultTier,
       },
     })
 

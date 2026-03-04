@@ -9,7 +9,7 @@ import { streamText, type CoreMessage, type LanguageModel } from 'ai';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
-import { resolveModel } from '@/types/ai-models';
+import { resolveModel, isModelIntent } from '@/types/ai-models';
 import { createModelInstance } from '@/lib/ai/create-model';
 import { requireCoach, resolveAthleteClientId, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
@@ -63,6 +63,8 @@ interface ChatRequest {
   clientId?: string;
   /** Memory context for personalized AI interactions */
   memoryContext?: MemoryContext;
+  /** Intent-based model selection for athlete chat (replaces model/provider) */
+  intent?: string;
 }
 
 /**
@@ -601,7 +603,23 @@ ${pageContext}
     // Different SDKs return slightly different model types, using any for compatibility
     let aiModel: unknown;
 
-    if (provider === 'ANTHROPIC' && decryptedKeys.anthropicKey) {
+    // Intent-based resolution for athlete chat
+    if (body.intent && isModelIntent(body.intent) && isAthleteChat) {
+      const resolved = resolveModel(decryptedKeys, body.intent);
+      if (resolved) {
+        aiModel = createModelInstance(resolved);
+        logger.info('Athlete intent-based model resolved', {
+          intent: body.intent,
+          provider: resolved.provider,
+          model: resolved.modelId,
+        });
+      } else {
+        return new Response(
+          JSON.stringify({ error: 'Ingen AI API-nyckel konfigurerad.' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    } else if (provider === 'ANTHROPIC' && decryptedKeys.anthropicKey) {
       const anthropic = createAnthropic({
         apiKey: decryptedKeys.anthropicKey,
       });

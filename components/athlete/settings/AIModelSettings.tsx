@@ -3,35 +3,52 @@
 /**
  * AIModelSettings
  *
- * Component for selecting preferred AI model in athlete settings.
- * Fetches available models from coach's API keys and saves preference.
+ * Component for selecting preferred AI quality tier in athlete settings.
+ * Shows 3 simple tiers (Snabb / Balanserad / Kraftfull) instead of raw model names.
  */
 
 import { useState, useEffect } from 'react'
-import { Bot, Check, Loader2, Sparkles } from 'lucide-react'
+import { Check, Loader2, Zap, Sparkles, Flame, Bot } from 'lucide-react'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import type { AIModelConfig } from '@/types/ai-models'
-import { COST_TIER_LABELS, COST_TIER_COLORS } from '@/types/ai-models'
+import type { ModelIntent } from '@/types/ai-models'
+
+interface IntentTier {
+  intent: ModelIntent
+  label: string
+  description: string
+  icon: 'zap' | 'sparkles' | 'flame'
+}
+
+const TIER_ICONS = {
+  zap: Zap,
+  sparkles: Sparkles,
+  flame: Flame,
+} as const
+
+const TIER_COLORS: Record<ModelIntent, string> = {
+  fast: 'bg-blue-500/20 border-blue-500/30 text-blue-600',
+  balanced: 'bg-orange-500/20 border-orange-500/30 text-orange-600',
+  powerful: 'bg-purple-500/20 border-purple-500/30 text-purple-600',
+}
 
 interface AIModelSettingsProps {
   variant?: 'default' | 'glass'
 }
 
 export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
-  const [models, setModels] = useState<AIModelConfig[]>([])
-  const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
-  const [savedModelId, setSavedModelId] = useState<string | null>(null)
+  const [tiers, setTiers] = useState<IntentTier[]>([])
+  const [selectedIntent, setSelectedIntent] = useState<ModelIntent | null>(null)
+  const [savedIntent, setSavedIntent] = useState<ModelIntent | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch available models and saved preference
+  // Fetch available tiers and saved preference
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch models and preference in parallel
         const [modelsRes, prefRes] = await Promise.all([
           fetch('/api/ai/models'),
           fetch('/api/ai/models/preference'),
@@ -40,30 +57,25 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
         const modelsData = await modelsRes.json()
         const prefData = await prefRes.json()
 
-        if (modelsData.success && modelsData.models) {
-          setModels(modelsData.models)
+        if (modelsData.success && modelsData.mode === 'intent' && modelsData.tiers) {
+          setTiers(modelsData.tiers)
 
-          // Priority: saved preference > coach default > first model
-          if (prefData.success && prefData.modelId) {
-            // Verify the saved model is still available
-            const savedModelAvailable = modelsData.models.find(
-              (m: AIModelConfig) => m.id === prefData.modelId
-            )
-            if (savedModelAvailable) {
-              setSelectedModelId(prefData.modelId)
-              setSavedModelId(prefData.modelId)
-            } else if (modelsData.defaultModelId) {
-              setSelectedModelId(modelsData.defaultModelId)
-              setSavedModelId(modelsData.defaultModelId)
-            }
-          } else if (modelsData.defaultModelId) {
-            setSelectedModelId(modelsData.defaultModelId)
-            setSavedModelId(modelsData.defaultModelId)
+          // Use saved preference or default
+          const prefIntent = prefData.success && prefData.intent
+            ? prefData.intent as ModelIntent
+            : modelsData.defaultIntent as ModelIntent
+
+          if (prefIntent && modelsData.tiers.find((t: IntentTier) => t.intent === prefIntent)) {
+            setSelectedIntent(prefIntent)
+            setSavedIntent(prefIntent)
+          } else if (modelsData.defaultIntent) {
+            setSelectedIntent(modelsData.defaultIntent)
+            setSavedIntent(modelsData.defaultIntent)
           }
         }
       } catch (err) {
-        console.error('Failed to fetch models:', err)
-        setError('Kunde inte hämta AI-modeller')
+        console.error('Failed to fetch AI tiers:', err)
+        setError('Kunde inte hämta AI-inställningar')
       } finally {
         setLoading(false)
       }
@@ -72,9 +84,9 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
     fetchData()
   }, [])
 
-  // Save model preference
-  const handleSelectModel = async (modelId: string) => {
-    setSelectedModelId(modelId)
+  // Save intent preference
+  const handleSelectIntent = async (intent: ModelIntent) => {
+    setSelectedIntent(intent)
     setSaving(true)
     setError(null)
 
@@ -82,41 +94,22 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
       const response = await fetch('/api/ai/models/preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelId }),
+        body: JSON.stringify({ intent }),
       })
 
       if (!response.ok) {
         throw new Error('Failed to save preference')
       }
 
-      setSavedModelId(modelId)
+      setSavedIntent(intent)
     } catch (err) {
-      console.error('Failed to save model preference:', err)
+      console.error('Failed to save intent preference:', err)
       setError('Kunde inte spara inställningen')
-      // Revert selection
-      setSelectedModelId(savedModelId)
+      setSelectedIntent(savedIntent)
     } finally {
       setSaving(false)
     }
   }
-
-  // Group models by provider
-  const groupedModels = models.reduce((acc, model) => {
-    const provider = (model.provider as string).toLowerCase()
-    if (!acc[provider]) {
-      acc[provider] = []
-    }
-    acc[provider].push(model)
-    return acc
-  }, {} as Record<string, AIModelConfig[]>)
-
-  const providerNames: Record<string, string> = {
-    google: 'Google (Gemini)',
-    anthropic: 'Anthropic (Claude)',
-    openai: 'OpenAI (GPT)',
-  }
-
-  const providerOrder = ['google', 'anthropic', 'openai']
 
   if (loading) {
     return (
@@ -128,13 +121,13 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
     )
   }
 
-  if (models.length === 0) {
+  if (tiers.length === 0) {
     return (
       <GlassCard>
         <GlassCardContent className="p-6 text-center text-slate-500 dark:text-slate-400">
           <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Inga AI-modeller tillgängliga</p>
-          <p className="text-xs mt-1">Inga AI-modeller tillgängliga just nu</p>
+          <p className="text-sm">Ingen AI tillgänglig</p>
+          <p className="text-xs mt-1">AI är inte aktiverat just nu</p>
         </GlassCardContent>
       </GlassCard>
     )
@@ -148,98 +141,75 @@ export function AIModelSettings({ variant = 'glass' }: AIModelSettingsProps) {
         </div>
       )}
 
-      {providerOrder.map(provider => {
-        const providerModels = groupedModels[provider]
-        if (!providerModels || providerModels.length === 0) return null
+      {tiers.map(tier => {
+        const Icon = TIER_ICONS[tier.icon]
+        const isSelected = selectedIntent === tier.intent
+        const isSaved = savedIntent === tier.intent
+        const isRecommended = tier.intent === 'balanced'
 
         return (
-          <div key={provider} className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 px-1">
-              {providerNames[provider]}
-            </p>
-            {providerModels.map(model => {
-              const isSelected = selectedModelId === model.id
-              const isSaved = savedModelId === model.id
-
-              return (
-                <GlassCard
-                  key={model.id}
-                  className={cn(
-                    'cursor-pointer transition-all',
-                    isSelected && 'ring-2 ring-orange-500'
-                  )}
-                  onClick={() => !saving && handleSelectModel(model.id)}
-                >
-                  <GlassCardContent className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className={cn(
-                          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                          isSelected
-                            ? 'bg-orange-500/20 border border-orange-500/30'
-                            : 'bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10'
-                        )}>
-                          {model.recommended ? (
-                            <Sparkles className={cn(
-                              'h-5 w-5',
-                              isSelected ? 'text-orange-500' : 'text-slate-400'
-                            )} />
-                          ) : (
-                            <Bot className={cn(
-                              'h-5 w-5',
-                              isSelected ? 'text-orange-500' : 'text-slate-400'
-                            )} />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-bold text-slate-900 dark:text-white">
-                              {model.name}
-                            </h4>
-                            <Badge
-                              variant="outline"
-                              className={cn('text-[10px]', COST_TIER_COLORS[model.costTier])}
-                            >
-                              {COST_TIER_LABELS[model.costTier]}
-                            </Badge>
-                            {model.recommended && (
-                              <Badge className="text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30">
-                                Rekommenderad
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                            {model.description}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="shrink-0">
-                        {saving && isSelected ? (
-                          <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
-                        ) : isSaved ? (
-                          <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center">
-                            <Check className="h-4 w-4 text-white" />
-                          </div>
-                        ) : (
-                          <div className={cn(
-                            'w-6 h-6 rounded-full border-2',
-                            isSelected
-                              ? 'border-orange-500'
-                              : 'border-slate-300 dark:border-slate-600'
-                          )} />
-                        )}
-                      </div>
+          <GlassCard
+            key={tier.intent}
+            className={cn(
+              'cursor-pointer transition-all',
+              isSelected && 'ring-2 ring-orange-500'
+            )}
+            onClick={() => !saving && handleSelectIntent(tier.intent)}
+          >
+            <GlassCardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className={cn(
+                    'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                    isSelected
+                      ? 'bg-orange-500/20 border border-orange-500/30'
+                      : 'bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10'
+                  )}>
+                    <Icon className={cn(
+                      'h-5 w-5',
+                      isSelected ? 'text-orange-500' : 'text-slate-400'
+                    )} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-bold text-slate-900 dark:text-white">
+                        {tier.label}
+                      </h4>
+                      {isRecommended && (
+                        <Badge className="text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30">
+                          Rekommenderad
+                        </Badge>
+                      )}
                     </div>
-                  </GlassCardContent>
-                </GlassCard>
-              )
-            })}
-          </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      {tier.description}
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  {saving && isSelected ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
+                  ) : isSaved ? (
+                    <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center">
+                      <Check className="h-4 w-4 text-white" />
+                    </div>
+                  ) : (
+                    <div className={cn(
+                      'w-6 h-6 rounded-full border-2',
+                      isSelected
+                        ? 'border-orange-500'
+                        : 'border-slate-300 dark:border-slate-600'
+                    )} />
+                  )}
+                </div>
+              </div>
+            </GlassCardContent>
+          </GlassCard>
         )
       })}
 
       <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center mt-4">
-        Vald modell används för WOD-generering och AI-assistenten
+        Vald kvalitetsnivå används för WOD-generering och AI-assistenten
       </p>
     </div>
   )

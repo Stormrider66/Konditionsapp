@@ -350,7 +350,7 @@ export interface ConfiguredProviders {
  * Equivalent models across providers, grouped by intent tier.
  * Priority order: Google → Anthropic → OpenAI (cheapest-first for equal quality).
  */
-const MODEL_TIERS: Record<ModelIntent, {
+export const MODEL_TIERS: Record<ModelIntent, {
   google:    { modelId: string; displayName: string }
   anthropic: { modelId: string; displayName: string }
   openai:    { modelId: string; displayName: string }
@@ -367,7 +367,7 @@ const MODEL_TIERS: Record<ModelIntent, {
   },
   powerful: {
     google:    { modelId: 'gemini-3.1-pro-preview',     displayName: 'Gemini 3.1 Pro' },
-    anthropic: { modelId: 'claude-sonnet-4-6',          displayName: 'Claude Sonnet 4.6' },
+    anthropic: { modelId: 'claude-opus-4-6',            displayName: 'Claude Opus 4.6' },
     openai:    { modelId: 'gpt-5.2',                    displayName: 'GPT-5.2' },
   },
 }
@@ -416,4 +416,61 @@ export function resolveModelForClient(
   }
 
   return null
+}
+
+// ─── Intent Tier Labels (Athlete-facing) ──────────────────────────────────────
+
+export interface IntentTierLabel {
+  label: string
+  description: string
+  icon: 'zap' | 'sparkles' | 'flame'
+}
+
+export const INTENT_TIER_LABELS: Record<ModelIntent, IntentTierLabel> = {
+  fast: {
+    label: 'Snabb',
+    description: 'Snabba svar, perfekt för enkla frågor och daglig hjälp.',
+    icon: 'zap',
+  },
+  balanced: {
+    label: 'Balanserad',
+    description: 'Bra kvalitet och hastighet. Rekommenderas för de flesta uppgifter.',
+    icon: 'sparkles',
+  },
+  powerful: {
+    label: 'Kraftfull',
+    description: 'Bästa kvalitet. Perfekt för träningsprogram och djup analys.',
+    icon: 'flame',
+  },
+}
+
+/**
+ * Type guard: is the value a valid ModelIntent?
+ */
+export function isModelIntent(value: unknown): value is ModelIntent {
+  return value === 'fast' || value === 'balanced' || value === 'powerful'
+}
+
+/**
+ * Map a legacy model ID (from the AI_MODELS list or DB) to an intent tier.
+ * Falls back to 'balanced' for unknown IDs.
+ */
+export function legacyModelIdToIntent(id: string): ModelIntent {
+  // Check all tiers across all providers
+  for (const [intent, tier] of Object.entries(MODEL_TIERS) as [ModelIntent, typeof MODEL_TIERS[ModelIntent]][]) {
+    if (tier.google.modelId === id || tier.anthropic.modelId === id || tier.openai.modelId === id) {
+      return intent
+    }
+  }
+
+  // Also match the short IDs used in the AI_MODELS array
+  const fastIds = ['gemini-3.1-flash-lite', 'claude-haiku', 'gpt-5.3-instant']
+  const balancedIds = ['gemini-3-flash', 'claude-sonnet', 'gpt-5-mini']
+  const powerfulIds = ['gemini-3-pro', 'claude-opus', 'gpt-5.2']
+
+  if (fastIds.includes(id)) return 'fast'
+  if (balancedIds.includes(id)) return 'balanced'
+  if (powerfulIds.includes(id)) return 'powerful'
+
+  return 'balanced'
 }

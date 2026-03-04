@@ -10,6 +10,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { isModelIntent, legacyModelIdToIntent } from '@/types/ai-models'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,9 +28,31 @@ export async function POST(request: NextRequest) {
     })
     if (rateLimited) return rateLimited
 
-    const { modelId } = await request.json()
+    const body = await request.json()
+    const { intent, modelId } = body
 
-    // Validate model exists in DB and is available for athletes
+    // Intent-based flow: store intent string directly
+    if (intent && isModelIntent(intent)) {
+      await prisma.sportProfile.upsert({
+        where: { clientId },
+        update: { preferredAIModelId: intent },
+        create: {
+          clientId,
+          preferredAIModelId: intent,
+        },
+      })
+
+      return NextResponse.json({ success: true, intent })
+    }
+
+    // Legacy flow: validate model exists in DB
+    if (!modelId) {
+      return NextResponse.json(
+        { error: 'Missing intent or modelId' },
+        { status: 400 }
+      )
+    }
+
     const dbModel = await prisma.aIModel.findFirst({
       where: {
         OR: [{ id: modelId }, { modelId }],
@@ -142,9 +165,30 @@ export async function GET() {
       select: { preferredAIModelId: true },
     })
 
+    const stored = sportProfile?.preferredAIModelId || null
+
+    // If stored value is a valid intent, return it directly
+    if (stored && isModelIntent(stored)) {
+      return NextResponse.json({
+        success: true,
+        intent: stored,
+        modelId: null,
+      })
+    }
+
+    // Legacy model ID — map to intent
+    if (stored) {
+      return NextResponse.json({
+        success: true,
+        intent: legacyModelIdToIntent(stored),
+        modelId: stored,
+      })
+    }
+
     return NextResponse.json({
       success: true,
-      modelId: sportProfile?.preferredAIModelId || null,
+      intent: null,
+      modelId: null,
     })
   } catch (error) {
     logger.error('GET /api/ai/models/preference error', {}, error)

@@ -45,8 +45,8 @@ import type {
   WODResponse,
 } from '@/types/wod'
 import { WOD_LABELS } from '@/types/wod'
-import type { AIModelConfig } from '@/types/ai-models'
-import { COST_TIER_LABELS, COST_TIER_COLORS } from '@/types/ai-models'
+import type { ModelIntent } from '@/types/ai-models'
+import { INTENT_TIER_LABELS } from '@/types/ai-models'
 import { cn } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
@@ -61,7 +61,7 @@ interface WODGeneratorModalProps {
 type Step = 'workoutType' | 'mode' | 'duration' | 'equipment' | 'generating'
 
 type GenerateWODRequestBody = WODRequest & {
-  modelId?: string | null
+  intent?: string
   locationId?: string | null
 }
 
@@ -216,11 +216,11 @@ export function WODGeneratorModal({
   const [hasLocations, setHasLocations] = useState(false)
   const [loadingLocations, setLoadingLocations] = useState(false)
 
-  // Model selection state
-  const [availableModels, setAvailableModels] = useState<AIModelConfig[]>([])
-  const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
-  const [showModelSelector, setShowModelSelector] = useState(false)
-  const [loadingModels, setLoadingModels] = useState(false)
+  // Intent tier selection state
+  const [availableIntents, setAvailableIntents] = useState<ModelIntent[]>([])
+  const [selectedIntent, setSelectedIntent] = useState<ModelIntent>('balanced')
+  const [showIntentSelector, setShowIntentSelector] = useState(false)
+  const [loadingIntents, setLoadingIntents] = useState(false)
 
   // Fetch available locations when modal opens
   useEffect(() => {
@@ -246,30 +246,29 @@ export function WODGeneratorModal({
     }
   }, [open, hasLocations, loadingLocations])
 
-  // Fetch available models when modal opens
+  // Fetch available intent tiers when modal opens
   useEffect(() => {
-    if (open && availableModels.length === 0) {
-      setLoadingModels(true)
+    if (open && availableIntents.length === 0) {
+      setLoadingIntents(true)
       fetch('/api/ai/models')
         .then(res => res.json())
         .then(data => {
-          if (data.success && data.models) {
-            setAvailableModels(data.models)
-            if (data.defaultModelId) {
-              setSelectedModelId(data.defaultModelId)
-            } else if (data.models.length > 0) {
-              setSelectedModelId(data.models[0].id)
+          if (data.success && data.mode === 'intent' && data.tiers) {
+            const intents = data.tiers.map((t: { intent: ModelIntent }) => t.intent)
+            setAvailableIntents(intents)
+            if (data.defaultIntent) {
+              setSelectedIntent(data.defaultIntent)
             }
           }
         })
         .catch(err => {
-          console.error('Failed to fetch models:', err)
+          console.error('Failed to fetch AI tiers:', err)
         })
         .finally(() => {
-          setLoadingModels(false)
+          setLoadingIntents(false)
         })
     }
-  }, [open, availableModels.length])
+  }, [open, availableIntents.length])
 
   // Reset state when modal closes
   const handleOpenChange = useCallback((newOpen: boolean) => {
@@ -277,7 +276,7 @@ export function WODGeneratorModal({
       setStep('workoutType')
       setError(null)
       setIsGenerating(false)
-      setShowModelSelector(false)
+      setShowIntentSelector(false)
     }
     onOpenChange(newOpen)
   }, [onOpenChange])
@@ -341,9 +340,6 @@ export function WODGeneratorModal({
     })
   }
 
-  // Get currently selected model info
-  const selectedModel = availableModels.find(m => m.id === selectedModelId)
-
   // Generate WOD
   const generateWOD = async () => {
     setStep('generating')
@@ -356,7 +352,7 @@ export function WODGeneratorModal({
         workoutType: selectedWorkoutType,
         duration,
         equipment: selectedEquipment,
-        modelId: selectedModelId,
+        intent: selectedIntent,
         locationId: selectedLocationId,
       }
 
@@ -630,64 +626,53 @@ export function WODGeneratorModal({
               })}
             </div>
 
-            {/* AI Model Selector */}
-            {availableModels.length > 1 && (
+            {/* AI Quality Tier Selector */}
+            {availableIntents.length > 1 && (
               <div className="pt-2 border-t">
                 <button
                   type="button"
-                  onClick={() => setShowModelSelector(!showModelSelector)}
+                  onClick={() => setShowIntentSelector(!showIntentSelector)}
                   className="flex items-center justify-between w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <div className="flex items-center gap-2">
                     <Bot className="h-4 w-4" />
-                    <span>AI-modell: {selectedModel?.name || 'Standard'}</span>
-                    {selectedModel && (
-                      <Badge
-                        variant="outline"
-                        className={cn('text-xs', COST_TIER_COLORS[selectedModel.costTier])}
-                      >
-                        {COST_TIER_LABELS[selectedModel.costTier]}
-                      </Badge>
-                    )}
+                    <span>AI-kvalitet: {INTENT_TIER_LABELS[selectedIntent]?.label || 'Balanserad'}</span>
                   </div>
                   <ChevronDown
                     className={cn(
                       'h-4 w-4 transition-transform',
-                      showModelSelector && 'rotate-180'
+                      showIntentSelector && 'rotate-180'
                     )}
                   />
                 </button>
 
-                {showModelSelector && (
+                {showIntentSelector && (
                   <div className="mt-3 space-y-2">
                     <Select
-                      value={selectedModelId || undefined}
-                      onValueChange={setSelectedModelId}
+                      value={selectedIntent}
+                      onValueChange={(v) => setSelectedIntent(v as ModelIntent)}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Välj AI-modell" />
+                        <SelectValue placeholder="Välj kvalitetsnivå" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableModels.map(model => (
-                          <SelectItem key={model.id} value={model.id}>
+                        {availableIntents.map(intent => (
+                          <SelectItem key={intent} value={intent}>
                             <div className="flex items-center gap-2">
-                              <span>{model.name}</span>
-                              <Badge
-                                variant="outline"
-                                className={cn('text-xs', COST_TIER_COLORS[model.costTier])}
-                              >
-                                {COST_TIER_LABELS[model.costTier]}
-                              </Badge>
+                              <span>{INTENT_TIER_LABELS[intent].label}</span>
+                              {intent === 'balanced' && (
+                                <Badge variant="outline" className="text-xs">
+                                  Rekommenderad
+                                </Badge>
+                              )}
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {selectedModel && (
-                      <p className="text-xs text-muted-foreground">
-                        {selectedModel.description}
-                      </p>
-                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {INTENT_TIER_LABELS[selectedIntent]?.description}
+                    </p>
                   </div>
                 )}
               </div>
@@ -709,11 +694,9 @@ export function WODGeneratorModal({
               <p className="text-sm text-muted-foreground">
                 AI analyserar din profil och skapar ett perfekt anpassat pass
               </p>
-              {selectedModel && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Använder {selectedModel.name}
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                Använder {INTENT_TIER_LABELS[selectedIntent]?.label || 'Balanserad'}
+              </p>
             </div>
           </div>
         )}

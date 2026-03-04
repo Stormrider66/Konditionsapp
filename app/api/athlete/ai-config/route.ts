@@ -13,7 +13,8 @@ import { NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
-import type { AIProvider } from '@prisma/client'
+import { isModelIntent, legacyModelIdToIntent, INTENT_TIER_LABELS } from '@/types/ai-models'
+import type { ModelIntent } from '@/types/ai-models'
 
 export async function GET() {
   try {
@@ -87,95 +88,68 @@ export async function GET() {
       return NextResponse.json({
         success: true,
         hasAIAccess: false,
-        model: null,
-        provider: null,
-        displayName: null,
+        intent: null,
         clientId,
-        availableModels: [],
+        availableIntents: [],
+        configuredProviders: {
+          hasAnthropic: false,
+          hasGoogle: false,
+          hasOpenai: false,
+        },
       })
     }
 
-    // Build list of valid providers from coach's keys
-    const validProviders: AIProvider[] = []
-    if (apiKeys?.anthropicKeyValid) validProviders.push('ANTHROPIC')
-    if (apiKeys?.googleKeyValid) validProviders.push('GOOGLE')
-    if (apiKeys?.openaiKeyValid) validProviders.push('OPENAI')
+    // Build configured providers flags
+    const configuredProviders = {
+      hasAnthropic: !!apiKeys?.anthropicKeyValid,
+      hasGoogle: !!apiKeys?.googleKeyValid,
+      hasOpenai: !!apiKeys?.openaiKeyValid,
+    }
 
-    // Fetch DB models: active + available for athletes + valid provider
-    let dbModels = await prisma.aIModel.findMany({
-      where: {
-        isActive: true,
-        availableForAthletes: true,
-        provider: { in: validProviders },
-      },
-      orderBy: [{ isDefault: 'desc' }, { displayName: 'asc' }],
-    })
+    // Determine allowed intents from coach settings
+    const rawAllowed = apiKeys?.allowedAthleteModelIds || []
+    let availableIntents: ModelIntent[] = ['fast', 'balanced', 'powerful']
 
-    // Apply coach's allowedAthleteModelIds filter (empty array = all allowed)
-    if (apiKeys?.allowedAthleteModelIds?.length) {
-      const allowedIds = apiKeys.allowedAthleteModelIds
-      const filtered = dbModels.filter(m => allowedIds.includes(m.id))
-      if (filtered.length > 0) {
-        dbModels = filtered
+    if (rawAllowed.length > 0) {
+      const tiers = rawAllowed
+        .map(id => isModelIntent(id) ? id : legacyModelIdToIntent(id))
+        .filter((v, i, a) => a.indexOf(v) === i) as ModelIntent[]
+      if (tiers.length > 0) {
+        availableIntents = tiers
       }
     }
 
-    if (dbModels.length === 0) {
-      return NextResponse.json({
-        success: true,
-        hasAIAccess: false,
-        model: null,
-        provider: null,
-        displayName: null,
-        clientId,
-        availableModels: [],
-      })
-    }
+    // Determine selected intent via priority chain
+    let selectedIntent: ModelIntent = 'balanced'
 
-    // Determine selected model via priority chain
-    let selectedModel = dbModels[0] // fallback: first available
-
-    // Priority 1: Athlete's preference (if still in allowed set)
+    // Priority 1: Athlete's preference
     if (athletePreferredModelId) {
-      const preferred = dbModels.find(m => m.id === athletePreferredModelId || m.modelId === athletePreferredModelId)
-      if (preferred) {
-        selectedModel = preferred
-      }
+      selectedIntent = isModelIntent(athletePreferredModelId)
+        ? athletePreferredModelId
+        : legacyModelIdToIntent(athletePreferredModelId)
+    }
+    // Priority 2: Coach's athlete default
+    else if (apiKeys?.athleteDefaultModelId) {
+      selectedIntent = isModelIntent(apiKeys.athleteDefaultModelId)
+        ? apiKeys.athleteDefaultModelId
+        : legacyModelIdToIntent(apiKeys.athleteDefaultModelId)
     }
 
-    // Priority 2: Coach's athlete default (if athlete has no preference or preference not available)
-    if (!athletePreferredModelId && apiKeys?.athleteDefaultModelId) {
-      const coachDefault = dbModels.find(m => m.id === apiKeys.athleteDefaultModelId)
-      if (coachDefault) {
-        selectedModel = coachDefault
-      }
+    // Ensure selected intent is in available set
+    if (!availableIntents.includes(selectedIntent)) {
+      selectedIntent = availableIntents.includes('balanced') ? 'balanced' : availableIntents[0]
     }
-
-    // Priority 3: First default model, or first available
-    if (!athletePreferredModelId && !apiKeys?.athleteDefaultModelId) {
-      const defaultModel = dbModels.find(m => m.isDefault)
-      if (defaultModel) {
-        selectedModel = defaultModel
-      }
-    }
-
-    // Build available models list for the model picker
-    const availableModels = dbModels.map(m => ({
-      id: m.id,
-      modelId: m.modelId,
-      provider: m.provider,
-      displayName: m.displayName,
-      isDefault: m.isDefault,
-    }))
 
     return NextResponse.json({
       success: true,
       hasAIAccess: true,
-      model: selectedModel.modelId,
-      provider: selectedModel.provider,
-      displayName: selectedModel.displayName,
+      intent: selectedIntent,
       clientId,
-      availableModels,
+      availableIntents: availableIntents.map(intent => ({
+        intent,
+        ...INTENT_TIER_LABELS[intent],
+      })),
+      configuredProviders,
     })
   } catch (error) {
     logError('Get athlete AI config error:', error)

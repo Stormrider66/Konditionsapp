@@ -123,7 +123,7 @@ export function AthleteSettingsClient({
       {/* Header */}
       <div className="bg-white/70 dark:bg-black/40 backdrop-blur-md border-b border-slate-200 dark:border-white/5 sticky top-0 z-20 transition-colors">
         <div className="container max-w-lg mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/athlete">
+          <Link href="/athlete/dashboard">
             <Button variant="ghost" size="icon" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-all">
               <ChevronLeft className="h-5 w-5" />
             </Button>
