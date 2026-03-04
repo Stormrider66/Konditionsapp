@@ -37,34 +37,53 @@ export async function DELETE(
       );
     }
 
-    // Delete all non-cascading relations in a transaction, then the user
+    // Delete all non-cascading relations in a transaction, then the user.
+    // Relations with onDelete: Cascade/SetNull are handled automatically.
     await prisma.$transaction(async (tx) => {
-      // Leaf-level relations first
+      // 1. Nullify optional FKs that reference this user (no cascade, nullable)
+      await tx.injuryAssessment.updateMany({ where: { assessedById: userId }, data: { assessedById: null } });
+      await tx.calendarEvent.updateMany({ where: { lastModifiedById: userId }, data: { lastModifiedById: null } });
+      await tx.systemError.updateMany({ where: { resolvedById: userId }, data: { resolvedById: null } });
+      await tx.aIPrediction.updateMany({ where: { coachId: userId }, data: { coachId: null } });
+
+      // 2. Delete leaf-level non-cascading relations
       await tx.careTeamMessage.deleteMany({ where: { senderId: userId } });
       await tx.careTeamParticipant.deleteMany({ where: { userId } });
       await tx.careTeamThread.deleteMany({ where: { createdById: userId } });
       await tx.teamWorkoutBroadcast.deleteMany({ where: { coachId: userId } });
       await tx.sportTest.deleteMany({ where: { userId } });
       await tx.acuteInjuryReport.deleteMany({ where: { reporterId: userId } });
-      await tx.message.deleteMany({
-        where: { OR: [{ senderId: userId }, { receiverId: userId }] },
-      });
+      await tx.message.deleteMany({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } });
       await tx.videoAnalysis.deleteMany({ where: { coachId: userId } });
       await tx.strengthTemplate.deleteMany({ where: { coachId: userId } });
       await tx.trainingRestriction.deleteMany({ where: { createdById: userId } });
+      await tx.workoutLog.deleteMany({ where: { athleteId: userId } });
+      await tx.coachEarnings.deleteMany({ where: { coachUserId: userId } });
+      await tx.coachDecision.deleteMany({ where: { coachId: userId } });
+      await tx.trainingPeriodOutcome.deleteMany({ where: { coachId: userId } });
+      await tx.calendarEventChange.deleteMany({ where: { changedById: userId } });
+      await tx.enterpriseContractChange.deleteMany({ where: { changedById: userId } });
+      await tx.liveHRSession.deleteMany({ where: { coachId: userId } });
+      await tx.visualReport.deleteMany({ where: { coachId: userId } });
 
-      // Mid-level: programs and tests created by this user
+      // 3. Physio-specific relations
+      await tx.treatmentSession.deleteMany({ where: { physioUserId: userId } });
+      await tx.rehabProgram.deleteMany({ where: { physioUserId: userId } });
+      await tx.movementScreen.deleteMany({ where: { physioUserId: userId } });
+
+      // 4. Mid-level: programs, tests, calendar events
       await tx.trainingProgram.deleteMany({ where: { coachId: userId } });
       await tx.test.deleteMany({ where: { userId } });
+      await tx.calendarEvent.deleteMany({ where: { createdById: userId } });
 
-      // Top-level: clients, teams, organizations
+      // 5. Top-level: clients, teams, organizations
       await tx.client.deleteMany({ where: { userId } });
       await tx.team.deleteMany({ where: { userId } });
       await tx.organization.deleteMany({ where: { userId } });
 
-      // Delete the user record (cascading relations handle the rest)
+      // 6. Delete the user record (remaining cascade relations auto-clean)
       await tx.user.delete({ where: { id: userId } });
-    });
+    }, { timeout: 30000 });
 
     // Delete Supabase Auth user (after DB cleanup so we don't orphan DB records on auth failure)
     try {
@@ -92,9 +111,10 @@ export async function DELETE(
       message: `Användaren ${targetUser.email} har tagits bort`,
     });
   } catch (error) {
-    logger.error('Error deleting user', {}, error);
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error('Error deleting user', { detail: message }, error);
     return NextResponse.json(
-      { success: false, error: 'Kunde inte ta bort användaren. Kontrollera att inga beroenden blockerar.' },
+      { success: false, error: `Kunde inte ta bort användaren: ${message}` },
       { status: 500 }
     );
   }
