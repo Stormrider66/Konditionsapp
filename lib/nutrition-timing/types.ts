@@ -58,6 +58,8 @@ export type MacroProfile =
   | 'LOW_CARB'
   | 'ENDURANCE'
   | 'STRENGTH'
+  | 'KETO'
+  | 'CUSTOM'
 
 export type ActivityLevel =
   | 'SEDENTARY'
@@ -75,6 +77,9 @@ export interface NutritionGoalInput {
   macroProfile?: MacroProfile
   activityLevel?: ActivityLevel
   customProteinPerKg?: number
+  customProteinPercent?: number
+  customCarbsPercent?: number
+  customFatPercent?: number
   showMacroTargets?: boolean
   showHydration?: boolean
 }

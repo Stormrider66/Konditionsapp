@@ -15,6 +15,7 @@ import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
 import { IntegrationsSettings } from '@/components/athlete/settings/IntegrationsSettings'
 import { AIModelSettings } from '@/components/athlete/settings/AIModelSettings'
 import { IntensityTargetsEditor } from '@/components/athlete/settings/IntensityTargetsEditor'
+import { MacroSplitEditor } from '@/components/athlete/settings/MacroSplitEditor'
 import { LocationSettings } from '@/components/athlete/settings/LocationSettings'
 import { AIContextSettings } from '@/components/athlete/settings/AIContextSettings'
 import { ProfileSettings } from '@/components/settings/ProfileSettings'
@@ -234,6 +235,15 @@ export function AthleteSettingsClient({
             variant="glass"
             clientId={clientId}
           />
+        </div>
+
+        {/* Makrofordelning */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 px-2">
+            <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Makrofördelning</h3>
+          </div>
+          <MacroSplitEditor clientId={clientId} variant="glass" />
         </div>
 
         {/* AI Model Settings */}

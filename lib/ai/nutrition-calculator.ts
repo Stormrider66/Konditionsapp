@@ -49,6 +49,9 @@ export const MACRO_PROFILES = {
 
   // Keto (very low carb)
   KETO: { protein: 0.25, carbs: 0.05, fat: 0.70 },
+
+  // Custom (fallback to balanced — actual values come from custom percentages)
+  CUSTOM: { protein: 0.25, carbs: 0.45, fat: 0.30 },
 } as const;
 
 export type MacroProfile = keyof typeof MACRO_PROFILES;
@@ -80,6 +83,9 @@ export interface MacroInput {
   profile: MacroProfile;
   weightKg: number;
   customProteinPerKg?: number; // Override for specific protein needs
+  customProteinPercent?: number; // Custom percentage (0-100)
+  customCarbsPercent?: number;   // Custom percentage (0-100)
+  customFatPercent?: number;     // Custom percentage (0-100)
 }
 
 export interface NutritionPlan {
@@ -193,12 +199,38 @@ export function calculateTDEEWithTraining(
  * Calculate macro distribution based on goals
  */
 export function calculateMacros(input: MacroInput): NutritionPlan['macros'] {
-  const { tdee, goal, profile, weightKg, customProteinPerKg } = input;
+  const { tdee, goal, profile, weightKg, customProteinPerKg, customProteinPercent, customCarbsPercent, customFatPercent } = input;
 
   const targetCalories = tdee + CALORIC_ADJUSTMENTS[goal];
+
+  // Priority 1: Custom percentages (all three must be provided)
+  if (customProteinPercent != null && customCarbsPercent != null && customFatPercent != null) {
+    const proteinGrams = Math.round((targetCalories * customProteinPercent / 100) / 4);
+    const carbGrams = Math.round((targetCalories * customCarbsPercent / 100) / 4);
+    const fatGrams = Math.round((targetCalories * customFatPercent / 100) / 9);
+
+    return {
+      protein: {
+        grams: proteinGrams,
+        calories: proteinGrams * 4,
+        percentage: Math.round(customProteinPercent),
+      },
+      carbs: {
+        grams: carbGrams,
+        calories: carbGrams * 4,
+        percentage: Math.round(customCarbsPercent),
+      },
+      fat: {
+        grams: fatGrams,
+        calories: fatGrams * 9,
+        percentage: Math.round(customFatPercent),
+      },
+    };
+  }
+
   const ratios = MACRO_PROFILES[profile];
 
-  // Calculate protein - can use custom per-kg value or percentage
+  // Priority 2: Custom per-kg protein value
   let proteinGrams: number;
   if (customProteinPerKg) {
     proteinGrams = Math.round(weightKg * customProteinPerKg);

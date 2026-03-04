@@ -19,13 +19,16 @@ const goalsSchema = z.object({
   targetDate: z.string().datetime().optional().nullable(),
   targetBodyFatPercent: z.number().min(3).max(50).optional().nullable(),
   macroProfile: z
-    .enum(['BALANCED', 'HIGH_PROTEIN', 'LOW_CARB', 'ENDURANCE', 'STRENGTH'])
+    .enum(['BALANCED', 'HIGH_PROTEIN', 'LOW_CARB', 'ENDURANCE', 'STRENGTH', 'KETO', 'CUSTOM'])
     .optional()
     .nullable(),
   activityLevel: z
     .enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'ACTIVE', 'VERY_ACTIVE', 'ATHLETE'])
     .optional(),
   customProteinPerKg: z.number().min(0.5).max(3).optional().nullable(),
+  customProteinPercent: z.number().min(0).max(100).optional().nullable(),
+  customCarbsPercent: z.number().min(0).max(100).optional().nullable(),
+  customFatPercent: z.number().min(0).max(100).optional().nullable(),
   showMacroTargets: z.boolean().optional(),
   showHydration: z.boolean().optional(),
 })
@@ -58,9 +61,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
     }
 
+    const client = athleteAccount.client
     return NextResponse.json({
       success: true,
-      goal: athleteAccount.client.nutritionGoal,
+      goal: client.nutritionGoal,
+      clientData: {
+        weight: client.weight,
+        height: client.height,
+        gender: client.gender,
+        birthDate: client.birthDate,
+      },
     })
   } catch (error) {
     logger.error('Error fetching nutrition goals', {}, error as Error)
@@ -104,6 +114,9 @@ export async function PUT(request: NextRequest) {
         macroProfile: validated.macroProfile,
         activityLevel: validated.activityLevel ?? 'ACTIVE',
         customProteinPerKg: validated.customProteinPerKg,
+        customProteinPercent: validated.customProteinPercent,
+        customCarbsPercent: validated.customCarbsPercent,
+        customFatPercent: validated.customFatPercent,
         showMacroTargets: validated.showMacroTargets ?? true,
         showHydration: validated.showHydration ?? true,
       },
@@ -117,6 +130,9 @@ export async function PUT(request: NextRequest) {
         macroProfile: validated.macroProfile,
         activityLevel: validated.activityLevel ?? 'ACTIVE',
         customProteinPerKg: validated.customProteinPerKg,
+        customProteinPercent: validated.customProteinPercent,
+        customCarbsPercent: validated.customCarbsPercent,
+        customFatPercent: validated.customFatPercent,
         showMacroTargets: validated.showMacroTargets ?? true,
         showHydration: validated.showHydration ?? true,
       },

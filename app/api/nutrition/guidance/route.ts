@@ -206,6 +206,8 @@ export async function GET() {
               | 'LOW_CARB'
               | 'ENDURANCE'
               | 'STRENGTH'
+              | 'KETO'
+              | 'CUSTOM'
               | undefined,
             activityLevel: client.nutritionGoal.activityLevel as
               | 'SEDENTARY'
@@ -214,6 +216,9 @@ export async function GET() {
               | 'VERY_ACTIVE'
               | 'ATHLETE'
               | undefined,
+            customProteinPercent: client.nutritionGoal.customProteinPercent ?? undefined,
+            customCarbsPercent: client.nutritionGoal.customCarbsPercent ?? undefined,
+            customFatPercent: client.nutritionGoal.customFatPercent ?? undefined,
           }
         : null,
       sportProfile: client.sportProfile
