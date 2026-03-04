@@ -77,7 +77,7 @@ export async function DELETE(
 
     // Audit log
     await logAuditEvent({
-      action: 'USER_DELETED',
+      action: 'USER_DELETE',
       userId: adminUser.id,
       targetId: userId,
       targetType: 'User',
