@@ -190,10 +190,10 @@ export function InjurySelector({
                 onValueChange={handleIllnessTypeChange}
                 disabled={disabled}
               >
-                <SelectTrigger className="bg-white/5 border-white/10 h-10">
+                <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white h-10">
                   <SelectValue placeholder="Välj typ av sjukdom" />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-900 border-white/10">
+                <SelectContent className="bg-popover border-border">
                   {ILLNESSES.map((illness) => (
                     <SelectItem key={illness.id} value={illness.id}>
                       {illness.labelSv}
@@ -202,9 +202,15 @@ export function InjurySelector({
                 </SelectContent>
               </Select>
 
-              <div className="mt-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 font-medium">
-                Vid sjukdom rekommenderas fullständig vila. Din träningsplan kommer att anpassas därefter.
-              </div>
+              {value.illnessType === 'CHRONIC' ? (
+                <div className="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400 font-medium">
+                  Kronisk sjukdom noterad. Träningen påverkas inte automatiskt, men informationen loggas.
+                </div>
+              ) : (
+                <div className="mt-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 font-medium">
+                  Vid sjukdom rekommenderas fullständig vila. Din träningsplan kommer att anpassas därefter.
+                </div>
+              )}
             </div>
           )}
 
@@ -222,10 +228,10 @@ export function InjurySelector({
                   onValueChange={handleBodyPartChange}
                   disabled={disabled}
                 >
-                  <SelectTrigger className="bg-white/5 border-white/10 h-12 text-white">
+                  <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white h-12">
                     <SelectValue placeholder="Välj kroppsdel" />
                   </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-white/10">
+                  <SelectContent className="bg-popover border-border">
                     {BODY_PARTS.map((bodyPart) => (
                       <SelectItem key={bodyPart.id} value={bodyPart.id}>
                         {bodyPart.labelSv}
@@ -246,10 +252,10 @@ export function InjurySelector({
                     onValueChange={handleInjuryTypeChange}
                     disabled={disabled}
                   >
-                    <SelectTrigger className="bg-white/5 border-white/10 h-12 text-white">
+                    <SelectTrigger className="bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white h-12">
                       <SelectValue placeholder="Välj typ av besvär" />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-white/10">
+                    <SelectContent className="bg-popover border-border">
                       {availableInjuries.map((injury) => (
                         <SelectItem key={injury.id} value={injury.id}>
                           {injury.labelSv}

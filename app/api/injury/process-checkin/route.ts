@@ -216,7 +216,60 @@ export async function POST(request: NextRequest) {
     // Step 3: Handle illness vs injury
     // ==========================================
     if (injuryDetails?.isIllness) {
-      // Illness requires complete rest - no training, no cross-training
+      // Chronic illness: log but don't suspend training
+      if (injuryDetails.illnessType === 'CHRONIC') {
+        logger.info('Chronic illness noted, no training suspension', {
+          athlete: client.name,
+          illnessType: injuryDetails.illnessType,
+        })
+
+        // Send low-urgency notification to coach
+        await sendCoachNotification(client.userId, {
+          title: `Kronisk sjukdom noterad: ${client.name}`,
+          message: `Idrottaren har rapporterat en kronisk sjukdom. Träningen påverkas inte automatiskt, men informationen loggas för uppföljning.`,
+          urgency: 'LOW',
+          actionRequired: false,
+          suggestedActions: [
+            'Följ upp med idrottaren vid behov',
+            'Justera träningen manuellt om det krävs',
+          ],
+          athleteName: client.name,
+          injuryType: 'CHRONIC_ILLNESS',
+          painLevel: body.injuryPain,
+        })
+
+        return NextResponse.json({
+          success: true,
+          triggered: false,
+          detection: {
+            ...triggerDetection,
+            severity: 'LOW',
+            recommendedAction: 'MONITOR',
+            reasons: [...triggerDetection.reasons, 'Chronic illness reported (no rest required)'],
+          },
+          injuryResponse: {
+            immediateAction: 'MONITOR',
+            workoutsModified: 0,
+            crossTrainingRecommended: true,
+            estimatedReturnWeeks: 0,
+            coachNotified: true,
+            notificationUrgency: 'LOW',
+          },
+          summary: {
+            title: 'Kronisk sjukdom noterad',
+            message: 'Kronisk sjukdom noterad. Träningen påverkas inte automatiskt, men informationen loggas.',
+            nextSteps: [
+              'Träna som vanligt om du mår bra',
+              'Rapportera om symtomen förvärras',
+              'Din coach har informerats',
+            ],
+            programAdjustment: 'No automatic adjustment. Chronic condition logged for coach awareness.',
+          },
+          isIllness: true,
+        })
+      }
+
+      // Acute illness requires complete rest - no training, no cross-training
       logger.info('Illness detected, recommending complete rest', {
         athlete: client.name,
         illnessType: injuryDetails.illnessType,

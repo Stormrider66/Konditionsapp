@@ -67,6 +67,7 @@ export type IllnessType =
   | 'COLD'
   | 'HEADACHE'
   | 'GENERAL_ILLNESS'
+  | 'CHRONIC'
 
 export interface IllnessDefinition {
   id: IllnessType
@@ -133,6 +134,13 @@ export const ILLNESSES: IllnessDefinition[] = [
     labelEn: 'Generally unwell/Other',
     minRestDays: 2,
     returnCriteria: 'Energinivå tillbaka till normalt',
+  },
+  {
+    id: 'CHRONIC',
+    labelSv: 'Kronisk sjukdom (Crohn, diabetes, etc.)',
+    labelEn: 'Chronic condition (Crohn\'s, diabetes, etc.)',
+    minRestDays: 0,
+    returnCriteria: 'Ingen vila krävs — kronisk sjukdom hanteras individuellt',
   },
 ]
 
