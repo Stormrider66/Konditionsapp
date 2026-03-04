@@ -37,7 +37,7 @@ export function SummaryBox({
                          testType === 'CYCLING' ? 'watt' : 'min/km'
 
   return (
-    <section className="mt-6 border-b pb-6 print:break-inside-avoid">
+    <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
       <h2 className="text-2xl font-semibold mb-4">Testsammanfattning</h2>
 
       {/* Key Metrics Grid */}

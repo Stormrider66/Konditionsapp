@@ -45,6 +45,7 @@ export function ReportTemplate({
     <div className="max-w-4xl mx-auto bg-white p-8 print:p-6 print:max-w-none" data-pdf-content>
       {/* Header */}
       <header
+        data-pdf-section
         className={`text-white p-6 rounded-t-lg print:rounded-none ${!branding?.primaryColor ? 'gradient-primary' : ''}`}
         style={branding?.primaryColor
           ? { background: `linear-gradient(135deg, ${branding.primaryColor} 0%, ${branding.secondaryColor || branding.primaryColor} 100%)` }
@@ -63,7 +64,7 @@ export function ReportTemplate({
       </header>
 
       {/* Klientinformation */}
-      <section className="mt-6 border-b pb-6">
+      <section className="mt-6 border-b pb-6" data-pdf-section>
         <h2 className="text-2xl font-semibold mb-4">Klientinformation</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -94,7 +95,7 @@ export function ReportTemplate({
       </section>
 
       {/* Testinformation */}
-      <section className="mt-6 border-b pb-6">
+      <section className="mt-6 border-b pb-6" data-pdf-section>
         <h2 className="text-2xl font-semibold mb-4">Testinformation</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -172,7 +173,7 @@ export function ReportTemplate({
       ))}
 
       {/* Testresultat */}
-      <section className="mt-6 border-b pb-6">
+      <section className="mt-6 border-b pb-6" data-pdf-section>
         <h2 className="text-2xl font-semibold mb-4">Testresultat</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -268,7 +269,7 @@ export function ReportTemplate({
       </section>
 
       {/* Tröskelvärden */}
-      <section className="mt-6 border-b pb-6">
+      <section className="mt-6 border-b pb-6" data-pdf-section>
         <h2 className="text-2xl font-semibold mb-4">Tröskelvärden</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -413,48 +414,52 @@ export function ReportTemplate({
 
       {/* D-max Curve Visualization - shown when D-max visualization is available */}
       {calculations.dmaxVisualization && calculations.dmaxVisualization.coefficients && calculations.aerobicThreshold && calculations.anaerobicThreshold && (
-        <section className="mt-6 border-b pb-6 print:break-inside-avoid">
-          <h2 className="text-2xl font-semibold mb-4">Tröskelanalys</h2>
+        <>
           {/* Lactate vs Heart Rate Chart - Primary (most relevant) */}
-          <div className="bg-white p-4 rounded-lg border">
-            <LactateHeartRateChart
-              stages={test.testStages}
-              aerobicThreshold={{
-                heartRate: calculations.aerobicThreshold.heartRate,
-                lactate: calculations.aerobicThreshold.lactate || 0,
-                method: (calculations.aerobicThreshold as any).method
-              }}
-              anaerobicThreshold={{
-                heartRate: calculations.anaerobicThreshold.heartRate,
-                lactate: calculations.anaerobicThreshold.lactate || 0,
-                method: (calculations.anaerobicThreshold as any).method
-              }}
-            />
-          </div>
+          <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
+            <h2 className="text-2xl font-semibold mb-4">Tröskelanalys</h2>
+            <div className="bg-white p-4 rounded-lg border">
+              <LactateHeartRateChart
+                stages={test.testStages}
+                aerobicThreshold={{
+                  heartRate: calculations.aerobicThreshold.heartRate,
+                  lactate: calculations.aerobicThreshold.lactate || 0,
+                  method: (calculations.aerobicThreshold as any).method
+                }}
+                anaerobicThreshold={{
+                  heartRate: calculations.anaerobicThreshold.heartRate,
+                  lactate: calculations.anaerobicThreshold.lactate || 0,
+                  method: (calculations.anaerobicThreshold as any).method
+                }}
+              />
+            </div>
+          </section>
 
           {/* Lactate vs Speed/Power Chart */}
-          <div className="bg-white p-4 rounded-lg border mt-6">
-            <DmaxCurveChart
-              stages={test.testStages}
-              dmaxResult={calculations.dmaxVisualization}
-              intensityUnit={calculations.dmaxVisualization.unit}
-              aerobicThreshold={{
-                intensity: calculations.aerobicThreshold.value,
-                lactate: calculations.aerobicThreshold.lactate || 0,
-                method: (calculations.aerobicThreshold as any).method
-              }}
-              anaerobicThreshold={{
-                intensity: calculations.anaerobicThreshold.value,
-                lactate: calculations.anaerobicThreshold.lactate || 0,
-                method: (calculations.anaerobicThreshold as any).method
-              }}
-            />
-          </div>
-        </section>
+          <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
+            <div className="bg-white p-4 rounded-lg border">
+              <DmaxCurveChart
+                stages={test.testStages}
+                dmaxResult={calculations.dmaxVisualization}
+                intensityUnit={calculations.dmaxVisualization.unit}
+                aerobicThreshold={{
+                  intensity: calculations.aerobicThreshold.value,
+                  lactate: calculations.aerobicThreshold.lactate || 0,
+                  method: (calculations.aerobicThreshold as any).method
+                }}
+                anaerobicThreshold={{
+                  intensity: calculations.anaerobicThreshold.value,
+                  lactate: calculations.anaerobicThreshold.lactate || 0,
+                  method: (calculations.anaerobicThreshold as any).method
+                }}
+              />
+            </div>
+          </section>
+        </>
       )}
 
       {/* Träningszoner */}
-      <section className="mt-6 border-b pb-6">
+      <section className="mt-6 border-b pb-6" data-pdf-section>
         <h2 className="text-2xl font-semibold mb-4">Träningszoner</h2>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -499,7 +504,7 @@ export function ReportTemplate({
       </section>
 
       {/* Diagram */}
-      <section className="mt-6 pb-6 print:break-before-page">
+      <section className="mt-6 pb-6 print:break-before-page" data-pdf-section>
         <h2 className="text-2xl font-semibold mb-4">Testdiagram</h2>
         {test.testType === 'CYCLING' ? (
           <PowerChart
@@ -514,7 +519,7 @@ export function ReportTemplate({
 
       {/* Power Zones (endast för cykeltester) */}
       {test.testType === 'CYCLING' && calculations.cyclingData && calculations.cyclingData.powerZones && (
-        <section className="mt-6 border-b pb-6">
+        <section className="mt-6 border-b pb-6" data-pdf-section>
           <h2 className="text-2xl font-semibold mb-4">Power Zones (baserat på FTP)</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -549,78 +554,82 @@ export function ReportTemplate({
 
       {/* Löpekonomi (endast för löptester) */}
       {test.testType === 'RUNNING' && calculations.economyData && calculations.economyData.length > 0 && (
-        <section className="mt-6 border-b pb-6">
-          <h2 className="text-2xl font-semibold mb-4">Löpekonomi</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-2 text-left">Hastighet (km/h)</th>
-                  <th className="px-4 py-2 text-left">VO₂ (ml/kg/min)</th>
-                  <th className="px-4 py-2 text-left">Ekonomi (ml/kg/km)</th>
-                  <th className="px-4 py-2 text-left">Bedömning</th>
-                </tr>
-              </thead>
-              <tbody>
-                {calculations.economyData.map((data, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-2">{data.speed}</td>
-                    <td className="px-4 py-2">{data.vo2}</td>
-                    <td className="px-4 py-2">{data.economy}</td>
-                    <td className="px-4 py-2">{data.efficiency}</td>
+        <>
+          <section className="mt-6 border-b pb-6" data-pdf-section>
+            <h2 className="text-2xl font-semibold mb-4">Löpekonomi</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-4 py-2 text-left">Hastighet (km/h)</th>
+                    <th className="px-4 py-2 text-left">VO₂ (ml/kg/min)</th>
+                    <th className="px-4 py-2 text-left">Ekonomi (ml/kg/km)</th>
+                    <th className="px-4 py-2 text-left">Bedömning</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {calculations.economyData.map((data, index) => (
+                    <tr key={index} className="border-b hover:bg-gray-50">
+                      <td className="px-4 py-2">{data.speed}</td>
+                      <td className="px-4 py-2">{data.vo2}</td>
+                      <td className="px-4 py-2">{data.economy}</td>
+                      <td className="px-4 py-2">{data.efficiency}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
 
           {/* Running Economy Explanation */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <h4 className="font-semibold text-sm mb-3 flex items-center">
-              <svg className="w-4 h-4 mr-2 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              Om löpekonomi
-            </h4>
-            <div className="text-sm text-gray-700 space-y-2">
-              <p>
-                <strong>Löpekonomi</strong> mäter hur effektivt din kropp använder syre vid löpning.
-                Värdet anges i ml O₂ per kg kroppsvikt per kilometer (ml/kg/km) och visar hur mycket
-                syre som krävs för att springa en kilometer i given hastighet.
-              </p>
-              <p>
-                <strong>Lägre värde = bättre ekonomi.</strong> En löpare med god ekonomi förbrukar
-                mindre energi vid samma hastighet jämfört med en löpare med sämre ekonomi.
-              </p>
-              <div className="mt-3 grid grid-cols-2 gap-4">
-                <div>
-                  <p className="font-medium text-gray-800 mb-1">Referensvärden:</p>
-                  <ul className="text-xs space-y-1 text-gray-600">
-                    <li>• <span className="text-green-600 font-medium">Utmärkt:</span> &lt;180 ml/kg/km</li>
-                    <li>• <span className="text-green-600 font-medium">Mycket god:</span> 180-195 ml/kg/km</li>
-                    <li>• <span className="text-blue-600 font-medium">God:</span> 195-210 ml/kg/km</li>
-                    <li>• <span className="text-yellow-600 font-medium">Acceptabel:</span> 210-230 ml/kg/km</li>
-                    <li>• <span className="text-red-600 font-medium">Förbättringspotential:</span> &gt;230 ml/kg/km</li>
-                  </ul>
+          <section className="mt-6 border-b pb-6" data-pdf-section>
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <h4 className="font-semibold text-sm mb-3 flex items-center">
+                <svg className="w-4 h-4 mr-2 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                Om löpekonomi
+              </h4>
+              <div className="text-sm text-gray-700 space-y-2">
+                <p>
+                  <strong>Löpekonomi</strong> mäter hur effektivt din kropp använder syre vid löpning.
+                  Värdet anges i ml O₂ per kg kroppsvikt per kilometer (ml/kg/km) och visar hur mycket
+                  syre som krävs för att springa en kilometer i given hastighet.
+                </p>
+                <p>
+                  <strong>Lägre värde = bättre ekonomi.</strong> En löpare med god ekonomi förbrukar
+                  mindre energi vid samma hastighet jämfört med en löpare med sämre ekonomi.
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="font-medium text-gray-800 mb-1">Referensvärden:</p>
+                    <ul className="text-xs space-y-1 text-gray-600">
+                      <li>• <span className="text-green-600 font-medium">Utmärkt:</span> &lt;180 ml/kg/km</li>
+                      <li>• <span className="text-green-600 font-medium">Mycket god:</span> 180-195 ml/kg/km</li>
+                      <li>• <span className="text-blue-600 font-medium">God:</span> 195-210 ml/kg/km</li>
+                      <li>• <span className="text-yellow-600 font-medium">Acceptabel:</span> 210-230 ml/kg/km</li>
+                      <li>• <span className="text-red-600 font-medium">Förbättringspotential:</span> &gt;230 ml/kg/km</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-800 mb-1">Påverkande faktorer:</p>
+                    <ul className="text-xs space-y-1 text-gray-600">
+                      <li>• Löpteknik och steglängd</li>
+                      <li>• Muskelstyvhet och elasticitet</li>
+                      <li>• Kroppsvikt och sammansättning</li>
+                      <li>• Skoval och underlag</li>
+                      <li>• Träningshistorik och anpassning</li>
+                    </ul>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-gray-800 mb-1">Påverkande faktorer:</p>
-                  <ul className="text-xs space-y-1 text-gray-600">
-                    <li>• Löpteknik och steglängd</li>
-                    <li>• Muskelstyvhet och elasticitet</li>
-                    <li>• Kroppsvikt och sammansättning</li>
-                    <li>• Skoval och underlag</li>
-                    <li>• Träningshistorik och anpassning</li>
-                  </ul>
-                </div>
+                <p className="text-xs text-gray-500 mt-3 italic">
+                  Löpekonomi kan förbättras genom plyometrisk träning, styrketräning för ben och core,
+                  samt teknisk löpträning med fokus på kadensoptimering.
+                </p>
               </div>
-              <p className="text-xs text-gray-500 mt-3 italic">
-                Löpekonomi kan förbättras genom plyometrisk träning, styrketräning för ben och core,
-                samt teknisk löpträning med fokus på kadensoptimering.
-              </p>
             </div>
-          </div>
-        </section>
+          </section>
+        </>
       )}
 
       {/* Pace Zones (Running only) */}
@@ -633,7 +642,7 @@ export function ReportTemplate({
 
       {/* Recommended Next Test Date */}
       {test.recommendedNextTestDate && (
-        <section className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <section className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg" data-pdf-section>
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -649,7 +658,7 @@ export function ReportTemplate({
       )}
 
       {/* Footer */}
-      <footer className="mt-8 pt-6 border-t text-sm text-gray-600">
+      <footer className="mt-8 pt-6 border-t text-sm text-gray-600" data-pdf-section>
         <p>Rapport genererad: {format(new Date(), 'PPP', { locale: sv })}</p>
         <p className="mt-2">© {new Date().getFullYear()} {organization}</p>
       </footer>

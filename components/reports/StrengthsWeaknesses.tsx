@@ -11,7 +11,7 @@ export function StrengthsWeaknesses({ strengths, weaknesses }: StrengthsWeakness
   }
 
   return (
-    <section className="mt-6 border-b pb-6 print:break-inside-avoid">
+    <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
       <h2 className="text-2xl font-semibold mb-4">Sammanfattad bedomning</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

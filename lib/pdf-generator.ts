@@ -65,6 +65,39 @@ export async function generatePDFFromElement(
             table.style.width = '100%'
           }
         })
+
+        // Smart page break: inject spacers to prevent sections from being split
+        // A4 usable height = 277mm, content width = 800px → 1 content px = 190/800 = 0.2375mm
+        // Page height in content px = 277 / 0.2375 ≈ 1166px
+        const pageHeightPx = Math.floor(277 / (190 / a4Width))
+        const sections = clonedElement.querySelectorAll('[data-pdf-section]')
+        const containerTop = clonedElement.offsetTop
+        let cumulativeOffset = 0
+
+        sections.forEach((section) => {
+          if (!(section instanceof HTMLElement)) return
+
+          const adjustedTop = section.offsetTop - containerTop + cumulativeOffset
+          const sectionHeight = section.offsetHeight
+          const adjustedBottom = adjustedTop + sectionHeight
+
+          // Find the next page boundary after the section's top
+          const pageEnd = Math.ceil((adjustedTop + 1) / pageHeightPx) * pageHeightPx
+
+          // Check if section spans a page boundary
+          if (adjustedBottom > pageEnd && adjustedTop < pageEnd) {
+            // Only insert spacer if the section fits on a single page (< 85% of page height)
+            if (sectionHeight < pageHeightPx * 0.85) {
+              const spacerHeight = pageEnd - adjustedTop + 8 // 8px extra padding
+              const spacer = clonedDoc.createElement('div')
+              spacer.style.height = `${spacerHeight}px`
+              spacer.style.width = '100%'
+              spacer.style.flexShrink = '0'
+              section.parentElement!.insertBefore(spacer, section)
+              cumulativeOffset += spacerHeight
+            }
+          }
+        })
       }
     },
   })

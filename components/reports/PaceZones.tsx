@@ -12,7 +12,7 @@ export function PaceZones({ paceZones }: PaceZonesProps) {
   }
 
   return (
-    <section className="mt-6 border-b pb-6 print:break-inside-avoid">
+    <section className="mt-6 border-b pb-6 print:break-inside-avoid" data-pdf-section>
       <h2 className="text-2xl font-semibold mb-4">Praktiska Tempozoner</h2>
 
       <p className="text-sm text-gray-600 mb-4">
