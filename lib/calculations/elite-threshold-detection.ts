@@ -221,17 +221,16 @@ export function classifyAthleteProfile(data: LactateDataPoint[]): AthleteProfile
   // Method 2: Low baseline with high lactate range (strong indicator of L-shaped curve)
   // If baseline is low (<1.5) and lactate range is high (>3.5), this indicates elite flat
   // Even with a slightly higher slope, this profile needs Bishop Modified D-max
-  const highRangeElite = baselineAvg < 1.5 && lactateRange > 3.5;
+  // Require at least 6 data points to prevent false positives from small datasets
+  const highRangeElite = baselineAvg < 1.5 && lactateRange > 3.5 && data.length >= 6;
 
   // Method 3: Very low baseline with moderate slope
   // A baseline < 1.2 is extremely low - almost certainly elite even with some slope
-  const veryLowBaseline = baselineAvg < 1.2 && Math.abs(baselineSlope) < 0.15;
+  // Tightened: slope < 0.10 (was 0.15). A slope of 0.15 = 1.5 mmol/L rise over
+  // 10 km/h, which is not truly "flat" and causes misclassification.
+  const veryLowBaseline = baselineAvg < 1.2 && Math.abs(baselineSlope) < 0.10;
 
-  // Method 4: Relaxed slope criteria for low baselines
-  // Slope of 0.08 per km/h (0.8 mmol/L over 10 km/h) is still quite flat
-  const relaxedElite = baselineAvg < 1.5 && Math.abs(baselineSlope) < 0.08;
-
-  if (traditionalElite || highRangeElite || veryLowBaseline || relaxedElite) {
+  if (traditionalElite || highRangeElite || veryLowBaseline) {
     type = 'ELITE_FLAT';
   } else if (baselineAvg < 2.5 && Math.abs(baselineSlope) < 0.15) {
     type = 'STANDARD';
@@ -245,7 +244,7 @@ export function classifyAthleteProfile(data: LactateDataPoint[]): AthleteProfile
     baselineSlope,
     maxLactate,
     lactateRange,
-    criteria: { traditionalElite, highRangeElite, veryLowBaseline, relaxedElite }
+    criteria: { traditionalElite, highRangeElite, veryLowBaseline }
   });
 
   return { type, baselineAvg, baselineSlope, maxLactate, lactateRange };
@@ -409,13 +408,34 @@ export function calculateBaselinePlusThreshold(
   // Trigger at first point where Lac_i > threshold AND Lac_{i+1} > threshold
   for (let i = 0; i < data.length - 1; i++) {
     if (data[i].lactate > threshold && data[i + 1].lactate > threshold) {
-      // Found it! But we want the point just before the rise (more accurate LT1)
-      const resultIndex = Math.max(0, i - 1);
+      // The crossing is between data[i-1] (below threshold) and data[i] (above).
+      // Interpolate to find the exact intensity where lactate = threshold.
+      const belowIndex = Math.max(0, i - 1);
+      const aboveIndex = i;
+      const below = data[belowIndex];
+      const above = data[aboveIndex];
+
+      let resultIntensity: number;
+      let resultLactate: number;
+      let resultHeartRate: number;
+
+      if (below.lactate < threshold && above.lactate > threshold && above.lactate !== below.lactate) {
+        // Interpolate between below and above at the threshold lactate
+        const ratio = (threshold - below.lactate) / (above.lactate - below.lactate);
+        resultIntensity = below.intensity + ratio * (above.intensity - below.intensity);
+        resultLactate = threshold;
+        resultHeartRate = below.heartRate + ratio * (above.heartRate - below.heartRate);
+      } else {
+        // Edge case: below is already at or above threshold (i=0), use the raw point
+        resultIntensity = below.intensity;
+        resultLactate = below.lactate;
+        resultHeartRate = below.heartRate;
+      }
 
       return {
-        intensity: data[resultIndex].intensity,
-        lactate: data[resultIndex].lactate,
-        heartRate: data[resultIndex].heartRate,
+        intensity: resultIntensity,
+        lactate: resultLactate,
+        heartRate: resultHeartRate,
         method: `BASELINE_PLUS_${delta}`,
         confidence: profile.type === 'ELITE_FLAT' ? 'MEDIUM' : 'HIGH',
         profileType: profile.type
@@ -493,6 +513,25 @@ function interpolateHeartRate(data: LactateDataPoint[], targetIntensity: number)
 }
 
 /**
+ * Interpolate lactate at a given intensity from the data curve.
+ * Uses linear interpolation between the two surrounding data points.
+ */
+function interpolateLactateAtIntensity(data: LactateDataPoint[], targetIntensity: number): number {
+  // Clamp to data range
+  if (targetIntensity <= data[0].intensity) return data[0].lactate;
+  if (targetIntensity >= data[data.length - 1].intensity) return data[data.length - 1].lactate;
+
+  for (let i = 0; i < data.length - 1; i++) {
+    if (data[i].intensity <= targetIntensity && data[i + 1].intensity >= targetIntensity) {
+      const ratio = (targetIntensity - data[i].intensity) / (data[i + 1].intensity - data[i].intensity);
+      return data[i].lactate + ratio * (data[i + 1].lactate - data[i].lactate);
+    }
+  }
+
+  return data[data.length - 1].lactate;
+}
+
+/**
  * Main Ensemble Detection Function
  *
  * Combines multiple methods and uses heuristic logic to select best result.
@@ -500,7 +539,7 @@ function interpolateHeartRate(data: LactateDataPoint[], targetIntensity: number)
  * For Elite_Flat profiles:
  * - Prioritize Log-Log result
  * - Validate against Baseline+0.3
- * - If divergence > ±1.5 units, fallback to conservative estimate
+ * - If divergence > ±1.5 units, use weighted average (70% Log-Log, 30% Baseline Plus)
  */
 export function detectEliteThresholds(data: LactateDataPoint[]): EnsembleResult {
   // Pre-process data with metadata for baseline correction reporting
@@ -532,12 +571,27 @@ export function detectEliteThresholds(data: LactateDataPoint[]): EnsembleResult 
         selectedLT1 = logLogResult;
         logger.debug('Ensemble methods agree, using Log-Log result', { divergence });
       } else {
-        // Divergence - use more conservative (lower intensity) as LT1
-        selectedLT1 = logLogResult.intensity < baselinePlusResult.intensity
-          ? logLogResult
-          : baselinePlusResult;
-        selectedLT1.confidence = 'MEDIUM';
-        logger.debug('Ensemble methods diverge, using conservative estimate', { divergence });
+        // Divergence - use weighted average (70% Log-Log, 30% Baseline Plus)
+        // Log-Log detects the actual kinetic breakpoint so it gets more weight,
+        // but Baseline Plus constrains against noise.
+        const weightedIntensity = 0.7 * logLogResult.intensity + 0.3 * baselinePlusResult.intensity;
+        const weightedLactate = interpolateLactateAtIntensity(processedData, weightedIntensity);
+        const weightedHeartRate = interpolateHeartRate(processedData, weightedIntensity);
+
+        selectedLT1 = {
+          intensity: weightedIntensity,
+          lactate: weightedLactate,
+          heartRate: weightedHeartRate,
+          method: 'ENSEMBLE_WEIGHTED',
+          confidence: 'MEDIUM',
+          profileType: profile.type
+        };
+        logger.debug('Ensemble methods diverge, using weighted average (70/30)', {
+          divergence,
+          logLogIntensity: logLogResult.intensity,
+          baselinePlusIntensity: baselinePlusResult.intensity,
+          weightedIntensity
+        });
       }
     } else {
       selectedLT1 = logLogResult || baselinePlusResult;

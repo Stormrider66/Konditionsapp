@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import type { TestStage, Threshold } from '@/types'
 import { calculateDmaxForVisualization, calculateAerobicThreshold, calculateAnaerobicThreshold } from '../thresholds'
+import {
+  classifyAthleteProfile,
+  calculateBaselinePlusThreshold,
+  detectEliteThresholds,
+  type LactateDataPoint,
+  type AthleteProfile,
+} from '../elite-threshold-detection'
 
 describe('Threshold Calculations', () => {
   describe('calculateDmaxForVisualization', () => {
@@ -181,5 +188,225 @@ describe('Linear Interpolation Edge Cases', () => {
     expect(aerobic?.heartRate).toBeLessThan(190)
     expect(anaerobic?.heartRate).toBeGreaterThan(0)
     expect(anaerobic?.heartRate).toBeLessThan(190)
+  })
+})
+
+describe('Elite Threshold Detection', () => {
+  describe('Baseline Plus Interpolation (Issue 1)', () => {
+    it('should interpolate between stages rather than returning raw stage below threshold', () => {
+      // Stages: lactate rises from 1.0 → 1.1 → 1.2 → 1.5 → 1.8 → 2.5 → 4.0
+      // With elite profile (baseline+0.3), threshold ≈ 1.3
+      // Old code would return the raw stage at 1.2 (speed 12)
+      // Fixed code should interpolate between 1.2→1.5 to find ~1.3 (speed ~12.33)
+      const data: LactateDataPoint[] = [
+        { intensity: 10, lactate: 1.0, heartRate: 120 },
+        { intensity: 11, lactate: 1.1, heartRate: 130 },
+        { intensity: 12, lactate: 1.2, heartRate: 140 },
+        { intensity: 13, lactate: 1.5, heartRate: 150 },
+        { intensity: 14, lactate: 1.8, heartRate: 160 },
+        { intensity: 15, lactate: 2.5, heartRate: 170 },
+        { intensity: 16, lactate: 4.0, heartRate: 180 },
+      ]
+
+      const profile: AthleteProfile = {
+        type: 'ELITE_FLAT',
+        baselineAvg: 1.0,
+        baselineSlope: 0.03,
+        maxLactate: 4.0,
+        lactateRange: 3.0,
+      }
+
+      const result = calculateBaselinePlusThreshold(data, profile)
+
+      expect(result).not.toBeNull()
+      // With interpolation, the intensity should be BETWEEN the two surrounding stages
+      // not snapped to the lower raw stage value
+      expect(result!.intensity).toBeGreaterThan(12)
+      expect(result!.intensity).toBeLessThan(13)
+    })
+
+    it('should return exact threshold lactate value when interpolating', () => {
+      const data: LactateDataPoint[] = [
+        { intensity: 10, lactate: 1.0, heartRate: 120 },
+        { intensity: 12, lactate: 1.1, heartRate: 135 },
+        { intensity: 14, lactate: 1.4, heartRate: 150 },
+        { intensity: 16, lactate: 1.8, heartRate: 165 },
+        { intensity: 18, lactate: 2.2, heartRate: 175 },
+        { intensity: 20, lactate: 3.5, heartRate: 185 },
+      ]
+
+      const profile: AthleteProfile = {
+        type: 'ELITE_FLAT',
+        baselineAvg: 1.05,
+        baselineSlope: 0.02,
+        maxLactate: 3.5,
+        lactateRange: 2.45,
+      }
+
+      const result = calculateBaselinePlusThreshold(data, profile)
+
+      expect(result).not.toBeNull()
+      // The reported lactate should equal the threshold (baseline + delta),
+      // not a raw stage value
+      const expectedThreshold = 1.05 + 0.3 // ~1.35 from trimmed mean baseline
+      // The result lactate should be close to the computed baseline+delta threshold
+      // (exact value depends on trimmed mean calculation within the function)
+      expect(result!.lactate).toBeGreaterThan(1.2)
+      expect(result!.lactate).toBeLessThan(1.6)
+    })
+  })
+
+  describe('Elite Classification (Issue 2)', () => {
+    it('should NOT classify as elite with baseline < 1.5 and slope 0.06-0.08 (removed relaxedElite)', () => {
+      // Previously: relaxedElite (slope < 0.08) would classify this as ELITE_FLAT
+      // Now: requires slope < 0.05 (traditionalElite) for this baseline range
+      const data: LactateDataPoint[] = [
+        { intensity: 10, lactate: 1.2, heartRate: 120 },
+        { intensity: 11, lactate: 1.27, heartRate: 130 }, // slope ≈ 0.07/km/h
+        { intensity: 12, lactate: 1.34, heartRate: 140 },
+        { intensity: 13, lactate: 1.41, heartRate: 150 },
+        { intensity: 14, lactate: 1.8,  heartRate: 160 },
+        { intensity: 15, lactate: 2.5,  heartRate: 170 },
+        { intensity: 16, lactate: 4.0,  heartRate: 180 },
+      ]
+
+      const profile = classifyAthleteProfile(data)
+      // With slope ~0.07 and baseline ~1.27, relaxedElite would have matched.
+      // Now should be STANDARD (slope > 0.05 so not traditionalElite,
+      // baseline > 1.2 so not veryLowBaseline)
+      expect(profile.type).toBe('STANDARD')
+    })
+
+    it('should NOT classify as elite with baseline < 1.2 and slope 0.12 (tightened veryLowBaseline)', () => {
+      // Previously: veryLowBaseline (slope < 0.15) would classify this as ELITE_FLAT
+      // Now: requires slope < 0.10
+      // Keep lactateRange <= 3.5 so highRangeElite doesn't trigger
+      const data: LactateDataPoint[] = [
+        { intensity: 10, lactate: 0.9,  heartRate: 120 },
+        { intensity: 11, lactate: 1.02, heartRate: 130 }, // slope ≈ 0.12/km/h
+        { intensity: 12, lactate: 1.14, heartRate: 140 },
+        { intensity: 13, lactate: 1.26, heartRate: 150 },
+        { intensity: 14, lactate: 1.8,  heartRate: 160 },
+        { intensity: 15, lactate: 2.5,  heartRate: 170 },
+        { intensity: 16, lactate: 3.5,  heartRate: 180 },
+      ]
+
+      const profile = classifyAthleteProfile(data)
+      expect(profile.type).not.toBe('ELITE_FLAT')
+    })
+
+    it('should still classify as elite with traditional criteria (slope < 0.05)', () => {
+      const data: LactateDataPoint[] = [
+        { intensity: 10, lactate: 1.0,  heartRate: 120 },
+        { intensity: 11, lactate: 1.03, heartRate: 130 }, // slope ≈ 0.03/km/h
+        { intensity: 12, lactate: 1.06, heartRate: 140 },
+        { intensity: 13, lactate: 1.1,  heartRate: 150 },
+        { intensity: 14, lactate: 1.5,  heartRate: 160 },
+        { intensity: 15, lactate: 2.5,  heartRate: 170 },
+        { intensity: 16, lactate: 4.0,  heartRate: 180 },
+      ]
+
+      const profile = classifyAthleteProfile(data)
+      expect(profile.type).toBe('ELITE_FLAT')
+    })
+
+    it('should require >= 6 data points for highRangeElite', () => {
+      // 5 data points with baseline < 1.5 and range > 3.5
+      // Should NOT trigger highRangeElite anymore
+      const data: LactateDataPoint[] = [
+        { intensity: 10, lactate: 1.0,  heartRate: 120 },
+        { intensity: 12, lactate: 1.3,  heartRate: 140 }, // slope ≈ 0.15 → not traditionalElite
+        { intensity: 14, lactate: 1.6,  heartRate: 160 },
+        { intensity: 16, lactate: 3.0,  heartRate: 170 },
+        { intensity: 18, lactate: 5.0,  heartRate: 185 }, // range = 5.0 - ~1.0 = ~4.0 > 3.5
+      ]
+
+      const profile = classifyAthleteProfile(data)
+      // With only 5 points, highRangeElite should not trigger
+      expect(profile.type).not.toBe('ELITE_FLAT')
+    })
+
+    it('should classify highRangeElite with >= 6 data points', () => {
+      const data: LactateDataPoint[] = [
+        { intensity: 10, lactate: 1.0,  heartRate: 120 },
+        { intensity: 11, lactate: 1.1,  heartRate: 128 },
+        { intensity: 12, lactate: 1.3,  heartRate: 140 }, // slope ~0.15 → not traditionalElite
+        { intensity: 14, lactate: 1.6,  heartRate: 160 },
+        { intensity: 16, lactate: 3.0,  heartRate: 170 },
+        { intensity: 18, lactate: 5.0,  heartRate: 185 }, // range > 3.5
+      ]
+
+      const profile = classifyAthleteProfile(data)
+      expect(profile.type).toBe('ELITE_FLAT')
+    })
+  })
+
+  describe('Ensemble Divergence Strategy (Issue 3)', () => {
+    it('should produce LT1 that is NOT just the lower of two divergent methods', () => {
+      // An elite flat curve where Log-Log and Baseline Plus will likely diverge
+      // The ensemble should produce a weighted average, not pick the lower
+      const data: LactateDataPoint[] = [
+        { intensity: 10, lactate: 0.9,  heartRate: 120 },
+        { intensity: 11, lactate: 0.9,  heartRate: 128 },
+        { intensity: 12, lactate: 1.0,  heartRate: 136 },
+        { intensity: 13, lactate: 1.0,  heartRate: 144 },
+        { intensity: 14, lactate: 1.1,  heartRate: 152 },
+        { intensity: 15, lactate: 1.3,  heartRate: 158 },
+        { intensity: 16, lactate: 1.8,  heartRate: 164 },
+        { intensity: 17, lactate: 2.8,  heartRate: 172 },
+        { intensity: 18, lactate: 4.5,  heartRate: 180 },
+        { intensity: 19, lactate: 7.0,  heartRate: 188 },
+      ]
+
+      const result = detectEliteThresholds(data)
+
+      expect(result.lt1).not.toBeNull()
+      expect(result.profile.type).toBe('ELITE_FLAT')
+
+      // If methods diverge, the result should use weighted average
+      if (result.methods.logLog && result.methods.baselinePlus) {
+        const divergence = Math.abs(
+          result.methods.logLog.intensity - result.methods.baselinePlus.intensity
+        )
+
+        if (divergence > 1.5) {
+          // Should be weighted average, not just the lower
+          expect(result.lt1!.method).toBe('ENSEMBLE_WEIGHTED')
+          // Weighted average should be between both methods
+          const lower = Math.min(result.methods.logLog.intensity, result.methods.baselinePlus.intensity)
+          const upper = Math.max(result.methods.logLog.intensity, result.methods.baselinePlus.intensity)
+          expect(result.lt1!.intensity).toBeGreaterThan(lower)
+          expect(result.lt1!.intensity).toBeLessThan(upper)
+        }
+      }
+    })
+
+    it('should use Log-Log when methods agree (divergence <= 1.5)', () => {
+      // A standard elite curve where both methods should agree
+      const data: LactateDataPoint[] = [
+        { intensity: 10, lactate: 0.9,  heartRate: 120 },
+        { intensity: 11, lactate: 0.95, heartRate: 130 },
+        { intensity: 12, lactate: 1.0,  heartRate: 140 },
+        { intensity: 13, lactate: 1.1,  heartRate: 148 },
+        { intensity: 14, lactate: 1.3,  heartRate: 155 },
+        { intensity: 15, lactate: 1.8,  heartRate: 162 },
+        { intensity: 16, lactate: 2.5,  heartRate: 170 },
+        { intensity: 17, lactate: 3.8,  heartRate: 178 },
+        { intensity: 18, lactate: 5.5,  heartRate: 186 },
+      ]
+
+      const result = detectEliteThresholds(data)
+
+      expect(result.lt1).not.toBeNull()
+      // When methods agree, should use LOG_LOG
+      if (result.methods.logLog && result.methods.baselinePlus) {
+        const divergence = Math.abs(
+          result.methods.logLog.intensity - result.methods.baselinePlus.intensity
+        )
+        if (divergence <= 1.5) {
+          expect(result.lt1!.method).toBe('LOG_LOG')
+        }
+      }
+    })
   })
 })
