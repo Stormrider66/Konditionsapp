@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -29,6 +30,7 @@ interface DeficitSurplusTrackerProps {
   currentWeight?: number
   targetWeight?: number
   className?: string
+  variant?: 'default' | 'glass'
 }
 
 // 1 kg of body weight ≈ 7700 kcal
@@ -41,7 +43,9 @@ export function DeficitSurplusTracker({
   currentWeight,
   targetWeight,
   className,
+  variant = 'default',
 }: DeficitSurplusTrackerProps) {
+  const isGlass = variant === 'glass'
   const analysis = useMemo(() => {
     if (dailyData.length === 0) return null
 
@@ -92,21 +96,29 @@ export function DeficitSurplusTracker({
     }
   }, [dailyData, targetWeeklyChange, currentWeight, targetWeight])
 
+  const Wrapper = isGlass ? GlassCard : Card
+  const Header = isGlass ? GlassCardHeader : CardHeader
+  const Title = isGlass ? GlassCardTitle : CardTitle
+  const Description = isGlass ? GlassCardDescription : CardDescription
+  const Content = isGlass ? GlassCardContent : CardContent
+  const mutedText = isGlass ? 'text-slate-400' : 'text-muted-foreground'
+  const mainText = isGlass ? 'text-white' : ''
+
   if (!analysis) {
     return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <Wrapper className={className}>
+        <Header>
+          <Title className="flex items-center gap-2">
             <Scale className="h-5 w-5" />
             Kaloribalans
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
+          </Title>
+        </Header>
+        <Content>
+          <p className={mutedText}>
             Börja logga måltider för att spåra din kaloribalans.
           </p>
-        </CardContent>
-      </Card>
+        </Content>
+      </Wrapper>
     )
   }
 
@@ -114,17 +126,17 @@ export function DeficitSurplusTracker({
   const goalLabel = goal === 'deficit' ? 'Underskott' : goal === 'surplus' ? 'Överskott' : 'Underhåll'
 
   return (
-    <Card className={className}>
-      <CardHeader>
+    <Wrapper className={className}>
+      <Header>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
+            <Title className="flex items-center gap-2">
               <Scale className="h-5 w-5" />
               Kaloribalans
-            </CardTitle>
-            <CardDescription>
+            </Title>
+            <Description>
               Mål: {goalLabel} ({targetWeeklyChange > 0 ? '+' : ''}{targetWeeklyChange} kg/vecka)
-            </CardDescription>
+            </Description>
           </div>
           <Badge variant={isOnTrack ? 'default' : 'secondary'}>
             {isOnTrack ? (
@@ -135,8 +147,8 @@ export function DeficitSurplusTracker({
             {isOnTrack ? 'På rätt spår' : 'Behöver justering'}
           </Badge>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
+      </Header>
+      <Content className="space-y-6">
         {/* Daily Balance Gauge */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
@@ -269,7 +281,7 @@ export function DeficitSurplusTracker({
             </>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </Content>
+    </Wrapper>
   )
 }

@@ -87,11 +87,31 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Calculate daily aggregates for date range queries
+    let dailyAggregates = null
+    if (startDate && endDate) {
+      const grouped = new Map<string, { calories: number; proteinGrams: number; carbsGrams: number; fatGrams: number; mealCount: number }>()
+      for (const meal of meals) {
+        const dateKey = meal.date.toISOString().split('T')[0]
+        const existing = grouped.get(dateKey) ?? { calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0, mealCount: 0 }
+        existing.calories += meal.calories ?? 0
+        existing.proteinGrams += meal.proteinGrams ?? 0
+        existing.carbsGrams += meal.carbsGrams ?? 0
+        existing.fatGrams += meal.fatGrams ?? 0
+        existing.mealCount += 1
+        grouped.set(dateKey, existing)
+      }
+      dailyAggregates = Array.from(grouped.entries())
+        .map(([date, data]) => ({ date, ...data }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         meals,
         dailyTotals,
+        dailyAggregates,
       },
     })
   } catch (error) {

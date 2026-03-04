@@ -14,8 +14,16 @@ import { Flame, Beef, Wheat, Droplets, CircleDot } from 'lucide-react'
 import type { DailyMacroTargets } from '@/lib/nutrition-timing'
 import { Skeleton } from '@/components/ui/skeleton'
 
+interface ConsumedMacros {
+  calories: number
+  proteinGrams: number
+  carbsGrams: number
+  fatGrams: number
+}
+
 interface NutritionTargetsProps {
   targets: DailyMacroTargets
+  consumed?: ConsumedMacros
   isRestDay?: boolean
   compact?: boolean
   variant?: 'default' | 'glass'
@@ -48,7 +56,40 @@ function MacroItem({ label, value, unit, icon, color, bgColor, isGlass }: MacroI
   )
 }
 
-export function NutritionTargets({ targets, isRestDay = false, compact = false, variant = 'default' }: NutritionTargetsProps) {
+function MacroProgressItem({ label, consumed, target, unit, icon, color, progressColor, isGlass }: {
+  label: string
+  consumed: number
+  target: number
+  unit: string
+  icon: React.ReactNode
+  color: string
+  progressColor: string
+  isGlass?: boolean
+}) {
+  const pct = target > 0 ? Math.min(100, Math.round((consumed / target) * 100)) : 0
+  const remaining = Math.max(0, target - consumed)
+  const reached = consumed >= target
+
+  return (
+    <div className={`space-y-2 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={color}>{icon}</div>
+          <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>{label}</span>
+        </div>
+        <span className={`text-xs font-medium ${isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500'}`}>
+          {Math.round(consumed)} / {target} {unit}
+        </span>
+      </div>
+      <Progress value={pct} className={`h-2 ${progressColor}`} />
+      <p className={`text-xs ${reached ? 'text-green-600 dark:text-green-400' : isGlass ? 'text-slate-500 dark:text-slate-400' : 'text-slate-500'}`}>
+        {reached ? 'Mål nått!' : `${Math.round(remaining)} ${unit} kvar`}
+      </p>
+    </div>
+  )
+}
+
+export function NutritionTargets({ targets, consumed, isRestDay = false, compact = false, variant = 'default' }: NutritionTargetsProps) {
   const isGlass = variant === 'glass'
 
   // Calculate macro percentages (for visualization)
@@ -167,6 +208,8 @@ export function NutritionTargets({ targets, isRestDay = false, compact = false, 
   }
 
   // Full view logic
+  const caloriePct = consumed ? Math.min(100, Math.round((consumed.calories / targets.caloriesKcal) * 100)) : 0
+
   const content = (
     <>
       {/* Calories - prominent display */}
@@ -174,12 +217,23 @@ export function NutritionTargets({ targets, isRestDay = false, compact = false, 
         <div className={`p-2.5 rounded-full ${isGlass ? 'bg-orange-100 dark:bg-orange-500/20' : 'bg-orange-100'}`}>
           <Flame className={`h-5 w-5 ${isGlass ? 'text-orange-600 dark:text-orange-400' : 'text-orange-600'}`} />
         </div>
-        <div>
-          <p className={`text-xs ${isGlass ? 'text-orange-700 dark:text-orange-300' : 'text-orange-700'}`}>Totalt energibehov</p>
+        <div className="flex-1">
+          <p className={`text-xs ${isGlass ? 'text-orange-700 dark:text-orange-300' : 'text-orange-700'}`}>
+            {consumed ? 'Kalorier idag' : 'Totalt energibehov'}
+          </p>
           <p className={`text-2xl font-bold ${isGlass ? 'text-orange-900 dark:text-orange-100' : 'text-orange-900'}`}>
+            {consumed ? `${consumed.calories.toLocaleString('sv-SE')} / ` : ''}
             {targets.caloriesKcal.toLocaleString('sv-SE')}
             <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-orange-700 dark:text-orange-300' : ''}`}>kcal</span>
           </p>
+          {consumed && (
+            <div className="mt-2">
+              <Progress value={caloriePct} className="h-2" />
+              <p className={`text-xs mt-1 ${consumed.calories >= targets.caloriesKcal ? 'text-green-600 dark:text-green-400' : isGlass ? 'text-orange-700 dark:text-orange-300' : 'text-orange-700'}`}>
+                {consumed.calories >= targets.caloriesKcal ? 'Mål nått!' : `${Math.round(targets.caloriesKcal - consumed.calories)} kcal kvar`}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -219,41 +273,76 @@ export function NutritionTargets({ targets, isRestDay = false, compact = false, 
         </div>
       </div>
 
-      {/* Individual macros */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-        <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
-          <div className="flex items-center gap-2">
-            <Wheat className="h-4 w-4 text-amber-500" />
-            <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Kolhydrater</span>
-          </div>
-          <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
-            {targets.carbsG}
-            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-600 dark:text-slate-500' : 'text-slate-500'}`}>g</span>
-          </p>
+      {/* Individual macros - progress bars when consumed available */}
+      {consumed ? (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <MacroProgressItem
+            label="Kolhydrater"
+            consumed={consumed.carbsGrams}
+            target={targets.carbsG}
+            unit="g"
+            icon={<Wheat className="h-4 w-4" />}
+            color="text-amber-500"
+            progressColor="[&>div]:bg-amber-500"
+            isGlass={isGlass}
+          />
+          <MacroProgressItem
+            label="Protein"
+            consumed={consumed.proteinGrams}
+            target={targets.proteinG}
+            unit="g"
+            icon={<Beef className="h-4 w-4" />}
+            color="text-red-500"
+            progressColor="[&>div]:bg-red-500"
+            isGlass={isGlass}
+          />
+          <MacroProgressItem
+            label="Fett"
+            consumed={consumed.fatGrams}
+            target={targets.fatG}
+            unit="g"
+            icon={<CircleDot className="h-4 w-4" />}
+            color="text-emerald-500"
+            progressColor="[&>div]:bg-emerald-500"
+            isGlass={isGlass}
+          />
         </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
+            <div className="flex items-center gap-2">
+              <Wheat className="h-4 w-4 text-amber-500" />
+              <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Kolhydrater</span>
+            </div>
+            <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
+              {targets.carbsG}
+              <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-600 dark:text-slate-500' : 'text-slate-500'}`}>g</span>
+            </p>
+          </div>
 
-        <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
-          <div className="flex items-center gap-2">
-            <Beef className="h-4 w-4 text-red-500" />
-            <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Protein</span>
+          <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
+            <div className="flex items-center gap-2">
+              <Beef className="h-4 w-4 text-red-500" />
+              <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Protein</span>
+            </div>
+            <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
+              {targets.proteinG}
+              <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-600 dark:text-slate-500' : 'text-slate-500'}`}>g</span>
+            </p>
           </div>
-          <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
-            {targets.proteinG}
-            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-600 dark:text-slate-500' : 'text-slate-500'}`}>g</span>
-          </p>
-        </div>
 
-        <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
-          <div className="flex items-center gap-2">
-            <CircleDot className="h-4 w-4 text-emerald-500" />
-            <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Fett</span>
+          <div className={`space-y-1.5 p-3 rounded-lg ${isGlass ? 'bg-slate-100 dark:bg-slate-800/50' : 'bg-slate-50'}`}>
+            <div className="flex items-center gap-2">
+              <CircleDot className="h-4 w-4 text-emerald-500" />
+              <span className={`text-xs ${isGlass ? 'text-slate-600 dark:text-slate-400' : 'text-slate-600'}`}>Fett</span>
+            </div>
+            <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
+              {targets.fatG}
+              <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-600 dark:text-slate-500' : 'text-slate-500'}`}>g</span>
+            </p>
           </div>
-          <p className={`text-xl font-semibold ${isGlass ? 'text-slate-900 dark:text-white' : 'text-slate-900'}`}>
-            {targets.fatG}
-            <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-slate-600 dark:text-slate-500' : 'text-slate-500'}`}>g</span>
-          </p>
         </div>
-      </div>
+      )}
 
       {/* Hydration */}
       <div className={`flex items-center gap-3 p-3 rounded-lg ${isGlass ? 'bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-500/10' : 'bg-blue-50'}`}>

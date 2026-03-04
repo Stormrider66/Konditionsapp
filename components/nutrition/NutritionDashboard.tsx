@@ -18,21 +18,48 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
+import {
   Utensils,
   Settings,
   RefreshCw,
   AlertCircle,
   Calendar,
   Sparkles,
+  Camera,
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { NutritionTargets, NutritionTargetsSkeleton } from './NutritionTargets'
+import { NutritionTrendChart } from './NutritionTrendChart'
 import { WorkoutNutritionCard, WorkoutNutritionCardSkeleton } from './WorkoutNutritionCard'
 import { NutritionTipCard } from './NutritionTipCard'
+import { FoodPhotoScanner } from './FoodPhotoScanner'
+import { NutritionScore } from '@/components/athlete/nutrition/NutritionScore'
+import { DeficitSurplusTracker } from '@/components/athlete/nutrition/DeficitSurplusTracker'
 import type { DailyNutritionGuidance, NutritionTip } from '@/lib/nutrition-timing'
+
+interface DailyAggregate {
+  date: string
+  calories: number
+  proteinGrams: number
+  carbsGrams: number
+  fatGrams: number
+  mealCount: number
+}
+
+interface NutritionGoal {
+  goalType: 'WEIGHT_LOSS' | 'WEIGHT_GAIN' | 'MAINTAIN' | 'BODY_RECOMP'
+  targetWeightKg?: number | null
+  weeklyChangeKg?: number | null
+}
 
 interface NutritionDashboardProps {
   clientId: string
@@ -41,19 +68,43 @@ interface NutritionDashboardProps {
 export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
   const basePath = useBasePath()
   const [guidance, setGuidance] = useState<DailyNutritionGuidance | null>(null)
+  const [dailyHistory, setDailyHistory] = useState<DailyAggregate[]>([])
+  const [nutritionGoal, setNutritionGoal] = useState<NutritionGoal | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [scannerOpen, setScannerOpen] = useState(false)
 
-  const fetchGuidance = async () => {
+  const fetchAllData = async () => {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/nutrition/guidance')
-      if (!response.ok) {
+      const today = new Date()
+      const fourteenDaysAgo = new Date(today)
+      fourteenDaysAgo.setDate(today.getDate() - 13)
+      const startDate = fourteenDaysAgo.toISOString().split('T')[0]
+      const endDate = today.toISOString().split('T')[0]
+
+      const [guidanceRes, mealsRes, goalsRes] = await Promise.all([
+        fetch('/api/nutrition/guidance'),
+        fetch(`/api/meals?startDate=${startDate}&endDate=${endDate}`),
+        fetch('/api/nutrition/goals'),
+      ])
+
+      if (!guidanceRes.ok) {
         throw new Error('Kunde inte hämta kostråd')
       }
-      const data = await response.json()
-      setGuidance(data.guidance)
+      const guidanceData = await guidanceRes.json()
+      setGuidance(guidanceData.guidance)
+
+      if (mealsRes.ok) {
+        const mealsData = await mealsRes.json()
+        setDailyHistory(mealsData.data?.dailyAggregates ?? [])
+      }
+
+      if (goalsRes.ok) {
+        const goalsData = await goalsRes.json()
+        setNutritionGoal(goalsData.goal ?? null)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ett fel uppstod')
     } finally {
@@ -62,7 +113,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
   }
 
   useEffect(() => {
-    fetchGuidance()
+    fetchAllData()
   }, [clientId])
 
   if (isLoading) {
@@ -76,7 +127,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           <div className="flex flex-col items-center justify-center text-center space-y-3">
             <AlertCircle className="h-10 w-10 text-red-400" />
             <p className="text-red-200">{error}</p>
-            <Button variant="outline" onClick={fetchGuidance} className="gap-2 border-red-500/30 hover:bg-red-500/20 text-red-200">
+            <Button variant="outline" onClick={fetchAllData} className="gap-2 border-red-500/30 hover:bg-red-500/20 text-red-200">
               <RefreshCw className="h-4 w-4" />
               Försök igen
             </Button>
@@ -110,6 +161,27 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
 
   const formattedDate = format(new Date(guidance.date), 'EEEE d MMMM', { locale: sv })
 
+  // Derive today's consumed totals from dailyHistory
+  const todayStr = new Date().toISOString().split('T')[0]
+  const todayData = dailyHistory.find(d => d.date === todayStr)
+  const todayConsumed = todayData
+    ? { calories: todayData.calories, proteinGrams: todayData.proteinGrams, carbsGrams: todayData.carbsGrams, fatGrams: todayData.fatGrams }
+    : undefined
+
+  // Macro goals from guidance targets
+  const macroGoals = {
+    calories: guidance.targets.caloriesKcal,
+    proteinGrams: guidance.targets.proteinG,
+    carbsGrams: guidance.targets.carbsG,
+    fatGrams: guidance.targets.fatG,
+  }
+
+  // Map goalType to deficit/surplus/maintenance
+  const goalMapping: 'deficit' | 'surplus' | 'maintenance' =
+    nutritionGoal?.goalType === 'WEIGHT_LOSS' ? 'deficit'
+    : nutritionGoal?.goalType === 'WEIGHT_GAIN' ? 'surplus'
+    : 'maintenance'
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -123,7 +195,16 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={fetchGuidance}
+            onClick={() => setScannerOpen(true)}
+            className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
+            title="Skanna måltid"
+          >
+            <Camera className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={fetchAllData}
             className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
             title="Uppdatera"
           >
@@ -160,12 +241,44 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
 
       {/* Main grid layout */}
       <div className="grid grid-cols-1 gap-4">
-        {/* Targets */}
+        {/* Targets with consumed progress */}
         <NutritionTargets
           targets={guidance.targets}
+          consumed={todayConsumed}
           isRestDay={guidance.isRestDay}
           variant="glass"
         />
+
+        {/* Trend chart - only when there's logged data */}
+        {dailyHistory.length > 0 && (
+          <NutritionTrendChart
+            dailyData={dailyHistory}
+            goals={macroGoals}
+            variant="glass"
+          />
+        )}
+
+        {/* Score + Deficit/Surplus side by side - only when there's logged data */}
+        {dailyHistory.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <NutritionScore
+              dailyData={dailyHistory}
+              goals={macroGoals}
+              variant="glass"
+            />
+            <DeficitSurplusTracker
+              dailyData={dailyHistory.map(d => ({
+                date: d.date,
+                calories: d.calories,
+                tdee: guidance.targets.caloriesKcal,
+              }))}
+              goal={goalMapping}
+              targetWeeklyChange={nutritionGoal?.weeklyChangeKg ?? 0}
+              targetWeight={nutritionGoal?.targetWeightKg ?? undefined}
+              variant="glass"
+            />
+          </div>
+        )}
 
         {/* Meal structure if available */}
         {guidance.mealSuggestions && (
@@ -275,6 +388,26 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           </div>
         )}
       </div>
+
+      {/* Food Photo Scanner Sheet */}
+      <Sheet open={scannerOpen} onOpenChange={setScannerOpen}>
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto bg-slate-950 border-white/10">
+          <SheetHeader>
+            <SheetTitle className="text-white">Skanna måltid</SheetTitle>
+            <SheetDescription className="text-slate-400">
+              Ta en bild av din mat för att automatiskt beräkna kalorier och makros
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            <FoodPhotoScanner
+              onMealSaved={() => {
+                fetchAllData()
+              }}
+              onClose={() => setScannerOpen(false)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

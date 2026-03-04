@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Progress } from '@/components/ui/progress'
 import {
   Trophy,
@@ -34,6 +35,7 @@ interface NutritionScoreProps {
   dailyData: DailyNutritionData[]
   goals: NutritionGoals
   className?: string
+  variant?: 'default' | 'glass'
 }
 
 interface ScoreBreakdown {
@@ -110,7 +112,8 @@ function getScoreGrade(score: number): { label: string; color: string; emoji: st
   return { label: 'Fokusera mer', color: 'text-red-500', emoji: '🎯' }
 }
 
-export function NutritionScore({ dailyData, goals, className }: NutritionScoreProps) {
+export function NutritionScore({ dailyData, goals, className, variant = 'default' }: NutritionScoreProps) {
+  const isGlass = variant === 'glass'
   const analysis = useMemo(() => {
     if (dailyData.length === 0) {
       return null
@@ -146,49 +149,62 @@ export function NutritionScore({ dailyData, goals, className }: NutritionScorePr
   }, [dailyData, goals])
 
   if (!analysis) {
+    const EmptyCard = isGlass ? GlassCard : Card
+    const EmptyHeader = isGlass ? GlassCardHeader : CardHeader
+    const EmptyTitle = isGlass ? GlassCardTitle : CardTitle
+    const EmptyContent = isGlass ? GlassCardContent : CardContent
+
     return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <EmptyCard className={className}>
+        <EmptyHeader>
+          <EmptyTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5" />
             Nutritionspoäng
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
+          </EmptyTitle>
+        </EmptyHeader>
+        <EmptyContent>
+          <p className={isGlass ? 'text-slate-400' : 'text-muted-foreground'}>
             Börja logga måltider för att se din poäng.
           </p>
-        </CardContent>
-      </Card>
+        </EmptyContent>
+      </EmptyCard>
     )
   }
 
   const grade = getScoreGrade(analysis.avgScore)
 
+  const Wrapper = isGlass ? GlassCard : Card
+  const Header = isGlass ? GlassCardHeader : CardHeader
+  const Title = isGlass ? GlassCardTitle : CardTitle
+  const Description = isGlass ? GlassCardDescription : CardDescription
+  const Content = isGlass ? GlassCardContent : CardContent
+  const mutedText = isGlass ? 'text-slate-400' : 'text-muted-foreground'
+  const mainText = isGlass ? 'text-white' : ''
+
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Wrapper className={className}>
+      <Header>
+        <Title className="flex items-center gap-2">
           <Trophy className="h-5 w-5" />
           Nutritionspoäng
-        </CardTitle>
-        <CardDescription>
+        </Title>
+        <Description>
           Baserat på {analysis.daysLogged} dagar med loggning
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+        </Description>
+      </Header>
+      <Content className="space-y-6">
         {/* Main Score */}
         <div className="text-center">
-          <div className="text-5xl font-bold mb-2">
+          <div className={cn("text-5xl font-bold mb-2", mainText)}>
             {analysis.avgScore}
-            <span className="text-2xl text-muted-foreground">/100</span>
+            <span className={cn("text-2xl", mutedText)}>/100</span>
           </div>
           <div className={cn("flex items-center justify-center gap-2 text-lg font-medium", grade.color)}>
             <span>{grade.emoji}</span>
             <span>{grade.label}</span>
           </div>
           {/* Trend */}
-          <div className="flex items-center justify-center gap-1 mt-2 text-sm text-muted-foreground">
+          <div className={cn("flex items-center justify-center gap-1 mt-2 text-sm", mutedText)}>
             {analysis.trend > 2 ? (
               <>
                 <TrendingUp className="h-4 w-4 text-green-500" />
@@ -210,17 +226,17 @@ export function NutritionScore({ dailyData, goals, className }: NutritionScorePr
 
         {/* Score Breakdown */}
         <div className="space-y-3">
-          <h4 className="font-medium text-sm">Senaste dagens breakdown</h4>
+          <h4 className={cn("font-medium text-sm", mainText)}>Senaste dagens breakdown</h4>
           {analysis.latestBreakdown.map((item) => (
             <div key={item.category} className="space-y-1">
               <div className="flex items-center justify-between text-sm">
-                <span>{item.category}</span>
-                <span className="text-muted-foreground">
+                <span className={mainText}>{item.category}</span>
+                <span className={mutedText}>
                   {item.score}/{item.maxScore}
                 </span>
               </div>
               <Progress value={(item.score / item.maxScore) * 100} className="h-2" />
-              <p className="text-xs text-muted-foreground">{item.description}</p>
+              <p className={cn("text-xs", mutedText)}>{item.description}</p>
             </div>
           ))}
         </div>
@@ -229,16 +245,16 @@ export function NutritionScore({ dailyData, goals, className }: NutritionScorePr
         <div className="grid grid-cols-2 gap-4 text-center text-sm">
           <div className="p-3 rounded-lg bg-green-500/10">
             <Star className="h-4 w-4 mx-auto mb-1 text-green-500" />
-            <p className="font-medium">Bästa dag</p>
-            <p className="text-muted-foreground">{analysis.bestDay.score} poäng</p>
+            <p className={cn("font-medium", mainText)}>Bästa dag</p>
+            <p className={mutedText}>{analysis.bestDay.score} poäng</p>
           </div>
           <div className="p-3 rounded-lg bg-red-500/10">
             <Target className="h-4 w-4 mx-auto mb-1 text-red-500" />
-            <p className="font-medium">Sämsta dag</p>
-            <p className="text-muted-foreground">{analysis.worstDay.score} poäng</p>
+            <p className={cn("font-medium", mainText)}>Sämsta dag</p>
+            <p className={mutedText}>{analysis.worstDay.score} poäng</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </Content>
+    </Wrapper>
   )
 }
