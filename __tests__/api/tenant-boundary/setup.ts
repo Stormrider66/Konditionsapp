@@ -25,6 +25,7 @@ vi.mock('@/lib/api-key-auth', () => ({
 vi.mock('@/lib/auth-utils', () => ({
   requireCoach: vi.fn(),
   requireAthlete: vi.fn(),
+  requireBusinessMembership: vi.fn(),
   getCurrentUser: vi.fn(),
   resolveAthleteClientId: vi.fn(),
   canAccessClient: vi.fn(),
@@ -230,7 +231,7 @@ vi.mock('@/lib/logger', () => ({
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     $transaction: vi.fn(),
-    user: { findUnique: vi.fn() },
+    user: { findUnique: vi.fn(), findFirst: vi.fn() },
     businessMember: { findFirst: vi.fn(), findMany: vi.fn() },
     client: { findFirst: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
     test: { findMany: vi.fn(), findFirst: vi.fn(), count: vi.fn() },

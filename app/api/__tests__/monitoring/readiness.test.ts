@@ -17,7 +17,7 @@ const mockSupabase = vi.hoisted(() => ({
 
 const mockPrisma = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
-  client: { findUnique: vi.fn() },
+  client: { findUnique: vi.fn(), findFirst: vi.fn() },
   dailyMetrics: { findFirst: vi.fn(), findMany: vi.fn() }
 }))
 
@@ -62,9 +62,14 @@ function mockAuthState(user: any = authUser) {
 }
 
 function mockClientAccess(access: { isOwner?: boolean; isAthlete?: boolean } = {}) {
-  mockPrisma.client.findUnique.mockResolvedValue({
+  if (access.isOwner === false && !access.isAthlete) {
+    mockPrisma.client.findFirst.mockResolvedValue(null)
+    return
+  }
+
+  mockPrisma.client.findFirst.mockResolvedValue({
     id: 'client-1',
-    userId: access.isOwner === false ? 'other-coach' : dbUser.id,
+    userId: dbUser.id,
     athleteProfile: access.isAthlete
       ? { athleteUserId: dbUser.id }
       : { athleteUserId: 'other-athlete' }

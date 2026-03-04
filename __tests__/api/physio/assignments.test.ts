@@ -62,7 +62,7 @@ describe('Physio Assignment API', () => {
         physioUserId: 'physio-user-id',
         clientId: 'client-id',
         role: 'PRIMARY',
-        active: true,
+        isActive: true,
         canModifyPrograms: true,
         canCreateRestrictions: true,
         canViewFullHistory: true,
@@ -122,7 +122,7 @@ describe('Physio Assignment API', () => {
           physioUserId: 'physio-user-id',
           clientId: 'client-1',
           role: 'PRIMARY',
-          active: true,
+          isActive: true,
           client: { id: 'client-1', name: 'Athlete 1' },
         },
         {
@@ -130,7 +130,7 @@ describe('Physio Assignment API', () => {
           physioUserId: 'physio-user-id',
           teamId: 'team-1',
           role: 'SECONDARY',
-          active: true,
+          isActive: true,
           team: { id: 'team-1', name: 'Team Alpha' },
         },
       ]
@@ -159,7 +159,7 @@ describe('Physio Assignment API', () => {
           id: 'assignment-1',
           physioUserId: 'physio-user-id',
           clientId: 'client-1',
-          active: true,
+          isActive: true,
         },
       ]
 
@@ -223,7 +223,7 @@ describe('Physio Assignment API', () => {
         id: 'assignment-id',
         physioUserId: 'physio-user-id',
         clientId: 'client-id',
-        active: false,
+        isActive: false,
       }
 
       vi.mocked(getCurrentUser).mockResolvedValue(mockUser as any)

@@ -15,6 +15,7 @@ import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
 import { isModelIntent, legacyModelIdToIntent, INTENT_TIER_LABELS } from '@/types/ai-models'
 import type { ModelIntent } from '@/types/ai-models'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 export async function GET() {
   try {
@@ -65,8 +66,8 @@ export async function GET() {
 
     const athletePreferredModelId = client?.sportProfile?.preferredAIModelId
 
-    // Fetch coach's API keys and athlete model settings
-    const apiKeys = await prisma.userApiKey.findUnique({
+    // Fetch coach-level AI settings (if present)
+    const coachApiSettings = await prisma.userApiKey.findUnique({
       where: { userId: effectiveCoachId },
       select: {
         anthropicKeyValid: true,
@@ -77,12 +78,29 @@ export async function GET() {
       },
     })
 
-    // Check if coach has any valid AI keys
-    const hasAIAccess =
-      apiKeys?.anthropicKeyValid ||
-      apiKeys?.googleKeyValid ||
-      apiKeys?.openaiKeyValid ||
-      false
+    // Fetch business-level AI settings (used when coach relies on business keys)
+    const businessSettings = await prisma.businessMember.findFirst({
+      where: { userId: effectiveCoachId, isActive: true },
+      select: {
+        business: {
+          select: {
+            aiKeys: {
+              select: {
+                anthropicKeyValid: true,
+                googleKeyValid: true,
+                openaiKeyValid: true,
+                allowedAthleteModelIds: true,
+                athleteDefaultModelId: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    // Resolve effective keys exactly like AI runtime routes (user -> business -> admin)
+    const resolvedKeys = await getResolvedAiKeys(effectiveCoachId)
+    const hasAIAccess = !!(resolvedKeys.anthropicKey || resolvedKeys.googleKey || resolvedKeys.openaiKey)
 
     if (!hasAIAccess) {
       return NextResponse.json({
@@ -101,13 +119,14 @@ export async function GET() {
 
     // Build configured providers flags
     const configuredProviders = {
-      hasAnthropic: !!apiKeys?.anthropicKeyValid,
-      hasGoogle: !!apiKeys?.googleKeyValid,
-      hasOpenai: !!apiKeys?.openaiKeyValid,
+      hasAnthropic: !!resolvedKeys.anthropicKey,
+      hasGoogle: !!resolvedKeys.googleKey,
+      hasOpenai: !!resolvedKeys.openaiKey,
     }
 
-    // Determine allowed intents from coach settings
-    const rawAllowed = apiKeys?.allowedAthleteModelIds || []
+    // Determine allowed intents from coach + business settings
+    const rawAllowed = coachApiSettings?.allowedAthleteModelIds || []
+    const businessRawAllowed = businessSettings?.business?.aiKeys?.allowedAthleteModelIds || []
     let availableIntents: ModelIntent[] = ['fast', 'balanced', 'powerful']
 
     if (rawAllowed.length > 0) {
@@ -116,6 +135,18 @@ export async function GET() {
         .filter((v, i, a) => a.indexOf(v) === i) as ModelIntent[]
       if (tiers.length > 0) {
         availableIntents = tiers
+      }
+    }
+
+    if (businessRawAllowed.length > 0) {
+      const businessTiers = businessRawAllowed
+        .map(id => isModelIntent(id) ? id : legacyModelIdToIntent(id))
+        .filter((v, i, a) => a.indexOf(v) === i) as ModelIntent[]
+      if (businessTiers.length > 0) {
+        availableIntents = availableIntents.filter(intent => businessTiers.includes(intent))
+        if (availableIntents.length === 0) {
+          availableIntents = businessTiers
+        }
       }
     }
 
@@ -129,10 +160,16 @@ export async function GET() {
         : legacyModelIdToIntent(athletePreferredModelId)
     }
     // Priority 2: Coach's athlete default
-    else if (apiKeys?.athleteDefaultModelId) {
-      selectedIntent = isModelIntent(apiKeys.athleteDefaultModelId)
-        ? apiKeys.athleteDefaultModelId
-        : legacyModelIdToIntent(apiKeys.athleteDefaultModelId)
+    else if (coachApiSettings?.athleteDefaultModelId) {
+      selectedIntent = isModelIntent(coachApiSettings.athleteDefaultModelId)
+        ? coachApiSettings.athleteDefaultModelId
+        : legacyModelIdToIntent(coachApiSettings.athleteDefaultModelId)
+    }
+    // Priority 3: Business athlete default
+    else if (businessSettings?.business?.aiKeys?.athleteDefaultModelId) {
+      selectedIntent = isModelIntent(businessSettings.business.aiKeys.athleteDefaultModelId)
+        ? businessSettings.business.aiKeys.athleteDefaultModelId
+        : legacyModelIdToIntent(businessSettings.business.aiKeys.athleteDefaultModelId)
     }
 
     // Ensure selected intent is in available set

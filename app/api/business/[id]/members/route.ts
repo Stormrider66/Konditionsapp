@@ -13,6 +13,7 @@ import { sendGenericEmail } from '@/lib/email';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
 import crypto from 'crypto'
+import { handleApiError } from '@/lib/api-error'
 
 // Validation schema for inviting a member
 const inviteMemberSchema = z.object({
@@ -65,15 +66,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     logError('Get business members error:', error);
-
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to fetch business members' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'GET /api/business/[id]/members')
   }
 }
 
@@ -226,15 +219,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   } catch (error) {
     logError('Invite member error:', error);
-
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to invite member' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'POST /api/business/[id]/members')
   }
 }
 
@@ -308,14 +293,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: true });
   } catch (error) {
     logError('Remove member error:', error);
-
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to remove member' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'DELETE /api/business/[id]/members')
   }
 }

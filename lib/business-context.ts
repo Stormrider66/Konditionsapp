@@ -1,7 +1,15 @@
 // lib/business-context.ts
-import { cache } from 'react'
+import * as React from 'react'
 import { prisma } from '@/lib/prisma'
 import { BusinessMemberRole } from '@/types'
+
+function requestCache<T extends (...args: any[]) => any>(fn: T): T {
+  const maybeCache = (React as { cache?: <F extends (...args: any[]) => any>(f: F) => F }).cache
+  if (typeof maybeCache === 'function') {
+    return maybeCache(fn)
+  }
+  return fn
+}
 
 /**
  * Get business by slug
@@ -34,7 +42,7 @@ export async function getBusinessBySlug(slug: string) {
  * Wrapped with React.cache() to deduplicate calls within a single request
  * (business layout + role layout + page all call this with the same args)
  */
-export const validateBusinessMembership = cache(async (
+export const validateBusinessMembership = requestCache(async (
   userId: string,
   businessSlug: string
 ): Promise<{

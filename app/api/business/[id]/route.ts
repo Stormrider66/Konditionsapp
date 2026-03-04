@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
+import { handleApiError } from '@/lib/api-error'
 
 // Validation schema for updating a business
 const updateBusinessSchema = z.object({
@@ -90,15 +91,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     logError('Get business error:', error);
-
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to fetch business' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'GET /api/business/[id]')
   }
 }
 
@@ -142,15 +135,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ business });
   } catch (error) {
     logError('Update business error:', error);
-
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to update business' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'PUT /api/business/[id]')
   }
 }
 
@@ -170,14 +155,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: true });
   } catch (error) {
     logError('Delete business error:', error);
-
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to delete business' },
-      { status: 500 }
-    );
+    return handleApiError(error, 'DELETE /api/business/[id]')
   }
 }

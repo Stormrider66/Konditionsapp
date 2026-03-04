@@ -3,7 +3,7 @@ import { NextRequest } from 'next/server'
 import './setup'
 import { expectDeniedResponse, resetTenantBoundaryMocks } from './setup'
 import { prisma } from '@/lib/prisma'
-import { requireCoach } from '@/lib/auth-utils'
+import { requireBusinessMembership, requireCoach } from '@/lib/auth-utils'
 import { GET as getExternalTests } from '@/app/api/external/v1/tests/route'
 import { GET as getExternalTestById } from '@/app/api/external/v1/tests/[id]/route'
 import { GET as getExternalAthleteById } from '@/app/api/external/v1/athletes/[id]/route'
@@ -115,7 +115,7 @@ describe('Tenant boundary - external and business', () => {
 
   it('GET /api/business/[id] denies inactive member', async () => {
     vi.mocked(requireCoach).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
-    vi.mocked(prisma.businessMember.findFirst).mockResolvedValue(null as any)
+    vi.mocked(requireBusinessMembership).mockRejectedValue(new Error('Access denied'))
 
     const request = new Request('http://localhost/api/business/business-a')
     const response = await getBusiness(request as any, {
@@ -123,20 +123,15 @@ describe('Tenant boundary - external and business', () => {
     })
 
     expect(response.status).toBe(403)
-    expect(prisma.businessMember.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          userId: 'coach-a',
-          businessId: 'business-a',
-          isActive: true,
-        }),
-      })
+    expect(requireBusinessMembership).toHaveBeenCalledWith(
+      'coach-a',
+      'business-a'
     )
   })
 
   it('GET /api/business/[id]/members denies inactive member', async () => {
     vi.mocked(requireCoach).mockResolvedValue({ id: 'coach-a', role: 'COACH' } as any)
-    vi.mocked(prisma.businessMember.findFirst).mockResolvedValue(null as any)
+    vi.mocked(requireBusinessMembership).mockRejectedValue(new Error('Access denied'))
 
     const request = new Request('http://localhost/api/business/business-a/members')
     const response = await getBusinessMembers(request as any, {
@@ -144,14 +139,9 @@ describe('Tenant boundary - external and business', () => {
     })
 
     expect(response.status).toBe(403)
-    expect(prisma.businessMember.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          userId: 'coach-a',
-          businessId: 'business-a',
-          isActive: true,
-        }),
-      })
+    expect(requireBusinessMembership).toHaveBeenCalledWith(
+      'coach-a',
+      'business-a'
     )
   })
 
@@ -178,7 +168,7 @@ describe('Tenant boundary - external and business', () => {
 
   it('DELETE /api/business/[id] denies admin who is not owner', async () => {
     vi.mocked(requireCoach).mockResolvedValue({ id: 'admin-a', role: 'ADMIN' } as any)
-    vi.mocked(prisma.businessMember.findFirst).mockResolvedValue(null as any)
+    vi.mocked(requireBusinessMembership).mockRejectedValue(new Error('Access denied'))
 
     const request = new Request('http://localhost/api/business/business-a', { method: 'DELETE' })
     const response = await deleteBusiness(request as any, {
@@ -186,6 +176,11 @@ describe('Tenant boundary - external and business', () => {
     })
 
     expect(response.status).toBe(403)
+    expect(requireBusinessMembership).toHaveBeenCalledWith(
+      'admin-a',
+      'business-a',
+      { roles: ['OWNER'] }
+    )
     expect(prisma.business.update).not.toHaveBeenCalled()
   })
 })

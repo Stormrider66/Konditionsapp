@@ -1,5 +1,5 @@
 // lib/auth-utils.ts
-import { cache } from 'react'
+import * as React from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { User, UserRole, AdminRole, BusinessAdminUser, BusinessMemberRole } from '@/types'
@@ -10,12 +10,20 @@ import { createCoachTrialSubscription } from '@/lib/subscription/feature-access'
 import { logger } from '@/lib/logger'
 import { ApiError } from '@/lib/api-error'
 
+function requestCache<T extends (...args: any[]) => any>(fn: T): T {
+  const maybeCache = (React as { cache?: <F extends (...args: any[]) => any>(f: F) => F }).cache
+  if (typeof maybeCache === 'function') {
+    return maybeCache(fn)
+  }
+  return fn
+}
+
 /**
  * Get the currently authenticated user from Supabase session
  * Wrapped with React.cache() to deduplicate calls within a single request
  * (layouts + pages calling this multiple times will only hit Supabase/DB once)
  */
-export const getCurrentUser = cache(async (): Promise<User | null> => {
+export const getCurrentUser = requestCache(async (): Promise<User | null> => {
   const supabase = await createClient()
 
   const {

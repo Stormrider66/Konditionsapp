@@ -15,6 +15,7 @@ import { logger } from '@/lib/logger'
 import type { AIModel as PrismaAIModel, AIProvider } from '@prisma/client'
 import { INTENT_TIER_LABELS, isModelIntent, legacyModelIdToIntent } from '@/types/ai-models'
 import type { ModelIntent } from '@/types/ai-models'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 // Transform database model to match the expected interface
 function transformDbModel(dbModel: PrismaAIModel) {
@@ -77,64 +78,34 @@ export async function GET() {
       coachUserId = user.id
     }
 
-    // Get coach's API keys (check user keys first, then business keys)
+    // Get coach's explicit settings (used for restrictions/defaults)
     const userKeys = await prisma.userApiKey.findUnique({
       where: { userId: coachUserId },
     })
 
-    // Determine which providers have valid keys (user-level)
-    const validProviders: AIProvider[] = []
-    let businessAllowedModelIds: string[] = []
-    let businessAllowedAthleteModelIds: string[] = []
-    let businessAthleteDefaultModelId: string | null = null
-
-    if (userKeys) {
-      if (userKeys.googleKeyValid) validProviders.push('GOOGLE')
-      if (userKeys.anthropicKeyValid) validProviders.push('ANTHROPIC')
-      if (userKeys.openaiKeyValid) validProviders.push('OPENAI')
-    }
-
-    // If no valid user keys, check business keys
-    if (validProviders.length === 0) {
-      const membership = await prisma.businessMember.findFirst({
-        where: { userId: coachUserId, isActive: true },
-        select: {
-          business: {
-            select: {
-              aiKeys: true,
-            },
+    // Business-level settings (also used for restrictions/defaults)
+    const membership = await prisma.businessMember.findFirst({
+      where: { userId: coachUserId, isActive: true },
+      select: {
+        business: {
+          select: {
+            aiKeys: true,
           },
         },
-      })
+      },
+    })
+    const bk = membership?.business?.aiKeys
 
-      const bk = membership?.business?.aiKeys
-      if (bk) {
-        if (bk.googleKeyValid) validProviders.push('GOOGLE')
-        if (bk.anthropicKeyValid) validProviders.push('ANTHROPIC')
-        if (bk.openaiKeyValid) validProviders.push('OPENAI')
-        businessAllowedModelIds = bk.allowedModelIds || []
-        businessAllowedAthleteModelIds = bk.allowedAthleteModelIds || []
-        businessAthleteDefaultModelId = bk.athleteDefaultModelId
-      }
-    }
+    // Determine providers from resolved key source (user -> business -> admin)
+    const resolvedKeys = await getResolvedAiKeys(coachUserId)
+    const validProviders: AIProvider[] = []
+    if (resolvedKeys.googleKey) validProviders.push('GOOGLE')
+    if (resolvedKeys.anthropicKey) validProviders.push('ANTHROPIC')
+    if (resolvedKeys.openaiKey) validProviders.push('OPENAI')
 
-    // 3. Fall back to platform admin keys (for direct athletes without a coach)
-    if (validProviders.length === 0) {
-      const admin = await prisma.user.findFirst({
-        where: { adminRole: 'SUPER_ADMIN' },
-        select: { id: true },
-      })
-      if (admin) {
-        const adminKeys = await prisma.userApiKey.findUnique({
-          where: { userId: admin.id },
-        })
-        if (adminKeys) {
-          if (adminKeys.googleKeyValid) validProviders.push('GOOGLE')
-          if (adminKeys.anthropicKeyValid) validProviders.push('ANTHROPIC')
-          if (adminKeys.openaiKeyValid) validProviders.push('OPENAI')
-        }
-      }
-    }
+    const businessAllowedModelIds: string[] = bk?.allowedModelIds || []
+    const businessAllowedAthleteModelIds: string[] = bk?.allowedAthleteModelIds || []
+    const businessAthleteDefaultModelId: string | null = bk?.athleteDefaultModelId || null
 
     if (validProviders.length === 0) {
       return NextResponse.json({
