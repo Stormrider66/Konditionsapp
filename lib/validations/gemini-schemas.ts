@@ -414,6 +414,47 @@ export const LactateMeterOCRSchema = z.object({
 
 export type LactateMeterOCRResult = z.infer<typeof LactateMeterOCRSchema>;
 
+// ==================== Food Photo Analysis Schema ====================
+
+/**
+ * Schema for AI food photo analysis (Cal AI-style).
+ * Used with Gemini Flash to estimate calories and macros from food photos.
+ */
+export const FoodPhotoAnalysisSchema = z.object({
+  success: z.boolean().describe('Whether food was successfully identified in the image'),
+
+  items: z.array(
+    z.object({
+      name: z.string().describe('Food item name in Swedish'),
+      estimatedGrams: z.number().describe('Estimated weight in grams'),
+      portionDescription: z.string().describe('Portion description, e.g. "1 skiva", "2 dl"'),
+      calories: z.number().describe('Estimated calories (kcal)'),
+      proteinGrams: z.number().describe('Estimated protein in grams'),
+      carbsGrams: z.number().describe('Estimated carbs in grams'),
+      fatGrams: z.number().describe('Estimated fat in grams'),
+      fiberGrams: z.number().describe('Estimated fiber in grams'),
+    })
+  ),
+
+  totals: z.object({
+    calories: z.number().describe('Total calories (kcal)'),
+    proteinGrams: z.number().describe('Total protein in grams'),
+    carbsGrams: z.number().describe('Total carbs in grams'),
+    fatGrams: z.number().describe('Total fat in grams'),
+    fiberGrams: z.number().describe('Total fiber in grams'),
+  }),
+
+  mealDescription: z.string().describe('Brief Swedish description of the meal for MealLog'),
+  suggestedMealType: z
+    .enum(['BREAKFAST', 'MORNING_SNACK', 'LUNCH', 'AFTERNOON_SNACK', 'PRE_WORKOUT', 'POST_WORKOUT', 'DINNER', 'EVENING_SNACK'])
+    .optional()
+    .describe('Suggested meal type based on contents and time of day'),
+  confidence: z.number().min(0).max(1).describe('Overall confidence in the analysis (0-1)'),
+  notes: z.array(z.string()).optional().describe('Additional notes or caveats about the analysis'),
+});
+
+export type FoodPhotoAnalysisResult = z.infer<typeof FoodPhotoAnalysisSchema>;
+
 // ==================== Coach Tool Definitions ====================
 
 /**
