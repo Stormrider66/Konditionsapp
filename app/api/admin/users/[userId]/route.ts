@@ -82,7 +82,7 @@ export async function DELETE(
       targetId: userId,
       targetType: 'User',
       oldValue: { email: targetUser.email, name: targetUser.name, role: targetUser.role },
-      newValue: null,
+      newValue: { deleted: true },
       ipAddress: getIpFromRequest(request),
       userAgent: getUserAgentFromRequest(request),
     });
