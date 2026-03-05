@@ -1,13 +1,13 @@
 /**
  * Athlete Strength Training Page
  *
- * Self-service strength training for PRO/ENTERPRISE athletes.
+ * Self-service strength training for PRO/ELITE athletes.
  * Allows athletes to browse system templates and self-assign workouts.
  */
 
 import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
-import { getCurrentUser } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
+import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { prisma } from '@/lib/prisma'
 import { AthleteStrengthClient } from './client'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -17,34 +17,12 @@ export const metadata = {
   description: 'Bläddra och schemalägg styrkepass',
 }
 
-async function getAthleteData(userId: string) {
-  // Get athlete account
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId },
-    select: {
-      clientId: true,
-      client: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  })
-
-  if (!athleteAccount) {
-    return null
-  }
-
-  // Get subscription to check tier
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId },
-  })
-
+async function getAthleteData(clientId: string) {
   // Get assigned strength sessions with scheduling info
   const [upcomingAssignments, completedAssignments] = await Promise.all([
     prisma.strengthSessionAssignment.findMany({
       where: {
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         assignedDate: {
           gte: new Date(new Date().setHours(0, 0, 0, 0)),
         },
@@ -72,7 +50,7 @@ async function getAthleteData(userId: string) {
     }),
     prisma.strengthSessionAssignment.findMany({
       where: {
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         status: 'COMPLETED',
       },
       include: {
@@ -99,32 +77,15 @@ async function getAthleteData(userId: string) {
   ])
 
   return {
-    athleteAccount,
-    subscription,
     upcomingAssignments,
     completedAssignments,
   }
 }
 
 export default async function AthleteStrengthPage() {
-  const user = await getCurrentUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  if (user.role !== 'ATHLETE') {
-    redirect('/athlete/dashboard')
-  }
-
-  const data = await getAthleteData(user.id)
-
-  if (!data?.athleteAccount) {
-    redirect('/athlete/dashboard')
-  }
-
-  const subscriptionTier = data.subscription?.tier || 'FREE'
-  const selfServiceEnabled = ['PRO', 'ENTERPRISE'].includes(subscriptionTier)
+  const { clientId } = await requireAthleteOrCoachInAthleteMode()
+  const data = await getAthleteData(clientId)
+  const { tier: subscriptionTier, enabled: selfServiceEnabled } = await getAthleteSelfServiceAccess(clientId)
 
   return (
     <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 max-w-7xl">

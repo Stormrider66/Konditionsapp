@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
-      where: { userId: user.id },
+      where: { userId: user.id, isActive: true },
     });
 
     const location = await prisma.location.findUnique({

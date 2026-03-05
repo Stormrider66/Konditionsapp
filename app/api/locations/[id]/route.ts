@@ -32,7 +32,7 @@ interface RouteParams {
 async function canAccessLocation(userId: string, locationId: string) {
   // Get user's business membership
   const businessMember = await prisma.businessMember.findFirst({
-    where: { userId },
+    where: { userId, isActive: true },
   });
 
   const location = await prisma.location.findUnique({

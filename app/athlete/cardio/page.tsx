@@ -8,7 +8,7 @@
 
 import { Suspense } from 'react'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
+import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { AthleteCardioClient } from '@/components/athlete/cardio/AthleteCardioClient'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -18,17 +18,8 @@ export const metadata = {
 }
 
 export default async function AthleteCardioPage() {
-  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
-
-  // Get subscription from User model
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId: user.id },
-    select: { tier: true },
-  })
-  const subscriptionTier = subscription?.tier || 'FREE'
-
-  // Check if athlete can access templates (PRO or higher)
-  const canAccessTemplates = ['PRO', 'ENTERPRISE'].includes(subscriptionTier)
+  const { clientId } = await requireAthleteOrCoachInAthleteMode()
+  const { enabled: canAccessTemplates } = await getAthleteSelfServiceAccess(clientId)
 
   return (
     <div className="container mx-auto py-6 px-4">

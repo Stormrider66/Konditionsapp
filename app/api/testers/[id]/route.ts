@@ -30,7 +30,7 @@ interface RouteParams {
 async function canAccessTester(userId: string, testerId: string) {
   // Get user's business membership
   const businessMember = await prisma.businessMember.findFirst({
-    where: { userId },
+    where: { userId, isActive: true },
   });
 
   const tester = await prisma.tester.findUnique({
@@ -46,7 +46,7 @@ async function canAccessTester(userId: string, testerId: string) {
     return { canAccess: true, tester, reason: null };
   }
 
-  if (tester.userId === userId) {
+  if (!tester.businessId && tester.userId === userId) {
     return { canAccess: true, tester, reason: null };
   }
 

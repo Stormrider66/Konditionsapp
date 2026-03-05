@@ -123,6 +123,24 @@ export async function requireTier(
 }
 
 /**
+ * Self-service templates are available to paid athlete tiers only.
+ */
+export function hasAthleteSelfServiceAccess(tier: AthleteSubscriptionTier): boolean {
+  return tier === AthleteSubscriptionTier.PRO || tier === AthleteSubscriptionTier.ELITE;
+}
+
+export async function getAthleteSelfServiceAccess(clientId: string): Promise<{
+  tier: AthleteSubscriptionTier;
+  enabled: boolean;
+}> {
+  const tier = await getAthleteTier(clientId);
+  return {
+    tier,
+    enabled: hasAthleteSelfServiceAccess(tier),
+  };
+}
+
+/**
  * Check if athlete has AI chat access
  */
 export async function checkAIAccess(clientId: string): Promise<{

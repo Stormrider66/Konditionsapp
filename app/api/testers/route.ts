@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
-      where: { userId: user.id },
+      where: { userId: user.id, isActive: true },
       include: { business: true },
     });
 
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
-      where: { userId: user.id },
+      where: { userId: user.id, isActive: true },
     });
 
     // Check if email is already in use by another tester

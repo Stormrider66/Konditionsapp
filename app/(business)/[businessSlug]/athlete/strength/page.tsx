@@ -2,13 +2,14 @@
 /**
  * Business Athlete Strength Training Page
  *
- * Self-service strength training for PRO/ENTERPRISE athletes.
+ * Self-service strength training for PRO/ELITE athletes.
  * Allows athletes to browse system templates and self-assign workouts.
  */
 
 import { Suspense } from 'react'
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
+import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { AthleteStrengthClient } from '@/app/athlete/strength/client'
@@ -23,34 +24,12 @@ interface BusinessStrengthPageProps {
   params: Promise<{ businessSlug: string }>
 }
 
-async function getAthleteData(userId: string) {
-  // Get athlete account
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId },
-    select: {
-      clientId: true,
-      client: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  })
-
-  if (!athleteAccount) {
-    return null
-  }
-
-  // Get subscription to check tier
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId },
-  })
-
+async function getAthleteData(clientId: string) {
   // Get assigned strength sessions with scheduling info
   const [upcomingAssignments, completedAssignments] = await Promise.all([
     prisma.strengthSessionAssignment.findMany({
       where: {
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         assignedDate: {
           gte: new Date(new Date().setHours(0, 0, 0, 0)),
         },
@@ -78,7 +57,7 @@ async function getAthleteData(userId: string) {
     }),
     prisma.strengthSessionAssignment.findMany({
       where: {
-        athleteId: athleteAccount.clientId,
+        athleteId: clientId,
         status: 'COMPLETED',
       },
       include: {
@@ -105,8 +84,6 @@ async function getAthleteData(userId: string) {
   ])
 
   return {
-    athleteAccount,
-    subscription,
     upcomingAssignments,
     completedAssignments,
   }
@@ -114,7 +91,7 @@ async function getAthleteData(userId: string) {
 
 export default async function BusinessStrengthPage({ params }: BusinessStrengthPageProps) {
   const { businessSlug } = await params
-  const { user } = await requireAthleteOrCoachInAthleteMode()
+  const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -123,19 +100,8 @@ export default async function BusinessStrengthPage({ params }: BusinessStrengthP
   }
 
   const basePath = `/${businessSlug}`
-
-  if (user.role !== 'ATHLETE') {
-    redirect(`${basePath}/athlete/dashboard`)
-  }
-
-  const data = await getAthleteData(user.id)
-
-  if (!data?.athleteAccount) {
-    redirect(`${basePath}/athlete/dashboard`)
-  }
-
-  const subscriptionTier = data.subscription?.tier || 'FREE'
-  const selfServiceEnabled = ['PRO', 'ENTERPRISE'].includes(subscriptionTier)
+  const data = await getAthleteData(clientId)
+  const { tier: subscriptionTier, enabled: selfServiceEnabled } = await getAthleteSelfServiceAccess(clientId)
 
   return (
     <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 max-w-7xl">

@@ -33,9 +33,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
     const coachUserIds = businessCoaches.map(m => m.userId)
 
-    // Get athletes (clients) belonging to these coaches
+    // Get athletes explicitly scoped to this business.
     const clients = await prisma.client.findMany({
-      where: { userId: { in: coachUserIds } },
+      where: { businessId: businessId },
       select: { id: true },
     })
     const athleteIds = clients.map(c => c.id)
@@ -63,6 +63,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       prisma.strengthSessionAssignment.count({
         where: {
           session: { coachId: { in: coachUserIds } },
+          athleteId: { in: athleteIds },
           status: { in: ['PENDING', 'SCHEDULED'] },
         },
       }),
@@ -70,6 +71,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         by: ['athleteId'],
         where: {
           session: { coachId: { in: coachUserIds } },
+          athleteId: { in: athleteIds },
           status: { in: ['PENDING', 'SCHEDULED'] },
         },
       }),
@@ -80,6 +82,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       prisma.strengthSessionAssignment.count({
         where: {
           session: { coachId: { in: coachUserIds } },
+          athleteId: { in: athleteIds },
           assignedDate: { gte: thisMonthStart },
           status: 'COMPLETED',
         },
@@ -87,12 +90,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       prisma.strengthSessionAssignment.count({
         where: {
           session: { coachId: { in: coachUserIds } },
+          athleteId: { in: athleteIds },
           assignedDate: { gte: thisMonthStart },
         },
       }),
       prisma.strengthSessionAssignment.count({
         where: {
           session: { coachId: { in: coachUserIds } },
+          athleteId: { in: athleteIds },
           assignedDate: { gte: lastMonthStart, lt: lastMonthEnd },
           status: 'COMPLETED',
         },
@@ -100,6 +105,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       prisma.strengthSessionAssignment.count({
         where: {
           session: { coachId: { in: coachUserIds } },
+          athleteId: { in: athleteIds },
           assignedDate: { gte: lastMonthStart, lt: lastMonthEnd },
         },
       }),

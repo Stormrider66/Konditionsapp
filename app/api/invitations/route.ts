@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
-      where: { userId: user.id },
+      where: { userId: user.id, isActive: true },
     });
 
     const searchParams = request.nextUrl.searchParams;
@@ -51,20 +51,26 @@ export async function GET(request: NextRequest) {
 
     const now = new Date();
 
+    const visibilityFilters = [
+      { senderId: user.id },
+      ...(businessMember ? [{ businessId: businessMember.businessId }] : []),
+    ];
+
     const invitations = await prisma.invitation.findMany({
       where: {
-        OR: [
-          { senderId: user.id },
-          ...(businessMember ? [{ businessId: businessMember.businessId }] : []),
+        AND: [
+          { OR: visibilityFilters },
+          ...(type ? [{ type }] : []),
+          ...(!includeUsed ? [{ usedAt: null }] : []),
+          ...(!includeExpired
+            ? [{
+                OR: [
+                  { expiresAt: null },
+                  { expiresAt: { gt: now } },
+                ],
+              }]
+            : []),
         ],
-        ...(type && { type }),
-        ...(!includeUsed && { usedAt: null }),
-        ...(!includeExpired && {
-          OR: [
-            { expiresAt: null },
-            { expiresAt: { gt: now } },
-          ],
-        }),
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -114,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
-      where: { userId: user.id },
+      where: { userId: user.id, isActive: true },
     });
 
     // For REPORT_VIEW type, verify the test exists and user has access

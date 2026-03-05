@@ -1,8 +1,8 @@
 // app/athlete/training-library/page.tsx
 
 import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
-import { getCurrentUser } from '@/lib/auth-utils'
+import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
+import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { prisma } from '@/lib/prisma'
 import { TrainingLibraryClient } from '@/components/athlete/TrainingLibraryClient'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,9 +12,8 @@ export const metadata = {
   description: 'All din träning samlad på ett ställe',
 }
 
-async function getLibraryData(userId: string, clientId: string) {
+async function getLibraryData(clientId: string) {
   const [
-    subscription,
     strengthUpcoming,
     strengthCompleted,
     agilityAssignments,
@@ -22,10 +21,6 @@ async function getLibraryData(userId: string, clientId: string) {
     agilityTimingResults,
     wodHistory,
   ] = await Promise.all([
-    prisma.subscription.findUnique({
-      where: { userId },
-      select: { tier: true },
-    }),
     prisma.strengthSessionAssignment.findMany({
       where: {
         athleteId: clientId,
@@ -109,7 +104,6 @@ async function getLibraryData(userId: string, clientId: string) {
   ])
 
   return {
-    subscription,
     strengthUpcoming,
     strengthCompleted,
     agilityAssignments,
@@ -120,26 +114,9 @@ async function getLibraryData(userId: string, clientId: string) {
 }
 
 export default async function TrainingLibraryPage() {
-  const user = await getCurrentUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  // Get clientId from athlete account
-  const athleteAccount = await prisma.athleteAccount.findUnique({
-    where: { userId: user.id },
-    select: { clientId: true },
-  })
-
-  if (!athleteAccount) {
-    redirect('/athlete/dashboard')
-  }
-
-  const clientId = athleteAccount.clientId
-  const data = await getLibraryData(user.id, clientId)
-  const subscriptionTier = data.subscription?.tier || 'FREE'
-  const selfServiceEnabled = ['PRO', 'ENTERPRISE'].includes(subscriptionTier)
+  const { clientId } = await requireAthleteOrCoachInAthleteMode()
+  const data = await getLibraryData(clientId)
+  const { tier: subscriptionTier, enabled: selfServiceEnabled } = await getAthleteSelfServiceAccess(clientId)
 
   const mapAssignment = (a: typeof data.strengthUpcoming[number]) => ({
     id: a.id,

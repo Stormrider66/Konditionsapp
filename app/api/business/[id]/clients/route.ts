@@ -18,24 +18,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     await requireBusinessMembership(user.id, businessId)
 
-    // Get all coach members of this business
-    const businessCoaches = await prisma.businessMember.findMany({
-      where: {
-        businessId: businessId,
-        isActive: true,
-        role: { in: ['OWNER', 'ADMIN', 'COACH'] },
-      },
-      select: { userId: true },
-    })
-    const coachUserIds = businessCoaches.map(m => m.userId)
-
-    // Fetch clients belonging to the business OR owned by business coaches (fallback for un-migrated clients)
+    // Fetch clients explicitly scoped to this business only.
     const clients = await prisma.client.findMany({
       where: {
-        OR: [
-          { businessId: businessId },
-          { userId: { in: coachUserIds } },
-        ],
+        businessId: businessId,
       },
       include: {
         team: true,

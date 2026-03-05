@@ -3,7 +3,7 @@
  *
  * POST - Athlete self-assigns a strength session from a template
  *
- * This allows PRO/ENTERPRISE athletes to:
+ * This allows PRO/ELITE athletes to:
  * 1. Select a system template
  * 2. Create a strength session from it
  * 3. Assign it to themselves for a specific date
@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { getTemplateById } from '@/lib/training-engine/templates/strength-templates'
 import { logger } from '@/lib/logger'
 
@@ -57,20 +58,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check subscription through user
-    const subscriptionUserId = isCoachInAthleteMode ? user.id : client.userId
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: subscriptionUserId },
-    })
-
-    // Check if athlete has self-service enabled (PRO or higher)
-    const subscriptionTier = subscription?.tier || 'FREE'
-    const selfServiceEnabled = ['PRO', 'ENTERPRISE'].includes(subscriptionTier)
+    const { enabled: selfServiceEnabled } = await getAthleteSelfServiceAccess(clientId)
 
     if (!selfServiceEnabled) {
       return NextResponse.json(
         {
-          error: 'Self-service strength training requires PRO subscription',
+          error: 'Self-service strength training requires a PRO or ELITE athlete subscription',
           upgradeRequired: true,
         },
         { status: 403 }

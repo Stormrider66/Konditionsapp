@@ -255,6 +255,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         where: {
           userId: user.id,
           businessId: invitation.businessId,
+          isActive: true,
           role: { in: ['OWNER', 'ADMIN'] },
         },
       });

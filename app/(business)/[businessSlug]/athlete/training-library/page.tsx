@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
+import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { TrainingLibraryClient } from '@/components/athlete/TrainingLibraryClient'
@@ -17,10 +18,8 @@ interface PageProps {
   params: Promise<{ businessSlug: string }>
 }
 
-async function getLibraryData(userId: string, clientId: string) {
+async function getLibraryData(clientId: string) {
   const [
-    athleteAccount,
-    subscription,
     strengthUpcoming,
     strengthCompleted,
     agilityAssignments,
@@ -28,14 +27,6 @@ async function getLibraryData(userId: string, clientId: string) {
     agilityTimingResults,
     wodHistory,
   ] = await Promise.all([
-    prisma.athleteAccount.findUnique({
-      where: { userId },
-      select: { clientId: true },
-    }),
-    prisma.subscription.findUnique({
-      where: { userId },
-      select: { tier: true },
-    }),
     prisma.strengthSessionAssignment.findMany({
       where: {
         athleteId: clientId,
@@ -119,8 +110,6 @@ async function getLibraryData(userId: string, clientId: string) {
   ])
 
   return {
-    athleteAccount,
-    subscription,
     strengthUpcoming,
     strengthCompleted,
     agilityAssignments,
@@ -140,9 +129,8 @@ export default async function BusinessTrainingLibraryPage({ params }: PageProps)
   }
 
   const basePath = `/${businessSlug}`
-  const data = await getLibraryData(user.id, clientId)
-  const subscriptionTier = data.subscription?.tier || 'FREE'
-  const selfServiceEnabled = ['PRO', 'ENTERPRISE'].includes(subscriptionTier)
+  const data = await getLibraryData(clientId)
+  const { tier: subscriptionTier, enabled: selfServiceEnabled } = await getAthleteSelfServiceAccess(clientId)
 
   const mapAssignment = (a: typeof data.strengthUpcoming[number]) => ({
     id: a.id,

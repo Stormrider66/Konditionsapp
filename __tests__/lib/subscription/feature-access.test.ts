@@ -74,4 +74,34 @@ describe('checkAthleteFeatureAccess', () => {
       limit: 10,
     })
   })
+
+  it('does not inherit athlete-only features from a coach subscription', async () => {
+    mockPrisma.athleteSubscription.findUnique.mockResolvedValue({
+      id: 'sub-1',
+      clientId: 'client-1',
+      tier: 'FREE',
+      status: 'ACTIVE',
+      paymentSource: 'DIRECT',
+      stripeSubscriptionId: null,
+      aiChatEnabled: true,
+      aiChatMessagesLimit: 10,
+      aiChatMessagesUsed: 0,
+      videoAnalysisEnabled: false,
+      stravaEnabled: false,
+      garminEnabled: false,
+      workoutLoggingEnabled: false,
+      dailyCheckInEnabled: false,
+    })
+
+    const result = await checkAthleteFeatureAccess('client-1', 'advanced_intelligence')
+
+    expect(mockPrisma.client.findUnique).not.toHaveBeenCalled()
+    expect(mockPrisma.subscription.findUnique).not.toHaveBeenCalled()
+    expect(result).toEqual({
+      allowed: false,
+      reason: 'Denna funktion kräver en uppgraderad prenumeration.',
+      code: 'FEATURE_DISABLED',
+      upgradeUrl: '/athlete/subscription',
+    })
+  })
 })

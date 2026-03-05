@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
-      where: { userId: user.id },
+      where: { userId: user.id, isActive: true },
     });
 
     const tester = await prisma.tester.findUnique({
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Verify access
     const hasAccess =
       (businessMember && tester.businessId === businessMember.businessId) ||
-      tester.userId === user.id;
+      (!tester.businessId && tester.userId === user.id);
 
     if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
