@@ -67,6 +67,23 @@ interface ChatRequest {
   intent?: string;
 }
 
+type LowerProvider = 'anthropic' | 'google' | 'openai'
+
+function inferProviderFromModelRef(value: string): LowerProvider | null {
+  const lower = value.toLowerCase()
+  if (lower.includes('gemini')) return 'google'
+  if (lower.includes('claude')) return 'anthropic'
+  if (lower.includes('gpt-')) return 'openai'
+  return null
+}
+
+function intersectProviders(
+  a: Set<LowerProvider>,
+  b: Set<LowerProvider>
+): Set<LowerProvider> {
+  return new Set([...a].filter((provider) => b.has(provider)))
+}
+
 /**
  * Extract text content from a message (handles both old and new formats)
  * AI SDK 5 sends messages with `parts` array, older format uses `content` string
@@ -123,6 +140,8 @@ export async function POST(request: NextRequest) {
     let calendarProgramEndDate: Date | undefined;
     // Athlete capabilities for AI chat (self-coached athletes)
     let athleteCapabilities: AthleteCapabilities | undefined;
+    // Strict provider allowlist from athlete model settings (if explicitly configured)
+    let athleteAllowedProviders: Set<LowerProvider> | null = null;
 
     if (isAthleteChat) {
       // Athlete chat mode (supports coaches in athlete mode)
@@ -165,6 +184,88 @@ export async function POST(request: NextRequest) {
         if (admin) {
           apiKeyUserId = admin.id
         }
+      }
+
+      // Resolve strict provider allowlist from model restrictions.
+      // If athlete model list is explicitly set and only contains Gemini models,
+      // chat must not silently fall back to Claude/OpenAI.
+      try {
+        const [coachApiSettings, businessMembership] = await Promise.all([
+          prisma.userApiKey.findUnique({
+            where: { userId: apiKeyUserId },
+            select: { allowedAthleteModelIds: true },
+          }),
+          prisma.businessMember.findFirst({
+            where: { userId: apiKeyUserId, isActive: true },
+            select: {
+              business: {
+                select: {
+                  aiKeys: {
+                    select: { allowedAthleteModelIds: true },
+                  },
+                },
+              },
+            },
+          }),
+        ])
+
+        const coachRawAllowed = coachApiSettings?.allowedAthleteModelIds || []
+        const businessRawAllowed = businessMembership?.business?.aiKeys?.allowedAthleteModelIds || []
+        const allRefs = [...new Set([...coachRawAllowed, ...businessRawAllowed])]
+          .filter((value) => !isModelIntent(value))
+
+        const providerByRef = new Map<string, LowerProvider>()
+        if (allRefs.length > 0) {
+          const models = await prisma.aIModel.findMany({
+            where: {
+              OR: [
+                { id: { in: allRefs } },
+                { modelId: { in: allRefs } },
+              ],
+            },
+            select: {
+              id: true,
+              modelId: true,
+              provider: true,
+            },
+          })
+
+          for (const m of models) {
+            const mappedProvider: LowerProvider =
+              m.provider === 'GOOGLE' ? 'google' : m.provider === 'ANTHROPIC' ? 'anthropic' : 'openai'
+            providerByRef.set(m.id, mappedProvider)
+            providerByRef.set(m.modelId, mappedProvider)
+          }
+        }
+
+        const deriveProviders = (rawRefs: string[]): Set<LowerProvider> | null => {
+          if (rawRefs.length === 0) return null // no explicit restriction
+          const providers = new Set<LowerProvider>()
+          for (const ref of rawRefs) {
+            if (isModelIntent(ref)) continue // tier value, no provider-specific restriction
+            const fromModel = providerByRef.get(ref)
+            if (fromModel) {
+              providers.add(fromModel)
+              continue
+            }
+            const fromHeuristic = inferProviderFromModelRef(ref)
+            if (fromHeuristic) providers.add(fromHeuristic)
+          }
+          // If we cannot infer providers from configured refs, keep behavior unrestricted.
+          return providers.size > 0 ? providers : null
+        }
+
+        const coachProviders = deriveProviders(coachRawAllowed)
+        const businessProviders = deriveProviders(businessRawAllowed)
+
+        if (coachProviders && businessProviders) {
+          const intersection = intersectProviders(coachProviders, businessProviders)
+          athleteAllowedProviders = intersection.size > 0 ? intersection : businessProviders
+        } else {
+          athleteAllowedProviders = coachProviders || businessProviders
+        }
+      } catch (error) {
+        logger.warn('Unable to resolve athlete provider restrictions', {}, error)
       }
 
       // Skip subscription check for coaches/admins in athlete mode (they own the API keys)
@@ -237,10 +338,19 @@ export async function POST(request: NextRequest) {
 
     // Get API keys (user's own → business keys → none)
     const decryptedKeys = await getResolvedAiKeys(apiKeyUserId)
+    const effectiveKeys = isAthleteChat && athleteAllowedProviders
+      ? {
+          anthropicKey: athleteAllowedProviders.has('anthropic') ? decryptedKeys.anthropicKey : null,
+          googleKey: athleteAllowedProviders.has('google') ? decryptedKeys.googleKey : null,
+          openaiKey: athleteAllowedProviders.has('openai') ? decryptedKeys.openaiKey : null,
+        }
+      : decryptedKeys
 
-    if (!decryptedKeys.anthropicKey && !decryptedKeys.googleKey && !decryptedKeys.openaiKey) {
+    if (!effectiveKeys.anthropicKey && !effectiveKeys.googleKey && !effectiveKeys.openaiKey) {
       const errorMsg = isAthleteChat
-        ? 'Din coach har inte konfigurerat AI-nycklar ännu'
+        ? (athleteAllowedProviders
+            ? 'Din coach/verksamhet tillåter inte några modeller med tillgängliga API-nycklar just nu.'
+            : 'Din coach har inte konfigurerat AI-nycklar ännu')
         : 'API keys not configured';
       return new Response(
         JSON.stringify({ error: errorMsg }),
@@ -605,7 +715,7 @@ ${pageContext}
 
     // Intent-based resolution for athlete chat
     if (body.intent && isModelIntent(body.intent) && isAthleteChat) {
-      const resolved = resolveModel(decryptedKeys, body.intent);
+      const resolved = resolveModel(effectiveKeys, body.intent);
       if (resolved) {
         aiModel = createModelInstance(resolved);
         logger.info('Athlete intent-based model resolved', {
@@ -619,14 +729,14 @@ ${pageContext}
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
       }
-    } else if (provider === 'ANTHROPIC' && decryptedKeys.anthropicKey) {
+    } else if (provider === 'ANTHROPIC' && effectiveKeys.anthropicKey) {
       const anthropic = createAnthropic({
-        apiKey: decryptedKeys.anthropicKey,
+        apiKey: effectiveKeys.anthropicKey,
       });
       aiModel = anthropic(model || 'claude-sonnet-4-6');
-    } else if (provider === 'GOOGLE' && decryptedKeys.googleKey) {
+    } else if (provider === 'GOOGLE' && effectiveKeys.googleKey) {
       const google = createGoogleGenerativeAI({
-        apiKey: decryptedKeys.googleKey,
+        apiKey: effectiveKeys.googleKey,
       });
       const geminiModel = model || 'gemini-3-flash-preview';
       aiModel = google(geminiModel);
@@ -634,15 +744,15 @@ ${pageContext}
       if (deepThinkEnabled) {
         logger.info('Using Gemini Deep Think mode', { model: geminiModel })
       }
-    } else if (provider === 'OPENAI' && decryptedKeys.openaiKey) {
+    } else if (provider === 'OPENAI' && effectiveKeys.openaiKey) {
       const openai = createOpenAI({
-        apiKey: decryptedKeys.openaiKey,
+        apiKey: effectiveKeys.openaiKey,
       });
       // OpenAI SDK returns LanguageModelV2 which is compatible with streamText
       aiModel = openai(model || 'gpt-5.2');
     } else {
       // Selected provider's key not available — try any available provider
-      const resolved = resolveModel(decryptedKeys, 'balanced');
+      const resolved = resolveModel(effectiveKeys, 'balanced');
       if (resolved) {
         aiModel = createModelInstance(resolved);
         logger.info('Falling back to available provider', {
@@ -669,7 +779,7 @@ ${pageContext}
       athleteClientId: isAthleteChat ? athleteClientId : undefined,
       deepThinkEnabled: provider === 'GOOGLE' && deepThinkEnabled,
       hasApiKey:
-        Boolean(decryptedKeys.anthropicKey || decryptedKeys.googleKey || decryptedKeys.openaiKey),
+        Boolean(effectiveKeys.anthropicKey || effectiveKeys.googleKey || effectiveKeys.openaiKey),
       messageCount: messages.length,
       documentCount: documentIds.length,
       webSearchEnabled,

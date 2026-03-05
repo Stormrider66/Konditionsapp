@@ -155,13 +155,48 @@ export async function GET() {
       // allowedAthleteModelIds may contain tier strings ('fast','balanced','powerful') or legacy model IDs
       const rawAllowed = userKeys?.allowedAthleteModelIds || []
       const businessRawAllowed = businessAllowedAthleteModelIds || []
+      const allRawModelRefs = [...new Set([...rawAllowed, ...businessRawAllowed])]
+        .filter(v => !isModelIntent(v))
+
+      const modelIntentMap = new Map<string, ModelIntent>()
+      if (allRawModelRefs.length > 0) {
+        const models = await prisma.aIModel.findMany({
+          where: {
+            OR: [
+              { id: { in: allRawModelRefs } },
+              { modelId: { in: allRawModelRefs } },
+            ],
+          },
+          select: {
+            id: true,
+            modelId: true,
+          },
+        })
+        for (const model of models) {
+          const intent = legacyModelIdToIntent(model.modelId)
+          modelIntentMap.set(model.id, intent)
+          modelIntentMap.set(model.modelId, intent)
+        }
+      }
+
+      const toIntent = (value: string): ModelIntent | null => {
+        if (isModelIntent(value)) return value
+        const mapped = modelIntentMap.get(value)
+        if (mapped) return mapped
+        // Backward compatibility for legacy model-id strings
+        if (value.includes('gemini') || value.includes('claude') || value.includes('gpt-')) {
+          return legacyModelIdToIntent(value)
+        }
+        return null
+      }
 
       let allowedTiers: ModelIntent[] = ['fast', 'balanced', 'powerful']
 
       // Coach-level tier restrictions
       if (rawAllowed.length > 0) {
         const tiers = rawAllowed
-          .map(id => isModelIntent(id) ? id : legacyModelIdToIntent(id))
+          .map(toIntent)
+          .filter((v): v is ModelIntent => v !== null)
           .filter((v, i, a) => a.indexOf(v) === i) as ModelIntent[]
         if (tiers.length > 0) {
           allowedTiers = tiers
@@ -171,7 +206,8 @@ export async function GET() {
       // Business-level tier restrictions (intersect)
       if (businessRawAllowed.length > 0) {
         const bizTiers = businessRawAllowed
-          .map(id => isModelIntent(id) ? id : legacyModelIdToIntent(id))
+          .map(toIntent)
+          .filter((v): v is ModelIntent => v !== null)
           .filter((v, i, a) => a.indexOf(v) === i) as ModelIntent[]
         if (bizTiers.length > 0) {
           allowedTiers = allowedTiers.filter(t => bizTiers.includes(t))
@@ -183,7 +219,8 @@ export async function GET() {
       const rawDefault = userKeys?.athleteDefaultModelId || businessAthleteDefaultModelId
       let defaultIntent: ModelIntent = 'balanced'
       if (rawDefault) {
-        defaultIntent = isModelIntent(rawDefault) ? rawDefault : legacyModelIdToIntent(rawDefault)
+        const mapped = toIntent(rawDefault)
+        if (mapped) defaultIntent = mapped
       }
       if (!allowedTiers.includes(defaultIntent)) {
         defaultIntent = allowedTiers.includes('balanced') ? 'balanced' : allowedTiers[0]

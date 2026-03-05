@@ -14,10 +14,10 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
 import { FoodPhotoAnalysisSchema } from '@/lib/validations/gemini-schemas'
-import { decryptSecret } from '@/lib/crypto/secretbox'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
+import { getResolvedGoogleKey } from '@/lib/user-api-keys'
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,22 +83,12 @@ export async function POST(request: NextRequest) {
 
     const keyOwnerId = isCoachInAthleteMode ? user.id : client.userId
 
-    const apiKeys = await prisma.userApiKey.findUnique({
-      where: { userId: keyOwnerId },
-    })
-
-    let googleKey: string | undefined
-    if (apiKeys?.googleKeyEncrypted) {
-      try {
-        googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
-      } catch {
-        googleKey = undefined
-      }
-    }
+    // Food photo analysis is vision-based and must run on Gemini/Google.
+    const googleKey = await getResolvedGoogleKey(keyOwnerId)
 
     if (!googleKey) {
       return NextResponse.json(
-        { error: 'Google API-nyckel saknas. Konfigurera i Inställningar.' },
+        { error: 'Google/Gemini API-nyckel saknas för bildanalys. Aktivera Gemini i AI-inställningar.' },
         { status: 400 }
       )
     }

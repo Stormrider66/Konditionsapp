@@ -81,35 +81,68 @@ export async function getDecryptedBusinessAiKeys(businessId: string): Promise<De
 }
 
 export async function getResolvedAiKeys(userId: string): Promise<DecryptedUserApiKeys> {
-  // 1. Check user's own keys first
-  const userKeys = await getDecryptedUserApiKeys(userId)
-  if (userKeys.anthropicKey || userKeys.googleKey || userKeys.openaiKey) {
-    return userKeys
+  // Resolve each provider independently (user -> business -> admin),
+  // so mixed-source setups work correctly (e.g. Anthropic user key + Google business key).
+  const [anthropicKey, googleKey, openaiKey] = await Promise.all([
+    getResolvedProviderKey(userId, 'anthropic'),
+    getResolvedProviderKey(userId, 'google'),
+    getResolvedProviderKey(userId, 'openai'),
+  ])
+
+  return { anthropicKey, googleKey, openaiKey }
+}
+
+type ProviderKey = 'anthropic' | 'google' | 'openai'
+
+/**
+ * Resolve a provider-specific key with deterministic fallback:
+ * user key -> business key -> platform admin key.
+ *
+ * Unlike getResolvedAiKeys(), this does NOT stop early when another provider
+ * is present on the user record, which is required for vision/audio routes
+ * that must use a specific provider (e.g. Google/Gemini).
+ */
+export async function getResolvedProviderKey(
+  userId: string,
+  provider: ProviderKey
+): Promise<string | null> {
+  const pickKey = (keys: DecryptedUserApiKeys): string | null => {
+    if (provider === 'anthropic') return keys.anthropicKey
+    if (provider === 'google') return keys.googleKey
+    return keys.openaiKey
   }
 
-  // 2. Fall back to business keys
+  // 1) User key
+  const userKeys = await getDecryptedUserApiKeys(userId)
+  const userProviderKey = pickKey(userKeys)
+  if (userProviderKey) return userProviderKey
+
+  // 2) Business key
   const membership = await prisma.businessMember.findFirst({
     where: { userId, isActive: true },
     select: { businessId: true },
   })
-
   if (membership) {
     const businessKeys = await getDecryptedBusinessAiKeys(membership.businessId)
-    if (businessKeys.anthropicKey || businessKeys.googleKey || businessKeys.openaiKey) {
-      return businessKeys
-    }
+    const businessProviderKey = pickKey(businessKeys)
+    if (businessProviderKey) return businessProviderKey
   }
 
-  // 3. Fall back to platform admin keys (for athletes without a coach)
+  // 3) Platform admin key
   const admin = await prisma.user.findFirst({
     where: { adminRole: 'SUPER_ADMIN' },
     select: { id: true },
   })
   if (admin) {
-    return getDecryptedUserApiKeys(admin.id)
+    const adminKeys = await getDecryptedUserApiKeys(admin.id)
+    return pickKey(adminKeys)
   }
 
-  return userKeys // no keys
+  return null
+}
+
+export async function getResolvedGoogleKey(userId: string): Promise<string | null> {
+  return getResolvedProviderKey(userId, 'google')
 }
 
 export async function getAiKeySource(userId: string): Promise<{

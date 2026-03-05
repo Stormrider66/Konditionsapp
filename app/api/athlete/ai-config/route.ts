@@ -127,11 +127,47 @@ export async function GET() {
     // Determine allowed intents from coach + business settings
     const rawAllowed = coachApiSettings?.allowedAthleteModelIds || []
     const businessRawAllowed = businessSettings?.business?.aiKeys?.allowedAthleteModelIds || []
+    const allRawModelRefs = [...new Set([...rawAllowed, ...businessRawAllowed])]
+      .filter(v => !isModelIntent(v))
+
+    const modelIntentMap = new Map<string, ModelIntent>()
+    if (allRawModelRefs.length > 0) {
+      const models = await prisma.aIModel.findMany({
+        where: {
+          OR: [
+            { id: { in: allRawModelRefs } },
+            { modelId: { in: allRawModelRefs } },
+          ],
+        },
+        select: {
+          id: true,
+          modelId: true,
+        },
+      })
+      for (const model of models) {
+        const intent = legacyModelIdToIntent(model.modelId)
+        modelIntentMap.set(model.id, intent)
+        modelIntentMap.set(model.modelId, intent)
+      }
+    }
+
+    const toIntent = (value: string): ModelIntent | null => {
+      if (isModelIntent(value)) return value
+      const mapped = modelIntentMap.get(value)
+      if (mapped) return mapped
+      // Backward compatibility for legacy model-id strings
+      if (value.includes('gemini') || value.includes('claude') || value.includes('gpt-')) {
+        return legacyModelIdToIntent(value)
+      }
+      return null
+    }
+
     let availableIntents: ModelIntent[] = ['fast', 'balanced', 'powerful']
 
     if (rawAllowed.length > 0) {
       const tiers = rawAllowed
-        .map(id => isModelIntent(id) ? id : legacyModelIdToIntent(id))
+        .map(toIntent)
+        .filter((v): v is ModelIntent => v !== null)
         .filter((v, i, a) => a.indexOf(v) === i) as ModelIntent[]
       if (tiers.length > 0) {
         availableIntents = tiers
@@ -140,7 +176,8 @@ export async function GET() {
 
     if (businessRawAllowed.length > 0) {
       const businessTiers = businessRawAllowed
-        .map(id => isModelIntent(id) ? id : legacyModelIdToIntent(id))
+        .map(toIntent)
+        .filter((v): v is ModelIntent => v !== null)
         .filter((v, i, a) => a.indexOf(v) === i) as ModelIntent[]
       if (businessTiers.length > 0) {
         availableIntents = availableIntents.filter(intent => businessTiers.includes(intent))
@@ -161,15 +198,13 @@ export async function GET() {
     }
     // Priority 2: Coach's athlete default
     else if (coachApiSettings?.athleteDefaultModelId) {
-      selectedIntent = isModelIntent(coachApiSettings.athleteDefaultModelId)
-        ? coachApiSettings.athleteDefaultModelId
-        : legacyModelIdToIntent(coachApiSettings.athleteDefaultModelId)
+      const mapped = toIntent(coachApiSettings.athleteDefaultModelId)
+      if (mapped) selectedIntent = mapped
     }
     // Priority 3: Business athlete default
     else if (businessSettings?.business?.aiKeys?.athleteDefaultModelId) {
-      selectedIntent = isModelIntent(businessSettings.business.aiKeys.athleteDefaultModelId)
-        ? businessSettings.business.aiKeys.athleteDefaultModelId
-        : legacyModelIdToIntent(businessSettings.business.aiKeys.athleteDefaultModelId)
+      const mapped = toIntent(businessSettings.business.aiKeys.athleteDefaultModelId)
+      if (mapped) selectedIntent = mapped
     }
 
     // Ensure selected intent is in available set
