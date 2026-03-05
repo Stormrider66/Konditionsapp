@@ -781,6 +781,10 @@ model Client {
   weight    Float // kg
   notes     String?
 
+  // Manual physiological values (self-reported by athlete)
+  manualVo2max Float? // ml/kg/min — used when no lab test exists
+  manualMaxHR  Int?   // bpm — used when no lab test exists
+
   // Direct athlete flag (not onboarded via coach)
   isDirect Boolean @default(false)
 

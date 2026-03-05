@@ -61,6 +61,8 @@ interface ClientData {
   height: number
   weight: number
   notes: string | null
+  manualVo2max: number | null
+  manualMaxHR: number | null
   createdAt: Date
   updatedAt: Date
   team: { id: string; name: string } | null

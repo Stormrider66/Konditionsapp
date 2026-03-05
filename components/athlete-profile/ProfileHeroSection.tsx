@@ -79,11 +79,46 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
     }
   }
 
+  // State for physiology dialog
+  const [showPhysioDialog, setShowPhysioDialog] = useState(false)
+  const [physioVo2max, setPhysioVo2max] = useState<number | null>(client.manualVo2max)
+  const [physioMaxHR, setPhysioMaxHR] = useState<number | null>(client.manualMaxHR)
+  const [physioSaving, setPhysioSaving] = useState(false)
+  const [physioError, setPhysioError] = useState('')
+
+  const handlePhysioSave = async () => {
+    setPhysioError('')
+    setPhysioSaving(true)
+    try {
+      const res = await fetch('/api/athlete/profile/physiology', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          manualVo2max: physioVo2max || null,
+          manualMaxHR: physioMaxHR || null,
+        }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setPhysioError(json.error || 'Kunde inte spara')
+        return
+      }
+      setShowPhysioDialog(false)
+      router.refresh()
+    } catch {
+      setPhysioError('Något gick fel')
+    } finally {
+      setPhysioSaving(false)
+    }
+  }
+
   // Calculate key metrics
   const age = calculateAge(client.birthDate)
-  const vo2max = latestTest?.vo2max
+  const vo2max = latestTest?.vo2max || client.manualVo2max
+  const vo2maxSource = latestTest?.vo2max ? 'test' : (client.manualVo2max ? 'manual' : null)
   const vdot = athleteProfile?.currentVDOT || latestRace?.vdot
-  const maxHR = latestTest?.maxHR
+  const maxHR = latestTest?.maxHR || client.manualMaxHR
+  const maxHRSource = latestTest?.maxHR ? 'test' : (client.manualMaxHR ? 'manual' : null)
 
   // Get initials for avatar
   const initials = client.name
@@ -242,9 +277,15 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
             label="VO2max"
             value={vo2max ? `${vo2max.toFixed(1)}` : '-'}
             unit="ml/kg/min"
-            subtext={latestTest ? `${format(new Date(latestTest.testDate), 'd MMM yyyy', { locale: sv })}` : undefined}
+            subtext={vo2maxSource === 'test' && latestTest ? `${format(new Date(latestTest.testDate), 'd MMM yyyy', { locale: sv })}` : vo2maxSource === 'manual' ? 'Manuellt' : undefined}
             isGlass={isGlass}
             accentColor="emerald"
+            onEdit={isAthlete ? () => {
+              setPhysioVo2max(client.manualVo2max)
+              setPhysioMaxHR(client.manualMaxHR)
+              setPhysioError('')
+              setShowPhysioDialog(true)
+            } : undefined}
           />
 
           <MetricCard
@@ -261,8 +302,15 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
             label="Max puls"
             value={maxHR ? `${maxHR}` : '-'}
             unit="bpm"
+            subtext={maxHRSource === 'manual' ? 'Manuellt' : undefined}
             isGlass={isGlass}
             accentColor="red"
+            onEdit={isAthlete ? () => {
+              setPhysioVo2max(client.manualVo2max)
+              setPhysioMaxHR(client.manualMaxHR)
+              setPhysioError('')
+              setShowPhysioDialog(true)
+            } : undefined}
           />
 
           <MetricCard
@@ -357,6 +405,60 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
           </DialogContent>
         </Dialog>
       )}
+      {/* Edit Physiology Dialog */}
+      {isAthlete && (
+        <Dialog open={showPhysioDialog} onOpenChange={setShowPhysioDialog}>
+          <DialogContent className="sm:max-w-[360px] text-foreground">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Uppdatera fysiologiska värden</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Fyll i dina värden manuellt. Dessa ersätts automatiskt om du gör ett konditionstest.
+            </p>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="vo2max" className="text-foreground">VO2max (ml/kg/min)</Label>
+                <Input
+                  id="vo2max"
+                  type="number"
+                  min={10}
+                  max={100}
+                  step={0.1}
+                  placeholder="t.ex. 52.3"
+                  value={physioVo2max ?? ''}
+                  onChange={(e) => setPhysioVo2max(e.target.value ? parseFloat(e.target.value) : null)}
+                  className="text-foreground"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="maxhr" className="text-foreground">Max puls (bpm)</Label>
+                <Input
+                  id="maxhr"
+                  type="number"
+                  min={100}
+                  max={250}
+                  step={1}
+                  placeholder="t.ex. 195"
+                  value={physioMaxHR ?? ''}
+                  onChange={(e) => setPhysioMaxHR(e.target.value ? parseInt(e.target.value) : null)}
+                  className="text-foreground"
+                />
+              </div>
+              {physioError && (
+                <p className="text-sm text-red-500">{physioError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowPhysioDialog(false)} className="text-foreground">
+                Avbryt
+              </Button>
+              <Button onClick={handlePhysioSave} disabled={physioSaving}>
+                {physioSaving ? 'Sparar...' : 'Spara'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </CardWrapper>
   )
 }
@@ -369,7 +471,8 @@ function MetricCard({
   unit,
   subtext,
   isGlass = false,
-  accentColor = 'blue'
+  accentColor = 'blue',
+  onEdit
 }: {
   icon: React.ElementType
   label: string
@@ -378,6 +481,7 @@ function MetricCard({
   subtext?: string
   isGlass?: boolean
   accentColor?: 'blue' | 'emerald' | 'red' | 'purple'
+  onEdit?: () => void
 }) {
   const accentClasses = {
     blue: 'text-blue-600 dark:text-blue-500 bg-blue-100 dark:bg-blue-500/10',
@@ -388,11 +492,22 @@ function MetricCard({
 
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center p-4 rounded-3xl group transition-all",
+      "relative flex flex-col items-center justify-center p-4 rounded-3xl group transition-all",
       isGlass
         ? "bg-slate-50 border border-slate-200 dark:bg-white/[0.02] dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/5"
         : "bg-white/[0.02] border border-white/5 hover:bg-white/5"
     )}>
+      {onEdit && (
+        <button
+          onClick={onEdit}
+          className={cn(
+            "absolute top-2 right-2 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity",
+            isGlass ? "text-slate-400 hover:text-slate-900 dark:hover:text-white" : "text-slate-500 hover:text-white"
+          )}
+        >
+          <Pencil className="h-3 w-3" />
+        </button>
+      )}
       <div className={cn(
         "w-10 h-10 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110",
         accentClasses[accentColor]
