@@ -178,7 +178,7 @@ async function handleCompletion(
       estimatedCost = (tokensUsed / 1000000) * 0.15 // $0.15 per 1M input tokens (gpt-5-mini)
       break
     case 'OPENAI_STANDARD':
-      estimatedCost = (tokensUsed / 1000000) * 2.5 // $2.50 per 1M tokens (gpt-5.2)
+      estimatedCost = (tokensUsed / 1000000) * 2.5 // $2.50 per 1M tokens (gpt-5.4)
       break
     case 'OPENAI_DEEP':
       estimatedCost = (tokensUsed / 1000000) * 3.0 // $3.00 per 1M tokens (o4-mini)
@@ -315,7 +315,7 @@ function getModelForProvider(provider: DeepResearchProvider): string {
     case 'OPENAI_QUICK':
       return 'gpt-5-mini'
     case 'OPENAI_STANDARD':
-      return 'gpt-5.2'
+      return 'gpt-5.4'
     case 'OPENAI_DEEP':
       return 'o4-mini-deep-research'
     case 'OPENAI_EXPERT':

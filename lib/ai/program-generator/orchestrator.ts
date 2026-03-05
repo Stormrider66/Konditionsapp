@@ -304,13 +304,13 @@ async function callOpenAI(prompt: string, apiKey: string, modelId?: string): Pro
   const { generateText } = await import('ai')
 
   const openai = createOpenAI({ apiKey })
-  const model = modelId || 'gpt-5.2'
+  const model = modelId || 'gpt-5.4'
 
   const result = await generateText({
     model: openai(model),
     system: PROGRAM_GENERATOR_SYSTEM_PROMPT,
     prompt,
-    maxOutputTokens: 32000, // GPT-5.2 supports larger output
+    maxOutputTokens: 32000, // GPT-5.4 supports larger output
   })
 
   return result.text

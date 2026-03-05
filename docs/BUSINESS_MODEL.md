@@ -197,7 +197,7 @@ This routing strategy keeps costs minimal for 90%+ of interactions while reservi
 | Model | Input (per 1M tokens) | Output (per 1M tokens) |
 |-------|----------------------|------------------------|
 | GPT-5-mini | $0.25 | $2.00 |
-| GPT-5.2 | $1.75 | $14.00 |
+| GPT-5.4 | $1.75 | $14.00 |
 
 **Google Gemini Models:**
 

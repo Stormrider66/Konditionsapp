@@ -3,7 +3,7 @@
  *
  * Supports multiple tiers:
  * - QUICK: GPT-5 Mini + web_search (fast, cheap)
- * - STANDARD: GPT-5.2 Thinking + web_search (balanced)
+ * - STANDARD: GPT-5.4 Thinking + web_search (balanced)
  * - DEEP: o4-mini-deep-research (thorough)
  * - EXPERT: o3-deep-research (comprehensive)
  */
@@ -39,7 +39,7 @@ const TIER_CONFIGS: Record<string, TierConfig> = {
     background: false,
   },
   OPENAI_STANDARD: {
-    model: 'gpt-5.2',
+    model: 'gpt-5.4',
     useWebSearch: true,
     reasoning: 'high',
     background: false,

@@ -109,8 +109,8 @@ const AI_MODELS = [
   // Source: https://platform.openai.com/docs/models, https://openai.com/index/introducing-gpt-5-2/
   {
     provider: 'OPENAI' as const,
-    modelId: 'gpt-5.2-pro',
-    displayName: 'GPT-5.2 Pro',
+    modelId: 'gpt-5.4-pro',
+    displayName: 'GPT-5.4 Pro',
     description: 'Mest kraftfulla modellen med xhigh reasoning för avancerad forskning',
     capabilities: ['text', 'code', 'vision', 'reasoning', 'thinking'],
     maxTokens: 400000,
@@ -122,8 +122,8 @@ const AI_MODELS = [
   },
   {
     provider: 'OPENAI' as const,
-    modelId: 'gpt-5.2',
-    displayName: 'GPT-5.2',
+    modelId: 'gpt-5.4',
+    displayName: 'GPT-5.4',
     description: 'OpenAIs flaggskeppsmodell med 128K output - bäst för långa program',
     capabilities: ['text', 'code', 'vision', 'reasoning'],
     maxTokens: 400000,

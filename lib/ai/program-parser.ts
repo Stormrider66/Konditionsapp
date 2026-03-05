@@ -232,7 +232,7 @@ function extractJsonFromText(text: string): string | null {
     }
   }
 
-  // Try to parse key-value format (GPT-5.2 outputs this format)
+  // Try to parse key-value format (GPT-5.4 outputs this format)
   const kvResult = parseKeyValueFormat(text);
   if (kvResult) {
     return JSON.stringify(kvResult);

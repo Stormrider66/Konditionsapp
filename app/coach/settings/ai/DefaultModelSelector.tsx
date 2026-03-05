@@ -339,7 +339,7 @@ export function DefaultModelSelector() {
               För att generera 6-9 månaders program, välj en modell med hög output-kapacitet:
             </p>
             <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-              <li>• <strong>GPT-5.2</strong> - 128K output (~32 veckor) - Bäst för längre program</li>
+              <li>• <strong>GPT-5.4</strong> - 128K output (~32 veckor) - Bäst för längre program</li>
               <li>• <strong>Gemini 3.1 Pro / Claude Sonnet 4.6</strong> - 64K output (~16 veckor) - Bra balans</li>
               <li>• <strong>Haiku / Nano</strong> - 8-16K output (~2-4 veckor) - Snabbt för korta program</li>
             </ul>

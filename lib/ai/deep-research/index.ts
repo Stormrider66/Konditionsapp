@@ -98,7 +98,7 @@ export const PROVIDER_COST_ESTIMATES: Record<DeepResearchProvider, CostEstimate>
 export const PROVIDER_MODELS: Record<DeepResearchProvider, string> = {
   GEMINI: 'deep-research-pro-preview-12-2025',
   OPENAI_QUICK: 'gpt-5-mini',
-  OPENAI_STANDARD: 'gpt-5.2',
+  OPENAI_STANDARD: 'gpt-5.4',
   OPENAI_DEEP: 'o4-mini-deep-research',
   OPENAI_EXPERT: 'o3-deep-research',
   LANGCHAIN: 'custom',

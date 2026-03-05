@@ -129,7 +129,7 @@ const PROVIDER_OPTIONS: ProviderOption[] = [
   {
     value: 'OPENAI_STANDARD',
     label: 'Standard Research',
-    description: 'GPT-5.2 Thinking with enhanced reasoning and web search.',
+    description: 'GPT-5.4 Thinking with enhanced reasoning and web search.',
     icon: <Brain className="h-4 w-4 text-purple-500" />,
     estimatedTime: '1-3 min',
     estimatedCost: '$0.50-2.00',

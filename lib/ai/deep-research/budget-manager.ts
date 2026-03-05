@@ -397,7 +397,7 @@ export function estimateCost(
 
     // OpenAI
     'gpt-5-mini': { input: 0.25, output: 2.0 },
-    'gpt-5.2': { input: 1.75, output: 14.0 },
+    'gpt-5.4': { input: 1.75, output: 14.0 },
     'o4-mini-deep-research': { input: 1.1, output: 4.4 },
     'o3-deep-research': { input: 10.0, output: 40.0 },
 

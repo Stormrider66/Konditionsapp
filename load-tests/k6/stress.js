@@ -82,7 +82,7 @@ export default function () {
         '/api/ai/chat',
         {
           messages: [{ role: 'user', content: 'Ge mig ett kort återhämtningspass idag.' }],
-          model: 'gpt-5.2',
+          model: 'gpt-5.4',
           provider: 'OPENAI',
           isAthleteChat: true,
           clientId,

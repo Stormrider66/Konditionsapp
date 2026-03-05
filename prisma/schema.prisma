@@ -6665,7 +6665,7 @@ model ErgometerBenchmark {
 enum DeepResearchProvider {
   GEMINI // Gemini Deep Research (Interactions API)
   OPENAI_QUICK // GPT-5 Mini + web_search
-  OPENAI_STANDARD // GPT-5.2 Thinking + web_search
+  OPENAI_STANDARD // GPT-5.4 Thinking + web_search
   OPENAI_DEEP // o4-mini-deep-research
   OPENAI_EXPERT // o3-deep-research
   LANGCHAIN // LangChain open_deep_research (future)

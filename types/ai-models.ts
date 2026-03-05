@@ -188,10 +188,10 @@ export const AI_MODELS: AIModelConfig[] = [
     },
   },
   {
-    id: 'gpt-5.2',
-    name: 'GPT-5.2',
+    id: 'gpt-5.4',
+    name: 'GPT-5.4',
     provider: 'openai',
-    modelId: 'gpt-5.2',
+    modelId: 'gpt-5.4',
     description: 'OpenAIs flaggskepp. 128K output - bäst för långa program!',
     costTier: 'high',
     capabilities: {
@@ -368,7 +368,7 @@ export const MODEL_TIERS: Record<ModelIntent, {
   powerful: {
     google:    { modelId: 'gemini-3.1-pro-preview',     displayName: 'Gemini 3.1 Pro' },
     anthropic: { modelId: 'claude-opus-4-6',            displayName: 'Claude Opus 4.6' },
-    openai:    { modelId: 'gpt-5.2',                    displayName: 'GPT-5.2' },
+    openai:    { modelId: 'gpt-5.4',                    displayName: 'GPT-5.4' },
   },
 }
 
@@ -466,7 +466,7 @@ export function legacyModelIdToIntent(id: string): ModelIntent {
   // Also match the short IDs used in the AI_MODELS array
   const fastIds = ['gemini-3.1-flash-lite', 'claude-haiku', 'gpt-5.3-instant']
   const balancedIds = ['gemini-3-flash', 'claude-sonnet', 'gpt-5-mini']
-  const powerfulIds = ['gemini-3-pro', 'claude-opus', 'gpt-5.2']
+  const powerfulIds = ['gemini-3-pro', 'claude-opus', 'gpt-5.4']
 
   if (fastIds.includes(id)) return 'fast'
   if (balancedIds.includes(id)) return 'balanced'

@@ -746,7 +746,7 @@ ${pageContext}
         apiKey: effectiveKeys.openaiKey,
       });
       // OpenAI SDK returns LanguageModelV2 which is compatible with streamText
-      aiModel = openai(model || 'gpt-5.2');
+      aiModel = openai(model || 'gpt-5.4');
     } else {
       // Selected provider's key not available — try any available provider
       const resolved = resolveModel(effectiveKeys, 'balanced');
@@ -785,7 +785,7 @@ ${pageContext}
 
     // Set max output tokens per provider
     const maxTokensByProvider: Record<string, number> = {
-      OPENAI: 128000,    // GPT-5.2 supports 128k output
+      OPENAI: 128000,    // GPT-5.4 supports 128k output
       ANTHROPIC: 64000,  // Claude Sonnet 4.6 supports 64k, Opus 4.6 supports 128k
       GOOGLE: 65536,     // Gemini
     };

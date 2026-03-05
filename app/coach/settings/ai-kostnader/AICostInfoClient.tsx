@@ -243,7 +243,7 @@ export function AICostInfoClient({ businessSlug }: AICostInfoClientProps) {
                     <p className="text-xs">Snabb och prisvärd. Bra för WOD, chatt och enklare frågor.</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Längre program → Claude Opus / GPT-5.2</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">Längre program → Claude Opus / GPT-5.4</p>
                     <p className="text-xs">128K output-tokens. Kan generera 16+ veckors detaljerat program i ett svar.</p>
                   </div>
                   <div>
