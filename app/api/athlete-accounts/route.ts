@@ -20,13 +20,21 @@ export async function POST(request: NextRequest) {
     // Require coach authentication
     const coach = await requireCoach()
 
-    // Check subscription limits
-    const reachedLimit = await hasReachedAthleteLimit(coach.id)
-    if (reachedLimit) {
-      return NextResponse.json(
-        { error: 'You have reached your athlete limit. Please upgrade your subscription.' },
-        { status: 403 }
-      )
+    // Business members are exempt — their limit is managed at the business level
+    const businessMembership = await prisma.businessMember.findFirst({
+      where: { userId: coach.id, isActive: true },
+      select: { businessId: true },
+    })
+
+    if (!businessMembership) {
+      // Check subscription limits for non-business coaches
+      const reachedLimit = await hasReachedAthleteLimit(coach.id)
+      if (reachedLimit) {
+        return NextResponse.json(
+          { error: 'You have reached your athlete limit. Please upgrade your subscription.' },
+          { status: 403 }
+        )
+      }
     }
 
     const body: CreateAthleteAccountDTO = await request.json()

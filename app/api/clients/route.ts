@@ -111,9 +111,9 @@ export async function POST(request: NextRequest) {
     const data: ClientFormData = validation.data
 
     // Check subscription athlete limit before creating
-    // Business coaches are exempt — their limit is managed at the business level
+    // Business members are exempt — their limit is managed at the business level
     const businessMembership = await prisma.businessMember.findFirst({
-      where: { userId: user.id, isActive: true, role: { in: ['OWNER', 'ADMIN', 'COACH'] } },
+      where: { userId: user.id, isActive: true },
       select: { businessId: true },
     })
 
