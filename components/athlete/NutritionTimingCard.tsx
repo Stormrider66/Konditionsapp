@@ -73,11 +73,14 @@ export function NutritionTimingCard() {
   const workout = guidance.todaysWorkouts[0]
   const preWorkout = guidance.preWorkoutGuidance?.[0]
 
-  // Calculate workout hour and meal deadline
-  const workoutHour = workout.scheduledTime
-    ? new Date(workout.scheduledTime).getHours()
-    : 16 // default assumption if no time set
-  const mealDeadline = Math.max(workoutHour - 2, 10) // At least 10:00
+  // Calculate workout hour and meal deadline (only when actual time is known)
+  const hasScheduledTime = !!workout.scheduledTime
+  const workoutHour = hasScheduledTime
+    ? new Date(workout.scheduledTime!).getHours()
+    : null
+  const mealDeadline = workoutHour !== null
+    ? Math.max(workoutHour - 2, 10) // At least 10:00
+    : null
 
   // Format workout hour
   const formatHour = (hour: number) => `${hour.toString().padStart(2, '0')}:00`
@@ -112,7 +115,7 @@ export function NutritionTimingCard() {
                 Nutrition Timing
               </h3>
               <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                Träning kl {formatHour(workoutHour)}
+                {hasScheduledTime ? `Träning kl ${formatHour(workoutHour!)}` : 'Dagens träning'}
               </p>
             </div>
           </div>
@@ -143,7 +146,9 @@ export function NutritionTimingCard() {
           <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
-              Ät senast kl {formatHour(mealDeadline)}
+              {mealDeadline !== null
+                ? `Ät senast kl ${formatHour(mealDeadline)}`
+                : 'Ät 2-3 timmar före passet'}
             </p>
             <p className="text-xs text-emerald-700 dark:text-emerald-300">
               {preWorkout?.recommendation ||

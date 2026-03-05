@@ -131,7 +131,7 @@ export async function GET() {
       intensity: w.intensity,
       duration: w.duration,
       distance: w.distance,
-      scheduledTime: w.day.date,
+      scheduledTime: undefined, // day.date is just the calendar date (midnight), not an actual workout time
       isToday,
       isTomorrow: !isToday,
       daysUntil: isToday ? 0 : 1,
