@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 .pnpm-store/
 
@@ -41,6 +41,9 @@ test-results/
 # Load test output
 load-tests/cluster-logs/
 load-tests/results/
+
+# Local script reports
+scripts/output/
 
 # Prisma
 prisma/dev.db
