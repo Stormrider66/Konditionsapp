@@ -456,7 +456,7 @@ export async function createPreWorkoutNudge(
       title: nudgeContent.title,
       message: nudgeContent.message,
       icon: 'dumbbell',
-      actionUrl: `/athlete/training`,
+      actionUrl: `/athlete/workouts/${workout.id}`,
       actionLabel: 'Visa träning',
       contextData,
       triggeredBy: workout.id,

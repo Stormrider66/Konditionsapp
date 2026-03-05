@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface ContextData {
   workoutId: string
@@ -43,6 +44,7 @@ interface Notification {
 
 export function PreWorkoutNudgeCard() {
   const router = useRouter()
+  const basePath = useBasePath()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [dismissingId, setDismissingId] = useState<string | null>(null)
@@ -106,9 +108,9 @@ export function PreWorkoutNudgeCard() {
       body: JSON.stringify({ action: 'action_taken' }),
     })
 
-    // Navigate
+    // Navigate (prepend basePath for business-scoped routes)
     if (notification.actionUrl) {
-      router.push(notification.actionUrl)
+      router.push(`${basePath}${notification.actionUrl}`)
     }
   }
 

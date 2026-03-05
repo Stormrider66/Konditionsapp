@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface PatternData {
   type: string
@@ -75,6 +76,7 @@ const patternLabels: Record<string, string> = {
 
 export function PatternAlertCard() {
   const router = useRouter()
+  const basePath = useBasePath()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [dismissingId, setDismissingId] = useState<string | null>(null)
@@ -138,7 +140,7 @@ export function PatternAlertCard() {
     })
 
     if (notification.actionUrl) {
-      router.push(notification.actionUrl)
+      router.push(`${basePath}${notification.actionUrl}`)
     }
   }
 
