@@ -190,6 +190,14 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
+  // Computed client-side to avoid SSR/client timezone mismatch
+  const [daysUntilRace, setDaysUntilRace] = useState<number | null>(null)
+  useEffect(() => {
+    if (settings?.targetRaceDate) {
+      setDaysUntilRace(Math.ceil((new Date(settings.targetRaceDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    }
+  }, [settings?.targetRaceDate])
+
   if (!settings) {
     return (
       <Card>
@@ -216,14 +224,6 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
     { key: 'sandbag_lunge', time: settings.sandbagLungeTime, icon: Footprints, color: 'text-purple-500' },
     { key: 'wall_balls', time: settings.wallBallTime, icon: Target, color: 'text-pink-500' },
   ]
-
-  // Computed client-side to avoid SSR/client timezone mismatch
-  const [daysUntilRace, setDaysUntilRace] = useState<number | null>(null)
-  useEffect(() => {
-    if (settings.targetRaceDate) {
-      setDaysUntilRace(Math.ceil((new Date(settings.targetRaceDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    }
-  }, [settings.targetRaceDate])
 
   return (
     <div className="space-y-6">

@@ -135,6 +135,30 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   const renderSportDashboard = () => {
     if (!sportProfile) return null
 
+    // If active sport comes from cookie (not actual primary) and has no settings,
+    // don't show a useless "complete onboarding" card for a secondary sport
+    const isFromCookie = primarySport !== sportProfile.primarySport
+    if (isFromCookie) {
+      const sportSettingsMap: Partial<Record<string, unknown>> = {
+        CYCLING: sportProfile.cyclingSettings,
+        SKIING: sportProfile.skiingSettings,
+        SWIMMING: sportProfile.swimmingSettings,
+        TRIATHLON: sportProfile.triathlonSettings,
+        HYROX: sportProfile.hyroxSettings,
+        GENERAL_FITNESS: sportProfile.generalFitnessSettings,
+        FUNCTIONAL_FITNESS: sportProfile.functionalFitnessSettings,
+        TEAM_ICE_HOCKEY: sportProfile.hockeySettings,
+        TEAM_FOOTBALL: sportProfile.footballSettings,
+        TEAM_HANDBALL: sportProfile.handballSettings,
+        TEAM_FLOORBALL: sportProfile.floorballSettings,
+        TEAM_BASKETBALL: sportProfile.basketballSettings,
+        TEAM_VOLLEYBALL: sportProfile.volleyballSettings,
+        TENNIS: sportProfile.tennisSettings,
+        PADEL: sportProfile.padelSettings,
+      }
+      if (primarySport && !sportSettingsMap[primarySport]) return null
+    }
+
     switch (primarySport) {
       case 'CYCLING':
         return (

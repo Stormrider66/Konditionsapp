@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast'
 import { SportSelector, MultiSportSelector, SPORT_OPTIONS } from '@/components/onboarding/SportSelector'
 import { SportType } from '@prisma/client'
 import { Loader2, ArrowRight, AlertTriangle, Plus, X } from 'lucide-react'
+import { setCookie, ACTIVE_SPORT_COOKIE } from '@/components/athlete/SportSwitcher'
 
 interface ChangeSportDialogProps {
   open: boolean
@@ -127,6 +128,11 @@ export function ChangeSportDialog({
       })
 
       onOpenChange(false)
+
+      // Reset activeSport cookie to new primary sport so dashboard reflects the change
+      if (primaryChanged) {
+        setCookie(ACTIVE_SPORT_COOKIE, selectedPrimarySport)
+      }
 
       // Navigate to onboarding if reset and primary changed, otherwise refresh
       if (resetOnboarding && primaryChanged) {
