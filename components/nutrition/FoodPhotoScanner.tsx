@@ -30,6 +30,9 @@ import {
   Trash2,
   RotateCw,
   AlertCircle,
+  Mic,
+  MicOff,
+  RefreshCw,
 } from 'lucide-react'
 import type { FoodPhotoAnalysisResult } from '@/lib/validations/gemini-schemas'
 
@@ -86,8 +89,16 @@ export function FoodPhotoScanner({
   const [notes, setNotes] = useState('')
   const [confidence, setConfidence] = useState(0)
 
+  // Refinement state
+  const [refinementText, setRefinementText] = useState('')
+  const [isRefining, setIsRefining] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -223,8 +234,138 @@ export function FoodPhotoScanner({
     setMealDescription('')
     setNotes('')
     setConfidence(0)
+    setRefinementText('')
+    setIsRefining(false)
+    setIsRecording(false)
+    setIsTranscribing(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
     if (cameraInputRef.current) cameraInputRef.current.value = ''
+  }
+
+  const handleRefine = async () => {
+    if (!refinementText.trim()) return
+
+    setIsRefining(true)
+    setError(null)
+
+    try {
+      // Build original analysis from current items state
+      const originalAnalysis = {
+        success: true,
+        items,
+        totals: calculateTotals(items),
+        mealDescription,
+        confidence,
+        notes: notes ? notes.split('\n') : [],
+      }
+
+      // Optionally include the image if available
+      let imageBase64: string | undefined
+      let imageMimeType: string | undefined
+      if (imagePreview) {
+        // imagePreview is already a data URL (data:mime;base64,...)
+        const base64Part = imagePreview.split(',')[1]
+        if (base64Part) {
+          imageBase64 = base64Part
+          imageMimeType = imageFile?.type
+        }
+      }
+
+      const response = await fetch('/api/ai/food-scan/refine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalAnalysis,
+          refinementText: refinementText.trim(),
+          imageBase64,
+          imageMimeType,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Kunde inte uppdatera analysen')
+      }
+
+      const data = await response.json()
+      const result: FoodPhotoAnalysisResult = data.result
+
+      if (result.success) {
+        setItems(result.items)
+        setMealDescription(result.mealDescription)
+        setConfidence(result.confidence)
+        if (result.notes?.length) {
+          setNotes(result.notes.join('\n'))
+        }
+        setRefinementText('')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kunde inte uppdatera analysen')
+    } finally {
+      setIsRefining(false)
+    }
+  }
+
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4',
+      })
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop())
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType })
+        await transcribeAudio(audioBlob)
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch {
+      setError('Kunde inte starta mikrofonen. Kontrollera behörigheter.')
+    }
+  }
+
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true)
+    try {
+      const formData = new FormData()
+      formData.append('audio', audioBlob, 'recording.webm')
+
+      const response = await fetch('/api/ai/food-scan/transcribe-audio', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Kunde inte transkribera')
+      }
+
+      const data = await response.json()
+      if (data.text) {
+        setRefinementText((prev) => (prev ? `${prev} ${data.text}` : data.text))
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kunde inte transkribera ljudet')
+    } finally {
+      setIsTranscribing(false)
+    }
   }
 
   const updateItem = (index: number, field: keyof FoodItem, value: string | number) => {
@@ -356,6 +497,63 @@ export function FoodPhotoScanner({
               </span>
             </div>
           )}
+
+          {/* Inline refinement */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-slate-400">Korrigera eller lägg till</label>
+            <div className="flex gap-2">
+              <Textarea
+                value={refinementText}
+                onChange={(e) => setRefinementText(e.target.value)}
+                placeholder="T.ex. &quot;det finns också smör på brödet&quot; eller &quot;portionen var större&quot;"
+                className="bg-white/5 border-white/10 text-white text-sm min-h-[44px] max-h-[80px] flex-1"
+                disabled={isRefining || isTranscribing}
+              />
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={`h-[21px] w-10 ${isRecording ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'}`}
+                  onClick={isRecording ? handleStopRecording : handleStartRecording}
+                  disabled={isRefining || isTranscribing}
+                  title={isRecording ? 'Stoppa inspelning' : 'Spela in röstkorrigering'}
+                >
+                  {isTranscribing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : isRecording ? (
+                    <MicOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Mic className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-[21px] w-10 bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
+                  onClick={handleRefine}
+                  disabled={!refinementText.trim() || isRefining}
+                  title="Uppdatera analys"
+                >
+                  {isRefining ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            {refinementText.trim() && (
+              <Button
+                size="sm"
+                className="w-full gap-2"
+                onClick={handleRefine}
+                disabled={isRefining}
+              >
+                {isRefining && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Uppdatera analys
+              </Button>
+            )}
+          </div>
 
           {/* Meal type and time */}
           <div className="grid grid-cols-2 gap-3">

@@ -8,6 +8,34 @@
 import { prisma } from '@/lib/prisma'
 import { SportType, AgentActionStatus } from '@prisma/client'
 
+interface MealLogData {
+  date: Date
+  mealType: string
+  description: string | null
+  calories: number | null
+  proteinGrams: number | null
+  carbsGrams: number | null
+  fatGrams: number | null
+}
+
+interface NutritionGoalData {
+  goalType: string
+  targetWeightKg: number | null
+  weeklyChangeKg: number | null
+  macroProfile: string | null
+  customProteinPerKg: number | null
+  customProteinPercent: number | null
+  customCarbsPercent: number | null
+  customFatPercent: number | null
+}
+
+interface DietaryPreferencesData {
+  dietaryStyle: string | null
+  allergies: unknown
+  intolerances: unknown
+  dislikedFoods: unknown
+}
+
 interface DailyCheckInData {
   date: Date
   readinessScore: number | null
@@ -150,6 +178,9 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
     totalPlannedWorkouts,
     completedWorkouts,
     longestStravaRun,
+    recentMeals,
+    nutritionGoal,
+    dietaryPreferences,
   ] = await Promise.all([
     // Basic client info
     prisma.client.findUnique({
@@ -457,6 +488,50 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
         averageHeartrate: true,
       },
     }),
+
+    // Recent meals (last 7 days) for nutrition context
+    prisma.mealLog.findMany({
+      where: {
+        clientId,
+        date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { date: 'desc' },
+      select: {
+        date: true,
+        mealType: true,
+        description: true,
+        calories: true,
+        proteinGrams: true,
+        carbsGrams: true,
+        fatGrams: true,
+      },
+    }),
+
+    // Nutrition goal
+    prisma.nutritionGoal.findUnique({
+      where: { clientId },
+      select: {
+        goalType: true,
+        targetWeightKg: true,
+        weeklyChangeKg: true,
+        macroProfile: true,
+        customProteinPerKg: true,
+        customProteinPercent: true,
+        customCarbsPercent: true,
+        customFatPercent: true,
+      },
+    }),
+
+    // Dietary preferences
+    prisma.dietaryPreferences.findUnique({
+      where: { clientId },
+      select: {
+        dietaryStyle: true,
+        allergies: true,
+        intolerances: true,
+        dislikedFoods: true,
+      },
+    }),
   ])
 
   if (!client) {
@@ -545,6 +620,15 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
   // Injuries section
   if (injuries.length > 0) {
     context += buildInjuryContext(injuries as InjuryData[])
+  }
+
+  // Nutrition context
+  if (recentMeals.length > 0 || nutritionGoal || dietaryPreferences) {
+    context += buildNutritionContext(
+      recentMeals as MealLogData[],
+      nutritionGoal as NutritionGoalData | null,
+      dietaryPreferences as DietaryPreferencesData | null,
+    )
   }
 
   // Integration data section
@@ -1217,6 +1301,86 @@ function buildAgentActionsContext(actions: AgentActionData[]): string {
   }
 
   context += `\n*Dessa är AI-agentens senaste förslag för att optimera träningen.*\n`
+
+  return context + '\n'
+}
+
+function buildNutritionContext(
+  meals: MealLogData[],
+  goal: NutritionGoalData | null,
+  prefs: DietaryPreferencesData | null,
+): string {
+  let context = `## KOST & NÄRING\n`
+
+  // Dietary preferences
+  if (prefs) {
+    if (prefs.dietaryStyle) {
+      context += `- **Koststil**: ${prefs.dietaryStyle}\n`
+    }
+    const allergies = Array.isArray(prefs.allergies) ? prefs.allergies as string[] : []
+    const intolerances = Array.isArray(prefs.intolerances) ? prefs.intolerances as string[] : []
+    const dislikedFoods = Array.isArray(prefs.dislikedFoods) ? prefs.dislikedFoods as string[] : []
+    if (allergies.length > 0) {
+      context += `- **Allergier**: ${allergies.join(', ')}\n`
+    }
+    if (intolerances.length > 0) {
+      context += `- **Intoleranser**: ${intolerances.join(', ')}\n`
+    }
+    if (dislikedFoods.length > 0) {
+      context += `- **Ogillar**: ${dislikedFoods.join(', ')}\n`
+    }
+  }
+
+  // Nutrition goals
+  if (goal) {
+    const goalTypeLabels: Record<string, string> = {
+      WEIGHT_LOSS: 'Viktnedgång',
+      WEIGHT_GAIN: 'Viktuppgång',
+      MAINTAIN: 'Bibehålla vikt',
+      BODY_RECOMP: 'Kroppsrekompositon',
+    }
+    context += `- **Mål**: ${goalTypeLabels[goal.goalType] || goal.goalType}\n`
+    if (goal.targetWeightKg) context += `- **Målvikt**: ${goal.targetWeightKg} kg\n`
+    if (goal.weeklyChangeKg) context += `- **Veckoförändring**: ${goal.weeklyChangeKg} kg/vecka\n`
+    if (goal.macroProfile) context += `- **Makroprofil**: ${goal.macroProfile}\n`
+    if (goal.customProteinPerKg) context += `- **Proteinmål**: ${goal.customProteinPerKg} g/kg\n`
+    if (goal.customProteinPercent || goal.customCarbsPercent || goal.customFatPercent) {
+      const parts: string[] = []
+      if (goal.customProteinPercent) parts.push(`P ${goal.customProteinPercent}%`)
+      if (goal.customCarbsPercent) parts.push(`K ${goal.customCarbsPercent}%`)
+      if (goal.customFatPercent) parts.push(`F ${goal.customFatPercent}%`)
+      context += `- **Makrofördelning**: ${parts.join(' / ')}\n`
+    }
+  }
+
+  // Meal summary by day (last 7 days)
+  if (meals.length > 0) {
+    const byDay = new Map<string, { calories: number; protein: number; carbs: number; fat: number; count: number }>()
+    for (const meal of meals) {
+      const dateStr = formatDate(meal.date)
+      const day = byDay.get(dateStr) || { calories: 0, protein: 0, carbs: 0, fat: 0, count: 0 }
+      day.calories += meal.calories ?? 0
+      day.protein += meal.proteinGrams ?? 0
+      day.carbs += meal.carbsGrams ?? 0
+      day.fat += meal.fatGrams ?? 0
+      day.count += 1
+      byDay.set(dateStr, day)
+    }
+
+    context += `\n### Måltidslogg (senaste 7 dagarna)\n`
+    for (const [date, totals] of byDay) {
+      context += `- **${date}**: ${Math.round(totals.calories)} kcal | P ${Math.round(totals.protein)}g | K ${Math.round(totals.carbs)}g | F ${Math.round(totals.fat)}g (${totals.count} måltider)\n`
+    }
+
+    // Daily averages
+    const days = byDay.size
+    const totalCal = Array.from(byDay.values()).reduce((s, d) => s + d.calories, 0)
+    const totalP = Array.from(byDay.values()).reduce((s, d) => s + d.protein, 0)
+    const totalC = Array.from(byDay.values()).reduce((s, d) => s + d.carbs, 0)
+    const totalF = Array.from(byDay.values()).reduce((s, d) => s + d.fat, 0)
+    context += `\n### Dagligt genomsnitt\n`
+    context += `- ${Math.round(totalCal / days)} kcal | P ${Math.round(totalP / days)}g | K ${Math.round(totalC / days)}g | F ${Math.round(totalF / days)}g\n`
+  }
 
   return context + '\n'
 }

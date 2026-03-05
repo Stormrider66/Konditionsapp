@@ -32,6 +32,7 @@ import {
   Calendar,
   Sparkles,
   Camera,
+  TrendingUp,
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -192,6 +193,11 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-slate-500 dark:text-slate-400 capitalize transition-colors">{formattedDate}</span>
+          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title="Koststatistik">
+            <Link href={`${basePath}/athlete/nutrition`}>
+              <TrendingUp className="h-4 w-4" />
+            </Link>
+          </Button>
           <Button
             variant="ghost"
             size="icon"
