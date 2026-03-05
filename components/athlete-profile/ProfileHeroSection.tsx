@@ -311,13 +311,13 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
       {/* Edit Body Measurements Dialog */}
       {isAthlete && (
         <Dialog open={showBodyDialog} onOpenChange={setShowBodyDialog}>
-          <DialogContent className="sm:max-w-[360px]">
+          <DialogContent className="sm:max-w-[360px] text-foreground">
             <DialogHeader>
-              <DialogTitle>Uppdatera mått</DialogTitle>
+              <DialogTitle className="text-foreground">Uppdatera mått</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="height">Längd (cm)</Label>
+                <Label htmlFor="height" className="text-foreground">Längd (cm)</Label>
                 <Input
                   id="height"
                   type="number"
@@ -326,10 +326,11 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
                   step={0.1}
                   value={bodyHeight}
                   onChange={(e) => setBodyHeight(parseFloat(e.target.value) || 0)}
+                  className="text-foreground"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="weight">Vikt (kg)</Label>
+                <Label htmlFor="weight" className="text-foreground">Vikt (kg)</Label>
                 <Input
                   id="weight"
                   type="number"
@@ -338,6 +339,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
                   step={0.1}
                   value={bodyWeight}
                   onChange={(e) => setBodyWeight(parseFloat(e.target.value) || 0)}
+                  className="text-foreground"
                 />
               </div>
               {bodyError && (
@@ -345,7 +347,7 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
               )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowBodyDialog(false)}>
+              <Button variant="outline" onClick={() => setShowBodyDialog(false)} className="text-foreground">
                 Avbryt
               </Button>
               <Button onClick={handleBodySave} disabled={bodySaving}>
