@@ -1,9 +1,11 @@
 // app/api/clients/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
+import { hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 // GET /api/clients - Hämta alla klienter för inloggad användare
@@ -108,6 +110,26 @@ export async function POST(request: NextRequest) {
 
     const data: ClientFormData = validation.data
 
+    // Check subscription athlete limit before creating
+    // Business coaches are exempt — their limit is managed at the business level
+    const businessMembership = await prisma.businessMember.findFirst({
+      where: { userId: user.id, isActive: true, role: { in: ['OWNER', 'ADMIN', 'COACH'] } },
+      select: { businessId: true },
+    })
+
+    if (!businessMembership) {
+      const limitReached = await hasReachedAthleteLimit(user.id)
+      if (limitReached) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Du har nått maxgränsen för antal atleter. Uppgradera din prenumeration för att lägga till fler.',
+          },
+          { status: 403 }
+        )
+      }
+    }
+
     // Check for duplicate client with same email for this coach
     if (data.email) {
       const existingClient = await prisma.client.findFirst({
@@ -148,13 +170,6 @@ export async function POST(request: NextRequest) {
         })
         logger.info('Created user record for', { email: user.email })
       }
-
-      // Look up coach's business membership to auto-assign businessId
-      const businessMembership = await tx.businessMember.findFirst({
-        where: { userId: txUser.id, isActive: true, role: { in: ['OWNER', 'ADMIN', 'COACH'] } },
-        orderBy: { createdAt: 'asc' },
-        select: { businessId: true },
-      })
 
       // Convert birthDate string to Date
       const txClient = await tx.client.create({
@@ -207,10 +222,41 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     logger.error('Error creating client', {}, error)
+
+    // Return specific error messages for known Prisma errors
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        const target = (error.meta?.target as string[])?.join(', ') || 'unknown'
+        return NextResponse.json(
+          { success: false, error: `En post med samma värde finns redan (${target}). Kontrollera e-postadressen.` },
+          { status: 409 }
+        )
+      }
+      if (error.code === 'P2003') {
+        return NextResponse.json(
+          { success: false, error: 'Referensfel: ett relaterat objekt (lag eller verksamhet) hittades inte.' },
+          { status: 400 }
+        )
+      }
+      if (error.code === 'P2025') {
+        return NextResponse.json(
+          { success: false, error: 'Användarkontot kunde inte hittas. Försök logga ut och in igen.' },
+          { status: 404 }
+        )
+      }
+    }
+
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+      return NextResponse.json(
+        { success: false, error: 'Databasanslutningen misslyckades. Försök igen om en stund.' },
+        { status: 503 }
+      )
+    }
+
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create client',
+        error: 'Kunde inte skapa klienten. Försök igen eller kontakta support.',
       },
       { status: 500 }
     )

@@ -1,14 +1,18 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
-import { Edit2, Activity, Zap, Heart, Timer, Trophy, RefreshCw } from 'lucide-react'
+import { Edit2, Activity, Zap, Heart, Timer, Trophy, RefreshCw, Pencil } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { AIContextButton } from '@/components/ai-studio/AIContextButton'
 import { ChangeSportDialog } from '@/components/athlete/ChangeSportDialog'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
@@ -40,8 +44,40 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
   const latestTest = data.physiology.tests[0]
   const latestRace = data.performance.raceResults[0]
 
+  const router = useRouter()
+
   // State for change sport dialog
   const [showChangeSportDialog, setShowChangeSportDialog] = useState(false)
+
+  // State for body measurements dialog
+  const [showBodyDialog, setShowBodyDialog] = useState(false)
+  const [bodyHeight, setBodyHeight] = useState(client.height)
+  const [bodyWeight, setBodyWeight] = useState(client.weight)
+  const [bodySaving, setBodySaving] = useState(false)
+  const [bodyError, setBodyError] = useState('')
+
+  const handleBodySave = async () => {
+    setBodyError('')
+    setBodySaving(true)
+    try {
+      const res = await fetch('/api/athlete/profile/body', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ height: bodyHeight, weight: bodyWeight }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setBodyError(json.error || 'Kunde inte spara')
+        return
+      }
+      setShowBodyDialog(false)
+      router.refresh()
+    } catch {
+      setBodyError('Något gick fel')
+    } finally {
+      setBodySaving(false)
+    }
+  }
 
   // Calculate key metrics
   const age = calculateAge(client.birthDate)
@@ -127,8 +163,24 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
                 <span className={cn(isGlass ? "text-blue-600 dark:text-blue-500" : "font-medium")}>{age}</span> år
               </span>
               <span className="opacity-20">•</span>
-              <span>
+              <span className="inline-flex items-center gap-1">
                 {client.height} cm / {client.weight} kg
+                {isAthlete && (
+                  <button
+                    onClick={() => {
+                      setBodyHeight(client.height)
+                      setBodyWeight(client.weight)
+                      setBodyError('')
+                      setShowBodyDialog(true)
+                    }}
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-md p-0.5 transition-colors",
+                      isGlass ? "text-slate-400 hover:text-slate-900 dark:hover:text-white" : "text-gray-400 hover:text-gray-900"
+                    )}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                )}
               </span>
               <span className="opacity-20">•</span>
               <span>{client.gender === 'MALE' ? 'Man' : 'Kvinna'}</span>
@@ -254,6 +306,54 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
           currentSport={sportProfile.primarySport as SportType}
           currentSecondarySports={(sportProfile.secondarySports as SportType[]) || []}
         />
+      )}
+
+      {/* Edit Body Measurements Dialog */}
+      {isAthlete && (
+        <Dialog open={showBodyDialog} onOpenChange={setShowBodyDialog}>
+          <DialogContent className="sm:max-w-[360px]">
+            <DialogHeader>
+              <DialogTitle>Uppdatera mått</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="height">Längd (cm)</Label>
+                <Input
+                  id="height"
+                  type="number"
+                  min={100}
+                  max={250}
+                  step={0.1}
+                  value={bodyHeight}
+                  onChange={(e) => setBodyHeight(parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="weight">Vikt (kg)</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  min={30}
+                  max={300}
+                  step={0.1}
+                  value={bodyWeight}
+                  onChange={(e) => setBodyWeight(parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              {bodyError && (
+                <p className="text-sm text-red-500">{bodyError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBodyDialog(false)}>
+                Avbryt
+              </Button>
+              <Button onClick={handleBodySave} disabled={bodySaving}>
+                {bodySaving ? 'Sparar...' : 'Spara'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </CardWrapper>
   )
