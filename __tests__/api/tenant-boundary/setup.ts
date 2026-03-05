@@ -82,6 +82,7 @@ vi.mock('@/lib/agent/gdpr/consent-manager', () => ({
 vi.mock('@/lib/user-api-keys', () => ({
   getDecryptedUserApiKeys: vi.fn(),
   getResolvedAiKeys: vi.fn(),
+  getPlatformAiKeyOwnerId: vi.fn(),
 }))
 
 vi.mock('@/lib/subscription/feature-access', () => ({

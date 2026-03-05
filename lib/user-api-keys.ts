@@ -94,6 +94,64 @@ export async function getResolvedAiKeys(userId: string): Promise<DecryptedUserAp
 
 type ProviderKey = 'anthropic' | 'google' | 'openai'
 
+const PLATFORM_ADMIN_ROLE_PRIORITY: Record<string, number> = {
+  SUPER_ADMIN: 0,
+  ADMIN: 1,
+  SUPPORT: 2,
+}
+
+/**
+ * Pick a deterministic platform key owner for fallback keys.
+ * Prefers admins with valid encrypted keys, then role priority
+ * (SUPER_ADMIN -> ADMIN -> SUPPORT), then oldest account.
+ */
+export async function getPlatformAiKeyOwnerId(provider?: ProviderKey): Promise<string | null> {
+  const providerFilter = provider
+    ? provider === 'anthropic'
+      ? { anthropicKeyValid: true, anthropicKeyEncrypted: { not: null as string | null } }
+      : provider === 'google'
+        ? { googleKeyValid: true, googleKeyEncrypted: { not: null as string | null } }
+        : { openaiKeyValid: true, openaiKeyEncrypted: { not: null as string | null } }
+    : {
+        OR: [
+          { anthropicKeyValid: true, anthropicKeyEncrypted: { not: null as string | null } },
+          { googleKeyValid: true, googleKeyEncrypted: { not: null as string | null } },
+          { openaiKeyValid: true, openaiKeyEncrypted: { not: null as string | null } },
+        ],
+      }
+
+  const candidates = await prisma.userApiKey.findMany({
+    where: {
+      ...providerFilter,
+      user: {
+        role: 'ADMIN',
+      },
+    },
+    select: {
+      userId: true,
+      user: {
+        select: {
+          adminRole: true,
+          createdAt: true,
+        },
+      },
+    },
+  })
+
+  if (candidates.length === 0) return null
+
+  candidates.sort((a, b) => {
+    const aRole = a.user.adminRole || ''
+    const bRole = b.user.adminRole || ''
+    const aPriority = PLATFORM_ADMIN_ROLE_PRIORITY[aRole] ?? 99
+    const bPriority = PLATFORM_ADMIN_ROLE_PRIORITY[bRole] ?? 99
+    if (aPriority !== bPriority) return aPriority - bPriority
+    return new Date(a.user.createdAt).getTime() - new Date(b.user.createdAt).getTime()
+  })
+
+  return candidates[0].userId
+}
+
 /**
  * Resolve a provider-specific key with deterministic fallback:
  * user key -> business key -> platform admin key.
@@ -128,13 +186,10 @@ export async function getResolvedProviderKey(
     if (businessProviderKey) return businessProviderKey
   }
 
-  // 3) Platform admin key
-  const admin = await prisma.user.findFirst({
-    where: { adminRole: 'SUPER_ADMIN' },
-    select: { id: true },
-  })
-  if (admin) {
-    const adminKeys = await getDecryptedUserApiKeys(admin.id)
+  // 3) Platform admin key (deterministic key owner with valid key)
+  const platformKeyOwnerId = await getPlatformAiKeyOwnerId(provider)
+  if (platformKeyOwnerId) {
+    const adminKeys = await getDecryptedUserApiKeys(platformKeyOwnerId)
     return pickKey(adminKeys)
   }
 

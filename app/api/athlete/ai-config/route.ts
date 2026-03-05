@@ -15,7 +15,7 @@ import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
 import { isModelIntent, legacyModelIdToIntent, INTENT_TIER_LABELS } from '@/types/ai-models'
 import type { ModelIntent } from '@/types/ai-models'
-import { getResolvedAiKeys } from '@/lib/user-api-keys'
+import { getPlatformAiKeyOwnerId, getResolvedAiKeys } from '@/lib/user-api-keys'
 
 export async function GET() {
   try {
@@ -48,12 +48,9 @@ export async function GET() {
 
     // Direct athlete: client.userId is the athlete themselves → fall back to platform admin
     if (effectiveCoachId && effectiveCoachId === user.id && !isCoachInAthleteMode) {
-      const admin = await prisma.user.findFirst({
-        where: { adminRole: 'SUPER_ADMIN' },
-        select: { id: true },
-      })
-      if (admin) {
-        effectiveCoachId = admin.id
+      const platformKeyOwnerId = await getPlatformAiKeyOwnerId()
+      if (platformKeyOwnerId) {
+        effectiveCoachId = platformKeyOwnerId
       }
     }
 

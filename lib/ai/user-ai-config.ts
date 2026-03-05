@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
 
 export interface UserAIConfig {
   userId: string
@@ -62,11 +63,7 @@ export async function getUserAIConfig(): Promise<UserAIConfig | null> {
     // If client.userId is the athlete themselves (direct registration, no coach),
     // fall back to platform admin
     if (athleteAccount.client.userId === user.id) {
-      const admin = await prisma.user.findFirst({
-        where: { adminRole: 'SUPER_ADMIN' },
-        select: { id: true },
-      })
-      coachId = admin?.id ?? user.id
+      coachId = (await getPlatformAiKeyOwnerId()) ?? user.id
     } else {
       coachId = athleteAccount.client.userId
     }

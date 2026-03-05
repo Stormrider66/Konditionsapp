@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import './setup'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
-import { getResolvedAiKeys } from '@/lib/user-api-keys'
+import { getPlatformAiKeyOwnerId, getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resetTenantBoundaryMocks } from './setup'
 import { GET as getAthleteAiConfig } from '@/app/api/athlete/ai-config/route'
 
@@ -26,7 +26,7 @@ describe('Athlete AI config regression', () => {
       },
     } as any)
 
-    vi.mocked(prisma.user.findFirst).mockResolvedValue({ id: 'admin-1' } as any)
+    vi.mocked(getPlatformAiKeyOwnerId).mockResolvedValue('admin-1')
     vi.mocked(prisma.userApiKey.findUnique).mockResolvedValue(null as any)
     vi.mocked(prisma.businessMember.findFirst).mockResolvedValue(null as any)
     vi.mocked(getResolvedAiKeys).mockResolvedValue({
@@ -53,6 +53,7 @@ describe('Athlete AI config regression', () => {
     ])
 
     expect(getResolvedAiKeys).toHaveBeenCalledWith('admin-1')
+    expect(getPlatformAiKeyOwnerId).toHaveBeenCalled()
   })
 
   it('applies business-level athlete model restrictions and default intent', async () => {

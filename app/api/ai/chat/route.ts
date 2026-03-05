@@ -21,7 +21,7 @@ import { buildAthleteSystemPrompt, MemoryContext, AthleteCapabilities } from '@/
 import { webSearch, formatSearchResultsForContext } from '@/lib/ai/web-search';
 import { getConsentStatus } from '@/lib/agent/gdpr/consent-manager';
 import { extractMemoriesFromConversation, saveMemories } from '@/lib/ai/memory-extractor';
-import { getResolvedAiKeys } from '@/lib/user-api-keys';
+import { getPlatformAiKeyOwnerId, getResolvedAiKeys } from '@/lib/user-api-keys';
 import { buildCalendarContext } from '@/lib/ai/calendar-context-builder';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { matchKnowledgeSkills, fetchSkillContext } from '@/lib/ai/knowledge-skills';
@@ -177,12 +177,9 @@ export async function POST(request: NextRequest) {
 
       // Direct athlete: client.userId is the athlete themselves → fall back to platform admin
       if (apiKeyUserId === userId && !resolved.isCoachInAthleteMode) {
-        const admin = await prisma.user.findFirst({
-          where: { adminRole: 'SUPER_ADMIN' },
-          select: { id: true },
-        })
-        if (admin) {
-          apiKeyUserId = admin.id
+        const platformKeyOwnerId = await getPlatformAiKeyOwnerId()
+        if (platformKeyOwnerId) {
+          apiKeyUserId = platformKeyOwnerId
         }
       }
 
