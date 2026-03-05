@@ -274,8 +274,116 @@ export async function resolveAthleteClientId(): Promise<AthleteOrCoachInAthleteM
       where: { userId: user.id },
       select: { clientId: true },
     })
-    if (!athleteAccount) return null
-    return { user, clientId: athleteAccount.clientId, isCoachInAthleteMode: false }
+    if (athleteAccount) {
+      return { user, clientId: athleteAccount.clientId, isCoachInAthleteMode: false }
+    }
+
+    // Self-heal legacy athlete registrations that were missing Client/AthleteAccount.
+    try {
+      const recovered = await prisma.$transaction(async (tx) => {
+        const existingAccount = await tx.athleteAccount.findUnique({
+          where: { userId: user.id },
+          select: { clientId: true },
+        })
+        if (existingAccount) return existingAccount.clientId
+
+        let client = await tx.client.findFirst({
+          where: { userId: user.id },
+          select: { id: true },
+        })
+
+        if (!client) {
+          const membership = await tx.businessMember.findFirst({
+            where: { userId: user.id, isActive: true },
+            select: { businessId: true },
+            orderBy: { createdAt: 'asc' },
+          })
+
+          client = await tx.client.create({
+            data: {
+              userId: user.id,
+              businessId: membership?.businessId ?? null,
+              name: user.name || user.email,
+              email: user.email,
+              gender: 'MALE',
+              birthDate: new Date('1990-01-01'),
+              height: 170,
+              weight: 70,
+              isDirect: true,
+            },
+            select: { id: true },
+          })
+        }
+
+        await tx.athleteAccount.create({
+          data: {
+            userId: user.id,
+            clientId: client.id,
+          },
+        })
+
+        const existingSubscription = await tx.athleteSubscription.findUnique({
+          where: { clientId: client.id },
+          select: { id: true },
+        })
+        if (!existingSubscription) {
+          await tx.athleteSubscription.create({
+            data: {
+              clientId: client.id,
+              tier: 'FREE',
+              status: 'ACTIVE',
+              paymentSource: 'DIRECT',
+              aiChatEnabled: true,
+              aiChatMessagesLimit: 10,
+              videoAnalysisEnabled: false,
+              garminEnabled: false,
+              stravaEnabled: false,
+            },
+          })
+        }
+
+        const existingPreferences = await tx.agentPreferences.findUnique({
+          where: { clientId: client.id },
+          select: { id: true },
+        })
+        if (!existingPreferences) {
+          await tx.agentPreferences.create({
+            data: {
+              clientId: client.id,
+              autonomyLevel: 'ADVISORY',
+              allowWorkoutModification: false,
+              allowRestDayInjection: false,
+              maxIntensityReduction: 10,
+              dailyBriefingEnabled: false,
+              proactiveNudgesEnabled: false,
+            },
+          })
+        }
+
+        const existingSportProfile = await tx.sportProfile.findUnique({
+          where: { clientId: client.id },
+          select: { id: true },
+        })
+        if (!existingSportProfile) {
+          await tx.sportProfile.create({
+            data: {
+              clientId: client.id,
+              primarySport: 'RUNNING',
+              onboardingCompleted: false,
+              onboardingStep: 0,
+            },
+          })
+        }
+
+        return client.id
+      })
+
+      logger.info('Recovered missing athlete profile linkage', { userId: user.id, clientId: recovered })
+      return { user, clientId: recovered, isCoachInAthleteMode: false }
+    } catch (error) {
+      logger.error('Failed to recover missing athlete profile linkage', { userId: user.id }, error)
+      return null
+    }
   }
 
   // COACH/ADMIN → check athlete mode cookie + selfAthleteClientId

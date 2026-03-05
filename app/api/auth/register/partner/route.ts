@@ -128,6 +128,64 @@ export async function POST(request: NextRequest) {
           }
         })
 
+        // Create required athlete entities so athlete features (AI chat, onboarding, etc.)
+        // work immediately after partner registration.
+        const client = await tx.client.create({
+          data: {
+            userId: newUser.id,
+            businessId: business.id,
+            name: newUser.name || newUser.email,
+            email: newUser.email,
+            gender: 'MALE',
+            birthDate: new Date('1990-01-01'),
+            height: 170,
+            weight: 70,
+            isDirect: true,
+          },
+        })
+
+        await tx.athleteAccount.create({
+          data: {
+            userId: newUser.id,
+            clientId: client.id,
+          },
+        })
+
+        await tx.athleteSubscription.create({
+          data: {
+            clientId: client.id,
+            tier: 'FREE',
+            status: 'ACTIVE',
+            paymentSource: 'DIRECT',
+            aiChatEnabled: true,
+            aiChatMessagesLimit: 10,
+            videoAnalysisEnabled: false,
+            garminEnabled: false,
+            stravaEnabled: false,
+          },
+        })
+
+        await tx.agentPreferences.create({
+          data: {
+            clientId: client.id,
+            autonomyLevel: 'ADVISORY',
+            allowWorkoutModification: false,
+            allowRestDayInjection: false,
+            maxIntensityReduction: 10,
+            dailyBriefingEnabled: false,
+            proactiveNudgesEnabled: false,
+          },
+        })
+
+        await tx.sportProfile.create({
+          data: {
+            clientId: client.id,
+            primarySport: 'RUNNING',
+            onboardingCompleted: false,
+            onboardingStep: 0,
+          },
+        })
+
         return newUser
       })
     } catch (txError) {
