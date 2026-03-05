@@ -628,7 +628,7 @@ export function AthleteFloatingChat({
       <div
         className={cn(
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
-          'bottom-6 right-6 w-[380px] h-[200px]'
+          'bottom-6 left-3 right-3 h-[200px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
@@ -658,7 +658,7 @@ export function AthleteFloatingChat({
       <div
         className={cn(
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
-          'bottom-6 right-6 w-[380px] h-[300px]'
+          'bottom-6 left-3 right-3 h-[300px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
@@ -694,7 +694,7 @@ export function AthleteFloatingChat({
       <div
         className={cn(
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
-          'bottom-6 right-6 w-[380px] h-[350px]'
+          'bottom-6 left-3 right-3 h-[350px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-lg">
@@ -746,7 +746,7 @@ export function AthleteFloatingChat({
       <div
         className={cn(
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
-          'bottom-6 right-6 w-[380px] h-[420px]'
+          'bottom-6 left-3 right-3 max-h-[420px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
@@ -826,7 +826,7 @@ export function AthleteFloatingChat({
         'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
         isExpanded
           ? 'bottom-4 right-4 left-4 top-20 md:left-auto md:w-[500px]'
-          : 'bottom-6 right-6 w-[380px] h-[500px]'
+          : 'bottom-6 left-3 right-3 h-[500px] sm:left-auto sm:right-6 sm:w-[380px]'
       )}
     >
       {/* Header */}
