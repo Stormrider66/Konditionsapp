@@ -71,14 +71,14 @@ export async function buildVoiceWorkoutPreview(
   for (const athlete of targetInfo.athletes) {
     const context = await buildWODContext(athlete.id)
     if (context) {
-      // Get athlete subscription tier (subscription is on User, linked via AthleteAccount)
+      // Use the athlete subscription model for athlete-side feature tiers.
       const athleteAccount = await prisma.athleteAccount.findFirst({
         where: { client: { id: athlete.id } },
         select: {
-          user: { select: { subscription: { select: { tier: true } } } },
+          client: { select: { athleteSubscription: { select: { tier: true } } } },
         },
       })
-      const tier = athleteAccount?.user?.subscription?.tier || 'FREE'
+      const tier = athleteAccount?.client?.athleteSubscription?.tier || 'FREE'
 
       const guardrails = await checkWODGuardrails(context, tier)
 

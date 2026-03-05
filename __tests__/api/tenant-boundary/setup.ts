@@ -95,7 +95,7 @@ vi.mock('@/lib/subscription/feature-access', () => ({
   }),
   ATHLETE_TIER_FEATURES: {
     FREE: {
-      ai_chat: { enabled: false, limit: 0 },
+      ai_chat: { enabled: true, limit: 10 },
       video_analysis: { enabled: false },
       strava: { enabled: false },
       garmin: { enabled: false },

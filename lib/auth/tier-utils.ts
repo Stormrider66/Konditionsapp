@@ -7,12 +7,13 @@
 
 import { prisma } from '@/lib/prisma';
 import { AthleteSubscriptionTier, SubscriptionStatus } from '@prisma/client';
+import { getAthleteSubscriptionWithRepairs } from '@/lib/subscription/feature-access';
 
 // Feature access configuration by tier
 const TIER_FEATURES = {
   FREE: {
-    aiChatEnabled: false,
-    aiChatMessagesLimit: 0,
+    aiChatEnabled: true,
+    aiChatMessagesLimit: 10,
     videoAnalysisEnabled: false,
     garminEnabled: false,
     stravaEnabled: false,
@@ -54,6 +55,12 @@ export type TierFeatures = typeof TIER_FEATURES[AthleteSubscriptionTier];
  * Get athlete subscription for a client
  */
 export async function getAthleteSubscription(clientId: string) {
+  const subscription = await getAthleteSubscriptionWithRepairs(clientId);
+
+  if (!subscription) {
+    return null;
+  }
+
   return prisma.athleteSubscription.findUnique({
     where: { clientId },
     include: {

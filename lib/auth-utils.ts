@@ -18,6 +18,68 @@ function requestCache<T extends (...args: any[]) => any>(fn: T): T {
   return fn
 }
 
+async function ensureAthleteClientDefaults(clientId: string): Promise<void> {
+  try {
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: {
+        agentPreferences: { select: { id: true } },
+        sportProfile: { select: { id: true } },
+      },
+    })
+
+    if (!client) {
+      return
+    }
+
+    const needsAgentPreferences = !client.agentPreferences
+    const needsSportProfile = !client.sportProfile
+
+    if (!needsAgentPreferences && !needsSportProfile) {
+      return
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (needsAgentPreferences) {
+        await tx.agentPreferences.upsert({
+          where: { clientId },
+          update: {},
+          create: {
+            clientId,
+            autonomyLevel: 'ADVISORY',
+            allowWorkoutModification: false,
+            allowRestDayInjection: false,
+            maxIntensityReduction: 10,
+            dailyBriefingEnabled: false,
+            proactiveNudgesEnabled: false,
+          },
+        })
+      }
+
+      if (needsSportProfile) {
+        await tx.sportProfile.upsert({
+          where: { clientId },
+          update: {},
+          create: {
+            clientId,
+            primarySport: 'RUNNING',
+            onboardingCompleted: false,
+            onboardingStep: 0,
+          },
+        })
+      }
+    })
+
+    logger.info('Recovered missing athlete client defaults', {
+      clientId,
+      createdAgentPreferences: needsAgentPreferences,
+      createdSportProfile: needsSportProfile,
+    })
+  } catch (error) {
+    logger.error('Failed to recover athlete client defaults', { clientId }, error)
+  }
+}
+
 /**
  * Get the currently authenticated user from Supabase session
  * Wrapped with React.cache() to deduplicate calls within a single request
@@ -207,6 +269,8 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
       throw new Error('Athlete account not found')
     }
 
+    await ensureAthleteClientDefaults(athleteAccount.clientId)
+
     return {
       user,
       clientId: athleteAccount.clientId,
@@ -244,6 +308,8 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
       redirect(bizSlug ? `/${bizSlug}/coach/settings/athlete-profile` : '/coach/settings/athlete-profile')
     }
 
+    await ensureAthleteClientDefaults(fullUser.selfAthleteClientId)
+
     return {
       user,
       clientId: fullUser.selfAthleteClientId,
@@ -275,6 +341,7 @@ export async function resolveAthleteClientId(): Promise<AthleteOrCoachInAthleteM
       select: { clientId: true },
     })
     if (athleteAccount) {
+      await ensureAthleteClientDefaults(athleteAccount.clientId)
       return { user, clientId: athleteAccount.clientId, isCoachInAthleteMode: false }
     }
 
@@ -396,6 +463,7 @@ export async function resolveAthleteClientId(): Promise<AthleteOrCoachInAthleteM
       select: { selfAthleteClientId: true },
     })
     if (!fullUser?.selfAthleteClientId) return null
+    await ensureAthleteClientDefaults(fullUser.selfAthleteClientId)
     return { user, clientId: fullUser.selfAthleteClientId, isCoachInAthleteMode: true }
   }
 

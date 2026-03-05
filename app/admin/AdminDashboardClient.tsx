@@ -139,7 +139,7 @@ interface User {
   subscription: {
     tier: string;
     status: string;
-    maxAthletes: number;
+    maxAthletes: number | null;
   } | null;
   clientsCount: number;
   businesses: UserBusiness[];
@@ -149,6 +149,20 @@ interface BusinessOption {
   id: string;
   name: string;
 }
+
+const COACH_TIER_OPTIONS = [
+  { value: 'FREE', label: 'Free' },
+  { value: 'BASIC', label: 'Basic' },
+  { value: 'PRO', label: 'Pro' },
+  { value: 'ENTERPRISE', label: 'Enterprise' },
+] as const;
+
+const ATHLETE_TIER_OPTIONS = [
+  { value: 'FREE', label: 'Free' },
+  { value: 'STANDARD', label: 'Standard' },
+  { value: 'PRO', label: 'Pro' },
+  { value: 'ELITE', label: 'Elite' },
+] as const;
 
 export function AdminDashboardClient({ userId, userName }: AdminDashboardClientProps) {
   const t = useTranslations('admin');
@@ -774,10 +788,11 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="FREE">Free</SelectItem>
-                                  <SelectItem value="BASIC">Basic</SelectItem>
-                                  <SelectItem value="PRO">Pro</SelectItem>
-                                  <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
+                                  {(user.role === 'ATHLETE' ? ATHLETE_TIER_OPTIONS : COACH_TIER_OPTIONS).map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                             </TableCell>

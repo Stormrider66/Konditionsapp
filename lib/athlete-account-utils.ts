@@ -4,6 +4,8 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 import type { AthleteAccount, Client, User } from '@prisma/client'
 
+const COACH_CREATED_ATHLETE_TRIAL_DAYS = 14
+
 export interface CreateAthleteAccountResult {
   success: boolean
   athleteAccount?: AthleteAccount & { client: Client; user: User }
@@ -23,6 +25,22 @@ export function generateTemporaryPassword(): string {
     password += charset.charAt(Math.floor(Math.random() * charset.length))
   }
   return password
+}
+
+function getCoachCreatedAthleteSubscriptionData() {
+  return {
+    tier: 'STANDARD' as const,
+    status: 'TRIAL' as const,
+    paymentSource: 'DIRECT' as const,
+    trialEndsAt: new Date(Date.now() + COACH_CREATED_ATHLETE_TRIAL_DAYS * 24 * 60 * 60 * 1000),
+    aiChatEnabled: true,
+    aiChatMessagesLimit: 50,
+    videoAnalysisEnabled: false,
+    garminEnabled: true,
+    stravaEnabled: true,
+    workoutLoggingEnabled: true,
+    dailyCheckInEnabled: true,
+  }
 }
 
 /**
@@ -134,6 +152,55 @@ export async function createAthleteAccountForClient(
             user: true,
           },
         })
+
+        const existingSubscription = await tx.athleteSubscription.findUnique({
+          where: { clientId },
+          select: { id: true },
+        })
+
+        if (!existingSubscription) {
+          await tx.athleteSubscription.create({
+            data: {
+              clientId,
+              ...getCoachCreatedAthleteSubscriptionData(),
+            },
+          })
+        }
+
+        const existingPreferences = await tx.agentPreferences.findUnique({
+          where: { clientId },
+          select: { id: true },
+        })
+
+        if (!existingPreferences) {
+          await tx.agentPreferences.create({
+            data: {
+              clientId,
+              autonomyLevel: 'ADVISORY',
+              allowWorkoutModification: false,
+              allowRestDayInjection: false,
+              maxIntensityReduction: 10,
+              dailyBriefingEnabled: false,
+              proactiveNudgesEnabled: false,
+            },
+          })
+        }
+
+        const existingSportProfile = await tx.sportProfile.findUnique({
+          where: { clientId },
+          select: { id: true },
+        })
+
+        if (!existingSportProfile) {
+          await tx.sportProfile.create({
+            data: {
+              clientId,
+              primarySport: 'RUNNING',
+              onboardingCompleted: false,
+              onboardingStep: 0,
+            },
+          })
+        }
 
         // Update subscription athlete count
         const subscription = await tx.subscription.findUnique({

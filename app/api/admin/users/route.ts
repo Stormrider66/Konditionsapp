@@ -7,14 +7,55 @@ import { requireAdmin } from '@/lib/auth-utils';
 import { logger } from '@/lib/logger';
 import { parsePagination } from '@/lib/utils/parse';
 import { logRoleChange, logAuditEvent, getIpFromRequest, getUserAgentFromRequest } from '@/lib/audit/log';
+import { ATHLETE_TIER_FEATURES } from '@/lib/subscription/feature-access';
 import { z } from 'zod';
+
+const COACH_TIER_VALUES = ['FREE', 'BASIC', 'PRO', 'ENTERPRISE'] as const;
+const ATHLETE_TIER_VALUES = ['FREE', 'STANDARD', 'PRO', 'ELITE'] as const;
+
+type CoachTierValue = typeof COACH_TIER_VALUES[number];
+type AthleteTierValue = typeof ATHLETE_TIER_VALUES[number];
 
 const updateUserSchema = z.object({
   userId: z.string().uuid(),
   role: z.enum(['COACH', 'ATHLETE', 'ADMIN']).optional(),
   adminRole: z.enum(['SUPER_ADMIN', 'ADMIN', 'SUPPORT']).nullable().optional(),
-  tier: z.enum(['FREE', 'BASIC', 'PRO', 'ENTERPRISE']).optional(),
+  tier: z.enum(['FREE', 'BASIC', 'STANDARD', 'PRO', 'ELITE', 'ENTERPRISE']).optional(),
 });
+
+function isCoachTier(tier: string): tier is CoachTierValue {
+  return COACH_TIER_VALUES.includes(tier as CoachTierValue);
+}
+
+function isAthleteTier(tier: string): tier is AthleteTierValue {
+  return ATHLETE_TIER_VALUES.includes(tier as AthleteTierValue);
+}
+
+function getCoachMaxAthletes(tier: CoachTierValue): number {
+  return {
+    FREE: 1,
+    BASIC: 20,
+    PRO: 100,
+    ENTERPRISE: -1,
+  }[tier];
+}
+
+function getAthleteSubscriptionUpdateData(tier: AthleteTierValue) {
+  const features = ATHLETE_TIER_FEATURES[tier];
+
+  return {
+    tier,
+    status: 'ACTIVE' as const,
+    trialEndsAt: null,
+    aiChatEnabled: features.ai_chat.enabled,
+    aiChatMessagesLimit: features.ai_chat.limit,
+    videoAnalysisEnabled: features.video_analysis.enabled,
+    garminEnabled: features.garmin.enabled,
+    stravaEnabled: features.strava.enabled,
+    workoutLoggingEnabled: tier !== 'FREE',
+    dailyCheckInEnabled: tier !== 'FREE',
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,6 +106,22 @@ export async function GET(request: NextRequest) {
               stripeCurrentPeriodEnd: true,
             },
           },
+          athleteAccount: {
+            select: {
+              clientId: true,
+              client: {
+                select: {
+                  athleteSubscription: {
+                    select: {
+                      tier: true,
+                      status: true,
+                      trialEndsAt: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           businessMemberships: {
             select: {
               role: true,
@@ -90,6 +147,16 @@ export async function GET(request: NextRequest) {
       data: {
         users: users.map((user) => ({
           ...user,
+          subscription: user.role === 'ATHLETE'
+            ? user.athleteAccount?.client?.athleteSubscription
+              ? {
+                  tier: user.athleteAccount.client.athleteSubscription.tier,
+                  status: user.athleteAccount.client.athleteSubscription.status,
+                  maxAthletes: null,
+                  stripeCurrentPeriodEnd: user.athleteAccount.client.athleteSubscription.trialEndsAt,
+                }
+              : null
+            : user.subscription,
           clientsCount: user._count.clients,
           businesses: user.businessMemberships.map((m) => ({
             id: m.business.id,
@@ -97,6 +164,7 @@ export async function GET(request: NextRequest) {
             slug: m.business.slug,
             role: m.role,
           })),
+          athleteAccount: undefined,
           businessMemberships: undefined,
           _count: undefined,
         })),
@@ -140,6 +208,16 @@ export async function PUT(request: NextRequest) {
         role: true,
         adminRole: true,
         subscription: { select: { tier: true } },
+        athleteAccount: {
+          select: {
+            clientId: true,
+            client: {
+              select: {
+                athleteSubscription: { select: { tier: true } },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -191,40 +269,84 @@ export async function PUT(request: NextRequest) {
 
     // Update subscription tier if provided
     if (tier) {
-      const oldTier = targetUser.subscription?.tier;
-      const maxAthletes = {
-        FREE: 1,
-        BASIC: 20,
-        PRO: 100,
-        ENTERPRISE: -1,
-      }[tier];
+      if (targetUser.role === 'ATHLETE') {
+        if (!isAthleteTier(tier)) {
+          return NextResponse.json(
+            { success: false, error: 'Invalid athlete tier' },
+            { status: 400 }
+          );
+        }
 
-      await prisma.subscription.upsert({
-        where: { userId },
-        update: {
-          tier,
-          maxAthletes,
-        },
-        create: {
-          userId,
-          tier,
-          maxAthletes,
-          status: 'ACTIVE',
-        },
-      });
+        const clientId = targetUser.athleteAccount?.clientId;
+        if (!clientId) {
+          return NextResponse.json(
+            { success: false, error: 'Athlete account not found for user' },
+            { status: 400 }
+          );
+        }
 
-      // SECURITY: Log subscription tier change
-      if (tier !== oldTier) {
-        await logAuditEvent({
-          action: 'SUBSCRIPTION_CHANGE',
-          userId: adminUser.id,
-          targetId: userId,
-          targetType: 'Subscription',
-          oldValue: { tier: oldTier },
-          newValue: { tier },
-          ipAddress: getIpFromRequest(request),
-          userAgent: getUserAgentFromRequest(request),
+        const oldTier = targetUser.athleteAccount?.client?.athleteSubscription?.tier;
+
+        await prisma.athleteSubscription.upsert({
+          where: { clientId },
+          update: getAthleteSubscriptionUpdateData(tier),
+          create: {
+            clientId,
+            paymentSource: 'DIRECT',
+            ...getAthleteSubscriptionUpdateData(tier),
+          },
         });
+
+        if (tier !== oldTier) {
+          await logAuditEvent({
+            action: 'SUBSCRIPTION_CHANGE',
+            userId: adminUser.id,
+            targetId: userId,
+            targetType: 'AthleteSubscription',
+            oldValue: { tier: oldTier },
+            newValue: { tier },
+            ipAddress: getIpFromRequest(request),
+            userAgent: getUserAgentFromRequest(request),
+          });
+        }
+      } else {
+        if (!isCoachTier(tier)) {
+          return NextResponse.json(
+            { success: false, error: 'Invalid coach tier' },
+            { status: 400 }
+          );
+        }
+
+        const oldTier = targetUser.subscription?.tier;
+        const maxAthletes = getCoachMaxAthletes(tier);
+
+        await prisma.subscription.upsert({
+          where: { userId },
+          update: {
+            tier,
+            maxAthletes,
+          },
+          create: {
+            userId,
+            tier,
+            maxAthletes,
+            status: 'ACTIVE',
+          },
+        });
+
+        // SECURITY: Log subscription tier change
+        if (tier !== oldTier) {
+          await logAuditEvent({
+            action: 'SUBSCRIPTION_CHANGE',
+            userId: adminUser.id,
+            targetId: userId,
+            targetType: 'Subscription',
+            oldValue: { tier: oldTier },
+            newValue: { tier },
+            ipAddress: getIpFromRequest(request),
+            userAgent: getUserAgentFromRequest(request),
+          });
+        }
       }
     }
 
@@ -242,12 +364,42 @@ export async function PUT(request: NextRequest) {
             maxAthletes: true,
           },
         },
+        athleteAccount: {
+          select: {
+            client: {
+              select: {
+                athleteSubscription: {
+                  select: {
+                    tier: true,
+                    status: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
     return NextResponse.json({
       success: true,
-      data: updatedUser,
+      data: updatedUser
+        ? {
+            id: updatedUser.id,
+            email: updatedUser.email,
+            name: updatedUser.name,
+            role: updatedUser.role,
+            subscription: updatedUser.role === 'ATHLETE'
+              ? updatedUser.athleteAccount?.client?.athleteSubscription
+                ? {
+                    tier: updatedUser.athleteAccount.client.athleteSubscription.tier,
+                    status: updatedUser.athleteAccount.client.athleteSubscription.status,
+                    maxAthletes: null,
+                  }
+                : null
+              : updatedUser.subscription,
+          }
+        : null,
       message: 'User updated successfully',
     });
   } catch (error) {

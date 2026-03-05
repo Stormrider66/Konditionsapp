@@ -1,7 +1,9 @@
 // lib/subscription/feature-access.ts
 // Centralized feature access checking for subscription enforcement
 
+import type { AthleteSubscription } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export type AthleteFeature =
   | 'ai_chat'
@@ -100,6 +102,56 @@ export const COACH_TIER_FEATURES = {
   },
 } as const
 
+const FREE_AI_CHAT_MESSAGE_LIMIT = 10
+
+function needsLegacyFreeAiChatRepair(subscription: AthleteSubscription): boolean {
+  return (
+    subscription.tier === 'FREE' &&
+    subscription.status === 'ACTIVE' &&
+    subscription.paymentSource === 'DIRECT' &&
+    subscription.stripeSubscriptionId === null &&
+    !subscription.aiChatEnabled &&
+    subscription.aiChatMessagesLimit === 0
+  )
+}
+
+async function repairLegacyFreeAiChatEntitlement(
+  subscription: AthleteSubscription
+): Promise<AthleteSubscription> {
+  if (!needsLegacyFreeAiChatRepair(subscription)) {
+    return subscription
+  }
+
+  const repairedSubscription = await prisma.athleteSubscription.update({
+    where: { clientId: subscription.clientId },
+    data: {
+      aiChatEnabled: true,
+      aiChatMessagesLimit: FREE_AI_CHAT_MESSAGE_LIMIT,
+    },
+  })
+
+  logger.info('Repaired legacy free athlete AI chat entitlement', {
+    clientId: subscription.clientId,
+    subscriptionId: subscription.id,
+  })
+
+  return repairedSubscription
+}
+
+export async function getAthleteSubscriptionWithRepairs(
+  clientId: string
+): Promise<AthleteSubscription | null> {
+  const subscription = await prisma.athleteSubscription.findUnique({
+    where: { clientId },
+  })
+
+  if (!subscription) {
+    return null
+  }
+
+  return repairLegacyFreeAiChatEntitlement(subscription)
+}
+
 /**
  * Check if an athlete (client) has access to a specific feature
  * This checks the AthleteSubscription model
@@ -108,9 +160,7 @@ export async function checkAthleteFeatureAccess(
   clientId: string,
   feature: AthleteFeature
 ): Promise<FeatureAccessResult> {
-  let subscription = await prisma.athleteSubscription.findUnique({
-    where: { clientId },
-  })
+  let subscription = await getAthleteSubscriptionWithRepairs(clientId)
 
   // Auto-create a STANDARD trial subscription if none exists
   // This gives athletes immediate access to AI chat and core features
@@ -120,9 +170,7 @@ export async function checkAthleteFeatureAccess(
         tier: 'STANDARD',
         trialDays: 14,
       })
-      subscription = await prisma.athleteSubscription.findUnique({
-        where: { clientId },
-      })
+      subscription = await getAthleteSubscriptionWithRepairs(clientId)
     } catch (error) {
       // If auto-creation fails (e.g., invalid clientId), return the original error
       console.warn('Failed to auto-create athlete subscription:', error)
@@ -416,9 +464,7 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
     lactate_ocr: { enabled: boolean }
   }
 }> {
-  let subscription = await prisma.athleteSubscription.findUnique({
-    where: { clientId },
-  })
+  let subscription = await getAthleteSubscriptionWithRepairs(clientId)
 
   // Auto-create subscription if none exists (same as checkAthleteFeatureAccess)
   if (!subscription) {
@@ -427,9 +473,7 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
         tier: 'STANDARD',
         trialDays: 14,
       })
-      subscription = await prisma.athleteSubscription.findUnique({
-        where: { clientId },
-      })
+      subscription = await getAthleteSubscriptionWithRepairs(clientId)
     } catch {
       // Fall through to default response
     }

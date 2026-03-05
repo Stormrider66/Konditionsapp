@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { getTrialDaysRemaining } from '@/lib/subscription/trial-utils'
+import { getAthleteSubscriptionWithRepairs } from '@/lib/subscription/feature-access'
 
 export async function GET() {
   try {
@@ -25,9 +26,7 @@ export async function GET() {
     // Get client with subscription using resolved clientId
     const client = await prisma.client.findUnique({
       where: { id: resolved.clientId },
-      include: {
-        athleteSubscription: true,
-      },
+      select: { id: true },
     })
 
     if (!client) {
@@ -37,7 +36,7 @@ export async function GET() {
       )
     }
 
-    const subscription = client.athleteSubscription
+    const subscription = await getAthleteSubscriptionWithRepairs(resolved.clientId)
 
     if (!subscription) {
       return NextResponse.json({

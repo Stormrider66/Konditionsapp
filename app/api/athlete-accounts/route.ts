@@ -9,6 +9,23 @@ import { Resend } from 'resend'
 import { escapeHtml, sanitizeAttribute, sanitizeUrl } from '@/lib/sanitize'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+const COACH_CREATED_ATHLETE_TRIAL_DAYS = 14
+
+function getCoachCreatedAthleteSubscriptionData() {
+  return {
+    tier: 'STANDARD' as const,
+    status: 'TRIAL' as const,
+    paymentSource: 'DIRECT' as const,
+    trialEndsAt: new Date(Date.now() + COACH_CREATED_ATHLETE_TRIAL_DAYS * 24 * 60 * 60 * 1000),
+    aiChatEnabled: true,
+    aiChatMessagesLimit: 50,
+    videoAnalysisEnabled: false,
+    garminEnabled: true,
+    stravaEnabled: true,
+    workoutLoggingEnabled: true,
+    dailyCheckInEnabled: true,
+  }
+}
 
 /**
  * POST /api/athlete-accounts
@@ -149,15 +166,70 @@ export async function POST(request: NextRequest) {
           },
         })
 
-        // Update subscription athlete count
-        await tx.subscription.update({
-          where: { userId: coach.id },
-          data: {
-            currentAthletes: {
-              increment: 1,
-            },
-          },
+        const existingSubscription = await tx.athleteSubscription.findUnique({
+          where: { clientId },
+          select: { id: true },
         })
+
+        if (!existingSubscription) {
+          await tx.athleteSubscription.create({
+            data: {
+              clientId,
+              ...getCoachCreatedAthleteSubscriptionData(),
+            },
+          })
+        }
+
+        const existingPreferences = await tx.agentPreferences.findUnique({
+          where: { clientId },
+          select: { id: true },
+        })
+
+        if (!existingPreferences) {
+          await tx.agentPreferences.create({
+            data: {
+              clientId,
+              autonomyLevel: 'ADVISORY',
+              allowWorkoutModification: false,
+              allowRestDayInjection: false,
+              maxIntensityReduction: 10,
+              dailyBriefingEnabled: false,
+              proactiveNudgesEnabled: false,
+            },
+          })
+        }
+
+        const existingSportProfile = await tx.sportProfile.findUnique({
+          where: { clientId },
+          select: { id: true },
+        })
+
+        if (!existingSportProfile) {
+          await tx.sportProfile.create({
+            data: {
+              clientId,
+              primarySport: 'RUNNING',
+              onboardingCompleted: false,
+              onboardingStep: 0,
+            },
+          })
+        }
+
+        // Update subscription athlete count when the coach has a personal subscription.
+        const subscription = await tx.subscription.findUnique({
+          where: { userId: coach.id },
+        })
+
+        if (subscription) {
+          await tx.subscription.update({
+            where: { userId: coach.id },
+            data: {
+              currentAthletes: {
+                increment: 1,
+              },
+            },
+          })
+        }
 
         return account
       })

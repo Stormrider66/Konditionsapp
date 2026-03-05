@@ -60,6 +60,7 @@ export function getPriceId(tier: AthleteSubscriptionTier, cycle: BillingCycle): 
  * Create or get Stripe customer for a client
  */
 export async function getOrCreateStripeCustomer(clientId: string): Promise<string> {
+  const freeFeatures = getTierFeatures(AthleteSubscriptionTier.FREE);
   const client = await prisma.client.findUnique({
     where: { id: clientId },
     include: {
@@ -98,6 +99,8 @@ export async function getOrCreateStripeCustomer(clientId: string): Promise<strin
       stripeCustomerId: customer.id,
       tier: AthleteSubscriptionTier.FREE,
       status: SubscriptionStatus.ACTIVE,
+      paymentSource: 'DIRECT',
+      ...freeFeatures,
     },
   });
 
