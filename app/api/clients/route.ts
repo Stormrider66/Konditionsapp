@@ -3,19 +3,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
-import { createClient } from '@/lib/supabase/server'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
-import { hasReachedAthleteLimit } from '@/lib/auth-utils'
+import { getCurrentUser, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
 // GET /api/clients - Hämta alla klienter för inloggad användare
 // Supports pagination: ?limit=50&offset=0 (defaults: limit=500, offset=0)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
@@ -78,10 +74,7 @@ export async function GET(request: NextRequest) {
 // POST /api/clients - Skapa ny klient
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
@@ -152,20 +145,20 @@ export async function POST(request: NextRequest) {
 
     // Wrap user upsert + client creation in a transaction to prevent partial state
     const { dbUser, client } = await prisma.$transaction(async (tx) => {
-      // Ensure user exists in database (create if needed from Supabase Auth)
+      // Ensure user exists in database
       let txUser = await tx.user.findUnique({
         where: { id: user.id },
       })
 
       if (!txUser) {
-        // Create user record from Supabase Auth user
+        // Defensive fallback for rare races; should usually already exist via getCurrentUser().
         txUser = await tx.user.create({
           data: {
             id: user.id,
-            email: user.email!,
-            name: user.user_metadata?.name || user.email!.split('@')[0],
+            email: user.email,
+            name: user.name || user.email.split('@')[0],
             role: 'COACH', // Default role for users creating clients
-            language: 'sv',
+            language: user.language || 'sv',
           },
         })
         logger.info('Created user record for', { email: user.email })
