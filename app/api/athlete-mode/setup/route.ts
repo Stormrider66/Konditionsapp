@@ -131,6 +131,8 @@ export async function PATCH() {
       )
     }
 
+    const selfAthleteClientId = existingUser.selfAthleteClientId
+
     const subscriptionSeed = await buildSelfAthleteSubscriptionSeedForUser(user.id)
 
     // Check if AthleteAccount already exists
@@ -156,11 +158,11 @@ export async function PATCH() {
       const account = await tx.athleteAccount.create({
         data: {
           userId: user.id,
-          clientId: existingUser.selfAthleteClientId!,
+          clientId: selfAthleteClientId,
         },
       })
 
-      await ensureAthleteClientDefaultsTx(tx, existingUser.selfAthleteClientId, {
+      await ensureAthleteClientDefaultsTx(tx, selfAthleteClientId, {
         subscriptionSeed,
       })
 
