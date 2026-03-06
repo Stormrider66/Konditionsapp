@@ -64,12 +64,14 @@ export async function POST(request: NextRequest) {
       data: { user: supabaseUser },
     } = await supabase.auth.getUser()
 
-    if (!supabaseUser?.id || !supabaseUser.email) {
+    if (!supabaseUser?.id || !supabaseEmail) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       )
     }
+
+    const supabaseEmail = supabaseEmail
 
     authUserId = supabaseUser.id
 
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
     })
 
     const emailConflict = await prisma.user.findUnique({
-      where: { email: supabaseUser.email },
+      where: { email: supabaseEmail },
       select: { id: true },
     })
 
@@ -139,7 +141,7 @@ export async function POST(request: NextRequest) {
           await createSelfAthleteProfileTx(tx, {
             userId: updatedUser.id,
             name,
-            email: supabaseUser.email,
+            email: supabaseEmail,
             gender: gender as Gender,
             birthDate: new Date(birthDate as string),
             height: height as number,
@@ -161,7 +163,7 @@ export async function POST(request: NextRequest) {
       const createdUser = await tx.user.create({
         data: {
           id: supabaseUser.id,
-          email: supabaseUser.email,
+          email: supabaseEmail,
           name,
           role: 'COACH',
           language: 'sv',
@@ -176,7 +178,7 @@ export async function POST(request: NextRequest) {
         await createSelfAthleteProfileTx(tx, {
           userId: createdUser.id,
           name,
-          email: supabaseUser.email,
+          email: supabaseEmail,
           gender: gender as Gender,
           birthDate: new Date(birthDate as string),
           height: height as number,
@@ -194,7 +196,7 @@ export async function POST(request: NextRequest) {
     })
 
     try {
-      await sendWelcomeEmail(supabaseUser.email, name, 'sv')
+      await sendWelcomeEmail(supabaseEmail, name, 'sv')
     } catch (emailError) {
       logger.error('Failed to send coach welcome email', { userId: result.id }, emailError)
     }
