@@ -52,7 +52,7 @@ export async function scheduleWODToDashboard(wodId: string) {
               days: {
                 create: {
                   date: now,
-                  dayOfWeek: now.getDay() || 7,
+                  dayNumber: now.getDay() || 7,
                 },
               },
             },
