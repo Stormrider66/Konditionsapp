@@ -156,7 +156,7 @@ export async function PATCH() {
       const account = await tx.athleteAccount.create({
         data: {
           userId: user.id,
-          clientId: existingUser.selfAthleteClientId,
+          clientId: existingUser.selfAthleteClientId ?? undefined,
         },
       })
 
