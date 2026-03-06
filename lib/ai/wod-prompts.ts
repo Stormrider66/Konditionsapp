@@ -73,6 +73,7 @@ ${excludedCategories.length > 0 ? `\n## EXKLUDERADE ÖVNINGSKATEGORIER\n${exclud
 
 ${formatLocationEquipment(context.locationEquipment)}
 
+${context.aiInstructions ? `## SPECIFIKA INSTRUKTIONER FÖR DENNA ATLET\n${context.aiInstructions}\n` : ''}
 ## OUTPUT FORMAT
 
 Svara ENDAST med JSON i följande format (ingen annan text):

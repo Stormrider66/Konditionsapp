@@ -158,6 +158,7 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
       select: {
         id: true,
         name: true,
+        aiInstructions: true,
       },
     }),
 
@@ -350,6 +351,9 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
 
     // Location-based equipment (enterprise feature)
     locationEquipment,
+
+    // AI-specific coaching instructions
+    aiInstructions: client.aiInstructions ?? undefined,
 
     // Training restrictions (physio system)
     trainingRestrictions,

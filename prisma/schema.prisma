@@ -781,6 +781,11 @@ model Client {
   weight    Float // kg
   notes     String?
 
+  // AI-specific instructions for this athlete (injected into AI system prompt)
+  // Use for chronic conditions, special considerations, coaching style preferences
+  // Example: "Chronic GI condition — adapt nutrition/recovery, be discreet"
+  aiInstructions String? @db.Text
+
   // Manual physiological values (self-reported by athlete)
   manualVo2max Float? // ml/kg/min — used when no lab test exists
   manualMaxHR  Int?   // bpm — used when no lab test exists

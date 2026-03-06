@@ -200,6 +200,9 @@ export interface WODAthleteContext {
     }[]
   } | null
 
+  // AI-specific coaching instructions for this athlete
+  aiInstructions?: string | null
+
   // Training restrictions (physio system)
   trainingRestrictions?: {
     hasRestrictions: boolean
