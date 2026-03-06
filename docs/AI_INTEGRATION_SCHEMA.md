@@ -279,15 +279,43 @@ Both versions call the **same API routes** and use the **same components**. The 
 | `/api/video-analysis/[id]/analyze` | POST | Video Analysis | Gemini (direct SDK) |
 | `/api/coach/voice-workout` | POST | Voice to Workout | `balanced` |
 
+### Agent System (AI-Coached Athletes)
+
+| Route | Method | Feature | Intent |
+|-------|--------|---------|--------|
+| `/api/agent/onboarding` | POST | AI assessment wizard | `powerful` |
+| `/api/agent/program/generate` | POST | Agent program generation | `powerful` |
+| `/api/agent/preferences` | GET/PUT | Agent preferences | — (config) |
+| `/api/agent/consent` | GET | Consent status | — (data) |
+| `/api/agent/consent/withdraw` | POST | Withdraw AI consent | — (action) |
+| `/api/agent/data/export` | GET | Export AI data | — (data) |
+| `/api/agent/data/delete` | DELETE | Delete AI data | — (action) |
+| `/api/coach/agent/oversight/[id]/approve` | POST | Approve agent action | — (action) |
+| `/api/coach/agent/oversight/[id]/reject` | POST | Reject agent action | — (action) |
+| `/api/coach/agent/oversight/[id]/modify` | POST | Modify agent action | — (action) |
+
+### Nutrition AI
+
+| Route | Method | Feature | Model |
+|-------|--------|---------|-------|
+| `/api/ai/food-scan` | POST | Food photo analysis | Gemini Flash |
+| `/api/ai/food-scan/refine` | POST | Refine food analysis | Gemini Flash |
+| `/api/ai/food-scan/transcribe-audio` | POST | Voice food logging | Gemini Flash |
+| `/api/ai/nutrition-plan` | POST | Full nutrition plan | `balanced` |
+| `/api/nutrition/guidance` | GET | Nutrition tips | `fast` |
+
 ### Config & Budget
 
 | Route | Method | Feature |
 |-------|--------|---------|
 | `/api/ai/config` | GET | AI Configuration |
 | `/api/ai/models` | GET | Available Models |
-| `/api/ai/models/preference` | POST | Model Preference |
+| `/api/ai/models/preference` | POST/PUT | Model Preference |
 | `/api/ai/budget` | GET/POST | Budget Limits |
 | `/api/ai/budget/usage` | GET | Usage Tracking |
+| `/api/ai/memory/[clientId]` | GET/POST | Conversation memory |
+| `/api/athlete/ai-config` | GET | Athlete AI config |
+| `/api/athlete/subscription-status` | GET | AI subscription status |
 
 ---
 
