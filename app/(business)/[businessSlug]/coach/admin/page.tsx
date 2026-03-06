@@ -26,6 +26,7 @@ export default async function BusinessAdminPage({ params }: BusinessAdminPagePro
 
   return (
     <BusinessAdminClient
+      businessId={membership.business.id}
       businessName={membership.business.name}
       businessRole={membership.role as 'OWNER' | 'ADMIN'}
       businessSlug={businessSlug}

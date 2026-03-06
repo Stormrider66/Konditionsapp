@@ -1,7 +1,7 @@
 // app/api/coach/admin/branding/custom-domain/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireBusinessAdminRole } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { hasWhiteLabel } from '@/lib/branding/feature-gate'
 import { z } from 'zod'
@@ -21,7 +21,7 @@ const domainSchema = z.object({
 // POST /api/coach/admin/branding/custom-domain - Set up custom domain
 export async function POST(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
 
     // Check WHITE_LABEL feature
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 // PUT /api/coach/admin/branding/custom-domain - Verify custom domain
 export async function PUT(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
 
     const hasWL = await hasWhiteLabel(businessId)
@@ -173,9 +173,9 @@ export async function PUT(request: NextRequest) {
 }
 
 // DELETE /api/coach/admin/branding/custom-domain - Remove custom domain
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
 
     await prisma.business.update({

@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireBusinessAdminRole } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const updateEquipmentSchema = z.object({
@@ -22,7 +22,7 @@ interface RouteParams {
 // PUT update equipment at location
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
     const { locationId, equipmentId } = await params
 
@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE remove equipment from location
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
     const { locationId, equipmentId } = await params
 

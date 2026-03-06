@@ -21,6 +21,7 @@ describe('Athlete AI config regression', () => {
     vi.mocked(prisma.client.findUnique).mockResolvedValue({
       id: 'client-1',
       userId: 'athlete-1',
+      businessId: null,
       sportProfile: {
         preferredAIModelId: null,
       },
@@ -28,7 +29,6 @@ describe('Athlete AI config regression', () => {
 
     vi.mocked(getPlatformAiKeyOwnerId).mockResolvedValue('admin-1')
     vi.mocked(prisma.userApiKey.findUnique).mockResolvedValue(null as any)
-    vi.mocked(prisma.businessMember.findFirst).mockResolvedValue(null as any)
     vi.mocked(getResolvedAiKeys).mockResolvedValue({
       anthropicKey: null,
       googleKey: 'google-key',
@@ -52,7 +52,10 @@ describe('Athlete AI config regression', () => {
       'powerful',
     ])
 
-    expect(getResolvedAiKeys).toHaveBeenCalledWith('admin-1')
+    expect(getResolvedAiKeys).toHaveBeenCalledWith('admin-1', {
+      businessId: null,
+      disableMembershipFallback: true,
+    })
     expect(getPlatformAiKeyOwnerId).toHaveBeenCalled()
   })
 
@@ -66,6 +69,7 @@ describe('Athlete AI config regression', () => {
     vi.mocked(prisma.client.findUnique).mockResolvedValue({
       id: 'client-2',
       userId: 'coach-1',
+      businessId: 'business-1',
       sportProfile: {
         preferredAIModelId: null,
       },
@@ -76,15 +80,13 @@ describe('Athlete AI config regression', () => {
       athleteDefaultModelId: null,
     } as any)
 
-    vi.mocked(prisma.businessMember.findFirst).mockResolvedValue({
-      business: {
-        aiKeys: {
-          anthropicKeyValid: false,
-          googleKeyValid: true,
-          openaiKeyValid: false,
-          allowedAthleteModelIds: ['powerful'],
-          athleteDefaultModelId: 'powerful',
-        },
+    vi.mocked(prisma.business.findUnique).mockResolvedValue({
+      aiKeys: {
+        anthropicKeyValid: false,
+        googleKeyValid: true,
+        openaiKeyValid: false,
+        allowedAthleteModelIds: ['powerful'],
+        athleteDefaultModelId: 'powerful',
       },
     } as any)
 
@@ -108,6 +110,9 @@ describe('Athlete AI config regression', () => {
       hasOpenai: false,
     })
 
-    expect(getResolvedAiKeys).toHaveBeenCalledWith('coach-1')
+    expect(getResolvedAiKeys).toHaveBeenCalledWith('coach-1', {
+      businessId: 'business-1',
+      disableMembershipFallback: true,
+    })
   })
 })

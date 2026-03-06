@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { format } from 'date-fns'
+import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface BusinessStats {
   members: { total: number; testers: number }
@@ -48,6 +49,7 @@ interface BusinessStats {
 }
 
 export function BusinessOverviewTab() {
+  const businessHeaders = useBusinessAdminHeaders()
   const [stats, setStats] = useState<BusinessStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -56,7 +58,9 @@ export function BusinessOverviewTab() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/coach/admin/stats')
+      const response = await fetch('/api/coach/admin/stats', {
+        headers: businessHeaders,
+      })
       if (!response.ok) throw new Error('Failed to fetch stats')
       const result = await response.json()
       setStats(result.data)
@@ -69,7 +73,7 @@ export function BusinessOverviewTab() {
 
   useEffect(() => {
     fetchStats()
-  }, [])
+  }, [businessHeaders])
 
   const formatCurrency = (amount: number, currency: string = 'SEK') => {
     return new Intl.NumberFormat('sv-SE', {

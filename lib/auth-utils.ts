@@ -6,9 +6,12 @@ import { User, UserRole, AdminRole, BusinessAdminUser, BusinessMemberRole } from
 import { redirect } from 'next/navigation'
 import { isAthleteModeActive, getAthleteModeAccess } from '@/lib/athlete-mode'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
-import { createCoachTrialSubscription } from '@/lib/subscription/feature-access'
 import { logger } from '@/lib/logger'
 import { ApiError } from '@/lib/api-error'
+import {
+  buildSelfAthleteSubscriptionSeedForUser,
+  ensureAthleteClientDefaultsTx,
+} from '@/lib/user-provisioning'
 
 function requestCache<T extends (...args: any[]) => any>(fn: T): T {
   const maybeCache = (React as { cache?: <F extends (...args: any[]) => any>(f: F) => F }).cache
@@ -23,6 +26,9 @@ async function ensureAthleteClientDefaults(clientId: string): Promise<void> {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       select: {
+        athleteSubscription: {
+          select: { id: true },
+        },
         agentPreferences: { select: { id: true } },
         sportProfile: { select: { id: true } },
       },
@@ -32,51 +38,61 @@ async function ensureAthleteClientDefaults(clientId: string): Promise<void> {
       return
     }
 
+    const selfAthleteUser = await prisma.user.findFirst({
+      where: { selfAthleteClientId: clientId },
+      select: { id: true },
+    })
+
     const needsAgentPreferences = !client.agentPreferences
     const needsSportProfile = !client.sportProfile
+    const shouldSyncSubscription = !!selfAthleteUser || !client.athleteSubscription
 
-    if (!needsAgentPreferences && !needsSportProfile) {
+    if (!needsAgentPreferences && !needsSportProfile && !shouldSyncSubscription) {
       return
     }
 
-    await prisma.$transaction(async (tx) => {
-      if (needsAgentPreferences) {
-        await tx.agentPreferences.upsert({
-          where: { clientId },
-          update: {},
-          create: {
-            clientId,
-            autonomyLevel: 'ADVISORY',
-            allowWorkoutModification: false,
-            allowRestDayInjection: false,
-            maxIntensityReduction: 10,
-            dailyBriefingEnabled: false,
-            proactiveNudgesEnabled: false,
-          },
-        })
-      }
+    const subscriptionSeed = shouldSyncSubscription
+      ? selfAthleteUser
+        ? await buildSelfAthleteSubscriptionSeedForUser(selfAthleteUser.id)
+        : {
+            tier: 'FREE' as const,
+            status: 'ACTIVE' as const,
+            paymentSource: 'DIRECT' as const,
+            trialEndsAt: null,
+          }
+      : null
 
-      if (needsSportProfile) {
-        await tx.sportProfile.upsert({
-          where: { clientId },
-          update: {},
-          create: {
-            clientId,
-            primarySport: 'RUNNING',
-            onboardingCompleted: false,
-            onboardingStep: 0,
-          },
-        })
-      }
+    await prisma.$transaction(async (tx) => {
+      await ensureAthleteClientDefaultsTx(tx, clientId, {
+        subscriptionSeed,
+      })
     })
 
     logger.info('Recovered missing athlete client defaults', {
       clientId,
+      syncedAthleteSubscription: shouldSyncSubscription,
       createdAgentPreferences: needsAgentPreferences,
       createdSportProfile: needsSportProfile,
     })
   } catch (error) {
     logger.error('Failed to recover athlete client defaults', { clientId }, error)
+  }
+}
+
+export interface RequestedBusinessScope {
+  businessId?: string
+  businessSlug?: string
+}
+
+export function getRequestedBusinessScope(
+  request: { headers: Headers }
+): RequestedBusinessScope {
+  const businessId = request.headers.get('x-business-id')?.trim()
+  const businessSlug = request.headers.get('x-business-slug')?.trim()
+
+  return {
+    ...(businessId ? { businessId } : {}),
+    ...(businessSlug ? { businessSlug } : {}),
   }
 }
 
@@ -970,7 +986,10 @@ export async function hasAdminRole(requiredRoles: AdminRole[]): Promise<boolean>
  * Get the business context for a user (if they belong to a business)
  * Returns null values if user is not a member of any business
  */
-export async function getBusinessContext(userId: string): Promise<{
+export async function getBusinessContext(
+  userId: string,
+  scope?: RequestedBusinessScope
+): Promise<{
   businessId: string | null
   role: BusinessMemberRole | null
   business: { id: string; name: string; slug: string } | null
@@ -979,6 +998,8 @@ export async function getBusinessContext(userId: string): Promise<{
     where: {
       userId,
       isActive: true,
+      ...(scope?.businessId ? { businessId: scope.businessId } : {}),
+      ...(scope?.businessSlug ? { business: { slug: scope.businessSlug } } : {}),
     },
     include: {
       business: {
@@ -989,9 +1010,13 @@ export async function getBusinessContext(userId: string): Promise<{
         },
       },
     },
-    orderBy: {
-      createdAt: 'asc', // Get the first/primary business if user belongs to multiple
-    },
+    ...(scope?.businessId || scope?.businessSlug
+      ? {}
+      : {
+          orderBy: {
+            createdAt: 'asc' as const, // Get the first/primary business if user belongs to multiple
+          },
+        }),
   })
 
   if (!membership) {
@@ -1014,7 +1039,9 @@ export async function getBusinessContext(userId: string): Promise<{
  * Returns the user with business context for scoped queries
  * @throws Error if user is not authenticated or not a business admin
  */
-export async function requireBusinessAdminRole(): Promise<BusinessAdminUser> {
+export async function requireBusinessAdminRole(
+  scope?: RequestedBusinessScope
+): Promise<BusinessAdminUser> {
   const user = await getCurrentUser()
 
   if (!user) {
@@ -1029,6 +1056,8 @@ export async function requireBusinessAdminRole(): Promise<BusinessAdminUser> {
       role: {
         in: ['OWNER', 'ADMIN'],
       },
+      ...(scope?.businessId ? { businessId: scope.businessId } : {}),
+      ...(scope?.businessSlug ? { business: { slug: scope.businessSlug } } : {}),
     },
     include: {
       business: {
@@ -1047,6 +1076,8 @@ export async function requireBusinessAdminRole(): Promise<BusinessAdminUser> {
       where: {
         userId: user.id,
         isActive: true,
+        ...(scope?.businessId ? { businessId: scope.businessId } : {}),
+        ...(scope?.businessSlug ? { business: { slug: scope.businessSlug } } : {}),
       },
       include: {
         business: {

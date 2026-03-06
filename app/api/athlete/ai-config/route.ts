@@ -33,6 +33,7 @@ export async function GET() {
       select: {
         id: true,
         userId: true, // This is the coach's user ID (null for self-athletes)
+        businessId: true,
         sportProfile: {
           select: {
             preferredAIModelId: true,
@@ -45,6 +46,7 @@ export async function GET() {
     // For coach-in-athlete-mode: the coach IS the user
     // For regular athletes: the coach is client.userId
     let effectiveCoachId = isCoachInAthleteMode ? user.id : client?.userId
+    const effectiveBusinessId = client?.businessId ?? null
 
     // Direct athlete: client.userId is the athlete themselves → fall back to platform admin
     if (effectiveCoachId && effectiveCoachId === user.id && !isCoachInAthleteMode) {
@@ -76,10 +78,9 @@ export async function GET() {
     })
 
     // Fetch business-level AI settings (used when coach relies on business keys)
-    const businessSettings = await prisma.businessMember.findFirst({
-      where: { userId: effectiveCoachId, isActive: true },
-      select: {
-        business: {
+    const businessSettings = effectiveBusinessId
+      ? await prisma.business.findUnique({
+          where: { id: effectiveBusinessId },
           select: {
             aiKeys: {
               select: {
@@ -91,12 +92,14 @@ export async function GET() {
               },
             },
           },
-        },
-      },
-    })
+        })
+      : null
 
     // Resolve effective keys exactly like AI runtime routes (user -> business -> admin)
-    const resolvedKeys = await getResolvedAiKeys(effectiveCoachId)
+    const resolvedKeys = await getResolvedAiKeys(effectiveCoachId, {
+      businessId: effectiveBusinessId,
+      disableMembershipFallback: true,
+    })
     const hasAIAccess = !!(resolvedKeys.anthropicKey || resolvedKeys.googleKey || resolvedKeys.openaiKey)
 
     if (!hasAIAccess) {
@@ -123,7 +126,7 @@ export async function GET() {
 
     // Determine allowed intents from coach + business settings
     const rawAllowed = coachApiSettings?.allowedAthleteModelIds || []
-    const businessRawAllowed = businessSettings?.business?.aiKeys?.allowedAthleteModelIds || []
+    const businessRawAllowed = businessSettings?.aiKeys?.allowedAthleteModelIds || []
     const allRawModelRefs = [...new Set([...rawAllowed, ...businessRawAllowed])]
       .filter(v => !isModelIntent(v))
 
@@ -199,8 +202,8 @@ export async function GET() {
       if (mapped) selectedIntent = mapped
     }
     // Priority 3: Business athlete default
-    else if (businessSettings?.business?.aiKeys?.athleteDefaultModelId) {
-      const mapped = toIntent(businessSettings.business.aiKeys.athleteDefaultModelId)
+    else if (businessSettings?.aiKeys?.athleteDefaultModelId) {
+      const mapped = toIntent(businessSettings.aiKeys.athleteDefaultModelId)
       if (mapped) selectedIntent = mapped
     }
 

@@ -38,6 +38,7 @@ import {
   EyeOff,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface ApiKey {
   id: string
@@ -53,6 +54,7 @@ interface ApiKey {
 }
 
 export function BusinessApiKeysTab() {
+  const businessHeaders = useBusinessAdminHeaders()
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -72,7 +74,9 @@ export function BusinessApiKeysTab() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/coach/admin/api-keys')
+      const response = await fetch('/api/coach/admin/api-keys', {
+        headers: businessHeaders,
+      })
       if (!response.ok) throw new Error('Failed to fetch API keys')
       const result = await response.json()
       setApiKeys(result.data)
@@ -81,7 +85,7 @@ export function BusinessApiKeysTab() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [businessHeaders])
 
   useEffect(() => {
     fetchApiKeys()
@@ -96,7 +100,10 @@ export function BusinessApiKeysTab() {
     try {
       const response = await fetch('/api/coach/admin/api-keys', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(newKey),
       })
 
@@ -121,6 +128,7 @@ export function BusinessApiKeysTab() {
     try {
       const response = await fetch(`/api/coach/admin/api-keys/${keyId}`, {
         method: 'DELETE',
+        headers: businessHeaders,
       })
 
       if (!response.ok) {
@@ -141,7 +149,10 @@ export function BusinessApiKeysTab() {
     try {
       const response = await fetch(`/api/coach/admin/api-keys/${keyId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ isActive: !isActive }),
       })
 

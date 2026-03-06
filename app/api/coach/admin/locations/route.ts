@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireBusinessAdminRole } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const createLocationSchema = z.object({
@@ -23,7 +23,7 @@ const createLocationSchema = z.object({
 // GET all locations for the business
 export async function GET(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
 
     const locations = await prisma.location.findMany({
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 // POST create a new location
 export async function POST(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
 
     const body = await request.json()

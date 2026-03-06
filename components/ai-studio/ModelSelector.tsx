@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -21,6 +22,7 @@ import { Bot, Brain, Sparkles, Zap, Check, ChevronDown, AlertCircle, FileText, L
 import type { AIProvider } from '@prisma/client'
 import { formatTokenCount, estimateWeeksFromTokens } from '@/types/ai-models'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 interface AIModel {
   id: string
@@ -57,6 +59,7 @@ interface ModelSelectorProps {
 }
 
 export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: ModelSelectorProps) {
+  const pathname = usePathname()
   const [models, setModels] = useState<AIModel[]>([])
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
@@ -67,7 +70,8 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
 
   async function fetchModels() {
     try {
-      const response = await fetch('/api/ai/models')
+      const businessHeaders = getBusinessScopeHeaders(pathname)
+      const response = await fetch('/api/ai/models', businessHeaders ? { headers: businessHeaders } : undefined)
       const data = await response.json()
       if (data.success) {
         setModels(data.models)

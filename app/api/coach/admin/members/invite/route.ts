@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireBusinessAdminRole } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { inviteUserToBusiness } from '@/lib/invite-utils'
 import { z } from 'zod'
@@ -13,7 +13,7 @@ const inviteSchema = z.object({
 // POST /api/coach/admin/members/invite - Invite a new user to the coach's business
 export async function POST(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
 
     const body = await request.json()

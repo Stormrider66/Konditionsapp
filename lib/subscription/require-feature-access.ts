@@ -17,6 +17,8 @@ const COACH_FEATURE_TIERS: Record<CoachFeature, Set<string>> = {
 const FEATURE_LABELS: Record<string, string> = {
   advanced_intelligence: 'Avancerad Intelligens',
   program_generation: 'Programgenerering',
+  coach_requests: 'Coachanslutning',
+  self_service_templates: 'Självbetjänade mallar',
   nutrition_planning: 'Nutritionsplanering',
   concept2: 'Concept2-integration',
   lactate_ocr: 'Laktat-OCR',

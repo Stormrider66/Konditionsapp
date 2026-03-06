@@ -13,7 +13,8 @@ import { sendGenericEmail } from '@/lib/email';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
 import crypto from 'crypto'
-import { handleApiError } from '@/lib/api-error'
+import { ApiError, handleApiError } from '@/lib/api-error'
+import { getLastOwnerGuardError } from '@/lib/business-member-guards'
 
 // Validation schema for inviting a member
 const inviteMemberSchema = z.object({
@@ -258,37 +259,45 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Permission checks
-    // Can't remove the owner
-    if (targetMembership.role === 'OWNER') {
+    const isSelfRemoval = targetUserId === user.id
+
+    if ((currentMembership.role === 'MEMBER' || currentMembership.role === 'COACH') && !isSelfRemoval) {
       return NextResponse.json(
-        { error: 'Cannot remove the business owner' },
+        { error: 'Only owners and admins can remove other members' },
         { status: 403 }
       );
     }
 
-    // Members can only remove themselves
-    if (currentMembership.role === 'MEMBER' && targetUserId !== user.id) {
-      return NextResponse.json(
-        { error: 'Members can only remove themselves' },
-        { status: 403 }
-      );
-    }
-
-    // Admins can only remove members (not other admins)
-    if (currentMembership.role === 'ADMIN' && targetMembership.role === 'ADMIN' && targetUserId !== user.id) {
+    if (
+      currentMembership.role === 'ADMIN' &&
+      !isSelfRemoval &&
+      (targetMembership.role === 'ADMIN' || targetMembership.role === 'OWNER')
+    ) {
       return NextResponse.json(
         { error: 'Admins cannot remove other admins' },
         { status: 403 }
       );
     }
 
-    // Remove the member
-    await prisma.businessMember.delete({
-      where: {
-        id: targetMembership.id,
-      },
-    });
+    if (currentMembership.role !== 'OWNER' && targetMembership.role === 'OWNER') {
+      return NextResponse.json(
+        { error: 'Only owners can remove other owners' },
+        { status: 403 }
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const ownerGuardError = await getLastOwnerGuardError(tx, targetMembership, { remove: true })
+      if (ownerGuardError) {
+        throw ApiError.badRequest(ownerGuardError)
+      }
+
+      await tx.businessMember.delete({
+        where: {
+          id: targetMembership.id,
+        },
+      });
+    })
 
     return NextResponse.json({ success: true });
   } catch (error) {

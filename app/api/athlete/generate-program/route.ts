@@ -15,6 +15,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { generateAIProgram } from '@/lib/agent/program-generator'
 import { z } from 'zod'
+import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 
 const generateProgramSchema = z.object({
   sport: z.string(),
@@ -75,18 +76,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const subscription = client.athleteSubscription
-
-    // Check subscription tier
-    if (!subscription || subscription.tier === 'FREE') {
-      return NextResponse.json(
-        { success: false, error: 'AI program generation requires STANDARD or PRO subscription' },
-        { status: 403 }
-      )
+    const featureDenied = await requireFeatureAccess(clientId, 'program_generation', {
+      featureLabel: 'AI-programgenerering',
+    })
+    if (featureDenied) {
+      return featureDenied
     }
 
+    const subscription = client.athleteSubscription
+
     // Check if athlete has an assigned coach
-    if (subscription.assignedCoachId) {
+    if (subscription?.assignedCoachId) {
       return NextResponse.json(
         { success: false, error: 'Athletes with an assigned coach cannot generate AI programs' },
         { status: 403 }

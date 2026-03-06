@@ -33,6 +33,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface PartnerReferral {
   id: string
@@ -74,6 +75,7 @@ interface ReferralStats {
 }
 
 export function BusinessReferralsTab() {
+  const businessHeaders = useBusinessAdminHeaders()
   const [referrals, setReferrals] = useState<PartnerReferral[]>([])
   const [stats, setStats] = useState<ReferralStats | null>(null)
   const [businessSlug, setBusinessSlug] = useState<string>('')
@@ -101,7 +103,9 @@ export function BusinessReferralsTab() {
         params.set('status', statusFilter)
       }
 
-      const response = await fetch(`/api/coach/admin/referrals?${params}`)
+      const response = await fetch(`/api/coach/admin/referrals?${params}`, {
+        headers: businessHeaders,
+      })
       if (!response.ok) throw new Error('Failed to fetch referrals')
 
       const result = await response.json()
@@ -115,7 +119,7 @@ export function BusinessReferralsTab() {
     } finally {
       setLoading(false)
     }
-  }, [page, statusFilter])
+  }, [businessHeaders, page, statusFilter])
 
   useEffect(() => {
     fetchReferrals()

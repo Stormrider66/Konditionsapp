@@ -52,6 +52,7 @@ import {
   Check,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface Equipment {
   id: string
@@ -102,6 +103,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 export function LocationEquipmentManager({ locationId, locationName, onBack }: LocationEquipmentManagerProps) {
+  const businessHeaders = useBusinessAdminHeaders()
   const [locationEquipment, setLocationEquipment] = useState<LocationEquipment[]>([])
   const [equipmentCatalog, setEquipmentCatalog] = useState<Record<string, Equipment[]>>({})
   const [isLoading, setIsLoading] = useState(true)
@@ -131,7 +133,9 @@ export function LocationEquipmentManager({ locationId, locationName, onBack }: L
 
   const fetchLocationEquipment = useCallback(async () => {
     try {
-      const response = await fetch(`/api/coach/admin/locations/${locationId}/equipment`)
+      const response = await fetch(`/api/coach/admin/locations/${locationId}/equipment`, {
+        headers: businessHeaders,
+      })
       const result = await response.json()
       if (result.success) {
         setLocationEquipment(result.data.equipment)
@@ -139,7 +143,7 @@ export function LocationEquipmentManager({ locationId, locationName, onBack }: L
     } catch {
       toast.error('Failed to load location equipment')
     }
-  }, [locationId])
+  }, [businessHeaders, locationId])
 
   const fetchEquipmentCatalog = useCallback(async () => {
     try {
@@ -172,7 +176,10 @@ export function LocationEquipmentManager({ locationId, locationName, onBack }: L
       setIsSubmitting(true)
       const response = await fetch(`/api/coach/admin/locations/${locationId}/equipment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(addFormData),
       })
       const result = await response.json()
@@ -200,7 +207,10 @@ export function LocationEquipmentManager({ locationId, locationName, onBack }: L
         `/api/coach/admin/locations/${locationId}/equipment/${selectedEquipment.equipmentId}`,
         {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            ...businessHeaders,
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(editFormData),
         }
       )
@@ -227,7 +237,10 @@ export function LocationEquipmentManager({ locationId, locationName, onBack }: L
       setIsSubmitting(true)
       const response = await fetch(
         `/api/coach/admin/locations/${locationId}/equipment/${selectedEquipment.equipmentId}`,
-        { method: 'DELETE' }
+        {
+          method: 'DELETE',
+          headers: businessHeaders,
+        }
       )
       const result = await response.json()
       if (result.success) {

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select'
 import { Loader2, Save, Shield, Users } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface EligibleModel {
   id: string
@@ -47,6 +48,7 @@ function getCostTier(model: EligibleModel): string {
 
 export function BusinessModelSharingSection() {
   const { toast } = useToast()
+  const businessHeaders = useBusinessAdminHeaders()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [eligibleModels, setEligibleModels] = useState<EligibleModel[]>([])
@@ -57,7 +59,9 @@ export function BusinessModelSharingSection() {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const response = await fetch('/api/coach/admin/ai-keys/models')
+      const response = await fetch('/api/coach/admin/ai-keys/models', {
+        headers: businessHeaders,
+      })
       const data = await response.json()
       if (data.success) {
         setEligibleModels(data.data.eligibleModels)
@@ -71,7 +75,7 @@ export function BusinessModelSharingSection() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [businessHeaders])
 
   useEffect(() => {
     fetchSettings()
@@ -110,7 +114,10 @@ export function BusinessModelSharingSection() {
     try {
       const response = await fetch('/api/coach/admin/ai-keys/models', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           allowedModelIds: coachAllowedIds,
           allowedAthleteModelIds: athleteAllowedIds,

@@ -16,6 +16,7 @@ import {
   Save,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface BusinessLocation {
   id: string
@@ -69,6 +70,7 @@ interface BusinessSettings {
 }
 
 export function BusinessSettingsTab() {
+  const businessHeaders = useBusinessAdminHeaders()
   const [settings, setSettings] = useState<BusinessSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -90,7 +92,9 @@ export function BusinessSettingsTab() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/coach/admin/settings')
+      const response = await fetch('/api/coach/admin/settings', {
+        headers: businessHeaders,
+      })
       if (!response.ok) throw new Error('Failed to fetch settings')
       const result = await response.json()
       setSettings(result.data)
@@ -110,7 +114,7 @@ export function BusinessSettingsTab() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [businessHeaders])
 
   useEffect(() => {
     fetchSettings()
@@ -124,7 +128,10 @@ export function BusinessSettingsTab() {
     try {
       const response = await fetch('/api/coach/admin/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           name: formData.name || undefined,
           description: formData.description || null,

@@ -46,6 +46,7 @@ import {
   Check,
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 type MemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH'
 
@@ -81,6 +82,7 @@ interface BusinessMembersTabProps {
 }
 
 export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps) {
+  const businessHeaders = useBusinessAdminHeaders()
   const [members, setMembers] = useState<BusinessMember[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -107,7 +109,9 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/coach/admin/members')
+      const response = await fetch('/api/coach/admin/members', {
+        headers: businessHeaders,
+      })
       if (!response.ok) throw new Error('Failed to fetch members')
       const result = await response.json()
       setMembers(result.data)
@@ -116,7 +120,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [businessHeaders])
 
   useEffect(() => {
     fetchMembers()
@@ -131,7 +135,10 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
     try {
       const response = await fetch('/api/coach/admin/members', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(newMember),
       })
 
@@ -161,7 +168,10 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
     try {
       const response = await fetch('/api/coach/admin/members/invite', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           email: inviteMember.email,
           name: inviteMember.name,
@@ -190,7 +200,10 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
     try {
       const response = await fetch(`/api/coach/admin/members/${memberId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ role: editRole }),
       })
 
@@ -214,6 +227,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
     try {
       const response = await fetch(`/api/coach/admin/members/${memberId}`, {
         method: 'DELETE',
+        headers: businessHeaders,
       })
 
       const result = await response.json()
@@ -236,6 +250,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
     try {
       const response = await fetch(`/api/coach/admin/members/${memberId}/send-invite`, {
         method: 'POST',
+        headers: businessHeaders,
       })
 
       const result = await response.json()

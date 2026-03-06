@@ -7,7 +7,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { AthleteSubscriptionTier, SubscriptionStatus } from '@prisma/client';
-import { getAthleteSubscriptionWithRepairs } from '@/lib/subscription/feature-access';
+import { checkAthleteFeatureAccess, getAthleteSubscriptionWithRepairs } from '@/lib/subscription/feature-access';
 
 // Feature access configuration by tier
 const TIER_FEATURES = {
@@ -50,6 +50,23 @@ const TIER_FEATURES = {
 } as const;
 
 export type TierFeatures = typeof TIER_FEATURES[AthleteSubscriptionTier];
+
+function isSubscriptionCurrentlyActive(subscription: {
+  status: SubscriptionStatus;
+  trialEndsAt: Date | null;
+} | null): boolean {
+  if (!subscription) return false;
+
+  if (subscription.status === SubscriptionStatus.ACTIVE) {
+    return true;
+  }
+
+  if (subscription.status === SubscriptionStatus.TRIAL) {
+    return !!subscription.trialEndsAt && subscription.trialEndsAt > new Date();
+  }
+
+  return false;
+}
 
 /**
  * Get athlete subscription for a client
@@ -113,6 +130,11 @@ export async function requireTier(
   clientId: string,
   minTier: AthleteSubscriptionTier
 ): Promise<boolean> {
+  const active = await isSubscriptionActive(clientId);
+  if (!active) {
+    return false;
+  }
+
   const currentTier = await getAthleteTier(clientId);
 
   const tierOrder: AthleteSubscriptionTier[] = ['FREE', 'STANDARD', 'PRO', 'ELITE'];
@@ -133,10 +155,16 @@ export async function getAthleteSelfServiceAccess(clientId: string): Promise<{
   tier: AthleteSubscriptionTier;
   enabled: boolean;
 }> {
-  const tier = await getAthleteTier(clientId);
+  let subscription = await getAthleteSubscription(clientId);
+  const result = await checkAthleteFeatureAccess(clientId, 'self_service_templates');
+
+  if (!subscription) {
+    subscription = await getAthleteSubscription(clientId);
+  }
+
   return {
-    tier,
-    enabled: hasAthleteSelfServiceAccess(tier),
+    tier: subscription?.tier ?? AthleteSubscriptionTier.FREE,
+    enabled: result.allowed,
   };
 }
 
@@ -149,14 +177,22 @@ export async function checkAIAccess(clientId: string): Promise<{
   messagesLimit: number;
   remainingMessages: number;
 }> {
-  const subscription = await getAthleteSubscription(clientId);
+  let subscription = await getAthleteSubscription(clientId);
+  const access = await checkAthleteFeatureAccess(clientId, 'ai_chat');
 
-  if (!subscription || !subscription.aiChatEnabled) {
+  if (!subscription) {
+    subscription = await getAthleteSubscription(clientId);
+  }
+
+  if (!subscription || !access.allowed) {
     return {
       enabled: false,
-      messagesUsed: 0,
-      messagesLimit: 0,
-      remainingMessages: 0,
+      messagesUsed: subscription?.aiChatMessagesUsed ?? 0,
+      messagesLimit: (access.limit ?? subscription?.aiChatMessagesLimit) ?? 0,
+      remainingMessages:
+        access.limit === undefined || access.limit === -1
+          ? -1
+          : Math.max(0, access.limit - (subscription?.aiChatMessagesUsed ?? 0)),
     };
   }
 
@@ -203,8 +239,8 @@ export async function resetMonthlyAIChatUsage(): Promise<number> {
  * Check if athlete has video analysis access
  */
 export async function checkVideoAccess(clientId: string): Promise<boolean> {
-  const subscription = await getAthleteSubscription(clientId);
-  return subscription?.videoAnalysisEnabled ?? false;
+  const access = await checkAthleteFeatureAccess(clientId, 'video_analysis');
+  return access.allowed;
 }
 
 /**
@@ -214,15 +250,8 @@ export async function checkIntegrationAccess(
   clientId: string,
   integrationType: 'strava' | 'garmin'
 ): Promise<boolean> {
-  const subscription = await getAthleteSubscription(clientId);
-
-  if (!subscription) return false;
-
-  if (integrationType === 'strava') {
-    return subscription.stravaEnabled;
-  } else {
-    return subscription.garminEnabled;
-  }
+  const access = await checkAthleteFeatureAccess(clientId, integrationType);
+  return access.allowed;
 }
 
 /**
@@ -230,7 +259,7 @@ export async function checkIntegrationAccess(
  */
 export async function checkWorkoutLoggingAccess(clientId: string): Promise<boolean> {
   const subscription = await getAthleteSubscription(clientId);
-  return subscription?.workoutLoggingEnabled ?? false;
+  return isSubscriptionCurrentlyActive(subscription) && (subscription?.workoutLoggingEnabled ?? false);
 }
 
 /**
@@ -238,7 +267,7 @@ export async function checkWorkoutLoggingAccess(clientId: string): Promise<boole
  */
 export async function checkDailyCheckInAccess(clientId: string): Promise<boolean> {
   const subscription = await getAthleteSubscription(clientId);
-  return subscription?.dailyCheckInEnabled ?? false;
+  return isSubscriptionCurrentlyActive(subscription) && (subscription?.dailyCheckInEnabled ?? false);
 }
 
 /**

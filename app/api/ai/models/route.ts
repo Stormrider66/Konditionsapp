@@ -7,7 +7,7 @@
  * For coaches: Returns all models they have valid API keys for
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
@@ -42,7 +42,7 @@ function transformDbModel(dbModel: PrismaAIModel) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser()
 
@@ -58,20 +58,31 @@ export async function GET() {
 
     // Check if user is an athlete (or coach in athlete mode)
     const resolved = await resolveAthleteClientId()
+    const explicitBusinessSlug = request.headers.get('x-business-slug')
 
     let coachUserId: string
+    let effectiveBusinessId: string | null = request.headers.get('x-business-id')
     let isAthlete = false
+
+    if (!effectiveBusinessId && explicitBusinessSlug) {
+      const scopedBusiness = await prisma.business.findUnique({
+        where: { slug: explicitBusinessSlug },
+        select: { id: true },
+      })
+      effectiveBusinessId = scopedBusiness?.id ?? null
+    }
 
     if (resolved) {
       // User is an athlete or coach in athlete mode - get coach's settings via client
       const client = await prisma.client.findUnique({
         where: { id: resolved.clientId },
-        select: { userId: true },
+        select: { userId: true, businessId: true },
       })
       if (!client) {
         return NextResponse.json({ error: 'Client not found' }, { status: 404 })
       }
       coachUserId = client.userId
+      effectiveBusinessId = client.businessId
       isAthlete = true
     } else {
       // User is a coach - use their own settings
@@ -84,20 +95,21 @@ export async function GET() {
     })
 
     // Business-level settings (also used for restrictions/defaults)
-    const membership = await prisma.businessMember.findFirst({
-      where: { userId: coachUserId, isActive: true },
-      select: {
-        business: {
+    const business = effectiveBusinessId
+      ? await prisma.business.findUnique({
+          where: { id: effectiveBusinessId },
           select: {
             aiKeys: true,
           },
-        },
-      },
-    })
-    const bk = membership?.business?.aiKeys
+        })
+      : null
+    const bk = business?.aiKeys
 
     // Determine providers from resolved key source (user -> business -> admin)
-    const resolvedKeys = await getResolvedAiKeys(coachUserId)
+    const resolvedKeys = await getResolvedAiKeys(coachUserId, {
+      businessId: effectiveBusinessId,
+      disableMembershipFallback: true,
+    })
     const validProviders: AIProvider[] = []
     if (resolvedKeys.googleKey) validProviders.push('GOOGLE')
     if (resolvedKeys.anthropicKey) validProviders.push('ANTHROPIC')

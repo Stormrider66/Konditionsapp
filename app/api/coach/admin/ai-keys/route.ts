@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireBusinessAdminRole } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import OpenAI from 'openai'
 import { encryptIfPresent } from '@/lib/user-api-keys'
@@ -21,9 +21,9 @@ interface SaveKeysRequest {
 }
 
 // GET - Get AI key status (not actual keys)
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
 
     const aiKeys = await prisma.businessAiKeys.findUnique({
       where: { businessId: admin.businessId },
@@ -85,7 +85,7 @@ export async function GET() {
 // POST - Validate and save business AI keys
 export async function POST(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
 
     const body: SaveKeysRequest = await request.json()
     const { anthropicKey, googleKey, openaiKey } = body
@@ -262,9 +262,9 @@ export async function POST(request: NextRequest) {
 }
 
 // DELETE - Remove all business AI keys
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
 
     await prisma.businessAiKeys.deleteMany({
       where: { businessId: admin.businessId },

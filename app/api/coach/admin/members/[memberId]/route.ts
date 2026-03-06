@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireBusinessAdminRole } from '@/lib/auth-utils'
-import { handleApiError } from '@/lib/api-error'
+import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
+import { ApiError, handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
+import { getLastOwnerGuardError } from '@/lib/business-member-guards'
 
 const updateMemberSchema = z.object({
   role: z.enum(['OWNER', 'ADMIN', 'MEMBER', 'COACH']).optional(),
@@ -15,7 +16,7 @@ export async function PUT(
   { params }: { params: Promise<{ memberId: string }> }
 ) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
     const { memberId } = await params
 
@@ -37,7 +38,11 @@ export async function PUT(
       }, { status: 404 })
     }
 
-    // Only OWNER can change roles to/from OWNER
+    const nextRole = validatedData.role ?? member.role
+    const nextIsActive = validatedData.isActive ?? member.isActive
+    const isPrivilegedTarget = member.role === 'OWNER' || member.role === 'ADMIN'
+    const isPrivilegedDestination = nextRole === 'OWNER' || nextRole === 'ADMIN'
+
     if (validatedData.role) {
       const isChangingOwnerRole = member.role === 'OWNER' || validatedData.role === 'OWNER'
       if (isChangingOwnerRole && admin.businessRole !== 'OWNER') {
@@ -46,42 +51,46 @@ export async function PUT(
           error: 'Only owners can change owner roles',
         }, { status: 403 })
       }
-
-      // Prevent removing the last owner
-      if (member.role === 'OWNER' && validatedData.role !== 'OWNER') {
-        const ownerCount = await prisma.businessMember.count({
-          where: {
-            businessId,
-            role: 'OWNER',
-            isActive: true,
-          },
-        })
-        if (ownerCount <= 1) {
-          return NextResponse.json({
-            success: false,
-            error: 'Cannot remove the last owner from a business',
-          }, { status: 400 })
-        }
-      }
     }
 
-    // Update member
-    const updatedMember = await prisma.businessMember.update({
-      where: { id: memberId },
-      data: {
-        role: validatedData.role,
-        isActive: validatedData.isActive,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
+    if (
+      admin.businessRole === 'ADMIN' &&
+      member.userId !== admin.id &&
+      (isPrivilegedTarget || isPrivilegedDestination)
+    ) {
+      return NextResponse.json({
+        success: false,
+        error: 'Admins can only manage coaches and members',
+      }, { status: 403 })
+    }
+
+    const updatedMember = await prisma.$transaction(async (tx) => {
+      const ownerGuardError = await getLastOwnerGuardError(tx, member, {
+        nextRole,
+        nextIsActive,
+      })
+
+      if (ownerGuardError) {
+        throw ApiError.badRequest(ownerGuardError)
+      }
+
+      return tx.businessMember.update({
+        where: { id: memberId },
+        data: {
+          role: validatedData.role,
+          isActive: validatedData.isActive,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
           },
         },
-      },
+      })
     })
 
     return NextResponse.json({
@@ -99,7 +108,7 @@ export async function DELETE(
   { params }: { params: Promise<{ memberId: string }> }
 ) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
     const { memberId } = await params
 
@@ -126,7 +135,16 @@ export async function DELETE(
       }, { status: 400 })
     }
 
-    // Only OWNER can remove another OWNER
+    if (
+      admin.businessRole === 'ADMIN' &&
+      (member.role === 'OWNER' || member.role === 'ADMIN')
+    ) {
+      return NextResponse.json({
+        success: false,
+        error: 'Admins can only manage coaches and members',
+      }, { status: 403 })
+    }
+
     if (member.role === 'OWNER' && admin.businessRole !== 'OWNER') {
       return NextResponse.json({
         success: false,
@@ -134,26 +152,15 @@ export async function DELETE(
       }, { status: 403 })
     }
 
-    // Prevent removing the last owner
-    if (member.role === 'OWNER') {
-      const ownerCount = await prisma.businessMember.count({
-        where: {
-          businessId,
-          role: 'OWNER',
-          isActive: true,
-        },
-      })
-      if (ownerCount <= 1) {
-        return NextResponse.json({
-          success: false,
-          error: 'Cannot remove the last owner from a business',
-        }, { status: 400 })
+    await prisma.$transaction(async (tx) => {
+      const ownerGuardError = await getLastOwnerGuardError(tx, member, { remove: true })
+      if (ownerGuardError) {
+        throw ApiError.badRequest(ownerGuardError)
       }
-    }
 
-    // Delete member
-    await prisma.businessMember.delete({
-      where: { id: memberId },
+      await tx.businessMember.delete({
+        where: { id: memberId },
+      })
     })
 
     return NextResponse.json({

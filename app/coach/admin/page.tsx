@@ -6,6 +6,7 @@ export default async function BusinessAdminPage() {
 
   return (
     <BusinessAdminClient
+      businessId={admin.businessId}
       businessName={admin.business.name}
       businessRole={admin.businessRole}
     />

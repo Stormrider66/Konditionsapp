@@ -175,7 +175,7 @@ function CoachSignupForm() {
       }
 
       if (authData.user) {
-        const response = await fetch('/api/users', {
+        const response = await fetch('/api/auth/signup-coach', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -191,7 +191,13 @@ function CoachSignupForm() {
         })
 
         if (!response.ok) {
-          console.warn('Could not create user in database')
+          const result = await response.json().catch(() => ({}))
+          toast({
+            title: t('registrationFailed'),
+            description: result.error || t('couldNotCreateAccount'),
+            variant: 'destructive',
+          })
+          return
         }
 
         // Accept business invitation if present

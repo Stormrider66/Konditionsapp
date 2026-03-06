@@ -142,6 +142,16 @@ export async function POST(request: NextRequest) {
     let athleteCapabilities: AthleteCapabilities | undefined;
     // Strict provider allowlist from athlete model settings (if explicitly configured)
     let athleteAllowedProviders: Set<LowerProvider> | null = null;
+    let effectiveBusinessId: string | null = request.headers.get('x-business-id');
+    const explicitBusinessSlug = request.headers.get('x-business-slug');
+
+    if (!effectiveBusinessId && explicitBusinessSlug) {
+      const scopedBusiness = await prisma.business.findUnique({
+        where: { slug: explicitBusinessSlug },
+        select: { id: true },
+      });
+      effectiveBusinessId = scopedBusiness?.id ?? null;
+    }
 
     if (isAthleteChat) {
       // Athlete chat mode (supports coaches in athlete mode)
@@ -162,6 +172,7 @@ export async function POST(request: NextRequest) {
           id: true,
           name: true,
           userId: true, // Coach's user ID
+          businessId: true,
         },
       });
 
@@ -174,6 +185,7 @@ export async function POST(request: NextRequest) {
 
       apiKeyUserId = clientRecord.userId; // Use coach's API keys
       athleteName = clientRecord.name;
+      effectiveBusinessId = clientRecord.businessId;
 
       // Direct athlete: client.userId is the athlete themselves → fall back to platform admin
       if (apiKeyUserId === userId && !resolved.isCoachInAthleteMode) {
@@ -187,27 +199,25 @@ export async function POST(request: NextRequest) {
       // If athlete model list is explicitly set and only contains Gemini models,
       // chat must not silently fall back to Claude/OpenAI.
       try {
-        const [coachApiSettings, businessMembership] = await Promise.all([
+        const [coachApiSettings, businessSettings] = await Promise.all([
           prisma.userApiKey.findUnique({
             where: { userId: apiKeyUserId },
             select: { allowedAthleteModelIds: true },
           }),
-          prisma.businessMember.findFirst({
-            where: { userId: apiKeyUserId, isActive: true },
-            select: {
-              business: {
+          effectiveBusinessId
+            ? prisma.business.findUnique({
+                where: { id: effectiveBusinessId },
                 select: {
                   aiKeys: {
                     select: { allowedAthleteModelIds: true },
                   },
                 },
-              },
-            },
-          }),
+              })
+            : Promise.resolve(null),
         ])
 
         const coachRawAllowed = coachApiSettings?.allowedAthleteModelIds || []
-        const businessRawAllowed = businessMembership?.business?.aiKeys?.allowedAthleteModelIds || []
+        const businessRawAllowed = businessSettings?.aiKeys?.allowedAthleteModelIds || []
         const allRefs = [...new Set([...coachRawAllowed, ...businessRawAllowed])]
           .filter((value) => !isModelIntent(value))
 
@@ -334,7 +344,10 @@ export async function POST(request: NextRequest) {
     if (rateLimited) return rateLimited
 
     // Get API keys (user's own → business keys → none)
-    const decryptedKeys = await getResolvedAiKeys(apiKeyUserId)
+    const decryptedKeys = await getResolvedAiKeys(apiKeyUserId, {
+      businessId: effectiveBusinessId,
+      disableMembershipFallback: isAthleteChat || !!effectiveBusinessId,
+    })
     const effectiveKeys = isAthleteChat && athleteAllowedProviders
       ? {
           anthropicKey: athleteAllowedProviders.has('anthropic') ? decryptedKeys.anthropicKey : null,
@@ -885,7 +898,10 @@ ${pageContext}
             // Run memory extraction in background without blocking
             (async () => {
               try {
-                const apiKeys = await getResolvedAiKeys(apiKeyUserId);
+                const apiKeys = await getResolvedAiKeys(apiKeyUserId, {
+                  businessId: effectiveBusinessId,
+                  disableMembershipFallback: isAthleteChat || !!effectiveBusinessId,
+                });
                 if (apiKeys.anthropicKey || apiKeys.googleKey || apiKeys.openaiKey) {
                   const conversationForMemory = [
                     { role: 'user' as const, content: getMessageContent(lastUserMessage) },

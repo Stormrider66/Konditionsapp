@@ -26,6 +26,7 @@ import {
   Crown,
   Type,
 } from 'lucide-react'
+import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 const CURATED_FONTS = [
   { value: 'Inter', label: 'Inter' },
@@ -83,6 +84,7 @@ function LockedSection({ title, description, tier }: { title: string; descriptio
 }
 
 export function BusinessBrandingTab() {
+  const businessHeaders = useBusinessAdminHeaders()
   const [data, setData] = useState<BrandingData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -105,7 +107,9 @@ export function BusinessBrandingTab() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('/api/coach/admin/branding')
+      const response = await fetch('/api/coach/admin/branding', {
+        headers: businessHeaders,
+      })
       if (!response.ok) throw new Error('Failed to fetch branding')
       const result = await response.json()
       setData(result.data)
@@ -125,7 +129,7 @@ export function BusinessBrandingTab() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [businessHeaders])
 
   useEffect(() => {
     fetchBranding()
@@ -159,7 +163,10 @@ export function BusinessBrandingTab() {
 
       const response = await fetch('/api/coach/admin/branding', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(body),
       })
 

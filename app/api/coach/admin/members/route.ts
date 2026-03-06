@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireBusinessAdminRole } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
 
@@ -12,7 +12,7 @@ const addMemberSchema = z.object({
 // GET /api/coach/admin/members - List business members
 export async function GET(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
 
     const members = await prisma.businessMember.findMany({
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 // POST /api/coach/admin/members - Add a new member
 export async function POST(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
 
     const body = await request.json()

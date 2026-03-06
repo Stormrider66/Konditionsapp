@@ -5,6 +5,11 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { Gender } from '@prisma/client'
+import {
+  buildSelfAthleteSubscriptionSeedForUser,
+  createSelfAthleteProfileTx,
+  ensureAthleteClientDefaultsTx,
+} from '@/lib/user-provisioning'
 
 const setupAthleteProfileSchema = z.object({
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
@@ -51,38 +56,26 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validatedData = setupAthleteProfileSchema.parse(body)
+    const subscriptionSeed = await buildSelfAthleteSubscriptionSeedForUser(user.id)
+    const membership = await prisma.businessMember.findFirst({
+      where: { userId: user.id, isActive: true },
+      select: { businessId: true },
+      orderBy: { createdAt: 'asc' },
+    })
 
-    // Create the Client record, AthleteAccount, and link to user
+    // Create the Client record, AthleteAccount, subscription defaults, and link to user
     const result = await prisma.$transaction(async (tx) => {
-      // Create Client record for the coach's personal athlete profile
-      const client = await tx.client.create({
-        data: {
-          userId: user.id,
-          name: user.name,
-          email: user.email,
-          gender: validatedData.gender as Gender,
-          birthDate: validatedData.birthDate,
-          height: validatedData.height,
-          weight: validatedData.weight,
-          isDirect: false, // This is a self-coaching profile, not a direct athlete
-        },
+      return createSelfAthleteProfileTx(tx, {
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        gender: validatedData.gender as Gender,
+        birthDate: validatedData.birthDate,
+        height: validatedData.height,
+        weight: validatedData.weight,
+        businessId: membership?.businessId ?? null,
+        subscriptionSeed,
       })
-
-      // Create AthleteAccount to link User to Client (needed for athlete APIs)
-      await tx.athleteAccount.create({
-        data: {
-          userId: user.id,
-          clientId: client.id,
-        },
-      })
-
-      // Link the Client to the User as their self-athlete profile
-      await tx.user.update({
-        where: { id: user.id },
-        data: { selfAthleteClientId: client.id },
-      })
-
-      return client
     })
 
     logger.info('Coach created self-athlete profile', { userId: user.id, clientId: result.id })
@@ -138,35 +131,50 @@ export async function PATCH() {
       )
     }
 
+    const subscriptionSeed = await buildSelfAthleteSubscriptionSeedForUser(user.id)
+
     // Check if AthleteAccount already exists
     const existingAccount = await prisma.athleteAccount.findUnique({
       where: { userId: user.id },
     })
 
     if (existingAccount) {
+      await prisma.$transaction(async (tx) => {
+        await ensureAthleteClientDefaultsTx(tx, existingAccount.clientId, {
+          subscriptionSeed,
+        })
+      })
       return NextResponse.json({
         success: true,
-        message: 'AthleteAccount already exists',
+        message: 'Athlete profile is already complete',
         data: { clientId: existingAccount.clientId },
       })
     }
 
-    // Create the missing AthleteAccount
-    const athleteAccount = await prisma.athleteAccount.create({
-      data: {
-        userId: user.id,
-        clientId: existingUser.selfAthleteClientId,
-      },
+    // Create the missing AthleteAccount and any missing athlete-side defaults
+    const athleteAccount = await prisma.$transaction(async (tx) => {
+      const account = await tx.athleteAccount.create({
+        data: {
+          userId: user.id,
+          clientId: existingUser.selfAthleteClientId,
+        },
+      })
+
+      await ensureAthleteClientDefaultsTx(tx, existingUser.selfAthleteClientId, {
+        subscriptionSeed,
+      })
+
+      return account
     })
 
-    logger.info('Fixed coach athlete profile - created AthleteAccount', {
+    logger.info('Fixed coach athlete profile defaults', {
       userId: user.id,
       clientId: athleteAccount.clientId,
     })
 
     return NextResponse.json({
       success: true,
-      message: 'AthleteAccount created successfully',
+      message: 'Athlete profile repaired successfully',
       data: { clientId: athleteAccount.clientId },
     })
   } catch (error) {

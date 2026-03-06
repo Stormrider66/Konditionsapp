@@ -19,6 +19,7 @@ import {
   Users,
 } from 'lucide-react'
 import { BusinessModelSharingSection } from '@/components/coach/admin/BusinessModelSharingSection'
+import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface KeyStatus {
   provider: string
@@ -68,6 +69,7 @@ const PROVIDERS: ProviderConfig[] = [
 ]
 
 export function BusinessAiKeysTab() {
+  const businessHeaders = useBusinessAdminHeaders()
   const [keys, setKeys] = useState<KeyStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -81,7 +83,9 @@ export function BusinessAiKeysTab() {
 
   const fetchKeys = useCallback(async () => {
     try {
-      const response = await fetch('/api/coach/admin/ai-keys')
+      const response = await fetch('/api/coach/admin/ai-keys', {
+        headers: businessHeaders,
+      })
       if (!response.ok) throw new Error('Failed to fetch AI keys')
       const data = await response.json()
       setKeys(data.keys)
@@ -92,7 +96,7 @@ export function BusinessAiKeysTab() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [businessHeaders])
 
   useEffect(() => {
     fetchKeys()
@@ -117,7 +121,10 @@ export function BusinessAiKeysTab() {
 
       const response = await fetch('/api/coach/admin/ai-keys', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(body),
       })
 
@@ -162,7 +169,10 @@ export function BusinessAiKeysTab() {
 
       await fetch('/api/coach/admin/ai-keys', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(body),
       })
 

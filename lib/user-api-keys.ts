@@ -8,6 +8,11 @@ export type DecryptedUserApiKeys = {
   openaiKey: string | null
 }
 
+interface ResolvedAiKeyOptions {
+  businessId?: string | null
+  disableMembershipFallback?: boolean
+}
+
 export async function getDecryptedUserApiKeys(userId: string): Promise<DecryptedUserApiKeys> {
   const apiKeys = await prisma.userApiKey.findUnique({
     where: { userId },
@@ -80,13 +85,16 @@ export async function getDecryptedBusinessAiKeys(businessId: string): Promise<De
   }
 }
 
-export async function getResolvedAiKeys(userId: string): Promise<DecryptedUserApiKeys> {
+export async function getResolvedAiKeys(
+  userId: string,
+  options?: ResolvedAiKeyOptions
+): Promise<DecryptedUserApiKeys> {
   // Resolve each provider independently (user -> business -> admin),
   // so mixed-source setups work correctly (e.g. Anthropic user key + Google business key).
   const [anthropicKey, googleKey, openaiKey] = await Promise.all([
-    getResolvedProviderKey(userId, 'anthropic'),
-    getResolvedProviderKey(userId, 'google'),
-    getResolvedProviderKey(userId, 'openai'),
+    getResolvedProviderKey(userId, 'anthropic', options),
+    getResolvedProviderKey(userId, 'google', options),
+    getResolvedProviderKey(userId, 'openai', options),
   ])
 
   return { anthropicKey, googleKey, openaiKey }
@@ -162,7 +170,8 @@ export async function getPlatformAiKeyOwnerId(provider?: ProviderKey): Promise<s
  */
 export async function getResolvedProviderKey(
   userId: string,
-  provider: ProviderKey
+  provider: ProviderKey,
+  options?: ResolvedAiKeyOptions
 ): Promise<string | null> {
   const pickKey = (keys: DecryptedUserApiKeys): string | null => {
     if (provider === 'anthropic') return keys.anthropicKey
@@ -176,12 +185,18 @@ export async function getResolvedProviderKey(
   if (userProviderKey) return userProviderKey
 
   // 2) Business key
-  const membership = await prisma.businessMember.findFirst({
-    where: { userId, isActive: true },
-    select: { businessId: true },
-  })
-  if (membership) {
-    const businessKeys = await getDecryptedBusinessAiKeys(membership.businessId)
+  const resolvedBusinessId =
+    options?.businessId !== undefined || options?.disableMembershipFallback
+      ? options?.businessId ?? null
+      : (
+          await prisma.businessMember.findFirst({
+            where: { userId, isActive: true },
+            select: { businessId: true },
+          })
+        )?.businessId
+
+  if (resolvedBusinessId) {
+    const businessKeys = await getDecryptedBusinessAiKeys(resolvedBusinessId)
     const businessProviderKey = pickKey(businessKeys)
     if (businessProviderKey) return businessProviderKey
   }
@@ -196,11 +211,17 @@ export async function getResolvedProviderKey(
   return null
 }
 
-export async function getResolvedGoogleKey(userId: string): Promise<string | null> {
-  return getResolvedProviderKey(userId, 'google')
+export async function getResolvedGoogleKey(
+  userId: string,
+  options?: ResolvedAiKeyOptions
+): Promise<string | null> {
+  return getResolvedProviderKey(userId, 'google', options)
 }
 
-export async function getAiKeySource(userId: string): Promise<{
+export async function getAiKeySource(
+  userId: string,
+  options?: ResolvedAiKeyOptions
+): Promise<{
   source: 'user' | 'business' | 'none'
   businessName?: string
 }> {
@@ -228,10 +249,11 @@ export async function getAiKeySource(userId: string): Promise<{
   }
 
   // Check business keys
-  const membership = await prisma.businessMember.findFirst({
-    where: { userId, isActive: true },
-    select: {
-      business: {
+  const business =
+    options?.businessId !== undefined || options?.disableMembershipFallback
+      ? options?.businessId
+    ? await prisma.business.findUnique({
+        where: { id: options.businessId },
         select: {
           name: true,
           aiKeys: {
@@ -245,18 +267,37 @@ export async function getAiKeySource(userId: string): Promise<{
             },
           },
         },
-      },
-    },
-  })
+      })
+    : null
+      : (await prisma.businessMember.findFirst({
+          where: { userId, isActive: true },
+          select: {
+            business: {
+              select: {
+                name: true,
+                aiKeys: {
+                  select: {
+                    anthropicKeyEncrypted: true,
+                    googleKeyEncrypted: true,
+                    openaiKeyEncrypted: true,
+                    anthropicKeyValid: true,
+                    googleKeyValid: true,
+                    openaiKeyValid: true,
+                  },
+                },
+              },
+            },
+          },
+        }))?.business
 
-  if (membership?.business.aiKeys) {
-    const bk = membership.business.aiKeys
+  if (business?.aiKeys) {
+    const bk = business.aiKeys
     const hasValid =
       (bk.anthropicKeyEncrypted && bk.anthropicKeyValid) ||
       (bk.googleKeyEncrypted && bk.googleKeyValid) ||
       (bk.openaiKeyEncrypted && bk.openaiKeyValid)
     if (hasValid) {
-      return { source: 'business', businessName: membership.business.name }
+      return { source: 'business', businessName: business.name }
     }
   }
 

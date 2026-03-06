@@ -12,6 +12,8 @@ export type AthleteFeature =
   | 'garmin'
   | 'advanced_intelligence'
   | 'program_generation'
+  | 'coach_requests'
+  | 'self_service_templates'
   | 'nutrition_planning'
   | 'concept2'
   | 'lactate_ocr'
@@ -43,6 +45,8 @@ export const ATHLETE_TIER_FEATURES = {
     garmin: { enabled: false },
     advanced_intelligence: { enabled: false },
     program_generation: { enabled: false },
+    coach_requests: { enabled: false },
+    self_service_templates: { enabled: false },
     nutrition_planning: { enabled: false },
     concept2: { enabled: false },
     lactate_ocr: { enabled: false },
@@ -54,6 +58,8 @@ export const ATHLETE_TIER_FEATURES = {
     garmin: { enabled: true },
     advanced_intelligence: { enabled: false },
     program_generation: { enabled: true },
+    coach_requests: { enabled: true },
+    self_service_templates: { enabled: false },
     nutrition_planning: { enabled: true },
     concept2: { enabled: true },
     lactate_ocr: { enabled: true },
@@ -65,6 +71,8 @@ export const ATHLETE_TIER_FEATURES = {
     garmin: { enabled: true },
     advanced_intelligence: { enabled: true },
     program_generation: { enabled: true },
+    coach_requests: { enabled: true },
+    self_service_templates: { enabled: true },
     nutrition_planning: { enabled: true },
     concept2: { enabled: true },
     lactate_ocr: { enabled: true },
@@ -76,6 +84,8 @@ export const ATHLETE_TIER_FEATURES = {
     garmin: { enabled: true },
     advanced_intelligence: { enabled: true },
     program_generation: { enabled: true },
+    coach_requests: { enabled: true },
+    self_service_templates: { enabled: true },
     nutrition_planning: { enabled: true },
     concept2: { enabled: true },
     lactate_ocr: { enabled: true },
@@ -430,6 +440,8 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
     garmin: { enabled: boolean }
     advanced_intelligence: { enabled: boolean }
     program_generation: { enabled: boolean }
+    coach_requests: { enabled: boolean }
+    self_service_templates: { enabled: boolean }
     nutrition_planning: { enabled: boolean }
     concept2: { enabled: boolean }
     lactate_ocr: { enabled: boolean }
@@ -462,6 +474,8 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
         garmin: { enabled: false },
         advanced_intelligence: { enabled: false },
         program_generation: { enabled: false },
+        coach_requests: { enabled: false },
+        self_service_templates: { enabled: false },
         nutrition_planning: { enabled: false },
         concept2: { enabled: false },
         lactate_ocr: { enabled: false },
@@ -496,6 +510,8 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
       garmin: { enabled: subscription.garminEnabled },
       advanced_intelligence: { enabled: tierConfig.advanced_intelligence.enabled },
       program_generation: { enabled: tierConfig.program_generation.enabled },
+      coach_requests: { enabled: tierConfig.coach_requests.enabled },
+      self_service_templates: { enabled: tierConfig.self_service_templates.enabled },
       nutrition_planning: { enabled: tierConfig.nutrition_planning.enabled },
       concept2: { enabled: tierConfig.concept2.enabled },
       lactate_ocr: { enabled: tierConfig.lactate_ocr.enabled },

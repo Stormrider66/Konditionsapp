@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireBusinessAdminRole } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
@@ -19,9 +19,9 @@ const updateModelsSchema = z.object({
 })
 
 // GET - Get model restrictions + eligible models for each valid provider
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
 
     const aiKeys = await prisma.businessAiKeys.findUnique({
       where: { businessId: admin.businessId },
@@ -81,7 +81,7 @@ export async function GET() {
 // PUT - Update model restrictions
 export async function PUT(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
 
     const body = await request.json()
     const data = updateModelsSchema.parse(body)

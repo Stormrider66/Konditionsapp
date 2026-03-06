@@ -7,18 +7,36 @@ const mockLogRoleChange = vi.hoisted(() => vi.fn())
 const mockLogAuditEvent = vi.hoisted(() => vi.fn())
 const mockGetIpFromRequest = vi.hoisted(() => vi.fn())
 const mockGetUserAgentFromRequest = vi.hoisted(() => vi.fn())
+const mockEnsureAthleteClientDefaultsTx = vi.hoisted(() => vi.fn())
 
 const mockPrisma = vi.hoisted(() => ({
+  $transaction: vi.fn(),
   user: {
     findMany: vi.fn(),
     count: vi.fn(),
     findUnique: vi.fn(),
+    update: vi.fn(),
   },
   subscription: {
+    findUnique: vi.fn(),
     upsert: vi.fn(),
   },
   athleteSubscription: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
     upsert: vi.fn(),
+  },
+  athleteAccount: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+  },
+  client: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    create: vi.fn(),
+  },
+  businessMember: {
+    findFirst: vi.fn(),
   },
 }))
 
@@ -48,6 +66,10 @@ vi.mock('@/lib/audit/log', () => ({
   logAuditEvent: mockLogAuditEvent,
   getIpFromRequest: mockGetIpFromRequest,
   getUserAgentFromRequest: mockGetUserAgentFromRequest,
+}))
+
+vi.mock('@/lib/user-provisioning', () => ({
+  ensureAthleteClientDefaultsTx: mockEnsureAthleteClientDefaultsTx,
 }))
 
 vi.mock('@/lib/subscription/feature-access', () => ({
@@ -88,6 +110,8 @@ describe('admin users route', () => {
     mockParsePagination.mockReturnValue({ page: 1, limit: 20, skip: 0 })
     mockGetIpFromRequest.mockReturnValue('127.0.0.1')
     mockGetUserAgentFromRequest.mockReturnValue('vitest')
+    mockEnsureAthleteClientDefaultsTx.mockResolvedValue(undefined)
+    mockPrisma.$transaction.mockImplementation(async (callback: (tx: typeof mockPrisma) => Promise<unknown>) => callback(mockPrisma as any))
   })
 
   it('GET returns athlete subscription tier for athlete users', async () => {
@@ -138,6 +162,9 @@ describe('admin users route', () => {
   })
 
   it('PUT updates athlete subscription for athlete tiers', async () => {
+    mockPrisma.athleteAccount.findUnique.mockResolvedValue({ clientId: 'client-1' })
+    mockPrisma.athleteSubscription.findUnique.mockResolvedValue({ id: 'sub-1' })
+
     mockPrisma.user.findUnique
       .mockResolvedValueOnce({
         role: 'ATHLETE',

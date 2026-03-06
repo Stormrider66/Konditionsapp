@@ -69,7 +69,11 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     useEffect(() => {
         const fetchBusinessContext = async () => {
             try {
-                const response = await fetch('/api/coach/admin/context')
+                const response = await fetch('/api/coach/admin/context', {
+                    headers: {
+                        'x-business-slug': businessSlug,
+                    },
+                })
                 if (response.ok) {
                     const result = await response.json()
                     if (result.data?.role) {

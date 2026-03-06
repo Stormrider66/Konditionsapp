@@ -1,7 +1,7 @@
 // app/api/coach/admin/branding/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireBusinessAdminRole } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { getBrandingFeatures } from '@/lib/branding/feature-gate'
 import { CURATED_FONTS } from '@/lib/branding/types'
@@ -27,9 +27,9 @@ const updateBrandingSchema = z.object({
 })
 
 // GET /api/coach/admin/branding - Get branding settings with feature flags
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
 
     const [business, features] = await Promise.all([
@@ -80,7 +80,7 @@ export async function GET() {
 // PUT /api/coach/admin/branding - Update branding settings
 export async function PUT(request: NextRequest) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
 
     const body = await request.json()

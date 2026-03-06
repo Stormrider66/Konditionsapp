@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { requireAdminRole } from '@/lib/auth-utils'
-import { handleApiError } from '@/lib/api-error'
+import { ApiError, handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
+import { getLastOwnerGuardError } from '@/lib/business-member-guards'
 
 // Validation schema for updating a member
 const updateMemberSchema = z.object({
@@ -30,15 +31,6 @@ export async function PUT(
         id: memberId,
         businessId,
       },
-      include: {
-        business: {
-          select: {
-            _count: {
-              select: { members: { where: { role: 'OWNER' } } },
-            },
-          },
-        },
-      },
     })
 
     if (!existingMember) {
@@ -46,18 +38,6 @@ export async function PUT(
         success: false,
         error: 'Member not found',
       }, { status: 404 })
-    }
-
-    // Don't allow demoting the last owner
-    if (
-      existingMember.role === 'OWNER' &&
-      validatedData.role !== 'OWNER' &&
-      existingMember.business._count.members <= 1
-    ) {
-      return NextResponse.json({
-        success: false,
-        error: 'Cannot remove the last owner from a business',
-      }, { status: 400 })
     }
 
     // Transform permissions for Prisma JSON field (null needs special handling)
@@ -71,19 +51,30 @@ export async function PUT(
       }),
     }
 
-    const member = await prisma.businessMember.update({
-      where: { id: memberId },
-      data: updateData,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
+    const member = await prisma.$transaction(async (tx) => {
+      const ownerGuardError = await getLastOwnerGuardError(tx, existingMember, {
+        nextRole: validatedData.role,
+        nextIsActive: validatedData.isActive,
+      })
+
+      if (ownerGuardError) {
+        throw ApiError.badRequest(ownerGuardError)
+      }
+
+      return tx.businessMember.update({
+        where: { id: memberId },
+        data: updateData,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
           },
         },
-      },
+      })
     })
 
     return NextResponse.json({
@@ -110,15 +101,6 @@ export async function DELETE(
         id: memberId,
         businessId,
       },
-      include: {
-        business: {
-          select: {
-            _count: {
-              select: { members: { where: { role: 'OWNER' } } },
-            },
-          },
-        },
-      },
     })
 
     if (!existingMember) {
@@ -128,16 +110,15 @@ export async function DELETE(
       }, { status: 404 })
     }
 
-    // Don't allow removing the last owner
-    if (existingMember.role === 'OWNER' && existingMember.business._count.members <= 1) {
-      return NextResponse.json({
-        success: false,
-        error: 'Cannot remove the last owner from a business',
-      }, { status: 400 })
-    }
+    await prisma.$transaction(async (tx) => {
+      const ownerGuardError = await getLastOwnerGuardError(tx, existingMember, { remove: true })
+      if (ownerGuardError) {
+        throw ApiError.badRequest(ownerGuardError)
+      }
 
-    await prisma.businessMember.delete({
-      where: { id: memberId },
+      await tx.businessMember.delete({
+        where: { id: memberId },
+      })
     })
 
     return NextResponse.json({

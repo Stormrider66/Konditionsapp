@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -13,6 +14,7 @@ import {
 import { Loader2, Check, Brain, Sparkles, Zap, Bot, AlertCircle, FileText, DollarSign } from 'lucide-react';
 import type { AIProvider } from '@prisma/client';
 import { formatTokenCount, estimateWeeksFromTokens } from '@/types/ai-models';
+import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 
 interface AIModel {
   id: string;
@@ -42,6 +44,7 @@ interface ApiKeyStatus {
 }
 
 export function DefaultModelSelector() {
+  const pathname = usePathname();
   const [models, setModels] = useState<AIModel[]>([]);
   const [defaultModel, setDefaultModel] = useState<AIModel | null>(null);
   const [keyStatus, setKeyStatus] = useState<ApiKeyStatus[]>([]);
@@ -56,8 +59,9 @@ export function DefaultModelSelector() {
 
   async function fetchData() {
     try {
+      const businessHeaders = getBusinessScopeHeaders(pathname);
       const [modelsRes, defaultRes, keysRes] = await Promise.all([
-        fetch('/api/ai/models'),
+        fetch('/api/ai/models', businessHeaders ? { headers: businessHeaders } : undefined),
         fetch('/api/settings/default-model'),
         fetch('/api/settings/api-keys'),
       ]);

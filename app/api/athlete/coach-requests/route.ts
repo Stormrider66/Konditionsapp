@@ -7,6 +7,7 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { createCoachRequest, cancelCoachRequest } from '@/lib/coach/agreement'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 
 const createRequestSchema = z.object({
   coachUserId: z.string().uuid(),
@@ -88,20 +89,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = createRequestSchema.parse(body)
 
-    // Check subscription - only STANDARD+ can request coaches
-    const subscription = await prisma.athleteSubscription.findUnique({
-      where: { clientId },
+    const featureDenied = await requireFeatureAccess(clientId, 'coach_requests', {
+      featureLabel: 'Coachanslutning',
     })
 
-    if (!subscription || subscription.tier === 'FREE') {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Du behöver en Standard eller Pro-prenumeration för att ansluta till en coach',
-          code: 'SUBSCRIPTION_REQUIRED',
-        },
-        { status: 403 }
-      )
+    if (featureDenied) {
+      return featureDenied
     }
 
     const result = await createCoachRequest(

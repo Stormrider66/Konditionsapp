@@ -2,6 +2,7 @@
 // Admin API for user management
 
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth-utils';
 import { logger } from '@/lib/logger';
@@ -9,6 +10,7 @@ import { parsePagination } from '@/lib/utils/parse';
 import { logRoleChange, logAuditEvent, getIpFromRequest, getUserAgentFromRequest } from '@/lib/audit/log';
 import { ATHLETE_TIER_FEATURES } from '@/lib/subscription/feature-access';
 import { z } from 'zod';
+import { ensureAthleteClientDefaultsTx } from '@/lib/user-provisioning';
 
 const COACH_TIER_VALUES = ['FREE', 'BASIC', 'PRO', 'ENTERPRISE'] as const;
 const ATHLETE_TIER_VALUES = ['FREE', 'STANDARD', 'PRO', 'ELITE'] as const;
@@ -55,6 +57,129 @@ function getAthleteSubscriptionUpdateData(tier: AthleteTierValue) {
     workoutLoggingEnabled: tier !== 'FREE',
     dailyCheckInEnabled: tier !== 'FREE',
   };
+}
+
+async function ensureAthleteRoleDependenciesTx(
+  tx: Prisma.TransactionClient,
+  user: {
+    id: string
+    name: string
+    email: string
+    selfAthleteClientId: string | null
+  }
+): Promise<string> {
+  const existingAccount = await tx.athleteAccount.findUnique({
+    where: { userId: user.id },
+    select: { clientId: true },
+  });
+
+  let clientId = existingAccount?.clientId ?? null;
+
+  if (!clientId && user.selfAthleteClientId) {
+    const selfAthleteClient = await tx.client.findUnique({
+      where: { id: user.selfAthleteClientId },
+      select: { id: true },
+    });
+    clientId = selfAthleteClient?.id ?? null;
+  }
+
+  if (!clientId) {
+    const existingClient = await tx.client.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+    clientId = existingClient?.id ?? null;
+  }
+
+  if (!clientId) {
+    const membership = await tx.businessMember.findFirst({
+      where: { userId: user.id, isActive: true },
+      orderBy: { createdAt: 'asc' },
+      select: { businessId: true },
+    });
+
+    const createdClient = await tx.client.create({
+      data: {
+        userId: user.id,
+        businessId: membership?.businessId ?? null,
+        name: user.name,
+        email: user.email,
+        gender: 'MALE',
+        birthDate: new Date('1990-01-01'),
+        height: 170,
+        weight: 70,
+        isDirect: true,
+      },
+      select: { id: true },
+    });
+
+    clientId = createdClient.id;
+  }
+
+  if (!existingAccount) {
+    await tx.athleteAccount.create({
+      data: {
+        userId: user.id,
+        clientId,
+      },
+    });
+  }
+
+  await ensureAthleteClientDefaultsTx(tx, clientId);
+
+  const athleteSubscription = await tx.athleteSubscription.findUnique({
+    where: { clientId },
+    select: { id: true },
+  });
+
+  if (!athleteSubscription) {
+    await tx.athleteSubscription.create({
+      data: {
+        clientId,
+        paymentSource: 'DIRECT',
+        ...getAthleteSubscriptionUpdateData('FREE'),
+      },
+    });
+  }
+
+  return clientId;
+}
+
+async function ensureCoachRoleDependenciesTx(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  tier?: CoachTierValue
+): Promise<void> {
+  const existingSubscription = await tx.subscription.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  if (!existingSubscription) {
+    const nextTier = tier ?? 'FREE';
+    await tx.subscription.create({
+      data: {
+        userId,
+        tier: nextTier,
+        maxAthletes: getCoachMaxAthletes(nextTier),
+        status: 'ACTIVE',
+      },
+    });
+    return;
+  }
+
+  if (!tier) {
+    return;
+  }
+
+  await tx.subscription.update({
+    where: { userId },
+    data: {
+      tier,
+      maxAthletes: getCoachMaxAthletes(tier),
+    },
+  });
 }
 
 export async function GET(request: NextRequest) {
@@ -205,8 +330,12 @@ export async function PUT(request: NextRequest) {
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
       select: {
+        id: true,
+        email: true,
+        name: true,
         role: true,
         adminRole: true,
+        selfAthleteClientId: true,
         subscription: { select: { tier: true } },
         athleteAccount: {
           select: {
@@ -228,14 +357,72 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Update user role if provided
-    if (role && role !== targetUser.role) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { role },
-      });
+    const nextRole = role ?? targetUser.role;
 
-      // SECURITY: Log role change for audit trail
+    if (tier) {
+      if (nextRole === 'ATHLETE' && !isAthleteTier(tier)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid athlete tier' },
+          { status: 400 }
+        );
+      }
+
+      if (nextRole !== 'ATHLETE' && !isCoachTier(tier)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid coach tier' },
+          { status: 400 }
+        );
+      }
+    }
+
+    const oldTier = nextRole === 'ATHLETE'
+      ? targetUser.athleteAccount?.client?.athleteSubscription?.tier
+      : targetUser.subscription?.tier;
+
+    await prisma.$transaction(async (tx) => {
+      if (nextRole === 'ATHLETE') {
+        const clientId = await ensureAthleteRoleDependenciesTx(tx, {
+          id: userId,
+          name: targetUser.name,
+          email: targetUser.email,
+          selfAthleteClientId: targetUser.selfAthleteClientId,
+        });
+
+        if (tier && isAthleteTier(tier)) {
+          await tx.athleteSubscription.upsert({
+            where: { clientId },
+            update: getAthleteSubscriptionUpdateData(tier),
+            create: {
+              clientId,
+              paymentSource: 'DIRECT',
+              ...getAthleteSubscriptionUpdateData(tier),
+            },
+          });
+        }
+      } else if (role || tier) {
+        await ensureCoachRoleDependenciesTx(
+          tx,
+          userId,
+          tier && isCoachTier(tier) ? tier : undefined
+        );
+      }
+
+      if (role && role !== targetUser.role) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { role },
+        });
+      }
+
+      if (adminRole !== undefined) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { adminRole },
+        });
+      }
+    });
+
+    if (role && role !== targetUser.role) {
       await logRoleChange(
         adminUser.id,
         userId,
@@ -245,109 +432,30 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Update platform admin role if provided (including clearing it with null)
-    if (adminRole !== undefined) {
-      const oldAdminRole = targetUser.adminRole;
-      await prisma.user.update({
-        where: { id: userId },
-        data: { adminRole },
+    if (adminRole !== undefined && adminRole !== targetUser.adminRole) {
+      await logAuditEvent({
+        action: 'USER_ROLE_CHANGE',
+        userId: adminUser.id,
+        targetId: userId,
+        targetType: 'User',
+        oldValue: { adminRole: targetUser.adminRole },
+        newValue: { adminRole },
+        ipAddress: getIpFromRequest(request),
+        userAgent: getUserAgentFromRequest(request),
       });
-
-      if (adminRole !== oldAdminRole) {
-        await logAuditEvent({
-          action: 'USER_ROLE_CHANGE',
-          userId: adminUser.id,
-          targetId: userId,
-          targetType: 'User',
-          oldValue: { adminRole: oldAdminRole },
-          newValue: { adminRole },
-          ipAddress: getIpFromRequest(request),
-          userAgent: getUserAgentFromRequest(request),
-        });
-      }
     }
 
-    // Update subscription tier if provided
-    if (tier) {
-      if (targetUser.role === 'ATHLETE') {
-        if (!isAthleteTier(tier)) {
-          return NextResponse.json(
-            { success: false, error: 'Invalid athlete tier' },
-            { status: 400 }
-          );
-        }
-
-        const clientId = targetUser.athleteAccount?.clientId;
-        if (!clientId) {
-          return NextResponse.json(
-            { success: false, error: 'Athlete account not found for user' },
-            { status: 400 }
-          );
-        }
-
-        const oldTier = targetUser.athleteAccount?.client?.athleteSubscription?.tier;
-
-        await prisma.athleteSubscription.upsert({
-          where: { clientId },
-          update: getAthleteSubscriptionUpdateData(tier),
-          create: {
-            clientId,
-            paymentSource: 'DIRECT',
-            ...getAthleteSubscriptionUpdateData(tier),
-          },
-        });
-
-        if (tier !== oldTier) {
-          await logAuditEvent({
-            action: 'SUBSCRIPTION_CHANGE',
-            userId: adminUser.id,
-            targetId: userId,
-            targetType: 'AthleteSubscription',
-            oldValue: { tier: oldTier },
-            newValue: { tier },
-            ipAddress: getIpFromRequest(request),
-            userAgent: getUserAgentFromRequest(request),
-          });
-        }
-      } else {
-        if (!isCoachTier(tier)) {
-          return NextResponse.json(
-            { success: false, error: 'Invalid coach tier' },
-            { status: 400 }
-          );
-        }
-
-        const oldTier = targetUser.subscription?.tier;
-        const maxAthletes = getCoachMaxAthletes(tier);
-
-        await prisma.subscription.upsert({
-          where: { userId },
-          update: {
-            tier,
-            maxAthletes,
-          },
-          create: {
-            userId,
-            tier,
-            maxAthletes,
-            status: 'ACTIVE',
-          },
-        });
-
-        // SECURITY: Log subscription tier change
-        if (tier !== oldTier) {
-          await logAuditEvent({
-            action: 'SUBSCRIPTION_CHANGE',
-            userId: adminUser.id,
-            targetId: userId,
-            targetType: 'Subscription',
-            oldValue: { tier: oldTier },
-            newValue: { tier },
-            ipAddress: getIpFromRequest(request),
-            userAgent: getUserAgentFromRequest(request),
-          });
-        }
-      }
+    if (tier && tier !== oldTier) {
+      await logAuditEvent({
+        action: 'SUBSCRIPTION_CHANGE',
+        userId: adminUser.id,
+        targetId: userId,
+        targetType: nextRole === 'ATHLETE' ? 'AthleteSubscription' : 'Subscription',
+        oldValue: { tier: oldTier },
+        newValue: { tier },
+        ipAddress: getIpFromRequest(request),
+        userAgent: getUserAgentFromRequest(request),
+      });
     }
 
     const updatedUser = await prisma.user.findUnique({

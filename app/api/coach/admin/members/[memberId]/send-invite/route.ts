@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireBusinessAdminRole } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { sendCoachInviteEmail } from '@/lib/email'
@@ -9,11 +9,11 @@ import { fixLocalhostUrl } from '@/lib/url-utils'
 
 // POST /api/coach/admin/members/[memberId]/send-invite
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ memberId: string }> }
 ) {
   try {
-    const admin = await requireBusinessAdminRole()
+    const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
     const businessId = admin.businessId
     const { memberId } = await params
 

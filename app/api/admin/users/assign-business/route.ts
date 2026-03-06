@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { ApiError } from '@/lib/api-error'
+import { getLastOwnerGuardError } from '@/lib/business-member-guards'
 
 /**
  * POST /api/admin/users/assign-business
@@ -104,6 +106,19 @@ export async function DELETE(request: NextRequest) {
     }
 
     await prisma.$transaction(async (tx) => {
+      const existingMember = await tx.businessMember.findUnique({
+        where: { businessId_userId: { businessId, userId } },
+      })
+
+      if (existingMember) {
+        const ownerGuardError = await getLastOwnerGuardError(tx, existingMember, {
+          nextIsActive: false,
+        })
+        if (ownerGuardError) {
+          throw ApiError.badRequest(ownerGuardError)
+        }
+      }
+
       // Deactivate BusinessMember
       await tx.businessMember.updateMany({
         where: { businessId, userId },
@@ -139,6 +154,9 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'User removed from business' })
   } catch (error) {
+    if (error instanceof ApiError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: error.statusCode })
+    }
     logger.error('Error removing user from business', {}, error)
     return NextResponse.json({ success: false, error: 'Failed to remove user' }, { status: 500 })
   }

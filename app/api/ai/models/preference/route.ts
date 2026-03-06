@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { isModelIntent, legacyModelIdToIntent } from '@/types/ai-models'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,12 +70,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the coach ID for API key validation
+    const clientContext = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { userId: true, businessId: true },
+    })
+
     const coachId = isCoachInAthleteMode
       ? user.id
-      : (await prisma.client.findUnique({
-          where: { id: clientId },
-          select: { userId: true },
-        }))?.userId
+      : clientContext?.userId
+    const businessId = clientContext?.businessId ?? null
 
     if (!coachId) {
       return NextResponse.json(
@@ -88,17 +92,31 @@ export async function POST(request: NextRequest) {
       where: { userId: coachId },
       select: {
         allowedAthleteModelIds: true,
-        anthropicKeyValid: true,
-        googleKeyValid: true,
-        openaiKeyValid: true,
       },
     })
 
-    // Check if the provider key is valid
+    const businessSettings = businessId
+      ? await prisma.business.findUnique({
+          where: { id: businessId },
+          select: {
+            aiKeys: {
+              select: {
+                allowedAthleteModelIds: true,
+              },
+            },
+          },
+        })
+      : null
+
+    const resolvedKeys = await getResolvedAiKeys(coachId, {
+      businessId,
+      disableMembershipFallback: true,
+    })
+
     const providerKeyValid =
-      (dbModel.provider === 'ANTHROPIC' && coachSettings?.anthropicKeyValid) ||
-      (dbModel.provider === 'GOOGLE' && coachSettings?.googleKeyValid) ||
-      (dbModel.provider === 'OPENAI' && coachSettings?.openaiKeyValid)
+      (dbModel.provider === 'ANTHROPIC' && resolvedKeys.anthropicKey) ||
+      (dbModel.provider === 'GOOGLE' && resolvedKeys.googleKey) ||
+      (dbModel.provider === 'OPENAI' && resolvedKeys.openaiKey)
 
     if (!providerKeyValid) {
       return NextResponse.json(
@@ -110,10 +128,22 @@ export async function POST(request: NextRequest) {
     // If coach has restricted models, verify this one is allowed
     if (
       coachSettings?.allowedAthleteModelIds?.length &&
-      !coachSettings.allowedAthleteModelIds.includes(dbModel.id)
+      !coachSettings.allowedAthleteModelIds.includes(dbModel.id) &&
+      !coachSettings.allowedAthleteModelIds.includes(dbModel.modelId)
     ) {
       return NextResponse.json(
         { error: 'Model not allowed by coach' },
+        { status: 403 }
+      )
+    }
+
+    if (
+      businessSettings?.aiKeys?.allowedAthleteModelIds?.length &&
+      !businessSettings.aiKeys.allowedAthleteModelIds.includes(dbModel.id) &&
+      !businessSettings.aiKeys.allowedAthleteModelIds.includes(dbModel.modelId)
+    ) {
+      return NextResponse.json(
+        { error: 'Model not allowed by business settings' },
         { status: 403 }
       )
     }

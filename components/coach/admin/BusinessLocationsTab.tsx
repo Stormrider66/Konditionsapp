@@ -43,6 +43,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { LocationEquipmentManager } from './LocationEquipmentManager'
+import { useBusinessAdminHeaders } from '@/components/coach/admin/BusinessAdminContext'
 
 interface Location {
   id: string
@@ -66,6 +67,7 @@ interface Location {
 }
 
 export function BusinessLocationsTab() {
+  const businessHeaders = useBusinessAdminHeaders()
   const searchParams = useSearchParams()
   const router = useRouter()
   const [locations, setLocations] = useState<Location[]>([])
@@ -95,7 +97,9 @@ export function BusinessLocationsTab() {
   const fetchLocations = useCallback(async () => {
     try {
       setIsLoading(true)
-      const response = await fetch('/api/coach/admin/locations')
+      const response = await fetch('/api/coach/admin/locations', {
+        headers: businessHeaders,
+      })
       const result = await response.json()
       if (result.success) {
         setLocations(result.data)
@@ -107,7 +111,7 @@ export function BusinessLocationsTab() {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [businessHeaders])
 
   useEffect(() => {
     fetchLocations()
@@ -118,7 +122,10 @@ export function BusinessLocationsTab() {
       setIsSubmitting(true)
       const response = await fetch('/api/coach/admin/locations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(formData),
       })
       const result = await response.json()
@@ -143,7 +150,10 @@ export function BusinessLocationsTab() {
       setIsSubmitting(true)
       const response = await fetch(`/api/coach/admin/locations/${selectedLocation.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          ...businessHeaders,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(formData),
       })
       const result = await response.json()
@@ -169,6 +179,7 @@ export function BusinessLocationsTab() {
       setIsSubmitting(true)
       const response = await fetch(`/api/coach/admin/locations/${selectedLocation.id}`, {
         method: 'DELETE',
+        headers: businessHeaders,
       })
       const result = await response.json()
       if (result.success) {

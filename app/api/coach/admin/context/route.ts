@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCurrentUser, getBusinessContext } from '@/lib/auth-utils'
+import { getCurrentUser, getBusinessContext, getRequestedBusinessScope } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 
 // GET /api/coach/admin/context - Get business context for current user
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const context = await getBusinessContext(user.id)
+    const context = await getBusinessContext(user.id, getRequestedBusinessScope(request))
 
     return NextResponse.json({
       success: true,
