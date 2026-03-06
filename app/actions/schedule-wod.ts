@@ -48,7 +48,7 @@ export async function scheduleWODToDashboard(wodId: string) {
           weeks: {
             create: {
               weekNumber: 1,
-              phase: 'General',
+              phase: 'BASE',
               days: {
                 create: {
                   date: now,
