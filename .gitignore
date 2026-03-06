@@ -37,6 +37,7 @@ tsconfig.tsbuildinfo
 # Playwright
 playwright-report/
 test-results/
+playwright/.auth/
 
 # Load test output
 load-tests/cluster-logs/

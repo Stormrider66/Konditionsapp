@@ -1,5 +1,21 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const authProjects = process.env.E2E_ENABLE_AUTH_PROJECT
+  ? [
+      {
+        name: 'setup',
+        testMatch: /.*\.setup\.ts/,
+        use: { ...devices['Desktop Chrome'] }
+      },
+      {
+        name: 'chromium-auth',
+        testMatch: /.*authenticated\.spec\.ts/,
+        use: { ...devices['Desktop Chrome'] },
+        dependencies: ['setup']
+      }
+    ]
+  : []
+
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 60 * 1000,
@@ -20,12 +36,15 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: [/.*\.setup\.ts/, /.*authenticated\.spec\.ts/]
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] }
-    }
+      use: { ...devices['Desktop Firefox'] },
+      testIgnore: [/.*\.setup\.ts/, /.*authenticated\.spec\.ts/]
+    },
+    ...authProjects
   ],
   webServer: {
     command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',

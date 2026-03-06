@@ -56,6 +56,33 @@ export function mapCoachTierToAthleteTier(coachTier: string): AthleteTier {
   }
 }
 
+export function buildAthleteSubscriptionSeedFromCoachSubscription(subscription: {
+  tier: string
+  status: string
+  trialEndsAt?: Date | null
+}): AthleteSubscriptionSeed {
+  if (subscription.status === 'TRIAL') {
+    return {
+      tier: 'PRO',
+      status: 'TRIAL',
+      paymentSource: 'DIRECT',
+      trialEndsAt: subscription.trialEndsAt ?? getCoachTrialEndsAt(),
+    }
+  }
+
+  return {
+    tier: mapCoachTierToAthleteTier(subscription.tier),
+    status:
+      subscription.status === 'ACTIVE' ||
+      subscription.status === 'EXPIRED' ||
+      subscription.status === 'CANCELLED'
+        ? subscription.status
+        : 'ACTIVE',
+    paymentSource: 'DIRECT',
+    trialEndsAt: null,
+  }
+}
+
 export async function buildSelfAthleteSubscriptionSeedForUser(
   userId: string
 ): Promise<AthleteSubscriptionSeed> {
@@ -77,26 +104,7 @@ export async function buildSelfAthleteSubscriptionSeedForUser(
     }
   }
 
-  if (subscription.status === 'TRIAL') {
-    return {
-      tier: 'PRO',
-      status: 'TRIAL',
-      paymentSource: 'DIRECT',
-      trialEndsAt: subscription.trialEndsAt ?? getCoachTrialEndsAt(),
-    }
-  }
-
-  return {
-    tier: mapCoachTierToAthleteTier(subscription.tier),
-    status:
-      subscription.status === 'ACTIVE' ||
-      subscription.status === 'EXPIRED' ||
-      subscription.status === 'CANCELLED'
-        ? subscription.status
-        : 'ACTIVE',
-    paymentSource: 'DIRECT',
-    trialEndsAt: null,
-  }
+  return buildAthleteSubscriptionSeedFromCoachSubscription(subscription)
 }
 
 export function buildAthleteSubscriptionData(

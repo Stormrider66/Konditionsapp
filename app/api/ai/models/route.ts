@@ -57,8 +57,12 @@ export async function GET(request: NextRequest) {
     if (rateLimited) return rateLimited
 
     // Check if user is an athlete (or coach in athlete mode)
-    const resolved = await resolveAthleteClientId()
     const explicitBusinessSlug = request.headers.get('x-business-slug')
+
+    // When x-business-slug is present the request comes from a coach page
+    // (e.g. ModelSelector in AI Studio). Skip athlete-mode resolution so
+    // coaches always get the full model list, not the intent-tier response.
+    const resolved = explicitBusinessSlug ? null : await resolveAthleteClientId()
 
     let coachUserId: string
     let effectiveBusinessId: string | null = request.headers.get('x-business-id')

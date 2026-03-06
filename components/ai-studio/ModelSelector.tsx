@@ -73,7 +73,7 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
       const businessHeaders = getBusinessScopeHeaders(pathname)
       const response = await fetch('/api/ai/models', businessHeaders ? { headers: businessHeaders } : undefined)
       const data = await response.json()
-      if (data.success) {
+      if (data.success && Array.isArray(data.models)) {
         setModels(data.models)
       }
     } catch (err) {

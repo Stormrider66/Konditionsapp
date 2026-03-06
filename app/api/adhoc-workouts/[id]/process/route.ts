@@ -103,6 +103,34 @@ export async function POST(
       })
     }
 
+    // Handle skipAI mode (e.g. manual form with pre-built structure)
+    const body = await request.json().catch(() => ({}))
+    if (body.skipAI && body.parsedStructure) {
+      const parsedWorkout = validateParsedWorkout(body.parsedStructure)
+      const updated = await prisma.adHocWorkout.update({
+        where: { id },
+        data: {
+          status: 'READY_FOR_REVIEW',
+          parsedType: mapParsedTypeToWorkoutType(parsedWorkout.type),
+          parsedStructure: parsedWorkout as unknown as Prisma.InputJsonValue,
+          parsingModel: 'manual',
+          parsingConfidence: 1.0,
+          parsingError: null,
+        },
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: updated.id,
+          status: updated.status,
+          parsedStructure: parsedWorkout,
+          parsingConfidence: 1.0,
+          parsingModel: 'manual',
+        },
+      })
+    }
+
     // Get coach's API keys
     const apiKeys = await prisma.userApiKey.findUnique({
       where: { userId: coachId },

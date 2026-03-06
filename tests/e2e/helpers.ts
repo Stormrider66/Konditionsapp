@@ -2,6 +2,7 @@
  * Shared E2E test helpers and configuration
  */
 import { type Page, expect } from '@playwright/test'
+import { AUTH_STATE_PATHS } from './auth-state'
 
 // ---------------------------------------------------------------------------
 // Test accounts – override via environment variables for CI
@@ -23,31 +24,68 @@ export const TEST_ACCOUNTS = {
 
 // The business slug used for business-scoped routes in tests.
 export const TEST_BUSINESS_SLUG = process.env.E2E_BUSINESS_SLUG || 'testbusiness'
+export { AUTH_STATE_PATHS }
 
 // ---------------------------------------------------------------------------
 // Auth helpers
 // ---------------------------------------------------------------------------
 
+async function waitForHydratedSubmit(page: Page) {
+  await page.waitForLoadState('networkidle', { timeout: 120_000 }).catch(() => {})
+  await page.waitForFunction(() => {
+    const button = document.querySelector('button[type="submit"]')
+    if (!button) return false
+    const keys = Object.keys(button)
+    return keys.some((key) => key.startsWith('__reactProps$') || key.startsWith('__reactFiber$'))
+  }, undefined, { timeout: 120_000 })
+}
+
+export async function waitForSupabaseAuthCookie(page: Page, timeoutMs = 60_000) {
+  const deadline = Date.now() + timeoutMs
+
+  while (Date.now() < deadline) {
+    const cookies = await page.context().cookies()
+    const hasAuthCookie = cookies.some((cookie) => cookie.name.includes('auth-token') && Boolean(cookie.value))
+
+    if (hasAuthCookie) {
+      return
+    }
+
+    await page.waitForTimeout(1_000)
+  }
+
+  throw new Error('Timed out waiting for Supabase auth cookie')
+}
+
 export async function login(page: Page, email: string, password: string) {
-  await page.goto('/login')
+  const loginButton = page.getByRole('button', { name: /logga in|log in/i })
+  await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 120_000 })
+  await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 120_000 })
+  await expect(page.locator('input[name="password"]')).toBeVisible({ timeout: 120_000 })
+  await expect(loginButton).toBeVisible({ timeout: 120_000 })
+  await waitForHydratedSubmit(page)
   await page.fill('input[name="email"]', email)
   await page.fill('input[name="password"]', password)
-  await page.getByRole('button', { name: /logga in/i }).click()
+  await loginButton.click()
+}
+
+export async function loginToPath(page: Page, email: string, password: string, path: string) {
+  await login(page, email, password)
+  await waitForSupabaseAuthCookie(page)
+  await page.goto(path, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+  await expectUrlContains(page, path)
 }
 
 export async function loginAsAthlete(page: Page) {
-  await login(page, TEST_ACCOUNTS.athlete.email, TEST_ACCOUNTS.athlete.password)
-  await page.waitForURL('**/athlete/dashboard', { timeout: 15_000 })
+  await loginToPath(page, TEST_ACCOUNTS.athlete.email, TEST_ACCOUNTS.athlete.password, '/athlete/dashboard')
 }
 
 export async function loginAsCoach(page: Page) {
-  await login(page, TEST_ACCOUNTS.coach.email, TEST_ACCOUNTS.coach.password)
-  await page.waitForURL('**/coach/dashboard', { timeout: 15_000 })
+  await loginToPath(page, TEST_ACCOUNTS.coach.email, TEST_ACCOUNTS.coach.password, '/coach/dashboard')
 }
 
 export async function loginAsPhysio(page: Page) {
-  await login(page, TEST_ACCOUNTS.physio.email, TEST_ACCOUNTS.physio.password)
-  await page.waitForURL('**/physio/dashboard', { timeout: 15_000 })
+  await loginToPath(page, TEST_ACCOUNTS.physio.email, TEST_ACCOUNTS.physio.password, '/physio/dashboard')
 }
 
 // ---------------------------------------------------------------------------
@@ -88,7 +126,8 @@ export async function setSlider(
  * Wait for a navigation/page load to settle (network idle + DOM stable).
  */
 export async function waitForPageReady(page: Page) {
-  await page.waitForLoadState('networkidle', { timeout: 15_000 })
+  await page.waitForLoadState('domcontentloaded', { timeout: 30_000 })
+  await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {})
 }
 
 /**

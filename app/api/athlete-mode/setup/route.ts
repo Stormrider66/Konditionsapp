@@ -124,14 +124,14 @@ export async function PATCH() {
       select: { selfAthleteClientId: true },
     })
 
-    if (!existingUser?.selfAthleteClientId) {
+    const selfAthleteClientId = existingUser?.selfAthleteClientId
+
+    if (!selfAthleteClientId) {
       return NextResponse.json(
         { success: false, error: 'No athlete profile found. Use POST to create one.' },
         { status: 400 }
       )
     }
-
-    const selfAthleteClientId = existingUser.selfAthleteClientId
 
     const subscriptionSeed = await buildSelfAthleteSubscriptionSeedForUser(user.id)
 

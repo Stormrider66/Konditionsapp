@@ -66,6 +66,7 @@ import { PricingTiersManager } from '@/components/admin/pricing/PricingTiersMana
 import { MonitoringDashboard } from '@/components/admin/monitoring/MonitoringDashboard';
 import { BusinessesTable } from '@/components/admin/businesses/BusinessesTable';
 import { AIModelsManager } from '@/components/admin/ai-models/AIModelsManager';
+import { AthleteIntegrityHealthPanel } from '@/components/admin/data-health/AthleteIntegrityHealthPanel';
 import {
   LineChart,
   Line,
@@ -459,6 +460,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
           <TabsTrigger value="monitoring" className="flex items-center gap-1">
             <Monitor className="h-3 w-3" />
             Monitoring
+          </TabsTrigger>
+          <TabsTrigger value="data-health" className="flex items-center gap-1">
+            <Shield className="h-3 w-3" />
+            Data Health
           </TabsTrigger>
           <TabsTrigger value="ai-models" className="flex items-center gap-1">
             <Bot className="h-3 w-3" />
@@ -890,6 +895,10 @@ export function AdminDashboardClient({ userId, userName }: AdminDashboardClientP
         {/* Monitoring Tab */}
         <TabsContent value="monitoring">
           <MonitoringDashboard />
+        </TabsContent>
+
+        <TabsContent value="data-health">
+          <AthleteIntegrityHealthPanel />
         </TabsContent>
 
         {/* AI Models Tab */}

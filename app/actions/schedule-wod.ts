@@ -26,9 +26,9 @@ export async function scheduleWODToDashboard(wodId: string) {
       return { success: false, error: 'Passet hittades inte' }
     }
 
-    // 3. Find today's Training Day for this athlete
+    // 3. Find today's Training Day for this athlete (auto-create if needed)
     const now = new Date()
-    const todayDay = await prisma.trainingDay.findFirst({
+    let todayDay = await prisma.trainingDay.findFirst({
       where: {
         date: { gte: tzSafeDayStart(now), lte: tzSafeDayEnd(now) },
         week: { program: { clientId, isActive: true } }
@@ -36,8 +36,32 @@ export async function scheduleWODToDashboard(wodId: string) {
       orderBy: { date: 'desc' },
     })
 
+    // If no training day exists, auto-create an ad-hoc program so the WOD can be scheduled
     if (!todayDay) {
-      return { success: false, error: 'Ingen träningsdag hittades för idag i ditt aktiva program' }
+      const adHocProgram = await prisma.trainingProgram.create({
+        data: {
+          clientId,
+          name: 'Personlig Träning',
+          startDate: now,
+          endDate: new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()),
+          isActive: true,
+          weeks: {
+            create: {
+              weekNumber: 1,
+              phase: 'General',
+              days: {
+                create: {
+                  date: now,
+                  dayOfWeek: now.getDay() || 7,
+                },
+              },
+            },
+          },
+        },
+        include: { weeks: { include: { days: true } } },
+      })
+
+      todayDay = adHocProgram.weeks[0].days[0]
     }
 
     const targetDayId = todayDay.id
