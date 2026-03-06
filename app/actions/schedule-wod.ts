@@ -17,6 +17,16 @@ export async function scheduleWODToDashboard(wodId: string) {
 
     const clientId = resolved.clientId
 
+    // Resolve coach (owner) of this client record
+    const clientRecord = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { userId: true },
+    })
+    if (!clientRecord) {
+      return { success: false, error: 'Klientprofil saknas' }
+    }
+    const coachId = clientRecord.userId
+
     // 2. Fetch the WOD and verify ownership
     const wod = await prisma.aIGeneratedWOD.findUnique({
       where: { id: wodId }
@@ -48,6 +58,7 @@ export async function scheduleWODToDashboard(wodId: string) {
       const adHocProgram = await prisma.trainingProgram.create({
         data: {
           clientId,
+          coachId,
           name: 'Personlig Träning',
           startDate: now,
           endDate: new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()),
