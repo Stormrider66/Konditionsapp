@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       data: { user: supabaseUser },
     } = await supabase.auth.getUser()
 
-    if (!supabaseUser?.id || !supabaseEmail) {
+    if (!supabaseUser?.id || !supabaseUser.email) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
