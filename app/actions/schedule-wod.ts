@@ -38,6 +38,13 @@ export async function scheduleWODToDashboard(wodId: string) {
 
     // If no training day exists, auto-create an ad-hoc program so the WOD can be scheduled
     if (!todayDay) {
+      const weekStart = new Date(now)
+      weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)) // Monday
+      weekStart.setHours(0, 0, 0, 0)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 6)
+      weekEnd.setHours(23, 59, 59, 999)
+
       const adHocProgram = await prisma.trainingProgram.create({
         data: {
           clientId,
@@ -49,6 +56,8 @@ export async function scheduleWODToDashboard(wodId: string) {
             create: {
               weekNumber: 1,
               phase: 'BASE',
+              startDate: weekStart,
+              endDate: weekEnd,
               days: {
                 create: {
                   date: now,
