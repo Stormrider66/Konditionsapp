@@ -102,7 +102,7 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
                 className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() =>
                   router.push(
-                    {`${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions/${session.id}`}
+                    `${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions/${session.id}`
                   )
                 }
               >
