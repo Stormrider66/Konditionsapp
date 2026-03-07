@@ -192,6 +192,7 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
         birthDate: true,
         height: true,
         weight: true,
+        aiInstructions: true,
       },
     }),
 
@@ -543,6 +544,11 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
 
   // Profile section
   context += buildProfileContext(client)
+
+  // Coach AI instructions for this athlete (condition-aware coaching)
+  if (client.aiInstructions) {
+    context += `## COACH-INSTRUKTIONER FÖR AI\n${client.aiInstructions}\n\n`
+  }
 
   // Athlete self-description section (NEW)
   if (athleteAccount) {
