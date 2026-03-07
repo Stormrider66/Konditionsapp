@@ -589,6 +589,9 @@ model User {
   // Live HR Streaming System relations
   liveHRSessions LiveHRSession[] @relation("CoachLiveHRSessions")
 
+  // Live Interval Session System relations
+  intervalSessions IntervalSession[] @relation("CoachIntervalSessions")
+
   // Sport-Specific Testing System relations
   sportTests SportTest[] @relation("UserSportTests")
 
@@ -702,6 +705,9 @@ model Team {
 
   // Live HR Streaming System
   liveHRSessions LiveHRSession[]
+
+  // Live Interval Session System
+  intervalSessions IntervalSession[]
 
   // Physiotherapist System relations
   physioAssignments PhysioAssignment[] @relation("TeamPhysioAssignments")
@@ -906,6 +912,9 @@ model Client {
 
   // Live HR Streaming System relations
   liveHRParticipations LiveHRParticipant[]
+
+  // Live Interval Session System relations
+  intervalSessionParticipations IntervalSessionParticipant[]
 
   // Habit Formation System relations
   habits Habit[]
@@ -9504,4 +9513,87 @@ model BusinessJoinRequest {
 
   @@unique([userId, businessId])
   @@index([businessId, status])
+}
+
+// ==================== LIVE INTERVAL SESSION SYSTEM ====================
+
+/// A timed interval session where coaches record lap splits for athletes
+model IntervalSession {
+  id      String @id @default(uuid())
+  coachId String
+  coach   User   @relation("CoachIntervalSessions", fields: [coachId], references: [id])
+  teamId  String?
+  team    Team?  @relation(fields: [teamId], references: [id])
+  name    String?
+  sportType String?
+
+  // Protocol (optional structured definition)
+  protocol Json? // { intervalCount, targetDurationSeconds, restDurationSeconds, description }
+
+  // Lifecycle: SETUP → ACTIVE → LACTATE_ENTRY → ENDED
+  status          String    @default("SETUP")
+  timerStartedAt  DateTime? // Client-side timer anchor
+  currentInterval Int       @default(1)
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+
+  participants IntervalSessionParticipant[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([coachId])
+  @@index([status])
+}
+
+/// Athletes participating in an interval timing session
+model IntervalSessionParticipant {
+  id        String          @id @default(uuid())
+  sessionId String
+  session   IntervalSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  color     String? // Hex color for button
+  sortOrder Int     @default(0)
+
+  // Garmin enrichment (post-session)
+  garminActivityId String?
+  garminEnrichment Json? // { avgHR, maxHR, avgSpeed, laps, hrSamples, hrZoneSeconds }
+
+  laps     IntervalLap[]
+  lactates IntervalLactate[]
+  joinedAt DateTime @default(now())
+
+  @@unique([sessionId, clientId])
+  @@index([sessionId])
+  @@index([clientId])
+}
+
+/// Individual lap/split times recorded during interval sessions
+model IntervalLap {
+  id             String                    @id @default(uuid())
+  participantId  String
+  participant    IntervalSessionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  intervalNumber Int    // 1-based
+  splitTimeMs    Int    // This lap duration (ms)
+  cumulativeMs   Int    // From session start (ms)
+  recordedAt     DateTime @default(now())
+
+  @@unique([participantId, intervalNumber])
+  @@index([participantId])
+}
+
+/// Lactate measurements taken between intervals
+model IntervalLactate {
+  id             String                    @id @default(uuid())
+  participantId  String
+  participant    IntervalSessionParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  intervalNumber Int    // 0 = resting/pre-session
+  lactate        Float  // mmol/L
+  heartRate      Int?
+  notes          String?
+  recordedAt     DateTime @default(now())
+
+  @@unique([participantId, intervalNumber])
+  @@index([participantId])
 }
