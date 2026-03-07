@@ -19,11 +19,11 @@ import {
   getGeminiModelId,
 } from '@/lib/ai/google-genai-client';
 import type { AudioExtractionResult } from '@/lib/validations/gemini-schemas';
-import { decryptSecret } from '@/lib/crypto/secretbox';
 import { isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage';
 import { downloadAsBase64 } from '@/lib/storage/supabase-storage-server';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { getResolvedProviderKey } from '@/lib/user-api-keys'
 
 export const maxDuration = 300
 
@@ -81,23 +81,12 @@ export async function POST(
       }
     }
 
-    // Get API keys (from coach who owns the client)
-    const apiKeys = await prisma.userApiKey.findUnique({
-      where: { userId: audioJournal.client.userId },
-    });
-
-    let googleKey: string | undefined
-    if (apiKeys?.googleKeyEncrypted) {
-      try {
-        googleKey = decryptSecret(apiKeys.googleKeyEncrypted)
-      } catch {
-        googleKey = undefined
-      }
-    }
+    // Resolve Google API key using full fallback chain (user → business → platform admin)
+    const googleKey = await getResolvedProviderKey(audioJournal.client.userId, 'google')
 
     if (!googleKey) {
       return NextResponse.json(
-        { error: 'Google API key not configured. Coach must add API key in settings.' },
+        { error: 'Ingen Google API-nyckel hittades. Kontrollera AI-inställningarna.' },
         { status: 400 }
       );
     }

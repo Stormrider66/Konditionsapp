@@ -17,8 +17,7 @@ import {
   createInlineData,
   createText,
 } from '@/lib/ai/google-genai-client'
-import { getModelById, getDefaultModel } from '@/types/ai-models'
-import { decryptSecret } from '@/lib/crypto/secretbox'
+import { getModelById } from '@/types/ai-models'
 import {
   getExerciseLibrary,
   buildTextParsingPrompt,
@@ -31,6 +30,7 @@ import { matchExercise } from '@/lib/adhoc-workout/exercise-matcher'
 import { logger } from '@/lib/logger'
 import { downloadAsBase64 } from '@/lib/storage/supabase-storage-server'
 import { isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage'
+import { getResolvedProviderKey } from '@/lib/user-api-keys'
 
 export const maxDuration = 120
 
@@ -131,32 +131,13 @@ export async function POST(
       })
     }
 
-    // Get coach's API keys
-    const apiKeys = await prisma.userApiKey.findUnique({
-      where: { userId: coachId },
-      select: {
-        googleKeyEncrypted: true,
-        googleKeyValid: true,
-        anthropicKeyValid: true,
-        openaiKeyValid: true,
-      },
-    })
+    // Resolve Google API key using full fallback chain (user → business → platform admin)
+    const googleKey = await getResolvedProviderKey(coachId, 'google')
 
-    if (!apiKeys?.googleKeyValid) {
+    if (!googleKey) {
       return NextResponse.json(
-        { success: false, error: 'Google API key not configured. Coach must add API key in settings.' },
+        { success: false, error: 'Ingen Google API-nyckel hittades. Kontrollera AI-inställningarna.' },
         { status: 400 }
-      )
-    }
-
-    // Decrypt API key
-    let googleKey: string
-    try {
-      googleKey = decryptSecret(apiKeys.googleKeyEncrypted!)
-    } catch {
-      return NextResponse.json(
-        { success: false, error: 'Failed to decrypt API key' },
-        { status: 500 }
       )
     }
 
@@ -168,7 +149,7 @@ export async function POST(
     const athletePreferredModelId = client.sportProfile?.preferredAIModelId
     if (athletePreferredModelId) {
       const preferredModel = getModelById(athletePreferredModelId)
-      if (preferredModel && preferredModel.provider === 'google' && apiKeys.googleKeyValid) {
+      if (preferredModel && preferredModel.provider === 'google') {
         modelId = preferredModel.modelId
         modelDisplayName = preferredModel.name
       }
