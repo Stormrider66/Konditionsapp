@@ -103,7 +103,7 @@ export async function syncGarminForSession(
         where: { id: participant.id },
         data: {
           garminActivityId: String(bestActivity.activityId),
-          garminEnrichment: enrichment as Record<string, unknown>,
+          garminEnrichment: JSON.parse(JSON.stringify(enrichment)),
         },
       })
 
