@@ -75,7 +75,7 @@ export async function createIntervalSession(
       name: input.name,
       teamId: input.teamId,
       sportType: input.sportType,
-      protocol: input.protocol ? (input.protocol as Record<string, unknown>) : undefined,
+      protocol: input.protocol ? JSON.parse(JSON.stringify(input.protocol)) : undefined,
       status: 'SETUP',
     },
     include: {
