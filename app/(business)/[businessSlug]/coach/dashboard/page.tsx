@@ -32,6 +32,7 @@ import {
   AlertTriangle,
   Target,
   Flame,
+  Timer,
 } from 'lucide-react'
 import { format, subDays, startOfDay, endOfDay, addDays } from 'date-fns'
 import { sv, enUS } from 'date-fns/locale'
@@ -732,6 +733,12 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
                   <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
                     <Dumbbell className="h-5 w-5 text-orange-500" />
                     <span className="text-xs dark:text-slate-300">Styrka</span>
+                  </div>
+                </Link>
+                <Link href={`${basePath}/coach/interval-sessions`} className="block">
+                  <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+                    <Timer className="h-5 w-5 text-teal-500" />
+                    <span className="text-xs dark:text-slate-300">Intervaller</span>
                   </div>
                 </Link>
               </GlassCardContent>

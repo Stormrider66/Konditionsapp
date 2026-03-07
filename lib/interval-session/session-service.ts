@@ -76,6 +76,8 @@ export async function createIntervalSession(
       teamId: input.teamId,
       sportType: input.sportType,
       protocol: input.protocol ? JSON.parse(JSON.stringify(input.protocol)) : undefined,
+      scheduledDate: input.scheduledDate ? new Date(input.scheduledDate) : undefined,
+      scheduledTime: input.scheduledTime,
       status: 'SETUP',
     },
     include: {
@@ -148,6 +150,8 @@ export async function getSession(sessionId: string): Promise<IntervalSessionFull
     currentInterval: session.currentInterval,
     timerStartedAt: session.timerStartedAt?.toISOString() ?? null,
     protocol: session.protocol as IntervalSessionFull['protocol'],
+    scheduledDate: session.scheduledDate?.toISOString() ?? null,
+    scheduledTime: session.scheduledTime ?? null,
     startedAt: session.startedAt.toISOString(),
     endedAt: session.endedAt?.toISOString() ?? null,
     participantCount: participants.length,
@@ -223,6 +227,8 @@ export async function listCoachSessions(
     sportType: session.sportType,
     status: session.status as IntervalSessionStatus,
     currentInterval: session.currentInterval,
+    scheduledDate: session.scheduledDate?.toISOString() ?? null,
+    scheduledTime: session.scheduledTime ?? null,
     startedAt: session.startedAt.toISOString(),
     participantCount: session._count.participants,
   }))

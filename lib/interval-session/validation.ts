@@ -17,6 +17,8 @@ export const createSessionSchema = z.object({
     })
     .optional(),
   participantIds: z.array(z.string().uuid()).max(50).optional(),
+  scheduledDate: z.string().optional(), // ISO date string
+  scheduledTime: z.string().regex(/^\d{2}:\d{2}$/).optional(), // "HH:mm"
 })
 
 export const recordLapSchema = z.object({

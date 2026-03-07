@@ -29,6 +29,7 @@ import {
     Shield,
     ChevronDown,
     Zap,
+    Timer,
 } from 'lucide-react'
 import type { BusinessMemberRole } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -123,6 +124,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
                 { href: `${basePath}/coach/video-analysis`, label: 'Videoanalys', icon: Video },
                 { href: `${basePath}/coach/monitoring`, label: 'Monitorering', icon: Activity },
                 { href: `${basePath}/coach/live-hr`, label: 'Live HR', icon: Heart },
+                { href: `${basePath}/coach/interval-sessions`, label: 'Intervaller', icon: Timer },
             ]
         },
         more: {

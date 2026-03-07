@@ -590,7 +590,8 @@ model User {
   liveHRSessions LiveHRSession[] @relation("CoachLiveHRSessions")
 
   // Live Interval Session System relations
-  intervalSessions IntervalSession[] @relation("CoachIntervalSessions")
+  intervalSessions  IntervalSession[]         @relation("CoachIntervalSessions")
+  intervalTemplates IntervalSessionTemplate[] @relation("CoachIntervalTemplates")
 
   // Sport-Specific Testing System relations
   sportTests SportTest[] @relation("UserSportTests")
@@ -9530,6 +9531,10 @@ model IntervalSession {
   // Protocol (optional structured definition)
   protocol Json? // { intervalCount, targetDurationSeconds, restDurationSeconds, description }
 
+  // Scheduling (optional — schedule a session in advance)
+  scheduledDate DateTime? @db.Date
+  scheduledTime String?   // "HH:mm" format
+
   // Lifecycle: SETUP → ACTIVE → LACTATE_ENTRY → ENDED
   status          String    @default("SETUP")
   timerStartedAt  DateTime? // Client-side timer anchor
@@ -9543,6 +9548,7 @@ model IntervalSession {
 
   @@index([coachId])
   @@index([status])
+  @@index([scheduledDate])
 }
 
 /// Athletes participating in an interval timing session
@@ -9596,4 +9602,19 @@ model IntervalLactate {
 
   @@unique([participantId, intervalNumber])
   @@index([participantId])
+}
+
+/// Saved interval session templates for reuse
+model IntervalSessionTemplate {
+  id        String @id @default(uuid())
+  coachId   String
+  coach     User   @relation("CoachIntervalTemplates", fields: [coachId], references: [id])
+  name      String
+  sportType String?
+  protocol  Json   // { intervalCount, targetDurationSeconds, restDurationSeconds, description }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([coachId])
 }

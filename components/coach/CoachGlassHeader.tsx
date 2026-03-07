@@ -29,6 +29,7 @@ import {
     Shield,
     ChevronDown,
     Zap,
+    Timer,
 } from 'lucide-react'
 import type { BusinessMemberRole } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -115,6 +116,7 @@ export function CoachGlassHeader({ user }: CoachGlassHeaderProps) {
                 { href: '/coach/video-analysis', label: 'Videoanalys', icon: Video },
                 { href: '/coach/monitoring', label: 'Monitorering', icon: Activity },
                 { href: '/coach/live-hr', label: 'Live HR', icon: Heart },
+                { href: '/coach/interval-sessions', label: 'Intervaller', icon: Timer },
             ]
         },
         more: {

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Timer, Users, Trash2 } from 'lucide-react'
+import { Timer, Users, Trash2, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import type { IntervalSessionListItem } from '@/lib/interval-session/types'
 
@@ -131,6 +131,14 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
                       {session.participantCount} atleter
                     </span>
                   </div>
+
+                  {session.scheduledDate && session.status === 'SETUP' && (
+                    <div className="flex items-center gap-1 mt-2 text-xs text-blue-600 dark:text-blue-400">
+                      <Calendar className="h-3 w-3" />
+                      {new Date(session.scheduledDate).toLocaleDateString('sv-SE')}
+                      {session.scheduledTime && ` kl ${session.scheduledTime}`}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between mt-3">
                     <span className="text-xs text-muted-foreground">

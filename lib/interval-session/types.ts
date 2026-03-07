@@ -14,6 +14,8 @@ export interface CreateIntervalSessionInput {
   sportType?: string
   protocol?: IntervalProtocol
   participantIds?: string[]
+  scheduledDate?: string // ISO date
+  scheduledTime?: string // "HH:mm"
 }
 
 // Protocol definition
@@ -95,6 +97,8 @@ export interface IntervalSessionFull {
   currentInterval: number
   timerStartedAt: string | null
   protocol: IntervalProtocol | null
+  scheduledDate: string | null
+  scheduledTime: string | null
   startedAt: string
   endedAt: string | null
   participantCount: number
@@ -109,6 +113,8 @@ export interface IntervalSessionListItem {
   sportType: string | null
   status: IntervalSessionStatus
   currentInterval: number
+  scheduledDate: string | null
+  scheduledTime: string | null
   startedAt: string
   participantCount: number
 }

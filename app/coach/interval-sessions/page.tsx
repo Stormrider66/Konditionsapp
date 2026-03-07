@@ -10,8 +10,13 @@ import { Timer } from 'lucide-react'
 import { IntervalSessionList } from '@/components/coach/interval-session/IntervalSessionList'
 import { CreateIntervalSessionDialog } from '@/components/coach/interval-session/CreateIntervalSessionDialog'
 
-export default async function IntervalSessionsPage() {
+interface PageProps {
+  searchParams: Promise<{ teamId?: string }>
+}
+
+export default async function IntervalSessionsPage({ searchParams }: PageProps) {
   const user = await requireCoach()
+  const { teamId } = await searchParams
 
   const teams = await prisma.team.findMany({
     where: { userId: user.id },
@@ -31,7 +36,11 @@ export default async function IntervalSessionsPage() {
             Tidtagning av intervaller med laguppstallning och laktatregistrering
           </p>
         </div>
-        <CreateIntervalSessionDialog teams={teams} />
+        <CreateIntervalSessionDialog
+          teams={teams}
+          defaultTeamId={teamId}
+          autoOpen={!!teamId}
+        />
       </div>
 
       <Suspense

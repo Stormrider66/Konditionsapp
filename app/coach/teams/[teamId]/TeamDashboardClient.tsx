@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Dumbbell, Heart, Zap } from 'lucide-react'
+import { Dumbbell, Heart, Zap, Timer } from 'lucide-react'
 
 interface TeamDashboardClientProps {
   teamId: string
@@ -61,6 +61,10 @@ export function TeamDashboardClient({ teamId, teamName }: TeamDashboardClientPro
         <DropdownMenuItem onClick={() => handleAssignClick('hybrid')}>
           <Zap className="mr-2 h-4 w-4" />
           Hybridpass
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push(`/coach/interval-sessions?teamId=${teamId}`)}>
+          <Timer className="mr-2 h-4 w-4" />
+          Intervallsession
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

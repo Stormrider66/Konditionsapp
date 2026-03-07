@@ -16,10 +16,12 @@ interface PageProps {
   params: Promise<{
     businessSlug: string
   }>
+  searchParams: Promise<{ teamId?: string }>
 }
 
-export default async function IntervalSessionsPage({ params }: PageProps) {
+export default async function IntervalSessionsPage({ params, searchParams }: PageProps) {
   const { businessSlug } = await params
+  const { teamId } = await searchParams
   const user = await requireCoach()
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -45,7 +47,12 @@ export default async function IntervalSessionsPage({ params }: PageProps) {
             Tidtagning av intervaller med laguppstallning och laktatregistrering
           </p>
         </div>
-        <CreateIntervalSessionDialog teams={teams} businessSlug={businessSlug} />
+        <CreateIntervalSessionDialog
+          teams={teams}
+          businessSlug={businessSlug}
+          defaultTeamId={teamId}
+          autoOpen={!!teamId}
+        />
       </div>
 
       <Suspense
