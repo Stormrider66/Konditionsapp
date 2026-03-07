@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle } from 'lucide-react'
+import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle, Sparkles } from 'lucide-react'
 import { createTestSchema, CreateTestFormData, detectLactateDecreases } from '@/lib/validations/schemas'
 import { TestType, TestTemplate } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
+import { SmartTestImportDialog } from '@/components/forms/SmartTestImportDialog'
+import type { TestImportResult } from '@/lib/validations/test-import-schema'
 
 interface TestDataFormProps {
   testType: TestType
@@ -34,6 +36,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     control,
     handleSubmit,
     getValues,
+    setValue,
     reset,
     watch,
     formState: { errors },
@@ -144,6 +147,7 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
   const [templateName, setTemplateName] = useState('')
   const [templateDescription, setTemplateDescription] = useState('')
   const [ocrLoading, setOcrLoading] = useState<number | null>(null)
+  const [showImportDialog, setShowImportDialog] = useState(false)
   const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
 
   // OCR handler for lactate meter photo
@@ -197,6 +201,42 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
       setOcrLoading(null)
     }
   }
+
+  const handleSmartImport = useCallback((data: TestImportResult) => {
+    if (data.stages.length > 0) {
+      replace(data.stages as any)
+    }
+    if (data.restingLactate !== undefined) {
+      setValue('restingLactate', data.restingLactate)
+    }
+    if (data.testDate) {
+      setValue('testDate', data.testDate)
+    }
+    if (data.notes) {
+      setValue('notes', data.notes)
+    }
+    if (data.postTestMeasurements && data.postTestMeasurements.length > 0) {
+      // Replace post-test measurements using the existing field array
+      // We need to set each one via setValue since we don't have a replace for postTestMeasurements
+      data.postTestMeasurements.forEach((m, i) => {
+        setValue(`postTestMeasurements.${i}.timeMinutes`, m.timeMinutes)
+        setValue(`postTestMeasurements.${i}.timeSeconds`, m.timeSeconds)
+        setValue(`postTestMeasurements.${i}.lactate`, m.lactate)
+      })
+    }
+
+    toast({
+      title: 'Testdata importerad!',
+      description: `${data.stages.length} steg extraherade (${Math.round(data.confidence * 100)}% säkerhet)`,
+    })
+    if (data.warnings.length > 0) {
+      toast({
+        title: 'Varningar',
+        description: data.warnings.join('. '),
+        variant: 'destructive',
+      })
+    }
+  }, [replace, setValue, toast])
 
   const fetchTemplates = useCallback(async () => {
     try {
@@ -363,6 +403,15 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <h3 className="text-lg font-semibold">Teststeg</h3>
           <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              onClick={() => setShowImportDialog(true)}
+              variant="outline"
+              size="sm"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Smart Import
+            </Button>
             <Button
               type="button"
               onClick={() => setShowLoadDialog(true)}
@@ -803,6 +852,15 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Smart Import Dialog */}
+      <SmartTestImportDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        testType={testType}
+        clientId={clientId}
+        onImport={handleSmartImport}
+      />
 
       {/* Load Template Dialog */}
       <Dialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>

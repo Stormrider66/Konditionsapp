@@ -5,13 +5,14 @@ import { NextResponse } from 'next/server'
 import { checkAthleteFeatureAccess, type AthleteFeature } from './feature-access'
 import { prisma } from '@/lib/prisma'
 
-export type CoachFeature = 'program_generation' | 'advanced_intelligence' | 'nutrition_planning' | 'lactate_ocr'
+export type CoachFeature = 'program_generation' | 'advanced_intelligence' | 'nutrition_planning' | 'lactate_ocr' | 'smart_test_import'
 
 const COACH_FEATURE_TIERS: Record<CoachFeature, Set<string>> = {
   program_generation: new Set(['BASIC', 'PRO', 'ENTERPRISE']),
   advanced_intelligence: new Set(['PRO', 'ENTERPRISE']),
   nutrition_planning: new Set(['BASIC', 'PRO', 'ENTERPRISE']),
   lactate_ocr: new Set(['BASIC', 'PRO', 'ENTERPRISE']),
+  smart_test_import: new Set(['BASIC', 'PRO', 'ENTERPRISE']),
 }
 
 const FEATURE_LABELS: Record<string, string> = {
@@ -22,6 +23,7 @@ const FEATURE_LABELS: Record<string, string> = {
   nutrition_planning: 'Nutritionsplanering',
   concept2: 'Concept2-integration',
   lactate_ocr: 'Laktat-OCR',
+  smart_test_import: 'Smart Testimport',
   strava: 'Strava-sync',
   garmin: 'Garmin-sync',
 }
