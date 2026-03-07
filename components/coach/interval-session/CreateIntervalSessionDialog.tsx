@@ -29,7 +29,7 @@ interface Team {
 
 interface CreateIntervalSessionDialogProps {
   teams: Team[]
-  businessSlug: string
+  businessSlug?: string
 }
 
 export function CreateIntervalSessionDialog({
@@ -76,7 +76,8 @@ export function CreateIntervalSessionDialog({
       const { session } = await res.json()
       toast.success('Session skapad')
       setOpen(false)
-      router.push(`/${businessSlug}/coach/interval-sessions/${session.id}`)
+      const base = businessSlug ? `/${businessSlug}` : ''
+      router.push(`${base}/coach/interval-sessions/${session.id}`)
     } catch {
       toast.error('Kunde inte skapa session')
     } finally {

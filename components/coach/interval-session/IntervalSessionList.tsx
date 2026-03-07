@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import type { IntervalSessionListItem } from '@/lib/interval-session/types'
 
 interface IntervalSessionListProps {
-  businessSlug: string
+  businessSlug?: string
 }
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -102,7 +102,7 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
                 className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() =>
                   router.push(
-                    `/${businessSlug}/coach/interval-sessions/${session.id}`
+                    {`${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions/${session.id}`}
                   )
                 }
               >

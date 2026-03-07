@@ -22,7 +22,7 @@ interface AvailableClient {
 
 interface IntervalSessionDashboardProps {
   sessionId: string
-  businessSlug: string
+  businessSlug?: string
   initialData: IntervalSessionStreamData
   initialAvailableClients: AvailableClient[]
 }
@@ -180,7 +180,7 @@ export function IntervalSessionDashboard({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push(`/${businessSlug}/coach/interval-sessions`)}
+            onClick={() => router.push(`${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions`)}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -209,7 +209,7 @@ export function IntervalSessionDashboard({
               size="sm"
               onClick={() =>
                 router.push(
-                  `/${businessSlug}/coach/interval-sessions/${sessionId}/analysis`
+                  `${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions/${sessionId}/analysis`
                 )
               }
             >

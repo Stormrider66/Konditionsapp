@@ -61,6 +61,7 @@ const COACH_REDIRECT_ROUTES = [
   '/coach/video-analysis',
   '/coach/monitoring',
   '/coach/live-hr',
+  '/coach/interval-sessions',
   '/coach/analytics',
   '/coach/documents',
   '/coach/messages',
