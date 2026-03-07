@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabaseEmail = supabaseEmail
+    const supabaseEmail = supabaseUser.email
 
     authUserId = supabaseUser.id
 
