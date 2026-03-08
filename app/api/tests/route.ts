@@ -160,6 +160,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Auto-resolve tester and primary location for the coach
+    const [tester, primaryLocation] = await Promise.all([
+      prisma.tester.findUnique({ where: { userId: user.id }, select: { id: true, name: true } }),
+      prisma.location.findFirst({
+        where: {
+          business: { members: { some: { userId: user.id } } },
+          isPrimary: true,
+          isActive: true,
+        },
+        select: { id: true, name: true },
+      }),
+    ])
+
     // Create test with stages
     const test = await prisma.test.create({
       data: {
@@ -167,8 +180,10 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         testDate: new Date(data.testDate),
         testType: data.testType,
-        location: data.location || null,
-        testLeader: data.testLeader || null,
+        location: data.location || primaryLocation?.name || null,
+        testLeader: data.testLeader || tester?.name || user.name || null,
+        testerId: tester?.id || null,
+        locationId: primaryLocation?.id || null,
         inclineUnit: data.inclineUnit || 'PERCENT',
         notes: data.notes || null,
         // New fields

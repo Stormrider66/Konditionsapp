@@ -126,12 +126,39 @@ export function SelfReportedLactateForm({ clientId, basePath = '' }: SelfReporte
     }
   }
 
+  // Detect the increment pattern from existing stage values
+  function detectIncrement(values: (number | undefined | null)[]): number | null {
+    const nums = values.filter((v): v is number => v != null && !isNaN(v));
+    if (nums.length < 2) return null;
+    const diffs: number[] = [];
+    for (let i = 1; i < nums.length; i++) {
+      diffs.push(nums[i] - nums[i - 1]);
+    }
+    diffs.sort((a, b) => a - b);
+    const median = diffs[Math.floor(diffs.length / 2)];
+    return Math.round(median * 10) / 10;
+  }
+
   function addStage() {
-    const lastStage = fields[fields.length - 1];
+    const stages = form.getValues('stages');
+    const lastStage = stages[stages.length - 1];
+
+    const speedIncrement = detectIncrement(stages.map(s => s.speed)) ?? 1;
+    const powerIncrement = detectIncrement(stages.map(s => s.power)) ?? 25;
+    const paceIncrement = detectIncrement(stages.map(s => s.pace)) ?? -0.5;
+    const hrIncrement = detectIncrement(stages.map(s => s.heartRate)) ?? 10;
+
+    const newSpeed = watchTestType === 'RUNNING' && lastStage?.speed ? Math.round((lastStage.speed + speedIncrement) * 10) / 10 : undefined;
+    const newPower = watchTestType === 'CYCLING' && lastStage?.power ? lastStage.power + powerIncrement : undefined;
+    const newPace = watchTestType === 'SKIING' && lastStage?.pace ? Math.max(Math.round((lastStage.pace + paceIncrement) * 10) / 10, 2.5) : undefined;
+
     append({
       sequence: fields.length + 1,
-      heartRate: lastStage ? lastStage.heartRate + 10 : 120,
-      lactate: lastStage ? lastStage.lactate + 1 : 1.0,
+      speed: newSpeed,
+      power: newPower,
+      pace: newPace,
+      heartRate: lastStage ? lastStage.heartRate + hrIncrement : 120,
+      lactate: lastStage ? Math.round((lastStage.lactate * 1.4) * 10) / 10 : 1.0,
       duration: 3
     });
   }

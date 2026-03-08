@@ -69,11 +69,10 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
   const [clients, setClients] = useState<Client[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [testType, setTestType] = useState<TestType>('RUNNING')
-  const [location, setLocation] = useState<string>('Piteå')
-  const [testLeader, setTestLeader] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [userRole, setUserRole] = useState<'COACH' | 'ATHLETE' | 'ADMIN' | null>(null)
+  const [userName, setUserName] = useState<string>('')
   const { toast } = useToast()
 
   useEffect(() => {
@@ -111,6 +110,7 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
           const result = await response.json()
           if (result.success) {
             setUserRole(result.data.role)
+            if (result.data.name) setUserName(result.data.name)
           }
         } catch (error) {
           if (controller.signal.aborted) return
@@ -162,8 +162,6 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
           ...data,
           stages: transformedStages,
           testType: testType, // Include the test type from state
-          location: location,
-          testLeader: testLeader,
           clientId: selectedClient.id,
           restingLactate: data.restingLactate,
           postTestMeasurements: transformedPostMeasurements?.length ? transformedPostMeasurements : undefined,
@@ -359,35 +357,6 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
                       </Tabs>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="location-select" className="text-slate-900 dark:text-white">Plats</Label>
-                        <Select value={location} onValueChange={setLocation}>
-                          <SelectTrigger id="location-select" className="min-h-[44px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
-                            <SelectValue placeholder="Välj plats" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Piteå">Piteå</SelectItem>
-                            <SelectItem value="Skellefteå">Skellefteå</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="test-leader" className="text-slate-900 dark:text-white">Testledare</Label>
-                        <Select value={testLeader} onValueChange={setTestLeader}>
-                          <SelectTrigger id="test-leader" className="min-h-[44px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
-                            <SelectValue placeholder="Välj testledare" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Henrik Lundholm">Henrik Lundholm</SelectItem>
-                            <SelectItem value="Tommy Henriksson">Tommy Henriksson</SelectItem>
-                            <SelectItem value="Elias Ståhl">Elias Ståhl</SelectItem>
-                            <SelectItem value="Stefan Thomson">Stefan Thomson</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
                   </GlassCardContent>
                 </GlassCard>
 
@@ -566,7 +535,7 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
                       client: reportData.client,
                       test: reportData.test,
                       calculations: reportData.calculations,
-                      testLeader: testLeader || 'Henrik Lundholm',
+                      testLeader: userName || 'Testledare',
                       organization: orgName,
                       reportDate: new Date(),
                     }}
@@ -580,7 +549,7 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
                       client: reportData.client,
                       test: reportData.test,
                       calculations: reportData.calculations,
-                      testLeader: testLeader || 'Henrik Lundholm',
+                      testLeader: userName || 'Testledare',
                       organization: orgName,
                       reportDate: new Date(),
                     }}
@@ -596,7 +565,7 @@ export function TestPageContent({ businessSlug, organizationName }: TestPageCont
               client={reportData.client}
               test={reportData.test}
               calculations={reportData.calculations}
-              testLeader={testLeader || 'Henrik Lundholm'}
+              testLeader={userName || 'Testledare'}
               organization={orgName}
             />
           )}

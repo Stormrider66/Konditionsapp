@@ -254,15 +254,34 @@ export function TestDataForm({ testType, onSubmit, clientId }: TestDataFormProps
     fetchTemplates()
   }, [fetchTemplates])
 
+  // Detect the increment pattern from existing stage values
+  const detectIncrement = (values: (number | undefined | null)[]): number | null => {
+    const nums = values.filter((v): v is number => v != null && !isNaN(v))
+    if (nums.length < 2) return null
+    const diffs: number[] = []
+    for (let i = 1; i < nums.length; i++) {
+      diffs.push(nums[i] - nums[i - 1])
+    }
+    // Use the median diff to be robust against outliers
+    diffs.sort((a, b) => a - b)
+    const median = diffs[Math.floor(diffs.length / 2)]
+    // Round to 1 decimal to avoid floating point noise
+    return Math.round(median * 10) / 10
+  }
+
   const addStage = () => {
     const stages = getValues('stages')
     const lastStage = stages[stages.length - 1]
 
-    // Increment from last stage values
-    const newSpeed = testType === 'RUNNING' && lastStage?.speed ? lastStage.speed + 1 : (testType === 'RUNNING' ? 8 : undefined)
-    const newPower = testType === 'CYCLING' && lastStage?.power ? lastStage.power + 25 : (testType === 'CYCLING' ? 100 : undefined)
-    const newPace = testType === 'SKIING' && lastStage?.pace ? Math.max(lastStage.pace - 0.5, 2.5) : (testType === 'SKIING' ? 7.5 : undefined)
-    const newHeartRate = lastStage?.heartRate ? lastStage.heartRate + 10 : 120
+    // Detect increment patterns from entered data, fall back to defaults
+    const speedIncrement = detectIncrement(stages.map(s => s.speed)) ?? 1
+    const powerIncrement = detectIncrement(stages.map(s => s.power)) ?? 25
+    const paceIncrement = detectIncrement(stages.map(s => s.pace)) ?? -0.5
+
+    const newSpeed = testType === 'RUNNING' && lastStage?.speed ? Math.round((lastStage.speed + speedIncrement) * 10) / 10 : (testType === 'RUNNING' ? 8 : undefined)
+    const newPower = testType === 'CYCLING' && lastStage?.power ? lastStage.power + powerIncrement : (testType === 'CYCLING' ? 100 : undefined)
+    const newPace = testType === 'SKIING' && lastStage?.pace ? Math.max(Math.round((lastStage.pace + paceIncrement) * 10) / 10, 2.5) : (testType === 'SKIING' ? 7.5 : undefined)
+    const newHeartRate = lastStage?.heartRate ? lastStage.heartRate + (detectIncrement(stages.map(s => s.heartRate)) ?? 10) : 120
     // Estimate lactate based on exponential growth pattern (roughly doubles every 2-3 stages at higher intensities)
     const newLactate = lastStage?.lactate ? Math.round((lastStage.lactate * 1.4) * 10) / 10 : 1.0
 
