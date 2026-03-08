@@ -21,6 +21,7 @@
     "load:k6:stress": "node load-tests/k6/run.js stress",
     "validate:calculations": "ts-node --project tsconfig.scripts.json --require tsconfig-paths/register scripts/validate-calculations.ts",
     "audit:athlete-integrity": "ts-node --project tsconfig.scripts.json --require tsconfig-paths/register scripts/audit-athlete-integrity.ts",
+    "verify:rls": "node scripts/verify-supabase-rls.js",
     "remotion:studio": "remotion studio remotion/index.ts",
     "remotion:build": "remotion bundle remotion/index.ts --out-dir public/animations",
     "remotion:render": "remotion render remotion/index.ts"

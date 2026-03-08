@@ -21,11 +21,11 @@ CREATE POLICY "authenticated_access" ON "Test"
   FOR ALL
   TO authenticated
   USING (
-    "userId" = auth.uid()
+    "userId" = auth.uid()::text
     OR EXISTS (
       SELECT 1 FROM "Client" c
       WHERE c.id = "Test"."clientId"
-      AND c."userId" = auth.uid()
+      AND c."userId" = auth.uid()::text
     )
   );
 
@@ -44,11 +44,11 @@ CREATE POLICY "authenticated_access" ON "Client"
   FOR ALL
   TO authenticated
   USING (
-    "userId" = auth.uid()
+    "userId" = auth.uid()::text
     OR EXISTS (
       SELECT 1 FROM "AthleteAccount" aa
       WHERE aa."clientId" = "Client".id
-      AND aa."authUserId" = auth.uid()
+      AND aa."userId" = auth.uid()::text
     )
   );
 
@@ -67,11 +67,11 @@ CREATE POLICY "authenticated_access" ON "TrainingProgram"
   FOR ALL
   TO authenticated
   USING (
-    "coachId" = auth.uid()
+    "coachId" = auth.uid()::text
     OR EXISTS (
       SELECT 1 FROM "AthleteAccount" aa
       WHERE aa."clientId" = "TrainingProgram"."clientId"
-      AND aa."authUserId" = auth.uid()
+      AND aa."userId" = auth.uid()::text
     )
   );
 
@@ -94,11 +94,11 @@ CREATE POLICY "authenticated_access" ON "AthleteSubscription"
       SELECT 1 FROM "Client" c
       WHERE c.id = "AthleteSubscription"."clientId"
       AND (
-        c."userId" = auth.uid()
+        c."userId" = auth.uid()::text
         OR EXISTS (
           SELECT 1 FROM "AthleteAccount" aa
           WHERE aa."clientId" = c.id
-          AND aa."authUserId" = auth.uid()
+          AND aa."userId" = auth.uid()::text
         )
       )
     )
@@ -118,7 +118,7 @@ CREATE POLICY "deny_anon_access" ON "Subscription"
 CREATE POLICY "authenticated_access" ON "Subscription"
   FOR ALL
   TO authenticated
-  USING ("userId" = auth.uid());
+  USING ("userId" = auth.uid()::text);
 
 -- ============================================
 -- 6. IntegrationToken table (OAuth tokens)
@@ -138,7 +138,7 @@ CREATE POLICY "authenticated_access" ON "IntegrationToken"
     EXISTS (
       SELECT 1 FROM "Client" c
       WHERE c.id = "IntegrationToken"."clientId"
-      AND c."userId" = auth.uid()
+      AND c."userId" = auth.uid()::text
     )
   );
 
@@ -156,4 +156,4 @@ CREATE POLICY "deny_anon_access" ON "UserApiKey"
 CREATE POLICY "authenticated_access" ON "UserApiKey"
   FOR ALL
   TO authenticated
-  USING ("userId" = auth.uid());
+  USING ("userId" = auth.uid()::text);
