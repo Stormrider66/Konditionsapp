@@ -470,8 +470,14 @@ export function WorkoutLoggingForm({
         throw new Error(result.error || 'Misslyckades med att spara logg')
       }
 
-      // Check for program completion
-      if (result.isProgramCompletion && raceContext?.isProgramFinalWorkout && onProgramCompletion) {
+      // Check for program completion or race workout celebration
+      // Race workouts with a result always celebrate (even if some program workouts were skipped)
+      // Non-race programs celebrate when API confirms all workouts are done
+      const shouldCelebrate =
+        (raceContext?.isRaceWorkout && raceResult) ||
+        (result.isProgramCompletion && raceContext?.isProgramFinalWorkout)
+
+      if (shouldCelebrate && raceContext && onProgramCompletion) {
         onProgramCompletion({
           raceResult: raceResult
             ? {

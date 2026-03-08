@@ -164,11 +164,18 @@ export async function POST(
         (w: any) => w.id !== id && w.logs.length > 0
       ).length
 
-      // This was the last unlogged workout
-      if (completedBefore === allWorkouts.length - 1) {
-        isProgramCompletion = true
+      // This was the last unlogged workout (strict: all others completed)
+      const isStrictCompletion = completedBefore === allWorkouts.length - 1
 
+      // Also consider it a completion if a race result was submitted
+      // (athlete may have skipped some workouts but still ran the race)
+      const isRaceCompletion = !!raceResultId
+
+      isProgramCompletion = isStrictCompletion || isRaceCompletion
+
+      if (isProgramCompletion) {
         // Create coach notification for program completion
+        const completedTotal = completedBefore + 1 // +1 for current workout
         try {
           await prisma.aINotification.create({
             data: {
@@ -176,16 +183,17 @@ export async function POST(
               notificationType: 'PROGRAM_COMPLETION',
               priority: 'HIGH',
               title: `Program slutfört: ${program.name}`,
-              message: `Atleten har genomfört alla ${allWorkouts.length} träningspass i programmet.${raceResultId ? ' Ett tävlingsresultat har registrerats.' : ''}`,
+              message: `Atleten har genomfört ${completedTotal} av ${allWorkouts.length} träningspass i programmet.${raceResultId ? ' Ett tävlingsresultat har registrerats.' : ''}`,
               icon: 'trophy',
               contextData: {
                 programId: program.id,
                 programName: program.name,
                 totalWorkouts: allWorkouts.length,
+                completedWorkouts: completedTotal,
                 raceResultId,
               },
               triggeredBy: `PROGRAM_COMPLETION:${program.id}`,
-              triggerReason: 'Athlete completed all workouts in program',
+              triggerReason: 'Athlete completed program / submitted race result',
               scheduledFor: new Date(),
               expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
             },
