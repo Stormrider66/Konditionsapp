@@ -50,12 +50,19 @@ export interface RaceContext {
   completedWorkouts: number
 }
 
+export interface AthleteContext {
+  isAICoached: boolean
+  hasCoach: boolean
+  primarySport: string | null
+}
+
 interface WorkoutLogClientProps {
   workout: any
   athleteId: string
   existingLog?: any
   basePath?: string
   raceContext?: RaceContext
+  athleteContext?: AthleteContext
 }
 
 type ViewMode = 'choosing' | 'focus' | 'quicklog' | 'completed'
@@ -66,6 +73,11 @@ interface CompletionData {
     finishTimeSeconds: number
     goalTime?: string
     goalAssessment?: 'EXCEEDED' | 'MET' | 'CLOSE' | 'MISSED'
+  }
+  vdotData?: {
+    vdot: number
+    trainingPaces: unknown
+    equivalentTimes: unknown
   }
 }
 
@@ -106,6 +118,7 @@ export function WorkoutLogClient({
   existingLog,
   basePath: basePathProp = '',
   raceContext,
+  athleteContext,
 }: WorkoutLogClientProps) {
   const router = useRouter()
   const contextBasePath = useBasePath()
@@ -187,7 +200,9 @@ export function WorkoutLogClient({
       <ProgramCompletionCelebration
         raceContext={raceContext}
         raceResult={completionData.raceResult}
+        vdotData={completionData.vdotData}
         basePath={basePath}
+        athleteContext={athleteContext}
       />
     )
   }

@@ -113,6 +113,22 @@ export default async function BusinessWorkoutLogPage({ params }: BusinessWorkout
 
   // Build race context
   const program = workout.day.week.program
+  // Fetch athlete context for post-program "What's Next?" flow
+  const athleteContextData = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: {
+      isAICoached: true,
+      sportProfile: { select: { primarySport: true } },
+      athleteSubscription: { select: { assignedCoachId: true } },
+    },
+  })
+
+  const athleteContext = {
+    isAICoached: athleteContextData?.isAICoached ?? false,
+    hasCoach: !!athleteContextData?.athleteSubscription?.assignedCoachId,
+    primarySport: athleteContextData?.sportProfile?.primarySport ?? null,
+  }
+
   let raceContext = undefined
 
   if (program.weeks && program.weeks.length > 0) {
@@ -172,6 +188,7 @@ export default async function BusinessWorkoutLogPage({ params }: BusinessWorkout
       existingLog={existingLog as any}
       basePath={basePath}
       raceContext={raceContext}
+      athleteContext={athleteContext}
     />
   )
 }

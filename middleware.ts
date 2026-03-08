@@ -109,6 +109,7 @@ const ATHLETE_REDIRECT_ROUTES = [
   '/athlete/subscription',
   '/athlete/onboarding',
   '/athlete/rehab',
+  '/athlete/predictions',
 ]
 
 // Physio routes that should be redirected to business-scoped routes

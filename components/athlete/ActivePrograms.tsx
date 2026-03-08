@@ -1,29 +1,50 @@
 // components/athlete/ActivePrograms.tsx
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Target } from 'lucide-react'
+import { Target, Sparkles, Dumbbell, MessageSquare, Loader2, CheckCircle2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { ActiveProgramSummary } from '@/types/prisma-types'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME, type WorkoutTheme } from '@/lib/themes'
+import { NewProgramDialog } from '@/components/athlete/workout/NewProgramDialog'
 
 interface ActiveProgramsProps {
   programs: ActiveProgramSummary[]
   variant?: 'default' | 'glass'
   basePath?: string
+  lastCompletedProgram?: { id: string; name: string; endDate: Date }
+  athleteContext?: { isAICoached: boolean; hasCoach: boolean }
 }
 
-export function ActivePrograms({ programs, variant = 'default', basePath = '' }: ActiveProgramsProps) {
+export function ActivePrograms({
+  programs,
+  variant = 'default',
+  basePath = '',
+  lastCompletedProgram,
+  athleteContext,
+}: ActiveProgramsProps) {
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
   if (variant === 'glass') {
     if (programs.length === 0) {
+      if (lastCompletedProgram) {
+        return (
+          <WhatsNextCard
+            variant="glass"
+            basePath={basePath}
+            lastCompletedProgram={lastCompletedProgram}
+            athleteContext={athleteContext}
+          />
+        )
+      }
       return (
         <GlassCard>
           <GlassCardHeader>
@@ -60,6 +81,16 @@ export function ActivePrograms({ programs, variant = 'default', basePath = '' }:
 
   // DEFAULT Render
   if (programs.length === 0) {
+    if (lastCompletedProgram) {
+      return (
+        <WhatsNextCard
+          variant="default"
+          basePath={basePath}
+          lastCompletedProgram={lastCompletedProgram}
+          athleteContext={athleteContext}
+        />
+      )
+    }
     return (
       <Card
         style={{
@@ -203,6 +234,124 @@ function ProgramCard({ program, theme, variant = 'default', basePath = '' }: { p
         </Button>
       </Link>
     </div>
+  )
+}
+
+function WhatsNextCard({
+  variant,
+  basePath,
+  lastCompletedProgram,
+  athleteContext,
+}: {
+  variant: 'default' | 'glass'
+  basePath: string
+  lastCompletedProgram: { id: string; name: string; endDate: Date }
+  athleteContext?: { isAICoached: boolean; hasCoach: boolean }
+}) {
+  const router = useRouter()
+  const [showDialog, setShowDialog] = useState(false)
+  const [notifyingCoach, setNotifyingCoach] = useState(false)
+  const [coachNotified, setCoachNotified] = useState(false)
+
+  const handleNotifyCoach = async () => {
+    if (coachNotified) return
+    setNotifyingCoach(true)
+    try {
+      const res = await fetch(`/api/programs/${lastCompletedProgram.id}/request-next`, {
+        method: 'POST',
+      })
+      if (res.ok) setCoachNotified(true)
+    } catch {
+      // silently handle
+    } finally {
+      setNotifyingCoach(false)
+    }
+  }
+
+  const content = (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground mb-3">
+        Du slutförde <span className="font-medium">{lastCompletedProgram.name}</span>.
+        Vad är nästa steg?
+      </p>
+
+      {athleteContext?.hasCoach && !athleteContext?.isAICoached ? (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2"
+          disabled={notifyingCoach || coachNotified}
+          onClick={handleNotifyCoach}
+        >
+          {notifyingCoach ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : coachNotified ? (
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          ) : (
+            <MessageSquare className="h-4 w-4 text-blue-500" />
+          )}
+          {coachNotified ? 'Coach meddelad!' : 'Meddela din coach'}
+        </Button>
+      ) : (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2"
+          onClick={() => setShowDialog(true)}
+        >
+          <Sparkles className="h-4 w-4 text-purple-500" />
+          Skapa nytt program
+        </Button>
+      )}
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full justify-start gap-2"
+        onClick={() => {
+          router.push(`${basePath}/athlete/wod`)
+          router.refresh()
+        }}
+      >
+        <Dumbbell className="h-4 w-4 text-green-500" />
+        Träna fritt med WOD
+      </Button>
+
+      <NewProgramDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        isAICoached={athleteContext?.isAICoached ?? false}
+        primarySport={null}
+        basePath={basePath}
+        completedProgramId={lastCompletedProgram.id}
+      />
+    </div>
+  )
+
+  if (variant === 'glass') {
+    return (
+      <GlassCard>
+        <GlassCardHeader>
+          <GlassCardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5 text-orange-500" />
+            Vad är nästa steg?
+          </GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent>{content}</GlassCardContent>
+      </GlassCard>
+    )
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Target className="h-5 w-5 text-orange-500" />
+          Vad är nästa steg?
+        </CardTitle>
+      </CardHeader>
+      <CardContent>{content}</CardContent>
+    </Card>
   )
 }
 

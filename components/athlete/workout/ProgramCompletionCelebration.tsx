@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -10,14 +9,17 @@ import {
   PartyPopper,
   Calendar,
   Dumbbell,
-  Clock,
   Target,
-  ArrowRight,
   Loader2,
   CheckCircle2,
   TrendingUp,
+  Sparkles,
+  Coffee,
+  MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { NewProgramDialog } from './NewProgramDialog'
+import type { AthleteContext } from './WorkoutLogClient'
 
 interface RaceContext {
   isRaceWorkout: boolean
@@ -38,10 +40,18 @@ interface RaceResultData {
   goalAssessment?: 'EXCEEDED' | 'MET' | 'CLOSE' | 'MISSED'
 }
 
+interface VDOTData {
+  vdot: number
+  trainingPaces: unknown
+  equivalentTimes: unknown
+}
+
 interface ProgramCompletionCelebrationProps {
   raceContext: RaceContext
   raceResult?: RaceResultData
+  vdotData?: VDOTData
   basePath: string
+  athleteContext?: AthleteContext
 }
 
 // Confetti CSS animation (pure CSS, no external deps)
@@ -140,13 +150,18 @@ function formatGoalType(goalType: string | null | undefined): string {
 export function ProgramCompletionCelebration({
   raceContext,
   raceResult,
+  vdotData,
   basePath,
+  athleteContext,
 }: ProgramCompletionCelebrationProps) {
   const router = useRouter()
   const [showConfetti, setShowConfetti] = useState(true)
   const [aiMessage, setAiMessage] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(true)
   const [fadeInAi, setFadeInAi] = useState(false)
+  const [showNewProgramDialog, setShowNewProgramDialog] = useState(false)
+  const [notifyingCoach, setNotifyingCoach] = useState(false)
+  const [coachNotified, setCoachNotified] = useState(false)
 
   // Stop confetti after 5 seconds
   useEffect(() => {
@@ -242,6 +257,22 @@ export function ProgramCompletionCelebration({
         </Card>
       )}
 
+      {/* VDOT Card (shown when VDOT was calculated from race) */}
+      {vdotData && (
+        <Card className="mb-6 border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+          <CardContent className="pt-6 text-center">
+            <TrendingUp className="h-8 w-8 text-blue-600 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground mb-1">Din VDOT</p>
+            <p className="text-5xl font-bold tracking-tight mb-2">
+              {vdotData.vdot.toFixed(1)}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Löpzoner och träningstempo uppdaterade
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Program Summary Stats */}
       <Card className="mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
         <CardContent className="pt-6">
@@ -299,20 +330,118 @@ export function ProgramCompletionCelebration({
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
-        <Button
-          size="lg"
-          className="w-full h-12"
-          onClick={() => {
-            router.push(`${basePath}/athlete/dashboard`)
-            router.refresh()
-          }}
-        >
-          Tillbaka till dashboard
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
+      {/* What's Next? Section */}
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-500">
+        <h3 className="text-lg font-semibold text-center mb-4">Vad vill du göra nu?</h3>
+        <div className="space-y-3">
+          {/* Option 1: Create new program OR Notify coach */}
+          {athleteContext?.hasCoach && !athleteContext?.isAICoached ? (
+            <button
+              onClick={async () => {
+                if (coachNotified) return
+                setNotifyingCoach(true)
+                try {
+                  const res = await fetch(`/api/programs/${raceContext.programId}/request-next`, {
+                    method: 'POST',
+                  })
+                  if (res.ok) {
+                    setCoachNotified(true)
+                  }
+                } catch {
+                  // Silently handle error
+                } finally {
+                  setNotifyingCoach(false)
+                }
+              }}
+              disabled={notifyingCoach || coachNotified}
+              className="w-full p-4 border rounded-lg hover:bg-muted/50 transition-colors flex items-start gap-4 text-left disabled:opacity-60"
+            >
+              <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                {notifyingCoach ? (
+                  <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
+                ) : coachNotified ? (
+                  <CheckCircle2 className="h-6 w-6 text-green-600" />
+                ) : (
+                  <MessageSquare className="h-6 w-6 text-blue-600 dark:text-blue-500" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-base mb-1">
+                  {coachNotified ? 'Coach meddelad!' : 'Meddela din coach'}
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  {coachNotified
+                    ? 'Din coach har fått en notis om att du vill ha ett nytt program'
+                    : 'Be din coach skapa ett nytt träningsprogram åt dig'}
+                </p>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowNewProgramDialog(true)}
+              className="w-full p-4 border rounded-lg hover:bg-muted/50 transition-colors flex items-start gap-4 text-left"
+            >
+              <div className="h-12 w-12 rounded-full bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="h-6 w-6 text-purple-600 dark:text-purple-500" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-base mb-1">Skapa nytt program</h4>
+                <p className="text-sm text-muted-foreground">
+                  Låt AI skapa ett nytt träningsprogram baserat på dina mål
+                </p>
+              </div>
+            </button>
+          )}
+
+          {/* Option 2: Take a break */}
+          <button
+            onClick={() => {
+              router.push(`${basePath}/athlete/dashboard`)
+              router.refresh()
+            }}
+            className="w-full p-4 border rounded-lg hover:bg-muted/50 transition-colors flex items-start gap-4 text-left"
+          >
+            <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+              <Coffee className="h-6 w-6 text-amber-600 dark:text-amber-500" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-semibold text-base mb-1">Ta en paus</h4>
+              <p className="text-sm text-muted-foreground">
+                Vila och återhämta dig innan nästa steg
+              </p>
+            </div>
+          </button>
+
+          {/* Option 3: Train freely */}
+          <button
+            onClick={() => {
+              router.push(`${basePath}/athlete/dashboard`)
+              router.refresh()
+            }}
+            className="w-full p-4 border rounded-lg hover:bg-muted/50 transition-colors flex items-start gap-4 text-left"
+          >
+            <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-500/10 flex items-center justify-center flex-shrink-0">
+              <Dumbbell className="h-6 w-6 text-green-600 dark:text-green-500" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-semibold text-base mb-1">Träna fritt</h4>
+              <p className="text-sm text-muted-foreground">
+                Använd dagens pass (WOD) och egna pass
+              </p>
+            </div>
+          </button>
+        </div>
       </div>
+
+      {/* New Program Dialog */}
+      <NewProgramDialog
+        open={showNewProgramDialog}
+        onOpenChange={setShowNewProgramDialog}
+        isAICoached={athleteContext?.isAICoached ?? false}
+        primarySport={athleteContext?.primarySport ?? null}
+        basePath={basePath}
+        completedProgramId={raceContext.programId}
+      />
     </div>
   )
 }

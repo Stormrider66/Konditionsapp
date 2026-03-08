@@ -395,6 +395,27 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     }),
   ])
 
+  // Fetch last completed program (for "What's Next?" card when no active programs)
+  const lastCompletedProgram = activePrograms.length === 0
+    ? await prisma.trainingProgram.findFirst({
+        where: {
+          clientId: clientId,
+          isActive: false,
+          endDate: { lt: now },
+        },
+        orderBy: { endDate: 'desc' },
+        select: { id: true, name: true, endDate: true },
+      })
+    : null
+
+  const dashboardAthleteContext = {
+    isAICoached: client.isAICoached,
+    hasCoach: !!(await prisma.athleteSubscription.findUnique({
+      where: { clientId },
+      select: { assignedCoachId: true },
+    }))?.assignedCoachId,
+  }
+
   // Fetch today's WODs for dashboard items
   const todayWODs = await prisma.aIGeneratedWOD.findMany({
     where: {
@@ -840,7 +861,17 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
           <RacePredictionWidget clientId={clientId} />
 
           {/* Active Programs */}
-          <ActivePrograms programs={activePrograms} variant="glass" basePath={basePath} />
+          <ActivePrograms
+            programs={activePrograms}
+            variant="glass"
+            basePath={basePath}
+            lastCompletedProgram={lastCompletedProgram ? {
+              id: lastCompletedProgram.id,
+              name: lastCompletedProgram.name,
+              endDate: lastCompletedProgram.endDate,
+            } : undefined}
+            athleteContext={dashboardAthleteContext}
+          />
 
           {/* WOD History Summary */}
           <WODHistorySummary recentWods={wodHistory} stats={wodStats} basePath={basePath} />
