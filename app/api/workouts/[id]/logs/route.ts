@@ -41,12 +41,47 @@ export async function POST(
 
     const body = await request.json()
 
-    // Verify workout exists
-    const workout = await prisma.workout.findUnique({
+    // Fetch workout with program context for completion detection
+    const workoutWithProgram = await prisma.workout.findUnique({
       where: { id },
+      include: {
+        day: {
+          include: {
+            week: {
+              include: {
+                program: {
+                  select: {
+                    id: true,
+                    name: true,
+                    clientId: true,
+                    weeks: {
+                      select: {
+                        days: {
+                          select: {
+                            workouts: {
+                              select: {
+                                id: true,
+                                logs: {
+                                  where: { athleteId: user.id, completed: true },
+                                  select: { id: true },
+                                  take: 1,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     })
 
-    if (!workout) {
+    if (!workoutWithProgram) {
       return NextResponse.json(
         {
           success: false,
@@ -90,6 +125,77 @@ export async function POST(
       },
     })
 
+    // Create RaceResult if race data was submitted
+    let raceResultId: string | undefined
+    if (body.raceResult && body.raceResult.timeMinutes) {
+      try {
+        const rr = body.raceResult
+        const raceResult = await prisma.raceResult.create({
+          data: {
+            clientId,
+            raceName: workoutWithProgram?.day?.week?.program?.name || undefined,
+            raceDate: new Date(),
+            distance: rr.distance || 'CUSTOM',
+            timeMinutes: rr.timeMinutes,
+            timeFormatted: rr.finishTime,
+            goalTime: rr.goalTime || undefined,
+            goalAchieved: rr.goalAssessment === 'EXCEEDED' || rr.goalAssessment === 'MET',
+            raceType: 'A_RACE',
+            avgHeartRate: rr.avgHR || undefined,
+            maxHeartRate: rr.maxHR || undefined,
+            trainingProgramId: rr.programId || undefined,
+          },
+        })
+        raceResultId = raceResult.id
+      } catch (raceError) {
+        logger.error('Error creating race result', {}, raceError)
+        // Don't fail the whole request if race result creation fails
+      }
+    }
+
+    // Detect program completion
+    let isProgramCompletion = false
+    if (workoutWithProgram?.day?.week?.program && (body.completed ?? true)) {
+      const program = workoutWithProgram.day.week.program
+      const allWorkouts = program.weeks.flatMap((w: any) =>
+        w.days.flatMap((d: any) => d.workouts)
+      )
+      const completedBefore = allWorkouts.filter(
+        (w: any) => w.id !== id && w.logs.length > 0
+      ).length
+
+      // This was the last unlogged workout
+      if (completedBefore === allWorkouts.length - 1) {
+        isProgramCompletion = true
+
+        // Create coach notification for program completion
+        try {
+          await prisma.aINotification.create({
+            data: {
+              clientId: program.clientId,
+              notificationType: 'PROGRAM_COMPLETION',
+              priority: 'HIGH',
+              title: `Program slutfört: ${program.name}`,
+              message: `Atleten har genomfört alla ${allWorkouts.length} träningspass i programmet.${raceResultId ? ' Ett tävlingsresultat har registrerats.' : ''}`,
+              icon: 'trophy',
+              contextData: {
+                programId: program.id,
+                programName: program.name,
+                totalWorkouts: allWorkouts.length,
+                raceResultId,
+              },
+              triggeredBy: `PROGRAM_COMPLETION:${program.id}`,
+              triggerReason: 'Athlete completed all workouts in program',
+              scheduledFor: new Date(),
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            },
+          })
+        } catch (notifError) {
+          logger.error('Error creating completion notification', {}, notifError)
+        }
+      }
+    }
+
     // Create TrainingLoad entry when workout is completed
     // This ensures traditional workouts contribute to weekly load ("Veckobelastning")
     if ((body.completed ?? true) && body.duration) {
@@ -112,7 +218,7 @@ export async function POST(
         FLEXIBILITY: 'RECOVERY',
         RECOVERY: 'RECOVERY',
       }
-      const loadWorkoutType = workoutTypeMap[workout.type] || 'GENERAL'
+      const loadWorkoutType = workoutTypeMap[workoutWithProgram.type] || 'GENERAL'
 
       // Map RPE to intensity label
       let intensity = 'MODERATE'
@@ -184,6 +290,8 @@ export async function POST(
         success: true,
         data: log,
         message: 'Träningslogg sparad',
+        isProgramCompletion,
+        raceResultId,
       },
       { status: 201 }
     )

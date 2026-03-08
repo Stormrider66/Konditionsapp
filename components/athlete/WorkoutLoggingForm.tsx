@@ -27,10 +27,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, Waves, ChevronDown, ChevronUp, Timer } from 'lucide-react'
+import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, Waves, ChevronDown, ChevronUp, Timer, Trophy } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
+import type { RaceContext } from './workout/WorkoutLogClient'
 
 // Per-interval rep schema
 const intervalRepSchema = z.object({
@@ -76,6 +77,8 @@ const formSchema = z.object({
   stravaUrl: z.string().optional(),
   // Per-interval results
   intervalResults: z.array(intervalSegmentSchema).optional(),
+  // Race result
+  raceFinishTime: z.string().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -85,6 +88,15 @@ interface WorkoutLoggingFormProps {
   athleteId: string
   existingLog?: any
   basePath?: string
+  raceContext?: RaceContext
+  onProgramCompletion?: (data: {
+    raceResult?: {
+      finishTime: string
+      finishTimeSeconds: number
+      goalTime?: string
+      goalAssessment?: 'EXCEEDED' | 'MET' | 'CLOSE' | 'MISSED'
+    }
+  }) => void
 }
 
 // Define which fields are shown for each workout type
@@ -226,11 +238,80 @@ const FIELD_CONFIG: Record<WorkoutType, FieldConfig> = {
   },
 }
 
+/**
+ * Parse a time string like "39:42" (MM:SS) or "1:45:30" (HH:MM:SS) into total seconds
+ */
+function parseFinishTime(timeStr: string): number | null {
+  const trimmed = timeStr.trim()
+  if (!trimmed) return null
+
+  const parts = trimmed.split(':').map((p) => parseInt(p, 10))
+  if (parts.some(isNaN)) return null
+
+  if (parts.length === 2) {
+    // MM:SS
+    return parts[0] * 60 + parts[1]
+  } else if (parts.length === 3) {
+    // HH:MM:SS
+    return parts[0] * 3600 + parts[1] * 60 + parts[2]
+  }
+  return null
+}
+
+/**
+ * Parse a goal time from program name/description (e.g. "Sub 40 min" -> "40:00")
+ */
+function extractGoalTime(programName: string, goalRace?: string | null): string | null {
+  // Try patterns like "Sub 40 min", "Under 40 min", "40 min", "sub 1:45"
+  const patterns = [
+    /sub\s+(\d{1,2}:\d{2}:\d{2})/i,
+    /sub\s+(\d{1,2}:\d{2})/i,
+    /under\s+(\d{1,2}:\d{2}:\d{2})/i,
+    /under\s+(\d{1,2}:\d{2})/i,
+    /sub\s+(\d+)\s*min/i,
+    /under\s+(\d+)\s*min/i,
+  ]
+
+  const searchStr = `${programName} ${goalRace || ''}`
+
+  for (const pattern of patterns) {
+    const match = searchStr.match(pattern)
+    if (match) {
+      // If it's already in time format, return as-is
+      if (match[1].includes(':')) return match[1]
+      // If it's just a number (minutes), format as MM:00
+      return `${match[1]}:00`
+    }
+  }
+  return null
+}
+
+/**
+ * Assess goal achievement
+ */
+function assessGoal(
+  finishSeconds: number,
+  goalTimeStr: string
+): 'EXCEEDED' | 'MET' | 'CLOSE' | 'MISSED' {
+  const goalSeconds = parseFinishTime(goalTimeStr)
+  if (!goalSeconds) return 'MET'
+
+  const diff = finishSeconds - goalSeconds
+  const percentDiff = (diff / goalSeconds) * 100
+
+  if (diff <= 0) return 'EXCEEDED' // Faster than goal
+  if (percentDiff <= 1) return 'MET' // Within 1%
+  if (percentDiff <= 3) return 'CLOSE' // Within 3%
+  return 'MISSED'
+}
+
 export function WorkoutLoggingForm({
   workout,
   athleteId,
   existingLog,
   basePath: basePathProp = '',
+  raceContext,
+  onProgramCompletion,
 }: WorkoutLoggingFormProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -299,6 +380,7 @@ export function WorkoutLoggingForm({
       dataFileUrl: existingLog?.dataFileUrl || '',
       stravaUrl: existingLog?.stravaUrl || '',
       intervalResults: intervalSegments.length > 0 ? buildDefaultIntervalResults() : undefined,
+      raceFinishTime: '',
     },
   })
 
@@ -342,6 +424,31 @@ export function WorkoutLoggingForm({
         }
       }
 
+      // Build race result data if applicable
+      let raceResult: any = undefined
+      if (raceContext?.isRaceWorkout && data.raceFinishTime) {
+        const finishTimeSeconds = parseFinishTime(data.raceFinishTime)
+        if (finishTimeSeconds) {
+          const goalTime = extractGoalTime(
+            raceContext.programName,
+            raceContext.goalRace
+          )
+          raceResult = {
+            finishTime: data.raceFinishTime,
+            finishTimeSeconds,
+            timeMinutes: finishTimeSeconds / 60,
+            goalTime: goalTime || undefined,
+            goalAssessment: goalTime
+              ? assessGoal(finishTimeSeconds, goalTime)
+              : undefined,
+            distance: raceContext.goalType || undefined,
+            programId: raceContext.programId,
+            avgHR: data.avgHR,
+            maxHR: data.maxHR,
+          }
+        }
+      }
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -350,6 +457,7 @@ export function WorkoutLoggingForm({
         body: JSON.stringify({
           ...data,
           intervalResults: cleanedIntervalResults,
+          raceResult,
           workoutId: workout.id,
           athleteId,
           completedAt: new Date().toISOString(),
@@ -362,12 +470,27 @@ export function WorkoutLoggingForm({
         throw new Error(result.error || 'Misslyckades med att spara logg')
       }
 
+      // Check for program completion
+      if (result.isProgramCompletion && raceContext?.isProgramFinalWorkout && onProgramCompletion) {
+        onProgramCompletion({
+          raceResult: raceResult
+            ? {
+                finishTime: raceResult.finishTime,
+                finishTimeSeconds: raceResult.finishTimeSeconds,
+                goalTime: raceResult.goalTime,
+                goalAssessment: raceResult.goalAssessment,
+              }
+            : undefined,
+        })
+        return
+      }
+
       toast({
         title: existingLog ? 'Logg uppdaterad!' : 'Pass loggat!',
         description: 'Din träningslogg har sparats.',
       })
 
-      // Gap 7: Refresh to revalidate dashboard data before navigation
+      // Refresh to revalidate dashboard data before navigation
       router.refresh()
       router.push(`${basePath}/athlete/dashboard`)
     } catch (error: any) {
@@ -459,6 +582,51 @@ export function WorkoutLoggingForm({
             )}
           </CardContent>
         </Card>
+
+        {/* Race Result Section - shown for race workouts */}
+        {raceContext?.isRaceWorkout && (
+          <Card className="border-2 border-yellow-400 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-yellow-600" />
+                Tävlingsresultat
+                {raceContext.goalType && (
+                  <Badge variant="secondary" className="ml-2">
+                    {formatGoalType(raceContext.goalType)}
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="raceFinishTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base font-semibold">Sluttid</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="t.ex. 39:42 eller 1:45:30"
+                        className="h-14 text-2xl font-bold text-center"
+                        {...field}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      MM:SS eller HH:MM:SS
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {raceContext.goalRace && (
+                <p className="text-sm text-muted-foreground">
+                  Mål: {raceContext.goalRace}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Completion Status */}
         <Card>
@@ -1269,6 +1437,21 @@ function getDifficultyLabel(difficulty: number): string {
   if (difficulty <= 5) return 'Som förväntat'
   if (difficulty <= 7) return 'Svårare än förväntat'
   return 'Mycket svårt'
+}
+
+function formatGoalType(goalType: string | null | undefined): string {
+  const types: Record<string, string> = {
+    '5k': '5 km',
+    '10k': '10 km',
+    '5K': '5 km',
+    '10K': '10 km',
+    'half-marathon': 'Halvmaraton',
+    marathon: 'Maraton',
+    fitness: 'Fitness',
+    cycling: 'Cykling',
+    skiing: 'Skidåkning',
+  }
+  return types[goalType || ''] || goalType || ''
 }
 
 function buildSegmentLabel(segment: any): string {

@@ -17,6 +17,7 @@ export type MilestoneType =
   | 'TRAINING_ANNIVERSARY'
   | 'FIRST_WORKOUT'
   | 'COMEBACK'
+  | 'PROGRAM_COMPLETED'
 
 export interface DetectedMilestone {
   type: MilestoneType
@@ -285,6 +286,75 @@ async function checkTrainingAnniversary(clientId: string): Promise<DetectedMiles
 }
 
 /**
+ * Check for recently completed programs (last 24 hours)
+ */
+async function checkProgramCompletions(clientId: string): Promise<DetectedMilestone[]> {
+  const milestones: DetectedMilestone[] = []
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+
+  // Find programs where all workouts have been completed
+  const programs = await prisma.trainingProgram.findMany({
+    where: {
+      clientId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      weeks: {
+        select: {
+          days: {
+            select: {
+              workouts: {
+                select: {
+                  id: true,
+                  logs: {
+                    where: { completed: true },
+                    select: { id: true, completedAt: true },
+                    take: 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  for (const program of programs) {
+    const allWorkouts = program.weeks.flatMap((w) =>
+      w.days.flatMap((d) => d.workouts)
+    )
+    if (allWorkouts.length === 0) continue
+
+    const allCompleted = allWorkouts.every((w) => w.logs.length > 0)
+    if (!allCompleted) continue
+
+    // Check if the last completion was within the last 24 hours
+    const lastCompletion = allWorkouts
+      .flatMap((w) => w.logs)
+      .map((l) => l.completedAt)
+      .filter(Boolean)
+      .sort((a, b) => (b?.getTime() || 0) - (a?.getTime() || 0))[0]
+
+    if (lastCompletion && lastCompletion >= oneDayAgo) {
+      milestones.push({
+        type: 'PROGRAM_COMPLETED',
+        title: `Program slutfört: ${program.name}!`,
+        description: `Du har genomfört alla ${allWorkouts.length} pass i ${program.name}!`,
+        value: allWorkouts.length,
+        unit: 'pass',
+        icon: 'trophy',
+        celebrationLevel: 'GOLD',
+      })
+    }
+  }
+
+  return milestones
+}
+
+/**
  * Detect all milestones for an athlete
  */
 export async function detectMilestones(clientId: string): Promise<DetectedMilestone[]> {
@@ -307,6 +377,10 @@ export async function detectMilestones(clientId: string): Promise<DetectedMilest
   // Check training anniversary
   const anniversary = await checkTrainingAnniversary(clientId)
   if (anniversary) milestones.push(anniversary)
+
+  // Check program completions
+  const programCompletions = await checkProgramCompletions(clientId)
+  milestones.push(...programCompletions)
 
   return milestones
 }

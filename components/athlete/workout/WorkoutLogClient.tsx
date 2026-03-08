@@ -6,6 +6,7 @@
  * Detects if workout has exercises and offers:
  * 1. Focus Mode - exercise-by-exercise guided workout
  * 2. Quick Log - simple form-based logging
+ * 3. Completed - celebration view after program completion
  */
 
 import { useState, useEffect } from 'react'
@@ -34,16 +35,39 @@ import {
 } from '@/components/ui/collapsible'
 import { WorkoutLoggingForm } from '@/components/athlete/WorkoutLoggingForm'
 import { WorkoutFocusMode } from './WorkoutFocusMode'
+import { ProgramCompletionCelebration } from './ProgramCompletionCelebration'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
+
+export interface RaceContext {
+  isRaceWorkout: boolean
+  isProgramFinalWorkout: boolean
+  programId: string
+  programName: string
+  goalType?: string | null
+  goalRace?: string | null
+  isLastWorkout: boolean
+  totalWorkouts: number
+  completedWorkouts: number
+}
 
 interface WorkoutLogClientProps {
   workout: any
   athleteId: string
   existingLog?: any
   basePath?: string
+  raceContext?: RaceContext
 }
 
-type ViewMode = 'choosing' | 'focus' | 'quicklog'
+type ViewMode = 'choosing' | 'focus' | 'quicklog' | 'completed'
+
+interface CompletionData {
+  raceResult?: {
+    finishTime: string
+    finishTimeSeconds: number
+    goalTime?: string
+    goalAssessment?: 'EXCEEDED' | 'MET' | 'CLOSE' | 'MISSED'
+  }
+}
 
 const SECTION_CONFIG = {
   WARMUP: {
@@ -81,6 +105,7 @@ export function WorkoutLogClient({
   athleteId,
   existingLog,
   basePath: basePathProp = '',
+  raceContext,
 }: WorkoutLogClientProps) {
   const router = useRouter()
   const contextBasePath = useBasePath()
@@ -90,6 +115,7 @@ export function WorkoutLogClient({
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
+  const [completionData, setCompletionData] = useState<CompletionData>({})
 
   // Check if workout has exercises for focus mode
   useEffect(() => {
@@ -134,6 +160,12 @@ export function WorkoutLogClient({
     })
   }
 
+  // Handle program completion callback from the form
+  const handleProgramCompletion = (data: CompletionData) => {
+    setCompletionData(data)
+    setViewMode('completed')
+  }
+
   // Loading state
   if (isLoading) {
     return (
@@ -146,6 +178,17 @@ export function WorkoutLogClient({
           <Skeleton className="h-48 w-full" />
         </div>
       </div>
+    )
+  }
+
+  // Celebration view after program completion
+  if (viewMode === 'completed' && raceContext) {
+    return (
+      <ProgramCompletionCelebration
+        raceContext={raceContext}
+        raceResult={completionData.raceResult}
+        basePath={basePath}
+      />
     )
   }
 
@@ -228,6 +271,8 @@ export function WorkoutLogClient({
           athleteId={athleteId}
           existingLog={existingLog}
           basePath={basePath}
+          raceContext={raceContext}
+          onProgramCompletion={handleProgramCompletion}
         />
       </div>
     )

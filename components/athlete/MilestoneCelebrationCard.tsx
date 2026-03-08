@@ -81,6 +81,7 @@ const milestoneIcons: Record<string, React.ReactNode> = {
   TRAINING_ANNIVERSARY: <Cake className="h-6 w-6" />,
   FIRST_WORKOUT: <Star className="h-6 w-6" />,
   COMEBACK: <Zap className="h-6 w-6" />,
+  PROGRAM_COMPLETED: <Trophy className="h-6 w-6" />,
 }
 
 const celebrationEmojis = {
