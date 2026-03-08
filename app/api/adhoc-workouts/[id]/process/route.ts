@@ -30,7 +30,7 @@ import { matchExercise } from '@/lib/adhoc-workout/exercise-matcher'
 import { logger } from '@/lib/logger'
 import { downloadAsBase64 } from '@/lib/storage/supabase-storage-server'
 import { isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage'
-import { getResolvedProviderKey } from '@/lib/user-api-keys'
+import { getResolvedProviderKey, getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
 
 export const maxDuration = 120
 
@@ -68,7 +68,15 @@ export async function POST(
       )
     }
 
-    const coachId = isCoachInAthleteMode ? user.id : client.userId
+    let coachId = isCoachInAthleteMode ? user.id : client.userId
+
+    // Direct athlete: client.userId is the athlete themselves → fall back to platform admin
+    if (coachId === user.id && !isCoachInAthleteMode) {
+      const platformKeyOwnerId = await getPlatformAiKeyOwnerId('google')
+      if (platformKeyOwnerId) {
+        coachId = platformKeyOwnerId
+      }
+    }
 
     // Get the ad-hoc workout
     const adHocWorkout = await prisma.adHocWorkout.findUnique({

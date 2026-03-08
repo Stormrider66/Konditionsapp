@@ -23,7 +23,7 @@ import { isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage'
 import { downloadAsBase64 } from '@/lib/storage/supabase-storage-server';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
-import { getResolvedProviderKey } from '@/lib/user-api-keys'
+import { getResolvedProviderKey, getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
 
 export const maxDuration = 300
 
@@ -82,7 +82,17 @@ export async function POST(
     }
 
     // Resolve Google API key using full fallback chain (user → business → platform admin)
-    const googleKey = await getResolvedProviderKey(audioJournal.client.userId, 'google')
+    let keyOwnerId = audioJournal.client.userId
+
+    // Direct athlete: client.userId is the athlete themselves → fall back to platform admin
+    if (!isCoach && resolved && keyOwnerId === resolved.user.id && !resolved.isCoachInAthleteMode) {
+      const platformKeyOwnerId = await getPlatformAiKeyOwnerId('google')
+      if (platformKeyOwnerId) {
+        keyOwnerId = platformKeyOwnerId
+      }
+    }
+
+    const googleKey = await getResolvedProviderKey(keyOwnerId, 'google')
 
     if (!googleKey) {
       return NextResponse.json(
