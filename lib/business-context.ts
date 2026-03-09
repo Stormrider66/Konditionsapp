@@ -52,6 +52,7 @@ export const validateBusinessMembership = requestCache(async (
     id: string
     name: string
     slug: string
+    type: string
     logoUrl: string | null
     primaryColor: string | null
     secondaryColor: string | null
@@ -77,6 +78,7 @@ export const validateBusinessMembership = requestCache(async (
           id: true,
           name: true,
           slug: true,
+          type: true,
           logoUrl: true,
           primaryColor: true,
           secondaryColor: true,

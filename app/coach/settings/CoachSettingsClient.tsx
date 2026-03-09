@@ -1,13 +1,14 @@
 'use client'
 
 import React from 'react'
-import { Settings, ChevronLeft, Bot, Palette, ChevronRight, DollarSign, CreditCard } from 'lucide-react'
+import { Settings, ChevronLeft, Bot, Palette, ChevronRight, DollarSign, CreditCard, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
 import { ProfileSettings } from '@/components/settings/ProfileSettings'
 import { PasswordChangeForm } from '@/components/settings/PasswordChangeForm'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
+import { DashboardModeSelector } from '@/components/coach/settings/DashboardModeSelector'
 interface CoachSettingsClientProps {
     userEmail: string
     businessSlug?: string
@@ -104,6 +105,15 @@ export function CoachSettingsClient({ userEmail, businessSlug, userName = '' }: 
                             </div>
                         </div>
                     </Link>
+                </div>
+
+                {/* Dashboard Mode */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 px-2">
+                        <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Dashboard</h3>
+                    </div>
+                    <DashboardModeSelector />
                 </div>
 
                 {/* Theme Settings */}

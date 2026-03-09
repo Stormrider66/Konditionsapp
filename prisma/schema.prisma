@@ -9276,6 +9276,7 @@ model CoachProfile {
   methodologies   String[] // Polarized, Norwegian, Canova, etc.
   experienceYears Int?
   credentials     String[] // Certifications
+  dashboardMode   String? // "TEAM", "PT", "GYM" — null = auto-detect
 
   // Marketplace settings
   isPublic           Boolean @default(false)
