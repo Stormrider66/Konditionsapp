@@ -202,7 +202,7 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
         size="sm"
         onClick={handleToggle}
         disabled={isLoading}
-        className={className}
+        className={`border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white ${className || ''}`}
       >
         {isLoading ? (
           <Loader2 className="h-4 w-4 animate-spin mr-2" />
