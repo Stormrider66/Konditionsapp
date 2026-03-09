@@ -309,9 +309,9 @@ export function FoodPhotoScanner({
   const handleStartRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4',
-      })
+      const preferredTypes = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav']
+      const supportedType = preferredTypes.find((t) => MediaRecorder.isTypeSupported(t))
+      const mediaRecorder = new MediaRecorder(stream, supportedType ? { mimeType: supportedType } : undefined)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 
@@ -345,7 +345,9 @@ export function FoodPhotoScanner({
     setIsTranscribing(true)
     try {
       const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
+      const mimeType = audioBlob.type || 'audio/webm'
+      const ext = mimeType.includes('webm') ? 'webm' : mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : 'mp4'
+      formData.append('audio', audioBlob, `recording.${ext}`)
 
       const response = await fetch('/api/ai/food-scan/transcribe-audio', {
         method: 'POST',

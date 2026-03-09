@@ -47,8 +47,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ingen ljudfil uppladdad' }, { status: 400 })
     }
 
-    const validTypes = ['audio/webm', 'audio/mp4', 'audio/wav', 'audio/mpeg', 'audio/ogg']
-    if (!validTypes.includes(audioFile.type)) {
+    const validTypes = ['audio/webm', 'audio/mp4', 'audio/wav', 'audio/mpeg', 'audio/ogg', 'audio/3gpp', 'audio/aac']
+    const baseType = audioFile.type.split(';')[0].trim()
+    if (!validTypes.includes(baseType)) {
       return NextResponse.json(
         { error: 'Ogiltigt ljudformat. Använd WebM, MP4, WAV eller MP3.' },
         { status: 400 }

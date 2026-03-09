@@ -57,9 +57,9 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
     try {
       setError(null)
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4',
-      })
+      const preferredTypes = ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/wav']
+      const supportedType = preferredTypes.find((t) => MediaRecorder.isTypeSupported(t))
+      const mediaRecorder = new MediaRecorder(stream, supportedType ? { mimeType: supportedType } : undefined)
 
       chunksRef.current = []
       mediaRecorder.ondataavailable = (e) => {
@@ -91,7 +91,8 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
   const transcribeAudio = async (blob: Blob, mimeType: string) => {
     try {
       const formData = new FormData()
-      formData.append('audio', blob, `meal-recording.${mimeType.includes('webm') ? 'webm' : 'mp4'}`)
+      const ext = mimeType.includes('webm') ? 'webm' : mimeType.includes('ogg') ? 'ogg' : mimeType.includes('wav') ? 'wav' : 'mp4'
+      formData.append('audio', blob, `meal-recording.${ext}`)
 
       const res = await fetch('/api/ai/food-scan/transcribe-audio', {
         method: 'POST',
@@ -104,7 +105,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
       }
 
       const data = await res.json()
-      setTranscribedText(data.transcription || '')
+      setTranscribedText(data.transcription || data.text || '')
       setStep('REVIEW')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transkribering misslyckades')
