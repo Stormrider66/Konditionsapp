@@ -5,7 +5,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
-import { calculateVDOTFromRace, type VDOTResult } from '@/lib/training-engine/calculations/vdot'
+import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
+import { updateAthleteProfileFromRace } from '@/lib/training-engine/update-athlete-profile'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { logger } from '@/lib/logger'
 
@@ -230,64 +231,3 @@ function formatTime(timeMinutes: number): string {
   }
 }
 
-/**
- * Helper: Update athlete profile with race-based VDOT
- */
-async function updateAthleteProfileFromRace(
-  clientId: string,
-  raceResultId: string,
-  vdotResult: VDOTResult
-) {
-  // Get or create athlete profile
-  let profile = await prisma.athleteProfile.findUnique({
-    where: { clientId },
-  })
-
-  if (!profile) {
-    // Create new profile
-    profile = await prisma.athleteProfile.create({
-      data: {
-        clientId,
-        category: 'RECREATIONAL', // Will be updated by classification
-        currentVDOT: vdotResult.vdot,
-        vdotSource: 'RACE_PERFORMANCE',
-        vdotConfidence: vdotResult.confidence,
-        vdotLastUpdated: new Date(),
-        vdotAgeAdjusted: vdotResult.adjustments.ageAdjusted,
-        vdotGenderAdjusted: vdotResult.adjustments.genderAdjusted,
-        danielsZones: vdotResult.trainingPaces as unknown as Prisma.InputJsonValue,
-        zonesLastUpdated: new Date(),
-        zonesPrimarySource: 'VDOT',
-      },
-    })
-  } else {
-    // Update existing profile
-    await prisma.athleteProfile.update({
-      where: { clientId },
-      data: {
-        currentVDOT: vdotResult.vdot,
-        vdotSource: 'RACE_PERFORMANCE',
-        vdotConfidence: vdotResult.confidence,
-        vdotLastUpdated: new Date(),
-        vdotAgeAdjusted: vdotResult.adjustments.ageAdjusted,
-        vdotGenderAdjusted: vdotResult.adjustments.genderAdjusted,
-        danielsZones: vdotResult.trainingPaces as unknown as Prisma.InputJsonValue,
-        zonesLastUpdated: new Date(),
-        zonesPrimarySource: 'VDOT',
-      },
-    })
-  }
-
-  // Mark other race results as not used for zones
-  await prisma.raceResult.updateMany({
-    where: {
-      clientId,
-      id: { not: raceResultId },
-    },
-    data: {
-      usedForZones: false,
-    },
-  })
-
-  return profile
-}

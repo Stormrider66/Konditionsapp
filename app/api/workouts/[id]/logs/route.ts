@@ -1,9 +1,25 @@
 // app/api/workouts/[id]/logs/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { canAccessWorkout, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
+import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
+import { updateAthleteProfileFromRace } from '@/lib/training-engine/update-athlete-profile'
 import { logger } from '@/lib/logger'
+
+/** Map program goalType to VDOT distance format. Returns 'CUSTOM' for non-running. */
+function mapGoalTypeToVDOTDistance(
+  goalType: string | null | undefined
+): '5K' | '10K' | 'HALF_MARATHON' | 'MARATHON' | 'CUSTOM' {
+  switch (goalType?.toLowerCase()) {
+    case '5k': return '5K'
+    case '10k': return '10K'
+    case 'half-marathon': return 'HALF_MARATHON'
+    case 'marathon': return 'MARATHON'
+    default: return 'CUSTOM'
+  }
+}
 
 /**
  * POST /api/workouts/[id]/logs
@@ -127,9 +143,40 @@ export async function POST(
 
     // Create RaceResult if race data was submitted
     let raceResultId: string | undefined
+    let vdotData: { vdot: number; trainingPaces: unknown; equivalentTimes: unknown } | undefined
     if (body.raceResult && body.raceResult.timeMinutes) {
       try {
         const rr = body.raceResult
+        const vdotDistance = mapGoalTypeToVDOTDistance(rr.distance)
+
+        // Calculate VDOT for running distances
+        let vdotResult = undefined
+        if (vdotDistance !== 'CUSTOM') {
+          // Fetch client data for age/gender adjustments
+          const client = await prisma.client.findUnique({
+            where: { id: clientId },
+            select: { birthDate: true, gender: true },
+          })
+
+          const raceDate = new Date()
+          let ageAtRace: number | undefined
+          if (client?.birthDate) {
+            const birthDate = new Date(client.birthDate)
+            ageAtRace = Math.floor(
+              (raceDate.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+            )
+          }
+
+          vdotResult = calculateVDOTFromRace(
+            vdotDistance,
+            rr.timeMinutes,
+            undefined,
+            raceDate,
+            ageAtRace,
+            client?.gender as 'MALE' | 'FEMALE' | undefined
+          )
+        }
+
         const raceResult = await prisma.raceResult.create({
           data: {
             clientId,
@@ -144,9 +191,35 @@ export async function POST(
             avgHeartRate: rr.avgHR || undefined,
             maxHeartRate: rr.maxHR || undefined,
             trainingProgramId: rr.programId || undefined,
+            // VDOT data
+            vdot: vdotResult?.vdot ?? undefined,
+            vdotAdjusted: vdotResult?.vdot ?? undefined,
+            confidence: vdotResult?.confidence ?? undefined,
+            ageInDays: 0,
+            trainingPaces: vdotResult
+              ? (vdotResult.trainingPaces as unknown as Prisma.InputJsonValue)
+              : undefined,
+            equivalentTimes: vdotResult
+              ? (vdotResult.equivalentTimes as unknown as Prisma.InputJsonValue)
+              : undefined,
+            usedForZones: !!vdotResult, // Auto-set for program goal races
           },
         })
         raceResultId = raceResult.id
+
+        // Update athlete profile with new VDOT zones
+        if (vdotResult) {
+          vdotData = {
+            vdot: vdotResult.vdot,
+            trainingPaces: vdotResult.trainingPaces,
+            equivalentTimes: vdotResult.equivalentTimes,
+          }
+          try {
+            await updateAthleteProfileFromRace(clientId, raceResult.id, vdotResult)
+          } catch (profileError) {
+            logger.error('Error updating athlete profile from race', {}, profileError)
+          }
+        }
       } catch (raceError) {
         logger.error('Error creating race result', {}, raceError)
         // Don't fail the whole request if race result creation fails
@@ -300,6 +373,7 @@ export async function POST(
         message: 'Träningslogg sparad',
         isProgramCompletion,
         raceResultId,
+        vdotData,
       },
       { status: 201 }
     )

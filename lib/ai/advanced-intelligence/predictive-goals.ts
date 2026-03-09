@@ -69,7 +69,7 @@ export async function generatePredictiveGoals(
   targetDistance: '5K' | '10K' | 'HALF' | 'MARATHON'
 ): Promise<GoalPrediction> {
   // Fetch athlete data
-  const [races, fieldTests, workoutLogs, checkIns] = await Promise.all([
+  const [races, fieldTests, workoutLogs, checkIns, raceResults] = await Promise.all([
     prisma.race.findMany({
       where: { clientId },
       orderBy: { date: 'desc' },
@@ -90,10 +90,15 @@ export async function generatePredictiveGoals(
       orderBy: { date: 'desc' },
       take: 30,
     }),
+    prisma.raceResult.findMany({
+      where: { clientId },
+      orderBy: { raceDate: 'desc' },
+      take: 10,
+    }),
   ])
 
   // Calculate current VDOT from best recent performance
-  const currentVDOT = calculateCurrentVDOT(races, fieldTests)
+  const currentVDOT = calculateCurrentVDOT(races, fieldTests, raceResults)
 
   // Analyze training factors
   const factors = analyzeGoalFactors(workoutLogs, checkIns, races)
@@ -133,7 +138,7 @@ export async function predictRaceTimes(
   clientId: string,
   trainingWeeks: number = 12
 ): Promise<RaceTimePrediction[]> {
-  const [races, fieldTests, workoutLogs, trainingLoads] = await Promise.all([
+  const [races, fieldTests, workoutLogs, trainingLoads, raceResults] = await Promise.all([
     prisma.race.findMany({
       where: { clientId },
       orderBy: { date: 'desc' },
@@ -154,9 +159,14 @@ export async function predictRaceTimes(
       orderBy: { date: 'desc' },
       take: 90,
     }),
+    prisma.raceResult.findMany({
+      where: { clientId },
+      orderBy: { raceDate: 'desc' },
+      take: 10,
+    }),
   ])
 
-  const currentVDOT = calculateCurrentVDOT(races, fieldTests)
+  const currentVDOT = calculateCurrentVDOT(races, fieldTests, raceResults)
   const projectedVDOT = projectVDOTImprovement(currentVDOT, trainingWeeks, workoutLogs, trainingLoads)
 
   const distances: ('5K' | '10K' | 'HALF' | 'MARATHON')[] = ['5K', '10K', 'HALF', 'MARATHON']
@@ -244,9 +254,23 @@ export async function calculateTrainingReadiness(
 // Helper functions
 function calculateCurrentVDOT(
   races: { distance: string; actualTime: string | null; vdot: number | null }[],
-  fieldTests: { results: unknown; lt2Pace: number | null }[]
+  fieldTests: { results: unknown; lt2Pace: number | null }[],
+  raceResults?: { vdot: number | null; raceDate: Date; distance: string; timeMinutes: number }[]
 ): number {
-  // First try to use race VDOT
+  // Prefer RaceResult VDOT (has age/gender adjustments from calculateVDOTFromRace)
+  if (raceResults?.length) {
+    const recentResultWithVDOT = raceResults.find(r => r.vdot)
+    if (recentResultWithVDOT?.vdot) {
+      return recentResultWithVDOT.vdot
+    }
+    // Calculate from RaceResult time
+    const recentResult = raceResults.find(r => r.timeMinutes > 0)
+    if (recentResult) {
+      return estimateVDOTFromTime(recentResult.timeMinutes * 60, recentResult.distance)
+    }
+  }
+
+  // Try Race model VDOT
   const recentRaceWithVDOT = races.find(r => r.vdot && r.actualTime)
   if (recentRaceWithVDOT?.vdot) {
     return recentRaceWithVDOT.vdot

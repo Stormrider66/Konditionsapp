@@ -96,6 +96,11 @@ interface WorkoutLoggingFormProps {
       goalTime?: string
       goalAssessment?: 'EXCEEDED' | 'MET' | 'CLOSE' | 'MISSED'
     }
+    vdotData?: {
+      vdot: number
+      trainingPaces: unknown
+      equivalentTimes: unknown
+    }
   }) => void
 }
 
@@ -487,6 +492,7 @@ export function WorkoutLoggingForm({
                 goalAssessment: raceResult.goalAssessment,
               }
             : undefined,
+          vdotData: result.vdotData || undefined,
         })
         return
       }
