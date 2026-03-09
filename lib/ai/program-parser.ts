@@ -205,10 +205,61 @@ function parseFieldValue(value: string): unknown {
 }
 
 /**
+ * Attempt to repair truncated JSON by closing open brackets/braces and removing
+ * trailing incomplete values (e.g., truncated strings).
+ * Returns null if the input doesn't look like a program JSON.
+ */
+function repairTruncatedJson(json: string): string | null {
+  // Must contain "phases" to look like a program
+  if (!/"phases"\s*:/i.test(json)) return null;
+
+  let repaired = json.trim();
+
+  // Remove trailing comma or incomplete key-value pair after last complete value
+  // Strip trailing incomplete string (no closing quote)
+  repaired = repaired.replace(/,\s*"[^"]*"?\s*:?\s*"?[^"]*$/, '');
+  // Strip trailing comma
+  repaired = repaired.replace(/,\s*$/, '');
+
+  // Count open/close brackets and braces
+  let openBraces = 0;
+  let openBrackets = 0;
+  let inString = false;
+  let escape = false;
+
+  for (const ch of repaired) {
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') openBraces++;
+    else if (ch === '}') openBraces--;
+    else if (ch === '[') openBrackets++;
+    else if (ch === ']') openBrackets--;
+  }
+
+  // If we're inside an unterminated string, close it
+  if (inString) {
+    repaired += '"';
+  }
+
+  // Close open brackets and braces
+  while (openBrackets > 0) { repaired += ']'; openBrackets--; }
+  while (openBraces > 0) { repaired += '}'; openBraces--; }
+
+  try {
+    JSON.parse(repaired);
+    return repaired;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Extract JSON from AI response text
  */
 function extractJsonFromText(text: string): string | null {
-  // Try to find JSON in code blocks first
+  // Try to find JSON in code blocks first (complete code block with closing ```)
   const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
     const extracted = codeBlockMatch[1].trim();
@@ -217,8 +268,18 @@ function extractJsonFromText(text: string): string | null {
       JSON.parse(extracted);
       return extracted;
     } catch {
-      // Code block content isn't valid JSON, continue to other methods
+      // Try to repair truncated JSON inside code block
+      const repaired = repairTruncatedJson(extracted);
+      if (repaired) return repaired;
     }
+  }
+
+  // Try to find truncated code block (opening ``` but no closing ```)
+  const truncatedCodeBlock = text.match(/```(?:json)?\s*([\s\S]+)$/);
+  if (truncatedCodeBlock && !codeBlockMatch) {
+    const extracted = truncatedCodeBlock[1].trim();
+    const repaired = repairTruncatedJson(extracted);
+    if (repaired) return repaired;
   }
 
   // Try to find raw JSON object - validate it's actually valid JSON
@@ -228,8 +289,17 @@ function extractJsonFromText(text: string): string | null {
       JSON.parse(jsonMatch[0]);
       return jsonMatch[0];
     } catch {
-      // Raw JSON match isn't valid, continue to key-value parser
+      // Try to repair truncated raw JSON
+      const repaired = repairTruncatedJson(jsonMatch[0]);
+      if (repaired) return repaired;
     }
+  }
+
+  // Try raw JSON that was truncated (starts with { but no closing })
+  const truncatedJsonMatch = text.match(/(\{[\s\S]+)$/);
+  if (truncatedJsonMatch && !jsonMatch) {
+    const repaired = repairTruncatedJson(truncatedJsonMatch[1]);
+    if (repaired) return repaired;
   }
 
   // Try to parse key-value format (GPT-5.4 outputs this format)

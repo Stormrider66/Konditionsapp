@@ -288,46 +288,24 @@ export function AIStudioClient({
         if (!convId) return
       }
 
-      const fixFormatPrompt = `Din senaste programutdata hade inte korrekt JSON-format. Konvertera programmet till exakt detta JSON-format i ett kodblock:
+      const fixFormatPrompt = `Ditt förra program blev avklippt eller hade ogiltigt JSON-format (troligen tokensgränsen nådd). Generera om HELA programmet i KOMPAKT JSON-format.
 
+VIKTIGA REGLER FÖR ATT UNDVIKA AVKLIPPNING:
+1. Skriv INGEN text före JSON-blocket — gå direkt till \`\`\`json
+2. Håll descriptions KORTA (max 150 tecken) — kompakthet viktigare än detalj
+3. Vilopass: {"type":"REST","description":"Vila"}
+4. Minimera whitespace i JSON
+5. Du MÅSTE avsluta med \`\`\` — ett komplett program med korta beskrivningar är bättre än ett halvfärdigt med långa
+
+JSON-schema:
 \`\`\`json
-{
-  "name": "Programnamn",
-  "description": "Beskrivning",
-  "totalWeeks": 8,
-  "methodology": "METODOLOGI",
-  "weeklySchedule": {"sessionsPerWeek": 5, "restDays": [4]},
-  "phases": [
-    {
-      "name": "Fasnamn",
-      "weeks": "1-2",
-      "focus": "Fokus för fasen",
-      "weeklyTemplate": {
-        "monday": {"type": "RUNNING", "name": "Passnamn", "duration": 45, "zone": "2", "description": "Beskrivning", "intensity": "easy"},
-        "tuesday": {"type": "RUNNING", "name": "...", "duration": 60, "zone": "4", "description": "...", "intensity": "threshold"},
-        "wednesday": {"type": "STRENGTH", "name": "...", "duration": 40, "description": "...", "intensity": "moderate"},
-        "thursday": {"type": "RUNNING", "name": "...", "duration": 70, "zone": "3", "description": "...", "intensity": "race_pace"},
-        "friday": {"type": "REST", "description": "Vila"},
-        "saturday": {"type": "RUNNING", "name": "...", "duration": 40, "zone": "2", "description": "...", "intensity": "easy"},
-        "sunday": {"type": "RUNNING", "name": "...", "duration": 130, "zone": "2", "description": "...", "intensity": "easy"}
-      },
-      "keyWorkouts": ["Nyckelpass 1", "Nyckelpass 2"],
-      "volumeGuidance": "Volymvägledning"
-    }
-  ],
-  "notes": "Anteckningar"
-}
+{"name":"...","description":"...","totalWeeks":12,"methodology":"...","weeklySchedule":{"sessionsPerWeek":5,"restDays":[4]},"phases":[{"name":"...","weeks":"1-4","focus":"...","weeklyTemplate":{"monday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"tuesday":{"type":"RUNNING","name":"...","duration":45,"zone":"4","description":"...","intensity":"hard"},"wednesday":{"type":"REST","description":"Vila"},"thursday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"friday":{"type":"STRENGTH","name":"...","duration":60,"description":"...","intensity":"moderate"},"saturday":{"type":"RUNNING","name":"...","duration":40,"zone":"2","description":"...","intensity":"easy"},"sunday":{"type":"REST","description":"Vila"}},"keyWorkouts":["..."],"volumeGuidance":"..."}],"notes":"..."}
 \`\`\`
 
-VIKTIGT:
-- Använd exakt fältnamnen ovan (name, totalWeeks, phases, weeklyTemplate osv)
-- Inkludera ALLA faser från programmet
-- Inkludera weeklyTemplate för VARJE fas med alla 7 veckodagar
-- Hela JSON måste vara i ett \`\`\`json kodblock
-- Giltiga type: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
-- Giltiga intensity: easy, moderate, hard, threshold, interval, recovery, race_pace
+Giltiga type: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
+Giltiga intensity: easy, moderate, hard, threshold, interval, recovery, race_pace
 
-Här är programdata som ska konverteras:
+Här är det avklippta programmet — återskapa det KOMPLETT med ALLA faser och veckodagar:
 ${messageContent}`
 
       sendMessage({ text: fixFormatPrompt }, { body: getCurrentBodyParams() })

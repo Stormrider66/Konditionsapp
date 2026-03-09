@@ -698,6 +698,14 @@ Använd EXAKT detta JSON-format i ett \`\`\`json kodblock:
 Giltiga type-värden: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
 Giltiga intensity-värden: easy, moderate, hard, threshold, interval, recovery, race_pace
 
+### TOKENOPTIMERING FÖR STORA PROGRAM (8+ veckor)
+- Skriv FÖRST en kort sammanfattning/diskussion UTANFÖR JSON-blocket
+- Skriv sedan JSON-blocket KOMPAKT: minimera whitespace, skriv vilopass som {"type":"REST","description":"Vila"}
+- Håll workout-beskrivningar korta och koncisa (max 200 tecken per description)
+- Om faser har IDENTISKA weeklyTemplates, skriv ändå ut varje fas separat (parsern kräver det)
+- PRIORITERA att JSON:en blir KOMPLETT framför detaljerade beskrivningar — ett komplett program med korta beskrivningar är MYCKET bättre än ett halvfärdigt program med långa beskrivningar
+- Du MÅSTE avsluta JSON-blocket med \`\`\` — om du når tokensgränsen innan du avslutat, har programmet misslyckats
+
 Efter att du genererat JSON-programmet, informera coachen att de kan klicka på "Publicera"-knappen som visas för att spara programmet till atletens kalender.
 ${webSearchEnabled ? '- Du kan referera till aktuell forskning och trender inom träningsvetenskap' : ''}
 ${calendarContext ? `
@@ -796,13 +804,18 @@ ${pageContext}
       hasConversationId: Boolean(conversationId),
     })
 
-    // Set max output tokens per provider
-    const maxTokensByProvider: Record<string, number> = {
-      OPENAI: 128000,    // GPT-5.4 supports 128k output
-      ANTHROPIC: 64000,  // Claude Sonnet 4.6 supports 64k, Opus 4.6 supports 128k
-      GOOGLE: 65536,     // Gemini
+    // Set max output tokens per provider (and model-specific overrides)
+    const getMaxOutputTokens = (prov: string, mod: string): number => {
+      if (prov === 'OPENAI') return 128000;
+      if (prov === 'ANTHROPIC') {
+        // Opus 4.6 supports 128k output; Sonnet/Haiku 64k
+        if (mod.includes('opus')) return 128000;
+        return 64000;
+      }
+      if (prov === 'GOOGLE') return 65536;
+      return 16384;
     };
-    const maxOutputTokens = maxTokensByProvider[provider] || 16384;
+    const maxOutputTokens = getMaxOutputTokens(provider, model);
 
     // Stream the response
     const result = streamText({
@@ -831,12 +844,21 @@ ${pageContext}
       onError: (error) => {
         logger.error('Stream error during generation', {}, error)
       },
-      onFinish: async ({ text, usage }) => {
+      onFinish: async ({ text, usage, finishReason }) => {
         logger.debug('AI response finished', {
           textLength: text?.length,
           usage,
+          finishReason,
           hasConversationId: Boolean(conversationId),
         })
+        if (finishReason === 'length') {
+          logger.warn('AI response truncated due to token limit', {
+            provider,
+            model,
+            maxOutputTokens,
+            outputTokens: usage?.outputTokens,
+          })
+        }
         // Save to database if we have a conversation
         if (conversationId) {
           try {
