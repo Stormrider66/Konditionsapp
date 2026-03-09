@@ -29,6 +29,8 @@ export default function EditClientPage() {
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
+  const businessSlug = params.businessSlug as string | undefined
+  const basePath = businessSlug ? `/${businessSlug}/coach` : ''
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -126,7 +128,7 @@ export default function EditClientPage() {
           title: 'Klient uppdaterad!',
           description: `${data.name} har uppdaterats.`,
         })
-        router.push(`/clients/${id}`)
+        router.push(`${basePath}/clients/${id}`)
       } else {
         setError(result.error || 'Failed to update client')
         toast({
@@ -316,7 +318,7 @@ export default function EditClientPage() {
 
               {/* Buttons */}
               <div className="flex justify-end gap-4 pt-4">
-                <Link href={`/clients/${id}`}>
+                <Link href={`${basePath}/clients/${id}`}>
                   <Button type="button" variant="outline">
                     Avbryt
                   </Button>
