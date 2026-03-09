@@ -41,7 +41,7 @@ interface QuickMealLogProps {
   defaultMealType?: MealType
 }
 
-interface MealLogData {
+export interface MealLogData {
   date: string
   mealType: MealType
   time?: string

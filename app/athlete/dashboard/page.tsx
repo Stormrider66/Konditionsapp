@@ -44,7 +44,7 @@ import {
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
-import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider } from '@/components/athlete/dashboard'
+import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid } from '@/components/athlete/dashboard'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
@@ -669,7 +669,7 @@ export default async function AthleteDashboardPage() {
     <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
 
       {/* Welcome Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
+      <div className="flex flex-col gap-4 mb-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
             Välkommen tillbaka <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500">{client.name.split(' ')[0]}</span>
@@ -681,9 +681,8 @@ export default async function AthleteDashboardPage() {
             <span className="text-orange-600 dark:text-orange-400 font-medium">{currentProgram ? currentProgram.name : 'No Active Program'}</span>
           </p>
         </div>
-        <div className="flex gap-3">
-          <LogWorkoutButton variant="button" className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border-0 h-10 px-4 transition-all" />
-          <Link href={
+        <QuickActionsGrid
+          sessionHref={
             firstIncompleteItem?.kind === 'program'
               ? `/athlete/workouts/${firstIncompleteItem.workout.id}/log`
               : firstIncompleteItem?.kind === 'assignment'
@@ -691,12 +690,9 @@ export default async function AthleteDashboardPage() {
                 : firstIncompleteItem?.kind === 'wod'
                   ? getWODRoute(firstIncompleteItem, basePath)
                   : '/athlete/programs'
-          }>
-            <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-500/20 dark:shadow-[0_0_20px_rgba(234,88,12,0.3)] border-0 h-10 px-6 transition-all">
-              <Zap className="w-4 h-4 mr-2" /> {firstIncompleteItem ? 'Start Session' : 'Find Workout'}
-            </Button>
-          </Link>
-        </div>
+          }
+          sessionLabel={firstIncompleteItem ? 'Starta pass' : 'Hitta pass'}
+        />
       </div>
 
       {/* Milestone Celebrations */}
