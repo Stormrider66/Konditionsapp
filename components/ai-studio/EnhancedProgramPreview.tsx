@@ -303,9 +303,58 @@ export function EnhancedProgramPreview({
     setNewWorkoutIntensity('moderate')
   }, [addWorkoutTarget, newWorkoutType, newWorkoutName, newWorkoutDuration, newWorkoutIntensity])
 
-  // If no program found, don't render anything (after all hooks)
+  // If no program found, check if it looks like a truncated/invalid program JSON
   if (!parseResult.success || !parseResult.program) {
-    return null
+    // Detect if content looks like program JSON (likely truncated or invalid)
+    const looksLikeProgram = /["']phases["']\s*:/i.test(content) &&
+      (/["']totalWeeks["']\s*:/i.test(content) || /["']weeklyTemplate["']\s*:/i.test(content))
+
+    if (!looksLikeProgram) {
+      return null
+    }
+
+    // Show recovery card for failed program parse
+    return (
+      <Card className="mt-3 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                Programmet kunde inte tolkas
+              </div>
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                AI:ns svar innehåller programdata men JSON-formatet är ogiltigt eller ofullständigt (troligen avklippt av tokensgränsen).
+                Använd &quot;Fixa format&quot; för att be AI:n generera om programmet i korrekt format.
+              </p>
+              <div className="flex gap-2 pt-1">
+                {onFixFormat && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onFixFormat}
+                    disabled={isFixingFormat}
+                    className="border-amber-300 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-200 dark:hover:bg-amber-900/50"
+                  >
+                    {isFixingFormat ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Fixar...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="h-4 w-4 mr-1" />
+                        Fixa format
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   // Check if program data is incomplete

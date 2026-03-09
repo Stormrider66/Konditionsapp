@@ -34,18 +34,35 @@ export function ChatMessage({ message, athleteId, athleteName, coachName, conver
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
 
-  // Try to extract JSON data from the message for special rendering
-  const jsonData = useMemo(() => {
-    if (isUser || isSystem) return null
-    return tryParseJson(message.content)
+  // Check if content looks like program JSON (EnhancedProgramPreview will handle it)
+  const looksLikeProgram = useMemo(() => {
+    if (isUser || isSystem) return false
+    return /["']phases["']\s*:/i.test(message.content) &&
+      (/["']totalWeeks["']\s*:/i.test(message.content) || /["']weeklyTemplate["']\s*:/i.test(message.content))
   }, [message.content, isUser, isSystem])
 
-  // Remove JSON code block from content if we're rendering it as a card
+  // Try to extract JSON data from the message for special rendering (skip program JSON)
+  const jsonData = useMemo(() => {
+    if (isUser || isSystem) return null
+    if (looksLikeProgram) return null // Let EnhancedProgramPreview handle program JSON
+    return tryParseJson(message.content)
+  }, [message.content, isUser, isSystem, looksLikeProgram])
+
+  // Remove JSON from content if we're rendering it as a card or as a program preview
   const displayContent = useMemo(() => {
+    if (looksLikeProgram) {
+      // Strip both code-block JSON and raw JSON so only the program preview card shows
+      let stripped = message.content.replace(/```(?:json)?\s*[\s\S]*?```/g, '').trim()
+      if (!stripped || stripped === message.content.trim()) {
+        // Content was raw JSON (no code block), strip it entirely
+        stripped = message.content.replace(/\{[\s\S]*\}/g, '').trim()
+      }
+      return stripped
+    }
     if (!jsonData) return message.content
     // Remove the JSON code block from display since we're showing it as a card
     return message.content.replace(/```(?:json)?\s*[\s\S]*?```/g, '').trim()
-  }, [message.content, jsonData])
+  }, [message.content, jsonData, looksLikeProgram])
 
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(message.content)
