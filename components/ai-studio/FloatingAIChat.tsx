@@ -30,6 +30,8 @@ import { cn } from '@/lib/utils'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { getInfoEntriesByKeys } from '@/lib/info-content'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 
 // Page context types for different page contexts
 export interface PageContext {
@@ -74,6 +76,9 @@ export function FloatingAIChat({
   visibleConcepts,
 }: FloatingAIChatProps) {
   const { toast } = useToast()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -680,7 +685,7 @@ export function FloatingAIChat({
             </p>
             {!isAthleteUser && (
               <Button asChild>
-                <Link href="/coach/settings/ai">
+                <Link href={`${basePath}/coach/settings/ai`}>
                   <Settings className="h-4 w-4 mr-2" />
                   Gå till inställningar
                 </Link>

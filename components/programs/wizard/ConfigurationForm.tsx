@@ -40,7 +40,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CalendarIcon, Loader2, ChevronDown, ChevronUp, Info, Sparkles, AlertTriangle, Plane, Briefcase, Palmtree, Mountain } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import {
   storeProgramContext,
   type WizardFormData,
@@ -201,6 +202,9 @@ export function ConfigurationForm({
   isSubmitting,
 }: ConfigurationFormProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
 
   const isHyroxSport = sport === 'HYROX'
 
@@ -436,7 +440,7 @@ export function ConfigurationForm({
     storeProgramContext(context)
 
     // Navigate to AI Studio in program mode
-    router.push(`/coach/ai-studio?mode=program&clientId=${formData.clientId}`)
+    router.push(`${basePath}/coach/ai-studio?mode=program&clientId=${formData.clientId}`)
   }
 
   return (

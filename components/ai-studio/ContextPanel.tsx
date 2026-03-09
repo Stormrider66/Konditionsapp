@@ -47,6 +47,8 @@ import {
   Video,
 } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import {
   Tooltip,
   TooltipContent,
@@ -137,6 +139,9 @@ export function ContextPanel({
   onDocumentsChange,
   onWebSearchChange,
 }: ContextPanelProps) {
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const [mounted, setMounted] = useState(false)
   const [athleteOpen, setAthleteOpen] = useState(true)
   const [documentsOpen, setDocumentsOpen] = useState(true)
@@ -548,7 +553,7 @@ export function ContextPanel({
                       className="mt-2"
                       asChild
                     >
-                      <Link href="/coach/documents">
+                      <Link href={`${basePath}/coach/documents`}>
                         <Upload className="h-3 w-3 mr-1" />
                         Ladda upp dokument
                       </Link>
@@ -707,7 +712,7 @@ export function ContextPanel({
                           <AlertTriangle className="h-3.5 w-3.5 text-amber-600 mt-0.5 flex-shrink-0" />
                           <div className="text-amber-700 dark:text-amber-400">
                             Vissa dokument väntar på bearbetning. Gå till{' '}
-                            <Link href="/coach/documents" className="underline font-medium">
+                            <Link href={`${basePath}/coach/documents`} className="underline font-medium">
                               Dokument
                             </Link>{' '}
                             och klicka &quot;Generera&quot; för att aktivera dem.
@@ -736,7 +741,7 @@ export function ContextPanel({
                       className="w-full h-8 text-xs"
                       asChild
                     >
-                      <Link href="/coach/documents">
+                      <Link href={`${basePath}/coach/documents`}>
                         <Upload className="h-3 w-3 mr-1" />
                         Hantera dokument
                       </Link>

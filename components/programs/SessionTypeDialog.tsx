@@ -1,6 +1,7 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import {
   Dialog,
   DialogContent,
@@ -82,6 +83,9 @@ export function SessionTypeDialog({
   mode,
 }: SessionTypeDialogProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -199,18 +203,18 @@ export function SessionTypeDialog({
   const navigateToStudio = (type: SessionType, workoutId: string) => {
     switch (type) {
       case 'RUNNING':
-        router.push(`/coach/cardio?workoutId=${workoutId}&programId=${programId}`)
+        router.push(`${basePath}/coach/cardio?workoutId=${workoutId}&programId=${programId}`)
         break
       case 'STRENGTH':
-        router.push(`/coach/strength?workoutId=${workoutId}&programId=${programId}`)
+        router.push(`${basePath}/coach/strength?workoutId=${workoutId}&programId=${programId}`)
         break
       case 'CORE':
         // For now, use strength studio with core filter
-        router.push(`/coach/strength?workoutId=${workoutId}&programId=${programId}&type=core`)
+        router.push(`${basePath}/coach/strength?workoutId=${workoutId}&programId=${programId}&type=core`)
         break
       case 'ALTERNATIVE':
         // For now, use cardio studio
-        router.push(`/coach/cardio?workoutId=${workoutId}&programId=${programId}&type=alternative`)
+        router.push(`${basePath}/coach/cardio?workoutId=${workoutId}&programId=${programId}&type=alternative`)
         break
       default:
         router.refresh()

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { DocumentUploader } from './DocumentUploader'
 import { DocumentPreview } from './DocumentPreview'
 import {
@@ -65,6 +66,9 @@ interface DocumentsClientProps {
 
 export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: DocumentsClientProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const businessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = businessSlug ? `/${businessSlug}` : ''
   const { toast } = useToast()
 
   const [documents, setDocuments] = useState(initialDocuments)
@@ -336,7 +340,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline">
-            <Link href="/coach/ai-studio">
+            <Link href={`${basePath}/coach/ai-studio`}>
               <Bot className="h-4 w-4 mr-2" />
               AI Studio
             </Link>
@@ -380,7 +384,7 @@ export function DocumentsClient({ documents: initialDocuments, hasOpenAIKey }: D
                 </p>
               </div>
               <Button variant="outline" size="sm" asChild>
-                <Link href="/coach/settings/ai">
+                <Link href={`${basePath}/coach/settings/ai`}>
                   <Settings className="h-4 w-4 mr-1" />
                   Inställningar
                 </Link>

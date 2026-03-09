@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -29,6 +30,9 @@ interface AthleteProfileSetupFormProps {
 
 export function AthleteProfileSetupForm({ userName, onSuccess }: AthleteProfileSetupFormProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -98,7 +102,7 @@ export function AthleteProfileSetupForm({ userName, onSuccess }: AthleteProfileS
                 You can now switch to athlete mode from the user menu.
               </p>
             </div>
-            <Button onClick={() => router.push('/coach/dashboard')}>
+            <Button onClick={() => router.push(`${basePath}/coach/dashboard`)}>
               Back to Dashboard
             </Button>
           </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Sparkles, ExternalLink, CheckCircle2, AlertCircle, XCircle, Clock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import {
   getFreshnessDotClass,
   type DataSourceStatus,
 } from '@/lib/athlete-profile/freshness-calculator'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 
 interface AIContextSidebarProps {
   data: AthleteProfileData
@@ -21,6 +23,10 @@ interface AIContextSidebarProps {
 }
 
 export function AIContextSidebar({ data, clientId, clientName }: AIContextSidebarProps) {
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
+
   // Build data source statuses
   const dataSourceStatuses = buildDataSourceStatuses({
     tests: data.physiology.tests,
@@ -89,7 +95,7 @@ export function AIContextSidebar({ data, clientId, clientName }: AIContextSideba
             Snabbåtgärder
           </p>
 
-          <Link href={`/coach/ai-studio?athleteId=${clientId}`} className="block">
+          <Link href={`${basePath}/coach/ai-studio?athleteId=${clientId}`} className="block">
             <Button variant="default" className="w-full gap-2">
               <Sparkles className="h-4 w-4" />
               Öppna AI Studio
@@ -98,7 +104,7 @@ export function AIContextSidebar({ data, clientId, clientName }: AIContextSideba
           </Link>
 
           <Link
-            href={`/coach/ai-studio?athleteId=${clientId}&prompt=Skapa+ett+träningsprogram`}
+            href={`${basePath}/coach/ai-studio?athleteId=${clientId}&prompt=Skapa+ett+träningsprogram`}
             className="block"
           >
             <Button variant="outline" size="sm" className="w-full text-sm">
@@ -107,7 +113,7 @@ export function AIContextSidebar({ data, clientId, clientName }: AIContextSideba
           </Link>
 
           <Link
-            href={`/coach/ai-studio?athleteId=${clientId}&prompt=Analysera+min+progression`}
+            href={`${basePath}/coach/ai-studio?athleteId=${clientId}&prompt=Analysera+min+progression`}
             className="block"
           >
             <Button variant="outline" size="sm" className="w-full text-sm">

@@ -8,7 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 
 interface Client {
   id: string
@@ -23,13 +24,16 @@ interface MonitoringHeaderProps {
 export function MonitoringHeader({ clients, selectedAthleteId }: MonitoringHeaderProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
 
   const selectedClient = clients.find((c) => c.id === selectedAthleteId)
 
   function handleAthleteChange(athleteId: string) {
     const params = new URLSearchParams(searchParams.toString())
     params.set('athleteId', athleteId)
-    router.push(`/coach/monitoring?${params.toString()}`)
+    router.push(`${basePath}/coach/monitoring?${params.toString()}`)
   }
 
   return (

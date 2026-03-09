@@ -30,6 +30,8 @@ import {
   Brain,
 } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { escapeHtml } from '@/lib/sanitize'
 
 interface VideoAnalysis {
@@ -83,6 +85,9 @@ function getScoreLabel(score: number) {
 
 export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: ClientVideoAnalysesProps) {
   const { toast } = useToast()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const branding = useBusinessBrandingOptional()
   const printBrandName = branding?.hasWhiteLabel && branding.hidePlatformBranding ? branding.businessName : PLATFORM_NAME
   const [analyses, setAnalyses] = useState<VideoAnalysis[]>([])
@@ -258,7 +263,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Videoanalyser</h2>
-          <Link href="/coach/video-analysis">
+          <Link href={`${basePath}/coach/video-analysis`}>
             <Button size="sm">
               <Video className="h-4 w-4 mr-2" />
               Ny analys
@@ -269,7 +274,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
           <Video className="h-12 w-12 mx-auto mb-3 text-gray-300" />
           <p className="mb-2">Inga videoanalyser för denna atlet</p>
           <Link
-            href="/coach/video-analysis"
+            href={`${basePath}/coach/video-analysis`}
             className="text-blue-600 hover:text-blue-800 font-medium"
           >
             Skapa första videoanalysen
@@ -288,7 +293,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
             {analyses.length} {analyses.length === 1 ? 'analys' : 'analyser'}
           </p>
         </div>
-        <Link href="/coach/video-analysis">
+        <Link href={`${basePath}/coach/video-analysis`}>
           <Button size="sm">
             <Video className="h-4 w-4 mr-2" />
             Ny analys
@@ -385,7 +390,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                     Till AI
                   </Button>
                 )}
-                <Link href="/coach/video-analysis" className="ml-auto">
+                <Link href={`${basePath}/coach/video-analysis`} className="ml-auto">
                   <Button variant="ghost" size="sm">
                     <ExternalLink className="h-4 w-4 mr-1" />
                     Öppna

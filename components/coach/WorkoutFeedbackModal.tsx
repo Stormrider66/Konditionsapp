@@ -2,7 +2,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -58,6 +59,9 @@ interface WorkoutFeedbackModalProps {
 
 export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbackModalProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -150,7 +154,7 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
         description: 'Ditt meddelande har skickats till atleten.',
       })
 
-      router.push('/coach/messages')
+      router.push(`${basePath}/coach/messages`)
     } catch (error: any) {
       console.error('Error sending message:', error)
       toast({

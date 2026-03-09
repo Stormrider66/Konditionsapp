@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/tooltip'
 import { Bot, Brain, Sparkles, Zap, Settings, FileText } from 'lucide-react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import type { AIProvider } from '@prisma/client'
 import { formatTokenCount, estimateWeeksFromTokens } from '@/types/ai-models'
 
@@ -40,6 +42,10 @@ interface GlobalModelDisplayProps {
 }
 
 export function GlobalModelDisplay({ model }: GlobalModelDisplayProps) {
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
+
   const getProviderIcon = (provider: AIProvider) => {
     switch (provider) {
       case 'ANTHROPIC':
@@ -69,7 +75,7 @@ export function GlobalModelDisplay({ model }: GlobalModelDisplayProps) {
   if (!model) {
     return (
       <Button variant="outline" size="sm" asChild>
-        <Link href="/coach/settings/ai" className="flex items-center gap-2">
+        <Link href={`${basePath}/coach/settings/ai`} className="flex items-center gap-2">
           <Bot className="h-4 w-4 text-muted-foreground" />
           <span className="text-muted-foreground">Välj modell</span>
           <Settings className="h-3 w-3 ml-1" />
@@ -93,7 +99,7 @@ export function GlobalModelDisplay({ model }: GlobalModelDisplayProps) {
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="outline" size="sm" asChild className="h-9">
-            <Link href="/coach/settings/ai" className="flex items-center gap-2">
+            <Link href={`${basePath}/coach/settings/ai`} className="flex items-center gap-2">
               {getProviderIcon(model.provider)}
               <span className="font-medium">{displayName}</span>
               {maxOutputTokens && (

@@ -15,8 +15,9 @@ import { AddParticipantDialog } from './AddParticipantDialog'
 import { LiveHRStreamData, LiveHRSessionStatus } from '@/lib/live-hr/types'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { toast } from 'sonner'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 
 interface AvailableClient {
@@ -36,6 +37,9 @@ export function LiveHRDashboard({
   initialAvailableClients,
 }: LiveHRDashboardProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const [data, setData] = useState<LiveHRStreamData>(initialData)
   const [availableClients, setAvailableClients] = useState(initialAvailableClients)
   const [isConnected, setIsConnected] = useState(false)
@@ -98,7 +102,7 @@ export function LiveHRDashboard({
 
       if (status === 'ENDED') {
         toast.success('Session avslutad')
-        router.push('/coach/live-hr')
+        router.push(`${basePath}/coach/live-hr`)
       }
     } catch {
       toast.error('Kunde inte uppdatera sessionen')
@@ -146,7 +150,7 @@ export function LiveHRDashboard({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/coach/live-hr')}>
+          <Button variant="ghost" size="icon" onClick={() => router.push(`${basePath}/coach/live-hr`)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold flex items-center gap-1.5">Live HR <InfoTooltip conceptKey="liveHrZones" /></h1>

@@ -2,7 +2,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -165,6 +166,9 @@ function recommendMethodology(data: Partial<FormData>): string {
 
 export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string>('')
@@ -279,7 +283,7 @@ export function ProgramGenerationForm({ clients }: ProgramGenerationFormProps) {
       // Redirect to the new program
       // Use setTimeout to prevent NEXT_REDIRECT error from showing in console
       setTimeout(() => {
-        router.push(`/coach/programs/${result.data.id}`)
+        router.push(`${basePath}/coach/programs/${result.data.id}`)
       }, 100)
     } catch (error: any) {
       // Filter out NEXT_REDIRECT errors (internal Next.js redirect mechanism)

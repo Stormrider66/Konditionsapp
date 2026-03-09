@@ -3,7 +3,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import {
@@ -50,6 +51,9 @@ interface ProgramsListProps {
 }
 
 export function ProgramsList({ programs }: ProgramsListProps) {
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const [searchQuery, setSearchQuery] = useState('')
   const [goalFilter, setGoalFilter] = useState<string>('all')
   const [phaseFilter, setPhaseFilter] = useState<string>('all')
@@ -79,7 +83,7 @@ export function ProgramsList({ programs }: ProgramsListProps) {
           <p className="text-muted-foreground mb-6">
             Kom igång genom att skapa ditt första träningsprogram
           </p>
-          <Link href="/coach/programs/new">
+          <Link href={`${basePath}/coach/programs/new`}>
             <Button>Skapa program</Button>
           </Link>
         </GlassCardContent>

@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { User } from '@supabase/supabase-js'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,6 +27,9 @@ export function UserNav({ user }: UserNavProps) {
   const t = useTranslations('common')
   const tAuth = useTranslations('auth')
   const router = useRouter()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const handleSignOut = async () => {
@@ -81,13 +85,13 @@ export function UserNav({ user }: UserNavProps) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild className="min-h-[44px]">
-          <Link href="/coach/subscription">
+          <Link href={`${basePath}/coach/subscription`}>
             <CreditCard className="mr-2 h-4 w-4 flex-shrink-0" />
             <span>{t('subscription')}</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="min-h-[44px]">
-          <Link href="/coach/referrals">
+          <Link href={`${basePath}/coach/referrals`}>
             <Gift className="mr-2 h-4 w-4 flex-shrink-0" />
             <span>{t('referrals')}</span>
           </Link>

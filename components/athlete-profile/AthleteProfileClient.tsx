@@ -172,7 +172,7 @@ export function AthleteProfileClient({
         {/* Mobile AI Button (Coach only) */}
         {viewMode === 'coach' && (
           <div className="fixed bottom-20 right-4 lg:hidden z-50">
-            <Link href={`/coach/ai-studio?athleteId=${client.id}`}>
+            <Link href={`${basePath}/coach/ai-studio?athleteId=${client.id}`}>
               <Button size="lg" className="rounded-full shadow-lg gap-2">
                 <Activity className="h-5 w-5" />
                 AI Studio
