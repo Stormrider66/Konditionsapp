@@ -168,7 +168,7 @@ export function QuickMealLog({
         <div className="space-y-4 py-4">
           {/* Meal Type Selection */}
           <div className="space-y-2">
-            <Label>Måltidstyp</Label>
+            <Label className="dark:text-slate-200">Måltidstyp</Label>
             <div className="grid grid-cols-4 gap-2">
               {(Object.entries(MEAL_TYPE_CONFIG) as [MealType, typeof MEAL_TYPE_CONFIG[MealType]][]).map(
                 ([type, config]) => {
@@ -181,14 +181,14 @@ export function QuickMealLog({
                       className={cn(
                         "flex flex-col items-center gap-1 p-2 rounded-lg border transition-all text-xs",
                         isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
+                          ? "border-primary bg-primary/5 dark:bg-primary/15"
+                          : "border-border dark:border-slate-600 hover:border-primary/50"
                       )}
                     >
                       <div className={cn("p-1.5 rounded-full text-white", config.color)}>
                         <Icon className="h-3 w-3" />
                       </div>
-                      <span className="font-medium truncate w-full text-center">
+                      <span className="font-medium truncate w-full text-center dark:text-slate-200">
                         {config.label}
                       </span>
                     </button>
@@ -209,8 +209,8 @@ export function QuickMealLog({
                   size="sm"
                   onClick={() => handleQuickMealSelect(meal)}
                   className={cn(
-                    "text-xs",
-                    formData.description === meal.description && "border-primary bg-primary/5"
+                    "text-xs dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700",
+                    formData.description === meal.description && "border-primary bg-primary/5 dark:bg-primary/15 dark:text-white"
                   )}
                 >
                   {meal.description}
@@ -221,30 +221,32 @@ export function QuickMealLog({
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Beskrivning *</Label>
+            <Label htmlFor="description" className="dark:text-slate-200">Beskrivning *</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Vad åt du?"
               rows={2}
+              className="dark:text-white dark:placeholder:text-slate-500"
             />
           </div>
 
           {/* Time */}
           <div className="space-y-2">
-            <Label htmlFor="time">Tid (valfritt)</Label>
+            <Label htmlFor="time" className="dark:text-slate-200">Tid (valfritt)</Label>
             <Input
               id="time"
               type="time"
               value={formData.time}
               onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+              className="dark:text-white"
             />
           </div>
 
           {/* Toggle for macros */}
           <div className="flex items-center justify-between">
-            <Label>Lägg till makron</Label>
+            <Label className="dark:text-slate-200">Lägg till makron</Label>
             <Switch
               checked={showMacros}
               onCheckedChange={setShowMacros}
@@ -255,17 +257,18 @@ export function QuickMealLog({
           {showMacros && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="calories">Kalorier</Label>
+                <Label htmlFor="calories" className="dark:text-slate-200">Kalorier</Label>
                 <Input
                   id="calories"
                   type="number"
                   value={formData.calories}
                   onChange={(e) => setFormData(prev => ({ ...prev, calories: e.target.value }))}
                   placeholder="kcal"
+                  className="dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="protein">Protein</Label>
+                <Label htmlFor="protein" className="dark:text-slate-200">Protein</Label>
                 <Input
                   id="protein"
                   type="number"
@@ -273,10 +276,11 @@ export function QuickMealLog({
                   value={formData.proteinGrams}
                   onChange={(e) => setFormData(prev => ({ ...prev, proteinGrams: e.target.value }))}
                   placeholder="g"
+                  className="dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="carbs">Kolhydrater</Label>
+                <Label htmlFor="carbs" className="dark:text-slate-200">Kolhydrater</Label>
                 <Input
                   id="carbs"
                   type="number"
@@ -284,10 +288,11 @@ export function QuickMealLog({
                   value={formData.carbsGrams}
                   onChange={(e) => setFormData(prev => ({ ...prev, carbsGrams: e.target.value }))}
                   placeholder="g"
+                  className="dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="fat">Fett</Label>
+                <Label htmlFor="fat" className="dark:text-slate-200">Fett</Label>
                 <Input
                   id="fat"
                   type="number"
@@ -295,6 +300,7 @@ export function QuickMealLog({
                   value={formData.fatGrams}
                   onChange={(e) => setFormData(prev => ({ ...prev, fatGrams: e.target.value }))}
                   placeholder="g"
+                  className="dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
             </div>
@@ -309,7 +315,7 @@ export function QuickMealLog({
                   setFormData(prev => ({ ...prev, isPreWorkout: checked }))
                 }
               />
-              <Label className="text-sm">Pre-workout</Label>
+              <Label className="text-sm dark:text-slate-200">Pre-workout</Label>
             </div>
             <div className="flex items-center gap-2">
               <Switch
@@ -318,7 +324,7 @@ export function QuickMealLog({
                   setFormData(prev => ({ ...prev, isPostWorkout: checked }))
                 }
               />
-              <Label className="text-sm">Post-workout</Label>
+              <Label className="text-sm dark:text-slate-200">Post-workout</Label>
             </div>
           </div>
         </div>

@@ -35,11 +35,14 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
   }
 
   const handleQuickMealSubmit = async (data: MealLogData) => {
-    await fetch('/api/meals', {
+    const res = await fetch('/api/meals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
+    if (res.ok) {
+      window.dispatchEvent(new Event('meal-logged'))
+    }
   }
 
   return (
@@ -95,7 +98,10 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
             <SheetTitle>Fota din mat</SheetTitle>
           </SheetHeader>
           <FoodPhotoScanner
-            onMealSaved={() => setFoodScannerOpen(false)}
+            onMealSaved={() => {
+              setFoodScannerOpen(false)
+              window.dispatchEvent(new Event('meal-logged'))
+            }}
             onClose={() => setFoodScannerOpen(false)}
           />
         </SheetContent>
@@ -108,7 +114,10 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
             <SheetTitle>Beskriv din måltid</SheetTitle>
           </SheetHeader>
           <VoiceMealCapture
-            onMealSaved={() => setVoiceMealOpen(false)}
+            onMealSaved={() => {
+              setVoiceMealOpen(false)
+              window.dispatchEvent(new Event('meal-logged'))
+            }}
             onClose={() => setVoiceMealOpen(false)}
           />
         </SheetContent>

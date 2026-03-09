@@ -117,6 +117,13 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
     fetchAllData()
   }, [clientId])
 
+  // Re-fetch when a meal is logged from other components (e.g. QuickActionsGrid)
+  useEffect(() => {
+    const handler = () => fetchAllData()
+    window.addEventListener('meal-logged', handler)
+    return () => window.removeEventListener('meal-logged', handler)
+  }, [clientId])
+
   if (isLoading) {
     return <NutritionDashboardSkeleton variant="glass" />
   }
