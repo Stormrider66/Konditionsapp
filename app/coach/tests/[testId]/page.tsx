@@ -13,8 +13,10 @@ import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import type { TestCalculations, Threshold, TrainingZone } from '@/types';
+import { ArrowLeft, Edit2 } from 'lucide-react';
+import { performAllCalculations } from '@/lib/calculations';
+import { logger } from '@/lib/logger';
+import type { TestCalculations, Threshold, TrainingZone, Test, Client } from '@/types';
 
 interface TestPageProps {
   params: Promise<{
@@ -41,22 +43,55 @@ export default async function TestDetailPage({ params }: TestPageProps) {
 
   if (labTest && labTest.userId === user.id) {
     const client = labTest.client;
-    const bmi = client.weight && client.height
-      ? parseFloat((client.weight / ((client.height / 100) ** 2)).toFixed(1))
-      : 0;
 
-    const calculations: TestCalculations = {
-      bmi,
-      vo2max: labTest.vo2max || 0,
-      maxHR: labTest.maxHR || 0,
-      maxLactate: labTest.maxLactate || 0,
-      aerobicThreshold: labTest.aerobicThreshold as unknown as Threshold | null,
-      anaerobicThreshold: labTest.anaerobicThreshold as unknown as Threshold | null,
-      trainingZones: (labTest.trainingZones as unknown as TrainingZone[]) || [],
-      economyData: (labTest as any).economyData || undefined,
-      cyclingData: (labTest as any).cyclingData || undefined,
-      dmaxVisualization: (labTest as any).dmaxVisualization || undefined,
-    };
+    // Re-compute all calculations from raw testStages data
+    // This ensures dmaxVisualization, economyData, cyclingData are always available
+    // (these were previously not persisted to the database)
+    let calculations: TestCalculations;
+    try {
+      const testForCalc = {
+        id: labTest.id,
+        clientId: labTest.clientId,
+        userId: labTest.userId,
+        testDate: labTest.testDate,
+        testType: labTest.testType as any,
+        status: labTest.status as any,
+        testStages: labTest.testStages.map(s => ({
+          id: s.id,
+          testId: s.testId,
+          sequence: s.sequence,
+          duration: s.duration,
+          heartRate: s.heartRate,
+          lactate: s.lactate,
+          vo2: s.vo2 ?? undefined,
+          speed: s.speed ?? undefined,
+          incline: s.incline ?? undefined,
+          power: s.power ?? undefined,
+          cadence: s.cadence ?? undefined,
+          pace: s.pace ?? undefined,
+        })),
+        manualLT1Lactate: (labTest as any).manualLT1Lactate ?? undefined,
+        manualLT1Intensity: (labTest as any).manualLT1Intensity ?? undefined,
+        manualLT2Lactate: (labTest as any).manualLT2Lactate ?? undefined,
+        manualLT2Intensity: (labTest as any).manualLT2Intensity ?? undefined,
+      };
+      calculations = await performAllCalculations(testForCalc as any, client as any);
+    } catch (error) {
+      // Fallback to stored values if calculation fails (e.g., insufficient stages)
+      logger.warn('Failed to re-compute calculations, using stored values', { testId, error });
+      const bmi = client.weight && client.height
+        ? parseFloat((client.weight / ((client.height / 100) ** 2)).toFixed(1))
+        : 0;
+      calculations = {
+        bmi,
+        vo2max: labTest.vo2max || 0,
+        maxHR: labTest.maxHR || 0,
+        maxLactate: labTest.maxLactate || 0,
+        aerobicThreshold: labTest.aerobicThreshold as unknown as Threshold | null,
+        anaerobicThreshold: labTest.anaerobicThreshold as unknown as Threshold | null,
+        trainingZones: (labTest.trainingZones as unknown as TrainingZone[]) || [],
+      };
+    }
 
     return (
       <div className="min-h-screen bg-gray-50">
@@ -66,6 +101,12 @@ export default async function TestDetailPage({ params }: TestPageProps) {
               <Button variant="outline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Tillbaka till atlet
+              </Button>
+            </Link>
+            <Link href={`${basePath}/coach/tests/${labTest.id}/edit`}>
+              <Button variant="outline">
+                <Edit2 className="mr-2 h-4 w-4" />
+                Redigera test
               </Button>
             </Link>
             <PDFExportButton

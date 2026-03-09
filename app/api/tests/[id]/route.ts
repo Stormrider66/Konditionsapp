@@ -276,8 +276,8 @@ export async function PATCH(
       })
     }
 
-    // Update test with calculations
-    const test = await prisma.test.update({
+    // Update test
+    let test = await prisma.test.update({
       where: { id },
       data: updateData,
       include: {
@@ -285,6 +285,41 @@ export async function PATCH(
         client: true,
       },
     })
+
+    // Recalculate thresholds/zones if stages were updated
+    if (body.stages && Array.isArray(body.stages) && test.client && test.testStages.length >= 3) {
+      try {
+        const testForCalc = {
+          ...test,
+          manualLT1Lactate: test.manualLT1Lactate,
+          manualLT1Intensity: test.manualLT1Intensity,
+          manualLT2Lactate: test.manualLT2Lactate,
+          manualLT2Intensity: test.manualLT2Intensity,
+        } as unknown as Test & ManualThresholdOverrides
+
+        const calculations = await performAllCalculations(testForCalc, test.client as unknown as Client)
+
+        test = await prisma.test.update({
+          where: { id },
+          data: {
+            vo2max: calculations.vo2max,
+            maxHR: calculations.maxHR,
+            maxLactate: calculations.maxLactate,
+            aerobicThreshold: calculations.aerobicThreshold as unknown as Prisma.InputJsonValue,
+            anaerobicThreshold: calculations.anaerobicThreshold as unknown as Prisma.InputJsonValue,
+            trainingZones: calculations.trainingZones as unknown as Prisma.InputJsonValue,
+          },
+          include: {
+            testStages: { orderBy: { sequence: 'asc' } },
+            client: true,
+          },
+        })
+
+        logger.info('Recalculated test after stage edit', { testId: id })
+      } catch (calcError) {
+        logger.warn('Could not recalculate after stage edit', { testId: id, error: calcError })
+      }
+    }
 
     return NextResponse.json({
       success: true,
