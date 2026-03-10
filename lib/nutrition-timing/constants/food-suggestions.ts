@@ -793,20 +793,20 @@ export function sortByGoal(
   if (goalType === 'WEIGHT_LOSS') {
     // Lower-calorie foods first; tiebreaker: higher protein ratio
     sorted.sort((a, b) => {
-      const calDiff = a.caloriesKcal - b.caloriesKcal
+      const calDiff = (a.caloriesKcal ?? 0) - (b.caloriesKcal ?? 0)
       if (calDiff !== 0) return calDiff
-      const ratioA = a.caloriesKcal > 0 ? a.proteinG / a.caloriesKcal : 0
-      const ratioB = b.caloriesKcal > 0 ? b.proteinG / b.caloriesKcal : 0
+      const ratioA = (a.caloriesKcal ?? 0) > 0 ? (a.proteinG ?? 0) / (a.caloriesKcal ?? 1) : 0
+      const ratioB = (b.caloriesKcal ?? 0) > 0 ? (b.proteinG ?? 0) / (b.caloriesKcal ?? 1) : 0
       return ratioB - ratioA
     })
   } else if (goalType === 'WEIGHT_GAIN') {
     // Calorie-dense foods first
-    sorted.sort((a, b) => b.caloriesKcal - a.caloriesKcal)
+    sorted.sort((a, b) => (b.caloriesKcal ?? 0) - (a.caloriesKcal ?? 0))
   } else if (goalType === 'BODY_RECOMP') {
     // High protein density first
     sorted.sort((a, b) => {
-      const ratioA = a.caloriesKcal > 0 ? a.proteinG / a.caloriesKcal : 0
-      const ratioB = b.caloriesKcal > 0 ? b.proteinG / b.caloriesKcal : 0
+      const ratioA = (a.caloriesKcal ?? 0) > 0 ? (a.proteinG ?? 0) / (a.caloriesKcal ?? 1) : 0
+      const ratioB = (b.caloriesKcal ?? 0) > 0 ? (b.proteinG ?? 0) / (b.caloriesKcal ?? 1) : 0
       return ratioB - ratioA
     })
   }
