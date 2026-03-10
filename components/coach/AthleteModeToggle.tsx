@@ -146,8 +146,8 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
         })
 
         // Redirect to appropriate dashboard
-        router.push(data.data.redirectTo)
-        router.refresh()
+        // Use window.location for a full page load to ensure cookie state is consistent
+        window.location.href = data.data.redirectTo
       } else {
         throw new Error(data.error || 'Failed to toggle athlete mode')
       }

@@ -25,7 +25,7 @@ export function getAthleteModeCookie(): boolean {
 /**
  * Set athlete mode cookie (client-side)
  *
- * SECURITY: Includes SameSite=Strict and Secure flags.
+ * SECURITY: Includes SameSite=Lax and Secure flags.
  * Note: HttpOnly is not possible for client-set cookies - this cookie is
  * intentionally readable by client JS for UI state. For sensitive operations,
  * always verify server-side session state.
@@ -36,7 +36,7 @@ export function setAthleteModeCookie(enabled: boolean): void {
   expires.setTime(expires.getTime() + 365 * 24 * 60 * 60 * 1000) // 1 year
 
   // Build cookie with security flags
-  let cookie = `${ATHLETE_MODE_COOKIE}=${enabled};expires=${expires.toUTCString()};path=/;SameSite=Strict`
+  let cookie = `${ATHLETE_MODE_COOKIE}=${enabled};expires=${expires.toUTCString()};path=/;SameSite=Lax`
 
   // Add Secure flag in HTTPS contexts (production)
   if (isSecureContext()) {
@@ -52,7 +52,7 @@ export function setAthleteModeCookie(enabled: boolean): void {
 export function clearAthleteModeCookie(): void {
   if (typeof document === 'undefined') return
 
-  let cookie = `${ATHLETE_MODE_COOKIE}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`
+  let cookie = `${ATHLETE_MODE_COOKIE}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax`
 
   // Add Secure flag in HTTPS contexts (production)
   if (isSecureContext()) {
