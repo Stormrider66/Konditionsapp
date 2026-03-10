@@ -41,11 +41,8 @@ export async function GET() {
           sportProfile: {
             select: { primarySport: true },
           },
-          teams: {
-            select: {
-              team: { select: { id: true, name: true } },
-            },
-            take: 1,
+          team: {
+            select: { id: true, name: true },
           },
         },
       }),
@@ -126,7 +123,7 @@ export async function GET() {
       id: client.id,
       name: client.name,
       primarySport: client.sportProfile?.primarySport ?? null,
-      team: client.teams[0]?.team ?? null,
+      team: client.team ?? null,
       readinessScore: metricsMap.get(client.id)?.readinessScore ?? null,
       readinessLevel: metricsMap.get(client.id)?.readinessLevel ?? null,
       acwr: loadMap.get(client.id)?.acwr ?? null,
