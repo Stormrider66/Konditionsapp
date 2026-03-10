@@ -163,6 +163,54 @@ export async function getAthleteModeAccess(userId: string): Promise<{
     where: { userId },
   })
 
+  // Check personal subscription first
+  const personalAccess = checkSubscriptionAccess(subscription)
+  if (personalAccess.allowed) {
+    return personalAccess
+  }
+
+  // If personal subscription doesn't allow it, check if user is a member
+  // of a business where the owner has an active subscription
+  const businessMembership = await prisma.businessMember.findFirst({
+    where: { userId, isActive: true },
+    select: {
+      business: {
+        select: {
+          members: {
+            where: { role: 'OWNER' },
+            select: { userId: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  })
+
+  const ownerId = businessMembership?.business?.members?.[0]?.userId
+  if (ownerId && ownerId !== userId) {
+    const ownerSubscription = await prisma.subscription.findUnique({
+      where: { userId: ownerId },
+    })
+    const ownerAccess = checkSubscriptionAccess(ownerSubscription)
+    if (ownerAccess.allowed) {
+      return ownerAccess
+    }
+  }
+
+  return personalAccess
+}
+
+function checkSubscriptionAccess(subscription: {
+  status: string
+  tier: string
+  trialEndsAt: Date | null
+} | null): {
+  allowed: boolean
+  features: TierFeatures
+  trialActive: boolean
+  trialDaysRemaining?: number
+  reason?: string
+} {
   if (!subscription) {
     return {
       allowed: false,
