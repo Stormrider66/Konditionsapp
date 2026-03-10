@@ -201,7 +201,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     // Team count for this coach
     prisma.team.count({
       where: {
-        businessId: membership.businessId,
+        userId: user.id,
       },
     }),
 
