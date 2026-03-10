@@ -24,7 +24,8 @@ interface DashboardStatCardsProps {
     prsThisWeek: number
     plateauCount: number
   }
-  t: (key: string, params?: Record<string, unknown>) => string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  t: (key: string, params?: Record<string, any>) => string
 }
 
 export function DashboardStatCards({
