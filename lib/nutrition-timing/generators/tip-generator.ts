@@ -21,6 +21,7 @@ import type {
   TipPriority,
   DietaryPreferencesInput,
   NutritionGoalInput,
+  NutritionGoalType,
   TipGeneratorInput,
 } from '../types'
 import {
@@ -59,18 +60,19 @@ export function generatePostCheckInTip(input: TipGeneratorInput): NutritionTip {
     currentTime,
   } = input
 
+  const goalType = input.goal?.goalType
   const hour = currentTime.getHours()
 
   // Priority 1: Today's upcoming workout (if any)
   const upcomingToday = findUpcomingWorkout(todaysWorkouts, currentTime)
   if (upcomingToday) {
-    return generatePreWorkoutTip(upcomingToday, preferences, weightKg, currentTime)
+    return generatePreWorkoutTip(upcomingToday, preferences, weightKg, currentTime, goalType)
   }
 
   // Priority 2: Just completed workout (within last 2 hours)
   const recentlyCompleted = findRecentlyCompletedWorkout(todaysWorkouts, currentTime)
   if (recentlyCompleted) {
-    return generatePostWorkoutTip(recentlyCompleted, preferences, weightKg)
+    return generatePostWorkoutTip(recentlyCompleted, preferences, weightKg, goalType)
   }
 
   // Priority 3: Evening prep for tomorrow's workout
@@ -79,13 +81,13 @@ export function generatePostCheckInTip(input: TipGeneratorInput): NutritionTip {
       (w) => w.intensity === 'THRESHOLD' || w.intensity === 'INTERVAL' || w.intensity === 'MAX'
     )
     if (hardWorkoutTomorrow) {
-      return generatePrepForTomorrowTip(hardWorkoutTomorrow, preferences, weightKg)
+      return generatePrepForTomorrowTip(hardWorkoutTomorrow, preferences, weightKg, goalType)
     }
   }
 
   // Priority 4: Low readiness recovery tip
   if (readinessScore !== undefined && readinessScore < 50) {
-    return generateLowReadinessTip(readinessScore, preferences)
+    return generateLowReadinessTip(readinessScore, preferences, goalType)
   }
 
   // Priority 5: Rest day tip (no workouts today or tomorrow)
@@ -134,7 +136,8 @@ function generatePreWorkoutTip(
   workout: WorkoutContext,
   preferences: DietaryPreferencesInput | undefined,
   weightKg: number,
-  currentTime: Date
+  currentTime: Date,
+  goalType?: NutritionGoalType
 ): NutritionTip {
   const minutesUntil = workout.scheduledTime
     ? differenceInMinutes(workout.scheduledTime, currentTime)
@@ -167,8 +170,8 @@ function generatePreWorkoutTip(
     workout.scheduledTime?.getHours()
   )
 
-  // Get food suggestions filtered by preferences
-  const carbSuggestions = getPreWorkoutCarbs(preferences)
+  // Get food suggestions filtered by preferences and goal
+  const carbSuggestions = getPreWorkoutCarbs(preferences, goalType)
     .slice(0, 3)
     .map((f) => f.nameSv)
     .join(', ')
@@ -205,15 +208,16 @@ function generatePreWorkoutTip(
 function generatePostWorkoutTip(
   workout: WorkoutContext,
   preferences: DietaryPreferencesInput | undefined,
-  weightKg: number
+  weightKg: number,
+  goalType?: NutritionGoalType
 ): NutritionTip {
   const { carbsG, proteinG, windowMinutes, rule } = calculatePostWorkoutNutrition(
     workout.intensity,
     weightKg
   )
 
-  // Get protein suggestions filtered by preferences
-  const proteinSuggestions = getPostWorkoutProtein(preferences)
+  // Get protein suggestions filtered by preferences and goal
+  const proteinSuggestions = getPostWorkoutProtein(preferences, goalType)
     .slice(0, 2)
     .map((f) => f.nameSv)
     .join(' eller ')
@@ -238,13 +242,14 @@ function generatePostWorkoutTip(
 function generatePrepForTomorrowTip(
   workout: WorkoutContext,
   preferences: DietaryPreferencesInput | undefined,
-  weightKg: number
+  weightKg: number,
+  goalType?: NutritionGoalType
 ): NutritionTip {
   const intensityLabel = getIntensityLabelSv(workout.intensity)
   const isLongSession = workout.duration && workout.duration > 90
 
   // Get carb suggestions for dinner
-  const carbSuggestions = getPreWorkoutCarbs(preferences)
+  const carbSuggestions = getPreWorkoutCarbs(preferences, goalType)
     .filter((f) => f.suitableForPreWorkout)
     .slice(0, 2)
     .map((f) => f.nameSv)
@@ -271,9 +276,10 @@ function generatePrepForTomorrowTip(
 
 function generateLowReadinessTip(
   readinessScore: number,
-  preferences: DietaryPreferencesInput | undefined
+  preferences: DietaryPreferencesInput | undefined,
+  goalType?: NutritionGoalType
 ): NutritionTip {
-  const proteinSuggestions = getPostWorkoutProtein(preferences)
+  const proteinSuggestions = getPostWorkoutProtein(preferences, goalType)
     .filter((f) => f.isSwedish)
     .slice(0, 2)
     .map((f) => f.nameSv)
@@ -371,7 +377,8 @@ function generateHydrationTip(weightKg: number): NutritionTip {
 export function generateDuringWorkoutTip(
   workout: WorkoutContext,
   preferences: DietaryPreferencesInput | undefined,
-  weightKg: number
+  weightKg: number,
+  goalType?: NutritionGoalType
 ): NutritionTip | null {
   if (!workout.duration || workout.duration < 60) {
     return null // No during-workout nutrition needed
@@ -387,7 +394,7 @@ export function generateDuringWorkoutTip(
   }
 
   // Get fuel suggestions
-  const fuelSuggestions = getDuringWorkoutFuel(preferences)
+  const fuelSuggestions = getDuringWorkoutFuel(preferences, goalType)
     .slice(0, 3)
     .map((f) => f.nameSv)
     .join(', ')

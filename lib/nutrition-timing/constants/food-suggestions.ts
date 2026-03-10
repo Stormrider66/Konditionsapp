@@ -11,7 +11,7 @@
  * - Timing suitability (pre/during/post workout)
  */
 
-import type { FoodSuggestion, DietaryPreferencesInput } from '../types'
+import type { FoodSuggestion, DietaryPreferencesInput, NutritionGoalType } from '../types'
 
 // ==========================================
 // CARBOHYDRATE SOURCES
@@ -779,27 +779,75 @@ export function filterByPreferences(
 }
 
 /**
+ * Sort food suggestions based on the athlete's nutrition goal.
+ * Reorders existing foods — no filtering, no new data.
+ */
+export function sortByGoal(
+  foods: FoodSuggestion[],
+  goalType?: NutritionGoalType
+): FoodSuggestion[] {
+  if (!goalType || goalType === 'MAINTAIN') return foods
+
+  const sorted = [...foods]
+
+  if (goalType === 'WEIGHT_LOSS') {
+    // Lower-calorie foods first; tiebreaker: higher protein ratio
+    sorted.sort((a, b) => {
+      const calDiff = a.caloriesKcal - b.caloriesKcal
+      if (calDiff !== 0) return calDiff
+      const ratioA = a.caloriesKcal > 0 ? a.proteinG / a.caloriesKcal : 0
+      const ratioB = b.caloriesKcal > 0 ? b.proteinG / b.caloriesKcal : 0
+      return ratioB - ratioA
+    })
+  } else if (goalType === 'WEIGHT_GAIN') {
+    // Calorie-dense foods first
+    sorted.sort((a, b) => b.caloriesKcal - a.caloriesKcal)
+  } else if (goalType === 'BODY_RECOMP') {
+    // High protein density first
+    sorted.sort((a, b) => {
+      const ratioA = a.caloriesKcal > 0 ? a.proteinG / a.caloriesKcal : 0
+      const ratioB = b.caloriesKcal > 0 ? b.proteinG / b.caloriesKcal : 0
+      return ratioB - ratioA
+    })
+  }
+
+  return sorted
+}
+
+/**
  * Get carb sources suitable for pre-workout
  */
-export function getPreWorkoutCarbs(preferences?: DietaryPreferencesInput): FoodSuggestion[] {
+export function getPreWorkoutCarbs(
+  preferences?: DietaryPreferencesInput,
+  goalType?: NutritionGoalType
+): FoodSuggestion[] {
   const suitable = CARB_SOURCES.filter((f) => f.suitableForPreWorkout)
-  return preferences ? filterByPreferences(suitable, preferences) : suitable
+  const filtered = preferences ? filterByPreferences(suitable, preferences) : suitable
+  return sortByGoal(filtered, goalType)
 }
 
 /**
  * Get protein sources suitable for post-workout
  */
-export function getPostWorkoutProtein(preferences?: DietaryPreferencesInput): FoodSuggestion[] {
+export function getPostWorkoutProtein(
+  preferences?: DietaryPreferencesInput,
+  goalType?: NutritionGoalType
+): FoodSuggestion[] {
   const suitable = PROTEIN_SOURCES.filter((f) => f.suitableForPostWorkout)
-  return preferences ? filterByPreferences(suitable, preferences) : suitable
+  const filtered = preferences ? filterByPreferences(suitable, preferences) : suitable
+  return sortByGoal(filtered, goalType)
 }
 
 /**
  * Get foods suitable for during-workout fueling
  */
-export function getDuringWorkoutFuel(preferences?: DietaryPreferencesInput): FoodSuggestion[] {
+export function getDuringWorkoutFuel(
+  preferences?: DietaryPreferencesInput,
+  goalType?: NutritionGoalType
+): FoodSuggestion[] {
   const suitable = DURING_WORKOUT_FUEL.filter((f) => f.suitableForDuring)
-  return preferences ? filterByPreferences(suitable, preferences) : suitable
+  const filtered = preferences ? filterByPreferences(suitable, preferences) : suitable
+  return sortByGoal(filtered, goalType)
 }
 
 /**
@@ -807,12 +855,14 @@ export function getDuringWorkoutFuel(preferences?: DietaryPreferencesInput): Foo
  */
 export function getMixedMeals(
   timing: 'pre' | 'post',
-  preferences?: DietaryPreferencesInput
+  preferences?: DietaryPreferencesInput,
+  goalType?: NutritionGoalType
 ): FoodSuggestion[] {
   const suitable = MIXED_FOODS.filter((f) =>
     timing === 'pre' ? f.suitableForPreWorkout : f.suitableForPostWorkout
   )
-  return preferences ? filterByPreferences(suitable, preferences) : suitable
+  const filtered = preferences ? filterByPreferences(suitable, preferences) : suitable
+  return sortByGoal(filtered, goalType)
 }
 
 /**
@@ -821,7 +871,8 @@ export function getMixedMeals(
 export function getFoodsForCarbTarget(
   targetCarbsG: number,
   preferences?: DietaryPreferencesInput,
-  timing?: 'pre' | 'during' | 'post'
+  timing?: 'pre' | 'during' | 'post',
+  goalType?: NutritionGoalType
 ): FoodSuggestion[] {
   let pool: FoodSuggestion[]
 
@@ -843,9 +894,10 @@ export function getFoodsForCarbTarget(
 
   // Return foods within 20% of target
   const tolerance = targetCarbsG * 0.2
-  return filtered.filter(
+  const matched = filtered.filter(
     (f) => f.carbsG && f.carbsG >= targetCarbsG - tolerance && f.carbsG <= targetCarbsG + tolerance
   )
+  return sortByGoal(matched, goalType)
 }
 
 /**
@@ -853,19 +905,21 @@ export function getFoodsForCarbTarget(
  */
 export function getFoodsForProteinTarget(
   targetProteinG: number,
-  preferences?: DietaryPreferencesInput
+  preferences?: DietaryPreferencesInput,
+  goalType?: NutritionGoalType
 ): FoodSuggestion[] {
   const filtered = preferences
     ? filterByPreferences(PROTEIN_SOURCES, preferences)
     : PROTEIN_SOURCES
 
   const tolerance = targetProteinG * 0.2
-  return filtered.filter(
+  const matched = filtered.filter(
     (f) =>
       f.proteinG &&
       f.proteinG >= targetProteinG - tolerance &&
       f.proteinG <= targetProteinG + tolerance
   )
+  return sortByGoal(matched, goalType)
 }
 
 /**

@@ -22,6 +22,7 @@ import type {
   NutritionTip,
   GuidanceGeneratorInput,
   FoodSuggestion,
+  NutritionGoalType,
 } from '../types'
 import {
   DAILY_CARB_TARGETS,
@@ -66,6 +67,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
   const weightKg = client.weightKg
   const isRestDay = todaysWorkouts.length === 0
   const isDoubleDay = todaysWorkouts.length >= 2
+  const goalType = goal?.goalType
 
   // Determine if it's race week (look for race in next 7 days)
   const isRaceWeek = false // TODO: Integrate with race calendar
@@ -75,7 +77,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
     weightKg,
     todaysWorkouts,
     isRestDay,
-    goal?.goalType,
+    goalType,
     bodyComposition?.bmrKcal
   )
 
@@ -84,19 +86,22 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
     todaysWorkouts,
     preferences ?? undefined,
     weightKg,
-    currentTime
+    currentTime,
+    goalType
   )
 
   const duringWorkoutGuidance = generateDuringWorkoutGuidanceList(
     todaysWorkouts,
     preferences ?? undefined,
-    weightKg
+    weightKg,
+    goalType
   )
 
   const postWorkoutGuidance = generatePostWorkoutGuidanceList(
     todaysWorkouts,
     preferences ?? undefined,
-    weightKg
+    weightKg,
+    goalType
   )
 
   // Generate tips
@@ -114,7 +119,8 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
     todaysWorkouts,
     targets,
     preferences ?? undefined,
-    isRestDay
+    isRestDay,
+    goalType
   )
 
   return {
@@ -205,6 +211,9 @@ function calculateDailyTargets(
   } else if (goalType === 'WEIGHT_GAIN') {
     caloriesKcal = Math.round(caloriesKcal * 1.1) // 10% surplus
     carbsG = Math.round(carbsG * 1.1)
+  } else if (goalType === 'BODY_RECOMP') {
+    proteinG = Math.round(proteinG * 1.15) // 15% more protein
+    fatG = Math.round(fatG * 0.90) // slight fat reduction
   }
 
   // TDEE sanity cap: if BMR is available, estimate TDEE and cap macro-derived
@@ -244,7 +253,8 @@ function generatePreWorkoutGuidanceList(
   workouts: WorkoutContext[],
   preferences: import('../types').DietaryPreferencesInput | undefined,
   weightKg: number,
-  currentTime: Date
+  currentTime: Date,
+  goalType?: NutritionGoalType
 ): NutritionGuidance[] {
   return workouts
     .filter((w) => {
@@ -265,7 +275,7 @@ function generatePreWorkoutGuidanceList(
       const proteinG = Math.round(weightKg * rule.proteinPerKg)
 
       // Get filtered food suggestions
-      const foodSuggestions = getPreWorkoutCarbs(preferences).slice(0, 5)
+      const foodSuggestions = getPreWorkoutCarbs(preferences, goalType).slice(0, 5)
 
       // Determine timing label
       let timingLabel: string
@@ -296,7 +306,8 @@ function generatePreWorkoutGuidanceList(
 function generateDuringWorkoutGuidanceList(
   workouts: WorkoutContext[],
   preferences: import('../types').DietaryPreferencesInput | undefined,
-  weightKg: number
+  weightKg: number,
+  goalType?: NutritionGoalType
 ): NutritionGuidance[] {
   return workouts
     .filter((w) => w.duration && w.duration >= 60)
@@ -306,7 +317,7 @@ function generateDuringWorkoutGuidanceList(
         weightKg
       )
 
-      const foodSuggestions = getDuringWorkoutFuel(preferences).slice(0, 4)
+      const foodSuggestions = getDuringWorkoutFuel(preferences, goalType).slice(0, 4)
 
       let recommendation: string
       if (needsMultipleTransportable) {
@@ -332,7 +343,8 @@ function generateDuringWorkoutGuidanceList(
 function generatePostWorkoutGuidanceList(
   workouts: WorkoutContext[],
   preferences: import('../types').DietaryPreferencesInput | undefined,
-  weightKg: number
+  weightKg: number,
+  goalType?: NutritionGoalType
 ): NutritionGuidance[] {
   return workouts.map((workout) => {
     const { carbsG, proteinG, windowMinutes, rule } = calculatePostWorkoutNutrition(
@@ -341,8 +353,8 @@ function generatePostWorkoutGuidanceList(
     )
 
     const foodSuggestions = [
-      ...getPostWorkoutProtein(preferences).slice(0, 3),
-      ...getPreWorkoutCarbs(preferences).slice(0, 2),
+      ...getPostWorkoutProtein(preferences, goalType).slice(0, 3),
+      ...getPreWorkoutCarbs(preferences, goalType).slice(0, 2),
     ]
 
     const windowLabel =
@@ -449,15 +461,46 @@ function generateMealStructure(
   workouts: WorkoutContext[],
   targets: DailyMacroTargets,
   preferences: import('../types').DietaryPreferencesInput | undefined,
-  isRestDay: boolean
+  isRestDay: boolean,
+  goalType?: NutritionGoalType
 ): DailyNutritionGuidance['mealSuggestions'] {
   // Get appropriate foods
-  const carbFoods = getPreWorkoutCarbs(preferences)
-  const proteinFoods = getPostWorkoutProtein(preferences)
-  const mixedMeals = getMixedMeals('pre', preferences)
+  const carbFoods = getPreWorkoutCarbs(preferences, goalType)
+  const proteinFoods = getPostWorkoutProtein(preferences, goalType)
+  const mixedMeals = getMixedMeals('pre', preferences, goalType)
 
   // Simple structure suggestions
   if (isRestDay) {
+    if (goalType === 'WEIGHT_LOSS') {
+      return {
+        breakfast: 'Ägg med grönsaker (skippa brödet eller välj 1 skiva)',
+        morningSnack: 'Kvarg med bär',
+        lunch: 'Sallad med protein (kyckling/lax/tofu) och grönsaker',
+        afternoonSnack: 'Cottage cheese eller proteinshake',
+        dinner: 'Kyckling eller fisk med grönsaker',
+        eveningSnack: 'Kvarg med kanel (valfritt)',
+      }
+    }
+    if (goalType === 'WEIGHT_GAIN') {
+      return {
+        breakfast: 'Havregrynsgröt med banan, nötter och honung',
+        morningSnack: 'Smoothie med proteinpulver och frukt',
+        lunch: 'Kyckling/lax med ris och grönsaker, extra portion',
+        afternoonSnack: 'Smörgås med ost och skinka',
+        dinner: 'Lax med potatis, grönsaker och olivolja',
+        eveningSnack: 'Kvarg med müsli och bär',
+      }
+    }
+    if (goalType === 'BODY_RECOMP') {
+      return {
+        breakfast: 'Ägg med fullkornsbröd och grönsaker',
+        morningSnack: 'Kvarg med bär',
+        lunch: 'Sallad med dubbel protein (kyckling/lax/tofu) och baljväxter',
+        afternoonSnack: 'Cottage cheese eller proteinshake',
+        dinner: 'Kyckling eller fisk med sötpotatis och grönsaker',
+        eveningSnack: 'Cottage cheese med bär (valfritt)',
+      }
+    }
     return {
       breakfast: 'Ägg med fullkornsbröd och grönsaker',
       morningSnack: 'Frukt med nötter',
