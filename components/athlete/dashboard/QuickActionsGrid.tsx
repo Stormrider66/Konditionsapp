@@ -93,7 +93,7 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
 
       {/* Food photo scanner sheet */}
       <Sheet open={foodScannerOpen} onOpenChange={setFoodScannerOpen}>
-        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto bg-slate-900 text-white border-slate-700">
           <SheetHeader>
             <SheetTitle>Fota din mat</SheetTitle>
           </SheetHeader>
@@ -109,9 +109,9 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
 
       {/* Voice meal capture sheet */}
       <Sheet open={voiceMealOpen} onOpenChange={setVoiceMealOpen}>
-        <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
+        <SheetContent side="bottom" className="h-[85vh] overflow-y-auto bg-slate-900 text-white border-slate-700">
           <SheetHeader>
-            <SheetTitle>Beskriv din måltid</SheetTitle>
+            <SheetTitle className="text-white">Beskriv din måltid</SheetTitle>
           </SheetHeader>
           <VoiceMealCapture
             onMealSaved={() => {

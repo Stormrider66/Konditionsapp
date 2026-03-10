@@ -418,7 +418,7 @@ export function FoodPhotoScanner({
               <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant="outline"
-                  className="h-28 flex-col gap-2 bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white"
                   onClick={() => cameraInputRef.current?.click()}
                 >
                   <Camera className="h-7 w-7" />
@@ -435,7 +435,7 @@ export function FoodPhotoScanner({
 
                 <Button
                   variant="outline"
-                  className="h-28 flex-col gap-2 bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload className="h-7 w-7" />
@@ -449,7 +449,7 @@ export function FoodPhotoScanner({
                   onChange={handleFileSelect}
                 />
               </div>
-              <p className="text-center text-xs text-slate-400">
+              <p className="text-center text-xs text-slate-500 dark:text-slate-400">
                 Ta en bild av din måltid för att automatiskt uppskatta kalorier och makros
               </p>
             </div>
