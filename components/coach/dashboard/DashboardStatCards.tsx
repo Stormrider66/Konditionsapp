@@ -3,7 +3,7 @@ import {
   GlassCard,
   GlassCardContent,
 } from '@/components/ui/GlassCard'
-import { Activity, Users, Calendar, AlertCircle, ArrowRight } from 'lucide-react'
+import { Activity, Users, Calendar, AlertCircle, ArrowRight, Dumbbell, Trophy, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DashboardMode } from '@/lib/coach/dashboard-mode'
 
@@ -19,6 +19,11 @@ interface DashboardStatCardsProps {
     medium: number
     low: number
   }
+  gymStats?: {
+    activeAssignments: number
+    prsThisWeek: number
+    plateauCount: number
+  }
   t: (key: string, params?: Record<string, unknown>) => string
 }
 
@@ -30,6 +35,7 @@ export function DashboardStatCards({
   logsNeedingFeedbackCount,
   mode,
   readinessDistribution,
+  gymStats,
   t,
 }: DashboardStatCardsProps) {
   return (
@@ -51,37 +57,69 @@ export function DashboardStatCards({
         </GlassCard>
       </Link>
 
-      <Link href={`${basePath}/coach/programs`}>
-        <GlassCard className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 dark:ring-0 hover:scale-[1.02] transition-transform cursor-pointer">
+      {/* Card 2: GYM = Aktiva pass, others = Active programs */}
+      {mode === 'GYM' && gymStats ? (
+        <GlassCard className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 dark:ring-0">
           <GlassCardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm">{t('activePrograms')}</p>
-                <p className="text-3xl font-bold">{activeProgramsCount}</p>
+                <p className="text-green-100 text-sm">Aktiva pass</p>
+                <p className="text-3xl font-bold">{gymStats.activeAssignments}</p>
               </div>
-              <Calendar className="h-8 w-8 opacity-80" />
+              <Dumbbell className="h-8 w-8 opacity-80" />
             </div>
-            <p className="text-xs text-green-100 flex items-center gap-1 mt-2">
-              {t('viewPrograms')} <ArrowRight className="h-3 w-3" />
-            </p>
+            <p className="text-xs text-green-100 mt-2">Schemalagda & väntande</p>
           </GlassCardContent>
         </GlassCard>
-      </Link>
+      ) : (
+        <Link href={`${basePath}/coach/programs`}>
+          <GlassCard className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 dark:ring-0 hover:scale-[1.02] transition-transform cursor-pointer">
+            <GlassCardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-sm">{t('activePrograms')}</p>
+                  <p className="text-3xl font-bold">{activeProgramsCount}</p>
+                </div>
+                <Calendar className="h-8 w-8 opacity-80" />
+              </div>
+              <p className="text-xs text-green-100 flex items-center gap-1 mt-2">
+                {t('viewPrograms')} <ArrowRight className="h-3 w-3" />
+              </p>
+            </GlassCardContent>
+          </GlassCard>
+        </Link>
+      )}
 
-      <GlassCard className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 dark:ring-0">
-        <GlassCardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm">{t('workoutsThisWeek')}</p>
-              <p className="text-3xl font-bold">{completedLogsThisWeek}</p>
+      {/* Card 3: GYM = PRs denna vecka, others = Completed workouts */}
+      {mode === 'GYM' && gymStats ? (
+        <GlassCard className="bg-gradient-to-br from-yellow-500 to-amber-600 text-white border-0 dark:ring-0">
+          <GlassCardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-yellow-100 text-sm">PRs denna vecka</p>
+                <p className="text-3xl font-bold">{gymStats.prsThisWeek}</p>
+              </div>
+              <Trophy className="h-8 w-8 opacity-80" />
             </div>
-            <Activity className="h-8 w-8 opacity-80" />
-          </div>
-          <p className="text-xs text-purple-100 mt-2">{t('completedByAthletes')}</p>
-        </GlassCardContent>
-      </GlassCard>
+            <p className="text-xs text-yellow-100 mt-2">Nya personliga rekord</p>
+          </GlassCardContent>
+        </GlassCard>
+      ) : (
+        <GlassCard className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 dark:ring-0">
+          <GlassCardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100 text-sm">{t('workoutsThisWeek')}</p>
+                <p className="text-3xl font-bold">{completedLogsThisWeek}</p>
+              </div>
+              <Activity className="h-8 w-8 opacity-80" />
+            </div>
+            <p className="text-xs text-purple-100 mt-2">{t('completedByAthletes')}</p>
+          </GlassCardContent>
+        </GlassCard>
+      )}
 
-      {/* 4th card: TEAM mode shows readiness distribution, PT/GYM shows needs feedback */}
+      {/* Card 4: TEAM = readiness, GYM = plateaus, PT = needs feedback */}
       {mode === 'TEAM' && readinessDistribution ? (
         <GlassCard className="bg-gradient-to-br from-teal-500 to-teal-600 text-white border-0 dark:ring-0">
           <GlassCardContent className="p-4">
@@ -106,6 +144,28 @@ export function DashboardStatCards({
               <Activity className="h-8 w-8 opacity-80" />
             </div>
             <p className="text-xs text-teal-100 mt-2">Lagets beredskap idag</p>
+          </GlassCardContent>
+        </GlassCard>
+      ) : mode === 'GYM' && gymStats ? (
+        <GlassCard className={cn(
+          'border-0 dark:ring-0',
+          gymStats.plateauCount > 0
+            ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white'
+            : 'bg-gradient-to-br from-slate-500 to-slate-600 text-white'
+        )}>
+          <GlassCardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={gymStats.plateauCount > 0 ? 'text-amber-100 text-sm' : 'text-slate-100 text-sm'}>
+                  Platåer
+                </p>
+                <p className="text-3xl font-bold">{gymStats.plateauCount}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 opacity-80" />
+            </div>
+            <p className={`text-xs mt-2 ${gymStats.plateauCount > 0 ? 'text-amber-100' : 'text-slate-100'}`}>
+              Övningar som stagnerat
+            </p>
           </GlassCardContent>
         </GlassCard>
       ) : (

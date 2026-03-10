@@ -77,7 +77,56 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount }: Coac
     )
   }
 
-  // PT / GYM mode — same 7 links as original
+  // GYM mode — strength-focused quick links
+  if (mode === 'GYM') {
+    return (
+      <GlassCard>
+        <GlassCardHeader className="pb-3">
+          <GlassCardTitle className="text-base">Snabblänkar</GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent className="grid grid-cols-2 gap-2">
+          <Link href={`${basePath}/coach/strength`} className="block">
+            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+              <Dumbbell className="h-5 w-5 text-orange-500" />
+              <span className="text-xs dark:text-slate-300">Styrkepass</span>
+            </div>
+          </Link>
+          <Link href={`${basePath}/coach/strength`} className="block">
+            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+              <Target className="h-5 w-5 text-yellow-500" />
+              <span className="text-xs dark:text-slate-300">Logga PR</span>
+            </div>
+          </Link>
+          <Link href={`${basePath}/coach/strength`} className="block">
+            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+              <ClipboardList className="h-5 w-5 text-cyan-500" />
+              <span className="text-xs dark:text-slate-300">Övningar</span>
+            </div>
+          </Link>
+          <Link href={`${basePath}/coach/clients`} className="block">
+            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+              <Users className="h-5 w-5 text-blue-500" />
+              <span className="text-xs dark:text-slate-300">Kroppsmätning</span>
+            </div>
+          </Link>
+          <Link href={`${basePath}/coach/ai-studio`} className="block">
+            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+              <Sparkles className="h-5 w-5 text-purple-500" />
+              <span className="text-xs dark:text-slate-300">AI Studio</span>
+            </div>
+          </Link>
+          <Link href={`${basePath}/coach/strength`} className="block">
+            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+              <Timer className="h-5 w-5 text-teal-500" />
+              <span className="text-xs dark:text-slate-300">Tilldela pass</span>
+            </div>
+          </Link>
+        </GlassCardContent>
+      </GlassCard>
+    )
+  }
+
+  // PT mode — 7 links
   return (
     <GlassCard>
       <GlassCardHeader className="pb-3">

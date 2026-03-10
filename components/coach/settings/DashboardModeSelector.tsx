@@ -46,10 +46,9 @@ const MODE_OPTIONS: {
   {
     key: 'GYM',
     label: 'Gym Coach',
-    description: 'Gym- och studioverksamhet',
+    description: 'Styrketräning, PRs, platåer och kroppsmätningar',
     icon: Dumbbell,
     color: 'border-purple-500 bg-purple-50 dark:bg-purple-900/20',
-    disabled: true,
   },
 ]
 

@@ -1,7 +1,7 @@
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
-import { subDays, addDays, startOfDay, endOfDay } from 'date-fns'
+import { subDays, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns'
 import { sv, enUS } from 'date-fns/locale'
 import { getTranslations, getLocale } from '@/i18n/server'
 import { notFound } from 'next/navigation'
@@ -10,6 +10,7 @@ import { DashboardStatCards } from '@/components/coach/dashboard/DashboardStatCa
 import { DashboardModeIndicator } from '@/components/coach/dashboard/DashboardModeIndicator'
 import { PTDashboardLayout } from '@/components/coach/dashboard/PTDashboardLayout'
 import { TeamDashboardLayout } from '@/components/coach/dashboard/TeamDashboardLayout'
+import { GymDashboardLayout } from '@/components/coach/dashboard/GymDashboardLayout'
 import type { SportType } from '@/types'
 
 interface BusinessDashboardPageProps {
@@ -256,6 +257,42 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
   })
   const highLoadAthletes = Array.from(loadByAthlete.values()).filter(a => a.load > 600)
 
+  // GYM-specific server queries for stat cards
+  let gymStats: { activeAssignments: number; prsThisWeek: number; plateauCount: number } | undefined
+  if (mode === 'GYM') {
+    const gymWeekStart = startOfWeek(now, { weekStartsOn: 1 })
+    const gymWeekEnd = endOfWeek(now, { weekStartsOn: 1 })
+    const [activeAssignments, prsThisWeek, plateauData] = await Promise.all([
+      prisma.strengthSessionAssignment.count({
+        where: {
+          athlete: { userId: { in: coachIds } },
+          assignedDate: { gte: gymWeekStart, lte: gymWeekEnd },
+          status: { in: ['PENDING', 'SCHEDULED'] },
+        },
+      }),
+      prisma.oneRepMaxHistory.count({
+        where: {
+          client: { userId: { in: coachIds } },
+          date: { gte: sevenDaysAgo },
+        },
+      }),
+      prisma.progressionTracking.findMany({
+        where: {
+          client: { userId: { in: coachIds } },
+          plateauWeeks: { gte: 3 },
+          date: { gte: subDays(now, 30) },
+        },
+        select: { clientId: true, exerciseId: true },
+        distinct: ['clientId', 'exerciseId'],
+      }),
+    ])
+    gymStats = {
+      activeAssignments,
+      prsThisWeek,
+      plateauCount: plateauData.length,
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="container mx-auto py-6 px-4 max-w-7xl">
@@ -284,6 +321,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
               ? { high: highReadiness, medium: mediumReadiness, low: lowReadiness }
               : undefined
           }
+          gymStats={gymStats}
           t={t}
         />
 
@@ -298,6 +336,11 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
               low: lowReadiness,
               total: readinessScores.length,
             }}
+          />
+        ) : mode === 'GYM' ? (
+          <GymDashboardLayout
+            basePath={basePath}
+            pendingFeedbackCount={logsNeedingFeedback.length}
           />
         ) : (
           <PTDashboardLayout
