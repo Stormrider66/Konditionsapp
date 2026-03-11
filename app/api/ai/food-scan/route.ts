@@ -49,11 +49,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
-    if (!validTypes.includes(imageFile.type)) {
+    // Validate file type (normalize non-standard MIME types from some Android devices)
+    const normalizedType = imageFile.type === 'image/jpg' ? 'image/jpeg' : imageFile.type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+    if (!validTypes.includes(normalizedType)) {
       return NextResponse.json(
-        { error: 'Ogiltigt bildformat. Använd JPEG, PNG, WebP eller HEIC.' },
+        { error: `Ogiltigt bildformat (${imageFile.type || 'okänt'}). Använd JPEG, PNG eller WebP.` },
         { status: 400 }
       )
     }
@@ -104,6 +105,13 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await imageFile.arrayBuffer()
     const base64 = Buffer.from(arrayBuffer).toString('base64')
 
+    // Use normalized MIME type for the data URL sent to Gemini.
+    // Gemini supports JPEG, PNG, WebP, GIF — for HEIC/HEIF we still send
+    // the base64 and let Gemini attempt it (better than blocking the user).
+    const mimeForGemini = normalizedType === 'image/heic' || normalizedType === 'image/heif'
+      ? 'image/jpeg' // Best-effort: HEIC bytes may still work as Gemini does internal conversion
+      : normalizedType
+
     // Initialize Gemini
     const google = createGoogleGenerativeAI({
       apiKey: googleKey,
@@ -119,7 +127,7 @@ export async function POST(request: NextRequest) {
           content: [
             {
               type: 'image',
-              image: `data:${imageFile.type};base64,${base64}`,
+              image: `data:${mimeForGemini};base64,${base64}`,
             },
             {
               type: 'text',

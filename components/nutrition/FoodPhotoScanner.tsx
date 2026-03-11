@@ -125,11 +125,51 @@ export function FoodPhotoScanner({
     }
 
     setError(null)
-    setImageFile(file)
 
+    // Convert to JPEG via canvas to normalize format across all devices
+    // (some Android phones send image/jpg, HEIC, or other non-standard types)
     const reader = new FileReader()
     reader.onload = (e) => {
-      setImagePreview(e.target?.result as string)
+      const dataUrl = e.target?.result as string
+      const img = new Image()
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.naturalWidth
+          canvas.height = img.naturalHeight
+          const ctx = canvas.getContext('2d')
+          if (ctx) {
+            ctx.drawImage(img, 0, 0)
+            canvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const jpegFile = new File([blob], 'photo.jpg', { type: 'image/jpeg' })
+                  setImageFile(jpegFile)
+                  setImagePreview(URL.createObjectURL(blob))
+                } else {
+                  // Fallback: use original file
+                  setImageFile(file)
+                  setImagePreview(dataUrl)
+                }
+              },
+              'image/jpeg',
+              0.92
+            )
+          } else {
+            setImageFile(file)
+            setImagePreview(dataUrl)
+          }
+        } catch {
+          setImageFile(file)
+          setImagePreview(dataUrl)
+        }
+      }
+      img.onerror = () => {
+        // Fallback: use original file if canvas conversion fails
+        setImageFile(file)
+        setImagePreview(dataUrl)
+      }
+      img.src = dataUrl
     }
     reader.readAsDataURL(file)
   }, [])
@@ -155,15 +195,15 @@ export function FoodPhotoScanner({
         return
       }
 
-      if (response.status === 400) {
-        const data = await response.json()
-        setError(data.error || 'Kunde inte analysera bilden.')
+      if (response.status === 401) {
+        setError('Du behöver aktivera atletläge för att skanna mat. Gå till inställningar och aktivera atletläge.')
         setStep('CAPTURE')
         return
       }
 
       if (!response.ok) {
-        setError('Kunde inte analysera bilden. Försök igen.')
+        const data = await response.json().catch(() => null)
+        setError(data?.error || 'Kunde inte analysera bilden. Försök igen.')
         setStep('CAPTURE')
         return
       }
