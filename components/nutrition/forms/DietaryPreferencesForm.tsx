@@ -46,6 +46,7 @@ const preferencesSchema = z.object({
   preferLowFODMAP: z.boolean().optional(),
   preferWholeGrain: z.boolean().optional(),
   preferSwedishFoods: z.boolean().optional(),
+  enhancedMacroAnalysis: z.boolean().optional(),
 })
 
 type PreferencesFormData = z.infer<typeof preferencesSchema>
@@ -99,6 +100,7 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
       preferLowFODMAP: initialData?.preferLowFODMAP || false,
       preferWholeGrain: initialData?.preferWholeGrain ?? true,
       preferSwedishFoods: initialData?.preferSwedishFoods ?? true,
+      enhancedMacroAnalysis: initialData?.enhancedMacroAnalysis ?? false,
     },
   })
 
@@ -356,6 +358,24 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
                     <FormLabel className="text-sm">Svenska livsmedel</FormLabel>
                     <FormDescription className="text-xs">
                       Prioritera svenska/nordiska livsmedel
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="enhancedMacroAnalysis"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-sm">Detaljerad makroanalys</FormLabel>
+                    <FormDescription className="text-xs">
+                      AI-analysen inkluderar fetttyper (mättat, omättat), sockerinnehåll och proteinkvalitet. Kan ta 1–2 sekunder extra.
                     </FormDescription>
                   </div>
                   <FormControl>

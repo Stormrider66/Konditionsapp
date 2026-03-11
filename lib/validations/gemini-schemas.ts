@@ -433,6 +433,12 @@ export const FoodPhotoAnalysisSchema = z.object({
       carbsGrams: z.number().describe('Estimated carbs in grams'),
       fatGrams: z.number().describe('Estimated fat in grams'),
       fiberGrams: z.number().describe('Estimated fiber in grams'),
+      saturatedFatGrams: z.number().optional().describe('Saturated fat in grams'),
+      monounsaturatedFatGrams: z.number().optional().describe('Monounsaturated fat in grams'),
+      polyunsaturatedFatGrams: z.number().optional().describe('Polyunsaturated fat in grams'),
+      sugarGrams: z.number().optional().describe('Sugar in grams'),
+      complexCarbsGrams: z.number().optional().describe('Complex carbs (starch) in grams'),
+      isCompleteProtein: z.boolean().optional().describe('Whether this item is a complete protein source'),
     })
   ),
 
@@ -442,6 +448,11 @@ export const FoodPhotoAnalysisSchema = z.object({
     carbsGrams: z.number().describe('Total carbs in grams'),
     fatGrams: z.number().describe('Total fat in grams'),
     fiberGrams: z.number().describe('Total fiber in grams'),
+    saturatedFatGrams: z.number().optional().describe('Total saturated fat in grams'),
+    monounsaturatedFatGrams: z.number().optional().describe('Total monounsaturated fat in grams'),
+    polyunsaturatedFatGrams: z.number().optional().describe('Total polyunsaturated fat in grams'),
+    sugarGrams: z.number().optional().describe('Total sugar in grams'),
+    complexCarbsGrams: z.number().optional().describe('Total complex carbs in grams'),
   }),
 
   mealDescription: z.string().describe('Brief Swedish description of the meal for MealLog'),

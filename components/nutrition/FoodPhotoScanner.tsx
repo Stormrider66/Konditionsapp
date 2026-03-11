@@ -33,6 +33,8 @@ import {
   Mic,
   MicOff,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import type { FoodPhotoAnalysisResult } from '@/lib/validations/gemini-schemas'
 
@@ -58,6 +60,12 @@ interface FoodItem {
   carbsGrams: number
   fatGrams: number
   fiberGrams: number
+  saturatedFatGrams?: number
+  monounsaturatedFatGrams?: number
+  polyunsaturatedFatGrams?: number
+  sugarGrams?: number
+  complexCarbsGrams?: number
+  isCompleteProtein?: boolean
 }
 
 interface FoodPhotoScannerProps {
@@ -88,6 +96,8 @@ export function FoodPhotoScanner({
   const [mealDescription, setMealDescription] = useState('')
   const [notes, setNotes] = useState('')
   const [confidence, setConfidence] = useState(0)
+  const [enhancedMode, setEnhancedMode] = useState(false)
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set())
 
   // Refinement state
   const [refinementText, setRefinementText] = useState('')
@@ -168,6 +178,7 @@ export function FoodPhotoScanner({
       }
 
       // Populate review state
+      setEnhancedMode(data.enhancedMode ?? false)
       setItems(result.items)
       setMealDescription(result.mealDescription)
       setConfidence(result.confidence)
@@ -207,6 +218,13 @@ export function FoodPhotoScanner({
           carbsGrams: Math.round(totals.carbsGrams * 10) / 10,
           fatGrams: Math.round(totals.fatGrams * 10) / 10,
           fiberGrams: Math.round(totals.fiberGrams * 10) / 10,
+          ...(enhancedMode && totals.saturatedFatGrams != null ? {
+            saturatedFatGrams: Math.round(totals.saturatedFatGrams * 10) / 10,
+            monounsaturatedFatGrams: Math.round((totals.monounsaturatedFatGrams ?? 0) * 10) / 10,
+            polyunsaturatedFatGrams: Math.round((totals.polyunsaturatedFatGrams ?? 0) * 10) / 10,
+            sugarGrams: Math.round((totals.sugarGrams ?? 0) * 10) / 10,
+            complexCarbsGrams: Math.round((totals.complexCarbsGrams ?? 0) * 10) / 10,
+          } : {}),
           notes: notes || undefined,
         }),
       })
@@ -234,6 +252,8 @@ export function FoodPhotoScanner({
     setMealDescription('')
     setNotes('')
     setConfidence(0)
+    setEnhancedMode(false)
+    setExpandedItems(new Set())
     setRefinementText('')
     setIsRefining(false)
     setIsRecording(false)
@@ -291,6 +311,7 @@ export function FoodPhotoScanner({
       const result: FoodPhotoAnalysisResult = data.result
 
       if (result.success) {
+        if (data.enhancedMode != null) setEnhancedMode(data.enhancedMode)
         setItems(result.items)
         setMealDescription(result.mealDescription)
         setConfidence(result.confidence)
@@ -651,6 +672,40 @@ export function FoodPhotoScanner({
                           />
                         </div>
                       </div>
+                      {/* Enhanced macro subcategories */}
+                      {enhancedMode && item.saturatedFatGrams != null && (
+                        <>
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 mt-2 text-[10px] text-cyan-400 hover:text-cyan-300"
+                            onClick={() => setExpandedItems(prev => {
+                              const next = new Set(prev)
+                              if (next.has(index)) next.delete(index)
+                              else next.add(index)
+                              return next
+                            })}
+                          >
+                            {expandedItems.has(index) ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            Detaljerad analys
+                          </button>
+                          {expandedItems.has(index) && (
+                            <div className="mt-1.5 p-2 rounded bg-white/5 space-y-1.5">
+                              <div className="text-[10px] text-slate-400">
+                                <span className="font-medium">Fett:</span>{' '}
+                                {item.saturatedFatGrams?.toFixed(1)}g mättat, {item.monounsaturatedFatGrams?.toFixed(1)}g enkelomättat, {item.polyunsaturatedFatGrams?.toFixed(1)}g fleromättat
+                              </div>
+                              <div className="text-[10px] text-slate-400">
+                                <span className="font-medium">Kolhydrater:</span>{' '}
+                                {item.sugarGrams?.toFixed(1)}g socker, {item.complexCarbsGrams?.toFixed(1)}g komplexa
+                              </div>
+                              <div className="text-[10px] text-slate-400">
+                                <span className="font-medium">Protein:</span>{' '}
+                                {item.isCompleteProtein ? 'Komplett proteinkälla' : 'Ej komplett protein'}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </GlassCardContent>
@@ -772,7 +827,19 @@ function calculateTotals(items: FoodItem[]) {
       carbsGrams: acc.carbsGrams + item.carbsGrams,
       fatGrams: acc.fatGrams + item.fatGrams,
       fiberGrams: acc.fiberGrams + item.fiberGrams,
+      saturatedFatGrams: item.saturatedFatGrams != null ? (acc.saturatedFatGrams ?? 0) + item.saturatedFatGrams : acc.saturatedFatGrams,
+      monounsaturatedFatGrams: item.monounsaturatedFatGrams != null ? (acc.monounsaturatedFatGrams ?? 0) + item.monounsaturatedFatGrams : acc.monounsaturatedFatGrams,
+      polyunsaturatedFatGrams: item.polyunsaturatedFatGrams != null ? (acc.polyunsaturatedFatGrams ?? 0) + item.polyunsaturatedFatGrams : acc.polyunsaturatedFatGrams,
+      sugarGrams: item.sugarGrams != null ? (acc.sugarGrams ?? 0) + item.sugarGrams : acc.sugarGrams,
+      complexCarbsGrams: item.complexCarbsGrams != null ? (acc.complexCarbsGrams ?? 0) + item.complexCarbsGrams : acc.complexCarbsGrams,
     }),
-    { calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0, fiberGrams: 0 }
+    {
+      calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0, fiberGrams: 0,
+      saturatedFatGrams: undefined as number | undefined,
+      monounsaturatedFatGrams: undefined as number | undefined,
+      polyunsaturatedFatGrams: undefined as number | undefined,
+      sugarGrams: undefined as number | undefined,
+      complexCarbsGrams: undefined as number | undefined,
+    }
   )
 }

@@ -93,6 +93,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check enhanced macro analysis preference
+    const prefs = await prisma.dietaryPreferences.findUnique({
+      where: { clientId },
+      select: { enhancedMacroAnalysis: true },
+    })
+    const enhancedMode = prefs?.enhancedMacroAnalysis ?? false
+
     // Convert file to base64
     const arrayBuffer = await imageFile.arrayBuffer()
     const base64 = Buffer.from(arrayBuffer).toString('base64')
@@ -132,7 +139,13 @@ VIKTIGT:
 - Var realistisk med portionsstorlekar — svenskar äter normala portioner
 - Räkna med vanliga svenska livsmedel och tillagningsmetoder
 - Om du ser förpackningar med näringsinformation, använd den informationen
-- Ange eventuella osäkerheter i notes-fältet`,
+- Ange eventuella osäkerheter i notes-fältet${enhancedMode ? `
+
+UTÖKAD ANALYS (detaljerade makrosubkategorier):
+8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)
+9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram
+10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)
+11. Summera fett- och kolhydratsubkategorier i totals` : ''}`,
             },
           ],
         },
@@ -150,6 +163,7 @@ VIKTIGT:
     return NextResponse.json({
       success: true,
       result: result.object,
+      enhancedMode,
       generatedAt: new Date().toISOString(),
     })
   } catch (error) {

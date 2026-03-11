@@ -29,6 +29,9 @@ import {
   Apple,
   Dumbbell,
   UtensilsCrossed,
+  AlertCircle,
+  Sparkles,
+  Loader2,
 } from 'lucide-react'
 import { MealType } from '@prisma/client'
 import { cn } from '@/lib/utils'
@@ -36,7 +39,7 @@ import { cn } from '@/lib/utils'
 interface QuickMealLogProps {
   open: boolean
   onClose: () => void
-  onSubmit: (data: MealLogData) => Promise<void>
+  onMealSaved?: () => void
   date?: Date
   defaultMealType?: MealType
 }
@@ -80,12 +83,22 @@ const QUICK_MEALS = [
 export function QuickMealLog({
   open,
   onClose,
-  onSubmit,
+  onMealSaved,
   date = new Date(),
   defaultMealType,
 }: QuickMealLogProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [showMacros, setShowMacros] = useState(false)
+  const [enhancedFields, setEnhancedFields] = useState<{
+    saturatedFatGrams?: number
+    monounsaturatedFatGrams?: number
+    polyunsaturatedFatGrams?: number
+    sugarGrams?: number
+    complexCarbsGrams?: number
+    isCompleteProtein?: boolean
+  }>({})
   const [formData, setFormData] = useState({
     mealType: defaultMealType || 'LUNCH' as MealType,
     time: '',
@@ -111,12 +124,59 @@ export function QuickMealLog({
     setShowMacros(true)
   }
 
+  const handleAIEstimate = async () => {
+    if (!formData.description.trim()) return
+
+    setIsAnalyzing(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/ai/food-scan/analyze-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: formData.description }),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error || 'Kunde inte analysera måltiden')
+      }
+
+      const data = await res.json()
+      const result = data.result
+      if (result?.totals) {
+        setFormData(prev => ({
+          ...prev,
+          calories: Math.round(result.totals.calories).toString(),
+          proteinGrams: result.totals.proteinGrams.toFixed(1),
+          carbsGrams: result.totals.carbsGrams.toFixed(1),
+          fatGrams: result.totals.fatGrams.toFixed(1),
+        }))
+        setShowMacros(true)
+
+        if (data.enhancedMode && result.totals.saturatedFatGrams != null) {
+          setEnhancedFields({
+            saturatedFatGrams: result.totals.saturatedFatGrams,
+            monounsaturatedFatGrams: result.totals.monounsaturatedFatGrams,
+            polyunsaturatedFatGrams: result.totals.polyunsaturatedFatGrams,
+            sugarGrams: result.totals.sugarGrams,
+            complexCarbsGrams: result.totals.complexCarbsGrams,
+          })
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'AI-analys misslyckades')
+    } finally {
+      setIsAnalyzing(false)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!formData.description.trim()) return
 
     setIsLoading(true)
+    setError(null)
     try {
-      const data: MealLogData = {
+      const data: MealLogData & Record<string, unknown> = {
         date: date.toISOString().split('T')[0],
         mealType: formData.mealType,
         time: formData.time || undefined,
@@ -131,8 +191,31 @@ export function QuickMealLog({
       if (formData.carbsGrams) data.carbsGrams = parseFloat(formData.carbsGrams)
       if (formData.fatGrams) data.fatGrams = parseFloat(formData.fatGrams)
 
-      await onSubmit(data)
+      // Include enhanced fields if available
+      if (enhancedFields.saturatedFatGrams != null) {
+        data.saturatedFatGrams = enhancedFields.saturatedFatGrams
+        data.monounsaturatedFatGrams = enhancedFields.monounsaturatedFatGrams
+        data.polyunsaturatedFatGrams = enhancedFields.polyunsaturatedFatGrams
+        data.sugarGrams = enhancedFields.sugarGrams
+        data.complexCarbsGrams = enhancedFields.complexCarbsGrams
+        data.isCompleteProtein = enhancedFields.isCompleteProtein
+      }
+
+      const res = await fetch('/api/meals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error || 'Kunde inte spara måltiden. Försök igen.')
+      }
+
+      onMealSaved?.()
       handleClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Något gick fel. Försök igen.')
     } finally {
       setIsLoading(false)
     }
@@ -152,6 +235,8 @@ export function QuickMealLog({
       notes: '',
     })
     setShowMacros(false)
+    setEnhancedFields({})
+    setError(null)
     onClose()
   }
 
@@ -166,6 +251,13 @@ export function QuickMealLog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-red-500 bg-red-500/10 rounded-lg p-3">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
           {/* Meal Type Selection */}
           <div className="space-y-2">
             <Label className="dark:text-slate-200">Måltidstyp</Label>
@@ -243,6 +335,24 @@ export function QuickMealLog({
               className="dark:text-white"
             />
           </div>
+
+          {/* AI estimate button */}
+          {formData.description.trim() && !formData.calories && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 dark:text-slate-200 dark:border-slate-600"
+              onClick={handleAIEstimate}
+              disabled={isAnalyzing}
+            >
+              {isAnalyzing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {isAnalyzing ? 'Analyserar...' : 'Uppskatta med AI'}
+            </Button>
+          )}
 
           {/* Toggle for macros */}
           <div className="flex items-center justify-between">

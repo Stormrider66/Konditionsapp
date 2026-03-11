@@ -6055,6 +6055,7 @@ model DietaryPreferences {
   preferLowFODMAP    Boolean @default(false)
   preferWholeGrain   Boolean @default(true)
   preferSwedishFoods Boolean @default(true) // Prioritize Swedish food suggestions
+  enhancedMacroAnalysis Boolean @default(false)
 
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -6134,6 +6135,14 @@ model MealLog {
   carbsGrams   Float?
   fatGrams     Float?
   fiberGrams   Float?
+
+  // Enhanced macro subcategories (optional)
+  saturatedFatGrams       Float?
+  monounsaturatedFatGrams Float?
+  polyunsaturatedFatGrams Float?
+  sugarGrams              Float?
+  complexCarbsGrams       Float?
+  isCompleteProtein       Boolean?
 
   // Hydration (optional)
   waterMl Int?

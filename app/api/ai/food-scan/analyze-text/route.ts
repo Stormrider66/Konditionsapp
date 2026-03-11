@@ -1,10 +1,11 @@
 /**
- * Food Scan Refinement API
+ * Text-Based Food Analysis API
  *
- * POST /api/ai/food-scan/refine
+ * POST /api/ai/food-scan/analyze-text
  *
- * Takes an original food analysis and user correction text,
- * returns an updated analysis via Gemini Flash.
+ * Uses Gemini Flash to estimate calories and macronutrients
+ * from a text description of a meal (no image required).
+ * Supports enhanced macro subcategories when enabled.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -18,6 +19,11 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
 import { getResolvedGoogleKey } from '@/lib/user-api-keys'
+import { z } from 'zod'
+
+const requestSchema = z.object({
+  description: z.string().min(1, 'Beskrivning krävs'),
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,21 +36,22 @@ export async function POST(request: NextRequest) {
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
 
-    const rateLimited = await rateLimitJsonResponse('ai:food-scan-refine', user.id, {
+    const rateLimited = await rateLimitJsonResponse('ai:food-scan-text', user.id, {
       limit: 10,
       windowSeconds: 60,
     })
     if (rateLimited) return rateLimited
 
     const body = await request.json()
-    const { originalAnalysis, refinementText, imageBase64, imageMimeType } = body
-
-    if (!originalAnalysis || !refinementText) {
+    const validation = requestSchema.safeParse(body)
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'originalAnalysis och refinementText krävs' },
+        { error: 'Ogiltig förfrågan', details: validation.error.errors },
         { status: 400 }
       )
     }
+
+    const { description } = validation.data
 
     // Resolve Google API key
     const client = await prisma.client.findUnique({
@@ -53,17 +60,18 @@ export async function POST(request: NextRequest) {
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Athlete account not found' },
+        { status: 400 }
+      )
     }
 
     const keyOwnerId = isCoachInAthleteMode ? user.id : client.userId
-
-    // Refinement can include image context and should stay on Gemini.
     const googleKey = await getResolvedGoogleKey(keyOwnerId)
 
     if (!googleKey) {
       return NextResponse.json(
-        { error: 'Google/Gemini API-nyckel saknas för bildanalys. Aktivera Gemini i AI-inställningar.' },
+        { error: 'Google/Gemini API-nyckel saknas. Aktivera Gemini i AI-inställningar.' },
         { status: 400 }
       )
     }
@@ -77,35 +85,38 @@ export async function POST(request: NextRequest) {
 
     const google = createGoogleGenerativeAI({ apiKey: googleKey })
 
-    // Build message content
-    const content: Array<{ type: 'text'; text: string } | { type: 'image'; image: string }> = []
-
-    if (imageBase64 && imageMimeType) {
-      content.push({
-        type: 'image',
-        image: `data:${imageMimeType};base64,${imageBase64}`,
-      })
-    }
-
-    content.push({
-      type: 'text',
-      text: `Du är en expert på näringslära. Här är en tidigare analys av en måltid:
-
-${JSON.stringify(originalAnalysis, null, 2)}
-
-Användaren säger: "${refinementText}"
-
-Uppdatera analysen baserat på användarens korrigering. Behåll all befintlig information men justera det som användaren påpekar. Om användaren nämner nya livsmedel, lägg till dem. Om användaren korrigerar portionsstorlekar eller mängder, uppdatera kalorier och makros därefter.
-
-Returnera en komplett uppdaterad analys.${enhancedMode ? `
-
-UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, fleromättat), kolhydratfördelning (socker, komplexa kolhydrater) och proteinkvalitet (isCompleteProtein) per matvara och i totals.` : ''}`,
-    })
-
     const result = await generateObject({
       model: google(GEMINI_MODELS.FLASH),
       schema: FoodPhotoAnalysisSchema,
-      messages: [{ role: 'user', content }],
+      messages: [
+        {
+          role: 'user',
+          content: `Du är en expert på näringslära. Uppskatta kalorier och makronäringsämnen baserat på denna måltidsbeskrivning:
+
+"${description}"
+
+INSTRUKTIONER:
+1. Identifiera varje separat matvara/ingrediens i beskrivningen
+2. Uppskatta portionsstorlek i gram och beskriv portionen på svenska (t.ex. "1 skiva", "2 dl", "1 portion")
+3. Beräkna kalorier och makros (protein, kolhydrater, fett, fiber) per matvara
+4. Summera totala kalorier och makros för hela måltiden
+5. Ge en kort svensk beskrivning av måltiden
+6. Föreslå vilken måltidstyp det troligtvis är
+7. Sätt confidence baserat på hur detaljerad beskrivningen är
+
+VIKTIGT:
+- Sätt alltid success till true om det finns mat att analysera
+- Var realistisk med portionsstorlekar — svenskar äter normala portioner
+- Räkna med vanliga svenska livsmedel och tillagningsmetoder
+- Om beskrivningen är vag, använd rimliga standardportioner${enhancedMode ? `
+
+UTÖKAD ANALYS (detaljerade makrosubkategorier):
+8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)
+9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram
+10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)
+11. Summera fett- och kolhydratsubkategorier i totals` : ''}`,
+        },
+      ],
     })
 
     return NextResponse.json({
@@ -115,7 +126,7 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
       generatedAt: new Date().toISOString(),
     })
   } catch (error) {
-    logger.error('Food scan refine error', {}, error)
+    logger.error('Food scan text analysis error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -123,7 +134,7 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
 
     return NextResponse.json(
       {
-        error: 'Kunde inte uppdatera analysen',
+        error: 'Kunde inte analysera måltiden',
         details:
           process.env.NODE_ENV === 'production'
             ? undefined

@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Mic, MicOff, Loader2, Check, AlertCircle } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Mic, MicOff, Loader2, Check, AlertCircle, Sparkles } from 'lucide-react'
 import { MealType } from '@prisma/client'
 import { cn } from '@/lib/utils'
 
@@ -20,7 +21,7 @@ interface VoiceMealCaptureProps {
   onClose?: () => void
 }
 
-type Step = 'RECORD' | 'TRANSCRIBING' | 'REVIEW' | 'SAVING' | 'DONE'
+type Step = 'RECORD' | 'TRANSCRIBING' | 'ANALYZING' | 'REVIEW' | 'SAVING' | 'DONE'
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
   BREAKFAST: 'Frukost',
@@ -49,6 +50,20 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
   const [transcribedText, setTranscribedText] = useState('')
   const [mealType, setMealType] = useState<MealType>(guessDefaultMealType())
   const [error, setError] = useState<string | null>(null)
+  const [macros, setMacros] = useState<{
+    calories?: number
+    proteinGrams?: number
+    carbsGrams?: number
+    fatGrams?: number
+    fiberGrams?: number
+    saturatedFatGrams?: number
+    monounsaturatedFatGrams?: number
+    polyunsaturatedFatGrams?: number
+    sugarGrams?: number
+    complexCarbsGrams?: number
+    isCompleteProtein?: boolean
+  }>({})
+  const [enhancedMode, setEnhancedMode] = useState(false)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
@@ -105,7 +120,47 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
       }
 
       const data = await res.json()
-      setTranscribedText(data.transcription || data.text || '')
+      const text = data.transcription || data.text || ''
+      setTranscribedText(text)
+
+      // Auto-analyze with AI
+      if (text.trim()) {
+        setStep('ANALYZING')
+        try {
+          const analyzeRes = await fetch('/api/ai/food-scan/analyze-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: text }),
+          })
+          if (analyzeRes.ok) {
+            const analyzeData = await analyzeRes.json()
+            const result = analyzeData.result
+            if (result?.totals) {
+              setMacros({
+                calories: Math.round(result.totals.calories),
+                proteinGrams: result.totals.proteinGrams,
+                carbsGrams: result.totals.carbsGrams,
+                fatGrams: result.totals.fatGrams,
+                fiberGrams: result.totals.fiberGrams,
+                ...(analyzeData.enhancedMode && result.totals.saturatedFatGrams != null ? {
+                  saturatedFatGrams: result.totals.saturatedFatGrams,
+                  monounsaturatedFatGrams: result.totals.monounsaturatedFatGrams,
+                  polyunsaturatedFatGrams: result.totals.polyunsaturatedFatGrams,
+                  sugarGrams: result.totals.sugarGrams,
+                  complexCarbsGrams: result.totals.complexCarbsGrams,
+                } : {}),
+              })
+              setEnhancedMode(analyzeData.enhancedMode ?? false)
+            }
+            if (result?.suggestedMealType) {
+              setMealType(result.suggestedMealType as MealType)
+            }
+          }
+        } catch {
+          // AI analysis is best-effort, continue to review even if it fails
+        }
+      }
+
       setStep('REVIEW')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transkribering misslyckades')
@@ -126,6 +181,19 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
           date: new Date().toISOString().split('T')[0],
           mealType,
           description: transcribedText.trim(),
+          ...(macros.calories != null ? {
+            calories: macros.calories,
+            proteinGrams: macros.proteinGrams,
+            carbsGrams: macros.carbsGrams,
+            fatGrams: macros.fatGrams,
+            fiberGrams: macros.fiberGrams,
+            saturatedFatGrams: macros.saturatedFatGrams,
+            monounsaturatedFatGrams: macros.monounsaturatedFatGrams,
+            polyunsaturatedFatGrams: macros.polyunsaturatedFatGrams,
+            sugarGrams: macros.sugarGrams,
+            complexCarbsGrams: macros.complexCarbsGrams,
+            isCompleteProtein: macros.isCompleteProtein,
+          } : {}),
         }),
       })
 
@@ -196,6 +264,13 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
         </div>
       )}
 
+      {step === 'ANALYZING' && (
+        <div className="flex flex-col items-center gap-4 py-12">
+          <Sparkles className="h-8 w-8 text-cyan-500 animate-pulse" />
+          <p className="text-sm text-muted-foreground">Analyserar näringsvärden...</p>
+        </div>
+      )}
+
       {step === 'REVIEW' && (
         <div className="space-y-4">
           <div className="space-y-2">
@@ -223,6 +298,59 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
               placeholder="Vad åt du?"
             />
           </div>
+
+          {/* Estimated macros */}
+          {macros.calories != null && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                AI-uppskattade näringsvärden
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Kalorier</label>
+                  <Input
+                    type="number"
+                    value={macros.calories ?? ''}
+                    onChange={(e) => setMacros(prev => ({ ...prev, calories: Number(e.target.value) }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Protein (g)</label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={macros.proteinGrams?.toFixed(1) ?? ''}
+                    onChange={(e) => setMacros(prev => ({ ...prev, proteinGrams: Number(e.target.value) }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Kolhydrater (g)</label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={macros.carbsGrams?.toFixed(1) ?? ''}
+                    onChange={(e) => setMacros(prev => ({ ...prev, carbsGrams: Number(e.target.value) }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Fett (g)</label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={macros.fatGrams?.toFixed(1) ?? ''}
+                    onChange={(e) => setMacros(prev => ({ ...prev, fatGrams: Number(e.target.value) }))}
+                  />
+                </div>
+              </div>
+              {enhancedMode && macros.saturatedFatGrams != null && (
+                <div className="p-2 rounded bg-muted text-xs text-muted-foreground space-y-1">
+                  <p><span className="font-medium">Fett:</span> {macros.saturatedFatGrams?.toFixed(1)}g mättat, {macros.monounsaturatedFatGrams?.toFixed(1)}g enkelomättat, {macros.polyunsaturatedFatGrams?.toFixed(1)}g fleromättat</p>
+                  <p><span className="font-medium">Kolhydrater:</span> {macros.sugarGrams?.toFixed(1)}g socker, {macros.complexCarbsGrams?.toFixed(1)}g komplexa</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-3">
             <Button

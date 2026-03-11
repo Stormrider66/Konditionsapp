@@ -23,6 +23,7 @@ const preferencesSchema = z.object({
   preferLowFODMAP: z.boolean().optional(),
   preferWholeGrain: z.boolean().optional(),
   preferSwedishFoods: z.boolean().optional(),
+  enhancedMacroAnalysis: z.boolean().optional(),
 })
 
 /**
@@ -98,6 +99,7 @@ export async function PUT(request: NextRequest) {
         preferLowFODMAP: validated.preferLowFODMAP ?? false,
         preferWholeGrain: validated.preferWholeGrain ?? true,
         preferSwedishFoods: validated.preferSwedishFoods ?? true,
+        enhancedMacroAnalysis: validated.enhancedMacroAnalysis ?? false,
       },
       create: {
         clientId: athleteAccount.clientId,
@@ -108,6 +110,7 @@ export async function PUT(request: NextRequest) {
         preferLowFODMAP: validated.preferLowFODMAP ?? false,
         preferWholeGrain: validated.preferWholeGrain ?? true,
         preferSwedishFoods: validated.preferSwedishFoods ?? true,
+        enhancedMacroAnalysis: validated.enhancedMacroAnalysis ?? false,
       },
     })
 

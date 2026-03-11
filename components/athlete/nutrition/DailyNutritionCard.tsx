@@ -37,6 +37,12 @@ interface MealLog {
   proteinGrams?: number | null
   carbsGrams?: number | null
   fatGrams?: number | null
+  saturatedFatGrams?: number | null
+  monounsaturatedFatGrams?: number | null
+  polyunsaturatedFatGrams?: number | null
+  sugarGrams?: number | null
+  complexCarbsGrams?: number | null
+  isCompleteProtein?: boolean | null
   isPreWorkout: boolean
   isPostWorkout: boolean
 }
@@ -141,6 +147,11 @@ export function DailyNutritionCard({
     proteinGrams: 0,
     carbsGrams: 0,
     fatGrams: 0,
+    saturatedFatGrams: 0,
+    monounsaturatedFatGrams: 0,
+    polyunsaturatedFatGrams: 0,
+    sugarGrams: 0,
+    complexCarbsGrams: 0,
   })
 
   const dateStr = date.toISOString().split('T')[0]
@@ -159,6 +170,11 @@ export function DailyNutritionCard({
             proteinGrams: result.data.dailyTotals.proteinGrams,
             carbsGrams: result.data.dailyTotals.carbsGrams,
             fatGrams: result.data.dailyTotals.fatGrams,
+            saturatedFatGrams: result.data.dailyTotals.saturatedFatGrams ?? 0,
+            monounsaturatedFatGrams: result.data.dailyTotals.monounsaturatedFatGrams ?? 0,
+            polyunsaturatedFatGrams: result.data.dailyTotals.polyunsaturatedFatGrams ?? 0,
+            sugarGrams: result.data.dailyTotals.sugarGrams ?? 0,
+            complexCarbsGrams: result.data.dailyTotals.complexCarbsGrams ?? 0,
           })
         }
       }
@@ -172,29 +188,6 @@ export function DailyNutritionCard({
   useEffect(() => {
     fetchMeals()
   }, [fetchMeals])
-
-  const handleAddMeal = async (data: {
-    date: string
-    mealType: MealType
-    time?: string
-    description: string
-    calories?: number
-    proteinGrams?: number
-    carbsGrams?: number
-    fatGrams?: number
-    isPreWorkout?: boolean
-    isPostWorkout?: boolean
-  }) => {
-    const response = await fetch('/api/meals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-
-    if (response.ok) {
-      await fetchMeals()
-    }
-  }
 
   const handleDeleteMeal = async (mealId: string) => {
     if (!confirm('Ta bort denna måltid?')) return
@@ -367,6 +360,13 @@ export function DailyNutritionCard({
                         {meal.calories && <span>• {meal.calories} kcal</span>}
                         {meal.proteinGrams && <span>• {meal.proteinGrams}g protein</span>}
                       </div>
+                      {meal.saturatedFatGrams != null && (
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
+                          <span>Fett: {meal.saturatedFatGrams}g mättat</span>
+                          {meal.sugarGrams != null && <span>• {meal.sugarGrams}g socker</span>}
+                          {meal.isCompleteProtein && <span>• Komplett protein</span>}
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
@@ -387,7 +387,10 @@ export function DailyNutritionCard({
       <QuickMealLog
         open={showAddMeal}
         onClose={() => setShowAddMeal(false)}
-        onSubmit={handleAddMeal}
+        onMealSaved={() => {
+          setShowAddMeal(false)
+          fetchMeals()
+        }}
         date={date}
       />
     </Card>
