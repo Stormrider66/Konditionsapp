@@ -65,6 +65,7 @@ export default async function NutritionSettingsPage() {
         preferLowFODMAP: preferences.preferLowFODMAP,
         preferWholeGrain: preferences.preferWholeGrain,
         preferSwedishFoods: preferences.preferSwedishFoods,
+        enhancedMacroAnalysis: preferences.enhancedMacroAnalysis,
       }
     : null
 
@@ -90,6 +91,7 @@ export default async function NutritionSettingsPage() {
           | undefined,
         showMacroTargets: goal.showMacroTargets,
         showHydration: goal.showHydration,
+        customBmrKcal: goal.customBmrKcal,
       }
     : null
 

@@ -73,6 +73,7 @@ export default async function BusinessNutritionSettingsPage({ params }: Business
         preferLowFODMAP: preferences.preferLowFODMAP,
         preferWholeGrain: preferences.preferWholeGrain,
         preferSwedishFoods: preferences.preferSwedishFoods,
+        enhancedMacroAnalysis: preferences.enhancedMacroAnalysis,
       }
     : null
 
@@ -98,6 +99,7 @@ export default async function BusinessNutritionSettingsPage({ params }: Business
           | undefined,
         showMacroTargets: goal.showMacroTargets,
         showHydration: goal.showHydration,
+        customBmrKcal: goal.customBmrKcal,
       }
     : null
 

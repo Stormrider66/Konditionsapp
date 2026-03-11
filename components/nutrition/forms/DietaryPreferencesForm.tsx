@@ -36,6 +36,7 @@ import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
+import { useRouter } from 'next/navigation'
 import { Loader2, X, Plus } from 'lucide-react'
 
 const preferencesSchema = z.object({
@@ -87,6 +88,7 @@ interface DietaryPreferencesFormProps {
 
 export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPreferencesFormProps) {
   const { toast } = useToast()
+  const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [newDislikedFood, setNewDislikedFood] = useState('')
 
@@ -151,7 +153,9 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
       })
 
       if (!response.ok) {
-        throw new Error('Kunde inte spara preferenser')
+        const errorData = await response.json().catch(() => null)
+        console.error('Failed to save preferences:', response.status, errorData)
+        throw new Error(errorData?.error || 'Kunde inte spara preferenser')
       }
 
       toast({
@@ -159,11 +163,13 @@ export function DietaryPreferencesForm({ initialData, onSuccess }: DietaryPrefer
         description: 'Dina kostpreferenser har uppdaterats.',
       })
 
+      router.refresh()
       onSuccess?.()
     } catch (error) {
+      console.error('Save preferences error:', error)
       toast({
         title: 'Fel',
-        description: 'Kunde inte spara preferenser. Försök igen.',
+        description: error instanceof Error ? error.message : 'Kunde inte spara preferenser. Försök igen.',
         variant: 'destructive',
       })
     } finally {

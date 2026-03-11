@@ -36,6 +36,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useToast } from '@/hooks/use-toast'
+import { useRouter } from 'next/navigation'
 import { Loader2, TrendingDown, TrendingUp, Minus, Sparkles, Flame } from 'lucide-react'
 
 const goalSchema = z.object({
@@ -107,6 +108,7 @@ interface NutritionGoalFormProps {
 
 export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: NutritionGoalFormProps) {
   const { toast } = useToast()
+  const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const form = useForm<GoalFormData>({
@@ -137,7 +139,9 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
       })
 
       if (!response.ok) {
-        throw new Error('Kunde inte spara mål')
+        const errorData = await response.json().catch(() => null)
+        console.error('Failed to save goals:', response.status, errorData)
+        throw new Error(errorData?.error || 'Kunde inte spara mål')
       }
 
       toast({
@@ -145,11 +149,13 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
         description: 'Dina näringsmål har uppdaterats.',
       })
 
+      router.refresh()
       onSuccess?.()
     } catch (error) {
+      console.error('Save goals error:', error)
       toast({
         title: 'Fel',
-        description: 'Kunde inte spara mål. Försök igen.',
+        description: error instanceof Error ? error.message : 'Kunde inte spara mål. Försök igen.',
         variant: 'destructive',
       })
     } finally {
