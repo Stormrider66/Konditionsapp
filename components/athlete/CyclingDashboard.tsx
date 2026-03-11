@@ -12,6 +12,7 @@ import { sv } from 'date-fns/locale'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface CyclingSettings {
   bikeTypes: string[]
@@ -58,6 +59,7 @@ export function CyclingDashboard({
   experience,
   clientName,
 }: CyclingDashboardProps) {
+  const basePath = useBasePath()
   const pageCtx = usePageContextOptional()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
@@ -115,7 +117,7 @@ export function CyclingDashboard({
           <p style={{ color: theme.colors.textMuted }}>
             Slutför din cyklingsprofil för att se dina mätvärden.
           </p>
-          <Link href="/athlete/onboarding" className="underline mt-2 inline-block" style={{ color: theme.colors.accent }}>
+          <Link href={`${basePath}/athlete/onboarding`} className="underline mt-2 inline-block" style={{ color: theme.colors.accent }}>
             Gå till onboarding
           </Link>
         </CardContent>

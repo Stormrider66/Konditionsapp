@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Loader2, Edit2, Save, X, RefreshCw } from 'lucide-react'
 import { ChangeSportDialog } from './ChangeSportDialog'
 import { SportType } from '@prisma/client'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 // Import onboarding components for reuse
 import { CyclingOnboarding, DEFAULT_CYCLING_SETTINGS, type CyclingSettings } from '@/components/onboarding/CyclingOnboarding'
@@ -77,6 +78,7 @@ export function AthleteProfileEditor({
   clientEmail,
   sportProfile,
 }: AthleteProfileEditorProps) {
+  const basePath = useBasePath()
   const router = useRouter()
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
@@ -410,7 +412,7 @@ export function AthleteProfileEditor({
           ) : (
             <p className="text-muted-foreground">
               Du har inte slutfört din sportprofil ännu.{' '}
-              <Link href="/athlete/onboarding" className="text-primary underline">
+              <Link href={`${basePath}/athlete/onboarding`} className="text-primary underline">
                 Slutför nu
               </Link>
             </p>

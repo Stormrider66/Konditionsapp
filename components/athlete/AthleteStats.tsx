@@ -4,6 +4,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Activity, Clock, MapPin, Zap, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface AthleteStatsProps {
   totalWorkouts: number
@@ -24,6 +25,7 @@ export function AthleteStats({
   plannedDistance = 0,
   plannedDuration = 0,
 }: AthleteStatsProps) {
+  const basePath = useBasePath()
   // Calculate completion percentages
   const workoutCompletion = plannedWorkouts > 0 ? Math.round((totalWorkouts / plannedWorkouts) * 100) : 0
   const distanceCompletion = plannedDistance > 0 ? Math.round((totalDistance / plannedDistance) * 100) : 0
@@ -101,7 +103,7 @@ export function AthleteStats({
               Planerat: {formatDuration(plannedDuration)}
             </span>
           </div>
-          <Link href="/athlete/history" className="text-xs text-orange-100 hover:text-white flex items-center gap-1 mt-1">
+          <Link href={`${basePath}/athlete/history`} className="text-xs text-orange-100 hover:text-white flex items-center gap-1 mt-1">
             Se historik <ArrowRight className="h-3 w-3" />
           </Link>
         </CardContent>

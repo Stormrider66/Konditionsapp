@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { format, formatDistanceToNow, isToday, isTomorrow, isThisWeek } from 'date-fns'
 import { sv } from 'date-fns/locale'
 
@@ -61,6 +62,7 @@ export function MatchScheduleWidget({
   maxMatches = 5,
   showAddButton = true,
 }: MatchScheduleWidgetProps) {
+  const basePath = useBasePath()
   const [matches, setMatches] = useState<Match[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -132,7 +134,7 @@ export function MatchScheduleWidget({
             Kommande matcher
           </GlassCardTitle>
           {showAddButton && (
-            <Link href="/athlete/matches?action=add">
+            <Link href={`${basePath}/athlete/matches?action=add`}>
               <Button variant="ghost" size="icon" className="h-6 w-6">
                 <Plus className="h-3 w-3" />
               </Button>
@@ -147,7 +149,7 @@ export function MatchScheduleWidget({
             <Trophy className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">Inga kommande matcher</p>
             {showAddButton && (
-              <Link href="/athlete/matches?action=add">
+              <Link href={`${basePath}/athlete/matches?action=add`}>
                 <Button variant="outline" size="sm" className="mt-3">
                   <Plus className="h-3 w-3 mr-1" />
                   Lägg till match
@@ -164,7 +166,7 @@ export function MatchScheduleWidget({
               return (
                 <Link
                   key={match.id}
-                  href={`/athlete/matches/${match.id}`}
+                  href={`${basePath}/athlete/matches/${match.id}`}
                   className="block"
                 >
                   <div
@@ -235,7 +237,7 @@ export function MatchScheduleWidget({
             })}
 
             {/* Link to all matches */}
-            <Link href="/athlete/matches" className="block">
+            <Link href={`${basePath}/athlete/matches`} className="block">
               <Button
                 variant="ghost"
                 size="sm"

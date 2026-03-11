@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { MessageSquare } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface MessagesLinkProps {
   role: 'COACH' | 'ATHLETE'
@@ -13,10 +14,11 @@ interface MessagesLinkProps {
 }
 
 export function MessagesLink({ role, variant = 'desktop', isActive = false }: MessagesLinkProps) {
+  const basePath = useBasePath()
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
-  const href = role === 'COACH' ? '/coach/messages' : '/athlete/messages'
+  const href = role === 'COACH' ? `${basePath}/coach/messages` : `${basePath}/athlete/messages`
 
   useEffect(() => {
     fetchUnreadCount()

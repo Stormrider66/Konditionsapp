@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -111,6 +112,7 @@ export function SwimmingWorkoutLoggingForm({
   existingLog,
   athleteCss,
 }: SwimmingWorkoutLoggingFormProps) {
+  const basePath = useBasePath()
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -241,7 +243,7 @@ export function SwimmingWorkoutLoggingForm({
         description: 'Din simträning har sparats.',
       })
 
-      router.push(`/athlete/programs/${workout.id}`)
+      router.push(`${basePath}/athlete/programs/${workout.id}`)
       router.refresh()
     } catch (error) {
       toast({

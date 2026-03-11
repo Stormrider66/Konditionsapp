@@ -749,7 +749,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
 
         {/* Link to settings */}
         {!hasAnyConnection && (
-          <Link href="/athlete/settings" className="block">
+          <Link href={`${basePath}/athlete/settings`} className="block">
             <Button variant="outline" size="sm" className="w-full mt-2">
               <Link2 className="h-4 w-4 mr-2" />
               Anslut appar

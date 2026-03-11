@@ -30,7 +30,7 @@ export default async function BusinessPhysioLayout({
     })
 
     if (!business) {
-        redirect('/physio/dashboard')
+        redirect(`/${businessSlug}/physio/dashboard`)
     }
 
     // Check if user is a member of this business
@@ -43,7 +43,7 @@ export default async function BusinessPhysioLayout({
     })
 
     if (!membership && user.role !== 'ADMIN') {
-        redirect('/physio/dashboard')
+        redirect(`/${businessSlug}/physio/dashboard`)
     }
 
     return (

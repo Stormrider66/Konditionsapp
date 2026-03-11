@@ -329,7 +329,7 @@ export function SharedResearchView({
 
       {/* Actions */}
       <div className="flex gap-3">
-        <Link href="/athlete/dashboard">
+        <Link href={`${basePath}/athlete/dashboard`}>
           <Button variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard

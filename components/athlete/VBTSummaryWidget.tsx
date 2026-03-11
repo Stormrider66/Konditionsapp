@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Gauge, ArrowRight, Upload, TrendingUp, Dumbbell } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { sv } from 'date-fns/locale';
+import { useBasePath } from '@/lib/contexts/BasePathContext';
 
 interface VBTSession {
   id: string;
@@ -33,6 +34,7 @@ interface VBTSummaryWidgetProps {
 }
 
 export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
+  const basePath = useBasePath();
   const [sessions, setSessions] = useState<VBTSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -81,7 +83,7 @@ export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
             <Gauge className="h-4 w-4" />
             VBT Data
           </CardTitle>
-          <Link href="/athlete/vbt">
+          <Link href={`${basePath}/athlete/vbt`}>
             <Button variant="ghost" size="sm" className="h-7 text-xs">
               Visa allt
               <ArrowRight className="ml-1 h-3 w-3" />
@@ -96,7 +98,7 @@ export function VBTSummaryWidget({ clientId }: VBTSummaryWidgetProps) {
             <p className="text-sm text-muted-foreground mb-3">
               Ingen VBT-data ännu
             </p>
-            <Link href="/athlete/vbt">
+            <Link href={`${basePath}/athlete/vbt`}>
               <Button variant="outline" size="sm">
                 <Upload className="mr-2 h-4 w-4" />
                 Ladda upp CSV

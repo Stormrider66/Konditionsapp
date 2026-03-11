@@ -8,6 +8,7 @@ import { Timer, Gauge, TrendingUp, Clock, Target, Activity, Snowflake, Mountain 
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 
 interface SkiingSettings {
   technique: string
@@ -151,6 +152,7 @@ export function SkiingDashboard({
   experience,
   clientName,
 }: SkiingDashboardProps) {
+  const basePath = useBasePath()
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -177,7 +179,7 @@ export function SkiingDashboard({
           <p style={{ color: theme.colors.textMuted }}>
             Slutför din skidprofil för att se dina mätvärden.
           </p>
-          <Link href="/athlete/onboarding" className="underline mt-2 inline-block" style={{ color: theme.colors.accent }}>
+          <Link href={`${basePath}/athlete/onboarding`} className="underline mt-2 inline-block" style={{ color: theme.colors.accent }}>
             Gå till onboarding
           </Link>
         </CardContent>

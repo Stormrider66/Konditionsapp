@@ -35,6 +35,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { useBasePath } from '@/lib/contexts/BasePathContext';
 
 interface ExerciseSummary {
   exerciseId: string;
@@ -82,6 +83,7 @@ const TREND_CONFIG = {
 };
 
 export function VBTProgressionWidget({ clientId }: VBTProgressionWidgetProps) {
+  const basePath = useBasePath();
   const [data, setData] = useState<VBTProgressionSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -163,7 +165,7 @@ export function VBTProgressionWidget({ clientId }: VBTProgressionWidgetProps) {
             <p className="text-sm text-muted-foreground mb-3">
               Ladda upp VBT-data för att se progression
             </p>
-            <Link href="/athlete/vbt">
+            <Link href={`${basePath}/athlete/vbt`}>
               <Button variant="outline" size="sm">
                 <Gauge className="mr-2 h-4 w-4" />
                 Gå till VBT
@@ -187,7 +189,7 @@ export function VBTProgressionWidget({ clientId }: VBTProgressionWidgetProps) {
             VBT Progression
             <InfoTooltip conceptKey="oneRM" />
           </CardTitle>
-          <Link href="/athlete/vbt">
+          <Link href={`${basePath}/athlete/vbt`}>
             <Button variant="ghost" size="sm" className="h-7 text-xs">
               Visa allt
               <ArrowRight className="ml-1 h-3 w-3" />

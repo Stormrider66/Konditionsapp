@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +36,7 @@ export function AIProgramOfferStep({
   generationProgress = 0,
   hasAssignedCoach = false,
 }: Props) {
+  const basePath = useBasePath()
   const t = (en: string, sv: string) => locale === 'sv' ? sv : en
 
   const canGenerate = (subscriptionTier === 'STANDARD' || subscriptionTier === 'PRO') && !hasAssignedCoach
@@ -152,7 +154,7 @@ export function AIProgramOfferStep({
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button variant="default" size="lg" className="flex-1" asChild>
-                <Link href="/athlete/subscription">
+                <Link href={`${basePath}/athlete/subscription`}>
                   {t('Upgrade Now', 'Uppgradera nu')}
                 </Link>
               </Button>

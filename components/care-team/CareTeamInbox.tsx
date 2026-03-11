@@ -84,6 +84,7 @@ interface CareTeamInboxProps {
   variant?: 'default' | 'glass'
   showCreateButton?: boolean
   onCreateThread?: () => void
+  basePath?: string
 }
 
 const STATUS_ICONS = {
@@ -120,6 +121,7 @@ export function CareTeamInbox({
   variant = 'glass',
   showCreateButton = true,
   onCreateThread,
+  basePath = '',
 }: CareTeamInboxProps) {
   const router = useRouter()
   const isGlass = variant === 'glass'
@@ -162,7 +164,7 @@ export function CareTeamInbox({
     if (onThreadSelect) {
       onThreadSelect(threadId)
     } else {
-      router.push(`/physio/messages/${threadId}`)
+      router.push(`${basePath}/physio/messages/${threadId}`)
     }
   }
 
