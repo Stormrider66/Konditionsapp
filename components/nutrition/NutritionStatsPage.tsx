@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Loader2, AlertCircle, RefreshCw, Apple } from 'lucide-react'
+import { Loader2, AlertCircle, RefreshCw, Apple, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { CalorieTrendChart } from './CalorieTrendChart'
 import { MacroPieChart } from './MacroPieChart'
@@ -190,6 +190,22 @@ export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPagePro
             <div className="flex-1">
               <p className="text-sm font-medium text-white">Mathistorik</p>
               <p className="text-xs text-slate-500">Se dina mest ätna livsmedel och näringskällor</p>
+            </div>
+            <span className="text-xs text-slate-500">&rarr;</span>
+          </GlassCardContent>
+        </GlassCard>
+      </Link>
+
+      {/* Wrapped summary link */}
+      <Link href={`${basePath || ''}/athlete/nutrition/wrapped`}>
+        <GlassCard className="hover:border-cyan-500/30 transition-colors cursor-pointer">
+          <GlassCardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 bg-cyan-500/10 rounded-lg">
+              <Sparkles className="h-5 w-5 text-cyan-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white">Kostsammanfattning</p>
+              <p className="text-xs text-slate-500">Din wrapped — månads- och årsöversikt</p>
             </div>
             <span className="text-xs text-slate-500">&rarr;</span>
           </GlassCardContent>
