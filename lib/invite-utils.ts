@@ -141,7 +141,7 @@ export async function inviteUserToBusiness({
       type: 'recovery',
       email,
       options: {
-        redirectTo: `${appUrl}/reset-password`,
+        redirectTo: `${appUrl}/api/auth/callback?next=/reset-password`,
       },
     })
 

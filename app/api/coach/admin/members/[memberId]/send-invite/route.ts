@@ -53,7 +53,7 @@ export async function POST(
       type: 'recovery',
       email: user.email,
       options: {
-        redirectTo: `${appUrl}/reset-password`,
+        redirectTo: `${appUrl}/api/auth/callback?next=/reset-password`,
       },
     })
 
@@ -82,7 +82,7 @@ export async function POST(
         type: 'recovery',
         email: user.email,
         options: {
-          redirectTo: `${appUrl}/reset-password`,
+          redirectTo: `${appUrl}/api/auth/callback?next=/reset-password`,
         },
       })
       linkData = retryResult.data
