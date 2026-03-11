@@ -35,6 +35,9 @@ export const GEMINI_MODELS = {
 
   /** Image generation (high quality) */
   IMAGE_GENERATION_PRO: 'gemini-3-pro-image-preview',
+
+  /** Text/multimodal embedding — Matryoshka dimensions, strong multilingual */
+  EMBEDDING: 'gemini-embedding-2-preview',
 } as const;
 
 /**
@@ -106,6 +109,11 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
   'gemini-3-pro-image-preview': {
     input: 0.002,
     output: 0.012,
+  },
+  // Google embedding models (output cost is 0 — embeddings are input-only)
+  'gemini-embedding-2-preview': {
+    input: 0.0002, // $0.20 per 1M input tokens
+    output: 0,
   },
   // Anthropic Claude models
   'claude-sonnet-4-6': {

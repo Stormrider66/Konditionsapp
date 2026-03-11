@@ -14,7 +14,7 @@ import { createModelInstance } from '@/lib/ai/create-model';
 import { requireCoach, resolveAthleteClientId, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { checkAthleteFeatureAccess, incrementAIChatUsage } from '@/lib/subscription/feature-access';
-import { searchSimilarChunks } from '@/lib/ai/embeddings';
+import { searchSimilarChunks, hasEmbeddingKeys, type EmbeddingKeys } from '@/lib/ai/embeddings';
 import { buildSportSpecificContext, type AthleteData } from '@/lib/ai/sport-context-builder';
 import { buildAthleteOwnContext } from '@/lib/ai/athlete-context-builder';
 import { buildAthleteSystemPrompt, MemoryContext, AthleteCapabilities } from '@/lib/ai/athlete-prompts';
@@ -504,23 +504,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Auto-retrieve relevant system knowledge (Knowledge Skills)
+    const embeddingKeys: EmbeddingKeys = { googleKey: decryptedKeys.googleKey, openaiKey: decryptedKeys.openaiKey };
     let skillContext = '';
     let skillsUsed: string[] = [];
-    if (decryptedKeys.openaiKey) {
+    if (hasEmbeddingKeys(embeddingKeys)) {
       const lastUserMsg = messages.filter(m => m.role === 'user').pop();
       if (lastUserMsg) {
         try {
           const userContent = getMessageContent(lastUserMsg);
           const matched = await matchKnowledgeSkills(
             userContent,
-            decryptedKeys.openaiKey,
+            embeddingKeys,
             { maxSkills: 3 }
           );
           if (matched.length > 0) {
             const result = await fetchSkillContext(
               userContent,
               matched,
-              decryptedKeys.openaiKey
+              embeddingKeys
             );
             skillContext = result.context;
             skillsUsed = result.skillsUsed;
@@ -533,7 +534,7 @@ export async function POST(request: NextRequest) {
 
     // Build context from documents using RAG
     let documentContext = '';
-    if (documentIds.length > 0 && decryptedKeys.openaiKey) {
+    if (documentIds.length > 0 && hasEmbeddingKeys(embeddingKeys)) {
       const lastUserMessage = messages.filter(m => m.role === 'user').pop();
       if (lastUserMessage) {
         try {
@@ -541,7 +542,7 @@ export async function POST(request: NextRequest) {
           const chunks = await searchSimilarChunks(
             lastUserContent,
             apiKeyUserId, // Use the API key owner's ID for document search
-            decryptedKeys.openaiKey,
+            embeddingKeys,
             {
               matchThreshold: 0.75,
               matchCount: 5,

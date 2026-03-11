@@ -1,27 +1,62 @@
 /**
  * Embedding Generation Utilities
  *
- * Uses OpenAI's text-embedding-ada-002 model for generating embeddings.
- * Embeddings are 1536-dimensional vectors used for semantic search.
+ * Provider-agnostic embedding system. Prefers Gemini Embedding (Google) for
+ * better multilingual quality and Matryoshka dimensions, falls back to
+ * OpenAI text-embedding-3-small.
+ *
+ * New embeddings are stored in the `embedding_v2` column (vector(768)).
+ * The legacy `embedding` column (vector(1536), ada-002) is left intact
+ * until a migration script re-embeds old data.
  */
 
 import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
 import { getResolvedAiKeys } from '@/lib/user-api-keys';
 import { logger } from '@/lib/logger';
+import {
+  createGoogleGenAIClient,
+  embedContent as geminiEmbedContent,
+  batchEmbedContent as geminiBatchEmbedContent,
+} from '@/lib/ai/google-genai-client';
+import { GEMINI_MODELS } from '@/lib/ai/gemini-config';
 
-// Default embedding model
-const EMBEDDING_MODEL = 'text-embedding-ada-002';
-const EMBEDDING_DIMENSIONS = 1536;
+// ─── Configuration ──────────────────────────────────────────────────────────
+
+/** Primary embedding model (Google Gemini) */
+const GOOGLE_EMBEDDING_MODEL = GEMINI_MODELS.EMBEDDING;
+/** Fallback embedding model (OpenAI) */
+const OPENAI_EMBEDDING_MODEL = 'text-embedding-3-small';
+
+/** Embedding dimensions — both providers support Matryoshka at 768 */
+const EMBEDDING_DIMENSIONS = 768;
+
+/** Column name for new 768-dim embeddings */
+export const EMBEDDING_COLUMN = 'embedding_v2';
+
+/** Exported model name (resolves to the primary provider) */
+const EMBEDDING_MODEL = GOOGLE_EMBEDDING_MODEL;
 
 // Chunking configuration
 const MAX_CHUNK_SIZE = 1000; // characters
 const CHUNK_OVERLAP = 200; // characters overlap between chunks
 
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+/**
+ * Keys available for embedding generation.
+ * Pass the full DecryptedUserApiKeys — extra fields are ignored.
+ */
+export interface EmbeddingKeys {
+  googleKey?: string | null;
+  openaiKey?: string | null;
+}
+
 export interface EmbeddingResult {
   embedding: number[];
   tokens: number;
   model: string;
+  provider: 'google' | 'openai';
 }
 
 export interface ChunkResult {
@@ -30,73 +65,142 @@ export interface ChunkResult {
   metadata?: Record<string, unknown>;
 }
 
+// ─── Provider Resolution ────────────────────────────────────────────────────
+
 /**
- * Create OpenAI client with user's API key
+ * Resolve the best available embedding provider from user keys.
+ * Prefers Google (Gemini) for better multilingual/Swedish quality.
  */
-function createOpenAIClient(apiKey: string): OpenAI {
-  return new OpenAI({ apiKey });
+function resolveEmbeddingProvider(keys: EmbeddingKeys): {
+  provider: 'google' | 'openai';
+  key: string;
+} {
+  if (keys.googleKey) {
+    return { provider: 'google', key: keys.googleKey };
+  }
+  if (keys.openaiKey) {
+    return { provider: 'openai', key: keys.openaiKey };
+  }
+  throw new Error(
+    'No API key available for embeddings. Configure a Google or OpenAI API key.',
+  );
 }
 
 /**
- * Generate embedding for a single text
+ * Check whether the keys contain at least one usable embedding key.
+ */
+export function hasEmbeddingKeys(keys: EmbeddingKeys): boolean {
+  return !!(keys.googleKey || keys.openaiKey);
+}
+
+// ─── Embedding Generation ───────────────────────────────────────────────────
+
+/**
+ * Generate embedding for a single text.
+ *
+ * @param taskType – Hint for asymmetric search:
+ *   `RETRIEVAL_QUERY` when embedding a search query (default),
+ *   `RETRIEVAL_DOCUMENT` when embedding a document for storage.
  */
 export async function generateEmbedding(
   text: string,
-  apiKey: string
+  keys: EmbeddingKeys,
+  taskType: 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY' | 'SEMANTIC_SIMILARITY' = 'RETRIEVAL_QUERY',
 ): Promise<EmbeddingResult> {
-  const openai = createOpenAIClient(apiKey);
+  const { provider, key } = resolveEmbeddingProvider(keys);
 
+  if (provider === 'google') {
+    const client = createGoogleGenAIClient(key);
+    const result = await geminiEmbedContent(client, GOOGLE_EMBEDDING_MODEL, text, {
+      outputDimensionality: EMBEDDING_DIMENSIONS,
+      taskType,
+    });
+    return {
+      embedding: result.values,
+      tokens: Math.ceil(text.length / 4), // Estimate — Gemini API doesn't return token count
+      model: GOOGLE_EMBEDDING_MODEL,
+      provider: 'google',
+    };
+  }
+
+  // OpenAI fallback — text-embedding-3-small supports Matryoshka dimensions
+  const openai = new OpenAI({ apiKey: key });
   const response = await openai.embeddings.create({
-    model: EMBEDDING_MODEL,
+    model: OPENAI_EMBEDDING_MODEL,
     input: text,
+    dimensions: EMBEDDING_DIMENSIONS,
   });
 
   return {
     embedding: response.data[0].embedding,
     tokens: response.usage.total_tokens,
-    model: EMBEDDING_MODEL,
+    model: OPENAI_EMBEDDING_MODEL,
+    provider: 'openai',
   };
 }
 
 /**
- * Generate embeddings for multiple texts in batch
+ * Generate embeddings for multiple texts in batch.
+ *
+ * @param taskType – `RETRIEVAL_DOCUMENT` when embedding passages for storage (default),
+ *   `RETRIEVAL_QUERY` when embedding search queries.
  */
 export async function generateEmbeddings(
   texts: string[],
-  apiKey: string
+  keys: EmbeddingKeys,
+  taskType: 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY' | 'SEMANTIC_SIMILARITY' = 'RETRIEVAL_DOCUMENT',
 ): Promise<EmbeddingResult[]> {
-  const openai = createOpenAIClient(apiKey);
+  const { provider, key } = resolveEmbeddingProvider(keys);
 
-  // OpenAI allows up to 2048 inputs per request
+  if (provider === 'google') {
+    const client = createGoogleGenAIClient(key);
+    const results = await geminiBatchEmbedContent(
+      client,
+      GOOGLE_EMBEDDING_MODEL,
+      texts,
+      { outputDimensionality: EMBEDDING_DIMENSIONS, taskType },
+    );
+    return results.map((r, i) => ({
+      embedding: r.values,
+      tokens: Math.ceil(texts[i].length / 4),
+      model: GOOGLE_EMBEDDING_MODEL,
+      provider: 'google',
+    }));
+  }
+
+  // OpenAI fallback with batching
+  const openai = new OpenAI({ apiKey: key });
   const batchSize = 100;
-  const results: EmbeddingResult[] = [];
+  const allResults: EmbeddingResult[] = [];
 
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize);
-
     const response = await openai.embeddings.create({
-      model: EMBEDDING_MODEL,
+      model: OPENAI_EMBEDDING_MODEL,
       input: batch,
+      dimensions: EMBEDDING_DIMENSIONS,
     });
-
     for (const item of response.data) {
-      results.push({
+      allResults.push({
         embedding: item.embedding,
         tokens: Math.round(response.usage.total_tokens / batch.length),
-        model: EMBEDDING_MODEL,
+        model: OPENAI_EMBEDDING_MODEL,
+        provider: 'openai',
       });
     }
   }
 
-  return results;
+  return allResults;
 }
+
+// ─── Text Chunking ──────────────────────────────────────────────────────────
 
 /**
  * Split text into chunks for embedding
  */
 export function chunkText(
   text: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
 ): ChunkResult[] {
   const chunks: ChunkResult[] = [];
 
@@ -165,15 +269,28 @@ export function chunkText(
   return chunks;
 }
 
+// ─── Key Helpers ────────────────────────────────────────────────────────────
+
 /**
- * Get user's OpenAI API key from database
+ * Get embedding keys for a user (Google + OpenAI).
+ * Prefers Google key for Gemini Embedding, falls back to OpenAI.
  */
-export async function getUserOpenAIKey(userId: string): Promise<string | null> {
-  const keys = await getResolvedAiKeys(userId)
-  return keys.openaiKey
+export async function getUserEmbeddingKeys(userId: string): Promise<EmbeddingKeys> {
+  const keys = await getResolvedAiKeys(userId);
+  return { googleKey: keys.googleKey, openaiKey: keys.openaiKey };
 }
 
-// Track if we've initialized vector columns per table
+/**
+ * @deprecated Use `getUserEmbeddingKeys` + `hasEmbeddingKeys` instead.
+ */
+export async function getUserOpenAIKey(userId: string): Promise<string | null> {
+  const keys = await getResolvedAiKeys(userId);
+  return keys.openaiKey;
+}
+
+// ─── Vector Column Management ───────────────────────────────────────────────
+
+// Track if we've initialized vector columns per table.column
 const vectorColumnsInitialized: Record<string, boolean> = {};
 
 // Cache the working vector type to avoid repeated errors
@@ -196,35 +313,47 @@ export async function getVectorType(): Promise<'extensions.vector' | 'vector'> {
 
 /**
  * Ensure the embedding column exists on a table with the correct vector type.
+ *
+ * @param tableName - Database table (default: 'KnowledgeChunk')
+ * @param columnName - Embedding column name (default: EMBEDDING_COLUMN = 'embedding_v2')
+ * @param dimensions - Vector dimensions (default: 768)
  */
-export async function ensureVectorColumn(tableName: string = 'KnowledgeChunk'): Promise<void> {
-  if (vectorColumnsInitialized[tableName]) return;
+export async function ensureVectorColumn(
+  tableName: string = 'KnowledgeChunk',
+  columnName: string = EMBEDDING_COLUMN,
+  dimensions: number = EMBEDDING_DIMENSIONS,
+): Promise<void> {
+  const cacheKey = `${tableName}.${columnName}`;
+  if (vectorColumnsInitialized[cacheKey]) return;
 
   try {
     const columnCheck = await prisma.$queryRawUnsafe<{ exists: boolean }[]>(
       `SELECT EXISTS (
         SELECT 1 FROM information_schema.columns
-        WHERE table_name = $1 AND column_name = 'embedding'
+        WHERE table_name = $1 AND column_name = $2
       ) as exists`,
-      tableName
+      tableName,
+      columnName,
     );
 
     if (!columnCheck[0]?.exists) {
-      logger.debug(`Creating embedding column on ${tableName}`);
+      logger.debug(`Creating ${columnName} column on ${tableName} (vector(${dimensions}))`);
       const vtype = await getVectorType();
       await prisma.$executeRawUnsafe(`
         ALTER TABLE "${tableName}"
-        ADD COLUMN IF NOT EXISTS embedding ${vtype}(1536)
+        ADD COLUMN IF NOT EXISTS "${columnName}" ${vtype}(${dimensions})
       `);
-      logger.debug(`Embedding column created on ${tableName}`);
+      logger.debug(`Column ${columnName} created on ${tableName}`);
     }
 
-    vectorColumnsInitialized[tableName] = true;
+    vectorColumnsInitialized[cacheKey] = true;
   } catch (error) {
-    logger.error(`Failed to ensure vector column on ${tableName}`, undefined, error);
+    logger.error(`Failed to ensure vector column ${columnName} on ${tableName}`, undefined, error);
     throw error;
   }
 }
+
+// ─── Store Embeddings ───────────────────────────────────────────────────────
 
 /**
  * Store embeddings for a document's chunks
@@ -233,17 +362,19 @@ export async function storeChunkEmbeddings(
   documentId: string,
   coachId: string,
   chunks: ChunkResult[],
-  apiKey: string
+  keys: EmbeddingKeys,
 ): Promise<{ success: boolean; chunksStored: number; error?: string }> {
   try {
-    // Ensure the embedding column exists
+    // Ensure the embedding_v2 column exists
     await ensureVectorColumn();
 
-    // Generate embeddings for all chunks
+    // Generate embeddings for all chunks (RETRIEVAL_DOCUMENT for storage)
     const contents = chunks.map((c) => c.content);
-    const embeddings = await generateEmbeddings(contents, apiKey);
+    const embeddings = await generateEmbeddings(contents, keys, 'RETRIEVAL_DOCUMENT');
 
     // Store chunks with embeddings using raw SQL (for pgvector)
+    const col = EMBEDDING_COLUMN;
+
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       const embedding = embeddings[i];
@@ -262,7 +393,6 @@ export async function storeChunkEmbeddings(
       });
 
       // Update embedding using raw SQL (pgvector)
-      // Use schema-qualified type for Supabase compatibility (extensions.vector)
       // SECURITY: Validate all embedding values are finite numbers to prevent SQL injection
       const validatedEmbedding = embedding.embedding.map((val, idx) => {
         const num = Number(val);
@@ -274,9 +404,9 @@ export async function storeChunkEmbeddings(
       const embeddingArray = `[${validatedEmbedding.join(',')}]`;
       const vtype = await getVectorType();
       await prisma.$executeRawUnsafe(
-        `UPDATE "KnowledgeChunk" SET embedding = $1::${vtype} WHERE id = $2`,
+        `UPDATE "KnowledgeChunk" SET "${col}" = $1::${vtype} WHERE id = $2`,
         embeddingArray,
-        knowledgeChunk.id
+        knowledgeChunk.id,
       );
     }
 
@@ -310,18 +440,22 @@ export async function storeChunkEmbeddings(
   }
 }
 
+// ─── Search ─────────────────────────────────────────────────────────────────
+
 /**
- * Search for similar chunks using vector similarity
+ * Search for similar chunks using vector similarity.
+ * Uses the embedding_v2 column (768 dims). Rows without embedding_v2 are skipped
+ * until re-embedded via the migration script.
  */
 export async function searchSimilarChunks(
   query: string,
   coachId: string,
-  apiKey: string,
+  keys: EmbeddingKeys,
   options: {
     matchThreshold?: number;
     matchCount?: number;
     documentIds?: string[];
-  } = {}
+  } = {},
 ): Promise<
   {
     id: string;
@@ -332,10 +466,11 @@ export async function searchSimilarChunks(
   }[]
 > {
   const { matchThreshold = 0.78, matchCount = 10, documentIds } = options;
+  const col = EMBEDDING_COLUMN;
 
-  // Generate embedding for query
-  const { embedding } = await generateEmbedding(query, apiKey);
-  // SECURITY: Validate all embedding values are finite numbers to prevent SQL injection
+  // Generate embedding for query (RETRIEVAL_QUERY for search)
+  const { embedding } = await generateEmbedding(query, keys, 'RETRIEVAL_QUERY');
+  // SECURITY: Validate all embedding values are finite numbers
   const validatedEmbedding = embedding.map((val, idx) => {
     const num = Number(val);
     if (!Number.isFinite(num)) {
@@ -348,34 +483,35 @@ export async function searchSimilarChunks(
   // Search using pgvector with cached vector type
   const vtype = await getVectorType();
 
-  const searchQuery = (withDocs: boolean) => withDocs
-    ? `
+  const searchQuery = (withDocs: boolean) =>
+    withDocs
+      ? `
       SELECT
         id,
         "documentId" as document_id,
         content,
         metadata,
-        1 - (embedding <=> $1::${vtype}) as similarity
+        1 - ("${col}" <=> $1::${vtype}) as similarity
       FROM "KnowledgeChunk"
       WHERE "coachId" = $2
         AND "documentId" = ANY($3)
-        AND embedding IS NOT NULL
-        AND 1 - (embedding <=> $1::${vtype}) > $4
-      ORDER BY embedding <=> $1::${vtype}
+        AND "${col}" IS NOT NULL
+        AND 1 - ("${col}" <=> $1::${vtype}) > $4
+      ORDER BY "${col}" <=> $1::${vtype}
       LIMIT $5
     `
-    : `
+      : `
       SELECT
         id,
         "documentId" as document_id,
         content,
         metadata,
-        1 - (embedding <=> $1::${vtype}) as similarity
+        1 - ("${col}" <=> $1::${vtype}) as similarity
       FROM "KnowledgeChunk"
       WHERE "coachId" = $2
-        AND embedding IS NOT NULL
-        AND 1 - (embedding <=> $1::${vtype}) > $3
-      ORDER BY embedding <=> $1::${vtype}
+        AND "${col}" IS NOT NULL
+        AND 1 - ("${col}" <=> $1::${vtype}) > $3
+      ORDER BY "${col}" <=> $1::${vtype}
       LIMIT $4
     `;
 
@@ -396,7 +532,7 @@ export async function searchSimilarChunks(
       coachId,
       documentIds,
       matchThreshold,
-      matchCount
+      matchCount,
     );
   } else {
     results = await prisma.$queryRawUnsafe<SearchResult[]>(
@@ -404,7 +540,7 @@ export async function searchSimilarChunks(
       embeddingArray,
       coachId,
       matchThreshold,
-      matchCount
+      matchCount,
     );
   }
 
@@ -435,12 +571,12 @@ async function getSystemUserId(): Promise<string | null> {
 
 export async function searchSystemChunks(
   query: string,
-  apiKey: string,
+  keys: EmbeddingKeys,
   options: {
     matchThreshold?: number;
     matchCount?: number;
     documentIds?: string[];
-  } = {}
+  } = {},
 ): Promise<
   {
     id: string;
@@ -455,7 +591,7 @@ export async function searchSystemChunks(
     logger.warn('No system user found for knowledge search');
     return [];
   }
-  return searchSimilarChunks(query, systemUserId, apiKey, options);
+  return searchSimilarChunks(query, systemUserId, keys, options);
 }
 
 export { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS };

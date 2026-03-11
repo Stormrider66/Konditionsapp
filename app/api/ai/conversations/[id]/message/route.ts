@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { searchSimilarChunks, getUserOpenAIKey } from '@/lib/ai/embeddings'
+import { searchSimilarChunks, hasEmbeddingKeys, type EmbeddingKeys } from '@/lib/ai/embeddings'
 import Anthropic from '@anthropic-ai/sdk'
 import { generateText } from 'ai'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
@@ -102,13 +102,14 @@ export async function POST(
     })
 
     // Build context from documents if available
+    const embeddingKeys: EmbeddingKeys = { googleKey: decryptedKeys.googleKey, openaiKey: decryptedKeys.openaiKey }
     let documentContext = ''
-    if (contextDocuments.length > 0 && decryptedKeys.openaiKey) {
+    if (contextDocuments.length > 0 && hasEmbeddingKeys(embeddingKeys)) {
       try {
         const chunks = await searchSimilarChunks(
           content,
           user.id,
-          decryptedKeys.openaiKey,
+          embeddingKeys,
           {
             matchThreshold: 0.75,
             matchCount: 5,

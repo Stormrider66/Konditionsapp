@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { chunkText, storeChunkEmbeddings, getUserOpenAIKey } from '@/lib/ai/embeddings'
+import { chunkText, storeChunkEmbeddings, getUserEmbeddingKeys, hasEmbeddingKeys } from '@/lib/ai/embeddings'
 import { KnowledgeCategory } from '@prisma/client'
 import { logger } from '@/lib/logger'
 import {
@@ -107,13 +107,13 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Get OpenAI key for embedding generation
-    const apiKey = await getUserOpenAIKey(user.id)
-    if (!apiKey) {
+    // Get embedding API keys (Google preferred, OpenAI fallback)
+    const embeddingKeys = await getUserEmbeddingKeys(user.id)
+    if (!hasEmbeddingKeys(embeddingKeys)) {
       return NextResponse.json(
         {
-          error: 'OpenAI API key not configured',
-          message: 'Please configure your OpenAI API key in Settings to generate embeddings.',
+          error: 'AI API key not configured',
+          message: 'Please configure a Google or OpenAI API key in Settings to generate embeddings.',
         },
         { status: 400 }
       )
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       document.id,
       user.id,
       chunks,
-      apiKey
+      embeddingKeys
     )
 
     if (!embedResult.success) {

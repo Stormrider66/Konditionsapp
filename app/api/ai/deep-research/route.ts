@@ -14,7 +14,7 @@ import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { createProvider, PROVIDER_COST_ESTIMATES, ResearchConfig } from '@/lib/ai/deep-research'
 import { checkBudget, logUsage } from '@/lib/ai/deep-research/budget-manager'
-import { searchSimilarChunks } from '@/lib/ai/embeddings'
+import { searchSimilarChunks, hasEmbeddingKeys, type EmbeddingKeys } from '@/lib/ai/embeddings'
 import { DeepResearchProvider, DeepResearchStatus } from '@prisma/client'
 
 // ============================================
@@ -130,12 +130,13 @@ export async function POST(request: NextRequest) {
     // Build context from documents if provided
     let documentContext: string | undefined
 
-    if (documentIds && documentIds.length > 0 && decryptedKeys.openaiKey) {
+    const embeddingKeys: EmbeddingKeys = { googleKey: decryptedKeys.googleKey, openaiKey: decryptedKeys.openaiKey }
+    if (documentIds && documentIds.length > 0 && hasEmbeddingKeys(embeddingKeys)) {
       try {
         const chunks = await searchSimilarChunks(
           query,
           user.id,
-          decryptedKeys.openaiKey,
+          embeddingKeys,
           {
             matchThreshold: 0.75,
             matchCount: 10,

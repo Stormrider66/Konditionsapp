@@ -12,7 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
-import { storeChunkEmbeddings, chunkText } from '@/lib/ai/embeddings'
+import { storeChunkEmbeddings, chunkText, hasEmbeddingKeys, type EmbeddingKeys } from '@/lib/ai/embeddings'
 
 // ============================================
 // Validation Schema
@@ -137,8 +137,9 @@ export async function POST(
 
     if (embedForRAG) {
       const decryptedKeys = await getResolvedAiKeys(user.id)
+      const embeddingKeys: EmbeddingKeys = { googleKey: decryptedKeys.googleKey, openaiKey: decryptedKeys.openaiKey }
 
-      if (decryptedKeys.openaiKey) {
+      if (hasEmbeddingKeys(embeddingKeys)) {
         try {
           // Update status to processing
           await prisma.coachDocument.update({
@@ -158,7 +159,7 @@ export async function POST(
             document.id,
             user.id,
             chunks,
-            decryptedKeys.openaiKey
+            embeddingKeys
           )
 
           // Update document with chunk count
@@ -193,12 +194,12 @@ export async function POST(
           })
         }
       } else {
-        // No OpenAI key, skip embedding
+        // No embedding keys available, skip embedding
         await prisma.coachDocument.update({
           where: { id: document.id },
           data: {
             processingStatus: 'COMPLETED',
-            processingError: 'OpenAI API key not configured for embeddings',
+            processingError: 'No AI API key configured for embeddings',
           },
         })
 
@@ -206,7 +207,7 @@ export async function POST(
           documentId: document.id,
           name: documentName,
           embeddingStatus: 'SKIPPED',
-          message: 'Document saved but embedding skipped - no OpenAI API key configured.',
+          message: 'Document saved but embedding skipped - no Google or OpenAI API key configured.',
         })
       }
     }

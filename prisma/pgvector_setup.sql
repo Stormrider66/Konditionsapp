@@ -5,17 +5,24 @@
 -- Enable pgvector extension (must also be enabled in Supabase Dashboard > Database > Extensions)
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- Embedding columns (1536 dims for OpenAI text-embedding-ada-002)
+-- ─── Legacy columns (1536 dims, OpenAI text-embedding-ada-002) ──────────────
+-- These are left intact for rollback. New code does NOT read/write these.
+-- After migration is complete, drop with: ALTER TABLE "X" DROP COLUMN IF EXISTS "embedding";
 ALTER TABLE "KnowledgeChunk" ADD COLUMN IF NOT EXISTS "embedding" vector(1536);
 ALTER TABLE "KnowledgeSkill" ADD COLUMN IF NOT EXISTS "embedding" vector(1536);
 
--- IVFFlat index for fast similarity search (create after >100 rows exist)
--- CREATE INDEX IF NOT EXISTS idx_knowledge_chunk_embedding
--- ON "KnowledgeChunk" USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+-- ─── New columns (768 dims, Gemini Embedding / OpenAI text-embedding-3-small) ─
+ALTER TABLE "KnowledgeChunk" ADD COLUMN IF NOT EXISTS "embedding_v2" vector(768);
+ALTER TABLE "KnowledgeSkill" ADD COLUMN IF NOT EXISTS "embedding_v2" vector(768);
 
--- Similarity search function
+-- ─── Indexes ────────────────────────────────────────────────────────────────
+-- IVFFlat index for fast similarity search on new columns (create after >100 rows)
+-- CREATE INDEX IF NOT EXISTS idx_knowledge_chunk_embedding_v2
+-- ON "KnowledgeChunk" USING ivfflat (embedding_v2 vector_cosine_ops) WITH (lists = 100);
+
+-- ─── Search function (uses embedding_v2 column) ────────────────────────────
 CREATE OR REPLACE FUNCTION search_knowledge_chunks(
-  query_embedding vector(1536),
+  query_embedding vector(768),
   coach_id_filter uuid,
   match_threshold float DEFAULT 0.78,
   match_count int DEFAULT 10
@@ -36,12 +43,12 @@ BEGIN
     kc."documentId"::uuid,
     kc.content,
     kc.metadata,
-    1 - (kc.embedding <=> query_embedding) as similarity
+    1 - (kc.embedding_v2 <=> query_embedding) as similarity
   FROM "KnowledgeChunk" kc
   WHERE kc."coachId"::uuid = coach_id_filter
-    AND kc.embedding IS NOT NULL
-    AND 1 - (kc.embedding <=> query_embedding) > match_threshold
-  ORDER BY kc.embedding <=> query_embedding
+    AND kc.embedding_v2 IS NOT NULL
+    AND 1 - (kc.embedding_v2 <=> query_embedding) > match_threshold
+  ORDER BY kc.embedding_v2 <=> query_embedding
   LIMIT match_count;
 END;
 $$;

@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCoach } from '@/lib/auth-utils';
-import { searchSimilarChunks, getUserOpenAIKey } from '@/lib/ai/embeddings';
+import { searchSimilarChunks, getUserEmbeddingKeys, hasEmbeddingKeys } from '@/lib/ai/embeddings';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger'
 
@@ -83,20 +83,21 @@ export async function POST(request: NextRequest) {
 
     const documentMap = new Map(documents.map((d) => [d.id, d.name]));
 
-    // Get user's OpenAI API key
-    const apiKey = await getUserOpenAIKey(user.id);
-    if (!apiKey) {
+    // Get user's embedding API keys (Google preferred, OpenAI fallback)
+    const embeddingKeys = await getUserEmbeddingKeys(user.id);
+    if (!hasEmbeddingKeys(embeddingKeys)) {
       return NextResponse.json(
         {
-          error: 'OpenAI API key not configured',
+          error: 'AI API key not configured',
           code: 'API_KEY_MISSING',
+          message: 'Please configure a Google or OpenAI API key in Settings to use document search.',
         },
         { status: 400 }
       );
     }
 
     // Perform semantic search across selected documents
-    const chunks = await searchSimilarChunks(query, user.id, apiKey, {
+    const chunks = await searchSimilarChunks(query, user.id, embeddingKeys, {
       matchThreshold,
       matchCount: maxChunks,
       documentIds,

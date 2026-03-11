@@ -498,3 +498,70 @@ export function zodToJsonSchema(zodSchema: { _def: { shape?: () => Record<string
     description: 'Structured analysis output',
   };
 }
+
+// ─── Embedding API ─────────────────────────────────────────────────────────
+
+export interface EmbedContentConfig {
+  /** Matryoshka output dimensions (e.g. 768). Model default if omitted. */
+  outputDimensionality?: number;
+  /**
+   * Task type hint for asymmetric embeddings:
+   * - RETRIEVAL_DOCUMENT: embedding a passage for storage
+   * - RETRIEVAL_QUERY: embedding a search query
+   * - SEMANTIC_SIMILARITY: comparing two texts
+   */
+  taskType?: 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY' | 'SEMANTIC_SIMILARITY';
+}
+
+/**
+ * Generate an embedding for a single text using Gemini Embedding API.
+ */
+export async function embedContent(
+  client: GoogleGenAI,
+  model: string,
+  text: string,
+  config?: EmbedContentConfig,
+): Promise<{ values: number[] }> {
+  const response = await client.models.embedContent({
+    model,
+    contents: text,
+    config: config
+      ? {
+          outputDimensionality: config.outputDimensionality,
+          taskType: config.taskType,
+        }
+      : undefined,
+  });
+
+  const values = response.embeddings?.[0]?.values;
+  if (!values || values.length === 0) {
+    throw new Error('Gemini embedContent returned empty embedding');
+  }
+  return { values };
+}
+
+/**
+ * Generate embeddings for multiple texts using Gemini Embedding API.
+ * Processes texts in batches with limited concurrency to avoid rate limits.
+ */
+export async function batchEmbedContent(
+  client: GoogleGenAI,
+  model: string,
+  texts: string[],
+  config?: EmbedContentConfig,
+): Promise<{ values: number[] }[]> {
+  const concurrency = 10;
+  const results: { values: number[] }[] = new Array(texts.length);
+
+  for (let i = 0; i < texts.length; i += concurrency) {
+    const batch = texts.slice(i, i + concurrency);
+    const promises = batch.map((text, j) =>
+      embedContent(client, model, text, config).then((r) => {
+        results[i + j] = r;
+      }),
+    );
+    await Promise.all(promises);
+  }
+
+  return results;
+}

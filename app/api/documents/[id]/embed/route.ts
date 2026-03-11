@@ -12,7 +12,8 @@ import { logger } from '@/lib/logger'
 import {
   chunkText,
   storeChunkEmbeddings,
-  getUserOpenAIKey,
+  getUserEmbeddingKeys,
+  hasEmbeddingKeys,
 } from '@/lib/ai/embeddings';
 import {
   processDocument,
@@ -31,15 +32,15 @@ export async function POST(
     const user = await requireCoach();
     const { id } = await params;
 
-    // Get user's OpenAI API key
-    const apiKey = await getUserOpenAIKey(user.id);
-    if (!apiKey) {
+    // Get user's embedding API keys (Google preferred, OpenAI fallback)
+    const embeddingKeys = await getUserEmbeddingKeys(user.id);
+    if (!hasEmbeddingKeys(embeddingKeys)) {
       return NextResponse.json(
         {
-          error: 'OpenAI API key not configured',
+          error: 'AI API key not configured',
           code: 'API_KEY_MISSING',
           message:
-            'Please configure your OpenAI API key in Settings to generate embeddings.',
+            'Please configure a Google or OpenAI API key in Settings to generate embeddings.',
         },
         { status: 400 }
       );
@@ -188,7 +189,7 @@ export async function POST(
       document.id,
       user.id,
       chunks,
-      apiKey
+      embeddingKeys
     );
 
     if (!result.success) {

@@ -9,7 +9,14 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { generateEmbedding, searchSystemChunks, getVectorType, ensureVectorColumn } from '@/lib/ai/embeddings'
+import {
+  generateEmbedding,
+  searchSystemChunks,
+  getVectorType,
+  ensureVectorColumn,
+  EMBEDDING_COLUMN,
+  type EmbeddingKeys,
+} from '@/lib/ai/embeddings'
 import { logger } from '@/lib/logger'
 
 export interface MatchedSkill {
@@ -46,13 +53,15 @@ let skillEmbeddingsChecked = false
  */
 async function ensureSkillEmbeddings(
   skills: KnowledgeSkillRow[],
-  apiKey: string
+  keys: EmbeddingKeys
 ): Promise<void> {
   if (skillEmbeddingsChecked) return
 
+  const col = EMBEDDING_COLUMN
+
   try {
     const skillsWithEmbedding = await prisma.$queryRawUnsafe<{ id: string }[]>(
-      `SELECT id FROM "KnowledgeSkill" WHERE embedding IS NOT NULL`
+      `SELECT id FROM "KnowledgeSkill" WHERE "${col}" IS NOT NULL`
     )
     const embeddedIds = new Set(skillsWithEmbedding.map(s => s.id))
     const missingSkills = skills.filter(s => !embeddedIds.has(s.id))
@@ -68,11 +77,11 @@ async function ensureSkillEmbeddings(
     for (const skill of missingSkills) {
       try {
         const text = `${skill.name} ${skill.nameEn || ''} ${skill.description} ${skill.keywords.join(' ')}`
-        const { embedding } = await generateEmbedding(text, apiKey)
+        const { embedding } = await generateEmbedding(text, keys, 'SEMANTIC_SIMILARITY')
         const embeddingArray = `[${embedding.join(',')}]`
 
         await prisma.$executeRawUnsafe(
-          `UPDATE "KnowledgeSkill" SET embedding = $1::${vtype} WHERE id = $2`,
+          `UPDATE "KnowledgeSkill" SET "${col}" = $1::${vtype} WHERE id = $2`,
           embeddingArray,
           skill.id
         )
@@ -92,7 +101,7 @@ async function ensureSkillEmbeddings(
  */
 export async function matchKnowledgeSkills(
   query: string,
-  openaiKey: string,
+  keys: EmbeddingKeys,
   options: { maxSkills?: number; keywordOnly?: boolean } = {}
 ): Promise<MatchedSkill[]> {
   const { maxSkills = 3, keywordOnly = false } = options
@@ -152,12 +161,14 @@ export async function matchKnowledgeSkills(
   }
 
   // Tier 2: Embedding similarity (only if keyword matching found < 2 results)
-  try {
-    // Ensure the embedding column exists and skills have embeddings
-    await ensureVectorColumn('KnowledgeSkill')
-    await ensureSkillEmbeddings(skills, openaiKey)
+  const col = EMBEDDING_COLUMN
 
-    const { embedding: queryEmbedding } = await generateEmbedding(query, openaiKey)
+  try {
+    // Ensure the embedding_v2 column exists and skills have embeddings
+    await ensureVectorColumn('KnowledgeSkill')
+    await ensureSkillEmbeddings(skills, keys)
+
+    const { embedding: queryEmbedding } = await generateEmbedding(query, keys, 'RETRIEVAL_QUERY')
     const validatedEmbedding = queryEmbedding.map((val, idx) => {
       const num = Number(val)
       if (!Number.isFinite(num)) {
@@ -172,12 +183,12 @@ export async function matchKnowledgeSkills(
 
     const vtype = await getVectorType()
     const embeddingResults = await prisma.$queryRawUnsafe<{ id: string; similarity: number }[]>(
-      `SELECT id, 1 - (embedding <=> $1::${vtype}) as similarity
+      `SELECT id, 1 - ("${col}" <=> $1::${vtype}) as similarity
        FROM "KnowledgeSkill"
        WHERE "isActive" = true
-         AND embedding IS NOT NULL
-         AND 1 - (embedding <=> $1::${vtype}) > $2
-       ORDER BY embedding <=> $1::${vtype}
+         AND "${col}" IS NOT NULL
+         AND 1 - ("${col}" <=> $1::${vtype}) > $2
+       ORDER BY "${col}" <=> $1::${vtype}
        LIMIT $3`,
       embeddingArray,
       EMBEDDING_THRESHOLD,
@@ -219,7 +230,7 @@ export async function matchKnowledgeSkills(
 export async function fetchSkillContext(
   query: string,
   matchedSkills: MatchedSkill[],
-  openaiKey: string,
+  keys: EmbeddingKeys,
 ): Promise<{ context: string; skillsUsed: string[]; chunksUsed: number }> {
   if (matchedSkills.length === 0) {
     return { context: '', skillsUsed: [], chunksUsed: 0 }
@@ -235,7 +246,7 @@ export async function fetchSkillContext(
   const totalMaxChunks = matchedSkills.reduce((sum, s) => sum + s.maxChunks, 0)
 
   try {
-    const chunks = await searchSystemChunks(query, openaiKey, {
+    const chunks = await searchSystemChunks(query, keys, {
       matchThreshold: 0.75,
       matchCount: Math.min(totalMaxChunks, 9),
       documentIds: allDocIds,
