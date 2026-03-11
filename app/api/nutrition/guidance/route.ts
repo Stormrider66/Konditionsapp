@@ -230,11 +230,11 @@ export async function GET() {
       todaysWorkouts: allTodaysWorkouts,
       tomorrowsWorkouts,
       currentTime: now,
-      bodyComposition: bodyComposition
+      bodyComposition: bodyComposition || client.nutritionGoal?.customBmrKcal
         ? {
-            bmrKcal: bodyComposition.bmrKcal ?? undefined,
-            bodyFatPercent: bodyComposition.bodyFatPercent ?? undefined,
-            muscleMassKg: bodyComposition.muscleMassKg ?? undefined,
+            bmrKcal: client.nutritionGoal?.customBmrKcal ?? bodyComposition?.bmrKcal ?? undefined,
+            bodyFatPercent: bodyComposition?.bodyFatPercent ?? undefined,
+            muscleMassKg: bodyComposition?.muscleMassKg ?? undefined,
           }
         : undefined,
     }

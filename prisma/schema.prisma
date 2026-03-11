@@ -6092,6 +6092,10 @@ model NutritionGoal {
   // Custom protein target (g per kg body weight, overrides calculated value)
   customProteinPerKg Float?
 
+  // Custom BMR (kcal) from bio-impedance screening or other measurement
+  // Overrides the calculated Mifflin-St Jeor estimate for TDEE-based guidance
+  customBmrKcal Int?
+
   // Display preferences
   showMacroTargets Boolean @default(true)
   showHydration    Boolean @default(true)

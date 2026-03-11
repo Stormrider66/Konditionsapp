@@ -26,6 +26,7 @@ const goalsSchema = z.object({
     .enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'ACTIVE', 'VERY_ACTIVE', 'ATHLETE'])
     .optional(),
   customProteinPerKg: z.number().min(0.5).max(3).optional().nullable(),
+  customBmrKcal: z.number().int().min(500).max(5000).optional().nullable(),
   customProteinPercent: z.number().min(0).max(100).optional().nullable(),
   customCarbsPercent: z.number().min(0).max(100).optional().nullable(),
   customFatPercent: z.number().min(0).max(100).optional().nullable(),
@@ -114,6 +115,7 @@ export async function PUT(request: NextRequest) {
         macroProfile: validated.macroProfile,
         activityLevel: validated.activityLevel ?? 'ACTIVE',
         customProteinPerKg: validated.customProteinPerKg,
+        customBmrKcal: validated.customBmrKcal,
         customProteinPercent: validated.customProteinPercent,
         customCarbsPercent: validated.customCarbsPercent,
         customFatPercent: validated.customFatPercent,
@@ -130,6 +132,7 @@ export async function PUT(request: NextRequest) {
         macroProfile: validated.macroProfile,
         activityLevel: validated.activityLevel ?? 'ACTIVE',
         customProteinPerKg: validated.customProteinPerKg,
+        customBmrKcal: validated.customBmrKcal,
         customProteinPercent: validated.customProteinPercent,
         customCarbsPercent: validated.customCarbsPercent,
         customFatPercent: validated.customFatPercent,

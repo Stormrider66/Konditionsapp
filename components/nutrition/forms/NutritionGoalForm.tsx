@@ -36,7 +36,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, TrendingDown, TrendingUp, Minus, Sparkles } from 'lucide-react'
+import { Loader2, TrendingDown, TrendingUp, Minus, Sparkles, Flame } from 'lucide-react'
 
 const goalSchema = z.object({
   goalType: z.enum(['WEIGHT_LOSS', 'WEIGHT_GAIN', 'MAINTAIN', 'BODY_RECOMP']),
@@ -45,6 +45,7 @@ const goalSchema = z.object({
   targetBodyFatPercent: z.number().min(3).max(50).optional().nullable(),
   macroProfile: z.enum(['BALANCED', 'HIGH_PROTEIN', 'LOW_CARB', 'ENDURANCE', 'STRENGTH']).optional().nullable(),
   activityLevel: z.enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'ACTIVE', 'VERY_ACTIVE', 'ATHLETE']).optional(),
+  customBmrKcal: z.number().int().min(500).max(5000).optional().nullable(),
   showMacroTargets: z.boolean().optional(),
   showHydration: z.boolean().optional(),
 })
@@ -117,6 +118,7 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
       targetBodyFatPercent: initialData?.targetBodyFatPercent || undefined,
       macroProfile: initialData?.macroProfile || 'BALANCED',
       activityLevel: initialData?.activityLevel || 'ACTIVE',
+      customBmrKcal: initialData?.customBmrKcal || undefined,
       showMacroTargets: initialData?.showMacroTargets ?? true,
       showHydration: initialData?.showHydration ?? true,
     },
@@ -387,6 +389,45 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Custom BMR */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Flame className="h-4 w-4 text-orange-500" />
+              Basalmetabolism (BMR)
+            </CardTitle>
+            <CardDescription>
+              Om du har gjort en bioimpedansmätning kan du ange ditt uppmätta BMR-värde.
+              Detta används för att beräkna mer exakta kalori- och makromål.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormField
+              control={form.control}
+              name="customBmrKcal"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Uppmätt BMR (kcal/dag)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="1"
+                      placeholder="T.ex. 1650"
+                      {...field}
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Lämna tomt för att använda beräknat värde baserat på vikt, längd och ålder
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
