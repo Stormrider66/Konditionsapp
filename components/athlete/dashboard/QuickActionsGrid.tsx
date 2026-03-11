@@ -8,7 +8,7 @@ import { InputMethodSelector } from '@/components/athlete/adhoc/InputMethodSelec
 import { MealInputMethodSelector } from '@/components/athlete/nutrition/MealInputMethodSelector'
 import { VoiceMealCapture } from '@/components/athlete/nutrition/VoiceMealCapture'
 import { FoodPhotoScanner } from '@/components/nutrition/FoodPhotoScanner'
-import { QuickMealLog, type MealLogData } from '@/components/athlete/nutrition/QuickMealLog'
+import { QuickMealLog } from '@/components/athlete/nutrition/QuickMealLog'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
 interface QuickActionsGridProps {
@@ -32,17 +32,6 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
     if (method === 'photo') setFoodScannerOpen(true)
     else if (method === 'voice') setVoiceMealOpen(true)
     else setQuickMealOpen(true)
-  }
-
-  const handleQuickMealSubmit = async (data: MealLogData) => {
-    const res = await fetch('/api/meals', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-    if (res.ok) {
-      window.dispatchEvent(new Event('meal-logged'))
-    }
   }
 
   return (
@@ -127,7 +116,10 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
       <QuickMealLog
         open={quickMealOpen}
         onClose={() => setQuickMealOpen(false)}
-        onSubmit={handleQuickMealSubmit}
+        onMealSaved={() => {
+          setQuickMealOpen(false)
+          window.dispatchEvent(new Event('meal-logged'))
+        }}
       />
     </>
   )
