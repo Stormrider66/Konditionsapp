@@ -24,6 +24,7 @@ import {
   ArrowLeft,
   Filter,
   Plus,
+  Sparkles,
 } from 'lucide-react'
 import { WorkoutHistoryCharts } from '@/components/athlete/WorkoutHistoryCharts'
 import { PersonalRecords } from '@/components/athlete/PersonalRecords'
@@ -94,7 +95,7 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
   }
 
   // Fetch workout logs, ad-hoc workouts, and all 4 assignment types in parallel
-  const [logs, adHocWorkouts, strengthAssignments, cardioAssignments, hybridAssignments, agilityAssignments] = await Promise.all([
+  const [logs, adHocWorkouts, strengthAssignments, cardioAssignments, hybridAssignments, agilityAssignments, completedWODs] = await Promise.all([
     prisma.workoutLog.findMany({
       where: whereClause,
       include: {
@@ -189,6 +190,25 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
       },
       orderBy: { completedAt: 'desc' },
     }),
+    // Completed AI-generated WODs
+    prisma.aIGeneratedWOD.findMany({
+      where: {
+        clientId: clientId,
+        status: 'COMPLETED',
+        completedAt: { gte: startDate, lte: now },
+      },
+      select: {
+        id: true,
+        title: true,
+        primarySport: true,
+        actualDuration: true,
+        requestedDuration: true,
+        sessionRPE: true,
+        completedAt: true,
+        source: true,
+      },
+      orderBy: { completedAt: 'desc' },
+    }),
   ])
 
   // Parse ad-hoc workout data
@@ -259,19 +279,34 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
 
   const allAssignmentItems = [...strengthItems, ...cardioItems, ...hybridItems, ...agilityItems]
 
-  // Calculate stats (including ad-hoc workouts and assignments)
-  const totalWorkouts = logs.length + adHocWorkouts.length + allAssignmentItems.length
+  // Map completed WODs
+  const wodItems = completedWODs.map((wod) => ({
+    id: wod.id,
+    date: wod.completedAt!,
+    name: wod.title,
+    type: wod.primarySport || 'OTHER',
+    duration: wod.actualDuration || wod.requestedDuration || null,
+    perceivedEffort: wod.sessionRPE || null,
+    distance: null as number | null,
+    source: wod.source === 'chat' ? 'ai-chat' : 'wod',
+    linkHref: `${basePath}/athlete/wod/${wod.id}`,
+  }))
+
+  // Calculate stats (including ad-hoc workouts, assignments, and WODs)
+  const totalWorkouts = logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length
   const totalDistance = logs.reduce((sum, log) => sum + (log.distance || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.distance || 0), 0) +
     allAssignmentItems.reduce((sum, a) => sum + (a.distance || 0), 0)
   const totalDuration = logs.reduce((sum, log) => sum + (log.duration || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.duration || 0), 0) +
-    allAssignmentItems.reduce((sum, a) => sum + (a.duration || 0), 0)
+    allAssignmentItems.reduce((sum, a) => sum + (a.duration || 0), 0) +
+    wodItems.reduce((sum, w) => sum + (w.duration || 0), 0)
 
   const allEfforts = [
     ...logs.filter(log => log.perceivedEffort).map(log => log.perceivedEffort!),
     ...adHocWithParsedData.filter(w => w.perceivedEffort).map(w => w.perceivedEffort!),
     ...allAssignmentItems.filter(a => a.perceivedEffort).map(a => a.perceivedEffort!),
+    ...wodItems.filter(w => w.perceivedEffort).map(w => w.perceivedEffort!),
   ]
   const avgRPE = allEfforts.length > 0
     ? (allEfforts.reduce((sum, e) => sum + e, 0) / allEfforts.length).toFixed(1)
@@ -331,6 +366,19 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
       isAdHoc: false,
       source: a.source,
       linkHref: a.linkHref,
+    })),
+    ...wodItems.map((w) => ({
+      id: w.id,
+      date: w.date,
+      name: w.name,
+      type: w.type,
+      programName: undefined,
+      distance: w.distance,
+      duration: w.duration,
+      perceivedEffort: w.perceivedEffort,
+      isAdHoc: false,
+      source: w.source,
+      linkHref: w.linkHref,
     })),
   ]
     .filter((item) => !sp.type || item.type === sp.type)
@@ -574,14 +622,26 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
                                 Ad-hoc
                               </span>
                             )}
-                            {item.source && (
+                            {item.source === 'wod' && (
+                              <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                                <Sparkles className="h-2.5 w-2.5" />
+                                AI-Pass
+                              </span>
+                            )}
+                            {item.source === 'ai-chat' && (
+                              <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                <Sparkles className="h-2.5 w-2.5" />
+                                AI-Chatt
+                              </span>
+                            )}
+                            {item.source && !['wod', 'ai-chat'].includes(item.source) && (
                               <span className="inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                 Studio
                               </span>
                             )}
                           </div>
                           <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                            {item.programName || (item.isAdHoc ? 'Eget pass' : item.source ? 'Studio-pass' : '-')}
+                            {item.programName || (item.isAdHoc ? 'Eget pass' : item.source === 'wod' ? 'AI-genererat pass' : item.source === 'ai-chat' ? 'AI-chatt pass' : item.source ? 'Studio-pass' : '-')}
                           </div>
                         </Link>
                       </TableCell>
