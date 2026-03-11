@@ -24,7 +24,7 @@ const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  birthDate: z.string().datetime().optional(),
+  birthDate: z.string().optional(),
   gender: z.enum(['MALE', 'FEMALE']).optional(),
   // Optional invitation code
   inviteCode: z.string().optional(),

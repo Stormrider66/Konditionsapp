@@ -28,6 +28,7 @@ const signupSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
   gender: z.enum(['MALE', 'FEMALE']).optional(),
+  birthDate: z.string().min(1, 'Födelsedatum krävs'),
   inviteCode: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
@@ -122,6 +123,7 @@ function AthleteSignupForm() {
           email: data.email,
           password: data.password,
           gender: data.gender,
+          birthDate: new Date(data.birthDate).toISOString(),
           inviteCode: data.inviteCode || undefined,
           aiCoached: isAICoached,
           tier: selectedTier,
@@ -239,6 +241,23 @@ function AthleteSignupForm() {
             <option value="MALE">{t('male')}</option>
             <option value="FEMALE">{t('female')}</option>
           </select>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="birthDate" className="text-sm font-medium flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            {t('birthDateLabel')}
+          </label>
+          <input
+            id="birthDate"
+            type="date"
+            className={`flex h-10 w-full rounded-md border ${
+              errors.birthDate ? 'border-red-500' : 'border-input'
+            } bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+            {...register('birthDate')}
+            disabled={isLoading}
+          />
+          {errors.birthDate && <p className="text-sm text-red-500">{errors.birthDate.message}</p>}
         </div>
 
         <div className="space-y-2">

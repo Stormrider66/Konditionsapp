@@ -49,6 +49,37 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
   // State for change sport dialog
   const [showChangeSportDialog, setShowChangeSportDialog] = useState(false)
 
+  // State for birth date dialog
+  const [showBirthDateDialog, setShowBirthDateDialog] = useState(false)
+  const [birthDateValue, setBirthDateValue] = useState(
+    client.birthDate ? new Date(client.birthDate).toISOString().split('T')[0] : ''
+  )
+  const [birthDateSaving, setBirthDateSaving] = useState(false)
+  const [birthDateError, setBirthDateError] = useState('')
+
+  const handleBirthDateSave = async () => {
+    setBirthDateError('')
+    setBirthDateSaving(true)
+    try {
+      const res = await fetch('/api/athlete/profile/birthdate', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ birthDate: birthDateValue }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setBirthDateError(json.error || 'Kunde inte spara')
+        return
+      }
+      setShowBirthDateDialog(false)
+      router.refresh()
+    } catch {
+      setBirthDateError('Något gick fel')
+    } finally {
+      setBirthDateSaving(false)
+    }
+  }
+
   // State for body measurements dialog
   const [showBodyDialog, setShowBodyDialog] = useState(false)
   const [bodyHeight, setBodyHeight] = useState(client.height)
@@ -194,8 +225,25 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
               "flex flex-wrap items-center justify-center md:justify-start gap-4 text-[10px] font-black uppercase tracking-widest mb-6 transition-colors",
               isGlass ? "text-slate-600 dark:text-slate-500" : "text-gray-600"
             )}>
-              <span className="flex items-center gap-1">
+              <span className="inline-flex items-center gap-1">
                 <span className={cn(isGlass ? "text-blue-600 dark:text-blue-500" : "font-medium")}>{age}</span> år
+                {isAthlete && (
+                  <button
+                    onClick={() => {
+                      setBirthDateValue(
+                        client.birthDate ? new Date(client.birthDate).toISOString().split('T')[0] : ''
+                      )
+                      setBirthDateError('')
+                      setShowBirthDateDialog(true)
+                    }}
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-md p-0.5 transition-colors",
+                      isGlass ? "text-slate-400 hover:text-slate-900 dark:hover:text-white" : "text-gray-400 hover:text-gray-900"
+                    )}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                )}
               </span>
               <span className="opacity-20">•</span>
               <span className="inline-flex items-center gap-1">
@@ -400,6 +448,39 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
               </Button>
               <Button onClick={handleBodySave} disabled={bodySaving}>
                 {bodySaving ? 'Sparar...' : 'Spara'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      {/* Edit Birth Date Dialog */}
+      {isAthlete && (
+        <Dialog open={showBirthDateDialog} onOpenChange={setShowBirthDateDialog}>
+          <DialogContent className="sm:max-w-[360px] text-foreground">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Uppdatera födelsedatum</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="birthdate" className="text-foreground">Födelsedatum</Label>
+                <Input
+                  id="birthdate"
+                  type="date"
+                  value={birthDateValue}
+                  onChange={(e) => setBirthDateValue(e.target.value)}
+                  className="text-foreground"
+                />
+              </div>
+              {birthDateError && (
+                <p className="text-sm text-red-500">{birthDateError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBirthDateDialog(false)} className="text-foreground">
+                Avbryt
+              </Button>
+              <Button onClick={handleBirthDateSave} disabled={birthDateSaving || !birthDateValue}>
+                {birthDateSaving ? 'Sparar...' : 'Spara'}
               </Button>
             </DialogFooter>
           </DialogContent>
