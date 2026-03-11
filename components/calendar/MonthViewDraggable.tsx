@@ -124,6 +124,7 @@ export function MonthViewDraggable({
         hasFieldTest: dayItems.some((i) => i.type === 'FIELD_TEST'),
         hasCheckIn: dayItems.some((i) => i.type === 'CHECK_IN'),
         hasWOD: dayItems.some((i) => i.type === 'WOD'),
+        hasAdHoc: dayItems.some((i) => i.type === 'AD_HOC'),
         isBlocked: dayItems.some(
           (i) => i.type === 'CALENDAR_EVENT' && i.metadata.trainingImpact === 'NO_TRAINING'
         ),
@@ -250,6 +251,10 @@ export function MonthViewDraggable({
             <span>Test</span>
           </div>
           <div className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-teal-500" />
+            <span>Ad-hoc</span>
+          </div>
+          <div className="flex items-center gap-1">
             <span className="w-3 h-3 bg-red-100 border border-red-300 rounded" />
             <span>Blockerad</span>
           </div>
@@ -346,6 +351,15 @@ function DroppableDayCell({
       type: 'WOD',
       color: 'bg-emerald-500',
       label: 'AI-Pass',
+    })
+  }
+
+  // Add ad-hoc workout indicator
+  if (day.hasAdHoc) {
+    indicators.push({
+      type: 'AD_HOC',
+      color: 'bg-teal-500',
+      label: 'Ad-hoc',
     })
   }
 
@@ -455,6 +469,10 @@ function DraggableItem({ item, onItemClick }: DraggableItemProps) {
           'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200',
         item.type === 'FIELD_TEST' &&
           'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200',
+        item.type === 'AD_HOC' &&
+          'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200',
+        item.type === 'WOD' &&
+          'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200',
         isDragging && 'opacity-50',
         isDraggable && 'cursor-grab active:cursor-grabbing'
       )}

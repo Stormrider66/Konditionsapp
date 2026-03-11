@@ -566,6 +566,12 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                     {data.counts.calendarEvents} händelser
                   </span>
                 )}
+                {data.counts.adHoc > 0 && (
+                  <span className="flex items-center gap-1.5 text-slate-500">
+                    <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.5)]" />
+                    {data.counts.adHoc} ad-hoc
+                  </span>
+                )}
               </div>
             )}
           </GlassCardHeader>
@@ -902,6 +908,12 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                   {data.counts.calendarEvents} händelser
                 </span>
               )}
+              {data.counts.adHoc > 0 && (
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-teal-500" />
+                  {data.counts.adHoc} ad-hoc
+                </span>
+              )}
             </div>
           )}
         </CardHeader>
@@ -1232,6 +1244,8 @@ function AgendaItem({ item, isSelected, onClick, isGlass = false }: AgendaItemPr
     FIELD_TEST: 'border-l-green-500',
     CALENDAR_EVENT: 'border-l-purple-500',
     CHECK_IN: 'border-l-gray-500',
+    AD_HOC: 'border-l-teal-500',
+    WOD: 'border-l-orange-500',
   }
 
   return (
@@ -1252,6 +1266,8 @@ function AgendaItem({ item, isSelected, onClick, isGlass = false }: AgendaItemPr
           {item.type === 'WORKOUT' && (item.metadata.workoutType as string)?.toLowerCase()}
           {item.type === 'RACE' && String(item.metadata.classification || '')}
           {item.type === 'CALENDAR_EVENT' && (item.metadata.eventType as string)?.replace(/_/g, ' ').toLowerCase()}
+          {item.type === 'AD_HOC' && 'ad-hoc'}
+          {item.type === 'WOD' && 'wod'}
         </span>
       </div>
       {item.description && (

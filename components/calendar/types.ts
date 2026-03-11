@@ -4,7 +4,7 @@
 
 import { CalendarEventType, CalendarEventStatus, EventImpact, AltitudeAdaptationPhase } from '@prisma/client'
 
-export type UnifiedItemType = 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN' | 'WOD'
+export type UnifiedItemType = 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN' | 'WOD' | 'AD_HOC'
 
 export interface UnifiedCalendarItem {
   id: string
@@ -65,6 +65,7 @@ export interface DayData {
   hasFieldTest: boolean
   hasCheckIn: boolean
   hasWOD: boolean
+  hasAdHoc: boolean
   isBlocked: boolean
   isReduced: boolean
   isToday: boolean

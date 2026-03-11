@@ -93,6 +93,7 @@ export function MonthView({
         hasFieldTest: dayItems.some((i) => i.type === 'FIELD_TEST'),
         hasCheckIn: dayItems.some((i) => i.type === 'CHECK_IN'),
         hasWOD: dayItems.some((i) => i.type === 'WOD'),
+        hasAdHoc: dayItems.some((i) => i.type === 'AD_HOC'),
         isBlocked: dayItems.some(
           (i) => i.type === 'CALENDAR_EVENT' && i.metadata.trainingImpact === 'NO_TRAINING'
         ),

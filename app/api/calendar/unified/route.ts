@@ -9,6 +9,7 @@
  * - Field tests
  * - Calendar events (travel, camps, illness, vacation, etc.)
  * - Daily check-ins
+ * - Ad-hoc workouts (confirmed)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -20,7 +21,7 @@ import { performance } from 'node:perf_hooks'
 
 export interface UnifiedCalendarItem {
   id: string
-  type: 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN' | 'WOD'
+  type: 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN' | 'WOD' | 'AD_HOC'
   title: string
   description?: string | null
   date: Date
@@ -77,6 +78,7 @@ export async function GET(request: NextRequest) {
     const includeEvents = searchParams.get('includeEvents') !== 'false'
     const includeCheckIns = searchParams.get('includeCheckIns') !== 'false'
     const includeWODs = searchParams.get('includeWODs') !== 'false'
+    const includeAdHoc = searchParams.get('includeAdHoc') !== 'false'
     // Response shape (both true by default for backwards compatibility)
     const includeItems = searchParams.get('includeItems') !== 'false'
     const includeGroupedByDate = searchParams.get('includeGroupedByDate') !== 'false'
@@ -145,6 +147,7 @@ export async function GET(request: NextRequest) {
       includeEvents ? '1' : '0',
       includeCheckIns ? '1' : '0',
       includeWODs ? '1' : '0',
+      includeAdHoc ? '1' : '0',
       includeItems ? '1' : '0',
       itemsMode,
       includeGroupedByDate ? '1' : '0',
@@ -177,6 +180,7 @@ export async function GET(request: NextRequest) {
           includeEvents,
           includeCheckIns,
           includeWODs,
+          includeAdHoc,
           includeItems,
           itemsMode,
           includeGroupedByDate,
@@ -284,6 +288,7 @@ interface BuildUnifiedCalendarPayloadInput {
   includeEvents: boolean
   includeCheckIns: boolean
   includeWODs: boolean
+  includeAdHoc: boolean
   includeItems: boolean
   itemsMode: CalendarItemsMode
   includeGroupedByDate: boolean
@@ -304,6 +309,7 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
     includeEvents,
     includeCheckIns,
     includeWODs,
+    includeAdHoc,
     includeItems,
     itemsMode,
     includeGroupedByDate,
@@ -322,6 +328,7 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
       eventsCount,
       checkInsCount,
       wodsCount,
+      adHocCount,
     ] = await Promise.all([
       includeWorkouts
         ? prisma.workout.count({
@@ -384,6 +391,15 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
             },
           })
         : Promise.resolve(0),
+      includeAdHoc
+        ? prisma.adHocWorkout.count({
+            where: {
+              athleteId: clientId,
+              status: 'CONFIRMED',
+              workoutDate: { gte: startDate, lte: endDate },
+            },
+          })
+        : Promise.resolve(0),
     ])
 
     const payload = {
@@ -401,13 +417,15 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
           fieldTestsCount +
           eventsCount +
           checkInsCount +
-          wodsCount,
+          wodsCount +
+          adHocCount,
         workouts: workoutsCount,
         races: racesCount,
         fieldTests: fieldTestsCount,
         calendarEvents: eventsCount,
         checkIns: checkInsCount,
         wods: wodsCount,
+        adHoc: adHocCount,
       },
     }
 
@@ -736,13 +754,52 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
         })
     : Promise.resolve([])
 
-  const [workouts, races, fieldTests, events, checkIns, wods] = await Promise.all([
+  const adHocPromise = includeAdHoc
+    ? itemsMode === 'light'
+      ? prisma.adHocWorkout.findMany({
+          where: {
+            athleteId: clientId,
+            status: 'CONFIRMED',
+            workoutDate: { gte: startDate, lte: endDate },
+          },
+          select: {
+            id: true,
+            workoutName: true,
+            workoutDate: true,
+            parsedType: true,
+            inputType: true,
+          },
+          take: maxItemsPerSource,
+          orderBy: { workoutDate: 'asc' },
+        })
+      : prisma.adHocWorkout.findMany({
+          where: {
+            athleteId: clientId,
+            status: 'CONFIRMED',
+            workoutDate: { gte: startDate, lte: endDate },
+          },
+          select: {
+            id: true,
+            workoutName: true,
+            workoutDate: true,
+            parsedType: true,
+            parsedStructure: true,
+            inputType: true,
+            parsingConfidence: true,
+          },
+          take: maxItemsPerSource,
+          orderBy: { workoutDate: 'asc' },
+        })
+    : Promise.resolve([])
+
+  const [workouts, races, fieldTests, events, checkIns, wods, adHocWorkouts] = await Promise.all([
     workoutsPromise,
     racesPromise,
     fieldTestsPromise,
     eventsPromise,
     checkInsPromise,
     wodsPromise,
+    adHocPromise,
   ])
 
   const needsItems = includeItems || includeGroupedByDate
@@ -755,6 +812,7 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
     calendarEvents: 0,
     checkIns: 0,
     wods: 0,
+    adHoc: 0,
   }
 
   for (const workout of workouts) {
@@ -936,6 +994,35 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
               intensityAdjusted: (wod as any).intensityAdjusted,
               isCompleted: (wod as any).status === 'COMPLETED',
               sessionRPE: (wod as any).sessionRPE,
+            }),
+      },
+    })
+  }
+  for (const adHoc of adHocWorkouts) {
+    counts.total += 1
+    counts.adHoc += 1
+    if (!needsItems) continue
+    const parsed = itemsMode === 'light' ? null : (adHoc as any).parsedStructure as Record<string, unknown> | null
+    items.push({
+      id: adHoc.id,
+      type: 'AD_HOC',
+      title: parsed?.name as string || adHoc.workoutName || 'Ad-hoc pass',
+      description: itemsMode === 'light' ? null : (parsed?.notes as string ?? null),
+      date: adHoc.workoutDate,
+      status: 'CONFIRMED',
+      metadata: {
+        inputType: adHoc.inputType,
+        workoutType: adHoc.parsedType,
+        isCompleted: true,
+        ...(itemsMode === 'light'
+          ? {}
+          : {
+              duration: parsed?.duration,
+              distance: parsed?.distance,
+              perceivedEffort: parsed?.perceivedEffort,
+              intensity: parsed?.intensity,
+              feeling: parsed?.feeling,
+              confidence: (adHoc as any).parsingConfidence,
             }),
       },
     })
