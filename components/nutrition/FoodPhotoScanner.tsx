@@ -53,6 +53,7 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
 
 interface FoodItem {
   name: string
+  category?: string
   estimatedGrams: number
   portionDescription: string
   calories: number
@@ -266,6 +267,25 @@ export function FoodPhotoScanner({
             complexCarbsGrams: Math.round((totals.complexCarbsGrams ?? 0) * 10) / 10,
           } : {}),
           notes: notes || undefined,
+          items: items.map((item) => ({
+            name: item.name,
+            category: item.category,
+            estimatedGrams: item.estimatedGrams,
+            portionDescription: item.portionDescription,
+            calories: item.calories,
+            proteinGrams: item.proteinGrams,
+            carbsGrams: item.carbsGrams,
+            fatGrams: item.fatGrams,
+            fiberGrams: item.fiberGrams,
+            ...(enhancedMode && item.saturatedFatGrams != null ? {
+              saturatedFatGrams: item.saturatedFatGrams,
+              monounsaturatedFatGrams: item.monounsaturatedFatGrams,
+              polyunsaturatedFatGrams: item.polyunsaturatedFatGrams,
+              sugarGrams: item.sugarGrams,
+              complexCarbsGrams: item.complexCarbsGrams,
+              isCompleteProtein: item.isCompleteProtein,
+            } : {}),
+          })),
         }),
       })
 

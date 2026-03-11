@@ -921,7 +921,9 @@ model Client {
   habits Habit[]
 
   // Meal Logging System relations
-  mealLogs MealLog[]
+  mealLogs                MealLog[]
+  athleteCoachPermission  AthleteCoachPermission?
+  nutritionWrappeds       NutritionWrapped[]
 
   // Team Sports Match Schedule relations
   matchSchedule ExternalMatchSchedule[]
@@ -6161,11 +6163,95 @@ model MealLog {
 
   notes String?
 
+  // Individual food items (from AI photo/voice analysis)
+  items MealFoodItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([clientId, date])
   @@index([date])
+}
+
+/// Individual food item within a meal (from AI analysis)
+model MealFoodItem {
+  id        String  @id @default(cuid())
+  mealLogId String
+  mealLog   MealLog @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
+
+  // Food identity
+  name           String  // "Kyckling" — Swedish name from AI
+  normalizedName String  // Lowercase, trimmed — for aggregation queries
+  category       String? // PROTEIN | CARB | FAT | VEGETABLE | FRUIT | DAIRY | GRAIN | BEVERAGE | OTHER
+
+  // Portion
+  estimatedGrams     Float
+  portionDescription String? // "1 kycklingfilé", "2 dl"
+
+  // Macros (per this item)
+  calories     Float
+  proteinGrams Float
+  carbsGrams   Float
+  fatGrams     Float
+  fiberGrams   Float @default(0)
+
+  // Enhanced subcategories (optional)
+  saturatedFatGrams       Float?
+  monounsaturatedFatGrams Float?
+  polyunsaturatedFatGrams Float?
+  sugarGrams              Float?
+  complexCarbsGrams       Float?
+  isCompleteProtein       Boolean?
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([mealLogId])
+  @@index([normalizedName])
+}
+
+/// Privacy permissions controlling what coaches can see
+model AthleteCoachPermission {
+  id              String @id @default(cuid())
+  athleteClientId String @unique
+  client          Client @relation(fields: [athleteClientId], references: [id], onDelete: Cascade)
+
+  // Granular permission flags — default true (sharing enabled)
+  shareFoodDetails     Boolean @default(true) // Individual food items & patterns
+  shareFoodSummaries   Boolean @default(true) // Wrapped summaries, aggregate stats
+  shareBodyComposition Boolean @default(true) // Weight, body fat, etc.
+  shareWorkoutNotes    Boolean @default(true) // Personal notes on workouts
+  shareDailyCheckIns   Boolean @default(true) // Readiness, mood, sleep details
+  shareMenstrualData   Boolean @default(false) // Sensitive — default off
+  shareInjuryDetails   Boolean @default(true) // Pain reports, assessments
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteClientId])
+}
+
+/// Pre-computed monthly/yearly nutrition summary ("Wrapped")
+model NutritionWrapped {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Period
+  periodType String // MONTHLY | YEARLY
+  month      Int? // 1-12 for monthly
+  year       Int
+
+  // Pre-computed summary stats (JSON for flexibility)
+  stats Json
+
+  generatedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([clientId, periodType, year, month])
+  @@index([clientId])
+  @@index([periodType, year])
 }
 
 // ==================== VELOCITY-BASED TRAINING (VBT) SYSTEM ====================

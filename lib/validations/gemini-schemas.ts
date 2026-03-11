@@ -426,6 +426,7 @@ export const FoodPhotoAnalysisSchema = z.object({
   items: z.array(
     z.object({
       name: z.string().describe('Food item name in Swedish'),
+      category: z.enum(['PROTEIN', 'CARB', 'FAT', 'VEGETABLE', 'FRUIT', 'DAIRY', 'GRAIN', 'BEVERAGE', 'OTHER']).describe('Primary nutritional category of this food item'),
       estimatedGrams: z.number().describe('Estimated weight in grams'),
       portionDescription: z.string().describe('Portion description, e.g. "1 skiva", "2 dl"'),
       calories: z.number().describe('Estimated calories (kcal)'),

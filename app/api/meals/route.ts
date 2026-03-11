@@ -31,6 +31,23 @@ const createMealSchema = z.object({
   isPostWorkout: z.boolean().optional(),
   photoUrl: z.string().url().optional(),
   notes: z.string().optional(),
+  items: z.array(z.object({
+    name: z.string(),
+    category: z.string().optional(),
+    estimatedGrams: z.number().nonnegative(),
+    portionDescription: z.string().optional(),
+    calories: z.number().nonnegative(),
+    proteinGrams: z.number().nonnegative(),
+    carbsGrams: z.number().nonnegative(),
+    fatGrams: z.number().nonnegative(),
+    fiberGrams: z.number().nonnegative().optional(),
+    saturatedFatGrams: z.number().nonnegative().optional(),
+    monounsaturatedFatGrams: z.number().nonnegative().optional(),
+    polyunsaturatedFatGrams: z.number().nonnegative().optional(),
+    sugarGrams: z.number().nonnegative().optional(),
+    complexCarbsGrams: z.number().nonnegative().optional(),
+    isCompleteProtein: z.boolean().optional(),
+  })).optional(),
 })
 
 // GET /api/meals - Get meals for a date range
@@ -72,6 +89,9 @@ export async function GET(request: NextRequest) {
       where: {
         clientId,
         date: dateFilter,
+      },
+      include: {
+        items: { orderBy: { sortOrder: 'asc' } },
       },
       orderBy: [
         { date: 'desc' },
@@ -167,31 +187,61 @@ export async function POST(request: NextRequest) {
     // Auto-detect high protein
     const isHighProtein = data.isHighProtein ?? (data.proteinGrams && data.proteinGrams >= 20)
 
-    const meal = await prisma.mealLog.create({
-      data: {
-        clientId,
-        date: mealDate,
-        mealType: data.mealType,
-        time: data.time,
-        description: data.description,
-        calories: data.calories,
-        proteinGrams: data.proteinGrams,
-        carbsGrams: data.carbsGrams,
-        fatGrams: data.fatGrams,
-        fiberGrams: data.fiberGrams,
-        saturatedFatGrams: data.saturatedFatGrams,
-        monounsaturatedFatGrams: data.monounsaturatedFatGrams,
-        polyunsaturatedFatGrams: data.polyunsaturatedFatGrams,
-        sugarGrams: data.sugarGrams,
-        complexCarbsGrams: data.complexCarbsGrams,
-        isCompleteProtein: data.isCompleteProtein,
-        waterMl: data.waterMl,
-        isHighProtein: isHighProtein || false,
-        isPreWorkout: data.isPreWorkout || false,
-        isPostWorkout: data.isPostWorkout || false,
-        photoUrl: data.photoUrl,
-        notes: data.notes,
-      },
+    const meal = await prisma.$transaction(async (tx) => {
+      const created = await tx.mealLog.create({
+        data: {
+          clientId,
+          date: mealDate,
+          mealType: data.mealType,
+          time: data.time,
+          description: data.description,
+          calories: data.calories,
+          proteinGrams: data.proteinGrams,
+          carbsGrams: data.carbsGrams,
+          fatGrams: data.fatGrams,
+          fiberGrams: data.fiberGrams,
+          saturatedFatGrams: data.saturatedFatGrams,
+          monounsaturatedFatGrams: data.monounsaturatedFatGrams,
+          polyunsaturatedFatGrams: data.polyunsaturatedFatGrams,
+          sugarGrams: data.sugarGrams,
+          complexCarbsGrams: data.complexCarbsGrams,
+          isCompleteProtein: data.isCompleteProtein,
+          waterMl: data.waterMl,
+          isHighProtein: isHighProtein || false,
+          isPreWorkout: data.isPreWorkout || false,
+          isPostWorkout: data.isPostWorkout || false,
+          photoUrl: data.photoUrl,
+          notes: data.notes,
+        },
+      })
+
+      // Store individual food items if provided
+      if (data.items?.length) {
+        await tx.mealFoodItem.createMany({
+          data: data.items.map((item, i) => ({
+            mealLogId: created.id,
+            name: item.name,
+            normalizedName: item.name.toLowerCase().trim(),
+            category: item.category,
+            estimatedGrams: item.estimatedGrams,
+            portionDescription: item.portionDescription,
+            calories: item.calories,
+            proteinGrams: item.proteinGrams,
+            carbsGrams: item.carbsGrams,
+            fatGrams: item.fatGrams,
+            fiberGrams: item.fiberGrams ?? 0,
+            saturatedFatGrams: item.saturatedFatGrams,
+            monounsaturatedFatGrams: item.monounsaturatedFatGrams,
+            polyunsaturatedFatGrams: item.polyunsaturatedFatGrams,
+            sugarGrams: item.sugarGrams,
+            complexCarbsGrams: item.complexCarbsGrams,
+            isCompleteProtein: item.isCompleteProtein,
+            sortOrder: i,
+          })),
+        })
+      }
+
+      return created
     })
 
     return NextResponse.json(
