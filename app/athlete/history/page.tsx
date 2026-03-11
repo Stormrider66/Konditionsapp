@@ -564,7 +564,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                         {format(new Date(item.date), 'd MMM yyyy', { locale: sv })}
                       </TableCell>
                       <TableCell className="py-5">
-                        <div className="space-y-0.5">
+                        <Link href={getItemHref(item)} className="block space-y-0.5">
                           <div className="font-black text-white uppercase italic tracking-tight group-hover:text-blue-400 transition-colors flex items-center gap-2">
                             {item.name}
                             {item.isAdHoc && (
@@ -582,7 +582,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                           <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
                             {item.programName || (item.isAdHoc ? 'Eget pass' : item.source ? 'Studio-pass' : '-')}
                           </div>
-                        </div>
+                        </Link>
                       </TableCell>
                       <TableCell className="py-5">
                         <Badge className="bg-white/5 border-0 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg h-6">
@@ -609,9 +609,11 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                       </TableCell>
                       <TableCell className="py-5 text-right">
                         {item.isAdHoc ? (
-                          <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 opacity-50 cursor-default" disabled>
-                            -
-                          </Button>
+                          <Link href={`/athlete/ad-hoc/${item.id}`}>
+                            <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
+                              Visa
+                            </Button>
+                          </Link>
                         ) : item.linkHref ? (
                           <Link href={item.linkHref}>
                             <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
@@ -659,6 +661,13 @@ function formatWorkoutType(type: string): string {
     WALKING: 'Promenad',
   }
   return types[type] || type
+}
+
+function getItemHref(item: { isAdHoc: boolean; id: string; linkHref?: string; workoutId?: string }): string {
+  if (item.isAdHoc) return `/athlete/ad-hoc/${item.id}`
+  if (item.linkHref) return item.linkHref
+  if (item.workoutId) return `/athlete/workouts/${item.workoutId}`
+  return `/athlete/history`
 }
 
 function getRPEBadgeClass(rpe: number): string {
