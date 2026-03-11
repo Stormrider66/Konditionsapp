@@ -5,6 +5,7 @@
  * Results are stored in the NutritionWrapped table for instant page loads.
  */
 
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
@@ -241,7 +242,7 @@ export async function generateNutritionWrapped(
       },
     },
     update: {
-      stats: stats as unknown as Record<string, unknown>,
+      stats: stats as unknown as Prisma.InputJsonValue,
       updatedAt: new Date(),
     },
     create: {
@@ -249,7 +250,7 @@ export async function generateNutritionWrapped(
       periodType,
       year,
       month: month ?? 0,
-      stats: stats as unknown as Record<string, unknown>,
+      stats: stats as unknown as Prisma.InputJsonValue,
     },
   })
 
