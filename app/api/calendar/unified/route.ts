@@ -216,6 +216,7 @@ export async function GET(request: NextRequest) {
       includeEvents,
       includeCheckIns,
       includeWODs,
+      includeAdHoc,
       includeItems,
       itemsMode,
       includeGroupedByDate,
