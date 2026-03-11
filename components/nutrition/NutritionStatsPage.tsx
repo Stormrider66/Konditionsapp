@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
+import { Loader2, AlertCircle, RefreshCw, Apple } from 'lucide-react'
+import Link from 'next/link'
 import { CalorieTrendChart } from './CalorieTrendChart'
 import { MacroPieChart } from './MacroPieChart'
 import { MealFrequencyChart } from './MealFrequencyChart'
@@ -81,7 +82,7 @@ const RANGE_OPTIONS = [
   { value: '90d', label: '90 dagar' },
 ] as const
 
-export function NutritionStatsPage({ clientId }: NutritionStatsPageProps) {
+export function NutritionStatsPage({ clientId, basePath }: NutritionStatsPageProps) {
   const [range, setRange] = useState<string>('30d')
   const [data, setData] = useState<StatsData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -178,6 +179,22 @@ export function NutritionStatsPage({ clientId }: NutritionStatsPageProps) {
           ))}
         </div>
       </div>
+
+      {/* Food history link */}
+      <Link href={`${basePath || ''}/athlete/nutrition/food-history`}>
+        <GlassCard className="hover:border-emerald-500/30 transition-colors cursor-pointer">
+          <GlassCardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/10 rounded-lg">
+              <Apple className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white">Mathistorik</p>
+              <p className="text-xs text-slate-500">Se dina mest ätna livsmedel och näringskällor</p>
+            </div>
+            <span className="text-xs text-slate-500">&rarr;</span>
+          </GlassCardContent>
+        </GlassCard>
+      </Link>
 
       {/* Calorie trend chart */}
       <CalorieTrendChart dailyTotals={data.dailyTotals} />
