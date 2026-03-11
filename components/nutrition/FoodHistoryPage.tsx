@@ -255,8 +255,9 @@ export function FoodHistoryPage() {
                               borderRadius: '8px',
                               color: '#e2e8f0',
                             }}
-                            formatter={(value: number, _name: string, entry: { payload: TopFood }) => {
+                            formatter={(value: number, _name: string, entry: { payload?: TopFood }) => {
                               const item = entry.payload
+                              if (!item) return [`${value}`, 'Antal']
                               return [
                                 `${value} gånger (${Math.round(item.totalGrams)}g totalt)`,
                                 'Antal',
