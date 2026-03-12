@@ -715,7 +715,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                             {slider.icon}
                             {slider.label}
                           </FormLabel>
-                          <span className="text-2xl font-black text-white leading-none">
+                          <span className="text-2xl font-black leading-none text-slate-900 dark:text-white transition-colors">
                             {field.value}{slider.isHours ? 'h' : ''}
                           </span>
                         </div>
@@ -772,7 +772,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                       <FormControl>
                         <Textarea
                           placeholder="t.ex. Kände mig pigg efter en sen kväll, lite känning i knät..."
-                          className="bg-white/5 border-white/10 min-h-[120px] rounded-2xl p-4 text-white"
+                          className="min-h-[120px] rounded-2xl p-4 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white transition-colors"
                           {...field}
                           value={field.value ?? ''}
                         />
@@ -825,7 +825,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                           />
                         </FormControl>
                         <div className="flex-1">
-                          <FormLabel className="text-white font-bold cursor-pointer">
+                          <FormLabel className="font-bold cursor-pointer text-slate-900 dark:text-white transition-colors">
                             Jag har gjort mina rehabövningar idag
                           </FormLabel>
                           <FormDescription className="text-slate-500 text-xs">
@@ -848,7 +848,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                               <FormLabel className="font-black uppercase tracking-widest text-[10px] text-slate-500">
                                 Smärta under övningarna
                               </FormLabel>
-                              <span className="text-2xl font-black text-white leading-none">
+                              <span className="text-2xl font-black leading-none text-slate-900 dark:text-white transition-colors">
                                 {field.value ?? 0}
                               </span>
                             </div>
@@ -879,7 +879,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                               <FormLabel className="font-black uppercase tracking-widest text-[10px] text-slate-500">
                                 Smärta efter övningarna
                               </FormLabel>
-                              <span className="text-2xl font-black text-white leading-none">
+                              <span className="text-2xl font-black leading-none text-slate-900 dark:text-white transition-colors">
                                 {field.value ?? 0}
                               </span>
                             </div>
@@ -915,7 +915,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                         <FormControl>
                           <Textarea
                             placeholder="t.ex. Övningarna kändes bra, lättare att utföra än förra veckan..."
-                            className="bg-white/5 border-white/10 min-h-[80px] rounded-2xl p-4 text-white"
+                            className="min-h-[80px] rounded-2xl p-4 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white transition-colors"
                             {...field}
                             value={field.value ?? ''}
                           />
@@ -940,7 +940,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                             />
                           </FormControl>
                           <div className="flex-1">
-                            <FormLabel className="text-white font-bold cursor-pointer flex items-center gap-2">
+                            <FormLabel className="font-bold cursor-pointer flex items-center gap-2 text-slate-900 dark:text-white transition-colors">
                               <MessageCircle className="h-4 w-4 text-blue-500" />
                               Jag vill kontakta min fysioterapeut
                             </FormLabel>
@@ -965,7 +965,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                             <FormControl>
                               <Textarea
                                 placeholder="t.ex. Ökad smärta, frågor om progression, behöver justering av övningar..."
-                                className="bg-white/5 border-white/10 min-h-[80px] rounded-2xl p-4 text-white"
+                                className="min-h-[80px] rounded-2xl p-4 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white transition-colors"
                                 {...field}
                                 value={field.value ?? ''}
                               />
@@ -1012,21 +1012,21 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                     <AlertCircle className="h-8 w-8 text-red-500" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black tracking-tight text-white uppercase">Skaderespons aktiverad</h3>
+                    <h3 className="text-xl font-black tracking-tight uppercase text-slate-900 dark:text-white transition-colors">Skaderespons aktiverad</h3>
                     <p className="text-slate-400 font-medium text-sm">Dina pass har justerats automatiskt.</p>
                   </div>
                 </div>
 
                 <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-4">
                   <div>
-                    <p className="font-black text-white text-sm uppercase mb-1 tracking-wider">{injuryResponse.summary?.title}</p>
+                    <p className="font-black text-sm uppercase mb-1 tracking-wider text-slate-900 dark:text-white transition-colors">{injuryResponse.summary?.title}</p>
                     <p className="text-sm text-slate-400 leading-relaxed font-medium">{injuryResponse.summary?.message}</p>
                   </div>
 
                   {injuryResponse.summary?.programAdjustment && (
                     <div className="pt-4 border-t border-white/5">
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Programjustering:</p>
-                      <p className="text-white font-bold bg-white/5 p-3 rounded-xl border border-white/5">
+                      <p className="font-bold p-3 rounded-xl border text-slate-900 dark:text-white bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/5 transition-colors">
                         {injuryResponse.summary.programAdjustment}
                       </p>
                     </div>
@@ -1054,7 +1054,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                     </div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Readiness Score</p>
-                      <h3 className="text-3xl font-black text-white tracking-tighter tabular-nums">
+                      <h3 className="text-3xl font-black tracking-tighter tabular-nums text-slate-900 dark:text-white transition-colors">
                         {readinessResult.score.toFixed(1)}<span className="text-lg text-slate-600">/10</span>
                       </h3>
                     </div>
@@ -1071,7 +1071,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
 
                 <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Rekommendation</p>
-                  <p className="text-white font-bold leading-relaxed">{readinessResult.recommendation}</p>
+                  <p className="font-bold leading-relaxed text-slate-900 dark:text-white transition-colors">{readinessResult.recommendation}</p>
                 </div>
               </div>
             ) : null}
