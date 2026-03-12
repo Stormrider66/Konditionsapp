@@ -40,7 +40,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           select: {
             primarySport: true,
             secondarySports: true,
-            competitiveLevel: true,
           },
         },
         athleteAccount: {
