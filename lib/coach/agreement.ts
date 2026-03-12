@@ -71,9 +71,10 @@ export async function acceptCoachRequest(
       data: {
         athleteClientId: request.athleteClientId,
         coachUserId: coachUserId,
+        businessId: request.businessId, // Carry business context from request
         status: 'ACTIVE',
-        revenueSharePercent: 75, // Coach gets 75%
-        revenueShareStartDate,
+        revenueSharePercent: request.businessId ? 0 : 75, // Intra-business: no marketplace share
+        revenueShareStartDate: request.businessId ? undefined : revenueShareStartDate,
         programAction: options?.programAction,
       },
     })
@@ -215,11 +216,13 @@ export async function endCoachAgreement(
 
 /**
  * Create a coach request from an athlete to a coach
+ * When businessId is provided, this is an intra-business request (skips public profile checks)
  */
 export async function createCoachRequest(
   athleteClientId: string,
   coachUserId: string,
-  message?: string
+  message?: string,
+  businessId?: string
 ) {
   // Check if athlete already has a pending request to this coach
   const existingRequest = await prisma.coachRequest.findUnique({
@@ -252,13 +255,37 @@ export async function createCoachRequest(
     throw new Error('You already have an active coach. End that agreement first.')
   }
 
-  // Check if coach is accepting clients
-  const coachProfile = await prisma.coachProfile.findUnique({
-    where: { userId: coachUserId },
-  })
+  if (businessId) {
+    // Intra-business request: verify both parties are members of the business
+    const [athleteClient, coachMembership] = await Promise.all([
+      prisma.client.findFirst({
+        where: { id: athleteClientId, businessId },
+      }),
+      prisma.businessMember.findFirst({
+        where: {
+          userId: coachUserId,
+          businessId,
+          isActive: true,
+          role: { in: ['OWNER', 'ADMIN', 'COACH'] },
+        },
+      }),
+    ])
 
-  if (!coachProfile?.isAcceptingClients) {
-    throw new Error('This coach is not currently accepting new clients')
+    if (!athleteClient) {
+      throw new Error('Athlete is not part of this business')
+    }
+    if (!coachMembership) {
+      throw new Error('Coach is not part of this business')
+    }
+  } else {
+    // Marketplace request: check if coach has a public profile accepting clients
+    const coachProfile = await prisma.coachProfile.findUnique({
+      where: { userId: coachUserId },
+    })
+
+    if (!coachProfile?.isAcceptingClients) {
+      throw new Error('This coach is not currently accepting new clients')
+    }
   }
 
   // Create the request with 14-day expiration
@@ -276,12 +303,14 @@ export async function createCoachRequest(
     create: {
       athleteClientId,
       coachUserId,
+      businessId,
       message,
       expiresAt,
       status: 'PENDING',
     },
     update: {
       message,
+      businessId,
       expiresAt,
       status: 'PENDING',
       coachResponse: null,
@@ -290,9 +319,112 @@ export async function createCoachRequest(
     },
   })
 
-  logger.info('Coach request created', { athleteClientId, coachUserId })
+  logger.info('Coach request created', { athleteClientId, coachUserId, businessId })
 
   return request
+}
+
+/**
+ * Directly assign an athlete to a coach within a business (admin/coach action)
+ * Skips the request step entirely — creates a CoachAgreement directly
+ */
+export async function assignAthleteToCoach(
+  athleteClientId: string,
+  coachUserId: string,
+  assignedByUserId: string,
+  businessId: string
+) {
+  // Verify athlete belongs to this business
+  const athleteClient = await prisma.client.findFirst({
+    where: { id: athleteClientId, businessId },
+    include: { athleteSubscription: true },
+  })
+
+  if (!athleteClient) {
+    throw new Error('Athlete is not part of this business')
+  }
+
+  // Verify coach is a coach/admin/owner member of this business
+  const coachMembership = await prisma.businessMember.findFirst({
+    where: {
+      userId: coachUserId,
+      businessId,
+      isActive: true,
+      role: { in: ['OWNER', 'ADMIN', 'COACH'] },
+    },
+  })
+
+  if (!coachMembership) {
+    throw new Error('Coach is not part of this business')
+  }
+
+  // Prevent self-assignment
+  const athleteAccount = await prisma.athleteAccount.findFirst({
+    where: { clientId: athleteClientId },
+  })
+  if (athleteAccount?.userId === coachUserId) {
+    throw new Error('Cannot assign an athlete to themselves as coach')
+  }
+
+  // Check if athlete already has an active agreement
+  const activeAgreement = await prisma.coachAgreement.findFirst({
+    where: {
+      athleteClientId,
+      status: 'ACTIVE',
+    },
+  })
+
+  if (activeAgreement) {
+    throw new Error('Athlete already has an active coach. End that agreement first.')
+  }
+
+  // Cancel any pending requests for this athlete
+  await prisma.coachRequest.updateMany({
+    where: {
+      athleteClientId,
+      status: 'PENDING',
+    },
+    data: { status: 'CANCELLED' },
+  })
+
+  // Create agreement directly in a transaction
+  const result = await prisma.$transaction(async (tx) => {
+    const agreement = await tx.coachAgreement.create({
+      data: {
+        athleteClientId,
+        coachUserId,
+        businessId,
+        assignedByUserId,
+        status: 'ACTIVE',
+        revenueSharePercent: 0, // Intra-business: no marketplace revenue share
+      },
+    })
+
+    // Update Client.userId to the coach
+    await tx.client.update({
+      where: { id: athleteClientId },
+      data: { userId: coachUserId },
+    })
+
+    // Update AthleteSubscription if exists
+    if (athleteClient.athleteSubscription) {
+      await tx.athleteSubscription.update({
+        where: { clientId: athleteClientId },
+        data: { assignedCoachId: coachUserId },
+      })
+    }
+
+    return agreement
+  })
+
+  logger.info('Athlete assigned to coach', {
+    athleteClientId,
+    coachUserId,
+    assignedByUserId,
+    businessId,
+  })
+
+  return result
 }
 
 /**

@@ -23,7 +23,8 @@ import {
     MessageSquare,
     ClipboardList,
     Sparkles,
-    Library
+    Library,
+    HeartHandshake
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -111,6 +112,7 @@ export function BusinessAthleteHeader({
             icon: Menu,
             items: [
                 { href: `${basePath}/athlete/profile`, label: 'Min Profil', icon: UserIcon },
+                { href: `${basePath}/athlete/my-coach`, label: 'Min Coach', icon: HeartHandshake },
                 { href: `${basePath}/athlete/tests`, label: 'Tester & Rapporter', icon: FlaskConical },
                 { href: `${basePath}/athlete/lactate/new`, label: 'Laktattest', icon: Droplet },
                 { href: `${basePath}/athlete/messages`, label: 'Meddelanden', icon: MessageSquare },

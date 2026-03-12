@@ -10,9 +10,11 @@ import { BusinessReferralsTab } from '@/components/coach/admin/BusinessReferrals
 import { BusinessSettingsTab } from '@/components/coach/admin/BusinessSettingsTab'
 import { BusinessLocationsTab } from '@/components/coach/admin/BusinessLocationsTab'
 import { BusinessBrandingTab } from '@/components/coach/admin/BusinessBrandingTab'
+import { BusinessCoachAssignmentsTab } from '@/components/coach/admin/BusinessCoachAssignmentsTab'
 import {
   LayoutDashboard,
   Users,
+  UserPlus,
   Key,
   Brain,
   Gift,
@@ -51,7 +53,7 @@ export function BusinessAdminClient({
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-grid">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -63,6 +65,10 @@ export function BusinessAdminClient({
             <TabsTrigger value="members" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Members</span>
+            </TabsTrigger>
+            <TabsTrigger value="assignments" className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              <span className="hidden sm:inline">Assignments</span>
             </TabsTrigger>
             <TabsTrigger value="branding" className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
@@ -96,6 +102,10 @@ export function BusinessAdminClient({
 
           <TabsContent value="members">
             <BusinessMembersTab currentUserRole={businessRole} />
+          </TabsContent>
+
+          <TabsContent value="assignments">
+            <BusinessCoachAssignmentsTab />
           </TabsContent>
 
           <TabsContent value="branding">

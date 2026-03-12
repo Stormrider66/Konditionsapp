@@ -644,6 +644,7 @@ model User {
   coachProfile               CoachProfile?
   coachRequestsReceived      CoachRequest[]          @relation("CoachRequestsReceived")
   coachAgreementsAsCoach     CoachAgreement[]        @relation("CoachAgreementsAsCoach")
+  coachAgreementsAssigned    CoachAgreement[]        @relation("CoachAgreementsAssignedBy")
   coachEarnings              CoachEarnings[]         @relation("CoachEarnings")
   athleteSubscriptionsCoached AthleteSubscription[]  @relation("CoachAthleteSubscriptions")
 
@@ -1425,6 +1426,10 @@ model Business {
   // Business application & join request relations
   application  BusinessApplication?
   joinRequests BusinessJoinRequest[]
+
+  // Coach-athlete connection within business
+  coachRequests   CoachRequest[]   @relation("BusinessCoachRequests")
+  coachAgreements CoachAgreement[] @relation("BusinessCoachAgreements")
 
   @@index([slug])
   @@index([isActive])
@@ -9409,6 +9414,7 @@ model CoachRequest {
   id              String @id @default(uuid())
   athleteClientId String
   coachUserId     String
+  businessId      String? // When set, this is an intra-business request
 
   status        CoachRequestStatus @default(PENDING)
   message       String?            @db.Text // Athlete's intro message
@@ -9418,13 +9424,15 @@ model CoachRequest {
   respondedAt DateTime?
   expiresAt   DateTime // Auto-expire after 14 days
 
-  athlete Client @relation("AthleteCoachRequests", fields: [athleteClientId], references: [id], onDelete: Cascade)
-  coach   User   @relation("CoachRequestsReceived", fields: [coachUserId], references: [id], onDelete: Cascade)
+  athlete  Client    @relation("AthleteCoachRequests", fields: [athleteClientId], references: [id], onDelete: Cascade)
+  coach    User      @relation("CoachRequestsReceived", fields: [coachUserId], references: [id], onDelete: Cascade)
+  business Business? @relation("BusinessCoachRequests", fields: [businessId], references: [id], onDelete: SetNull)
 
   @@unique([athleteClientId, coachUserId])
   @@index([coachUserId, status])
   @@index([expiresAt])
   @@index([athleteClientId])
+  @@index([businessId, status])
 }
 
 /// Active coaching relationship between athlete and coach
@@ -9432,6 +9440,8 @@ model CoachAgreement {
   id              String @id @default(uuid())
   athleteClientId String
   coachUserId     String
+  businessId      String? // Business context (null = marketplace)
+  assignedByUserId String? // Who assigned (null = athlete-initiated)
 
   status    CoachAgreementStatus @default(ACTIVE)
   startedAt DateTime             @default(now())
@@ -9445,12 +9455,15 @@ model CoachAgreement {
   // What happens to existing program
   programAction String? // 'KEPT', 'MODIFIED', 'REPLACED'
 
-  athlete Client @relation("AthleteCoachAgreements", fields: [athleteClientId], references: [id], onDelete: Cascade)
-  coach   User   @relation("CoachAgreementsAsCoach", fields: [coachUserId], references: [id], onDelete: Cascade)
+  athlete    Client    @relation("AthleteCoachAgreements", fields: [athleteClientId], references: [id], onDelete: Cascade)
+  coach      User      @relation("CoachAgreementsAsCoach", fields: [coachUserId], references: [id], onDelete: Cascade)
+  business   Business? @relation("BusinessCoachAgreements", fields: [businessId], references: [id], onDelete: SetNull)
+  assignedBy User?     @relation("CoachAgreementsAssignedBy", fields: [assignedByUserId], references: [id], onDelete: SetNull)
 
   @@unique([athleteClientId, coachUserId])
   @@index([coachUserId, status])
   @@index([athleteClientId])
+  @@index([businessId, status])
 }
 
 /// Review of a coach by an athlete
