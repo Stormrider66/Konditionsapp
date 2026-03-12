@@ -15,6 +15,90 @@ const authUserInFlight = new Map<string, Promise<CachedAuthUser>>()
 const DOMAIN_CACHE_TTL_MS = 5 * 60 * 1000
 const domainSlugCache = new Map<string, { expiresAt: number; slug: string | null }>()
 
+// BusinessMember → slug cache (1-min TTL, keyed by dbUserId)
+const MEMBER_SLUG_CACHE_TTL_MS = 60 * 1000
+const memberSlugCache = new Map<string, { expiresAt: number; slug: string | null }>()
+
+/**
+ * Get a user's primary business slug using the service role key (bypasses RLS).
+ * This is necessary because the anon-key query fails when User.id ≠ auth.uid().
+ */
+async function getBusinessSlugForUser(dbUserId: string): Promise<string | null> {
+  const nowMs = Date.now()
+  const cached = memberSlugCache.get(dbUserId)
+  if (cached && cached.expiresAt > nowMs) {
+    return cached.slug
+  }
+
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/BusinessMember?userId=eq.${encodeURIComponent(dbUserId)}&isActive=eq.true&select=Business!inner(slug,isActive)&order=createdAt.asc&limit=1`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+        },
+      }
+    )
+
+    if (res.ok) {
+      const rows = await res.json()
+      if (rows?.length > 0) {
+        const biz = rows[0].Business
+        // Handle both object and array response formats
+        const bizObj = Array.isArray(biz) ? biz[0] : biz
+        if (bizObj?.isActive && bizObj?.slug) {
+          memberSlugCache.set(dbUserId, {
+            expiresAt: nowMs + MEMBER_SLUG_CACHE_TTL_MS,
+            slug: bizObj.slug,
+          })
+          return bizObj.slug
+        }
+      }
+    }
+  } catch {
+    // Lookup failed - fall through to return null
+  }
+
+  memberSlugCache.set(dbUserId, {
+    expiresAt: nowMs + MEMBER_SLUG_CACHE_TTL_MS,
+    slug: null,
+  })
+  return null
+}
+
+/**
+ * Check if a user is an active member of a specific business (by slug).
+ * Uses service role key to bypass RLS.
+ */
+async function isUserMemberOfBusiness(dbUserId: string, businessSlug: string): Promise<boolean> {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/BusinessMember?userId=eq.${encodeURIComponent(dbUserId)}&isActive=eq.true&select=id,Business!inner(slug,isActive)&Business.slug=eq.${encodeURIComponent(businessSlug)}&Business.isActive=eq.true&limit=1`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+        },
+      }
+    )
+
+    if (res.ok) {
+      const rows = await res.json()
+      return rows?.length > 0
+    }
+  } catch {
+    // Lookup failed
+  }
+  return false
+}
+
 // Reserved top-level routes that are NOT business slugs
 const RESERVED_ROUTES = [
   'api',
@@ -508,41 +592,19 @@ export async function middleware(request: NextRequest) {
       if (isBusinessRoute) {
         const businessSlug = firstSegment
 
-        // Verify user is a member of this business
-        const { data: membership, error: membershipError } = await supabase
-          .from('BusinessMember')
-          .select('id, Business!inner(slug, isActive)')
-          .eq('userId', dbUserId)
-          .eq('isActive', true)
-          .eq('Business.slug', businessSlug)
-          .eq('Business.isActive', true)
-          .limit(1)
-          .single()
+        // Verify user is a member of this business (service role key bypasses RLS)
+        const isMember = await isUserMemberOfBusiness(dbUserId, businessSlug)
 
-        if (membershipError || !membership) {
-          // User is not a member of this business - redirect to their own business or login
-          const { data: userMembership } = await supabase
-            .from('BusinessMember')
-            .select('Business!inner(slug)')
-            .eq('userId', dbUserId)
-            .eq('isActive', true)
-            .order('createdAt', { ascending: true })
-            .limit(1)
-            .single()
+        if (!isMember) {
+          // User is not a member of this business - redirect to their own business or home
+          const userBusinessSlug = await getBusinessSlugForUser(dbUserId)
 
-          if (userMembership && userMembership.Business) {
-            const userBusinessSlug = Array.isArray(userMembership.Business)
-              ? userMembership.Business[0]?.slug
-              : (userMembership.Business as { slug: string }).slug
-
-            if (userBusinessSlug) {
-              // Redirect to user's own business
-              const newPath = pathname.replace(`/${businessSlug}/`, `/${userBusinessSlug}/`)
-              return NextResponse.redirect(new URL(newPath, request.url))
-            }
+          if (userBusinessSlug) {
+            const newPath = pathname.replace(`/${businessSlug}/`, `/${userBusinessSlug}/`)
+            return NextResponse.redirect(new URL(newPath, request.url))
           }
 
-          // No business membership - redirect to login or home
+          // No business membership - redirect to home
           return NextResponse.redirect(new URL('/', request.url))
         }
 
@@ -565,27 +627,10 @@ export async function middleware(request: NextRequest) {
         )
 
         if (shouldRedirect) {
-          // Get user's primary business membership
-          const { data: membership } = await supabase
-            .from('BusinessMember')
-            .select('businessId, Business!inner(slug)')
-            .eq('userId', dbUserId)
-            .eq('isActive', true)
-            .order('createdAt', { ascending: true })
-            .limit(1)
-            .single()
-
-          if (membership && membership.Business) {
-            // Extract business slug - handle both object and array response formats
-            const businessSlug = Array.isArray(membership.Business)
-              ? membership.Business[0]?.slug
-              : (membership.Business as { slug: string }).slug
-
-            if (businessSlug) {
-              // Build the new business-scoped path
-              const newPath = pathname.replace('/coach/', `/${businessSlug}/coach/`)
-              return NextResponse.redirect(new URL(newPath, request.url))
-            }
+          const businessSlug = await getBusinessSlugForUser(dbUserId)
+          if (businessSlug) {
+            const newPath = pathname.replace('/coach/', `/${businessSlug}/coach/`)
+            return NextResponse.redirect(new URL(newPath, request.url))
           }
           // If no business membership, allow access to legacy routes
         }
@@ -602,27 +647,10 @@ export async function middleware(request: NextRequest) {
           )
 
           if (shouldRedirectAthlete) {
-            // Get user's primary business membership
-            const { data: athleteMembership } = await supabase
-              .from('BusinessMember')
-              .select('businessId, Business!inner(slug)')
-              .eq('userId', dbUserId)
-              .eq('isActive', true)
-              .order('createdAt', { ascending: true })
-              .limit(1)
-              .single()
-
-            if (athleteMembership && athleteMembership.Business) {
-              // Extract business slug - handle both object and array response formats
-              const athleteBusinessSlug = Array.isArray(athleteMembership.Business)
-                ? athleteMembership.Business[0]?.slug
-                : (athleteMembership.Business as { slug: string }).slug
-
-              if (athleteBusinessSlug) {
-                // Build the new business-scoped path
-                const newAthletePath = pathname.replace('/athlete/', `/${athleteBusinessSlug}/athlete/`)
-                return NextResponse.redirect(new URL(newAthletePath, request.url))
-              }
+            const athleteBusinessSlug = await getBusinessSlugForUser(dbUserId)
+            if (athleteBusinessSlug) {
+              const newAthletePath = pathname.replace('/athlete/', `/${athleteBusinessSlug}/athlete/`)
+              return NextResponse.redirect(new URL(newAthletePath, request.url))
             }
             // If no business membership, allow access to legacy routes
           }
@@ -645,24 +673,10 @@ export async function middleware(request: NextRequest) {
           )
 
           if (shouldRedirectCoachAthlete) {
-            const { data: coachBizMembership } = await supabase
-              .from('BusinessMember')
-              .select('businessId, Business!inner(slug)')
-              .eq('userId', dbUserId)
-              .eq('isActive', true)
-              .order('createdAt', { ascending: true })
-              .limit(1)
-              .single()
-
-            if (coachBizMembership && coachBizMembership.Business) {
-              const coachBizSlug = Array.isArray(coachBizMembership.Business)
-                ? coachBizMembership.Business[0]?.slug
-                : (coachBizMembership.Business as { slug: string }).slug
-
-              if (coachBizSlug) {
-                const newCoachAthletePath = pathname.replace('/athlete/', `/${coachBizSlug}/athlete/`)
-                return NextResponse.redirect(new URL(newCoachAthletePath, request.url))
-              }
+            const coachBizSlug = await getBusinessSlugForUser(dbUserId)
+            if (coachBizSlug) {
+              const newCoachAthletePath = pathname.replace('/athlete/', `/${coachBizSlug}/athlete/`)
+              return NextResponse.redirect(new URL(newCoachAthletePath, request.url))
             }
           }
           // If no business membership, allow access to legacy routes
@@ -709,27 +723,10 @@ export async function middleware(request: NextRequest) {
         )
 
         if (shouldRedirectPhysio) {
-          // Get user's primary business membership (or physio assignment business)
-          const { data: physioMembership } = await supabase
-            .from('BusinessMember')
-            .select('businessId, Business!inner(slug)')
-            .eq('userId', dbUserId)
-            .eq('isActive', true)
-            .order('createdAt', { ascending: true })
-            .limit(1)
-            .single()
-
-          if (physioMembership && physioMembership.Business) {
-            // Extract business slug - handle both object and array response formats
-            const physioBusinessSlug = Array.isArray(physioMembership.Business)
-              ? physioMembership.Business[0]?.slug
-              : (physioMembership.Business as { slug: string }).slug
-
-            if (physioBusinessSlug) {
-              // Build the new business-scoped path
-              const newPhysioPath = pathname.replace('/physio/', `/${physioBusinessSlug}/physio/`)
-              return NextResponse.redirect(new URL(newPhysioPath, request.url))
-            }
+          const physioBusinessSlug = await getBusinessSlugForUser(dbUserId)
+          if (physioBusinessSlug) {
+            const newPhysioPath = pathname.replace('/physio/', `/${physioBusinessSlug}/physio/`)
+            return NextResponse.redirect(new URL(newPhysioPath, request.url))
           }
           // If no business membership, allow access to legacy routes
         }
@@ -738,72 +735,24 @@ export async function middleware(request: NextRequest) {
       // Redirect from login/register pages if authenticated (but allow access to /)
       if (pathname === '/login' || pathname === '/register') {
         if (role === 'ATHLETE') {
-          // Try to redirect to business athlete dashboard
-          const { data: athleteLoginMembership } = await supabase
-            .from('BusinessMember')
-            .select('Business!inner(slug)')
-            .eq('userId', dbUserId)
-            .eq('isActive', true)
-            .order('createdAt', { ascending: true })
-            .limit(1)
-            .single()
-
-          if (athleteLoginMembership && athleteLoginMembership.Business) {
-            const athleteLoginSlug = Array.isArray(athleteLoginMembership.Business)
-              ? athleteLoginMembership.Business[0]?.slug
-              : (athleteLoginMembership.Business as { slug: string }).slug
-
-            if (athleteLoginSlug) {
-              return NextResponse.redirect(new URL(`/${athleteLoginSlug}/athlete/dashboard`, request.url))
-            }
+          const athleteLoginSlug = await getBusinessSlugForUser(dbUserId)
+          if (athleteLoginSlug) {
+            return NextResponse.redirect(new URL(`/${athleteLoginSlug}/athlete/dashboard`, request.url))
           }
-          // Fallback to legacy athlete dashboard if no business
           return NextResponse.redirect(new URL('/athlete/dashboard', request.url))
         }
         if (role === 'COACH' || role === 'ADMIN') {
-          // Try to redirect to business dashboard
-          const { data: membership } = await supabase
-            .from('BusinessMember')
-            .select('Business!inner(slug)')
-            .eq('userId', dbUserId)
-            .eq('isActive', true)
-            .order('createdAt', { ascending: true })
-            .limit(1)
-            .single()
-
-          if (membership && membership.Business) {
-            const businessSlug = Array.isArray(membership.Business)
-              ? membership.Business[0]?.slug
-              : (membership.Business as { slug: string }).slug
-
-            if (businessSlug) {
-              return NextResponse.redirect(new URL(`/${businessSlug}/coach/dashboard`, request.url))
-            }
+          const coachLoginSlug = await getBusinessSlugForUser(dbUserId)
+          if (coachLoginSlug) {
+            return NextResponse.redirect(new URL(`/${coachLoginSlug}/coach/dashboard`, request.url))
           }
-          // Fallback to homepage if no business membership
           return NextResponse.redirect(new URL('/', request.url))
         }
         if (role === 'PHYSIO') {
-          // Try to redirect to business physio dashboard
-          const { data: physioLoginMembership } = await supabase
-            .from('BusinessMember')
-            .select('Business!inner(slug)')
-            .eq('userId', dbUserId)
-            .eq('isActive', true)
-            .order('createdAt', { ascending: true })
-            .limit(1)
-            .single()
-
-          if (physioLoginMembership && physioLoginMembership.Business) {
-            const physioLoginSlug = Array.isArray(physioLoginMembership.Business)
-              ? physioLoginMembership.Business[0]?.slug
-              : (physioLoginMembership.Business as { slug: string }).slug
-
-            if (physioLoginSlug) {
-              return NextResponse.redirect(new URL(`/${physioLoginSlug}/physio/dashboard`, request.url))
-            }
+          const physioLoginSlug = await getBusinessSlugForUser(dbUserId)
+          if (physioLoginSlug) {
+            return NextResponse.redirect(new URL(`/${physioLoginSlug}/physio/dashboard`, request.url))
           }
-          // Fallback to legacy physio dashboard if no business
           return NextResponse.redirect(new URL('/physio/dashboard', request.url))
         }
       }

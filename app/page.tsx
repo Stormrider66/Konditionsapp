@@ -58,8 +58,18 @@ export default function Home() {
           const role = result.data.role
           setUserRole(role)
 
-          // Redirect athletes to athlete dashboard
+          // Redirect athletes to athlete dashboard (business-aware)
           if (role === 'ATHLETE') {
+            try {
+              const bizResponse = await fetch('/api/users/me/business')
+              const bizResult = await bizResponse.json()
+              if (bizResult.data?.slug) {
+                window.location.href = `/${bizResult.data.slug}/athlete/dashboard`
+                return
+              }
+            } catch (err) {
+              console.error('Error fetching athlete business context:', err)
+            }
             window.location.href = '/athlete/dashboard'
             return
           }
