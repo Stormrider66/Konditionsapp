@@ -1,5 +1,6 @@
 import { requireCoach, getBusinessContext } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -63,18 +64,7 @@ export default async function CoachDashboardPage() {
     })
     businessName = business?.name || null
 
-    const members = await prisma.businessMember.findMany({
-      where: {
-        businessId: businessContext.businessId,
-        isActive: true,
-        user: { role: 'COACH' },
-      },
-      select: { userId: true },
-    })
-    coachIds = members.map(m => m.userId)
-    if (!coachIds.includes(user.id)) {
-      coachIds.push(user.id)
-    }
+    coachIds = await getCoachScopedIds(user.id, businessContext.businessId, businessContext.role ?? 'COACH')
   }
 
   const now = new Date()

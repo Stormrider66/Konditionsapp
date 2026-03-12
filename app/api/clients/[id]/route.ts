@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 
 type RouteParams = {
   params: Promise<{
@@ -155,6 +156,19 @@ export async function PUT(
     }
 
     const client = await prisma.client.update({ where: { id }, data: updateData })
+
+    // Auto-connect to team coach if teamId changed to a new team
+    const newTeamId = updateData.teamId
+    if (newTeamId && newTeamId !== existingClient.teamId) {
+      try {
+        await connectTeamMemberToCoach(client.id, newTeamId, {
+          assignedByUserId: user.id,
+          businessId: existingClient.businessId,
+        })
+      } catch (err) {
+        logger.warn('Team auto-connection failed on update', { clientId: client.id, teamId: newTeamId, error: err })
+      }
+    }
 
     return NextResponse.json({
       success: true,

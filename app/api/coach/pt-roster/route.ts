@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { subDays, startOfWeek, endOfWeek } from 'date-fns'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 
 export async function GET() {
   try {
@@ -10,27 +11,18 @@ export async function GET() {
     const weekStart = startOfWeek(now, { weekStartsOn: 1 })
     const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
 
-    // Get all business memberships for this coach
-    const memberships = await prisma.businessMember.findMany({
+    // Get first active business membership + role for scoping
+    const membership = await prisma.businessMember.findFirst({
       where: {
         userId: user.id,
         isActive: true,
-        user: { role: 'COACH' },
       },
-      select: { businessId: true },
+      select: { businessId: true, role: true },
     })
 
-    const businessIds = memberships.map(m => m.businessId)
-
-    const members = await prisma.businessMember.findMany({
-      where: {
-        businessId: { in: businessIds },
-        isActive: true,
-        user: { role: 'COACH' },
-      },
-      select: { userId: true },
-    })
-    const coachIds = [...new Set([user.id, ...members.map(m => m.userId)])]
+    const coachIds = membership
+      ? await getCoachScopedIds(user.id, membership.businessId, membership.role)
+      : [user.id]
 
     // 9 parallel queries for per-client status
     const [

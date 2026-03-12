@@ -8,6 +8,7 @@
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getBusinessContext } from '@/lib/auth-utils'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { CoachCalendarClient } from './CoachCalendarClient'
 import { addDays, startOfDay, endOfDay } from 'date-fns'
 import { SportType } from '@prisma/client'
@@ -18,14 +19,10 @@ export default async function CoachCalendarPage() {
   // Check if coach is part of a business
   const businessContext = await getBusinessContext(user.id)
 
-  // Get coach IDs (business-scoped or just current user)
+  // Get coach IDs scoped by role (OWNER/ADMIN see all, COACH sees own)
   let coachIds = [user.id]
   if (businessContext.businessId) {
-    const members = await prisma.businessMember.findMany({
-      where: { businessId: businessContext.businessId, isActive: true },
-      select: { userId: true },
-    })
-    coachIds = members.map(m => m.userId)
+    coachIds = await getCoachScopedIds(user.id, businessContext.businessId, businessContext.role ?? 'COACH')
   }
 
   // Get all athletes for this coach/business (with team and sport info)

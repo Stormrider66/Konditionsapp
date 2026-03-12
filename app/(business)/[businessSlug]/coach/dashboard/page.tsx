@@ -1,6 +1,7 @@
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { subDays, addDays, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns'
 import { sv, enUS } from 'date-fns/locale'
 import { getTranslations, getLocale } from '@/i18n/server'
@@ -34,19 +35,8 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
 
   const basePath = `/${businessSlug}`
 
-  // Get all coaches in the business
-  const members = await prisma.businessMember.findMany({
-    where: {
-      businessId: membership.businessId,
-      isActive: true,
-      user: { role: 'COACH' },
-    },
-    select: { userId: true },
-  })
-  const coachIds = members.map(m => m.userId)
-  if (!coachIds.includes(user.id)) {
-    coachIds.push(user.id)
-  }
+  // Get coach IDs scoped by role (OWNER/ADMIN see all, COACH sees own)
+  const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
 
   const now = new Date()
   const sevenDaysAgo = subDays(now, 7)

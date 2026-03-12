@@ -6,6 +6,7 @@ import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
 import { getCurrentUser, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 
 // GET /api/clients - Hämta alla klienter för inloggad användare
 // Supports pagination: ?limit=50&offset=0 (defaults: limit=500, offset=0)
@@ -183,6 +184,18 @@ export async function POST(request: NextRequest) {
 
       return { dbUser: txUser, client: txClient }
     })
+
+    // Auto-connect to team coach if client was assigned a team
+    if (client.teamId) {
+      try {
+        await connectTeamMemberToCoach(client.id, client.teamId, {
+          assignedByUserId: dbUser.id,
+          businessId: businessMembership?.businessId,
+        })
+      } catch (err) {
+        logger.warn('Team auto-connection failed', { clientId: client.id, teamId: client.teamId, error: err })
+      }
+    }
 
     // Automatically create athlete account if client has an email
     let athleteAccountCreated = false

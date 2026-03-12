@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
@@ -29,21 +30,14 @@ export default async function BusinessAthleteCalendarPage({
 
   const basePath = `/${businessSlug}`
 
-  // Get all members in the business (to find all clients)
-  const members = await prisma.businessMember.findMany({
-    where: {
-      businessId: membership.businessId,
-      isActive: true,
-    },
-    select: { userId: true },
-  })
-  const memberIds = members.map(m => m.userId)
+  // Scope client access by role: OWNER/ADMIN see all, COACH sees own
+  const scopedIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
 
-  // Fetch client and verify it belongs to a business member
+  // Fetch client and verify it belongs to a scoped coach
   const client = await prisma.client.findFirst({
     where: {
       id,
-      userId: { in: memberIds },
+      userId: { in: scopedIds },
     },
     select: {
       id: true,

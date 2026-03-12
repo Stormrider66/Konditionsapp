@@ -632,7 +632,7 @@ export async function canAccessClient(
   // Admins can access everything
   if (user.role === 'ADMIN') return true
 
-  // Coaches can access clients they created
+  // Coaches can access clients they created, or any client in their business if OWNER/ADMIN
   if (user.role === 'COACH') {
     const client = await prisma.client.findFirst({
       where: {
@@ -640,7 +640,28 @@ export async function canAccessClient(
         userId: userId,
       },
     })
-    return client !== null
+    if (client) return true
+
+    // Check if user is OWNER/ADMIN in a business that contains this client
+    const membership = await prisma.businessMember.findFirst({
+      where: {
+        userId,
+        isActive: true,
+        role: { in: ['OWNER', 'ADMIN'] },
+      },
+      select: { businessId: true },
+    })
+    if (membership) {
+      const businessClient = await prisma.client.findFirst({
+        where: {
+          id: clientId,
+          businessId: membership.businessId,
+        },
+      })
+      return businessClient !== null
+    }
+
+    return false
   }
 
   // Athletes can access their own client record
