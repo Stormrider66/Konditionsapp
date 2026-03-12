@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { requireBusinessMembership } from '@/lib/auth-utils'
 import { createCoachRequest } from '@/lib/coach/agreement'
+import { CoachRequestStatus } from '@prisma/client'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       where: {
         coachUserId: user.id,
         businessId,
-        ...(status ? { status } : {}),
+        ...(status && status in CoachRequestStatus ? { status: status as CoachRequestStatus } : {}),
       },
       include: {
         athlete: {
@@ -41,7 +42,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               select: {
                 primarySport: true,
                 secondarySports: true,
-                competitiveLevel: true,
               },
             },
           },
