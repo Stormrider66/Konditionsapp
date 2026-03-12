@@ -9416,8 +9416,9 @@ model CoachRequest {
   coachUserId     String
   businessId      String? // When set, this is an intra-business request
 
+  initiatedBy   String             @default("ATHLETE") // "ATHLETE" or "COACH"
   status        CoachRequestStatus @default(PENDING)
-  message       String?            @db.Text // Athlete's intro message
+  message       String?            @db.Text // Intro message from whoever initiated
   coachResponse String?            @db.Text
 
   requestedAt DateTime  @default(now())

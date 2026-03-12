@@ -30,6 +30,7 @@ import {
     ChevronDown,
     Zap,
     Timer,
+    UserPlus,
 } from 'lucide-react'
 import type { BusinessMemberRole } from '@/types'
 import { Button } from '@/components/ui/button'
@@ -133,6 +134,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
             items: [
                 { href: `${basePath}/coach/analytics`, label: 'Analys', icon: BarChart3 },
                 { href: `${basePath}/coach/teams`, label: 'Lag', icon: Users2 },
+                { href: `${basePath}/coach/browse-athletes`, label: 'Hitta Atleter', icon: UserPlus },
                 { href: `${basePath}/coach/organizations`, label: 'Organisationer', icon: Building2 },
                 { href: `${basePath}/coach/documents`, label: 'Dokument', icon: FileStack },
                 { href: `${basePath}/coach/messages`, label: 'Meddelanden', icon: MessageSquare },

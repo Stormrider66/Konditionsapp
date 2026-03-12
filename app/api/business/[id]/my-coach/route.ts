@@ -29,8 +29,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ coach: null, pendingRequest: null })
     }
 
-    // Check for active CoachAgreement and pending CoachRequest in parallel
-    const [activeAgreement, pendingRequest] = await Promise.all([
+    // Check for active CoachAgreement, pending athlete-initiated request, and coach invitations
+    const [activeAgreement, pendingRequest, coachInvitations] = await Promise.all([
       prisma.coachAgreement.findFirst({
         where: {
           athleteClientId: athleteAccount.clientId,
@@ -60,6 +60,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           athleteClientId: athleteAccount.clientId,
           businessId,
           status: 'PENDING',
+          initiatedBy: 'ATHLETE',
         },
         include: {
           coach: {
@@ -70,6 +71,32 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             },
           },
         },
+      }),
+      // Coach-initiated invitations to this athlete
+      prisma.coachRequest.findMany({
+        where: {
+          athleteClientId: athleteAccount.clientId,
+          businessId,
+          status: 'PENDING',
+          initiatedBy: 'COACH',
+        },
+        include: {
+          coach: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              coachProfile: {
+                select: {
+                  headline: true,
+                  specialties: true,
+                  experienceYears: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { requestedAt: 'desc' },
       }),
     ])
 
@@ -89,6 +116,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       coach: coachData,
       pendingRequest: pendingRequest || null,
+      coachInvitations: coachInvitations || [],
     })
   } catch (error) {
     return handleApiError(error)

@@ -222,7 +222,8 @@ export async function createCoachRequest(
   athleteClientId: string,
   coachUserId: string,
   message?: string,
-  businessId?: string
+  businessId?: string,
+  initiatedBy: 'ATHLETE' | 'COACH' = 'ATHLETE'
 ) {
   // Check if athlete already has a pending request to this coach
   const existingRequest = await prisma.coachRequest.findUnique({
@@ -307,12 +308,14 @@ export async function createCoachRequest(
       message,
       expiresAt,
       status: 'PENDING',
+      initiatedBy,
     },
     update: {
       message,
       businessId,
       expiresAt,
       status: 'PENDING',
+      initiatedBy,
       coachResponse: null,
       respondedAt: null,
       requestedAt: new Date(),
@@ -425,6 +428,135 @@ export async function assignAthleteToCoach(
   })
 
   return result
+}
+
+/**
+ * Accept a coach invitation (athlete accepting a coach-initiated request)
+ */
+export async function acceptCoachInvitation(
+  requestId: string,
+  athleteClientId: string,
+  response?: string
+) {
+  const request = await prisma.coachRequest.findUnique({
+    where: { id: requestId },
+    include: {
+      athlete: {
+        include: {
+          athleteSubscription: true,
+        },
+      },
+    },
+  })
+
+  if (!request) {
+    throw new Error('Invitation not found')
+  }
+
+  if (request.athleteClientId !== athleteClientId) {
+    throw new Error('Unauthorized: not your invitation')
+  }
+
+  if (request.initiatedBy !== 'COACH') {
+    throw new Error('This is not a coach-initiated invitation')
+  }
+
+  if (request.status !== 'PENDING') {
+    throw new Error(`Cannot accept invitation with status: ${request.status}`)
+  }
+
+  if (request.expiresAt < new Date()) {
+    await prisma.coachRequest.update({
+      where: { id: requestId },
+      data: { status: 'EXPIRED' },
+    })
+    throw new Error('Invitation has expired')
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedRequest = await tx.coachRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'ACCEPTED',
+        coachResponse: response,
+        respondedAt: new Date(),
+      },
+    })
+
+    const agreement = await tx.coachAgreement.create({
+      data: {
+        athleteClientId: request.athleteClientId,
+        coachUserId: request.coachUserId,
+        businessId: request.businessId,
+        status: 'ACTIVE',
+        revenueSharePercent: request.businessId ? 0 : 75,
+      },
+    })
+
+    await tx.client.update({
+      where: { id: request.athleteClientId },
+      data: { userId: request.coachUserId },
+    })
+
+    if (request.athlete.athleteSubscription) {
+      await tx.athleteSubscription.update({
+        where: { clientId: request.athleteClientId },
+        data: { assignedCoachId: request.coachUserId },
+      })
+    }
+
+    return { request: updatedRequest, agreement }
+  })
+
+  logger.info('Coach invitation accepted by athlete', {
+    requestId,
+    athleteClientId,
+    coachUserId: request.coachUserId,
+  })
+
+  return result
+}
+
+/**
+ * Reject a coach invitation (athlete declining a coach-initiated request)
+ */
+export async function rejectCoachInvitation(
+  requestId: string,
+  athleteClientId: string,
+  response?: string
+) {
+  const request = await prisma.coachRequest.findUnique({
+    where: { id: requestId },
+  })
+
+  if (!request) {
+    throw new Error('Invitation not found')
+  }
+
+  if (request.athleteClientId !== athleteClientId) {
+    throw new Error('Unauthorized: not your invitation')
+  }
+
+  if (request.initiatedBy !== 'COACH') {
+    throw new Error('This is not a coach-initiated invitation')
+  }
+
+  if (request.status !== 'PENDING') {
+    throw new Error(`Cannot reject invitation with status: ${request.status}`)
+  }
+
+  const updatedRequest = await prisma.coachRequest.update({
+    where: { id: requestId },
+    data: {
+      status: 'REJECTED',
+      coachResponse: response,
+      respondedAt: new Date(),
+    },
+  })
+
+  logger.info('Coach invitation rejected by athlete', { requestId, athleteClientId })
+
+  return updatedRequest
 }
 
 /**

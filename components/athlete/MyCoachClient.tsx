@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { UserCircle, Briefcase, Clock, Check, X } from 'lucide-react'
+import { UserCircle, Briefcase, Clock, Check, X, Mail } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -39,9 +39,26 @@ interface PendingRequest {
   createdAt: string
 }
 
+interface CoachInvitation {
+  id: string
+  message?: string | null
+  requestedAt: string
+  coach: {
+    id: string
+    name: string
+    email?: string | null
+    coachProfile?: {
+      headline?: string | null
+      specialties?: string[]
+      experienceYears?: number | null
+    } | null
+  }
+}
+
 interface MyCoachData {
   coach: Coach | null
   pendingRequest: PendingRequest | null
+  coachInvitations: CoachInvitation[]
 }
 
 interface MyCoachClientProps {
@@ -54,6 +71,7 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState(false)
   const [ending, setEnding] = useState(false)
+  const [invitationActionLoading, setInvitationActionLoading] = useState<string | null>(null)
   const { toast } = useToast()
 
   const fetchCoachData = useCallback(async () => {
@@ -100,6 +118,59 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
       })
     } finally {
       setCancelling(false)
+    }
+  }
+
+  const handleAcceptInvitation = async (invitationId: string) => {
+    try {
+      setInvitationActionLoading(invitationId)
+      const res = await fetch(`/api/business/${businessId}/coach-invitations/${invitationId}/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Kunde inte acceptera inbjudan')
+      }
+      toast({
+        title: 'Inbjudan accepterad',
+        description: 'Du har nu en aktiv coach!',
+      })
+      await fetchCoachData()
+    } catch (err: any) {
+      toast({
+        title: 'Fel',
+        description: err.message || 'Kunde inte acceptera inbjudan. Försök igen.',
+        variant: 'destructive',
+      })
+    } finally {
+      setInvitationActionLoading(null)
+    }
+  }
+
+  const handleRejectInvitation = async (invitationId: string) => {
+    try {
+      setInvitationActionLoading(invitationId)
+      const res = await fetch(`/api/business/${businessId}/coach-invitations/${invitationId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      if (!res.ok) throw new Error('Kunde inte avvisa inbjudan')
+      toast({
+        title: 'Inbjudan avvisad',
+        description: 'Inbjudan har avvisats.',
+      })
+      await fetchCoachData()
+    } catch {
+      toast({
+        title: 'Fel',
+        description: 'Kunde inte avvisa inbjudan. Försök igen.',
+        variant: 'destructive',
+      })
+    } finally {
+      setInvitationActionLoading(null)
     }
   }
 
@@ -304,6 +375,97 @@ export function MyCoachClient({ businessId, businessSlug }: MyCoachClientProps) 
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Coach invitations (shown when athlete has no active coach) */}
+      {!data?.coach && data?.coachInvitations && data.coachInvitations.length > 0 && (
+        <div className="space-y-4 mb-6">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Mail className="w-5 h-5 text-blue-500" />
+            Inbjudningar från coacher
+          </h2>
+          {data.coachInvitations.map((invitation) => (
+            <Card key={invitation.id} className="bg-slate-900/50 border-blue-500/20">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xl font-bold">
+                      {invitation.coach.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">
+                        {invitation.coach.name}
+                      </CardTitle>
+                      {invitation.coach.coachProfile?.headline && (
+                        <p className="text-sm text-slate-400 mt-1">
+                          {invitation.coach.coachProfile.headline}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-blue-400">
+                    <Mail className="w-4 h-4" />
+                    <span>Inbjudan</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {invitation.coach.coachProfile?.specialties &&
+                  (invitation.coach.coachProfile.specialties as string[]).length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {(invitation.coach.coachProfile.specialties as string[]).map((specialty) => (
+                        <Badge
+                          key={specialty}
+                          className="bg-blue-500/10 text-blue-400 border-blue-500/20"
+                        >
+                          {specialty}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                {invitation.message && (
+                  <div className="bg-white/5 rounded-lg p-3 text-sm text-slate-300">
+                    <span className="text-slate-500 block mb-1">Meddelande från coachen:</span>
+                    {invitation.message}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    Skickad{' '}
+                    {new Date(invitation.requestedAt).toLocaleDateString('sv-SE', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 pt-4 border-t border-white/5">
+                  <Button
+                    onClick={() => handleAcceptInvitation(invitation.id)}
+                    disabled={invitationActionLoading === invitation.id}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    {invitationActionLoading === invitation.id ? 'Accepterar...' : 'Acceptera'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleRejectInvitation(invitation.id)}
+                    disabled={invitationActionLoading === invitation.id}
+                    className="border-white/10 text-slate-300 hover:bg-white/5"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Avvisa
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* State 3: No coach, no pending request */}
