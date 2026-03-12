@@ -718,7 +718,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
                 ? getAssignmentRoute(firstIncompleteItem, basePath)
                 : firstIncompleteItem?.kind === 'wod'
                   ? getWODRoute(firstIncompleteItem, basePath)
-                  : `${basePath}/athlete/programs`
+                  : `${basePath}/athlete/browse-workouts`
           }
           sessionLabel={firstIncompleteItem ? 'Starta pass' : 'Hitta pass'}
         />

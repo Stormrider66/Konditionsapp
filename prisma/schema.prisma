@@ -80,6 +80,20 @@ enum WorkoutType {
   OTHER
 }
 
+enum WorkoutTemplateCategory {
+  STRENGTH
+  CARDIO
+  FUNCTIONAL
+  CORE
+  STRETCHING
+}
+
+enum WorkoutTemplateDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
 enum WorkoutIntensity {
   RECOVERY // Very easy
   EASY // Zone 1-2
@@ -653,6 +667,10 @@ model User {
 
   // Exercise Favorites
   exerciseFavorites ExerciseFavorite[]
+
+  // Workout Template Discovery
+  workoutTemplates         WorkoutTemplate[]         @relation("WorkoutTemplateOwner")
+  workoutTemplateFavorites WorkoutTemplateFavorite[]
 
   @@index([email])
   @@index([role])
@@ -9731,4 +9749,51 @@ model IntervalSessionTemplate {
   updatedAt DateTime @updatedAt
 
   @@index([coachId])
+}
+
+// ==================== WORKOUT TEMPLATE DISCOVERY ====================
+
+model WorkoutTemplate {
+  id              String                     @id @default(uuid())
+  name            String
+  nameSv          String
+  description     String?
+  descriptionSv   String?
+  category        WorkoutTemplateCategory
+  workoutType     WorkoutType
+  difficulty      WorkoutTemplateDifficulty
+  targetSports    SportType[]
+  muscleGroups    String[]
+  equipment       String[]
+  estimatedDuration Int
+  sections        Json
+  isSystem        Boolean                    @default(true)
+  coachId         String?
+  coach           User?                      @relation("WorkoutTemplateOwner", fields: [coachId], references: [id], onDelete: SetNull)
+  usageCount      Int                        @default(0)
+  tags            String[]
+  favorites       WorkoutTemplateFavorite[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([workoutType])
+  @@index([difficulty])
+  @@index([isSystem])
+  @@index([usageCount])
+  @@index([coachId])
+}
+
+model WorkoutTemplateFavorite {
+  id         String   @id @default(uuid())
+  userId     String
+  templateId String
+  createdAt  DateTime @default(now())
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template WorkoutTemplate  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, templateId])
+  @@index([userId])
 }

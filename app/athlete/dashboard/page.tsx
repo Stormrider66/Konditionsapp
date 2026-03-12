@@ -689,7 +689,7 @@ export default async function AthleteDashboardPage() {
                 ? getAssignmentRoute(firstIncompleteItem, basePath)
                 : firstIncompleteItem?.kind === 'wod'
                   ? getWODRoute(firstIncompleteItem, basePath)
-                  : '/athlete/programs'
+                  : '/athlete/browse-workouts'
           }
           sessionLabel={firstIncompleteItem ? 'Starta pass' : 'Hitta pass'}
         />
