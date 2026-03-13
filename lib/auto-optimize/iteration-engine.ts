@@ -12,7 +12,7 @@ import { generateProgramPrompt } from '@/lib/ai/program-prompts'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
-import { resolveModel } from '@/types/ai-models'
+import { resolveModel, type ResolvedModel } from '@/types/ai-models'
 import { prisma } from '@/lib/prisma'
 import { evaluateProgram } from './program-evaluator'
 import { TEST_SCENARIOS, getScenarios } from './test-scenarios'
@@ -141,7 +141,7 @@ export async function runIteration(
 async function generateAndEvaluate(
   scenario: TestScenario,
   promptTemplate: string,
-  model: { provider: string; modelId: string; apiKey: string; displayName: string },
+  model: ResolvedModel,
 ): Promise<ScenarioResult> {
   const startTime = Date.now()
   const context = scenarioToContext(scenario)
