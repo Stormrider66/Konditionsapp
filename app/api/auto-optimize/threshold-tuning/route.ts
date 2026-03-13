@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { runParameterSweep } from '@/lib/auto-optimize/threshold-tuning/parameter-sweep'
 import { buildRecommendation, serializeConfigForStorage } from '@/lib/auto-optimize/threshold-tuning/algorithm-selector'
@@ -107,7 +108,7 @@ export async function POST() {
             profileResult.bestConfig,
             profileResult.metrics,
             profileType
-          ),
+          ) as unknown as Prisma.InputJsonValue,
         },
       })
 
