@@ -89,6 +89,7 @@ export interface PromptVariant {
 
 export interface VariantParameters {
   slot: PromptSlot
+  targetedImprovements?: CriterionName[]
   evaluationWeights?: Record<CriterionName, number>
   lastEvaluationScores?: Record<CriterionName, number>
   scenarioScores?: Record<string, number>
