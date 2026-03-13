@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { listVariants, createVariant } from '@/lib/auto-optimize/prompt-variants'
+import { listVariants, createVariant, promoteVariant, getActiveVariant } from '@/lib/auto-optimize/prompt-variants'
 import type { PromptSlot } from '@/lib/auto-optimize/types'
 
 async function requireAdmin() {
@@ -33,6 +33,50 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
+    const action = searchParams.get('action')
+
+    // Seed: creates baseline variant and promotes to ACTIVE
+    if (action === 'seed') {
+      const existing = await getActiveVariant('full_program')
+      if (existing) {
+        return NextResponse.json({ message: 'Baseline already exists', variant: existing })
+      }
+
+      const template = [
+        '## UPPGIFT: SKAPA TR\u00c4NINGSPROGRAM',
+        '',
+        'Du ska skapa ett strukturerat tr\u00e4ningsprogram f\u00f6r en atlet.',
+        '',
+        'Sport: {{sport}}',
+        'Metodik: {{methodology}}',
+        'Programl\u00e4ngd: {{totalWeeks}} veckor',
+        'Pass per vecka: {{sessionsPerWeek}}',
+        'Erfarenhetsniv\u00e5: {{experienceLevel}}',
+        '',
+        '### ATLETENS M\u00c5L:',
+        '{{goal}}',
+        '',
+        'VIKTIGA PRINCIPER:',
+        '- F\u00f6lj vetenskapligt bepr\u00f6vade periodiseringsmetoder',
+        '- Progressiv \u00f6verbelastning med l\u00e4mplig \u00e5terh\u00e4mtning',
+        '- Anpassa efter atletens niv\u00e5 och m\u00e5l',
+        '- Ge konkreta tr\u00e4ningspass med tydliga instruktioner',
+        '- Inkludera uppv\u00e4rmning, huvudpass och nedvarvning',
+        '- Var specifik med tider, distanser, intensiteter och zonh\u00e4nvisningar',
+        '- Svara alltid p\u00e5 svenska',
+        '',
+        '### OUTPUT FORMAT',
+        'Strukturera programmet som JSON med phases, weeklyTemplate, segments (warmup/work/cooldown).',
+        'Var specifik med tider, distanser, intensiteter och zonh\u00e4nvisningar.',
+      ].join('\n')
+
+      const variant = await createVariant('full_program', template, { name: 'baseline-v1' })
+      await promoteVariant(variant.id) // DEVELOPMENT -> TESTING
+      const active = await promoteVariant(variant.id) // TESTING -> ACTIVE
+
+      return NextResponse.json({ message: 'Baseline seeded and activated', variant: active })
+    }
+
     const slot = searchParams.get('slot') as PromptSlot | null
     const status = searchParams.get('status') as 'DEVELOPMENT' | 'TESTING' | 'ACTIVE' | 'DEPRECATED' | 'ARCHIVED' | null
 
