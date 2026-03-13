@@ -420,6 +420,231 @@ const INJURY_CONTEXT: EvaluationContext = {
   ],
 }
 
+const STRENGTH_CONTEXT: EvaluationContext = {
+  sport: 'STRENGTH',
+  methodology: 'PYRAMIDAL',
+  totalWeeks: 12,
+  sessionsPerWeek: 4,
+  experienceLevel: 'intermediate',
+  goal: 'Bygga muskelmassa',
+}
+
+const GYM_PROGRAM: ParsedProgram = {
+  name: 'Styrkeprogram 12 veckor',
+  description: 'Hypertrofiprogram med upper/lower split',
+  totalWeeks: 12,
+  methodology: 'PYRAMIDAL',
+  weeklySchedule: { sessionsPerWeek: 4, restDays: [3, 6, 7] },
+  phases: [
+    {
+      name: 'Anatomisk Anpassning',
+      weeks: '1-3',
+      focus: 'Lär in rörelsemönster, anatomisk anpassning med lätt belastning',
+      volumeGuidance: '2-3 set per övning, RPE 6, deload vecka 3',
+      keyWorkouts: ['Helkropp A: Knäböj, Bänkpress, Rodd', 'Helkropp B: Marklyft, Press, Chins'],
+      weeklyTemplate: {
+        monday: {
+          type: 'STRENGTH',
+          name: 'Helkropp A',
+          description: 'Knäböj 3x12 @ RPE 6, Bänkpress 3x12 @ RPE 6, Rodd 3x12, vila 90s',
+          intensity: 'moderate',
+          duration: 60,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'RAMP: lätt cykel + dynamisk rörlighet' },
+            { order: 2, type: 'work', duration: 40, description: 'Knäböj 3x12 @ RPE 6 tempo 2-0-2, Bänkpress 3x12, Rodd 3x12' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching' },
+          ],
+        },
+        tuesday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        wednesday: {
+          type: 'STRENGTH',
+          name: 'Helkropp B',
+          description: 'Marklyft 3x10, Press 3x10, Chins 3xmax, Bulgarian Split Squat 3x10',
+          intensity: 'moderate',
+          duration: 60,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'RAMP uppvärmning' },
+            { order: 2, type: 'work', duration: 40, description: 'Marklyft 3x10, Press 3x10, Chins 3xmax' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching' },
+          ],
+        },
+        thursday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        friday: {
+          type: 'STRENGTH',
+          name: 'Överkropp',
+          description: 'Bänkpress 3x10, Rodd 3x10, Axelpress 3x10, Biceps curl 3x12',
+          intensity: 'moderate',
+          duration: 60,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'Uppvärmning' },
+            { order: 2, type: 'work', duration: 40, description: 'Bänkpress 3x10, Rodd 3x10, Axelpress 3x10' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching' },
+          ],
+        },
+        saturday: {
+          type: 'STRENGTH',
+          name: 'Underkropp',
+          description: 'Knäböj 3x10, RDL 3x10, Hip Thrust 3x12, Utfallssteg 3x10',
+          intensity: 'heavy',
+          duration: 60,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'Uppvärmning' },
+            { order: 2, type: 'work', duration: 40, description: 'Knäböj 3x10, RDL 3x10, Hip Thrust 3x12' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching' },
+          ],
+        },
+        sunday: { type: 'REST', description: 'Vila och återhämtning', name: 'Vila' },
+      },
+    },
+    {
+      name: 'Hypertrofifas',
+      weeks: '4-9',
+      focus: 'Hypertrofi med progressiv volymökning, RPE 7-8.5',
+      volumeGuidance: '3-4 set, öka volym varje vecka, deload vecka 7',
+      keyWorkouts: ['Upper A: Bänkpress, Rodd, Pull-ups', 'Lower A: Knäböj, RDL, Hip Thrust'],
+      weeklyTemplate: {
+        monday: {
+          type: 'STRENGTH',
+          name: 'Upper A',
+          description: 'Bänkpress 4x8 @ RPE 8, Rodd 4x8 @ RPE 8, Axelpress 3x10, Biceps 3x12',
+          intensity: 'heavy',
+          duration: 60,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'RAMP uppvärmning' },
+            { order: 2, type: 'work', duration: 40, description: 'Bänkpress 4x8 RPE 8, Rodd 4x8, Axelpress 3x10' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching' },
+          ],
+        },
+        tuesday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        wednesday: {
+          type: 'STRENGTH',
+          name: 'Lower A',
+          description: 'Knäböj 4x8 @ RPE 8, RDL 3x10, Hip Thrust 3x12, Vadpress 4x15',
+          intensity: 'heavy',
+          duration: 60,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'RAMP uppvärmning' },
+            { order: 2, type: 'work', duration: 40, description: 'Knäböj 4x8 RPE 8, RDL 3x10, Hip Thrust 3x12' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching' },
+          ],
+        },
+        thursday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        friday: {
+          type: 'STRENGTH',
+          name: 'Upper B',
+          description: 'Axelpress 4x8, Chins 4x8, Incline bänk 3x10, Laterals 4x15',
+          intensity: 'moderate',
+          duration: 60,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'Uppvärmning' },
+            { order: 2, type: 'work', duration: 40, description: 'Axelpress 4x8, Chins 4x8, Incline bänk 3x10' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching' },
+          ],
+        },
+        saturday: {
+          type: 'STRENGTH',
+          name: 'Lower B',
+          description: 'Marklyft 4x6 tungt @ RPE 8, Front squat 3x8, Walking lunges 3x12',
+          intensity: 'heavy',
+          duration: 60,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'Uppvärmning' },
+            { order: 2, type: 'work', duration: 40, description: 'Marklyft 4x6 RPE 8, Front squat 3x8, Walking lunges 3x12' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching' },
+          ],
+        },
+        sunday: { type: 'REST', description: 'Vila', name: 'Vila' },
+      },
+    },
+    {
+      name: 'Avlastning',
+      weeks: '10',
+      focus: 'Deload — minska volym 50%, behåll intensitet',
+      volumeGuidance: 'Halvera antal set, lätt vecka för återhämtning',
+      weeklyTemplate: {
+        monday: {
+          type: 'STRENGTH',
+          name: 'Lätt helkropp',
+          description: 'Knäböj 2x8, Bänkpress 2x8, Rodd 2x8 — deload',
+          intensity: 'easy',
+          duration: 45,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'Lätt uppvärmning' },
+            { order: 2, type: 'work', duration: 25, description: 'Knäböj 2x8 lätt, Bänkpress 2x8, Rodd 2x8' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching + rörlighet' },
+          ],
+        },
+        tuesday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        wednesday: {
+          type: 'STRENGTH',
+          name: 'Lätt helkropp',
+          description: 'Marklyft 2x6, Press 2x8, Chins 2x6 — avlastning',
+          intensity: 'easy',
+          duration: 45,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'Uppvärmning' },
+            { order: 2, type: 'work', duration: 25, description: 'Marklyft 2x6, Press 2x8, Chins 2x6' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching' },
+          ],
+        },
+        thursday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        friday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        saturday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        sunday: { type: 'REST', description: 'Vila', name: 'Vila' },
+      },
+    },
+    {
+      name: 'Toppfas',
+      weeks: '11-12',
+      focus: 'Toppning med tung styrka, RPE 9',
+      volumeGuidance: 'Minska volym, öka intensitet till RPE 9',
+      keyWorkouts: ['Tunga singlar/dubbletter i baslyft'],
+      weeklyTemplate: {
+        monday: {
+          type: 'STRENGTH',
+          name: 'Max Styrka Överkropp',
+          description: 'Bänkpress 5x3 @ RPE 9, Tung rodd 4x5',
+          intensity: 'max',
+          duration: 60,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'Specifik uppvärmning' },
+            { order: 2, type: 'work', duration: 40, description: 'Bänkpress 5x3 RPE 9, Tung rodd 4x5' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Nedvarvning' },
+          ],
+        },
+        tuesday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        wednesday: {
+          type: 'STRENGTH',
+          name: 'Max Styrka Underkropp',
+          description: 'Knäböj 5x3 @ RPE 9, Marklyft 4x3 tungt',
+          intensity: 'max',
+          duration: 60,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'Specifik uppvärmning' },
+            { order: 2, type: 'work', duration: 40, description: 'Knäböj 5x3 RPE 9, Marklyft 4x3' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Nedvarvning' },
+          ],
+        },
+        thursday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        friday: {
+          type: 'STRENGTH',
+          name: 'Accessories',
+          description: 'Lätta accessories, rörlighet, core',
+          intensity: 'easy',
+          duration: 45,
+          segments: [
+            { order: 1, type: 'warmup', duration: 10, description: 'Uppvärmning' },
+            { order: 2, type: 'work', duration: 25, description: 'Core, rörlighet, lätta accessories' },
+            { order: 3, type: 'cooldown', duration: 10, description: 'Stretching' },
+          ],
+        },
+        saturday: { type: 'REST', description: 'Vila', name: 'Vila' },
+        sunday: { type: 'REST', description: 'Vila', name: 'Vila' },
+      },
+    },
+  ],
+}
+
 // ── Tests ───────────────────────────────────────────────────────────
 
 describe('evaluateProgram', () => {
@@ -518,5 +743,53 @@ describe('evaluateProgram', () => {
     // Good program has proper 80/20 mix
     expect(result.criteria.zoneDistribution.score).toBeGreaterThanOrEqual(50)
     expect(result.criteria.zoneDistribution.details.length).toBeGreaterThan(0)
+  })
+
+  // ── Gym-specific tests ──────────────────────────────────────────
+
+  it('applies gym weight overrides for STRENGTH sport', () => {
+    const result = evaluateProgram(GYM_PROGRAM, STRENGTH_CONTEXT)
+
+    // Gym sports should have higher weight on progressiveOverload and sportSpecific
+    expect(result.criteria.progressiveOverload.weight).toBe(0.20)
+    expect(result.criteria.zoneDistribution.weight).toBe(0.05)
+    expect(result.criteria.sportSpecificCorrectness.weight).toBe(0.20)
+    expect(result.criteria.periodizationQuality.weight).toBe(0.15)
+  })
+
+  it('uses endurance weights for RUNNING sport', () => {
+    const result = evaluateProgram(GOOD_PROGRAM, RUNNING_CONTEXT)
+
+    expect(result.criteria.progressiveOverload.weight).toBe(0.15)
+    expect(result.criteria.zoneDistribution.weight).toBe(0.15)
+    expect(result.criteria.sportSpecificCorrectness.weight).toBe(0.15)
+    expect(result.criteria.periodizationQuality.weight).toBe(0.10)
+  })
+
+  it('scores a well-structured gym program above 70', () => {
+    const result = evaluateProgram(GYM_PROGRAM, STRENGTH_CONTEXT)
+
+    expect(result.parseSuccess).toBe(true)
+    expect(result.overallScore).toBeGreaterThanOrEqual(70)
+    expect(result.criteria.structuralCompleteness.score).toBeGreaterThanOrEqual(60)
+    expect(result.criteria.segmentDetail.score).toBeGreaterThanOrEqual(60)
+  })
+
+  it('does not penalize gym programs for lacking HR zone distribution', () => {
+    const result = evaluateProgram(GYM_PROGRAM, STRENGTH_CONTEXT)
+
+    // Gym programs should use intensity variety scoring instead of zone distribution
+    // The details should mention intensity mix, not HR zone percentages
+    const zoneDetails = result.criteria.zoneDistribution.details.join(' ')
+    expect(zoneDetails).toContain('heavy')
+    expect(zoneDetails).not.toContain('Polarized')
+  })
+
+  it('detects gym-specific keywords in sport correctness', () => {
+    const result = evaluateProgram(GYM_PROGRAM, STRENGTH_CONTEXT)
+
+    const sportDetails = result.criteria.sportSpecificCorrectness.details.join(' ')
+    // Should detect set/rep patterns and compound exercises
+    expect(sportDetails).toMatch(/set|rep|compound|Knäböj|Bänkpress/i)
   })
 })

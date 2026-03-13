@@ -15,6 +15,7 @@ import type {
   CriterionName,
   CriterionResult,
 } from './types'
+import { isGymSport } from './types'
 
 // ── Criterion Weights ───────────────────────────────────────────────
 
@@ -31,12 +32,21 @@ const DEFAULT_WEIGHTS: Record<CriterionName, number> = {
 
 // ── Main Evaluator ──────────────────────────────────────────────────
 
+// Weight overrides for gym/strength sports
+const GYM_WEIGHT_OVERRIDES: Partial<Record<CriterionName, number>> = {
+  progressiveOverload: 0.20,
+  zoneDistribution: 0.05,
+  sportSpecificCorrectness: 0.20,
+  periodizationQuality: 0.15,
+}
+
 export function evaluateProgram(
   program: ParsedProgram,
   context: EvaluationContext,
   weights?: Partial<Record<CriterionName, number>>
 ): EvaluationResult {
-  const w = { ...DEFAULT_WEIGHTS, ...weights }
+  const gymOverrides = isGymSport(context.sport) ? GYM_WEIGHT_OVERRIDES : {}
+  const w = { ...DEFAULT_WEIGHTS, ...gymOverrides, ...weights }
 
   const criteria: Record<CriterionName, CriterionResult> = {
     structuralCompleteness: scoreStructuralCompleteness(program, context),
@@ -221,6 +231,11 @@ function scoreZoneDistribution(
   const details: string[] = []
   let score = 100
 
+  // For gym sports, check intensity variety instead of HR zone distribution
+  if (isGymSport(context.sport)) {
+    return scoreGymIntensityVariety(program, context)
+  }
+
   const methodology = context.methodology?.toUpperCase()
   const methodologyData = methodology && methodology in METHODOLOGIES
     ? METHODOLOGIES[methodology as keyof typeof METHODOLOGIES]
@@ -300,6 +315,76 @@ function scoreZoneDistribution(
   return { score: Math.max(0, score), weight: DEFAULT_WEIGHTS.zoneDistribution, details }
 }
 
+/**
+ * Gym-specific intensity variety check.
+ * Instead of HR zones, check for mix of heavy/moderate/light days and deload presence.
+ */
+function scoreGymIntensityVariety(
+  program: ParsedProgram,
+  context: EvaluationContext
+): CriterionResult {
+  const details: string[] = []
+  let score = 100
+
+  const allWorkouts: Array<{ intensity?: string; zone?: string | number; description: string }> = []
+  for (const phase of program.phases) {
+    if (!phase.weeklyTemplate) continue
+    for (const day of Object.values(phase.weeklyTemplate)) {
+      if (day.type !== 'REST' && 'name' in day) {
+        allWorkouts.push(day as { intensity?: string; zone?: string | number; description: string })
+      }
+    }
+  }
+
+  if (allWorkouts.length === 0) {
+    details.push('⚠ No workouts found to analyze intensity variety')
+    return { score: 30, weight: DEFAULT_WEIGHTS.zoneDistribution, details }
+  }
+
+  // Categorize using gym-aware intensity mapping
+  const intensityCounts = { low: 0, moderate: 0, high: 0 }
+  for (const w of allWorkouts) {
+    const cat = categorizeIntensity(w)
+    intensityCounts[cat]++
+  }
+
+  const total = allWorkouts.length
+  const uniqueIntensities = Object.values(intensityCounts).filter(c => c > 0).length
+
+  details.push(`Intensity mix: ${intensityCounts.high} heavy / ${intensityCounts.moderate} moderate / ${intensityCounts.low} light sessions`)
+
+  // Check for variety — all sessions same intensity is bad
+  if (uniqueIntensities === 1) {
+    score -= 30
+    details.push('⚠ All workouts at same intensity — need variety (heavy/moderate/light)')
+  } else if (uniqueIntensities === 2) {
+    score -= 10
+    details.push('⚠ Only 2 intensity levels — consider adding light/deload days')
+  } else {
+    details.push('Good intensity variety across heavy, moderate, and light days')
+  }
+
+  // Check for deload presence in longer programs
+  const combinedText = getAllWorkoutDescriptions(program).join(' ').toLowerCase()
+  if (context.totalWeeks >= 6) {
+    const hasDeload = combinedText.match(/deload|avlast|återhämt|lätt vecka|vila.*vecka/)
+    if (hasDeload) {
+      details.push('Deload/recovery weeks detected')
+    } else {
+      score -= 15
+      details.push('⚠ No deload/recovery weeks in gym program ≥6 weeks')
+    }
+  }
+
+  // Check for heavy days (important for strength programs)
+  if (intensityCounts.high === 0 && context.totalWeeks >= 4) {
+    score -= 15
+    details.push('⚠ No heavy/high-intensity sessions — strength programs need heavy days')
+  }
+
+  return { score: Math.max(0, score), weight: DEFAULT_WEIGHTS.zoneDistribution, details }
+}
+
 // ── Criterion 4: Sport-Specific Correctness (15%) ───────────────────
 
 function scoreSportSpecificCorrectness(
@@ -309,6 +394,14 @@ function scoreSportSpecificCorrectness(
   const details: string[] = []
   let score = 100
 
+  const allWorkoutDescriptions = getAllWorkoutDescriptions(program)
+  const combinedText = allWorkoutDescriptions.join(' ').toLowerCase()
+
+  // Gym-specific keyword checks
+  if (isGymSport(context.sport)) {
+    return scoreGymSportSpecific(program, context, combinedText)
+  }
+
   const sportPrompt = SPORT_PROMPTS[context.sport]
   if (!sportPrompt) {
     details.push(`No sport prompt defined for ${context.sport}`)
@@ -316,8 +409,6 @@ function scoreSportSpecificCorrectness(
   }
 
   const expectedSessionTypes = sportPrompt.sessionTypes
-  const allWorkoutDescriptions = getAllWorkoutDescriptions(program)
-  const combinedText = allWorkoutDescriptions.join(' ').toLowerCase()
 
   // Check if at least some expected session types appear
   let matchedTypes = 0
@@ -360,6 +451,73 @@ function scoreSportSpecificCorrectness(
     } else {
       details.push(`Sport-appropriate workout types: ${relevantTypes.join(', ')}`)
     }
+  }
+
+  return { score: Math.max(0, score), weight: DEFAULT_WEIGHTS.sportSpecificCorrectness, details }
+}
+
+/**
+ * Gym-specific sport correctness: check for set/rep schemes, exercise names,
+ * split patterns, and compound movements.
+ */
+function scoreGymSportSpecific(
+  program: ParsedProgram,
+  context: EvaluationContext,
+  combinedText: string
+): CriterionResult {
+  const details: string[] = []
+  let score = 100
+
+  // Check for set/rep scheme mentions
+  const setRepPatterns = [
+    /\d+\s*[x×]\s*\d+/,                       // "3x10", "4×8"
+    /set|reps?|repetition/i,                    // "3 sets", "8 reps"
+    /serie/i,                                   // Swedish: "3 serier"
+  ]
+  const hasSetRep = setRepPatterns.some(p => p.test(combinedText))
+  if (hasSetRep) {
+    details.push('Set/rep schemes detected')
+  } else {
+    score -= 25
+    details.push('⚠ No set/rep schemes found — gym programs must specify sets and reps')
+  }
+
+  // Check for compound exercise names
+  const compoundKeywords = [
+    'squat', 'knäböj', 'bänkpress', 'bench', 'marklyft', 'deadlift',
+    'press', 'rodd', 'row', 'chins', 'pull-up', 'pullup',
+    'hip thrust', 'rdl', 'utfall', 'lunge', 'split squat',
+  ]
+  const foundCompounds = compoundKeywords.filter(kw => combinedText.includes(kw))
+  if (foundCompounds.length >= 3) {
+    details.push(`Compound exercises: ${foundCompounds.slice(0, 5).join(', ')}`)
+  } else if (foundCompounds.length >= 1) {
+    score -= 10
+    details.push(`⚠ Few compound exercises (${foundCompounds.length}) — expect more variety`)
+  } else {
+    score -= 25
+    details.push('⚠ No compound exercises found')
+  }
+
+  // Check for split pattern mentions
+  const splitKeywords = [
+    'helbod', 'fullbod', 'full body', 'helkropp',
+    'upper', 'lower', 'överkropp', 'underkropp',
+    'push', 'pull', 'legs', 'ppl',
+    'a-pass', 'b-pass', 'dag a', 'dag b',
+  ]
+  const foundSplits = splitKeywords.filter(kw => combinedText.includes(kw))
+  if (foundSplits.length > 0) {
+    details.push(`Split pattern detected: ${foundSplits.slice(0, 3).join(', ')}`)
+  } else {
+    score -= 10
+    details.push('⚠ No recognizable split pattern (full body, upper/lower, PPL)')
+  }
+
+  // Check for RPE/RIR or %1RM mentions (intensity prescription)
+  const intensityPrescription = combinedText.match(/rpe|rir|1rm|%.*rm|procent.*max/)
+  if (intensityPrescription) {
+    details.push('Intensity prescription (RPE/RIR/%1RM) detected')
   }
 
   return { score: Math.max(0, score), weight: DEFAULT_WEIGHTS.sportSpecificCorrectness, details }
@@ -669,7 +827,7 @@ function categorizeIntensity(
     const i = workout.intensity.toLowerCase()
     if (['recovery', 'easy'].includes(i)) return 'low'
     if (['moderate', 'threshold'].includes(i)) return 'moderate'
-    if (['interval', 'max', 'hard', 'race_pace'].includes(i)) return 'high'
+    if (['interval', 'max', 'hard', 'race_pace', 'heavy'].includes(i)) return 'high'
   }
 
   // Check zone
@@ -682,8 +840,20 @@ function categorizeIntensity(
 
   // Keyword-based classification from description
   const desc = workout.description?.toLowerCase() || ''
+
+  // Gym-specific high intensity keywords
+  if (desc.match(/tungt|heavy|maxstyrka|max.*styrka|power|explosiv|1rm|tung/i)) return 'high'
+  // Endurance high intensity keywords
   if (desc.match(/interval|VO2|fart|sprint|max|hög|tempo/i)) return 'high'
+
+  // Gym moderate keywords
+  if (desc.match(/hypertrofi|moderate|medel|8-12|10-12/i)) return 'moderate'
+  // Endurance moderate keywords
   if (desc.match(/tröskel|threshold|tempo|medel/i)) return 'moderate'
+
+  // Gym low/deload keywords
+  if (desc.match(/deload|lätt|avlast|återhämt|aa|anatomisk/i)) return 'low'
+
   return 'low'
 }
 

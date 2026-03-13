@@ -7,6 +7,39 @@
 import type { SportType } from '@prisma/client'
 import type { CalendarConstraints } from '@/lib/ai/program-prompts'
 
+// ── Sport Categories ────────────────────────────────────────────────
+
+export type SportCategory = 'ENDURANCE' | 'STRENGTH_GYM' | 'HYBRID' | 'TEAM_SPORT'
+
+const SPORT_CATEGORY_MAP: Record<string, SportCategory> = {
+  RUNNING: 'ENDURANCE',
+  CYCLING: 'ENDURANCE',
+  SKIING: 'ENDURANCE',
+  SWIMMING: 'ENDURANCE',
+  TRIATHLON: 'ENDURANCE',
+  STRENGTH: 'STRENGTH_GYM',
+  GENERAL_FITNESS: 'STRENGTH_GYM',
+  FUNCTIONAL_FITNESS: 'STRENGTH_GYM',
+  HYROX: 'HYBRID',
+  TEAM_FOOTBALL: 'TEAM_SPORT',
+  TEAM_ICE_HOCKEY: 'TEAM_SPORT',
+  TEAM_HANDBALL: 'TEAM_SPORT',
+  TEAM_FLOORBALL: 'TEAM_SPORT',
+  TEAM_BASKETBALL: 'TEAM_SPORT',
+  TEAM_VOLLEYBALL: 'TEAM_SPORT',
+  TENNIS: 'TEAM_SPORT',
+  PADEL: 'TEAM_SPORT',
+}
+
+export function getSportCategory(sport: SportType | string): SportCategory {
+  return SPORT_CATEGORY_MAP[sport] || 'ENDURANCE'
+}
+
+export function isGymSport(sport: SportType | string): boolean {
+  const cat = getSportCategory(sport)
+  return cat === 'STRENGTH_GYM' || cat === 'HYBRID'
+}
+
 // ── Scoring Criteria ────────────────────────────────────────────────
 
 export type CriterionName =

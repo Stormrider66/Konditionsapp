@@ -8,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { listVariants, createVariant, promoteVariant, getActiveVariant } from '@/lib/auto-optimize/prompt-variants'
+import { listVariants, createVariant, promoteVariant, deprecateVariant, getActiveVariant } from '@/lib/auto-optimize/prompt-variants'
+import { ENRICHED_BASELINE_TEMPLATE } from '@/lib/auto-optimize/enriched-baseline-template'
 import type { PromptSlot } from '@/lib/auto-optimize/types'
 
 async function requireAdmin() {
@@ -75,6 +76,28 @@ export async function GET(request: NextRequest) {
       const active = await promoteVariant(variant.id) // TESTING -> ACTIVE
 
       return NextResponse.json({ message: 'Baseline seeded and activated', variant: active })
+    }
+
+    // Seed enriched: creates enriched variant with conditional blocks
+    if (action === 'seed-enriched') {
+      // Deprecate current active if exists
+      const existing = await getActiveVariant('full_program')
+      if (existing) {
+        await deprecateVariant(existing.id)
+      }
+
+      const variant = await createVariant('full_program', ENRICHED_BASELINE_TEMPLATE, {
+        name: 'enriched-v1',
+        parentId: existing?.id,
+      })
+      await promoteVariant(variant.id) // DEVELOPMENT -> TESTING
+      const active = await promoteVariant(variant.id) // TESTING -> ACTIVE
+
+      return NextResponse.json({
+        message: 'Enriched baseline seeded and activated',
+        variant: active,
+        previousVariant: existing?.id || null,
+      })
     }
 
     const slot = searchParams.get('slot') as PromptSlot | null

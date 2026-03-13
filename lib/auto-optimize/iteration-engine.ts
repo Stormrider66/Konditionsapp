@@ -33,6 +33,7 @@ import type {
   EvaluationContext,
   PromptSlot,
 } from './types'
+import { getSportCategory, type SportCategory } from './types'
 
 // ── Main Entry Point ────────────────────────────────────────────────
 
@@ -199,8 +200,11 @@ async function generateAndEvaluate(
 // ── Prompt Building ─────────────────────────────────────────────────
 
 function buildPromptFromTemplate(template: string, scenario: TestScenario): string {
+  // Strip conditional blocks based on sport category and methodology
+  let prompt = stripConditionalBlocks(template, scenario.sport, scenario.methodology)
+
   // Replace placeholders in template
-  let prompt = template
+  prompt = prompt
     .replace(/\{\{sport\}\}/g, scenario.sport)
     .replace(/\{\{methodology\}\}/g, scenario.methodology)
     .replace(/\{\{totalWeeks\}\}/g, String(scenario.totalWeeks))
@@ -208,24 +212,85 @@ function buildPromptFromTemplate(template: string, scenario: TestScenario): stri
     .replace(/\{\{experienceLevel\}\}/g, scenario.experienceLevel)
     .replace(/\{\{goal\}\}/g, scenario.goal)
 
-  // If template has no placeholders, prepend scenario context
-  if (prompt === template) {
-    const scenarioContext = [
-      `Sport: ${scenario.sport}`,
-      `Metodik: ${scenario.methodology}`,
-      `Programlängd: ${scenario.totalWeeks} veckor`,
-      `Pass per vecka: ${scenario.sessionsPerWeek}`,
-      `Erfarenhetsnivå: ${scenario.experienceLevel}`,
-      `Mål: ${scenario.goal}`,
-      scenario.injuries?.length
-        ? `Skador: ${scenario.injuries.map(i => `${i.bodyPart} (smärta ${i.painLevel})`).join(', ')}`
-        : null,
-    ].filter(Boolean).join('\n')
+  // If template had no placeholders at all, prepend scenario context
+  if (prompt === stripConditionalBlocks(template, scenario.sport, scenario.methodology)) {
+    const beforeSub = prompt
+    const afterSub = prompt
+      .replace(/\{\{sport\}\}/g, '')
+      .replace(/\{\{methodology\}\}/g, '')
+      .replace(/\{\{totalWeeks\}\}/g, '')
+      .replace(/\{\{sessionsPerWeek\}\}/g, '')
+      .replace(/\{\{experienceLevel\}\}/g, '')
+      .replace(/\{\{goal\}\}/g, '')
 
-    prompt = `${template}\n\n--- SCENARIO ---\n${scenarioContext}`
+    // If nothing was substituted, append scenario context
+    if (beforeSub === afterSub) {
+      const scenarioContext = [
+        `Sport: ${scenario.sport}`,
+        `Metodik: ${scenario.methodology}`,
+        `Programlängd: ${scenario.totalWeeks} veckor`,
+        `Pass per vecka: ${scenario.sessionsPerWeek}`,
+        `Erfarenhetsnivå: ${scenario.experienceLevel}`,
+        `Mål: ${scenario.goal}`,
+        scenario.injuries?.length
+          ? `Skador: ${scenario.injuries.map(i => `${i.bodyPart} (smärta ${i.painLevel})`).join(', ')}`
+          : null,
+      ].filter(Boolean).join('\n')
+
+      prompt = `${prompt}\n\n--- SCENARIO ---\n${scenarioContext}`
+    }
   }
 
   return prompt
+}
+
+/**
+ * Strip conditional blocks from a template based on sport category and methodology.
+ *
+ * Supports:
+ * - {{#if_category CATEGORY}}...{{/endif}} — kept if sport matches category
+ * - {{#if_methodology METHOD}}...{{/endif}} — kept if methodology matches
+ *
+ * HYBRID sports match both STRENGTH_GYM and ENDURANCE blocks.
+ */
+export function stripConditionalBlocks(
+  template: string,
+  sport: string,
+  methodology?: string
+): string {
+  const category = getSportCategory(sport)
+
+  // Determine which categories to keep
+  const activeCategories = new Set<SportCategory>([category])
+  if (category === 'HYBRID') {
+    activeCategories.add('STRENGTH_GYM')
+    activeCategories.add('ENDURANCE')
+  }
+
+  // Process INNERMOST blocks first (methodology), then outer (category)
+  // This prevents nested {{/endif}} from confusing the category regex.
+
+  // 1. Strip methodology blocks first
+  const activeMethodology = methodology?.toUpperCase() || ''
+  let result = template.replace(
+    /\{\{#if_methodology\s+(\w+)\}\}([\s\S]*?)\{\{\/endif\}\}/g,
+    (_match, blockMethodology: string, content: string) => {
+      return blockMethodology.toUpperCase() === activeMethodology ? content : ''
+    }
+  )
+
+  // 2. Strip category blocks (no more nested {{/endif}} inside)
+  result = result.replace(
+    /\{\{#if_category\s+(\w+)\}\}([\s\S]*?)\{\{\/endif\}\}/g,
+    (_match, blockCategory: string, content: string) => {
+      return activeCategories.has(blockCategory as SportCategory) ? content : ''
+    }
+  )
+
+  // Clean up double blank lines left by stripped blocks
+  result = result.replace(/\n{3,}/g, '\n\n')
+
+  return result
 }
 
 function getDefaultPrompt(scenario: TestScenario): string {
