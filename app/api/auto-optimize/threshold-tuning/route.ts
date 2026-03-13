@@ -136,7 +136,7 @@ export async function POST() {
               lt2Within05: v.metrics.lt2Within05,
             }])
           ),
-        },
+        } as unknown as Prisma.InputJsonValue,
         overallSampleSize: sweep.configsTested,
         overallAccuracy: sweep.bestScore,
         confidenceLevel: 0.90,

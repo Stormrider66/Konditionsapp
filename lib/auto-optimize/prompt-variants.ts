@@ -5,6 +5,7 @@
  * Scoped to modelType = 'program_generation'.
  */
 
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { PromptSlot, PromptVariant, VariantParameters } from './types'
 
@@ -110,7 +111,7 @@ export async function createVariant(
       parameters: {
         slot,
         ...options?.parameters,
-      } as Record<string, unknown>,
+      } as Prisma.JsonObject,
       ...(options?.parentId && { previousVersionId: options.parentId }),
     },
   })
@@ -194,7 +195,7 @@ export async function updateVariantScores(
   scenarioScores?: Record<string, number>
 ): Promise<void> {
   const variant = await prisma.aIModelVersion.findUniqueOrThrow({ where: { id } })
-  const currentParams = (variant.parameters as Record<string, unknown>) || {}
+  const currentParams = (variant.parameters as Prisma.JsonObject) || {}
 
   await prisma.aIModelVersion.update({
     where: { id },
@@ -204,7 +205,7 @@ export async function updateVariantScores(
         ...currentParams,
         lastEvaluationScores: criteriaScores,
         ...(scenarioScores && { scenarioScores }),
-      },
+      } as Prisma.JsonObject,
     },
   })
 }
@@ -217,16 +218,16 @@ export async function addIterationToHistory(
   summary: { runId: string; timestamp: string; decision: string; candidateScore: number; baselineScore: number; delta: number }
 ): Promise<void> {
   const variant = await prisma.aIModelVersion.findUniqueOrThrow({ where: { id } })
-  const currentParams = (variant.parameters as Record<string, unknown>) || {}
-  const history = (currentParams.iterationHistory as unknown[]) || []
+  const currentParams = (variant.parameters as Prisma.JsonObject) || {}
+  const history = (currentParams.iterationHistory as Prisma.JsonArray) || []
 
   await prisma.aIModelVersion.update({
     where: { id },
     data: {
       parameters: {
         ...currentParams,
-        iterationHistory: [...history, summary],
-      },
+        iterationHistory: [...history, summary as unknown as Prisma.JsonValue],
+      } as Prisma.JsonObject,
     },
   })
 }

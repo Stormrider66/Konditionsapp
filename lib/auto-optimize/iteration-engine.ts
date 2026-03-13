@@ -6,6 +6,7 @@
  * and decides whether to KEEP or DISCARD the candidate.
  */
 
+import { Prisma } from '@prisma/client'
 import { generateText } from 'ai'
 import { parseAIProgram } from '@/lib/ai/program-parser'
 import { generateProgramPrompt } from '@/lib/ai/program-prompts'
@@ -310,7 +311,7 @@ async function storeIterationSnapshot(run: IterationRun): Promise<void> {
         decision: run.decision,
         scenarioCount: run.results.candidate.length,
         timestamp: now.toISOString(),
-      },
+      } as unknown as Prisma.InputJsonValue,
       overallSampleSize: run.results.candidate.length + run.results.baseline.length,
       overallAccuracy: run.candidateAvgScore,
       confidenceLevel: Math.min(
