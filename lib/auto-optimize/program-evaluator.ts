@@ -5,6 +5,7 @@
  * Zero AI cost per evaluation — all scoring is rule-based.
  */
 
+import type { SportType } from '@prisma/client'
 import type { ParsedProgram, ParsedPhase } from '@/lib/ai/program-parser'
 import { validateProgramCompleteness } from '@/lib/ai/program-parser'
 import { METHODOLOGIES, SPORT_PROMPTS } from '@/lib/ai/program-prompts'
