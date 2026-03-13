@@ -77,6 +77,10 @@
     {
       "path": "/api/cron/reset-ai-usage",
       "schedule": "5 0 1 * *"
+    },
+    {
+      "path": "/api/cron/auto-optimize",
+      "schedule": "0 3 * * 0"
     }
   ]
 }

@@ -234,8 +234,8 @@ function scoreZoneDistribution(
   for (const phase of program.phases) {
     if (!phase.weeklyTemplate) continue
     for (const day of Object.values(phase.weeklyTemplate)) {
-      if (day.type !== 'REST') {
-        allWorkouts.push(day)
+      if (day.type !== 'REST' && 'name' in day) {
+        allWorkouts.push(day as { intensity?: string; zone?: string | number; description: string })
       }
     }
   }
@@ -347,7 +347,7 @@ function scoreSportSpecificCorrectness(
   for (const phase of program.phases) {
     if (!phase.weeklyTemplate) continue
     for (const day of Object.values(phase.weeklyTemplate)) {
-      if (day.type && day.type !== 'REST') phaseWorkoutTypes.add(day.type)
+      if (day.type && day.type !== 'REST' && 'name' in day) phaseWorkoutTypes.add(day.type)
     }
   }
 
@@ -550,8 +550,9 @@ function scoreSegmentDetail(program: ParsedProgram): CriterionResult {
 
   for (const phase of program.phases) {
     if (!phase.weeklyTemplate) continue
-    for (const day of Object.values(phase.weeklyTemplate)) {
-      if (day.type === 'REST') continue
+    for (const rawDay of Object.values(phase.weeklyTemplate)) {
+      if (rawDay.type === 'REST') continue
+      const day = rawDay as { type: string; segments?: Array<{ type: string; zone?: number; pace?: string; power?: number; heartRate?: string; description?: string; notes?: string }>; [key: string]: unknown }
       totalWorkouts++
 
       if (day.segments && day.segments.length > 0) {
@@ -694,13 +695,13 @@ function getAllWorkoutDescriptions(program: ParsedProgram): string[] {
     if (phase.volumeGuidance) descriptions.push(phase.volumeGuidance)
     if (!phase.weeklyTemplate) continue
     for (const day of Object.values(phase.weeklyTemplate)) {
-      if (day.description) descriptions.push(day.description)
-      if (day.name) descriptions.push(day.name)
-      if (day.notes) descriptions.push(day.notes)
-      if (day.segments) {
+      if ('description' in day && day.description) descriptions.push(day.description)
+      if ('name' in day && day.name) descriptions.push(day.name as string)
+      if ('notes' in day && day.notes) descriptions.push(day.notes as string)
+      if ('segments' in day && day.segments) {
         for (const seg of day.segments) {
           if (seg.description) descriptions.push(seg.description)
-          if (seg.notes) descriptions.push(seg.notes)
+          if ('notes' in seg && seg.notes) descriptions.push(seg.notes as string)
         }
       }
     }
