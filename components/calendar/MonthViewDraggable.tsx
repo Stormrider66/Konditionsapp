@@ -443,22 +443,15 @@ function DraggableItem({ item, onItemClick }: DraggableItemProps) {
   // Only workouts are draggable
   const isDraggable = item.type === 'WORKOUT'
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.id,
     data: { item },
     disabled: !isDraggable,
   })
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
-    : undefined
-
   return (
     <div
       ref={setNodeRef}
-      style={style}
       className={cn(
         'text-xs truncate px-1 py-0.5 rounded flex items-center gap-0.5',
         item.type === 'WORKOUT' &&
@@ -473,18 +466,18 @@ function DraggableItem({ item, onItemClick }: DraggableItemProps) {
           'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200',
         item.type === 'WOD' &&
           'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200',
-        isDragging && 'opacity-50',
+        isDragging && 'opacity-30',
         isDraggable && 'cursor-grab active:cursor-grabbing'
       )}
+      style={isDraggable ? { touchAction: 'none' } : undefined}
+      {...(isDraggable ? { ...attributes, ...listeners } : {})}
       onClick={(e) => {
         e.stopPropagation()
         onItemClick(item)
       }}
     >
       {isDraggable && (
-        <span {...attributes} {...listeners} className="cursor-grab">
-          <GripVertical className="h-3 w-3 text-muted-foreground" />
-        </span>
+        <GripVertical className="h-3 w-3 text-muted-foreground shrink-0" />
       )}
       <span className="truncate flex-1">{item.title}</span>
     </div>
