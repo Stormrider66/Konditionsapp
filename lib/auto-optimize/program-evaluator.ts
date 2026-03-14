@@ -520,6 +520,16 @@ function scoreGymSportSpecific(
     details.push('Intensity prescription (RPE/RIR/%1RM) detected')
   }
 
+  // Check for advanced method mentions (bonus, not penalized if absent)
+  const advancedMethods = [
+    'wave', 'våg', 'cluster', 'myo-rep', 'rest-pause', 'drop.?set',
+    'superset', 'dup', 'undul', 'tempo.*\\d', 'pause.*rep',
+  ]
+  const foundMethods = advancedMethods.filter(m => new RegExp(m, 'i').test(combinedText))
+  if (foundMethods.length > 0) {
+    details.push(`Advanced methods: ${foundMethods.slice(0, 3).join(', ')}`)
+  }
+
   return { score: Math.max(0, score), weight: DEFAULT_WEIGHTS.sportSpecificCorrectness, details }
 }
 

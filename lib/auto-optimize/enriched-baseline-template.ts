@@ -8,6 +8,10 @@
  * Distilled from:
  * - docs/hypertrophy_framework.md (MEV/MAV/MRV, volume periodization)
  * - docs/Autoregulation_RPE_RIR_Guide.md (RPE/RIR mapping, autoregulation)
+ * - docs/Equipment_Constrained_Resistance_Training.md (DB/BW alternatives)
+ * - docs/resistance_training_periodization.md (DUP/WUP/BUP)
+ * - docs/Advanced_Resistance_Training_Methodologies.md (wave loading, clusters, myo-reps)
+ * - docs/nutrient_timing_ergogenic_supplementation.md (pre/intra/post nutrition)
  * - lib/training-engine/* (methodologies, sport-specific modules)
  */
 
@@ -138,7 +142,86 @@ Varje pass MÅSTE börja med RAMP-protokoll:
 3. **Accessories/isolation + core (10 min):** 2-3 isolationsövningar, supersets
 4. **Cooldown (5 min):** Stretching + andningsövning
 
-### Protein: 1.6-2.2 g/kg kroppsvikt per dag vid styrketräning
+### Periodiseringsmodell — välj rätt modell efter nivå:
+| Nivå | Mål | Modell | Beskrivning |
+|------|-----|--------|-------------|
+| Nybörjare | Styrka/Hypertrofi | Linjär (LP) | Gradvis ökning varje vecka, enkelt att följa |
+| Medel, styrka | Styrka | DUP (3-4 dagar) | Daglig undulering: Hypertrofi → Power → Styrka inom samma vecka |
+| Medel, hypertrofi | Hypertrofi | DUP/WUP (4-5 dagar) | Variera reps vecka-till-vecka eller dag-till-dag |
+| Avancerad, peaking | Max styrka | BUP (blockperiodisering) | 3-veckorsblock: Ackumulering → Intensifiering → Realisering |
+
+**DUP-dagsstruktur (HPS-ordning):**
+- **Hypertrofi-dag:** 4×8-10 @ 65-70% 1RM, RPE 7-8, 90s vila
+- **Power-dag:** 5×3 @ 75-80% 1RM, RPE 6-7 (maximal hastighet), 2-3 min vila
+- **Styrka-dag:** 5×3-5 @ 85-90% 1RM, RPE 8.5-9, 3-5 min vila
+
+**BUP 3-veckorsblock:**
+- Vecka 1 (Ackumulering): 4-5×8-10 @ 65-75%, RPE 7-8, hög volym
+- Vecka 2 (Intensifiering): 4-5×4-6 @ 75-85%, RPE 8-8.5, -20% volym
+- Vecka 3 (Realisering): 3-5×1-3 @ 85-95%, RPE 8.5-9.5, -40% volym
+
+**Intra-session undulering (inom samma pass):**
+Ordning: Neurologisk → Mekanisk → Metabolisk
+1. Tungt compound: Knäböj 5×3 @ 85% (styrka)
+2. Moderate compound: Benspress 3×12 @ 65% (hypertrofi)
+3. Isolation: Bencurl 3×15-20 @ RPE 9-10 (metabol stress)
+
+### Utrustningsbegränsade alternativ (hantlar/kroppsvikt):
+Om atleten INTE har tillgång till skivstång, använd dessa substitut:
+| Skivstångsövning | Hantelalternativ | Kroppsviktsalternativ |
+|-----------------|------------------|----------------------|
+| Knäböj | Bulgarian Split Squat (85-90% EMG) | Pistol Squat (80-85%) |
+| Marklyft | Single-Leg RDL (85-90%) | Nordic Hamstring Curl (95-100%) |
+| Bänkpress | DB Bänkpress (95-100%) | Ring/Suspension Push-Up (90-105%) |
+| Axelpress | Seated Arnold Press (95-100%) | Handstand Push-Up (90-95%) |
+| Rodd | Single-Arm DB Row (90-95%) | Inverterad Rodd (110-160%) |
+| Hip Thrust | Single-Leg DB Hip Thrust (95-105%) | Single-Leg Glute Bridge (70-80%) |
+
+**Progressionsstrategier utan viktökning:**
+- Tempomanipulation: 4-0-1-0 (4 sek excentrisk) ökar TUT drastiskt
+- Pausade reps: 3-5 sek paus i botten → eliminerar stretch-reflex
+- 1.5-reps: Ner hela vägen → halvvägs upp → ner igen → hela vägen upp = 1 rep
+- Mekaniska drop sets: Svårare variant → enklare variant utan vila (t.ex. flyes → push-flyes → press)
+- Unilateralt: Gå från bilateral till ensidig utförande
+
+**Volympreskription per utrustning:**
+| Utrustning | Reps per set | Set/muskelgrupp/vecka | RPE | Vila |
+|------------|-------------|----------------------|-----|------|
+| Skivstång (kontroll) | 5-8 | 10-15 | 7.5-9 | 120-180s |
+| Hantlar (max 40 kg) | 8-15 | 12-18 | 8-9.5 | 90-120s |
+| Kroppsvikt | 15-30+ | 15-20 | 9-10 | 60-90s |
+
+### Avancerade metoder (för medel/avancerade):
+Använd dessa SPARSAMT — max 1-2 metoder per program, för compound-övningar:
+
+**Wave loading (post-tetanisk potentiering):**
+- 3/2/1 våg: 3 reps @ 88%, 2 reps @ 91%, 1 rep @ 94% → upprepa med +2-3%
+- 7/5/3 våg: 7 reps @ 80%, 5 reps @ 85%, 3 reps @ 90%
+- 1-6 kontrast: 1 rep @ 90-95%, vila, sedan 6 reps @ 75-85% (potentiering gör setet lättare)
+- Vila: 3-5 min mellan alla set. Max 2-4 vågor per pass.
+
+**Cluster sets (intra-set vila):**
+- Styrka: Singlar/dubbletter @ 80-85% 1RM, 15-30s vila mellan reps
+- Hypertrofi: 3-5 reps @ 70-75% 1RM, 15-20s vila, upprepa tills 20-30 total reps
+
+**Myo-reps (tidseffektiv hypertrofi):**
+1. Aktiveringsset: 12-15 reps till 1-2 RIR
+2. Vila 10-15 sek (3-5 djupa andetag)
+3. Mini-set: 3-5 reps @ 1-2 RIR
+4. Upprepa tills 5 mini-set eller reps sjunker
+
+**Kontrast/komplex-träning (styrka → explosivitet):**
+- Tungt compound @ >80% 1RM, 3-4×3-4 reps → vila 3-5 min → plyometrisk övning 3-5 reps
+- Pairings: Knäböj → Box Jump | Bänkpress → Plyometrisk Push-up | Marklyft → Broad Jump
+
+### Näring för styrketräning:
+- **Protein:** 1.6-2.2 g/kg/dag (2.3-3.1 g/kg vid kaloriunderskott)
+- **Fördelning:** 4 måltider × 0.25-0.40 g/kg protein (minst 2.5g leucin per måltid)
+- **Före pass (2-3h):** 1-2 g/kg kolhydrater + 0.25 g/kg protein
+- **Efter pass (inom 2h):** 0.3-0.4 g/kg protein + kolhydrater 1:1
+- **Före sömn:** 30-40g kasein för nattlig muskelproteinsyntesen
+- **Kreatin:** 3-5 g/dag konsekvent (daglig konsistens viktigare än timing)
+- **Koffein:** 3-6 mg/kg, 60 min före pass (förbättrar styrka ~3%)
 
 {{/endif}}
 
@@ -223,6 +306,16 @@ Varje pass MÅSTE börja med RAMP-protokoll:
 - Post-Lunges (Sista): Överlevnadstempo
 
 **Träna "compromised running"** — löpning på trötta ben efter tunga stationer
+
+### Näring för concurrent/HYROX:
+- **Interference-effekt:** Uthållighetsträning aktiverar AMPK som hämmar mTORC1 (muskeluppbyggnad)
+- **Motåtgärd:** Fyll glykogen FÖRE styrkepass, ta 2.5-3g leucin (25-30g vassle) MELLAN passen
+- **Kolhydrater per fas:**
+  - Basfas (3-5h/vecka): 3-5 g/kg/dag
+  - Byggfas (6-12h/vecka): 5-8 g/kg/dag
+  - Toppfas (12h+/vecka): 8-12 g/kg/dag
+- **Intra-pass (>60 min):** 30-60 g kolhydrater/timme + 300-600 mg natrium/timme
+- **Post-pass:** 4:1 kolhydrat:protein-ratio (1.0-1.2 g/kg kolhydrater + 0.3 g/kg protein)
 
 {{/endif}}
 
