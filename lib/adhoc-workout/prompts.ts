@@ -238,7 +238,7 @@ DISTANSBERÄKNING:
   - Normal löpning: ~10000m per 60 min
   - Cykling: ~25000m per 60 min
   - Simning: ~2000m per 60 min
-- Summera cardioSegments-distanser till top-level distance om de finns
+- Summera cardioSegments-distanser till top-level distance om de finns`
 }
 
 // ============================================
@@ -362,7 +362,7 @@ VIKTIGT:
 - Tid uttryckt som "en timme" = 60 minuter
 - "5 km" eller "fem kilometer" = distance: 5000 (alltid i meter!)
 - Beräkna distans från intervaller: "10x400m" = distance: 4000
-- Uppskatta distans för kardiopass utan angiven distans baserat på duration och typ
+- Uppskatta distans för kardiopass utan angiven distans baserat på duration och typ`
 }
 
 // ============================================
