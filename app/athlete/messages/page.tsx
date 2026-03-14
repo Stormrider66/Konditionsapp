@@ -27,7 +27,8 @@ interface Message {
   receiverId: string
   senderName?: string
   createdAt: string
-  read: boolean
+  isRead: boolean
+  readAt?: string | null
   relatedWorkoutId?: string
   relatedWorkout?: { name: string }
   sender: MessageUser
@@ -122,7 +123,7 @@ export default function AthleteMessagesPage() {
   const markMessagesAsRead = useCallback(async (messagesToProcess: Message[]) => {
     // Mark all unread messages from coach as read
     const unreadCoachMessages = messagesToProcess.filter(
-      (msg) => !msg.read && (msg.sender.role === 'COACH' || msg.sender.role === 'ADMIN')
+      (msg) => !msg.isRead && (msg.sender.role === 'COACH' || msg.sender.role === 'ADMIN')
     )
 
     for (const msg of unreadCoachMessages) {
@@ -296,7 +297,7 @@ export default function AthleteMessagesPage() {
 
                                   {isAthlete && (
                                     <div className="ml-auto">
-                                      {msg.read ? (
+                                      {msg.isRead ? (
                                         <MailOpen className="h-3 w-3 text-orange-200" />
                                       ) : (
                                         <Mail className="h-3 w-3 text-orange-200" />

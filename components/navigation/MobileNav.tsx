@@ -208,9 +208,9 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
 
   // Athlete main navigation (desktop header - always visible)
   const athleteMainNavLinks = [
-    { href: '/athlete/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/athlete/check-in', label: 'Check-in', icon: CheckCircle },
-    { href: '/athlete/calendar', label: 'Kalender', icon: Calendar },
+    { href: `${basePath}/athlete/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
+    { href: `${basePath}/athlete/check-in`, label: 'Check-in', icon: CheckCircle },
+    { href: `${basePath}/athlete/calendar`, label: 'Kalender', icon: Calendar },
   ]
 
   // Athlete grouped navigation for dropdowns
@@ -219,28 +219,28 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
       label: 'Träning',
       icon: Activity,
       items: [
-        { href: '/athlete/history', label: 'Historik', icon: TrendingUp },
-        { href: '/athlete/programs', label: 'Program', icon: Calendar },
-        { href: '/athlete/strength', label: 'Styrketräning', icon: Dumbbell },
-        { href: '/athlete/cardio', label: 'Cardio Pass', icon: Heart },
-        { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame },
-        { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge },
-        { href: '/athlete/ergometer', label: 'Ergometer', icon: Activity },
-        { href: '/athlete/concept2', label: 'Concept2', icon: Ship },
-        { href: '/athlete/video-analysis', label: 'Videoanalys', icon: Video },
+        { href: `${basePath}/athlete/history`, label: 'Historik', icon: TrendingUp },
+        { href: `${basePath}/athlete/programs`, label: 'Program', icon: Calendar },
+        { href: `${basePath}/athlete/strength`, label: 'Styrketräning', icon: Dumbbell },
+        { href: `${basePath}/athlete/cardio`, label: 'Cardio Pass', icon: Heart },
+        { href: `${basePath}/athlete/hybrid`, label: 'Hybrid Pass', icon: Flame },
+        { href: `${basePath}/athlete/vbt`, label: 'VBT Data', icon: Gauge },
+        { href: `${basePath}/athlete/ergometer`, label: 'Ergometer', icon: Activity },
+        { href: `${basePath}/athlete/concept2`, label: 'Concept2', icon: Ship },
+        { href: `${basePath}/athlete/video-analysis`, label: 'Videoanalys', icon: Video },
       ],
     },
     more: {
       label: 'Mer',
       icon: Menu,
       items: [
-        { href: '/athlete/profile', label: 'Min Profil', icon: UserIcon },
-        { href: '/athlete/tests', label: 'Tester & Rapporter', icon: FlaskConical },
-        { href: '/athlete/lactate/new', label: 'Laktattest', icon: Droplet },
-        { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
-        { href: '/athlete/settings', label: 'Inställningar', icon: Settings },
+        { href: `${basePath}/athlete/profile`, label: 'Min Profil', icon: UserIcon },
+        { href: `${basePath}/athlete/tests`, label: 'Tester & Rapporter', icon: FlaskConical },
+        { href: `${basePath}/athlete/lactate/new`, label: 'Laktattest', icon: Droplet },
+        { href: `${basePath}/athlete/messages`, label: 'Meddelanden', icon: MessageSquare, badge: unreadCount },
+        { href: `${basePath}/athlete/settings`, label: 'Inställningar', icon: Settings },
         ...(needsOnboarding
-          ? [{ href: '/athlete/onboarding', label: 'Sportprofil', icon: UserIcon }]
+          ? [{ href: `${basePath}/athlete/onboarding`, label: 'Sportprofil', icon: UserIcon }]
           : []),
       ],
     },
@@ -249,35 +249,35 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
   // Athlete mobile navigation - flat list with all items
   const athleteNavLinks = [
     // Dashboard & Overview
-    { href: '/athlete/dashboard', label: 'Dashboard', icon: LayoutDashboard, description: 'Översikt & idag' },
-    { href: '/athlete/check-in', label: 'Check-in', icon: CheckCircle, description: 'Daglig readiness', highlight: true },
-    { href: '/athlete/calendar', label: 'Kalender', icon: Calendar, description: 'Träning, tävlingar & händelser' },
+    { href: `${basePath}/athlete/dashboard`, label: 'Dashboard', icon: LayoutDashboard, description: 'Översikt & idag' },
+    { href: `${basePath}/athlete/check-in`, label: 'Check-in', icon: CheckCircle, description: 'Daglig readiness', highlight: true },
+    { href: `${basePath}/athlete/calendar`, label: 'Kalender', icon: Calendar, description: 'Träning, tävlingar & händelser' },
 
     // Training & History
-    { href: '/athlete/history', label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
-    { href: '/athlete/programs', label: 'Program', icon: ClipboardList, description: 'Dina träningsprogram' },
-    { href: '/athlete/strength', label: 'Styrketräning', icon: Dumbbell, description: 'Styrkepass & mallar' },
-    { href: '/athlete/cardio', label: 'Cardio Pass', icon: Heart, description: 'Löpning, cykling & kondition' },
-    { href: '/athlete/hybrid', label: 'Hybrid Pass', icon: Flame, description: 'AMRAP, EMOM & CrossFit' },
-    { href: '/athlete/vbt', label: 'VBT Data', icon: Gauge, description: 'Hastighetsbaserad styrketräning' },
-    { href: '/athlete/ergometer', label: 'Ergometer', icon: Activity, description: 'Rodd, SkiErg, Wattbike & Air Bike' },
-    { href: '/athlete/concept2', label: 'Concept2', icon: Ship, description: 'RowErg, SkiErg & BikeErg' },
-    { href: '/athlete/video-analysis', label: 'Videoanalys', icon: Video, description: 'Teknikanalys & feedback' },
+    { href: `${basePath}/athlete/history`, label: 'Historik', icon: TrendingUp, description: 'Träningshistorik' },
+    { href: `${basePath}/athlete/programs`, label: 'Program', icon: ClipboardList, description: 'Dina träningsprogram' },
+    { href: `${basePath}/athlete/strength`, label: 'Styrketräning', icon: Dumbbell, description: 'Styrkepass & mallar' },
+    { href: `${basePath}/athlete/cardio`, label: 'Cardio Pass', icon: Heart, description: 'Löpning, cykling & kondition' },
+    { href: `${basePath}/athlete/hybrid`, label: 'Hybrid Pass', icon: Flame, description: 'AMRAP, EMOM & CrossFit' },
+    { href: `${basePath}/athlete/vbt`, label: 'VBT Data', icon: Gauge, description: 'Hastighetsbaserad styrketräning' },
+    { href: `${basePath}/athlete/ergometer`, label: 'Ergometer', icon: Activity, description: 'Rodd, SkiErg, Wattbike & Air Bike' },
+    { href: `${basePath}/athlete/concept2`, label: 'Concept2', icon: Ship, description: 'RowErg, SkiErg & BikeErg' },
+    { href: `${basePath}/athlete/video-analysis`, label: 'Videoanalys', icon: Video, description: 'Teknikanalys & feedback' },
 
     // Tests & Data
-    { href: '/athlete/tests', label: 'Tester & Rapporter', icon: FlaskConical, description: 'Testresultat och rapporter' },
-    { href: '/athlete/lactate/new', label: 'Laktattest', icon: Droplet, description: 'Rapportera laktat' },
+    { href: `${basePath}/athlete/tests`, label: 'Tester & Rapporter', icon: FlaskConical, description: 'Testresultat och rapporter' },
+    { href: `${basePath}/athlete/lactate/new`, label: 'Laktattest', icon: Droplet, description: 'Rapportera laktat' },
 
     // Communication
-    { href: '/athlete/messages', label: 'Meddelanden', icon: MessageSquare, badge: unreadCount, description: 'Chatta med coach' },
+    { href: `${basePath}/athlete/messages`, label: 'Meddelanden', icon: MessageSquare, badge: unreadCount, description: 'Chatta med coach' },
 
     // Settings & Profile
-    { href: '/athlete/settings', label: 'Inställningar', icon: Settings, description: 'Tema & inställningar' },
-    { href: '/athlete/profile', label: 'Min Profil', icon: UserIcon, description: 'Fysiologi, prestanda & mål' },
+    { href: `${basePath}/athlete/settings`, label: 'Inställningar', icon: Settings, description: 'Tema & inställningar' },
+    { href: `${basePath}/athlete/profile`, label: 'Min Profil', icon: UserIcon, description: 'Fysiologi, prestanda & mål' },
 
     // Sport Profile (only show if needs onboarding)
     ...(needsOnboarding
-      ? [{ href: `/athlete/onboarding`, label: 'Sportprofil', icon: UserIcon, description: 'Slutför din profil', highlight: true }]
+      ? [{ href: `${basePath}/athlete/onboarding`, label: 'Sportprofil', icon: UserIcon, description: 'Slutför din profil', highlight: true }]
       : []),
   ]
 
