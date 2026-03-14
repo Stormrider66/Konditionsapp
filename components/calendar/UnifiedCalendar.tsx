@@ -628,7 +628,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             onEventDeleted={handleEventDeleted}
             isCoachView={isCoachView}
             variant="glass"
-            onViewWorkoutDetails={isCoachView ? handleViewWorkoutDetails : undefined}
+            onViewWorkoutDetails={handleViewWorkoutDetails}
           />
         </div>
 
@@ -650,6 +650,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           }}
           onEventDeleted={handleEventDeleted}
           onMoveWorkout={handleMobileMove}
+          onViewWorkoutDetails={handleViewWorkoutDetails}
           isCoachView={isCoachView}
           variant="glass"
         />
@@ -828,6 +829,8 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           open={isDetailSheetOpen}
           onOpenChange={setIsDetailSheetOpen}
           variant="glass"
+          isCoachView={isCoachView}
+          onWorkoutUpdated={() => mutate()}
         />
       </div>
     )
@@ -967,7 +970,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           onEditEvent={handleEditEvent}
           onEventDeleted={handleEventDeleted}
           isCoachView={isCoachView}
-          onViewWorkoutDetails={isCoachView ? handleViewWorkoutDetails : undefined}
+          onViewWorkoutDetails={handleViewWorkoutDetails}
         />
       </div>
 
@@ -989,6 +992,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         }}
         onEventDeleted={handleEventDeleted}
         onMoveWorkout={handleMobileMove}
+        onViewWorkoutDetails={handleViewWorkoutDetails}
         isCoachView={isCoachView}
       />
 
@@ -1079,6 +1083,8 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         workoutId={detailWorkoutId}
         open={isDetailSheetOpen}
         onOpenChange={setIsDetailSheetOpen}
+        isCoachView={isCoachView}
+        onWorkoutUpdated={() => mutate()}
       />
 
       {/* Conflict Dialog */}

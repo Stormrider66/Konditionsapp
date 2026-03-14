@@ -1011,7 +1011,7 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
         )}
 
         {/* Action Buttons */}
-        {workoutId && isCoachView && onViewWorkoutDetails && (
+        {workoutId && onViewWorkoutDetails && (
           <div className="pt-2">
             <Button
               variant="outline"
@@ -1025,32 +1025,6 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
               <Activity className="h-3.5 w-3.5 mr-1.5" />
               Visa detaljer
             </Button>
-          </div>
-        )}
-        {workoutId && !isCoachView && (
-          <div className="flex gap-2 pt-2">
-            {!isCompleted ? (
-              <Button
-                variant="default"
-                size="sm"
-                className="flex-1"
-                onClick={() => window.location.href = `/athlete/workouts/${workoutId}/log`}
-              >
-                Logga pass
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "flex-1 font-bold text-[10px] uppercase tracking-widest h-9",
-                  isGlass ? "bg-white/5 border-white/10 text-slate-400 hover:text-white" : ""
-                )}
-                onClick={() => window.location.href = `/athlete/workouts/${workoutId}`}
-              >
-                Visa logg
-              </Button>
-            )}
           </div>
         )}
       </div>

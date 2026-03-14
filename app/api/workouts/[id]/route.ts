@@ -70,7 +70,7 @@ export async function PUT(
     const { id } = await params
     const body = await request.json()
     
-    const { name, intensity, segments, type } = body
+    const { name, intensity, segments, type, instructions, coachNotes } = body
 
     const hasAccess = await canAccessWorkout(user.id, id)
     if (!hasAccess) {
@@ -95,6 +95,8 @@ export async function PUT(
           name,
           intensity,
           type: type || existingWorkout.type,
+          ...(instructions !== undefined && { instructions }),
+          ...(coachNotes !== undefined && { coachNotes }),
           // Update total duration/distance based on segments
           duration: segments.reduce((acc: number, s: any) => acc + (Number(s.duration) || 0), 0),
           distance: segments.reduce((acc: number, s: any) => acc + (Number(s.distance) || 0), 0),

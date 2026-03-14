@@ -65,6 +65,7 @@ interface MobileDaySheetProps {
   onEditEvent: (item: UnifiedCalendarItem) => void
   onEventDeleted: () => void
   onMoveWorkout?: (item: UnifiedCalendarItem) => void
+  onViewWorkoutDetails?: (workoutId: string) => void
   isCoachView?: boolean
   variant?: 'default' | 'glass'
 }
@@ -80,6 +81,7 @@ export function MobileDaySheet({
   onEditEvent,
   onEventDeleted,
   onMoveWorkout,
+  onViewWorkoutDetails,
   isCoachView,
   variant = 'default',
 }: MobileDaySheetProps) {
@@ -311,6 +313,10 @@ export function MobileDaySheet({
                       isSelected={selectedItem?.id === workout.id}
                       onClick={() => onItemClick(workout)}
                       onMove={onMoveWorkout ? () => onMoveWorkout(workout) : undefined}
+                      onViewDetails={onViewWorkoutDetails ? () => {
+                        onClose()
+                        onViewWorkoutDetails(workout.metadata.workoutId as string || workout.id)
+                      } : undefined}
                       isGlass={isGlass}
                     />
                   ))}
@@ -437,11 +443,13 @@ interface WorkoutCardProps {
   isSelected: boolean
   onClick: () => void
   onMove?: () => void
+  onViewDetails?: () => void
   isGlass?: boolean
 }
 
-function WorkoutCard({ workout, isSelected, onClick, onMove, isGlass = false }: WorkoutCardProps) {
+function WorkoutCard({ workout, isSelected, onClick, onMove, onViewDetails, isGlass = false }: WorkoutCardProps) {
   const workoutType = workout.metadata.workoutType as string
+  const isCompleted = workout.metadata.isCompleted as boolean
   const colorClass =
     WORKOUT_TYPE_COLORS[workoutType as keyof typeof WORKOUT_TYPE_COLORS] ||
     WORKOUT_TYPE_COLORS.DEFAULT
@@ -463,10 +471,17 @@ function WorkoutCard({ workout, isSelected, onClick, onMove, isGlass = false }: 
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <h4 className={cn(
-            "font-black text-base tracking-tight truncate",
-            isGlass ? "text-white" : ""
-          )}>{workout.title}</h4>
+          <div className="flex items-center gap-2">
+            <h4 className={cn(
+              "font-black text-base tracking-tight truncate",
+              isGlass ? "text-white" : ""
+            )}>{workout.title}</h4>
+            {isCompleted && (
+              <Badge variant="secondary" className="text-[10px] bg-green-500/20 text-green-500 border-none px-1.5 shrink-0">
+                Klar
+              </Badge>
+            )}
+          </div>
           <p className={cn(
             "text-[10px] font-bold uppercase tracking-widest mt-1 opacity-50",
             isGlass ? "text-slate-400" : "text-muted-foreground"
@@ -500,6 +515,23 @@ function WorkoutCard({ workout, isSelected, onClick, onMove, isGlass = false }: 
         <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
           {workout.description}
         </p>
+      )}
+
+      {onViewDetails && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "w-full mt-3 h-8 text-[10px] font-bold uppercase tracking-widest",
+            isGlass ? "bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10" : ""
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            onViewDetails()
+          }}
+        >
+          Visa detaljer
+        </Button>
       )}
     </div>
   )
