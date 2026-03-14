@@ -513,6 +513,27 @@ async function enrichWithExerciseMatching(
     }
   }
 
+  // Sanity check: AI sometimes returns distance in km instead of meters
+  // (e.g., reading "7.14 km" from a Garmin screenshot and returning 7.14 instead of 7140)
+  // A cardio workout of 10+ minutes should cover at least 100 meters
+  if (
+    workout.distance &&
+    workout.distance > 0 &&
+    workout.distance < 100 &&
+    workout.type === 'CARDIO' &&
+    workout.duration &&
+    workout.duration >= 10
+  ) {
+    logger.warn('Distance appears to be in km instead of meters, converting', {
+      originalDistance: workout.distance,
+      convertedDistance: workout.distance * 1000,
+      duration: workout.duration,
+    })
+    workout.distance = Math.round(workout.distance * 1000)
+    if (!workout.warnings) workout.warnings = []
+    workout.warnings.push('Distans konverterades automatiskt från km till meter')
+  }
+
   // Re-match strength exercises if needed
   if (workout.strengthExercises) {
     for (const exercise of workout.strengthExercises) {

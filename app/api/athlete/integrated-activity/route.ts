@@ -356,6 +356,16 @@ export async function GET(request: NextRequest) {
         workoutName = sport ? `${sport} ${type}` : type
       }
 
+      // Convert avgPace from seconds/km (number) to "M:SS" string
+      let adhocPace: string | undefined
+      if (parsed?.avgPace && typeof parsed.avgPace === 'number' && parsed.avgPace > 0) {
+        const paceMin = Math.floor(parsed.avgPace / 60)
+        const paceSec = Math.round(parsed.avgPace % 60)
+        adhocPace = `${paceMin}:${paceSec.toString().padStart(2, '0')}`
+      } else if (parsed?.avgPace && typeof parsed.avgPace === 'string') {
+        adhocPace = parsed.avgPace as unknown as string
+      }
+
       activities.push({
         id: adhoc.id,
         source: 'adhoc',
@@ -367,7 +377,7 @@ export async function GET(request: NextRequest) {
         avgHR: parsed?.avgHeartRate || undefined,
         maxHR: parsed?.maxHeartRate || undefined,
         calories: parsed?.estimatedCalories || undefined,
-        pace: parsed?.avgPace || undefined,
+        pace: adhocPace,
         completed: true,
         notes: parsed?.notes || undefined,
       })

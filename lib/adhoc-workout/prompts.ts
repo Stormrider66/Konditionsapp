@@ -292,7 +292,12 @@ VIKTIGT:
 - Whiteboard-text kan vara ofullständig
 - Sätt confidence baserat på läsbarhet
 - Lägg till warnings för text du inte kunde läsa
-- distance är i METER (inte kilometer!) — t.ex. 5 km = 5000
+- distance är i METER (inte kilometer!) — t.ex. 5 km = 5000, 7,14 km = 7140, 400m = 400
+- duration är i MINUTER — t.ex. 37:16 = 37, 1:05:00 = 65
+- avgPace är i SEKUNDER PER KILOMETER — t.ex. 5:13/km = 313
+- avgHeartRate och maxHeartRate i BPM — t.ex. 148 bpm = 148
+- estimatedCalories som heltal — t.ex. 533 kcal = 533
+- SKÄRMDUMPAR FRÅN APPAR (Garmin, Strava, etc.): Läs av ALLA visade värden — distans, puls, tempo, kalorier, höjdmeter etc. Konvertera alltid km till meter (multiplicera med 1000)
 - Om bilden inte innehåller ett träningspass, returnera:
   { "type": "MIXED", "confidence": 0, "rawInterpretation": "Kunde inte identifiera träningspass", "warnings": ["Bilden verkar inte innehålla ett träningspass"] }`
 }

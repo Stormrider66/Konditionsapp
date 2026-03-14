@@ -289,7 +289,35 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
               {activity.distance.toFixed(1)} km
             </span>
           )}
-          {/* ... rest of metrics ... */}
+          {activity.avgHR && (
+            <span className="flex items-center gap-1">
+              <Heart className="h-3 w-3" />
+              {activity.avgHR} bpm
+            </span>
+          )}
+          {activity.pace && (
+            <span className="flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              {activity.pace}/km
+            </span>
+          )}
+          {activity.speed && (
+            <span className="flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              {activity.speed.toFixed(1)} km/h
+            </span>
+          )}
+          {activity.calories && (
+            <span className="flex items-center gap-1">
+              <Flame className="h-3 w-3" />
+              {activity.calories} kcal
+            </span>
+          )}
+          {activity.elevationGain && activity.elevationGain > 0 && (
+            <span className="flex items-center gap-1">
+              ↗️ {Math.round(activity.elevationGain)} m
+            </span>
+          )}
         </div>
       </div>
     )
