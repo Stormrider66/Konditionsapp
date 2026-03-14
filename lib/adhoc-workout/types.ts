@@ -49,6 +49,18 @@ export interface ParsedWorkout {
   /** Elevation gain (meters) */
   elevationGain?: number
 
+  // Power/speed fields (cycling, skiing, rowing)
+  /** Average power (watts) */
+  avgPower?: number
+  /** Max power (watts) */
+  maxPower?: number
+  /** Normalized power (watts) */
+  normalizedPower?: number
+  /** Average cadence (rpm for cycling, spm for running/skiing) */
+  cadence?: number
+  /** Average speed (km/h) */
+  avgSpeed?: number
+
   // Strength-specific fields
   /** Parsed strength exercises */
   strengthExercises?: ParsedStrengthExercise[]

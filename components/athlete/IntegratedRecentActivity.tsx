@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship, Sparkles } from 'lucide-react'
+import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship, Sparkles, Zap, Dumbbell } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 
@@ -26,6 +26,7 @@ interface UnifiedActivity {
   source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai' | 'adhoc'
   name: string
   type: string
+  sport?: string
   date: string
   duration?: number
   distance?: number
@@ -39,11 +40,20 @@ interface UnifiedActivity {
   elevationGain?: number
   completed?: boolean
   notes?: string
+  // Power/cadence (cycling, skiing, rowing)
+  avgPower?: number
+  maxPower?: number
+  normalizedPower?: number
+  cadence?: number
   // Concept2 specific
   strokeRate?: number
   equipmentType?: string
   // AI WOD specific
   sessionRPE?: number
+  // Strength/hybrid details
+  strengthExercises?: Array<{ exerciseName: string; sets: number; reps: number | string; weight?: number; weightString?: string }>
+  hybridFormat?: string
+  movements?: Array<{ name: string; reps?: number; weight?: number; distance?: number }>
 }
 
 interface IntegratedRecentActivityProps {
@@ -65,9 +75,11 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   RUNNING: <PersonStanding className="h-4 w-4" />,
   CYCLING: <Bike className="h-4 w-4" />,
   SWIMMING: <Waves className="h-4 w-4" />,
-  STRENGTH: <TrendingUp className="h-4 w-4" />,
+  STRENGTH: <Dumbbell className="h-4 w-4" />,
   ROWING: <Ship className="h-4 w-4" />,
   SKIING: <PersonStanding className="h-4 w-4" />,
+  HYROX: <Zap className="h-4 w-4" />,
+  OTHER: <Activity className="h-4 w-4" />,
 }
 
 export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'default' }: IntegratedRecentActivityProps) {
@@ -318,7 +330,26 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
               ↗️ {Math.round(activity.elevationGain)} m
             </span>
           )}
+          {activity.avgPower && (
+            <span className="flex items-center gap-1">
+              <Zap className="h-3 w-3" />
+              {activity.avgPower} W
+            </span>
+          )}
+          {activity.normalizedPower && activity.normalizedPower !== activity.avgPower && (
+            <span className="flex items-center gap-1">
+              <Zap className="h-3 w-3" />
+              NP {activity.normalizedPower} W
+            </span>
+          )}
+          {activity.cadence && (
+            <span className="flex items-center gap-1">
+              {activity.cadence} rpm
+            </span>
+          )}
         </div>
+
+        <ActivityDetails activity={activity} variant="glass" />
       </div>
     )
   }
@@ -393,11 +424,89 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
             ↗️ {Math.round(activity.elevationGain)} m
           </span>
         )}
+        {activity.avgPower && (
+          <span className="flex items-center gap-1">
+            <Zap className="h-3 w-3" />
+            {activity.avgPower} W
+          </span>
+        )}
+        {activity.normalizedPower && activity.normalizedPower !== activity.avgPower && (
+          <span className="flex items-center gap-1">
+            <Zap className="h-3 w-3" />
+            NP {activity.normalizedPower} W
+          </span>
+        )}
+        {activity.cadence && (
+          <span className="flex items-center gap-1">
+            {activity.cadence} rpm
+          </span>
+        )}
       </div>
+
+      <ActivityDetails activity={activity} />
 
       {activity.notes && (
         <p className="text-xs text-muted-foreground line-clamp-2">{activity.notes}</p>
       )}
     </div>
   )
+}
+
+/** Compact display of strength exercises or hybrid movements */
+function ActivityDetails({ activity, variant = 'default' }: { activity: UnifiedActivity; variant?: 'default' | 'glass' }) {
+  const textColor = variant === 'glass'
+    ? 'text-slate-500 dark:text-slate-400'
+    : 'text-muted-foreground'
+
+  // Strength exercises
+  if (activity.strengthExercises && activity.strengthExercises.length > 0) {
+    const maxShow = 3
+    const exercises = activity.strengthExercises.slice(0, maxShow)
+    const remaining = activity.strengthExercises.length - maxShow
+
+    return (
+      <div className={`flex flex-wrap items-center gap-2 text-xs ${textColor}`}>
+        <Dumbbell className="h-3 w-3 shrink-0" />
+        {exercises.map((ex, i) => (
+          <span key={i} className="inline-flex items-center gap-0.5">
+            {ex.exerciseName} {ex.sets}x{ex.reps}
+            {ex.weight ? ` ${ex.weight}kg` : ex.weightString ? ` ${ex.weightString}` : ''}
+            {i < exercises.length - 1 && <span className="mx-0.5">·</span>}
+          </span>
+        ))}
+        {remaining > 0 && <span>+{remaining} till</span>}
+      </div>
+    )
+  }
+
+  // Hybrid/HYROX movements
+  if (activity.movements && activity.movements.length > 0) {
+    const formatLabel = activity.hybridFormat
+      ? activity.hybridFormat.replace(/_/g, ' ')
+      : undefined
+    const maxShow = 4
+    const moves = activity.movements.slice(0, maxShow)
+    const remaining = activity.movements.length - maxShow
+
+    return (
+      <div className={`flex flex-wrap items-center gap-2 text-xs ${textColor}`}>
+        {formatLabel && (
+          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4">
+            {formatLabel}
+          </Badge>
+        )}
+        {moves.map((m, i) => (
+          <span key={i} className="inline-flex items-center gap-0.5">
+            {m.reps && `${m.reps}×`}{m.name}
+            {m.weight ? ` ${m.weight}kg` : ''}
+            {m.distance ? ` ${m.distance}m` : ''}
+            {i < moves.length - 1 && <span className="mx-0.5">·</span>}
+          </span>
+        ))}
+        {remaining > 0 && <span>+{remaining} till</span>}
+      </div>
+    )
+  }
+
+  return null
 }

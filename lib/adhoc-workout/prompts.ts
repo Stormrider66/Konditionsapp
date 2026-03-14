@@ -24,9 +24,18 @@ PRINCIPER:
 
 TRÄNINGSTYPER:
 - CARDIO: Löpning, cykling, simning, skidåkning, rodd eller annan konditionsträning
-- STRENGTH: Styrketräning med vikter, maskinträning, kroppsviktsträning
-- HYBRID: Funktionell fitness, CrossFit-stil, AMRAP, EMOM, For Time
-- MIXED: Kombinerade pass (t.ex. löpning + styrka)`
+- STRENGTH: Styrketräning med vikter, maskinträning, kroppsviktsträning, tyngdlyftning (snatch, stöt)
+- HYBRID: Funktionell fitness, CrossFit-stil, AMRAP, EMOM, For Time, HYROX
+- MIXED: Kombinerade pass (t.ex. löpning + styrka)
+
+SPORTSPECIFIKA MÄTVÄRDEN:
+- Löpning: distance (meter), avgPace (sek/km), avgHeartRate, elevationGain, cadence (steg/min)
+- Cykling: distance (meter), avgPower (watt), maxPower (watt), normalizedPower (watt), avgSpeed (km/h), cadence (rpm), avgHeartRate, elevationGain
+- Längdskidåkning: distance (meter), avgPace (sek/km), avgHeartRate, elevationGain, avgPower (watt om tillgängligt), teknik i notes (klassisk/fristil)
+- Simning: distance (meter), avgPace (sek per 100m × 10, dvs sek/km), avgHeartRate
+- HYROX: type=HYBRID, sport=HYROX, hybridFormat=HYROX_SIM, movements med stationer (SkiErg, Sled Push, Sled Pull, Burpee Broad Jump, Rowing, Farmers Carry, Sandbag Lunges, Wall Balls), total distance, duration
+- Styrketräning/Tyngdlyftning: strengthExercises med exerciseName, sets, reps, weight (kg), rpe, weightString (t.ex. "BW", "80% 1RM")
+- Rodd (SkiErg/Concept2): distance (meter), avgPace (sek/500m × 2, dvs sek/km), avgPower (watt), cadence (slag/min)`
 
 // ============================================
 // OUTPUT FORMAT TEMPLATE
@@ -40,7 +49,7 @@ const JSON_OUTPUT_TEMPLATE = `{
   "distance": 5000,
   "intensity": "EASY" | "MODERATE" | "THRESHOLD" | "INTERVAL" | "MAX" | "RECOVERY",
 
-  "sport": "RUNNING" | "CYCLING" | "SKIING" | "SWIMMING" | null,
+  "sport": "RUNNING" | "CYCLING" | "SKIING" | "SWIMMING" | "HYROX" | "STRENGTH" | "GENERAL_FITNESS" | "FUNCTIONAL_FITNESS" | null,
   "cardioSegments": [
     {
       "type": "WARMUP" | "COOLDOWN" | "INTERVAL" | "STEADY" | "RECOVERY" | "HILL" | "DRILLS",
@@ -55,6 +64,11 @@ const JSON_OUTPUT_TEMPLATE = `{
   "maxHeartRate": 175,
   "avgPace": 330,
   "elevationGain": 150,
+  "avgPower": 210,
+  "maxPower": 450,
+  "normalizedPower": 225,
+  "cadence": 90,
+  "avgSpeed": 32.5,
 
   "strengthExercises": [
     {
@@ -72,7 +86,7 @@ const JSON_OUTPUT_TEMPLATE = `{
     }
   ],
 
-  "hybridFormat": "AMRAP" | "FOR_TIME" | "EMOM" | "TABATA" | "CHIPPER" | "LADDER" | "INTERVALS" | null,
+  "hybridFormat": "AMRAP" | "FOR_TIME" | "EMOM" | "TABATA" | "CHIPPER" | "LADDER" | "INTERVALS" | "HYROX_SIM" | "CUSTOM" | null,
   "timeCap": 1200,
   "repScheme": "21-15-9",
   "movements": [

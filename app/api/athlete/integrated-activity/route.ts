@@ -35,6 +35,7 @@ interface UnifiedActivity {
   source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai' | 'adhoc'
   name: string
   type: string
+  sport?: string
   date: Date
   duration?: number // minutes
   distance?: number // km
@@ -51,11 +52,20 @@ interface UnifiedActivity {
   stravaId?: string
   garminId?: number
   concept2Id?: number
+  // Power/cadence (cycling, skiing, rowing)
+  avgPower?: number // watts
+  maxPower?: number // watts
+  normalizedPower?: number // watts
+  cadence?: number // rpm or spm
   // Concept2 specific
   strokeRate?: number
   equipmentType?: string
   // AI WOD specific
   sessionRPE?: number
+  // Strength/hybrid details (for display)
+  strengthExercises?: Array<{ exerciseName: string; sets: number; reps: number | string; weight?: number; weightString?: string }>
+  hybridFormat?: string
+  movements?: Array<{ name: string; reps?: number; weight?: number; distance?: number }>
 }
 
 export async function GET(request: NextRequest) {
@@ -340,11 +350,20 @@ export async function GET(request: NextRequest) {
         distance?: number
         avgHeartRate?: number
         maxHeartRate?: number
-        avgPace?: string
+        avgPace?: number | string
         intensity?: string
         perceivedEffort?: number
         estimatedCalories?: number
         notes?: string
+        avgPower?: number
+        maxPower?: number
+        normalizedPower?: number
+        cadence?: number
+        avgSpeed?: number
+        elevationGain?: number
+        strengthExercises?: Array<{ exerciseName: string; sets: number; reps: number | string; weight?: number; weightString?: string }>
+        hybridFormat?: string
+        movements?: Array<{ name: string; reps?: number; weight?: number; distance?: number }>
       } | null
 
       // Build workout name
@@ -371,6 +390,7 @@ export async function GET(request: NextRequest) {
         source: 'adhoc',
         name: workoutName,
         type: adhoc.parsedType || parsed?.type || 'OTHER',
+        sport: parsed?.sport || undefined,
         date: adhoc.workoutDate,
         duration: parsed?.duration || undefined,
         distance: parsed?.distance ? parsed.distance / 1000 : undefined, // Convert m to km
@@ -378,8 +398,28 @@ export async function GET(request: NextRequest) {
         maxHR: parsed?.maxHeartRate || undefined,
         calories: parsed?.estimatedCalories || undefined,
         pace: adhocPace,
+        speed: parsed?.avgSpeed || undefined,
+        elevationGain: parsed?.elevationGain || undefined,
+        avgPower: parsed?.avgPower || undefined,
+        maxPower: parsed?.maxPower || undefined,
+        normalizedPower: parsed?.normalizedPower || undefined,
+        cadence: parsed?.cadence || undefined,
         completed: true,
         notes: parsed?.notes || undefined,
+        strengthExercises: parsed?.strengthExercises?.map(e => ({
+          exerciseName: e.exerciseName,
+          sets: e.sets,
+          reps: e.reps,
+          weight: e.weight,
+          weightString: e.weightString,
+        })) || undefined,
+        hybridFormat: parsed?.hybridFormat || undefined,
+        movements: parsed?.movements?.map(m => ({
+          name: m.name,
+          reps: m.reps,
+          weight: m.weight,
+          distance: m.distance,
+        })) || undefined,
       })
     }
 

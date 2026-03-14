@@ -477,6 +477,11 @@ function validateParsedWorkout(data: unknown): ParsedWorkout {
     maxHeartRate: typeof workout.maxHeartRate === 'number' ? workout.maxHeartRate : undefined,
     avgPace: typeof workout.avgPace === 'number' ? workout.avgPace : undefined,
     elevationGain: typeof workout.elevationGain === 'number' ? workout.elevationGain : undefined,
+    avgPower: typeof workout.avgPower === 'number' ? workout.avgPower : undefined,
+    maxPower: typeof workout.maxPower === 'number' ? workout.maxPower : undefined,
+    normalizedPower: typeof workout.normalizedPower === 'number' ? workout.normalizedPower : undefined,
+    cadence: typeof workout.cadence === 'number' ? workout.cadence : undefined,
+    avgSpeed: typeof workout.avgSpeed === 'number' ? workout.avgSpeed : undefined,
     strengthExercises: Array.isArray(workout.strengthExercises)
       ? workout.strengthExercises
       : undefined,
