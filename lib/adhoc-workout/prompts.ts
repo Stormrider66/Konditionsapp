@@ -37,7 +37,7 @@ const JSON_OUTPUT_TEMPLATE = `{
   "confidence": 0.0-1.0,
   "name": "Passnamn (valfritt)",
   "duration": 45,
-  "distance": 5.0,
+  "distance": 5000,
   "intensity": "EASY" | "MODERATE" | "THRESHOLD" | "INTERVAL" | "MAX" | "RECOVERY",
 
   "sport": "RUNNING" | "CYCLING" | "SKIING" | "SWIMMING" | null,
@@ -220,13 +220,25 @@ ${JSON_OUTPUT_TEMPLATE}
 VIKTIGT:
 - Svara ENDAST med JSON, ingen annan text
 - duration är i minuter, inte sekunder
-- distance är i kilometer
+- distance är i METER (inte kilometer!) — t.ex. 5 km = 5000, 400m = 400
 - avgPace är i sekunder per kilometer
 - cardioSegments.duration är i sekunder
 - cardioSegments.distance är i meter
 - Om du inte kan extrahera ett värde, utelämna fältet
 - confidence ska vara lägre (0.5-0.7) om input är vag
-- Var generös med tolkning men ärlig med confidence`
+- Var generös med tolkning men ärlig med confidence
+
+DISTANSBERÄKNING:
+- Beräkna alltid total distance från intervaller: "10x400m" = 4000 meter
+- Inkludera uppvärmning/nedvarvning i totaldistansen om det nämns
+- Uppskatta distans från duration för kardiopass utan angiven distans:
+  - Promenad: ~5000m per 60 min (ca 83m/min)
+  - Rask promenad: ~6000m per 60 min (ca 100m/min)
+  - Lätt löpning: ~9000m per 60 min (ca 150m/min)
+  - Normal löpning: ~10000m per 60 min
+  - Cykling: ~25000m per 60 min
+  - Simning: ~2000m per 60 min
+- Summera cardioSegments-distanser till top-level distance om de finns
 }
 
 // ============================================
@@ -280,6 +292,7 @@ VIKTIGT:
 - Whiteboard-text kan vara ofullständig
 - Sätt confidence baserat på läsbarhet
 - Lägg till warnings för text du inte kunde läsa
+- distance är i METER (inte kilometer!) — t.ex. 5 km = 5000
 - Om bilden inte innehåller ett träningspass, returnera:
   { "type": "MIXED", "confidence": 0, "rawInterpretation": "Kunde inte identifiera träningspass", "warnings": ["Bilden verkar inte innehålla ett träningspass"] }`
 }
@@ -347,7 +360,9 @@ VIKTIGT:
 - Om atleten säger "körde ben" utan detaljer, sätt lägre confidence
 - "Kändes bra/tungt/lätt" mappar till feeling och perceivedEffort
 - Tid uttryckt som "en timme" = 60 minuter
-- "5 km" eller "fem kilometer" = distance: 5`
+- "5 km" eller "fem kilometer" = distance: 5000 (alltid i meter!)
+- Beräkna distans från intervaller: "10x400m" = distance: 4000
+- Uppskatta distans för kardiopass utan angiven distans baserat på duration och typ
 }
 
 // ============================================

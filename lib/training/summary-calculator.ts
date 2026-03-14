@@ -296,6 +296,7 @@ async function fetchWeeklyTrainingData(
       distance?: number
       intensity?: string
       type?: string
+      estimatedCalories?: number
     } | null
 
     // Get TSS from linked TrainingLoad
@@ -306,7 +307,7 @@ async function fetchWeeklyTrainingData(
       tss,
       distance: parsed?.distance ? parsed.distance / 1000 : 0, // Convert m to km
       duration: parsed?.duration ?? 0,
-      calories: undefined,
+      calories: parsed?.estimatedCalories ?? undefined,
       workoutType: adhoc.parsedType ?? parsed?.type ?? undefined,
       intensity: parsed?.intensity ?? undefined,
       source: 'adhoc',

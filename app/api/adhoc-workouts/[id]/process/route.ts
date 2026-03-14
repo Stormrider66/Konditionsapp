@@ -488,6 +488,8 @@ function validateParsedWorkout(data: unknown): ParsedWorkout {
       typeof workout.perceivedEffort === 'number' ? workout.perceivedEffort : undefined,
     feeling: workout.feeling as ParsedWorkout['feeling'],
     notes: typeof workout.notes === 'string' ? workout.notes : undefined,
+    estimatedCalories:
+      typeof workout.estimatedCalories === 'number' ? workout.estimatedCalories : undefined,
     rawInterpretation:
       typeof workout.rawInterpretation === 'string'
         ? workout.rawInterpretation
@@ -500,6 +502,17 @@ async function enrichWithExerciseMatching(
   workout: ParsedWorkout,
   exerciseLibrary: Awaited<ReturnType<typeof getExerciseLibrary>>
 ): Promise<ParsedWorkout> {
+  // Post-processing: infer distance from cardioSegments if missing/zero
+  if ((!workout.distance || workout.distance === 0) && workout.cardioSegments && workout.cardioSegments.length > 0) {
+    const segmentDistance = workout.cardioSegments.reduce(
+      (sum, seg) => sum + (seg.distance || 0),
+      0
+    )
+    if (segmentDistance > 0) {
+      workout.distance = segmentDistance
+    }
+  }
+
   // Re-match strength exercises if needed
   if (workout.strengthExercises) {
     for (const exercise of workout.strengthExercises) {

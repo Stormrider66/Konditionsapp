@@ -343,6 +343,7 @@ export async function GET(request: NextRequest) {
         avgPace?: string
         intensity?: string
         perceivedEffort?: number
+        estimatedCalories?: number
         notes?: string
       } | null
 
@@ -365,6 +366,7 @@ export async function GET(request: NextRequest) {
         distance: parsed?.distance ? parsed.distance / 1000 : undefined, // Convert m to km
         avgHR: parsed?.avgHeartRate || undefined,
         maxHR: parsed?.maxHeartRate || undefined,
+        calories: parsed?.estimatedCalories || undefined,
         pace: parsed?.avgPace || undefined,
         completed: true,
         notes: parsed?.notes || undefined,

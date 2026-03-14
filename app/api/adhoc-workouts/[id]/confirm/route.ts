@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import { estimateCalories } from '@/lib/adhoc-workout/calorie-estimator'
 import { logger } from '@/lib/logger'
 
 // ============================================
@@ -118,6 +119,20 @@ export async function POST(
       finalStructure.notes = data.notes
     }
 
+    // Estimate calories if athlete has weight recorded
+    if (!finalStructure.estimatedCalories) {
+      const athleteClient = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { weight: true },
+      })
+      if (athleteClient?.weight && athleteClient.weight > 0) {
+        const cal = estimateCalories(finalStructure, athleteClient.weight)
+        if (cal) {
+          finalStructure.estimatedCalories = cal
+        }
+      }
+    }
+
     // Calculate training load
     const trainingLoad = calculateTrainingLoad(finalStructure, adHocWorkout.workoutDate)
 
@@ -131,12 +146,12 @@ export async function POST(
           dailyLoad: trainingLoad.tss,
           loadType: 'TSS',
           duration: finalStructure.duration || 0,
-          distance: finalStructure.distance,
+          distance: finalStructure.distance ? finalStructure.distance / 1000 : undefined,
           avgHR: finalStructure.avgHeartRate,
           maxHR: finalStructure.maxHeartRate,
           avgPace: finalStructure.avgPace,
           intensity: mapIntensityToString(finalStructure.intensity),
-          workoutType: mapWorkoutTypeToString(finalStructure.type, finalStructure.sport),
+          workoutType: mapWorkoutTypeToString(finalStructure.type, finalStructure.sport, finalStructure.intensity),
         },
       })
 
@@ -241,15 +256,23 @@ function mapIntensityToString(intensity?: ParsedWorkout['intensity']): string {
 
 function mapWorkoutTypeToString(
   type: ParsedWorkout['type'],
-  sport?: ParsedWorkout['sport']
+  sport?: ParsedWorkout['sport'],
+  intensity?: ParsedWorkout['intensity']
 ): string {
-  // For cardio, use the sport
-  if (type === 'CARDIO' && sport) {
-    switch (sport) {
-      case 'RUNNING':
-        return 'EASY' // Could be refined based on intensity
-      case 'CYCLING':
-        return 'EASY'
+  // For cardio, map based on intensity
+  if (type === 'CARDIO') {
+    switch (intensity) {
+      case 'INTERVAL':
+        return 'INTERVALS'
+      case 'THRESHOLD':
+        return 'THRESHOLD'
+      case 'MAX':
+        return 'RACE'
+      case 'MODERATE':
+        return 'TEMPO'
+      case 'RECOVERY':
+        return 'RECOVERY'
+      case 'EASY':
       default:
         return 'EASY'
     }

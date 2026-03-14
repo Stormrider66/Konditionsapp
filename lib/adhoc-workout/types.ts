@@ -30,7 +30,7 @@ export interface ParsedWorkout {
   name?: string
   /** Duration in minutes */
   duration?: number
-  /** Distance in kilometers */
+  /** Distance in meters */
   distance?: number
   /** Workout intensity level */
   intensity?: WorkoutIntensity
@@ -70,6 +70,10 @@ export interface ParsedWorkout {
   feeling?: 'GREAT' | 'GOOD' | 'OKAY' | 'TIRED' | 'EXHAUSTED'
   /** Additional notes from the input */
   notes?: string
+
+  // Estimated data
+  /** Estimated calories (MET-based, requires athlete weight) */
+  estimatedCalories?: number
 
   // AI interpretation metadata
   /** Raw AI explanation of what it parsed */
