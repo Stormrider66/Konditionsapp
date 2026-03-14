@@ -219,9 +219,11 @@ ${JSON_OUTPUT_TEMPLATE}
 
 VIKTIGT:
 - Svara ENDAST med JSON, ingen annan text
-- duration är i minuter, inte sekunder
-- distance är i METER (inte kilometer!) — t.ex. 5 km = 5000, 400m = 400
-- avgPace är i sekunder per kilometer
+- duration är i MINUTER — t.ex. 37:16 = 37, 1:05:00 = 65
+- distance är i METER (inte kilometer!) — t.ex. 5 km = 5000, 7,14 km = 7140, 400m = 400
+- avgPace är i SEKUNDER PER KILOMETER — t.ex. 5:13/km = 313, 6:00/km = 360
+- avgHeartRate och maxHeartRate i BPM — t.ex. 148 bpm = 148
+- estimatedCalories som heltal — t.ex. 533 kcal = 533
 - cardioSegments.duration är i sekunder
 - cardioSegments.distance är i meter
 - Om du inte kan extrahera ett värde, utelämna fältet
@@ -364,8 +366,11 @@ VIKTIGT:
 - Röstinput är ofta vag - gör rimliga antaganden
 - Om atleten säger "körde ben" utan detaljer, sätt lägre confidence
 - "Kändes bra/tungt/lätt" mappar till feeling och perceivedEffort
-- Tid uttryckt som "en timme" = 60 minuter
-- "5 km" eller "fem kilometer" = distance: 5000 (alltid i meter!)
+- duration är i MINUTER — "en timme" = 60, "37 minuter" = 37
+- distance är i METER (inte kilometer!) — "5 km" eller "fem kilometer" = 5000, "7,14 km" = 7140
+- avgPace är i SEKUNDER PER KILOMETER — "5:13 per km" = 313, "sex minuter per km" = 360
+- avgHeartRate och maxHeartRate i BPM — "puls 148" = 148
+- estimatedCalories som heltal — "533 kalorier" = 533
 - Beräkna distans från intervaller: "10x400m" = distance: 4000
 - Uppskatta distans för kardiopass utan angiven distans baserat på duration och typ`
 }
