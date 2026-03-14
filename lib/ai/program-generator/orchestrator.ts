@@ -25,6 +25,9 @@ import {
   parsePhaseResponse,
 } from './prompts'
 import { mergePhases, validateMergedProgram } from './merger'
+import { getActiveVariant } from '@/lib/auto-optimize/prompt-variants'
+import { stripConditionalBlocks } from '@/lib/auto-optimize/iteration-engine'
+import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 
 // ============================================
 // Constants
@@ -47,6 +50,47 @@ export interface OrchestratorOptions {
 }
 
 /**
+ * Resolve the system prompt for program generation.
+ *
+ * Tries to load the ACTIVE auto-optimize variant for the 'full_program' slot,
+ * strip conditional blocks based on the athlete's sport/methodology, and
+ * substitute {{variables}} from the generation context.
+ *
+ * Falls back to the static PROGRAM_GENERATOR_SYSTEM_PROMPT if no variant exists.
+ */
+async function getEnrichedSystemPrompt(context: GenerationContext): Promise<string> {
+  try {
+    const variant = await getActiveVariant('full_program')
+    if (!variant?.promptTemplate) {
+      return PROGRAM_GENERATOR_SYSTEM_PROMPT
+    }
+
+    // Strip conditional blocks based on sport category and methodology
+    let prompt = stripConditionalBlocks(
+      variant.promptTemplate,
+      context.sport,
+      context.methodology
+    )
+
+    // Substitute template variables from GenerationContext
+    prompt = prompt
+      .replace(/\{\{sport\}\}/g, context.sport)
+      .replace(/\{\{methodology\}\}/g, context.methodology || 'POLARIZED')
+      .replace(/\{\{totalWeeks\}\}/g, String(context.totalWeeks))
+      .replace(/\{\{sessionsPerWeek\}\}/g, String(context.sessionsPerWeek || 5))
+      .replace(/\{\{experienceLevel\}\}/g, context.experienceLevel || 'intermediate')
+      .replace(/\{\{goal\}\}/g, context.goal || 'Förbättra prestanda')
+
+    // Prepend constitution preamble (same as the static prompt does)
+    const preamble = buildConstitutionPreamble('program')
+    return `${preamble}${prompt}`
+  } catch {
+    // On any error (DB down, etc.), fall back gracefully
+    return PROGRAM_GENERATOR_SYSTEM_PROMPT
+  }
+}
+
+/**
  * Generate a multi-part program
  * This is the main entry point called by the API or cron job
  */
@@ -54,6 +98,9 @@ export async function generateMultiPartProgram(options: OrchestratorOptions): Pr
   const { sessionId, context, apiKey, provider, modelId } = options
 
   try {
+    // Resolve enriched system prompt (auto-optimize variant or static fallback)
+    const systemPrompt = await getEnrichedSystemPrompt(context)
+
     // Step 1: Generate outline
     await updateProgress(sessionId, {
       status: 'GENERATING_OUTLINE',
@@ -61,7 +108,7 @@ export async function generateMultiPartProgram(options: OrchestratorOptions): Pr
       progressMessage: 'Skapar programstruktur...',
     })
 
-    const outline = await generateOutlineWithRetry(context, apiKey, provider, modelId)
+    const outline = await generateOutlineWithRetry(context, apiKey, provider, modelId, systemPrompt)
 
     // Update session with outline
     await prisma.programGenerationSession.update({
@@ -97,7 +144,8 @@ export async function generateMultiPartProgram(options: OrchestratorOptions): Pr
         outline,
         apiKey,
         provider,
-        modelId
+        modelId,
+        systemPrompt
       )
 
       completedPhases.push(phase)
@@ -183,13 +231,14 @@ async function generateOutlineWithRetry(
   context: GenerationContext,
   apiKey: string,
   provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI',
-  modelId?: string
+  modelId?: string,
+  systemPrompt?: string
 ): Promise<ProgramOutline> {
   const prompt = buildOutlinePrompt(context)
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const response = await callAI(prompt, apiKey, provider, modelId)
+      const response = await callAI(prompt, apiKey, provider, modelId, systemPrompt)
       return parseOutlineResponse(response)
     } catch (error) {
       if (attempt === MAX_RETRIES) {
@@ -213,7 +262,8 @@ async function generatePhaseWithRetry(
   outline: ProgramOutline,
   apiKey: string,
   provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI',
-  modelId?: string
+  modelId?: string,
+  systemPrompt?: string
 ): Promise<GeneratedPhase> {
   // Enrich phase config with week numbers
   const { startWeek, endWeek } = parseWeekRange(phaseConfig.weeks)
@@ -227,7 +277,7 @@ async function generatePhaseWithRetry(
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const response = await callAI(prompt, apiKey, provider, modelId)
+      const response = await callAI(prompt, apiKey, provider, modelId, systemPrompt)
       return parsePhaseResponse(response)
     } catch (error) {
       if (attempt === MAX_RETRIES) {
@@ -250,22 +300,24 @@ async function callAI(
   prompt: string,
   apiKey: string,
   provider: 'ANTHROPIC' | 'GOOGLE' | 'OPENAI',
-  modelId?: string
+  modelId?: string,
+  systemPrompt?: string
 ): Promise<string> {
-  // Dynamic import based on provider
+  const system = systemPrompt || PROGRAM_GENERATOR_SYSTEM_PROMPT
+
   switch (provider) {
     case 'ANTHROPIC':
-      return callAnthropic(prompt, apiKey, modelId)
+      return callAnthropic(prompt, apiKey, system, modelId)
     case 'GOOGLE':
-      return callGoogle(prompt, apiKey, modelId)
+      return callGoogle(prompt, apiKey, system, modelId)
     case 'OPENAI':
-      return callOpenAI(prompt, apiKey, modelId)
+      return callOpenAI(prompt, apiKey, system, modelId)
     default:
       throw new Error(`Unsupported provider: ${provider}`)
   }
 }
 
-async function callAnthropic(prompt: string, apiKey: string, modelId?: string): Promise<string> {
+async function callAnthropic(prompt: string, apiKey: string, systemPrompt: string, modelId?: string): Promise<string> {
   const { createAnthropic } = await import('@ai-sdk/anthropic')
   const { generateText } = await import('ai')
 
@@ -274,7 +326,7 @@ async function callAnthropic(prompt: string, apiKey: string, modelId?: string): 
 
   const result = await generateText({
     model: anthropic(model),
-    system: PROGRAM_GENERATOR_SYSTEM_PROMPT,
+    system: systemPrompt,
     prompt,
     maxOutputTokens: 16000,
   })
@@ -282,7 +334,7 @@ async function callAnthropic(prompt: string, apiKey: string, modelId?: string): 
   return result.text
 }
 
-async function callGoogle(prompt: string, apiKey: string, modelId?: string): Promise<string> {
+async function callGoogle(prompt: string, apiKey: string, systemPrompt: string, modelId?: string): Promise<string> {
   const { createGoogleGenerativeAI } = await import('@ai-sdk/google')
   const { generateText } = await import('ai')
 
@@ -291,7 +343,7 @@ async function callGoogle(prompt: string, apiKey: string, modelId?: string): Pro
 
   const result = await generateText({
     model: google(model),
-    system: PROGRAM_GENERATOR_SYSTEM_PROMPT,
+    system: systemPrompt,
     prompt,
     maxOutputTokens: 16000,
   })
@@ -299,7 +351,7 @@ async function callGoogle(prompt: string, apiKey: string, modelId?: string): Pro
   return result.text
 }
 
-async function callOpenAI(prompt: string, apiKey: string, modelId?: string): Promise<string> {
+async function callOpenAI(prompt: string, apiKey: string, systemPrompt: string, modelId?: string): Promise<string> {
   const { createOpenAI } = await import('@ai-sdk/openai')
   const { generateText } = await import('ai')
 
@@ -308,7 +360,7 @@ async function callOpenAI(prompt: string, apiKey: string, modelId?: string): Pro
 
   const result = await generateText({
     model: openai(model),
-    system: PROGRAM_GENERATOR_SYSTEM_PROMPT,
+    system: systemPrompt,
     prompt,
     maxOutputTokens: 32000, // GPT-5.4 supports larger output
   })
