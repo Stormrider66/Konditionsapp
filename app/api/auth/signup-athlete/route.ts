@@ -14,10 +14,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
+import { AthleteSubscriptionTier } from '@prisma/client';
 import { z } from 'zod';
 import { rateLimitJsonResponse, getRequestIp } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
 import { createCheckoutSession } from '@/lib/payments/stripe'
+import { getTierFeatures } from '@/lib/auth/tier-utils'
+
+const athleteTierSchema = z.string().optional().transform((value) => {
+  const normalized = value?.toUpperCase()
+
+  switch (normalized) {
+    case undefined:
+    case '':
+    case 'FREE':
+      return 'FREE' as const
+    case 'BASIC':
+    case 'STANDARD':
+      return 'STANDARD' as const
+    case 'PRO':
+      return 'PRO' as const
+    default:
+      throw new Error('Invalid athlete tier')
+  }
+})
+
+const ENABLE_BETA_ATHLETE_PAID_SIGNUP =
+  process.env.ENABLE_BETA_ATHLETE_PAID_SIGNUP !== 'false'
 
 // Validation schema for athlete signup
 const signupSchema = z.object({
@@ -31,7 +54,7 @@ const signupSchema = z.object({
   // AI-coached mode - athlete uses AI as primary coach
   aiCoached: z.boolean().optional(),
   // Desired subscription tier (default: FREE)
-  tier: z.enum(['FREE', 'STANDARD', 'PRO']).optional().default('FREE'),
+  tier: athleteTierSchema.default('FREE'),
 });
 
 export async function POST(request: NextRequest) {
@@ -156,21 +179,26 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // SECURITY: All signups start with FREE tier
-      // PRO/AI features require payment verification - aiCoached flag from request is IGNORED
-      // This prevents tier bypass where users could self-select PRO without paying
+      const requestedTier = tier as AthleteSubscriptionTier
+      const provisionedTier =
+        ENABLE_BETA_ATHLETE_PAID_SIGNUP && requestedTier !== AthleteSubscriptionTier.FREE
+          ? requestedTier
+          : AthleteSubscriptionTier.FREE
+      const features = getTierFeatures(provisionedTier)
+
       const subscription = await tx.athleteSubscription.create({
         data: {
           clientId: client.id,
-          tier: 'FREE', // Always start FREE - upgrade requires payment
+          tier: provisionedTier,
           status: 'ACTIVE',
           paymentSource: 'DIRECT',
-          // Match ATHLETE_TIER_FEATURES.FREE: AI chat enabled with 10 msg/month limit
-          aiChatEnabled: true,
-          aiChatMessagesLimit: 10,
-          videoAnalysisEnabled: false,
-          garminEnabled: false,
-          stravaEnabled: false,
+          aiChatEnabled: features.aiChatEnabled,
+          aiChatMessagesLimit: features.aiChatMessagesLimit,
+          videoAnalysisEnabled: features.videoAnalysisEnabled,
+          garminEnabled: features.garminEnabled,
+          stravaEnabled: features.stravaEnabled,
+          workoutLoggingEnabled: features.workoutLoggingEnabled,
+          dailyCheckInEnabled: features.dailyCheckInEnabled,
         },
       });
 
@@ -227,10 +255,12 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // For paid tiers, create Stripe checkout session and redirect there
+    // In beta, paid tiers are provisioned immediately without Stripe.
+    // Once billing is production-ready, disable ENABLE_BETA_ATHLETE_PAID_SIGNUP
+    // to restore the checkout redirect flow below.
     let redirectUrl = '/athlete/onboarding'
 
-    if (tier && tier !== 'FREE') {
+    if (!ENABLE_BETA_ATHLETE_PAID_SIGNUP && tier && tier !== 'FREE') {
       try {
         const origin = request.headers.get('origin') || 'https://trainomics.app'
         const checkoutUrl = await createCheckoutSession(

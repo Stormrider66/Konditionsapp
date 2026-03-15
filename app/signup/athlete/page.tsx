@@ -16,6 +16,21 @@ import { ATHLETE_TIER_FEATURES } from '@/lib/ai/cost-data'
 
 type Tier = 'FREE' | 'STANDARD' | 'PRO'
 
+function normalizeTierParam(value: string | null): Tier {
+  const normalized = value?.toUpperCase()
+
+  switch (normalized) {
+    case 'BASIC':
+    case 'STANDARD':
+      return 'STANDARD'
+    case 'PRO':
+      return 'PRO'
+    case 'FREE':
+    default:
+      return 'FREE'
+  }
+}
+
 const TIER_INFO: Record<Tier, { name: string; price: string; highlight?: boolean }> = {
   FREE: { name: 'Free', price: '0 kr' },
   STANDARD: { name: 'Standard', price: '199 kr/mån', highlight: false },
@@ -95,7 +110,7 @@ function AthleteSignupForm() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedTier, setSelectedTier] = useState<Tier>('FREE')
+  const [selectedTier, setSelectedTier] = useState<Tier>(() => normalizeTierParam(searchParams.get('tier')))
 
   const inviteCodeFromUrl = searchParams.get('invite') || ''
   const isAICoached = searchParams.get('mode') === 'ai-coached'

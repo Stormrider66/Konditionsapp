@@ -56,7 +56,7 @@ describe('signup-athlete route', () => {
     mockPrisma.invitation.findUnique.mockResolvedValue(null)
   })
 
-  it('keeps new signups on free tier while starting paid checkout', async () => {
+  it('provisions selected paid tier directly during beta signup', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null)
     mockSignUp.mockResolvedValue({
       data: {
@@ -84,7 +84,7 @@ describe('signup-athlete route', () => {
       athleteSubscription: {
         create: vi.fn().mockResolvedValue({
           id: 'sub-1',
-          tier: 'FREE',
+          tier: 'PRO',
         }),
       },
       agentPreferences: {
@@ -102,7 +102,6 @@ describe('signup-athlete route', () => {
     }
 
     mockPrisma.$transaction.mockImplementation(async (callback: (tx: typeof tx) => Promise<unknown>) => callback(tx))
-    mockCreateCheckoutSession.mockResolvedValue('https://stripe.test/session')
 
     const request = new NextRequest('http://localhost/api/auth/signup-athlete', {
       method: 'POST',
@@ -126,22 +125,104 @@ describe('signup-athlete route', () => {
     expect(tx.athleteSubscription.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         clientId: 'client-1',
-        tier: 'FREE',
+        tier: 'PRO',
         status: 'ACTIVE',
         paymentSource: 'DIRECT',
         aiChatEnabled: true,
-        aiChatMessagesLimit: 10,
+        aiChatMessagesLimit: -1,
+        videoAnalysisEnabled: true,
+        garminEnabled: true,
+        stravaEnabled: true,
+        workoutLoggingEnabled: true,
+        dailyCheckInEnabled: true,
       }),
     })
-    expect(mockCreateCheckoutSession).toHaveBeenCalledWith(
-      'client-1',
-      'PRO',
-      'MONTHLY',
-      'http://localhost:3000/athlete/onboarding?upgraded=true',
-      'http://localhost:3000/athlete/onboarding',
-    )
-    expect(body.subscription.tier).toBe('FREE')
-    expect(body.redirectUrl).toBe('https://stripe.test/session')
+    expect(mockCreateCheckoutSession).not.toHaveBeenCalled()
+    expect(body.subscription.tier).toBe('PRO')
+    expect(body.redirectUrl).toBe('/athlete/onboarding')
+  })
+
+  it('accepts BASIC as a legacy alias for STANDARD during signup', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null)
+    mockSignUp.mockResolvedValue({
+      data: {
+        user: { id: 'auth-user-2' },
+      },
+      error: null,
+    })
+
+    const tx = {
+      user: {
+        create: vi.fn().mockResolvedValue({
+          id: 'auth-user-2',
+          email: 'basic@example.com',
+          name: 'Basic Athlete',
+          role: 'ATHLETE',
+        }),
+      },
+      client: {
+        create: vi.fn().mockResolvedValue({
+          id: 'client-2',
+          name: 'Basic Athlete',
+          isDirect: true,
+        }),
+      },
+      athleteSubscription: {
+        create: vi.fn().mockResolvedValue({
+          id: 'sub-2',
+          tier: 'STANDARD',
+        }),
+      },
+      agentPreferences: {
+        create: vi.fn().mockResolvedValue({ id: 'prefs-2' }),
+      },
+      sportProfile: {
+        create: vi.fn().mockResolvedValue({ id: 'sport-2' }),
+      },
+      athleteAccount: {
+        create: vi.fn().mockResolvedValue({ id: 'account-2' }),
+      },
+      invitation: {
+        update: vi.fn(),
+      },
+    }
+
+    mockPrisma.$transaction.mockImplementation(async (callback: (tx: typeof tx) => Promise<unknown>) => callback(tx))
+
+    const request = new NextRequest('http://localhost/api/auth/signup-athlete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        origin: 'http://localhost:3000',
+      },
+      body: JSON.stringify({
+        email: 'basic@example.com',
+        password: 'password123',
+        name: 'Basic Athlete',
+        tier: 'BASIC',
+      }),
+    })
+
+    const response = await POST(request)
+    const body = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(tx.athleteSubscription.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        clientId: 'client-2',
+        tier: 'STANDARD',
+        aiChatEnabled: true,
+        aiChatMessagesLimit: 50,
+        videoAnalysisEnabled: false,
+        garminEnabled: true,
+        stravaEnabled: true,
+        workoutLoggingEnabled: true,
+        dailyCheckInEnabled: true,
+      }),
+    })
+    expect(mockCreateCheckoutSession).not.toHaveBeenCalled()
+    expect(body.subscription.tier).toBe('STANDARD')
+    expect(body.redirectUrl).toBe('/athlete/onboarding')
   })
 
   it('rejects duplicate emails before creating auth users', async () => {

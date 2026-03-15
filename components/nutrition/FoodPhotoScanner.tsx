@@ -233,7 +233,7 @@ export function FoodPhotoScanner({
     setStep('SAVING')
     setError(null)
 
-    const totals = calculateTotals(items)
+    const totals = calculateFoodTotals(items)
 
     try {
       const response = await fetch('/api/meals', {
@@ -323,7 +323,7 @@ export function FoodPhotoScanner({
       const originalAnalysis = {
         success: true,
         items,
-        totals: calculateTotals(items),
+        totals: calculateFoodTotals(items),
         mealDescription,
         confidence,
         notes: notes ? notes.split('\n') : [],

@@ -86,6 +86,7 @@ function RoleSelectorContent() {
   }
 
   const mode = searchParams.get('mode')
+  const tier = searchParams.get('tier')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-8">
@@ -102,9 +103,12 @@ function RoleSelectorContent() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {ROLES.map((role) => {
             const Icon = role.icon
-            const href = mode && role.id === 'athlete'
-              ? `${role.href}?mode=${mode}`
-              : role.href
+            const params = new URLSearchParams()
+            if (role.id === 'athlete') {
+              if (mode) params.set('mode', mode)
+              if (tier) params.set('tier', tier)
+            }
+            const href = params.size > 0 ? `${role.href}?${params.toString()}` : role.href
 
             return (
               <Link key={role.id} href={href} className="block">
