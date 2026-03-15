@@ -118,25 +118,46 @@ export async function PUT(
 
       // 3. Create new segments
       if (normalizedSegments.length > 0) {
+        type WorkoutSegmentCreateInput = {
+          workoutId: string
+          order: number
+          type: string
+          duration: number | null
+          distance: number | null
+          zone: number | null
+          pace: string | null
+          heartRate: string | null
+          power: number | null
+          notes: string | null
+          description: string | null
+          exerciseId: string | null
+          sets: number | null
+          repsCount: string | null
+          weight: string | null
+          tempo: string | null
+          rest: number | null
+          section: string
+        }
+
         await tx.workoutSegment.createMany({
-          data: normalizedSegments.flatMap((s: any, index: number) => {
-            const baseSegment = {
+          data: normalizedSegments.flatMap((s: any, index: number): WorkoutSegmentCreateInput[] => {
+            const baseSegment: WorkoutSegmentCreateInput = {
               workoutId: id,
               order: index + 1,
               type: s.type,
               duration: s.duration ? Number(s.duration) : null,
               distance: s.distance ? Number(s.distance) : null,
               zone: s.zone ? Number(s.zone) : null,
-              pace: s.pace,
-              heartRate: s.heartRate,
+              pace: s.pace ?? null,
+              heartRate: s.heartRate ?? null,
               power: s.power ? Number(s.power) : null,
-              notes: s.notes,
-              description: s.description,
-              exerciseId: s.exerciseId, // For strength workouts
+              notes: s.notes ?? null,
+              description: s.description ?? null,
+              exerciseId: s.exerciseId ?? null, // For strength workouts
               sets: s.sets ? Number(s.sets) : null,
               repsCount: s.reps ?? s.repsCount ?? null,
-              weight: s.weight,
-              tempo: s.tempo,
+              weight: s.weight ?? null,
+              tempo: s.tempo ?? null,
               rest: s.rest ? Number(s.rest) : null,
               section: s.section || 'MAIN',
             }
@@ -154,17 +175,24 @@ export async function PUT(
                   // 2. Add Rest (RECOVERY)
                   if (s.restDuration && s.restDuration > 0) {
                       repeatedSegments.push({
-                          workoutId: id,
+                          ...baseSegment,
                           type: 'RECOVERY',
                           duration: Number(s.restDuration),
+                          distance: null,
                           zone: 1,
+                          pace: null,
+                          heartRate: null,
+                          power: null,
                           notes: 'Vila',
+                          description: null,
                           order: 0,
                           exerciseId: null,
                           sets: null,
                           repsCount: null,
                           weight: null,
-                          rest: null
+                          tempo: null,
+                          rest: null,
+                          section: 'MAIN',
                       })
                   }
                 }
