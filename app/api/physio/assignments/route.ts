@@ -136,15 +136,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify the target user has PHYSIO role
+    // Allow assigning physio responsibilities to dedicated physios and coaches.
     const physioUser = await prisma.user.findUnique({
       where: { id: physioUserId },
       select: { role: true },
     })
 
-    if (!physioUser || physioUser.role !== 'PHYSIO') {
+    if (!physioUser || (physioUser.role !== 'PHYSIO' && physioUser.role !== 'COACH' && physioUser.role !== 'ADMIN')) {
       return NextResponse.json(
-        { error: 'Target user must have PHYSIO role' },
+        { error: 'Target user must be a physio, coach, or admin' },
         { status: 400 }
       )
     }

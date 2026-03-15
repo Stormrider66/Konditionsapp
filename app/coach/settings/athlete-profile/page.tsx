@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { User, CheckCircle, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 export default async function AthleteProfileSettingsPage() {
   const user = await getCurrentUser()
@@ -14,7 +15,7 @@ export default async function AthleteProfileSettingsPage() {
     redirect('/login')
   }
 
-  if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+  if (!(await canAccessCoachPlatform(user.id))) {
     redirect('/coach/dashboard')
   }
 

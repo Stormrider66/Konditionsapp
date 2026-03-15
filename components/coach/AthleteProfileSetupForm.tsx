@@ -32,6 +32,7 @@ export function AthleteProfileSetupForm({ userName, onSuccess }: AthleteProfileS
   const router = useRouter()
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const currentPortal = pathname.includes('/physio/') ? 'physio' : 'coach'
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
@@ -102,7 +103,7 @@ export function AthleteProfileSetupForm({ userName, onSuccess }: AthleteProfileS
                 You can now switch to athlete mode from the user menu.
               </p>
             </div>
-            <Button onClick={() => router.push(`${basePath}/coach/dashboard`)}>
+            <Button onClick={() => router.push(`${basePath}/${currentPortal}/dashboard`)}>
               Back to Dashboard
             </Button>
           </div>

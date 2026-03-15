@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessProgram } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 export async function POST(
   request: NextRequest,
@@ -10,7 +11,7 @@ export async function POST(
 ) {
   try {
     const user = await requireAuth()
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

@@ -1,7 +1,7 @@
 // app/api/physio/restrictions/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, canAccessAthleteAsPhysio, canCreateRestrictions, canAccessClient } from '@/lib/auth-utils'
+import { getCurrentUser, canCreateRestrictions, canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const updateRestrictionSchema = z.object({
@@ -82,11 +82,11 @@ export async function GET(
     let hasAccess = false
     if (user.role === 'ADMIN') {
       hasAccess = true
-    } else if (user.role === 'PHYSIO') {
-      hasAccess = restriction.createdById === user.id || await canAccessAthleteAsPhysio(user.id, restriction.clientId)
-    } else if (user.role === 'COACH') {
-      hasAccess = await canAccessClient(user.id, restriction.clientId)
+    } else if (restriction.createdById === user.id) {
+      hasAccess = true
     } else if (user.role === 'ATHLETE') {
+      hasAccess = await canAccessClient(user.id, restriction.clientId)
+    } else {
       hasAccess = await canAccessClient(user.id, restriction.clientId)
     }
 

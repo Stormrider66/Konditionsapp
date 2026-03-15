@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { canUseAthleteMode, ATHLETE_MODE_COOKIE } from '@/lib/athlete-mode'
 import { logger } from '@/lib/logger'
 import { cookies } from 'next/headers'
+import { canAccessCoachPlatform, canAccessPhysioPlatform, getPreferredProfessionalPortal } from '@/lib/user-capabilities'
 
 /**
  * POST /api/athlete-mode/toggle
@@ -20,16 +21,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Only COACH and ADMIN can toggle athlete mode
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    const [coachAccess, physioAccess] = await Promise.all([
+      canAccessCoachPlatform(user.id),
+      canAccessPhysioPlatform(user.id),
+    ])
+
+    if (!coachAccess && !physioAccess) {
       return NextResponse.json(
-        { success: false, error: 'Only coaches and admins can use athlete mode' },
+        { success: false, error: 'Only professional users can use athlete mode' },
         { status: 403 }
       )
     }
 
     const body = await request.json()
-    const { enabled, businessSlug } = body
+    const { enabled, businessSlug, currentPortal } = body
 
     if (typeof enabled !== 'boolean') {
       return NextResponse.json(
@@ -43,9 +48,12 @@ export async function POST(request: NextRequest) {
       const hasProfile = await canUseAthleteMode(user.id)
       if (!hasProfile) {
         // Redirect to appropriate settings page based on business context
+        const preferredPortal = currentPortal === 'physio' || currentPortal === 'coach'
+          ? currentPortal
+          : (await getPreferredProfessionalPortal(user.id)) || 'coach'
         const settingsPath = businessSlug
-          ? `/${businessSlug}/coach/settings/athlete-profile`
-          : '/coach/settings/athlete-profile'
+          ? `/${businessSlug}/${preferredPortal}/settings/athlete-profile`
+          : `/${preferredPortal}/settings/athlete-profile`
         return NextResponse.json(
           {
             success: false,
@@ -77,7 +85,12 @@ export async function POST(request: NextRequest) {
     if (enabled) {
       redirectTo = businessSlug ? `/${businessSlug}/athlete/dashboard` : '/athlete/dashboard'
     } else {
-      redirectTo = businessSlug ? `/${businessSlug}/coach/dashboard` : '/coach/dashboard'
+      const preferredPortal = currentPortal === 'physio' || currentPortal === 'coach'
+        ? currentPortal
+        : (await getPreferredProfessionalPortal(user.id)) || 'coach'
+      redirectTo = businessSlug
+        ? `/${businessSlug}/${preferredPortal}/dashboard`
+        : `/${preferredPortal}/dashboard`
     }
 
     return NextResponse.json({

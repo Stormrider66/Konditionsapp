@@ -37,7 +37,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine role based on user's platform role
-    const memberRole = user.role === 'COACH' ? 'COACH' : 'MEMBER'
+    const memberRole =
+      user.role === 'COACH'
+        ? 'COACH'
+        : user.role === 'PHYSIO'
+          ? 'PHYSIO'
+          : 'MEMBER'
 
     await prisma.$transaction(async (tx) => {
       // Upsert BusinessMember (reactivate if previously deactivated)

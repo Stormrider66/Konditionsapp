@@ -34,6 +34,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
+import { AthleteModeToggle } from '@/components/coach/AthleteModeToggle'
 
 interface PhysioGlassHeaderProps {
     user: any
@@ -232,6 +233,7 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator className="bg-white/10" />
+                                <AthleteModeToggle variant="dropdown" />
                                 <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
                                     <Link href={`${basePath}/settings`}>
                                         <Settings className="mr-2 h-4 w-4" />
@@ -293,6 +295,7 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
 
                                 {/* Mobile User Actions */}
                                 <div className="flex flex-col gap-2">
+                                    <AthleteModeToggle variant="button" className="w-full justify-start" />
                                     <button
                                         onClick={() => {
                                             setIsOpen(false)

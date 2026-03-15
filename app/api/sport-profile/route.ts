@@ -2,10 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
-import { canAccessClient } from '@/lib/auth-utils'
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { SportType } from '@prisma/client'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 // Validation schema for creating sport profile
 // Using z.any() for JSON fields as they're stored as Prisma Json type
@@ -29,9 +30,17 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const {
-      data: { user },
+      data: { user: authUser },
     } = await supabase.auth.getUser()
 
+    if (!authUser) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -55,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     const data = validation.data
 
-    if (user.role !== 'COACH') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 403 }

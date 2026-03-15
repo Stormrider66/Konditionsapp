@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 /**
  * GET /api/coach/requests
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         { success: false, error: 'Endast coacher kan se förfrågningar' },
         { status: 403 }

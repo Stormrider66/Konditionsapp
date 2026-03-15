@@ -1,7 +1,7 @@
 // app/api/restrictions/athlete/[clientId]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
+import { getCurrentUser, canAccessClient } from '@/lib/auth-utils'
 
 /**
  * GET /api/restrictions/athlete/[clientId]
@@ -24,11 +24,7 @@ export async function GET(
     let hasAccess = false
     if (user.role === 'ADMIN') {
       hasAccess = true
-    } else if (user.role === 'PHYSIO') {
-      hasAccess = await canAccessAthleteAsPhysio(user.id, clientId)
-    } else if (user.role === 'COACH') {
-      hasAccess = await canAccessClient(user.id, clientId)
-    } else if (user.role === 'ATHLETE') {
+    } else {
       hasAccess = await canAccessClient(user.id, clientId)
     }
 

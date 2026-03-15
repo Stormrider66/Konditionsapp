@@ -19,6 +19,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 type Modality = 'DWR' | 'XC_SKIING' | 'ALTERG' | 'AIR_BIKE' | 'CYCLING' | 'ROWING' | 'ELLIPTICAL' | 'SWIMMING'
 
@@ -52,7 +53,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -99,7 +100,7 @@ export async function POST(
 ) {
   try {
     const user = await requireAuth()
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

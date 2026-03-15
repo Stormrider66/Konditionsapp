@@ -1,11 +1,12 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { User, Dumbbell, Building2, Users, Crown } from 'lucide-react'
+import { User, Dumbbell, Building2, Users, Crown, Stethoscope } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { useTranslations } from '@/i18n/client'
 
@@ -29,6 +30,16 @@ const ROLES = [
     color: 'text-green-600',
     bgColor: 'bg-green-50',
     borderHover: 'hover:border-green-300',
+  },
+  {
+    id: 'physio',
+    icon: Stethoscope,
+    title: 'Fysioterapeut',
+    description: 'Arbeta med rehab, restriktioner och återgång till träning, och växla till athlete mode för att se atletupplevelsen.',
+    href: '/signup/physio',
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50',
+    borderHover: 'hover:border-emerald-300',
   },
   {
     id: 'gym',
@@ -66,22 +77,41 @@ const ROLES = [
 function RoleSelectorContent() {
   const t = useTranslations('auth')
   const searchParams = useSearchParams()
+  const [invitationRedirectResolved, setInvitationRedirectResolved] = useState(false)
+  const [inviteRedirectResolved, setInviteRedirectResolved] = useState(false)
 
   // If there's an invite code, redirect directly to athlete signup
   const invite = searchParams.get('invite')
+  useEffect(() => {
+    if (!invite || inviteRedirectResolved) return
+    window.location.href = `/signup/athlete?invite=${encodeURIComponent(invite)}`
+    setInviteRedirectResolved(true)
+  }, [invite, inviteRedirectResolved])
+
+  // If there's a business invitation code, redirect to the invited role signup
+  const invitation = searchParams.get('invitation')
+  useEffect(() => {
+    if (!invitation || invitationRedirectResolved) return
+
+    fetch(`/api/business/invitations/validate?code=${encodeURIComponent(invitation)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const target = data?.role === 'PHYSIO' ? 'physio' : 'coach'
+        window.location.href = `/signup/${target}?invitation=${encodeURIComponent(invitation)}`
+      })
+      .catch(() => {
+        window.location.href = `/signup/coach?invitation=${encodeURIComponent(invitation)}`
+      })
+      .finally(() => {
+        setInvitationRedirectResolved(true)
+      })
+  }, [invitation, invitationRedirectResolved])
+
   if (invite) {
-    if (typeof window !== 'undefined') {
-      window.location.href = `/signup/athlete?invite=${encodeURIComponent(invite)}`
-    }
     return null
   }
 
-  // If there's a business invitation code, redirect to coach signup
-  const invitation = searchParams.get('invitation')
   if (invitation) {
-    if (typeof window !== 'undefined') {
-      window.location.href = `/signup/coach?invitation=${encodeURIComponent(invitation)}`
-    }
     return null
   }
 

@@ -10,6 +10,7 @@ import {
   createSelfAthleteProfileTx,
   ensureAthleteClientDefaultsTx,
 } from '@/lib/user-provisioning'
+import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
 
 const setupAthleteProfileSchema = z.object({
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
@@ -33,10 +34,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Only COACH and ADMIN can set up athlete profile
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    const [coachAccess, physioAccess] = await Promise.all([
+      canAccessCoachPlatform(user.id),
+      canAccessPhysioPlatform(user.id),
+    ])
+
+    if (!coachAccess && !physioAccess) {
       return NextResponse.json(
-        { success: false, error: 'Only coaches and admins can set up athlete mode' },
+        { success: false, error: 'Only professional users can set up athlete mode' },
         { status: 403 }
       )
     }

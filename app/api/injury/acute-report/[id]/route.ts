@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio, resolveAthleteClientId } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
 
 const updateAcuteReportSchema = z.object({
   status: z.enum(['PENDING_REVIEW', 'REVIEWED', 'IN_TREATMENT', 'RESOLVED', 'REFERRED']).optional(),
@@ -73,12 +74,16 @@ export async function GET(
     }
 
     // Check access
+    const [hasCoachAccess, hasPhysioAccess] = await Promise.all([
+      canAccessCoachPlatform(user.id),
+      canAccessPhysioPlatform(user.id),
+    ])
     let hasAccess = false
     if (user.role === 'ADMIN') {
       hasAccess = true
-    } else if (user.role === 'PHYSIO') {
+    } else if (hasPhysioAccess) {
       hasAccess = await canAccessAthleteAsPhysio(user.id, report.clientId)
-    } else if (user.role === 'COACH') {
+    } else if (hasCoachAccess) {
       hasAccess = await canAccessClient(user.id, report.clientId)
     } else if (user.role === 'ATHLETE') {
       const resolved = await resolveAthleteClientId()
@@ -127,12 +132,16 @@ export async function PATCH(
     }
 
     // Check access
+    const [hasCoachAccess, hasPhysioAccess] = await Promise.all([
+      canAccessCoachPlatform(user.id),
+      canAccessPhysioPlatform(user.id),
+    ])
     let hasAccess = false
     if (user.role === 'ADMIN') {
       hasAccess = true
-    } else if (user.role === 'PHYSIO') {
+    } else if (hasPhysioAccess) {
       hasAccess = await canAccessAthleteAsPhysio(user.id, existingReport.clientId)
-    } else if (user.role === 'COACH') {
+    } else if (hasCoachAccess) {
       hasAccess = await canAccessClient(user.id, existingReport.clientId)
     }
 

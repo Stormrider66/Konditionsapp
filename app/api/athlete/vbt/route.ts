@@ -10,6 +10,7 @@ import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 // Query schema for GET
 const getQuerySchema = z.object({
@@ -181,8 +182,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    const hasCoachAccess = await canAccessCoachPlatform(user.id);
+
     // Additional guard: athlete can only delete self-uploaded sessions (no coachId).
-    if (user.role !== 'COACH' && session.coachId) {
+    if (!hasCoachAccess && session.coachId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

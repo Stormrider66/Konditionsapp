@@ -35,7 +35,7 @@ export default function Home() {
     loading: true,
   })
   const [user, setUser] = useState<User | null>(null)
-  const [userRole, setUserRole] = useState<'COACH' | 'ATHLETE' | 'ADMIN' | null>(null)
+  const [userRole, setUserRole] = useState<'COACH' | 'PHYSIO' | 'ATHLETE' | 'ADMIN' | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
   useEffect(() => {
@@ -74,17 +74,23 @@ export default function Home() {
             return
           }
 
-          // Redirect coaches to their business dashboard
-          if (role === 'COACH' || role === 'ADMIN') {
+          // Redirect professionals to their business dashboard
+          if (role === 'COACH' || role === 'ADMIN' || role === 'PHYSIO') {
             try {
-              const contextResponse = await fetch('/api/coach/admin/context')
-              const contextResult = await contextResponse.json()
-              if (contextResult.data?.business?.slug) {
-                window.location.href = `/${contextResult.data.business.slug}/coach/dashboard`
+              const bizResponse = await fetch('/api/users/me/business')
+              const bizResult = await bizResponse.json()
+              const portal = role === 'PHYSIO' ? 'physio' : 'coach'
+              if (bizResult.data?.slug) {
+                window.location.href = `/${bizResult.data.slug}/${portal}/dashboard`
                 return
               }
             } catch (err) {
               console.error('Error fetching business context:', err)
+            }
+
+            if (role === 'PHYSIO') {
+              window.location.href = '/physio/dashboard'
+              return
             }
           }
         }

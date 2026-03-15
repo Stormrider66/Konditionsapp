@@ -7,6 +7,7 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { SportType } from '@prisma/client'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 // Validation schema for profile updates
 const profileUpdateSchema = z.object({
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         { success: false, error: 'Endast coacher kan ha en profil' },
         { status: 403 }
@@ -79,7 +80,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         { success: false, error: 'Endast coacher kan ha en profil' },
         { status: 403 }

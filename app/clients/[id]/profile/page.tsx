@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser, canAccessClient, getAthleteClientId } from '@/lib/auth-utils'
 import { fetchAthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 import { AthleteProfileClient } from '@/components/athlete-profile/AthleteProfileClient'
+import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -28,8 +29,12 @@ export default async function AthleteProfilePage({ params, searchParams }: PageP
       redirect('/athlete/dashboard')
     }
     viewMode = 'athlete'
-  } else if (user.role === 'COACH' || user.role === 'ADMIN') {
-    // Coaches/Admins must own the client or be admin
+  } else if (
+    user.role === 'ADMIN' ||
+    (await canAccessCoachPlatform(user.id)) ||
+    (await canAccessPhysioPlatform(user.id))
+  ) {
+    // Professionals must be able to access the client.
     const hasAccess = await canAccessClient(user.id, id)
     if (!hasAccess) {
       redirect('/clients')

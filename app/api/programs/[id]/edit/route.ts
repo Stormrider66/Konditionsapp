@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { canAccessProgram, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 /**
  * PUT - Edit program, day, workout, or segments
@@ -28,7 +29,7 @@ export async function PUT(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -74,7 +75,7 @@ export async function POST(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -112,7 +113,7 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

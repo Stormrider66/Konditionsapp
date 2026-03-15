@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessAthleteAsPhysio, canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
 
 const createAssessmentSchema = z.object({
   injuryType: z.string().min(1),
@@ -49,8 +50,13 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const [hasCoachAccess, hasPhysioAccess] = await Promise.all([
+      canAccessCoachPlatform(user.id),
+      canAccessPhysioPlatform(user.id),
+    ])
+
     // Only physios and coaches can create assessments
-    if (user.role !== 'ADMIN' && user.role !== 'PHYSIO' && user.role !== 'COACH') {
+    if (user.role !== 'ADMIN' && !hasPhysioAccess && !hasCoachAccess) {
       return NextResponse.json(
         { error: 'Only physios and coaches can create injury assessments' },
         { status: 403 }
@@ -82,9 +88,9 @@ export async function POST(
     let hasAccess = false
     if (user.role === 'ADMIN') {
       hasAccess = true
-    } else if (user.role === 'PHYSIO') {
+    } else if (hasPhysioAccess) {
       hasAccess = await canAccessAthleteAsPhysio(user.id, report.clientId)
-    } else if (user.role === 'COACH') {
+    } else if (hasCoachAccess) {
       hasAccess = await canAccessClient(user.id, report.clientId)
     }
 
@@ -130,6 +136,10 @@ export async function POST(
       // Create restriction if requested
       let restriction = null
       if (validatedData.createRestriction && validatedData.restrictionType) {
+        const restrictionSource = hasPhysioAccess && !(await canAccessClient(user.id, report.clientId))
+          ? 'PHYSIO_MANUAL'
+          : 'COACH_MANUAL'
+
         restriction = await tx.trainingRestriction.create({
           data: {
             clientId: report.clientId,
@@ -137,7 +147,7 @@ export async function POST(
             injuryId: injury.id,
             type: validatedData.restrictionType,
             severity: validatedData.restrictionSeverity || 'MODERATE',
-            source: user.role === 'PHYSIO' ? 'PHYSIO_MANUAL' : 'COACH_MANUAL',
+            source: restrictionSource,
             bodyParts: [validatedData.bodyPart],
             endDate: validatedData.restrictionEndDate
               ? new Date(validatedData.restrictionEndDate)

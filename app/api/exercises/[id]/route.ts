@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessExercise } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 /**
  * GET - Get single exercise by ID
@@ -60,7 +61,8 @@ export async function PUT(
 ) {
   try {
     const user = await requireAuth()
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    const hasCoachAccess = user.role === 'ADMIN' || user.role === 'COACH' || await canAccessCoachPlatform(user.id)
+    if (!hasCoachAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -175,7 +177,8 @@ export async function DELETE(
 ) {
   try {
     const user = await requireAuth()
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    const hasCoachAccess = user.role === 'ADMIN' || user.role === 'COACH' || await canAccessCoachPlatform(user.id)
+    if (!hasCoachAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

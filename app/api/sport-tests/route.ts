@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { createSportTestSchema } from '@/lib/validations/sport-test-schemas'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import {
   calculateJumpPower,
   calculateRSI,
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
-    if (user.role !== 'COACH') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         { success: false, error: 'Only coaches can create sport tests' },
         { status: 403 }

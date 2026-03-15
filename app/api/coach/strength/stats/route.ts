@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { startOfWeek, endOfWeek, startOfMonth, subMonths } from 'date-fns'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 export async function GET() {
   try {
     const user = await requireAuth()
     const userId = user.id
+    const hasCoachAccess = user.role === 'ADMIN' || await canAccessCoachPlatform(userId)
 
     const now = new Date()
     const weekStart = startOfWeek(now, { weekStartsOn: 1 }) // Monday
@@ -19,18 +21,30 @@ export async function GET() {
     let exerciseAccessWhere: any = {}
     if (user.role === 'ADMIN') {
       // Admin sees all
-    } else if (user.role === 'COACH') {
+    } else if (hasCoachAccess) {
       exerciseAccessWhere.OR = [{ isPublic: true }, { coachId: userId }]
     } else {
       exerciseAccessWhere.OR = [{ isPublic: true }]
     }
 
-    // Get coach's athletes
-    const clients = await prisma.client.findMany({
-      where: { userId: userId },
-      select: { id: true }
-    })
-    const athleteIds = clients.map(c => c.id)
+    const assignmentWhere = hasCoachAccess
+      ? { session: { coachId: userId } }
+      : { id: { equals: '__no_assignments__' } }
+
+    const [athletesWithPrograms, athleteAssignments] = await Promise.all([
+      prisma.strengthSessionAssignment.groupBy({
+        by: ['athleteId'],
+        where: {
+          ...assignmentWhere,
+          status: { in: ['PENDING', 'SCHEDULED'] }
+        }
+      }),
+      prisma.strengthSessionAssignment.groupBy({
+        by: ['athleteId'],
+        where: assignmentWhere,
+      }),
+    ])
+    const athleteIds = athleteAssignments.map((assignment) => assignment.athleteId)
 
     // 1. Total Exercises (accessible to this user)
     const [totalExercises, exercisesAddedThisWeek] = await Promise.all([
@@ -46,20 +60,13 @@ export async function GET() {
     ])
 
     // 2. Active Programs (strength sessions assigned)
-    const [activePrograms, athletesWithPrograms] = await Promise.all([
+    const [activePrograms] = await Promise.all([
       prisma.strengthSessionAssignment.count({
         where: {
           session: { coachId: userId },
           status: { in: ['PENDING', 'SCHEDULED'] }
         }
       }),
-      prisma.strengthSessionAssignment.groupBy({
-        by: ['athleteId'],
-        where: {
-          session: { coachId: userId },
-          status: { in: ['PENDING', 'SCHEDULED'] }
-        }
-      })
     ])
 
     // 3. Compliance Rate (completed vs total assignments this month vs last month)

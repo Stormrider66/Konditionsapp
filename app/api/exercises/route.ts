@@ -4,6 +4,7 @@ import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { Prisma, WorkoutType, BiomechanicalPillar, ProgressionLevel, PlyometricIntensity } from '@prisma/client'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 // Allowed sort fields to prevent injection
 const ALLOWED_SORT_FIELDS = [
@@ -28,6 +29,7 @@ function isValidSortField(field: string): field is AllowedSortField {
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth()
+    const hasCoachAccess = user.role === 'ADMIN' || user.role === 'COACH' || await canAccessCoachPlatform(user.id)
     const { searchParams } = new URL(request.url)
 
     // Pagination with limits
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     if (user.role === 'ADMIN') {
       // no additional restrictions
-    } else if (user.role === 'COACH') {
+    } else if (hasCoachAccess) {
       accessWhere.OR = [{ isPublic: true }, { coachId: user.id }]
     } else if (user.role === 'ATHLETE') {
       const resolved = await resolveAthleteClientId()
@@ -164,9 +166,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const user = await requireAuth()
+        const hasCoachAccess = user.role === 'ADMIN' || user.role === 'COACH' || await canAccessCoachPlatform(user.id)
         const body = await request.json()
 
-        if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+        if (!hasCoachAccess) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }
         

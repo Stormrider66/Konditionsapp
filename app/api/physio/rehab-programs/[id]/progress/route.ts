@@ -1,7 +1,7 @@
 // app/api/physio/rehab-programs/[id]/progress/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser, canAccessAthleteAsPhysio, canAccessClient } from '@/lib/auth-utils'
+import { getCurrentUser, canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
@@ -47,11 +47,11 @@ export async function GET(
     let hasAccess = false
     if (user.role === 'ADMIN') {
       hasAccess = true
-    } else if (user.role === 'PHYSIO') {
-      hasAccess = program.physioUserId === user.id || await canAccessAthleteAsPhysio(user.id, program.clientId)
-    } else if (user.role === 'COACH') {
-      hasAccess = await canAccessClient(user.id, program.clientId)
+    } else if (program.physioUserId === user.id) {
+      hasAccess = true
     } else if (user.role === 'ATHLETE') {
+      hasAccess = await canAccessClient(user.id, program.clientId)
+    } else {
       hasAccess = await canAccessClient(user.id, program.clientId)
     }
 
@@ -123,11 +123,11 @@ export async function POST(
     let hasAccess = false
     if (user.role === 'ADMIN') {
       hasAccess = true
-    } else if (user.role === 'PHYSIO') {
-      hasAccess = program.physioUserId === user.id || await canAccessAthleteAsPhysio(user.id, program.clientId)
-    } else if (user.role === 'COACH') {
-      hasAccess = await canAccessClient(user.id, program.clientId)
+    } else if (program.physioUserId === user.id) {
+      hasAccess = true
     } else if (user.role === 'ATHLETE') {
+      hasAccess = await canAccessClient(user.id, program.clientId)
+    } else {
       hasAccess = await canAccessClient(user.id, program.clientId)
     }
 

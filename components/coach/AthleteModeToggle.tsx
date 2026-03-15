@@ -19,6 +19,7 @@ interface AthleteModeStatus {
     name: string
   } | null
   businessSlug: string | null
+  preferredPortal?: 'coach' | 'physio' | null
 }
 
 interface AthleteModeToggleProps {
@@ -58,6 +59,7 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
 
   // Determine if we're currently on an athlete route
   const isOnAthleteRoute = pathname.includes('/athlete/')
+  const currentPortal = pathname.includes('/physio/') ? 'physio' : 'coach'
 
   // Fetch athlete mode status on mount
   useEffect(() => {
@@ -82,6 +84,7 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
           isAthleteModeActive: false,
           athleteProfile: null,
           businessSlug: null,
+          preferredPortal: null,
         })
       }
     } catch (error) {
@@ -93,6 +96,7 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
         isAthleteModeActive: false,
         athleteProfile: null,
         businessSlug: null,
+        preferredPortal: null,
       })
     } finally {
       setIsFetching(false)
@@ -105,8 +109,8 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
     // If no athlete profile, redirect to setup
     if (!status.hasAthleteProfile) {
       const setupPath = businessSlug
-        ? `/${businessSlug}/coach/settings/athlete-profile`
-        : '/coach/settings/athlete-profile'
+        ? `/${businessSlug}/${currentPortal}/settings/athlete-profile`
+        : `/${currentPortal}/settings/athlete-profile`
       router.push(setupPath)
       return
     }
@@ -122,7 +126,7 @@ export function AthleteModeToggle({ variant = 'dropdown', className }: AthleteMo
       const response = await fetch('/api/athlete-mode/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: newEnabled, businessSlug }),
+        body: JSON.stringify({ enabled: newEnabled, businessSlug, currentPortal }),
       })
 
       const data = await response.json()

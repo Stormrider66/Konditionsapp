@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { acceptCoachRequest } from '@/lib/coach/agreement'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 interface RouteParams {
   params: Promise<{
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         { success: false, error: 'Endast coacher kan acceptera förfrågningar' },
         { status: 403 }

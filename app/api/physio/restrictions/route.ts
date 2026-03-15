@@ -5,6 +5,7 @@ import { requirePhysio, canAccessAthleteAsPhysio, canCreateRestrictions, getCurr
 import { z } from 'zod'
 import { notifyCoachOfRestriction } from '@/lib/notifications/care-team'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 // Validation schema for creating a training restriction
 const createRestrictionSchema = z.object({
@@ -162,8 +163,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Determine source based on user role
-    const source = user.role === 'PHYSIO' ? 'PHYSIO_MANUAL' : 'COACH_MANUAL'
+    const [hasPhysioAssignmentAccess, hasCoachAccess] = await Promise.all([
+      canAccessAthleteAsPhysio(user.id, validatedData.clientId),
+      canAccessCoachPlatform(user.id),
+    ])
+    const source = hasPhysioAssignmentAccess || !hasCoachAccess ? 'PHYSIO_MANUAL' : 'COACH_MANUAL'
 
     const restriction = await prisma.trainingRestriction.create({
       data: {
@@ -209,7 +213,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Notify coach of new restriction (Phase 8)
-    if (user.role === 'PHYSIO') {
+    if (source === 'PHYSIO_MANUAL') {
       try {
         await notifyCoachOfRestriction(
           restriction.id,

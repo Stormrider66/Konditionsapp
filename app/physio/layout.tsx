@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
 import { PhysioGlassHeader } from '@/components/physio/PhysioGlassHeader'
+import { canAccessPhysioPlatform } from '@/lib/user-capabilities'
 
 export default async function PhysioLayout({
     children,
@@ -15,13 +15,8 @@ export default async function PhysioLayout({
         redirect('/login')
     }
 
-    // Verify user is a physio
-    const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-    })
-
-    if (dbUser?.role !== 'PHYSIO' && dbUser?.role !== 'ADMIN') {
+    const hasPhysioAccess = await canAccessPhysioPlatform(user.id)
+    if (!hasPhysioAccess) {
         redirect('/login')
     }
 

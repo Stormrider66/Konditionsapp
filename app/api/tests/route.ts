@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { generateVisualReport } from '@/lib/ai/visual-reports'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 // GET /api/tests - Hämta alla tester för inloggad användare (med optional clientId filter)
 export async function GET(request: NextRequest) {
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         {
           success: false,

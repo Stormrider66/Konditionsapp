@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessProgram } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 /**
  * GET /api/programs/[id]
@@ -146,7 +147,7 @@ export async function PUT(
     const { id } = await params
 
     // Only coaches can update programs
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         {
           success: false,
@@ -238,7 +239,7 @@ export async function DELETE(
     const { id } = await params
 
     // Only coaches can delete programs
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         {
           success: false,

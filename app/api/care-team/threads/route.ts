@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
 
 // Validation schema for creating a care team thread
 const createThreadSchema = z.object({
@@ -49,22 +50,12 @@ export async function GET(request: NextRequest) {
 
     if (clientId) {
       // Verify access to this client
-      if (user.role === 'PHYSIO') {
-        const hasAccess = await canAccessAthleteAsPhysio(user.id, clientId)
-        if (!hasAccess) {
-          return NextResponse.json(
-            { error: 'You do not have access to this athlete' },
-            { status: 403 }
-          )
-        }
-      } else if (user.role === 'COACH') {
-        const hasAccess = await canAccessClient(user.id, clientId)
-        if (!hasAccess) {
-          return NextResponse.json(
-            { error: 'You do not have access to this athlete' },
-            { status: 403 }
-          )
-        }
+      const hasAccess = await canAccessClient(user.id, clientId)
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: 'You do not have access to this athlete' },
+          { status: 403 }
+        )
       }
       where.clientId = clientId
     }
@@ -184,16 +175,23 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validatedData = createThreadSchema.parse(body)
+    const [hasCoachAccess, hasPhysioAccess] = await Promise.all([
+      canAccessCoachPlatform(user.id),
+      canAccessPhysioPlatform(user.id),
+    ])
 
     // Verify access to the client
     let hasAccess = false
     if (user.role === 'ADMIN') {
       hasAccess = true
-    } else if (user.role === 'PHYSIO') {
-      hasAccess = await canAccessAthleteAsPhysio(user.id, validatedData.clientId)
-    } else if (user.role === 'COACH') {
-      hasAccess = await canAccessClient(user.id, validatedData.clientId)
     } else if (user.role === 'ATHLETE') {
+      hasAccess = await canAccessClient(user.id, validatedData.clientId)
+    } else if (hasPhysioAccess) {
+      hasAccess = await canAccessAthleteAsPhysio(user.id, validatedData.clientId)
+      if (!hasAccess && hasCoachAccess) {
+        hasAccess = await canAccessClient(user.id, validatedData.clientId)
+      }
+    } else {
       hasAccess = await canAccessClient(user.id, validatedData.clientId)
     }
 

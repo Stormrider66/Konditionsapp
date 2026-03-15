@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { canUseAthleteMode, getCoachSelfAthleteClient, isAthleteModeActive } from '@/lib/athlete-mode'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
+import { canAccessCoachPlatform, canAccessPhysioPlatform, getPreferredProfessionalPortal } from '@/lib/user-capabilities'
 
 /**
  * GET /api/athlete-mode/status
@@ -20,8 +21,12 @@ export async function GET() {
       )
     }
 
-    // Only COACH and ADMIN can use athlete mode
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    const [coachAccess, physioAccess] = await Promise.all([
+      canAccessCoachPlatform(user.id),
+      canAccessPhysioPlatform(user.id),
+    ])
+
+    if (!coachAccess && !physioAccess) {
       return NextResponse.json({
         success: true,
         data: {
@@ -34,7 +39,7 @@ export async function GET() {
       })
     }
 
-    const [hasProfile, athleteProfile, isActive, businessMembership] = await Promise.all([
+    const [hasProfile, athleteProfile, isActive, businessMembership, preferredPortal] = await Promise.all([
       canUseAthleteMode(user.id),
       getCoachSelfAthleteClient(user.id),
       isAthleteModeActive(),
@@ -44,6 +49,7 @@ export async function GET() {
         include: { business: { select: { slug: true } } },
         orderBy: { createdAt: 'asc' },
       }),
+      getPreferredProfessionalPortal(user.id),
     ])
 
     return NextResponse.json({
@@ -54,6 +60,7 @@ export async function GET() {
         isAthleteModeActive: isActive && hasProfile,
         athleteProfile,
         businessSlug: businessMembership?.business?.slug || null,
+        preferredPortal,
       },
     })
   } catch (error) {

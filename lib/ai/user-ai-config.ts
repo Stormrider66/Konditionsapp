@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 export interface UserAIConfig {
   userId: string
@@ -167,7 +168,7 @@ export async function getCoachIdForAI(): Promise<string | null> {
     return null
   }
 
-  if (user.role === 'COACH' || user.role === 'ADMIN') {
+  if (user.role === 'ADMIN' || await canAccessCoachPlatform(user.id)) {
     return user.id
   }
 

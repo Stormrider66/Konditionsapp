@@ -12,6 +12,7 @@ import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import type { VBTDeviceType } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import {
   parseVBTCSV,
   enrichMeasurements,
@@ -75,6 +76,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    const hasCoachAccess = await canAccessCoachPlatform(user.id);
+
     // Read and parse CSV
     const csvContent = await file.text();
     const deviceType = (deviceTypeParam as VBTDeviceType) || undefined;
@@ -118,7 +121,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       const newSession = await tx.vBTSession.create({
         data: {
           clientId,
-          coachId: user.role === 'COACH' ? user.id : null,
+          coachId: hasCoachAccess ? user.id : null,
           sessionDate: parsed.sessionDate,
           deviceType: parsed.deviceType,
           deviceName: parsed.deviceName,

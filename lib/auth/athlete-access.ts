@@ -10,6 +10,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
 
 export interface AthleteAccessResult {
   allowed: boolean
@@ -57,8 +58,13 @@ export async function canAccessAthlete(
     return { allowed: false, reason: 'Cannot access other athlete data' }
   }
 
-  // For coaches, check various relationships
-  if (user.role === 'COACH') {
+  const [hasCoachAccess, hasPhysioAccess] = await Promise.all([
+    canAccessCoachPlatform(userId),
+    canAccessPhysioPlatform(userId),
+  ])
+
+  // For users with coach capability, check various coach relationships.
+  if (hasCoachAccess) {
     // Check 1: Direct client ownership (coach created this client)
     const ownedClient = await prisma.client.findFirst({
       where: {
@@ -133,8 +139,8 @@ export async function canAccessAthlete(
     return { allowed: false, reason: 'No coach-athlete relationship' }
   }
 
-  // For physios, delegate to physio access checks
-  if (user.role === 'PHYSIO') {
+  // For users with physio capability, delegate to physio access checks.
+  if (hasPhysioAccess) {
     const { canAccessAthleteAsPhysio } = await import('@/lib/auth-utils')
     const canAccess = await canAccessAthleteAsPhysio(userId, clientId)
 

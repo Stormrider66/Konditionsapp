@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
 import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { logError } from '@/lib/logger-console'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 // GET /api/hybrid-analytics - Get workout analytics
 // Query params: athleteId (optional for coaches), dateFrom, dateTo, workoutId
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       const resolved = await resolveAthleteClientId();
       if (!resolved) {
         // Coaches/admins must provide an athleteId when not in athlete mode
-        if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+        if (!(await canAccessCoachPlatform(user.id))) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
         return NextResponse.json(

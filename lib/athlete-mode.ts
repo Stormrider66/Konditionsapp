@@ -3,6 +3,7 @@
 
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
 
 // Re-export the cookie name for consistency
 export { ATHLETE_MODE_COOKIE } from './athlete-mode-client'
@@ -36,8 +37,12 @@ export async function canUseAthleteMode(userId: string): Promise<boolean> {
 
   if (!user) return false
 
-  // Only COACH and ADMIN roles can use athlete mode
-  if (user.role !== 'COACH' && user.role !== 'ADMIN') return false
+  const [coachAccess, physioAccess] = await Promise.all([
+    canAccessCoachPlatform(userId),
+    canAccessPhysioPlatform(userId),
+  ])
+
+  if (!coachAccess && !physioAccess) return false
 
   return user.selfAthleteClientId !== null
 }
@@ -77,7 +82,7 @@ export async function getCoachSelfAthleteClient(userId: string) {
 /**
  * Get the athlete client ID for the current context
  * For ATHLETE role: returns their athleteAccount.clientId
- * For COACH/ADMIN in athlete mode: returns their selfAthleteClientId
+ * For professional users in athlete mode: returns their selfAthleteClientId
  */
 export async function getContextualAthleteClientId(
   userId: string,
@@ -92,7 +97,7 @@ export async function getContextualAthleteClientId(
     return athleteAccount?.clientId || null
   }
 
-  if ((userRole === 'COACH' || userRole === 'ADMIN') && isAthleteMode) {
+  if ((userRole === 'COACH' || userRole === 'PHYSIO' || userRole === 'ADMIN') && isAthleteMode) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { selfAthleteClientId: true },

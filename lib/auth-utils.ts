@@ -9,6 +9,11 @@ import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import { logger } from '@/lib/logger'
 import { ApiError } from '@/lib/api-error'
 import {
+  canAccessCoachPlatform,
+  canAccessPhysioPlatform,
+  getPreferredProfessionalPortal,
+} from '@/lib/user-capabilities'
+import {
   buildSelfAthleteSubscriptionSeedForUser,
   ensureAthleteClientDefaultsTx,
 } from '@/lib/user-provisioning'
@@ -215,7 +220,8 @@ export async function requireCoach(): Promise<User> {
     redirect('/login')
   }
 
-  if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+  const hasCoachAccess = await canAccessCoachPlatform(user.id)
+  if (!hasCoachAccess) {
     throw new Error('Access denied. Coach access required.')
   }
 
@@ -258,11 +264,11 @@ export interface AthleteOrCoachInAthleteModeResult {
 }
 
 /**
- * Require user to be an ATHLETE or a COACH/ADMIN in athlete mode
+ * Require user to be an ATHLETE or a professional user in athlete mode
  * Returns the user with the clientId for data access
  *
  * For ATHLETE role: returns athleteAccount.clientId
- * For COACH/ADMIN with athleteMode cookie: returns selfAthleteClientId
+ * For professional users with athleteMode cookie: returns selfAthleteClientId
  *
  * @throws Redirects to login if not authenticated
  * @throws Redirects to /coach/settings/athlete-profile if coach without athlete profile
@@ -294,14 +300,21 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
     }
   }
 
-  // Check if user is COACH/ADMIN in athlete mode
-  if (user.role === 'COACH' || user.role === 'ADMIN') {
+  const [coachAccess, physioAccess] = await Promise.all([
+    canAccessCoachPlatform(user.id),
+    canAccessPhysioPlatform(user.id),
+  ])
+
+  // Check if user is a professional in athlete mode
+  if (coachAccess || physioAccess) {
     const athleteMode = await isAthleteModeActive()
 
     if (!athleteMode) {
-      // Not in athlete mode, redirect to coach dashboard (business-aware)
+      // Not in athlete mode, redirect to the preferred professional dashboard
       const bizSlug = await getUserPrimaryBusinessSlug(user.id)
-      redirect(bizSlug ? `/${bizSlug}/coach/dashboard` : '/coach')
+      const portal = await getPreferredProfessionalPortal(user.id)
+      const dashboardPath = portal === 'physio' ? 'physio/dashboard' : 'coach/dashboard'
+      redirect(bizSlug ? `/${bizSlug}/${dashboardPath}` : `/${dashboardPath}`)
     }
 
     // Check subscription status for athlete mode access
@@ -319,9 +332,14 @@ export async function requireAthleteOrCoachInAthleteMode(): Promise<AthleteOrCoa
     })
 
     if (!fullUser?.selfAthleteClientId) {
-      // No athlete profile set up, redirect to setup page (business-aware)
+      // No athlete profile set up, redirect to the relevant setup page
       const bizSlug = await getUserPrimaryBusinessSlug(user.id)
-      redirect(bizSlug ? `/${bizSlug}/coach/settings/athlete-profile` : '/coach/settings/athlete-profile')
+      const portal = physioAccess && !coachAccess ? 'physio' : 'coach'
+      redirect(
+        bizSlug
+          ? `/${bizSlug}/${portal}/settings/athlete-profile`
+          : `/${portal}/settings/athlete-profile`
+      )
     }
 
     await ensureAthleteClientDefaults(fullUser.selfAthleteClientId)
@@ -469,8 +487,13 @@ export async function resolveAthleteClientId(): Promise<AthleteOrCoachInAthleteM
     }
   }
 
-  // COACH/ADMIN → check athlete mode cookie + selfAthleteClientId
-  if (user.role === 'COACH' || user.role === 'ADMIN') {
+  const [coachAccess, physioAccess] = await Promise.all([
+    canAccessCoachPlatform(user.id),
+    canAccessPhysioPlatform(user.id),
+  ])
+
+  // Professional user → check athlete mode cookie + selfAthleteClientId
+  if (coachAccess || physioAccess) {
     const athleteMode = await isAthleteModeActive()
     if (!athleteMode) return null
 
@@ -535,8 +558,8 @@ export async function canAccessProgram(
   // Admins can access everything
   if (user.role === 'ADMIN') return true
 
-  // Coaches can access programs they created
-  if (user.role === 'COACH') {
+  // Professionals with coach capability can access programs they created
+  if (await canAccessCoachPlatform(userId)) {
     const program = await prisma.trainingProgram.findFirst({
       where: {
         id: programId,
@@ -597,8 +620,8 @@ export async function canAccessWorkout(
   // Admins can access everything
   if (user.role === 'ADMIN') return true
 
-  // Coaches can access workouts in programs they created
-  if (user.role === 'COACH') {
+  // Professionals with coach capability can access workouts in programs they created
+  if (await canAccessCoachPlatform(userId)) {
     return workout.day.week.program.coachId === userId
   }
 
@@ -632,8 +655,25 @@ export async function canAccessClient(
   // Admins can access everything
   if (user.role === 'ADMIN') return true
 
-  // Coaches can access clients they created, or any client in their business if OWNER/ADMIN
-  if (user.role === 'COACH') {
+  // Athletes can access their own client record
+  if (user.role === 'ATHLETE' && user.athleteAccount) {
+    return user.athleteAccount.clientId === clientId
+  }
+
+  const [hasCoachAccess, hasPhysioAccess] = await Promise.all([
+    canAccessCoachPlatform(userId),
+    canAccessPhysioPlatform(userId),
+  ])
+
+  // Physio capability grants access through physio assignments.
+  if (hasPhysioAccess) {
+    const physioAccess = await canAccessAthleteAsPhysio(userId, clientId)
+    if (physioAccess) return true
+  }
+
+  // Coach capability grants access through ownership, active business membership,
+  // direct assignment, or owned team relationships.
+  if (hasCoachAccess) {
     const client = await prisma.client.findFirst({
       where: {
         id: clientId,
@@ -642,31 +682,56 @@ export async function canAccessClient(
     })
     if (client) return true
 
-    // Check if user is OWNER/ADMIN in a business that contains this client
-    const membership = await prisma.businessMember.findFirst({
-      where: {
-        userId,
-        isActive: true,
-        role: { in: ['OWNER', 'ADMIN'] },
-      },
-      select: { businessId: true },
-    })
-    if (membership) {
-      const businessClient = await prisma.client.findFirst({
-        where: {
-          id: clientId,
-          businessId: membership.businessId,
-        },
-      })
-      return businessClient !== null
+    const coachAgreement = prisma.coachAgreement?.findFirst
+      ? await prisma.coachAgreement.findFirst({
+          where: {
+            athleteClientId: clientId,
+            coachUserId: userId,
+            status: 'ACTIVE',
+          },
+          select: { id: true },
+        })
+      : null
+    if (coachAgreement) return true
+
+    const [memberships, clientTeam] = await Promise.all([
+      prisma.businessMember?.findMany
+        ? prisma.businessMember.findMany({
+            where: {
+              userId,
+              isActive: true,
+              role: { in: ['OWNER', 'ADMIN', 'COACH'] },
+            },
+            select: { businessId: true },
+          })
+        : Promise.resolve([]),
+      prisma.client.findUnique({
+        where: { id: clientId },
+        select: { businessId: true, teamId: true },
+      }),
+    ])
+
+    if (clientTeam?.businessId) {
+      const membershipBusinessIds = new Set(memberships.map((membership) => membership.businessId))
+      if (membershipBusinessIds.has(clientTeam.businessId)) {
+        return true
+      }
+    }
+
+    if (clientTeam?.teamId) {
+      const team = prisma.team?.findFirst
+        ? await prisma.team.findFirst({
+            where: {
+              id: clientTeam.teamId,
+              userId,
+            },
+            select: { id: true },
+          })
+        : null
+      if (team) return true
     }
 
     return false
-  }
-
-  // Athletes can access their own client record
-  if (user.role === 'ATHLETE' && user.athleteAccount) {
-    return user.athleteAccount.clientId === clientId
   }
 
   return false
@@ -708,7 +773,7 @@ export async function canAccessExercise(
   if (!exercise) return false
   if (exercise.isPublic) return true
 
-  if (user.role === 'COACH') {
+  if (await canAccessCoachPlatform(userId)) {
     return exercise.coachId === userId
   }
 
@@ -745,8 +810,8 @@ export async function getAccessiblePrograms(userId: string) {
 
   if (!user) return []
 
-  // Admins and coaches see programs they created
-  if (user.role === 'ADMIN' || user.role === 'COACH') {
+  // Professionals with coach capability see programs they created
+  if (user.role === 'ADMIN' || await canAccessCoachPlatform(userId)) {
     return prisma.trainingProgram.findMany({
       where: {
         coachId: userId,
@@ -1202,7 +1267,8 @@ export async function requirePhysio(): Promise<User> {
     redirect('/login')
   }
 
-  if (user.role !== 'PHYSIO' && user.role !== 'ADMIN') {
+  const hasPhysioAccess = await canAccessPhysioPlatform(user.id)
+  if (!hasPhysioAccess) {
     throw new Error('Access denied. Physiotherapist access required.')
   }
 
@@ -1261,7 +1327,9 @@ export async function canAccessAthleteAsPhysio(
 
   if (!user) return false
   if (user.role === 'ADMIN') return true
-  if (user.role !== 'PHYSIO') return false
+
+  const hasPhysioAccess = await canAccessPhysioPlatform(physioUserId)
+  if (!hasPhysioAccess) return false
 
   // Get the client with all relevant context
   const client = await prisma.client.findUnique({
@@ -1343,7 +1411,9 @@ export async function getPhysioAthletes(physioUserId: string): Promise<string[]>
   })
 
   if (!user) return []
-  if (user.role !== 'PHYSIO' && user.role !== 'ADMIN') return []
+
+  const hasPhysioAccess = await canAccessPhysioPlatform(physioUserId)
+  if (!hasPhysioAccess && user.role !== 'ADMIN') return []
 
   // Get all physio assignments
   const assignments = await prisma.physioAssignment.findMany({
@@ -1508,19 +1578,13 @@ export async function canCreateRestrictions(userId: string, clientId: string): P
   if (!user) return false
   if (user.role === 'ADMIN') return true
 
-  // Check if user is the coach who owns this client
-  if (user.role === 'COACH') {
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        userId: userId,
-      },
-    })
-    return client !== null
+  if (await canAccessCoachPlatform(userId)) {
+    const hasCoachAccess = await canAccessClient(userId, clientId)
+    if (hasCoachAccess) return true
   }
 
   // Check if user is a physio with restriction permission for this client
-  if (user.role === 'PHYSIO') {
+  if (await canAccessPhysioPlatform(userId)) {
     const canAccess = await canAccessAthleteAsPhysio(userId, clientId)
     if (!canAccess) return false
 
@@ -1578,19 +1642,13 @@ export async function canModifyProgramsAsPhysio(userId: string, clientId: string
   if (!user) return false
   if (user.role === 'ADMIN') return true
 
-  // Coaches can always modify their own clients' programs
-  if (user.role === 'COACH') {
-    const client = await prisma.client.findFirst({
-      where: {
-        id: clientId,
-        userId: userId,
-      },
-    })
-    return client !== null
+  if (await canAccessCoachPlatform(userId)) {
+    const hasCoachAccess = await canAccessClient(userId, clientId)
+    if (hasCoachAccess) return true
   }
 
   // Check if user is a physio with program modification permission
-  if (user.role === 'PHYSIO') {
+  if (await canAccessPhysioPlatform(userId)) {
     const canAccess = await canAccessAthleteAsPhysio(userId, clientId)
     if (!canAccess) return false
 

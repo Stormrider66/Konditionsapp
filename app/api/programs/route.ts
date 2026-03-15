@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessProgram, canAccessClient, resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 /**
  * GET /api/programs
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
           startDate: 'desc',
         },
       })
-    } else if (user.role === 'COACH') {
+    } else if (await canAccessCoachPlatform(user.id)) {
       if (clientId) {
         const hasClientAccess = await canAccessClient(user.id, clientId)
         if (!hasClientAccess) {
@@ -213,7 +214,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         { success: false, error: 'Endast tränare kan skapa program' },
         { status: 403 }

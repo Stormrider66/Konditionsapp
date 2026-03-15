@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 /**
  * PUT /api/workouts/[id]/logs/[logId]
@@ -26,6 +27,7 @@ export async function PUT(
     }
 
     const { id, logId } = await params
+    const hasCoachAccess = await canAccessCoachPlatform(user.id)
 
     // Verify log belongs to user
     const existingLog = await prisma.workoutLog.findUnique({
@@ -42,7 +44,7 @@ export async function PUT(
       )
     }
 
-    if (existingLog.athleteId !== user.id && user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (existingLog.athleteId !== user.id && !hasCoachAccess && user.role !== 'ADMIN') {
       return NextResponse.json(
         {
           success: false,
@@ -85,7 +87,7 @@ export async function PUT(
         // Per-interval results
         intervalResults: body.intervalResults || undefined,
         // Coaches can add feedback
-        ...(user.role === 'COACH' || user.role === 'ADMIN'
+        ...(hasCoachAccess || user.role === 'ADMIN'
           ? {
               coachFeedback: body.coachFeedback,
               coachViewedAt: new Date(),
@@ -133,7 +135,8 @@ export async function PATCH(
     }
 
     // Only coaches and admins can add feedback
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    const hasCoachAccess = await canAccessCoachPlatform(user.id)
+    if (!hasCoachAccess && user.role !== 'ADMIN') {
       return NextResponse.json(
         {
           success: false,
@@ -181,7 +184,7 @@ export async function PATCH(
 
     // Verify coach owns the client/athlete
     const program = existingLog.workout.day.week.program
-    if (user.role === 'COACH' && program.coachId !== user.id) {
+    if (hasCoachAccess && user.role !== 'ADMIN' && program.coachId !== user.id) {
       return NextResponse.json(
         {
           success: false,

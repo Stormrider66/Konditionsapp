@@ -1,7 +1,7 @@
 // app/api/physio/rehab-programs/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requirePhysio, getCurrentUser, canAccessAthleteAsPhysio, canAccessClient } from '@/lib/auth-utils'
+import { requirePhysio, getCurrentUser, canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 
 const updateProgramSchema = z.object({
@@ -104,12 +104,11 @@ export async function GET(
     let hasAccess = false
     if (user.role === 'ADMIN') {
       hasAccess = true
-    } else if (user.role === 'PHYSIO') {
-      hasAccess = program.physioUserId === user.id || await canAccessAthleteAsPhysio(user.id, program.clientId)
-    } else if (user.role === 'COACH') {
-      // Coach can view programs for their athletes.
-      hasAccess = await canAccessClient(user.id, program.clientId)
+    } else if (program.physioUserId === user.id) {
+      hasAccess = true
     } else if (user.role === 'ATHLETE') {
+      hasAccess = await canAccessClient(user.id, program.clientId)
+    } else {
       hasAccess = await canAccessClient(user.id, program.clientId)
     }
 

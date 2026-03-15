@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 /**
  * Generate a unique referral code
@@ -34,7 +35,7 @@ export async function GET() {
     }
 
     // Only coaches can have referral codes
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         { success: false, error: 'Only coaches can have referral codes' },
         { status: 403 }
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only coaches can create referral codes
-    if (user.role !== 'COACH' && user.role !== 'ADMIN') {
+    if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
         { success: false, error: 'Only coaches can create referral codes' },
         { status: 403 }

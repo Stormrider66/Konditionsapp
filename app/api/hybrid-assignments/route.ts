@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { requireCoach, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
 import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { logError } from '@/lib/logger-console'
+import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 
 // GET /api/hybrid-assignments - Get assignments
 // Query params: athleteId, workoutId, status, dateFrom, dateTo
@@ -32,9 +33,10 @@ export async function GET(request: NextRequest) {
     // Try resolving as athlete (or coach-in-athlete-mode)
     if (!athleteId) {
       const resolved = await resolveAthleteClientId();
+      const hasCoachAccess = user.role === 'ADMIN' || user.role === 'COACH' || await canAccessCoachPlatform(user.id);
       if (resolved) {
         where.athleteId = resolved.clientId;
-      } else if (user.role === 'COACH') {
+      } else if (hasCoachAccess) {
         // Default coach scope: only assignments for their own athletes.
         where.athlete = { userId: user.id };
       } else if (user.role !== 'ADMIN') {

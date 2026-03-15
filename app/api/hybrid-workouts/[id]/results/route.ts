@@ -11,6 +11,7 @@ import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
 import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { HybridScoreType, ScalingLevel } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
+import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -34,20 +35,23 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     // Access control:
     // - Athletes (or coach-in-athlete-mode): only their own results
-    // - Coaches: only results for their own athletes
+    // - Professionals: only results for athletes they can access
     const resolved = await resolveAthleteClientId()
+    const [hasCoachAccess, hasPhysioAccess] = await Promise.all([
+      canAccessCoachPlatform(user.id),
+      canAccessPhysioPlatform(user.id),
+    ])
     if (resolved) {
       where.athleteId = resolved.clientId
-    } else if (user.role === 'COACH' || user.role === 'ADMIN') {
+    } else if (user.role === 'ADMIN' || hasCoachAccess || hasPhysioAccess) {
       if (athleteId) {
         const hasAccess = await canAccessAthlete(user.id, athleteId)
         if (!hasAccess.allowed) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
         }
-      }
-      where.athlete = { userId: user.id }
-      if (athleteId) {
         where.athleteId = athleteId
+      } else if (hasCoachAccess) {
+        where.athlete = { userId: user.id }
       }
     } else {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -128,14 +132,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     // First try resolving as athlete (or coach-in-athlete-mode)
     const resolved = await resolveAthleteClientId()
+    const [hasCoachAccess, hasPhysioAccess] = await Promise.all([
+      canAccessCoachPlatform(user.id),
+      canAccessPhysioPlatform(user.id),
+    ])
     if (resolved) {
       athleteId = resolved.clientId
-    } else if (user.role === 'COACH' || user.role === 'ADMIN') {
+    } else if (user.role === 'ADMIN' || hasCoachAccess || hasPhysioAccess) {
       athleteId = body?.athleteId
       if (typeof athleteId !== 'string' || !athleteId) {
         return NextResponse.json({ error: 'athleteId is required' }, { status: 400 })
       }
-      // Verify coach can write results for this athlete
+      // Verify the professional can write results for this athlete.
       const hasAccess = await canAccessAthlete(user.id, athleteId)
       if (!hasAccess.allowed) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

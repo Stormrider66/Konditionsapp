@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { PhysioGlassHeader } from '@/components/physio/PhysioGlassHeader'
+import { canAccessPhysioPlatform } from '@/lib/user-capabilities'
 
 interface PhysioLayoutProps {
     children: React.ReactNode
@@ -19,7 +20,8 @@ export default async function BusinessPhysioLayout({
         redirect('/login')
     }
 
-    if (user.role !== 'PHYSIO' && user.role !== 'ADMIN') {
+    const hasPhysioAccess = await canAccessPhysioPlatform(user.id)
+    if (!hasPhysioAccess) {
         redirect('/login')
     }
 
