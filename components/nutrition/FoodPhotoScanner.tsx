@@ -474,6 +474,12 @@ export function FoodPhotoScanner({
   }
 
   const totals = calculateFoodTotals(items)
+  const hasEnhancedTotals =
+    totals.saturatedFatGrams != null ||
+    totals.monounsaturatedFatGrams != null ||
+    totals.polyunsaturatedFatGrams != null ||
+    totals.sugarGrams != null ||
+    totals.complexCarbsGrams != null
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -584,12 +590,21 @@ export function FoodPhotoScanner({
           )}
 
           {/* Confidence indicator */}
-          {confidence > 0 && (
-            <div className="flex items-center gap-2 text-xs">
+          {(confidence > 0 || enhancedMode) && (
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              {confidence > 0 && (
+                <>
               <div className={`h-2 w-2 rounded-full ${confidence >= 0.7 ? 'bg-green-400' : confidence >= 0.4 ? 'bg-yellow-400' : 'bg-red-400'}`} />
               <span className="text-slate-400">
                 Konfidensgrad: {Math.round(confidence * 100)}%
               </span>
+                </>
+              )}
+              {enhancedMode && (
+                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 text-cyan-300">
+                  Detaljerad makroanalys aktiv
+                </span>
+              )}
             </div>
           )}
 
@@ -772,7 +787,7 @@ export function FoodPhotoScanner({
                         </div>
                       </div>
                       {/* Enhanced macro subcategories */}
-                      {enhancedMode && item.saturatedFatGrams != null && (
+                      {enhancedMode && (
                         <>
                           <button
                             type="button"
@@ -791,15 +806,23 @@ export function FoodPhotoScanner({
                             <div className="mt-1.5 p-2 rounded bg-white/5 space-y-1.5">
                               <div className="text-[10px] text-slate-400">
                                 <span className="font-medium">Fett:</span>{' '}
-                                {item.saturatedFatGrams?.toFixed(1)}g mättat, {item.monounsaturatedFatGrams?.toFixed(1)}g enkelomättat, {item.polyunsaturatedFatGrams?.toFixed(1)}g fleromättat
+                                {item.saturatedFatGrams != null || item.monounsaturatedFatGrams != null || item.polyunsaturatedFatGrams != null
+                                  ? `${item.saturatedFatGrams?.toFixed(1) ?? '0.0'}g mättat, ${item.monounsaturatedFatGrams?.toFixed(1) ?? '0.0'}g enkelomättat, ${item.polyunsaturatedFatGrams?.toFixed(1) ?? '0.0'}g fleromättat`
+                                  : 'Ingen detaljerad fettfördelning returnerades för denna matvara.'}
                               </div>
                               <div className="text-[10px] text-slate-400">
                                 <span className="font-medium">Kolhydrater:</span>{' '}
-                                {item.sugarGrams?.toFixed(1)}g socker, {item.complexCarbsGrams?.toFixed(1)}g komplexa
+                                {item.sugarGrams != null || item.complexCarbsGrams != null
+                                  ? `${item.sugarGrams?.toFixed(1) ?? '0.0'}g socker, ${item.complexCarbsGrams?.toFixed(1) ?? '0.0'}g komplexa`
+                                  : 'Ingen detaljerad kolhydratfördelning returnerades för denna matvara.'}
                               </div>
                               <div className="text-[10px] text-slate-400">
                                 <span className="font-medium">Protein:</span>{' '}
-                                {item.isCompleteProtein ? 'Komplett proteinkälla' : 'Ej komplett protein'}
+                                {item.isCompleteProtein == null
+                                  ? 'Proteinkvalitet ej specificerad av analysen.'
+                                  : item.isCompleteProtein
+                                    ? 'Komplett proteinkälla'
+                                    : 'Ej komplett protein'}
                               </div>
                             </div>
                           )}
@@ -837,6 +860,25 @@ export function FoodPhotoScanner({
                   <p className="text-[10px] text-slate-400">Fiber</p>
                 </div>
               </div>
+              {enhancedMode && (
+                <div className="mt-3 rounded bg-white/5 p-2 text-[10px] text-slate-400 space-y-1.5">
+                  <div>
+                    <span className="font-medium text-slate-300">Detaljerad totalsammanfattning:</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Fett:</span>{' '}
+                    {hasEnhancedTotals
+                      ? `${totals.saturatedFatGrams?.toFixed(1) ?? '0.0'}g mättat, ${totals.monounsaturatedFatGrams?.toFixed(1) ?? '0.0'}g enkelomättat, ${totals.polyunsaturatedFatGrams?.toFixed(1) ?? '0.0'}g fleromättat`
+                      : 'Ingen detaljerad fettfördelning returnerades i denna analys.'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Kolhydrater:</span>{' '}
+                    {hasEnhancedTotals
+                      ? `${totals.sugarGrams?.toFixed(1) ?? '0.0'}g socker, ${totals.complexCarbsGrams?.toFixed(1) ?? '0.0'}g komplexa`
+                      : 'Ingen detaljerad kolhydratfördelning returnerades i denna analys.'}
+                  </div>
+                </div>
+              )}
             </GlassCardContent>
           </GlassCard>
 

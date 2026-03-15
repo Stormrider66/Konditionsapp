@@ -343,10 +343,21 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
                   />
                 </div>
               </div>
-              {enhancedMode && macros.saturatedFatGrams != null && (
+              {enhancedMode && (
                 <div className="p-2 rounded bg-muted text-xs text-muted-foreground space-y-1">
-                  <p><span className="font-medium">Fett:</span> {macros.saturatedFatGrams?.toFixed(1)}g mättat, {macros.monounsaturatedFatGrams?.toFixed(1)}g enkelomättat, {macros.polyunsaturatedFatGrams?.toFixed(1)}g fleromättat</p>
-                  <p><span className="font-medium">Kolhydrater:</span> {macros.sugarGrams?.toFixed(1)}g socker, {macros.complexCarbsGrams?.toFixed(1)}g komplexa</p>
+                  <p className="font-medium text-foreground">Detaljerad makroanalys aktiv</p>
+                  <p>
+                    <span className="font-medium">Fett:</span>{' '}
+                    {macros.saturatedFatGrams != null || macros.monounsaturatedFatGrams != null || macros.polyunsaturatedFatGrams != null
+                      ? `${macros.saturatedFatGrams?.toFixed(1) ?? '0.0'}g mättat, ${macros.monounsaturatedFatGrams?.toFixed(1) ?? '0.0'}g enkelomättat, ${macros.polyunsaturatedFatGrams?.toFixed(1) ?? '0.0'}g fleromättat`
+                      : 'Ingen detaljerad fettfördelning returnerades i denna analys.'}
+                  </p>
+                  <p>
+                    <span className="font-medium">Kolhydrater:</span>{' '}
+                    {macros.sugarGrams != null || macros.complexCarbsGrams != null
+                      ? `${macros.sugarGrams?.toFixed(1) ?? '0.0'}g socker, ${macros.complexCarbsGrams?.toFixed(1) ?? '0.0'}g komplexa`
+                      : 'Ingen detaljerad kolhydratfördelning returnerades i denna analys.'}
+                  </p>
                 </div>
               )}
             </div>
