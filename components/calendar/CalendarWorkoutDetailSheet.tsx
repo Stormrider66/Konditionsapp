@@ -51,6 +51,7 @@ interface CalendarWorkoutDetailSheetProps {
   onOpenChange: (open: boolean) => void
   variant?: 'default' | 'glass'
   isCoachView?: boolean
+  businessSlug?: string
   onWorkoutUpdated?: () => void
 }
 
@@ -171,6 +172,7 @@ export function CalendarWorkoutDetailSheet({
   onOpenChange,
   variant = 'default',
   isCoachView = false,
+  businessSlug,
   onWorkoutUpdated,
 }: CalendarWorkoutDetailSheetProps) {
   const { toast } = useToast()
@@ -306,6 +308,7 @@ export function CalendarWorkoutDetailSheet({
     : {}
 
   const latestLog = logs.find((l) => l.completed) || null
+  const athleteBasePath = businessSlug ? `/${businessSlug}` : ''
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -565,7 +568,7 @@ export function CalendarWorkoutDetailSheet({
                   className="w-full"
                   onClick={() => {
                     onOpenChange(false)
-                    window.location.href = `/athlete/workouts/${workoutId}/log`
+                    window.location.href = `${athleteBasePath}/athlete/workouts/${workoutId}/log`
                   }}
                 >
                   <ClipboardList className="h-4 w-4 mr-2" />
@@ -584,7 +587,7 @@ export function CalendarWorkoutDetailSheet({
                   )}
                   onClick={() => {
                     onOpenChange(false)
-                    window.location.href = `/athlete/workouts/${workoutId}`
+                    window.location.href = `${athleteBasePath}/athlete/workouts/${workoutId}`
                   }}
                 >
                   <TrendingUp className="h-4 w-4 mr-2" />

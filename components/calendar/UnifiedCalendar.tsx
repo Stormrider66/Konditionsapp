@@ -830,6 +830,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           onOpenChange={setIsDetailSheetOpen}
           variant="glass"
           isCoachView={isCoachView}
+          businessSlug={businessSlug}
           onWorkoutUpdated={() => mutate()}
         />
       </div>
@@ -1084,6 +1085,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         open={isDetailSheetOpen}
         onOpenChange={setIsDetailSheetOpen}
         isCoachView={isCoachView}
+        businessSlug={businessSlug}
         onWorkoutUpdated={() => mutate()}
       />
 
