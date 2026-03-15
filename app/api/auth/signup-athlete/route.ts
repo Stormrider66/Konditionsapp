@@ -49,6 +49,7 @@ const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   birthDate: z.string().optional(),
   gender: z.enum(['MALE', 'FEMALE']).optional(),
+  businessId: z.string().uuid().optional(),
   // Optional invitation code
   inviteCode: z.string().optional(),
   // AI-coached mode - athlete uses AI as primary coach
@@ -79,7 +80,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, password, name, birthDate, gender, inviteCode, aiCoached, tier } = validationResult.data;
+    const { email, password, name, birthDate, gender, businessId, inviteCode, aiCoached, tier } = validationResult.data;
+
+    let selectedBusiness: { id: string; slug: string; type: string } | null = null
+    if (businessId) {
+      selectedBusiness = await prisma.business.findFirst({
+        where: {
+          id: businessId,
+          isActive: true,
+          type: { in: ['GYM', 'CLUB'] },
+        },
+        select: {
+          id: true,
+          slug: true,
+          type: true,
+        },
+      })
+
+      if (!selectedBusiness) {
+        return NextResponse.json(
+          { error: 'Selected business was not found' },
+          { status: 400 }
+        )
+      }
+    }
 
     // Check if email is already registered
     const existingUser = await prisma.user.findUnique({
@@ -168,6 +192,7 @@ export async function POST(request: NextRequest) {
       const client = await tx.client.create({
         data: {
           userId: user.id,
+          businessId: selectedBusiness?.id,
           name,
           email,
           gender: gender || 'MALE',
@@ -234,6 +259,17 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      if (selectedBusiness) {
+        await tx.businessMember.create({
+          data: {
+            businessId: selectedBusiness.id,
+            userId: user.id,
+            role: 'MEMBER',
+            acceptedAt: new Date(),
+          },
+        })
+      }
+
       // If invitation was used, update it
       if (invitation) {
         await tx.invitation.update({
@@ -258,7 +294,8 @@ export async function POST(request: NextRequest) {
     // In beta, paid tiers are provisioned immediately without Stripe.
     // Once billing is production-ready, disable ENABLE_BETA_ATHLETE_PAID_SIGNUP
     // to restore the checkout redirect flow below.
-    let redirectUrl = '/athlete/onboarding'
+    const athleteBasePath = selectedBusiness?.slug ? `/${selectedBusiness.slug}` : ''
+    let redirectUrl = `${athleteBasePath}/athlete/onboarding`
 
     if (!ENABLE_BETA_ATHLETE_PAID_SIGNUP && tier && tier !== 'FREE') {
       try {
@@ -267,8 +304,8 @@ export async function POST(request: NextRequest) {
           result.client.id,
           tier,
           'MONTHLY',
-          `${origin}/athlete/onboarding?upgraded=true`,
-          `${origin}/athlete/onboarding`,
+          `${origin}${athleteBasePath}/athlete/onboarding?upgraded=true`,
+          `${origin}${athleteBasePath}/athlete/onboarding`,
         )
         redirectUrl = checkoutUrl
       } catch (stripeError) {

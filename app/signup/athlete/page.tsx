@@ -9,7 +9,7 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, User, Mail, Lock, Calendar, Users, Check, X } from 'lucide-react'
+import { Loader2, User, Mail, Lock, Calendar, Users, Check, X, Building2, Search } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher'
 import { ATHLETE_TIER_FEATURES } from '@/lib/ai/cost-data'
@@ -111,6 +111,10 @@ function AthleteSignupForm() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [selectedTier, setSelectedTier] = useState<Tier>(() => normalizeTierParam(searchParams.get('tier')))
+  const [gymSearch, setGymSearch] = useState('')
+  const [gymResults, setGymResults] = useState<Array<{ id: string; name: string; city: string | null; type: string; slug?: string }>>([])
+  const [selectedGym, setSelectedGym] = useState<{ id: string; name: string; slug?: string } | null>(null)
+  const [searchingGyms, setSearchingGyms] = useState(false)
 
   const inviteCodeFromUrl = searchParams.get('invite') || ''
   const isAICoached = searchParams.get('mode') === 'ai-coached'
@@ -125,6 +129,24 @@ function AthleteSignupForm() {
       inviteCode: inviteCodeFromUrl,
     },
   })
+
+  const searchGyms = async (query: string) => {
+    setGymSearch(query)
+    if (query.length < 2) {
+      setGymResults([])
+      return
+    }
+    setSearchingGyms(true)
+    try {
+      const response = await fetch(`/api/businesses/search?q=${encodeURIComponent(query)}`)
+      const data = await response.json()
+      setGymResults(data.businesses || [])
+    } catch {
+      setGymResults([])
+    } finally {
+      setSearchingGyms(false)
+    }
+  }
 
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true)
@@ -142,6 +164,7 @@ function AthleteSignupForm() {
           inviteCode: data.inviteCode || undefined,
           aiCoached: isAICoached,
           tier: selectedTier,
+          businessId: selectedGym?.id,
         }),
       })
 
@@ -201,6 +224,68 @@ function AthleteSignupForm() {
             Du skapar ett konto och blir sedan omdirigerad till betalning.
           </p>
         )}
+      </div>
+
+      <div className="space-y-4 pt-2">
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <label className="text-sm font-medium">
+            Välj gym eller business
+          </label>
+        </div>
+
+        {selectedGym ? (
+          <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 border border-blue-200">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium">{selectedGym.name}</span>
+            </div>
+            <button type="button" onClick={() => setSelectedGym(null)} className="text-blue-600 hover:text-blue-800">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="relative">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                className="flex h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="Sök efter gym eller business..."
+                value={gymSearch}
+                onChange={(e) => searchGyms(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            {gymResults.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-40 overflow-auto">
+                {gymResults.map((gym) => (
+                  <button
+                    key={gym.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex items-center justify-between"
+                    onClick={() => {
+                      setSelectedGym({ id: gym.id, name: gym.name, slug: gym.slug })
+                      setGymResults([])
+                      setGymSearch('')
+                    }}
+                  >
+                    <span>{gym.name}</span>
+                    {gym.city && <span className="text-muted-foreground text-xs">{gym.city}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+            {searchingGyms && (
+              <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg p-3 text-center">
+                <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                <span className="text-sm text-muted-foreground">Söker...</span>
+              </div>
+            )}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Om du väljer ett gym kopplas ditt konto till deras business direkt och du skickas till deras sida efter registrering.
+        </p>
       </div>
 
       {/* Registration Form */}

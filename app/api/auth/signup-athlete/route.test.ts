@@ -10,6 +10,9 @@ const mockPrisma = vi.hoisted(() => ({
   user: {
     findUnique: vi.fn(),
   },
+  business: {
+    findFirst: vi.fn(),
+  },
   invitation: {
     findUnique: vi.fn(),
   },
@@ -53,6 +56,7 @@ describe('signup-athlete route', () => {
     vi.clearAllMocks()
     mockGetRequestIp.mockReturnValue('127.0.0.1')
     mockRateLimitJsonResponse.mockResolvedValue(null)
+    mockPrisma.business.findFirst.mockResolvedValue(null)
     mockPrisma.invitation.findUnique.mockResolvedValue(null)
   })
 
@@ -140,6 +144,98 @@ describe('signup-athlete route', () => {
     expect(mockCreateCheckoutSession).not.toHaveBeenCalled()
     expect(body.subscription.tier).toBe('PRO')
     expect(body.redirectUrl).toBe('/athlete/onboarding')
+  })
+
+  it('links athlete to selected business and returns branded onboarding redirect', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null)
+    mockPrisma.business.findFirst.mockResolvedValue({
+      id: 'business-1',
+      slug: 'star-by-thomson',
+      type: 'GYM',
+    })
+    mockSignUp.mockResolvedValue({
+      data: {
+        user: { id: 'auth-user-3' },
+      },
+      error: null,
+    })
+
+    const tx = {
+      user: {
+        create: vi.fn().mockResolvedValue({
+          id: 'auth-user-3',
+          email: 'gymathlete@example.com',
+          name: 'Gym Athlete',
+          role: 'ATHLETE',
+        }),
+      },
+      client: {
+        create: vi.fn().mockResolvedValue({
+          id: 'client-3',
+          name: 'Gym Athlete',
+          isDirect: true,
+        }),
+      },
+      athleteSubscription: {
+        create: vi.fn().mockResolvedValue({
+          id: 'sub-3',
+          tier: 'FREE',
+        }),
+      },
+      agentPreferences: {
+        create: vi.fn().mockResolvedValue({ id: 'prefs-3' }),
+      },
+      sportProfile: {
+        create: vi.fn().mockResolvedValue({ id: 'sport-3' }),
+      },
+      athleteAccount: {
+        create: vi.fn().mockResolvedValue({ id: 'account-3' }),
+      },
+      businessMember: {
+        create: vi.fn().mockResolvedValue({ id: 'membership-1' }),
+      },
+      invitation: {
+        update: vi.fn(),
+      },
+    }
+
+    mockPrisma.$transaction.mockImplementation(async (callback: (tx: typeof tx) => Promise<unknown>) => callback(tx))
+
+    const request = new NextRequest('http://localhost/api/auth/signup-athlete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        origin: 'http://localhost:3000',
+      },
+      body: JSON.stringify({
+        email: 'gymathlete@example.com',
+        password: 'password123',
+        name: 'Gym Athlete',
+        tier: 'FREE',
+        businessId: '11111111-1111-4111-8111-111111111111',
+      }),
+    })
+
+    const response = await POST(request)
+    const body = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(tx.client.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'auth-user-3',
+        businessId: 'business-1',
+        name: 'Gym Athlete',
+        email: 'gymathlete@example.com',
+      }),
+    })
+    expect(tx.businessMember.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        businessId: 'business-1',
+        userId: 'auth-user-3',
+        role: 'MEMBER',
+      }),
+    })
+    expect(body.redirectUrl).toBe('/star-by-thomson/athlete/onboarding')
   })
 
   it('accepts BASIC as a legacy alias for STANDARD during signup', async () => {
