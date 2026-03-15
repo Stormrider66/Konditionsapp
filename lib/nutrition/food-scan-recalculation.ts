@@ -1,6 +1,8 @@
 import type { FoodPhotoAnalysisResult } from '@/lib/validations/gemini-schemas'
 
-export interface EditableFoodItem extends FoodPhotoAnalysisResult['items'][number] {
+type BaseFoodItem = FoodPhotoAnalysisResult['items'][number]
+
+export type EditableFoodItem = BaseFoodItem & {
   nutrientDensity: NutrientDensity
 }
 

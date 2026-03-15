@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -26,10 +26,12 @@ type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
 
 export default function ResetPasswordPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [isReady, setIsReady] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [isInvalidLink, setIsInvalidLink] = useState(false)
 
   const {
     register,
@@ -41,27 +43,55 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const supabase = createClient()
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
 
-    // Listen for PASSWORD_RECOVERY event from Supabase magic link
+    const authError = searchParams.get('error')
+    if (authError) {
+      setIsInvalidLink(true)
+      return
+    }
+
+    const markReadyIfAuthenticated = async () => {
+      const [{ data: sessionData }, { data: userData }] = await Promise.all([
+        supabase.auth.getSession(),
+        supabase.auth.getUser(),
+      ])
+
+      if (sessionData.session || userData.user) {
+        setIsReady(true)
+        setIsInvalidLink(false)
+        return true
+      }
+
+      return false
+    }
+
+    void markReadyIfAuthenticated()
+
+    // Listen for recovery or sign-in events. Invite/reset links handled through
+    // /api/auth/callback often land here with a normal signed-in session rather
+    // than a PASSWORD_RECOVERY client event.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event) => {
-        if (event === 'PASSWORD_RECOVERY') {
+        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           setIsReady(true)
+          setIsInvalidLink(false)
         }
       }
     )
 
-    // Also check if we already have a session (user clicked link and session is active)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setIsReady(true)
+    timeoutId = setTimeout(async () => {
+      const authenticated = await markReadyIfAuthenticated()
+      if (!authenticated) {
+        setIsInvalidLink(true)
       }
-    })
+    }, 4000)
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
-  }, [])
+  }, [searchParams])
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     setIsLoading(true)
@@ -122,6 +152,20 @@ export default function ResetPasswordPage() {
               <p className="text-sm text-muted-foreground">
                 Ditt lösenord har uppdaterats. Du omdirigeras till inloggningssidan...
               </p>
+            </div>
+          ) : isInvalidLink ? (
+            <div className="text-center space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Länken för att välja nytt lösenord är ogiltig eller har gått ut.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push('/forgot-password')}
+              >
+                Begär ny återställningslänk
+              </Button>
             </div>
           ) : !isReady ? (
             <div className="text-center space-y-4">
