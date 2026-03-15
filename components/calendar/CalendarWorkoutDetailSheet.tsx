@@ -41,6 +41,8 @@ import {
   TrendingUp,
   Gauge,
   ClipboardList,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
@@ -78,6 +80,7 @@ interface WorkoutSegment {
   exercise?: {
     id: string
     name: string
+    nameSv?: string | null
     category?: string | null
     muscleGroup?: string | null
   } | null
@@ -93,6 +96,13 @@ interface WorkoutDetail {
   distance?: number | null
   instructions?: string | null
   coachNotes?: string | null
+  day?: {
+    week?: {
+      program?: {
+        id: string
+      } | null
+    } | null
+  } | null
   segments: WorkoutSegment[]
 }
 
@@ -120,6 +130,13 @@ interface WorkoutLog {
   athlete: { id: string; name: string | null }
 }
 
+interface ExerciseOption {
+  id: string
+  name: string
+  nameSv?: string | null
+  category?: string | null
+}
+
 const SECTION_ORDER = ['WARMUP', 'MAIN', 'CORE', 'COOLDOWN'] as const
 const SECTION_LABELS: Record<string, string> = {
   WARMUP: 'Uppvärmning',
@@ -135,20 +152,41 @@ const SECTION_COLORS: Record<string, string> = {
 }
 
 const INTENSITY_LABELS: Record<string, string> = {
+  RECOVERY: 'Återhämtning',
   EASY: 'Lätt',
   MODERATE: 'Måttlig',
-  HARD: 'Hård',
-  MAXIMUM: 'Maximal',
-  RECOVERY: 'Återhämtning',
+  THRESHOLD: 'Tröskel',
+  INTERVAL: 'Intervall',
+  MAX: 'Max',
 }
 
 const INTENSITY_COLORS: Record<string, string> = {
+  RECOVERY: 'bg-blue-400',
   EASY: 'bg-green-500',
   MODERATE: 'bg-yellow-500',
-  HARD: 'bg-orange-500',
-  MAXIMUM: 'bg-red-500',
-  RECOVERY: 'bg-blue-400',
+  THRESHOLD: 'bg-orange-500',
+  INTERVAL: 'bg-red-500',
+  MAX: 'bg-fuchsia-600',
 }
+
+const WORKOUT_TYPE_OPTIONS = [
+  'RUNNING',
+  'STRENGTH',
+  'PLYOMETRIC',
+  'CORE',
+  'RECOVERY',
+  'CYCLING',
+  'SKIING',
+  'SWIMMING',
+  'TRIATHLON',
+  'HYROX',
+  'ALTERNATIVE',
+  'OTHER',
+] as const
+
+const STRENGTH_TYPES = new Set(['STRENGTH', 'PLYOMETRIC', 'CORE'])
+const STRENGTH_SEGMENT_TYPES = ['EXERCISE', 'WORK', 'REST'] as const
+const CARDIO_SEGMENT_TYPES = ['WARMUP', 'WORK', 'INTERVAL', 'RECOVERY', 'COOLDOWN', 'REST'] as const
 
 const FEELING_LABELS: Record<string, string> = {
   Great: 'Fantastiskt',
@@ -185,10 +223,14 @@ export function CalendarWorkoutDetailSheet({
   // Edit state
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [editName, setEditName] = useState('')
+  const [editType, setEditType] = useState('')
   const [editIntensity, setEditIntensity] = useState('')
   const [editInstructions, setEditInstructions] = useState('')
   const [editCoachNotes, setEditCoachNotes] = useState('')
+  const [editSegments, setEditSegments] = useState<WorkoutSegment[]>([])
+  const [availableExercises, setAvailableExercises] = useState<ExerciseOption[]>([])
 
   // Fetch workout and logs
   useEffect(() => {
@@ -233,12 +275,47 @@ export function CalendarWorkoutDetailSheet({
     }
   }, [workoutId, open])
 
+  useEffect(() => {
+    if (!open) return
+
+    let cancelled = false
+
+    fetch('/api/exercises?limit=500')
+      .then((res) => {
+        if (!res.ok) return []
+        return res.json()
+      })
+      .then((data) => {
+        if (cancelled) return
+        const exercises = Array.isArray(data) ? data : data.exercises || []
+        setAvailableExercises(
+          exercises.map((exercise: any) => ({
+            id: exercise.id,
+            name: exercise.name,
+            nameSv: exercise.nameSv,
+            category: exercise.category,
+          }))
+        )
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAvailableExercises([])
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [open])
+
   const startEditing = useCallback(() => {
     if (!workout) return
     setEditName(workout.name)
+    setEditType(workout.type)
     setEditIntensity(workout.intensity)
     setEditInstructions(workout.instructions || '')
     setEditCoachNotes(workout.coachNotes || '')
+    setEditSegments(workout.segments.map((segment) => ({ ...segment })))
     setIsEditing(true)
   }, [workout])
 
@@ -256,21 +333,27 @@ export function CalendarWorkoutDetailSheet({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: editName,
+          type: editType,
           intensity: editIntensity,
           instructions: editInstructions || null,
           coachNotes: editCoachNotes || null,
-          segments: workout.segments.map((s) => ({
+          segments: editSegments.map((s) => ({
+            section: s.section,
             type: s.type,
             duration: s.duration,
             distance: s.distance,
             pace: s.pace,
             zone: s.zone,
             heartRate: s.heartRate,
+            power: s.power,
+            description: s.description,
             notes: s.notes,
             exerciseId: s.exerciseId,
             sets: s.sets,
             reps: s.repsCount,
+            repsCount: s.repsCount,
             weight: s.weight,
+            tempo: s.tempo,
             rest: s.rest,
           })),
         }),
@@ -281,9 +364,11 @@ export function CalendarWorkoutDetailSheet({
       setWorkout({
         ...workout,
         name: editName,
+        type: editType,
         intensity: editIntensity,
         instructions: editInstructions || null,
         coachNotes: editCoachNotes || null,
+        segments: editSegments,
       })
       setIsEditing(false)
       toast({ title: 'Sparat', description: 'Passet har uppdaterats' })
@@ -297,7 +382,103 @@ export function CalendarWorkoutDetailSheet({
     } finally {
       setIsSaving(false)
     }
-  }, [workout, workoutId, editName, editIntensity, editInstructions, editCoachNotes, toast, onWorkoutUpdated])
+  }, [workout, workoutId, editName, editType, editIntensity, editInstructions, editCoachNotes, editSegments, toast, onWorkoutUpdated])
+
+  const isStrengthWorkout = STRENGTH_TYPES.has((isEditing ? editType : workout?.type) || '')
+
+  const updateSegment = useCallback((index: number, field: keyof WorkoutSegment, value: string | number | null) => {
+    setEditSegments((current) =>
+      current.map((segment, currentIndex) =>
+        currentIndex === index
+          ? { ...segment, [field]: value }
+          : segment
+      )
+    )
+  }, [])
+
+  const removeSegment = useCallback((index: number) => {
+    setEditSegments((current) => current.filter((_, currentIndex) => currentIndex !== index))
+  }, [])
+
+  const updateSegmentExercise = useCallback((index: number, exerciseId: string) => {
+    const selectedExercise = availableExercises.find((exercise) => exercise.id === exerciseId) || null
+    setEditSegments((current) =>
+      current.map((segment, currentIndex) =>
+        currentIndex === index
+          ? {
+              ...segment,
+              exerciseId,
+              exercise: selectedExercise
+                ? {
+                    id: selectedExercise.id,
+                    name: selectedExercise.name,
+                    nameSv: selectedExercise.nameSv,
+                    category: selectedExercise.category,
+                    muscleGroup: null,
+                  }
+                : null,
+            }
+          : segment
+      )
+    )
+  }, [availableExercises])
+
+  const addSegment = useCallback(() => {
+    setEditSegments((current) => [
+      ...current,
+      {
+        id: `temp-${crypto.randomUUID()}`,
+        order: current.length + 1,
+        type: isStrengthWorkout ? 'EXERCISE' : 'WORK',
+        duration: isStrengthWorkout ? null : 10,
+        distance: null,
+        pace: null,
+        zone: null,
+        heartRate: null,
+        power: null,
+        reps: null,
+        exerciseId: null,
+        sets: isStrengthWorkout ? 3 : null,
+        repsCount: isStrengthWorkout ? '10' : null,
+        weight: null,
+        tempo: null,
+        rest: isStrengthWorkout ? 90 : null,
+        section: 'MAIN',
+        description: null,
+        notes: null,
+        exercise: null,
+      },
+    ])
+  }, [isStrengthWorkout])
+
+  const deleteWorkout = useCallback(async () => {
+    if (!workoutId) return
+    const confirmed = window.confirm('Vill du ta bort detta pass? Detta kan inte ångras.')
+    if (!confirmed) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/workouts/${workoutId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Kunde inte ta bort passet')
+      }
+
+      toast({ title: 'Pass borttaget', description: 'Passet har tagits bort från kalendern' })
+      onOpenChange(false)
+      onWorkoutUpdated?.()
+    } catch {
+      toast({
+        title: 'Fel',
+        description: 'Kunde inte ta bort passet',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }, [workoutId, toast, onOpenChange, onWorkoutUpdated])
 
   const groupedSegments = workout
     ? SECTION_ORDER.reduce<Record<string, WorkoutSegment[]>>((acc, section) => {
@@ -324,18 +505,33 @@ export function CalendarWorkoutDetailSheet({
               Passdetaljer
             </SheetTitle>
             {workout && !isLoading && !isEditing && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={startEditing}
-                className={cn(
-                  'h-8 gap-1.5',
-                  isGlass && 'text-slate-400 hover:text-white hover:bg-white/10'
-                )}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Redigera
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={startEditing}
+                  className={cn(
+                    'h-8 gap-1.5',
+                    isGlass && 'text-slate-400 hover:text-white hover:bg-white/10'
+                  )}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Redigera
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={deleteWorkout}
+                  disabled={isDeleting}
+                  className={cn(
+                    'h-8 gap-1.5 text-red-600 hover:text-red-700',
+                    isGlass && 'text-red-400 hover:text-red-300 hover:bg-white/10'
+                  )}
+                >
+                  {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  Ta bort
+                </Button>
+              </div>
             )}
             {isEditing && (
               <div className="flex items-center gap-1">
@@ -391,6 +587,21 @@ export function CalendarWorkoutDetailSheet({
                 </div>
                 <div>
                   <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                    Typ
+                  </label>
+                  <Select value={editType} onValueChange={setEditType}>
+                    <SelectTrigger className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {WORKOUT_TYPE_OPTIONS.map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
                     Intensitet
                   </label>
                   <Select value={editIntensity} onValueChange={setEditIntensity}>
@@ -425,6 +636,243 @@ export function CalendarWorkoutDetailSheet({
                     rows={3}
                     className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
                   />
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className={cn('text-xs font-bold uppercase tracking-wider block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                      Segment
+                    </label>
+                    <Button type="button" variant="outline" size="sm" onClick={addSegment}>
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Lägg till segment
+                    </Button>
+                  </div>
+                  <div className="space-y-3">
+                    {editSegments.map((segment, index) => (
+                      <div
+                        key={segment.id}
+                        className={cn(
+                          'rounded-lg border p-3 space-y-3',
+                          isGlass ? 'border-white/10 bg-white/5' : 'border-border bg-muted/30'
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className={cn('text-xs font-bold uppercase tracking-wider', isGlass ? 'text-slate-400' : 'text-muted-foreground')}>
+                            Segment {index + 1}
+                          </span>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => removeSegment(index)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                              Sektion
+                            </label>
+                            <Select value={segment.section} onValueChange={(value) => updateSegment(index, 'section', value)}>
+                              <SelectTrigger className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {SECTION_ORDER.map((section) => (
+                                  <SelectItem key={section} value={section}>{SECTION_LABELS[section]}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                              Segmenttyp
+                            </label>
+                            <Select value={segment.type} onValueChange={(value) => updateSegment(index, 'type', value)}>
+                              <SelectTrigger className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(isStrengthWorkout ? STRENGTH_SEGMENT_TYPES : CARDIO_SEGMENT_TYPES).map((type) => (
+                                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                              Beskrivning
+                            </label>
+                            <Input
+                              value={segment.description || ''}
+                              onChange={(e) => updateSegment(index, 'description', e.target.value || null)}
+                              className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                            />
+                          </div>
+                          <div>
+                            <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                              Anteckningar
+                            </label>
+                            <Input
+                              value={segment.notes || ''}
+                              onChange={(e) => updateSegment(index, 'notes', e.target.value || null)}
+                              className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                            />
+                          </div>
+                          {isStrengthWorkout ? (
+                            <>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Övning
+                                </label>
+                                <Select
+                                  value={segment.exerciseId || '__none__'}
+                                  onValueChange={(value) => {
+                                    if (value === '__none__') {
+                                      updateSegment(index, 'exerciseId', null)
+                                      updateSegment(index, 'exercise', null)
+                                      return
+                                    }
+                                    updateSegmentExercise(index, value)
+                                  }}
+                                >
+                                  <SelectTrigger className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}>
+                                    <SelectValue placeholder="Välj övning" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">Ingen övning</SelectItem>
+                                    {availableExercises
+                                      .filter((exercise) => !exercise.category || STRENGTH_TYPES.has(exercise.category))
+                                      .map((exercise) => (
+                                        <SelectItem key={exercise.id} value={exercise.id}>
+                                          {exercise.nameSv || exercise.name}
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Set
+                                </label>
+                                <Input
+                                  type="number"
+                                  value={segment.sets ?? ''}
+                                  onChange={(e) => updateSegment(index, 'sets', e.target.value ? Number(e.target.value) : null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Reps
+                                </label>
+                                <Input
+                                  value={segment.repsCount || ''}
+                                  onChange={(e) => updateSegment(index, 'repsCount', e.target.value || null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Vikt
+                                </label>
+                                <Input
+                                  value={segment.weight || ''}
+                                  onChange={(e) => updateSegment(index, 'weight', e.target.value || null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Tempo
+                                </label>
+                                <Input
+                                  value={segment.tempo || ''}
+                                  onChange={(e) => updateSegment(index, 'tempo', e.target.value || null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Vila (sek)
+                                </label>
+                                <Input
+                                  type="number"
+                                  value={segment.rest ?? ''}
+                                  onChange={(e) => updateSegment(index, 'rest', e.target.value ? Number(e.target.value) : null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Tid (min)
+                                </label>
+                                <Input
+                                  type="number"
+                                  value={segment.duration ?? ''}
+                                  onChange={(e) => updateSegment(index, 'duration', e.target.value ? Number(e.target.value) : null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Distans (km)
+                                </label>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  value={segment.distance ?? ''}
+                                  onChange={(e) => updateSegment(index, 'distance', e.target.value ? Number(e.target.value) : null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Tempo
+                                </label>
+                                <Input
+                                  value={segment.pace || ''}
+                                  onChange={(e) => updateSegment(index, 'pace', e.target.value || null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Zon
+                                </label>
+                                <Input
+                                  type="number"
+                                  value={segment.zone ?? ''}
+                                  onChange={(e) => updateSegment(index, 'zone', e.target.value ? Number(e.target.value) : null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Puls
+                                </label>
+                                <Input
+                                  value={segment.heartRate || ''}
+                                  onChange={(e) => updateSegment(index, 'heartRate', e.target.value || null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                              <div>
+                                <label className={cn('text-xs font-bold uppercase tracking-wider mb-1.5 block', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                                  Effekt
+                                </label>
+                                <Input
+                                  type="number"
+                                  value={segment.power ?? ''}
+                                  onChange={(e) => updateSegment(index, 'power', e.target.value ? Number(e.target.value) : null)}
+                                  className={cn(isGlass && 'bg-white/5 border-white/10 text-white')}
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : (

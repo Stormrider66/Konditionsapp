@@ -25,7 +25,7 @@ export async function GET(
             week: {
               include: {
                 program: {
-                  select: { clientId: true }
+                  select: { id: true, clientId: true, coachId: true }
                 }
               }
             }
@@ -89,19 +89,27 @@ export async function PUT(
     // Transaction to update workout and replace segments
     const updatedWorkout = await prisma.$transaction(async (tx) => {
       // 1. Update workout details
+      const normalizedSegments = Array.isArray(segments) ? segments : null
+
       const workout = await tx.workout.update({
         where: { id },
         data: {
-          name,
-          intensity,
+          ...(name !== undefined && { name }),
+          ...(intensity !== undefined && { intensity }),
           type: type || existingWorkout.type,
           ...(instructions !== undefined && { instructions }),
           ...(coachNotes !== undefined && { coachNotes }),
           // Update total duration/distance based on segments
-          duration: segments.reduce((acc: number, s: any) => acc + (Number(s.duration) || 0), 0),
-          distance: segments.reduce((acc: number, s: any) => acc + (Number(s.distance) || 0), 0),
+          ...(normalizedSegments && {
+            duration: normalizedSegments.reduce((acc: number, s: any) => acc + (Number(s.duration) || 0), 0),
+            distance: normalizedSegments.reduce((acc: number, s: any) => acc + (Number(s.distance) || 0), 0),
+          }),
         }
       })
+
+      if (!normalizedSegments) {
+        return workout
+      }
 
       // 2. Delete existing segments
       await tx.workoutSegment.deleteMany({
@@ -109,9 +117,9 @@ export async function PUT(
       })
 
       // 3. Create new segments
-      if (segments && segments.length > 0) {
+      if (normalizedSegments.length > 0) {
         await tx.workoutSegment.createMany({
-          data: segments.flatMap((s: any, index: number) => {
+          data: normalizedSegments.flatMap((s: any, index: number) => {
             const baseSegment = {
               workoutId: id,
               order: index + 1,
@@ -121,12 +129,16 @@ export async function PUT(
               zone: s.zone ? Number(s.zone) : null,
               pace: s.pace,
               heartRate: s.heartRate,
+              power: s.power ? Number(s.power) : null,
               notes: s.notes,
+              description: s.description,
               exerciseId: s.exerciseId, // For strength workouts
               sets: s.sets ? Number(s.sets) : null,
-              repsCount: s.reps,
+              repsCount: s.reps ?? s.repsCount ?? null,
               weight: s.weight,
-              rest: s.rest ? Number(s.rest) : null
+              tempo: s.tempo,
+              rest: s.rest ? Number(s.rest) : null,
+              section: s.section || 'MAIN',
             }
 
              // If it's an interval with repeats, we expand it
@@ -169,6 +181,38 @@ export async function PUT(
 
     return NextResponse.json(updatedWorkout)
 
+  } catch (error) {
+    return handleApiError(error)
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await requireAuth()
+    const { id } = await params
+
+    const hasAccess = await canAccessWorkout(user.id, id)
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const existingWorkout = await prisma.workout.findUnique({
+      where: { id },
+      select: { id: true },
+    })
+
+    if (!existingWorkout) {
+      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+    }
+
+    await prisma.workout.delete({
+      where: { id },
+    })
+
+    return NextResponse.json({ success: true })
   } catch (error) {
     return handleApiError(error)
   }
