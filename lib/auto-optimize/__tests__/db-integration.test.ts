@@ -20,11 +20,18 @@ import {
 } from '../prompt-variants'
 import type { PromptSlot } from '../types'
 
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL)
+const describeIfDatabase = hasDatabaseUrl ? describe : describe.skip
+
 // Track IDs for cleanup
 const createdIds: string[] = []
 const snapshotIds: string[] = []
 
 afterAll(async () => {
+  if (!hasDatabaseUrl) {
+    return
+  }
+
   // Cleanup test records
   if (createdIds.length > 0) {
     await prisma.aIModelVersion.deleteMany({
@@ -39,7 +46,7 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-describe('Prompt Variant CRUD', () => {
+describeIfDatabase('Prompt Variant CRUD', () => {
   const slot: PromptSlot = 'full_program'
 
   it('creates a variant in DEVELOPMENT status', async () => {
@@ -160,7 +167,7 @@ describe('Prompt Variant CRUD', () => {
   })
 })
 
-describe('AccuracySnapshot storage', () => {
+describeIfDatabase('AccuracySnapshot storage', () => {
   it('stores and retrieves an auto_optimize iteration snapshot', async () => {
     const snapshot = await prisma.accuracySnapshot.create({
       data: {

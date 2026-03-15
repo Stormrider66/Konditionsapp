@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -64,11 +64,7 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
 
-  useEffect(() => {
-    fetchModels()
-  }, [])
-
-  async function fetchModels() {
+  const fetchModels = useCallback(async () => {
     try {
       const businessHeaders = getBusinessScopeHeaders(pathname)
       const response = await fetch('/api/ai/models', businessHeaders ? { headers: businessHeaders } : undefined)
@@ -81,7 +77,11 @@ export function ModelSelector({ currentModel, apiKeyStatus, onModelChange }: Mod
     } finally {
       setLoading(false)
     }
-  }
+  }, [pathname])
+
+  useEffect(() => {
+    fetchModels()
+  }, [fetchModels])
 
   const getProviderIcon = (provider: AIProvider) => {
     switch (provider) {

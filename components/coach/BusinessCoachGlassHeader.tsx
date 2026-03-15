@@ -93,7 +93,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
             }
         }
         fetchBusinessContext()
-    }, [])
+    }, [businessSlug])
 
     const handleSignOut = async () => {
         const supabase = createClient()

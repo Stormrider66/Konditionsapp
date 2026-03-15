@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -53,11 +53,7 @@ export function DefaultModelSelector() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     try {
       const businessHeaders = getBusinessScopeHeaders(pathname);
       const [modelsRes, defaultRes, keysRes] = await Promise.all([
@@ -86,7 +82,11 @@ export function DefaultModelSelector() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [pathname]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   async function handleModelChange(modelId: string) {
     setSaving(true);

@@ -107,7 +107,7 @@ export function LiveHRDashboard({
     } catch {
       toast.error('Kunde inte uppdatera sessionen')
     }
-  }, [sessionId, router])
+  }, [basePath, sessionId, router])
 
   // Add participants
   const handleAddParticipants = useCallback(async (clientIds: string[]) => {

@@ -18,6 +18,7 @@ const mockSupabase = vi.hoisted(() => ({
 const mockPrisma = vi.hoisted(() => ({
   user: { findUnique: vi.fn() },
   client: { findUnique: vi.fn(), findFirst: vi.fn() },
+  businessMember: { findFirst: vi.fn() },
   dailyMetrics: { findFirst: vi.fn(), findMany: vi.fn() }
 }))
 
@@ -59,6 +60,7 @@ function mockAuthState(user: any = authUser) {
     error: null
   })
   mockPrisma.user.findUnique.mockResolvedValue(dbUser)
+  mockPrisma.businessMember.findFirst.mockResolvedValue(null)
 }
 
 function mockClientAccess(access: { isOwner?: boolean; isAthlete?: boolean } = {}) {
@@ -82,6 +84,8 @@ beforeEach(() => {
   mockSupabase.auth.getUser.mockReset()
   mockPrisma.user.findUnique.mockReset()
   mockPrisma.client.findUnique.mockReset()
+  mockPrisma.client.findFirst.mockReset()
+  mockPrisma.businessMember.findFirst.mockReset()
   mockPrisma.dailyMetrics.findFirst.mockReset()
   mockPrisma.dailyMetrics.findMany.mockReset()
   mockAnalyzeTrend.mockReset()
@@ -160,6 +164,7 @@ beforeEach(() => {
   it('returns 403 when coach does not own the client and is not the athlete', async () => {
     mockAuthState()
     mockClientAccess({ isOwner: false, isAthlete: false })
+    mockPrisma.businessMember.findFirst.mockResolvedValue(null)
 
     const request = new Request('http://localhost/api/readiness?clientId=client-1')
     const response = await GET(request as NextRequest)
@@ -168,5 +173,27 @@ beforeEach(() => {
     const body = await response.json()
     expect(body.error).toBe('Access denied')
   })
-})
 
+  it('includes a check-in logged later today in the current readiness response', async () => {
+    mockAuthState()
+    mockClientAccess({ isOwner: true })
+
+    const metricLoggedToday = sampleMetric({
+      date: new Date(),
+      recommendedAction: 'PROCEED'
+    })
+
+    mockPrisma.dailyMetrics.findFirst.mockResolvedValue(metricLoggedToday)
+    mockPrisma.dailyMetrics.findMany
+      .mockResolvedValueOnce([metricLoggedToday])
+      .mockResolvedValueOnce([metricLoggedToday])
+
+    const request = new Request('http://localhost/api/readiness?clientId=client-1')
+    const response = await GET(request as NextRequest)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.current.readinessScore).toBe(metricLoggedToday.readinessScore)
+    expect(body.meta.hasCheckedInToday).toBe(true)
+  })
+})

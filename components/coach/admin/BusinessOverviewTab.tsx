@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -54,7 +54,7 @@ export function BusinessOverviewTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -69,11 +69,11 @@ export function BusinessOverviewTab() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [businessHeaders])
 
   useEffect(() => {
     fetchStats()
-  }, [businessHeaders])
+  }, [fetchStats])
 
   const formatCurrency = (amount: number, currency: string = 'SEK') => {
     return new Intl.NumberFormat('sv-SE', {

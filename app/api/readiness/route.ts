@@ -57,16 +57,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    // Get today's date (start of day)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const now = new Date()
+    const startOfToday = new Date(now)
+    startOfToday.setHours(0, 0, 0, 0)
 
     // Get current readiness (today or most recent)
     const currentMetrics = await prisma.dailyMetrics.findFirst({
       where: {
         clientId,
         date: {
-          lte: today,
+          lte: now,
         },
       },
       orderBy: { date: 'desc' },
@@ -172,8 +172,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if check-in needed today
-    const hasCheckedInToday = currentMetrics &&
-      currentMetrics.date.toDateString() === today.toDateString()
+    const hasCheckedInToday = Boolean(
+      currentMetrics &&
+      currentMetrics.date.toDateString() === startOfToday.toDateString()
+    )
 
     return NextResponse.json({
       success: true,

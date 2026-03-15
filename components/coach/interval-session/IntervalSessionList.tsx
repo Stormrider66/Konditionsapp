@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -28,7 +28,7 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
   const [loading, setLoading] = useState(true)
   const [includeEnded, setIncludeEnded] = useState(false)
 
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     try {
       const res = await fetch(
         `/api/coach/interval-sessions?includeEnded=${includeEnded}`
@@ -42,11 +42,11 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
     } finally {
       setLoading(false)
     }
-  }
+  }, [includeEnded])
 
   useEffect(() => {
     fetchSessions()
-  }, [includeEnded])
+  }, [fetchSessions])
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()

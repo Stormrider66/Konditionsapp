@@ -211,11 +211,15 @@ export function SmartTestImportDialog({
               </div>
             </Button>
             {previewUrl && (
-              <img
-                src={previewUrl}
-                alt="Förhandsvisning"
-                className="w-full max-h-40 object-contain rounded border"
-              />
+              <div className="relative w-full h-40 rounded border overflow-hidden">
+                <Image
+                  src={previewUrl}
+                  alt="Förhandsvisning"
+                  fill
+                  unoptimized
+                  className="object-contain"
+                />
+              </div>
             )}
           </TabsContent>
 
@@ -402,3 +406,4 @@ function formatDuration(seconds: number): string {
   const s = seconds % 60
   return `${m}:${s.toString().padStart(2, '0')}`
 }
+import Image from 'next/image'
