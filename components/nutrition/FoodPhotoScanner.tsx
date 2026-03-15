@@ -37,6 +37,14 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import type { FoodPhotoAnalysisResult } from '@/lib/validations/gemini-schemas'
+import {
+  calculateFoodTotals,
+  createEditableFoodItem,
+  recalculateItemFromGrams,
+  updateDensityFromManualValue,
+  type EditableFoodItem,
+  type NutrientDensity,
+} from '@/lib/nutrition/food-scan-recalculation'
 
 type Step = 'CAPTURE' | 'ANALYZING' | 'REVIEW' | 'SAVING' | 'DONE'
 
@@ -49,24 +57,6 @@ const MEAL_TYPE_LABELS: Record<string, string> = {
   POST_WORKOUT: 'Efter träning',
   DINNER: 'Middag',
   EVENING_SNACK: 'Kvällsmellanmål',
-}
-
-interface FoodItem {
-  name: string
-  category?: string
-  estimatedGrams: number
-  portionDescription: string
-  calories: number
-  proteinGrams: number
-  carbsGrams: number
-  fatGrams: number
-  fiberGrams: number
-  saturatedFatGrams?: number
-  monounsaturatedFatGrams?: number
-  polyunsaturatedFatGrams?: number
-  sugarGrams?: number
-  complexCarbsGrams?: number
-  isCompleteProtein?: boolean
 }
 
 interface FoodPhotoScannerProps {
@@ -88,7 +78,7 @@ export function FoodPhotoScanner({
   const [error, setError] = useState<string | null>(null)
 
   // Review state
-  const [items, setItems] = useState<FoodItem[]>([])
+  const [items, setItems] = useState<EditableFoodItem[]>([])
   const [mealType, setMealType] = useState(defaultMealType || '')
   const [mealTime, setMealTime] = useState(
     new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
@@ -220,7 +210,7 @@ export function FoodPhotoScanner({
 
       // Populate review state
       setEnhancedMode(data.enhancedMode ?? false)
-      setItems(result.items)
+      setItems(result.items.map(createEditableFoodItem))
       setMealDescription(result.mealDescription)
       setConfidence(result.confidence)
       if (result.suggestedMealType && !defaultMealType) {
@@ -372,7 +362,7 @@ export function FoodPhotoScanner({
 
       if (result.success) {
         if (data.enhancedMode != null) setEnhancedMode(data.enhancedMode)
-        setItems(result.items)
+        setItems(result.items.map(createEditableFoodItem))
         setMealDescription(result.mealDescription)
         setConfidence(result.confidence)
         if (result.notes?.length) {
@@ -451,9 +441,31 @@ export function FoodPhotoScanner({
     }
   }
 
-  const updateItem = (index: number, field: keyof FoodItem, value: string | number) => {
+  const updateItemText = (index: number, field: 'name' | 'portionDescription', value: string) => {
+    setItems((prev) => prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)))
+  }
+
+  const updateItemNumber = (
+    index: number,
+    field: 'estimatedGrams' | 'calories' | 'proteinGrams' | 'carbsGrams' | 'fatGrams' | 'fiberGrams',
+    value: number
+  ) => {
+    const nextValue = Number.isFinite(value) ? Math.max(0, value) : 0
+
     setItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+      prev.map((item, i) => {
+        if (i !== index) return item
+
+        if (field === 'estimatedGrams') {
+          return recalculateItemFromGrams(item, nextValue)
+        }
+
+        const densityField = field as keyof NutrientDensity
+        return {
+          ...updateDensityFromManualValue(item, densityField, nextValue),
+          [field]: nextValue,
+        }
+      })
     )
   }
 
@@ -461,7 +473,7 @@ export function FoodPhotoScanner({
     setItems((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const totals = calculateTotals(items)
+  const totals = calculateFoodTotals(items)
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -679,7 +691,7 @@ export function FoodPhotoScanner({
                       <div className="flex items-center gap-2">
                         <Input
                           value={item.name}
-                          onChange={(e) => updateItem(index, 'name', e.target.value)}
+                          onChange={(e) => updateItemText(index, 'name', e.target.value)}
                           className="h-7 text-sm bg-white/5 border-white/10 text-white font-medium"
                         />
                         <Button
@@ -691,16 +703,34 @@ export function FoodPhotoScanner({
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
-                      <p className="text-xs text-slate-400 mt-1 px-1">
-                        {item.portionDescription} ({item.estimatedGrams}g)
-                      </p>
-                      <div className="grid grid-cols-4 gap-2 mt-2">
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="space-y-0.5">
+                          <label className="text-[10px] text-slate-500">Portion</label>
+                          <Input
+                            value={item.portionDescription}
+                            onChange={(e) => updateItemText(index, 'portionDescription', e.target.value)}
+                            className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[10px] text-slate-500">Gram</label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={item.estimatedGrams}
+                            onChange={(e) => updateItemNumber(index, 'estimatedGrams', Number(e.target.value))}
+                            className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-5 gap-2 mt-2">
                         <div className="space-y-0.5">
                           <label className="text-[10px] text-slate-500">kcal</label>
                           <Input
                             type="number"
                             value={item.calories}
-                            onChange={(e) => updateItem(index, 'calories', Number(e.target.value))}
+                            onChange={(e) => updateItemNumber(index, 'calories', Number(e.target.value))}
                             className="h-7 text-xs bg-white/5 border-white/10 text-white"
                           />
                         </div>
@@ -709,7 +739,7 @@ export function FoodPhotoScanner({
                           <Input
                             type="number"
                             value={item.proteinGrams}
-                            onChange={(e) => updateItem(index, 'proteinGrams', Number(e.target.value))}
+                            onChange={(e) => updateItemNumber(index, 'proteinGrams', Number(e.target.value))}
                             className="h-7 text-xs bg-white/5 border-white/10 text-white"
                           />
                         </div>
@@ -718,7 +748,7 @@ export function FoodPhotoScanner({
                           <Input
                             type="number"
                             value={item.carbsGrams}
-                            onChange={(e) => updateItem(index, 'carbsGrams', Number(e.target.value))}
+                            onChange={(e) => updateItemNumber(index, 'carbsGrams', Number(e.target.value))}
                             className="h-7 text-xs bg-white/5 border-white/10 text-white"
                           />
                         </div>
@@ -727,7 +757,16 @@ export function FoodPhotoScanner({
                           <Input
                             type="number"
                             value={item.fatGrams}
-                            onChange={(e) => updateItem(index, 'fatGrams', Number(e.target.value))}
+                            onChange={(e) => updateItemNumber(index, 'fatGrams', Number(e.target.value))}
+                            className="h-7 text-xs bg-white/5 border-white/10 text-white"
+                          />
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[10px] text-slate-500">Fiber</label>
+                          <Input
+                            type="number"
+                            value={item.fiberGrams}
+                            onChange={(e) => updateItemNumber(index, 'fiberGrams', Number(e.target.value))}
                             className="h-7 text-xs bg-white/5 border-white/10 text-white"
                           />
                         </div>
@@ -876,30 +915,5 @@ export function FoodPhotoScanner({
         </div>
       )}
     </div>
-  )
-}
-
-function calculateTotals(items: FoodItem[]) {
-  return items.reduce(
-    (acc, item) => ({
-      calories: acc.calories + item.calories,
-      proteinGrams: acc.proteinGrams + item.proteinGrams,
-      carbsGrams: acc.carbsGrams + item.carbsGrams,
-      fatGrams: acc.fatGrams + item.fatGrams,
-      fiberGrams: acc.fiberGrams + item.fiberGrams,
-      saturatedFatGrams: item.saturatedFatGrams != null ? (acc.saturatedFatGrams ?? 0) + item.saturatedFatGrams : acc.saturatedFatGrams,
-      monounsaturatedFatGrams: item.monounsaturatedFatGrams != null ? (acc.monounsaturatedFatGrams ?? 0) + item.monounsaturatedFatGrams : acc.monounsaturatedFatGrams,
-      polyunsaturatedFatGrams: item.polyunsaturatedFatGrams != null ? (acc.polyunsaturatedFatGrams ?? 0) + item.polyunsaturatedFatGrams : acc.polyunsaturatedFatGrams,
-      sugarGrams: item.sugarGrams != null ? (acc.sugarGrams ?? 0) + item.sugarGrams : acc.sugarGrams,
-      complexCarbsGrams: item.complexCarbsGrams != null ? (acc.complexCarbsGrams ?? 0) + item.complexCarbsGrams : acc.complexCarbsGrams,
-    }),
-    {
-      calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0, fiberGrams: 0,
-      saturatedFatGrams: undefined as number | undefined,
-      monounsaturatedFatGrams: undefined as number | undefined,
-      polyunsaturatedFatGrams: undefined as number | undefined,
-      sugarGrams: undefined as number | undefined,
-      complexCarbsGrams: undefined as number | undefined,
-    }
   )
 }
