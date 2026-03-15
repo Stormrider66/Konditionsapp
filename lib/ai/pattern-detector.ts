@@ -12,8 +12,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { generateAIResponse } from '@/lib/ai/ai-service'
+import { logger } from '@/lib/logger'
 
-// Pattern types we can detect
 export type PatternType =
   | 'SLEEP_DEGRADATION'
   | 'FATIGUE_ACCUMULATION'
@@ -29,8 +29,8 @@ export interface DetectedPattern {
   type: PatternType
   severity: 'LOW' | 'MEDIUM' | 'HIGH'
   metric: string
-  trend: number[] // Recent values
-  change: number // Percentage or absolute change
+  trend: number[]
+  change: number
   description: string
 }
 
@@ -46,9 +46,25 @@ export interface CheckInData {
   readinessScore: number | null
 }
 
-/**
- * Get recent check-in data for analysis
- */
+export interface PatternDetectionOptions {
+  batchLimit?: number
+  pageSize?: number
+  concurrency?: number
+  executionBudgetMs?: number
+}
+
+type AthleteCandidate = {
+  id: string
+  userId: string
+}
+
+type PatternDetectionOutcome = 'created' | 'skipped' | 'error'
+
+const DEFAULT_BATCH_LIMIT = 120
+const DEFAULT_PAGE_SIZE = 200
+const DEFAULT_CONCURRENCY = 6
+const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
+
 export async function getRecentCheckIns(
   clientId: string,
   days: number = 7
@@ -57,7 +73,7 @@ export async function getRecentCheckIns(
   startDate.setDate(startDate.getDate() - days)
   startDate.setHours(0, 0, 0, 0)
 
-  const checkIns = await prisma.dailyCheckIn.findMany({
+  return prisma.dailyCheckIn.findMany({
     where: {
       clientId,
       date: { gte: startDate },
@@ -75,13 +91,8 @@ export async function getRecentCheckIns(
       readinessScore: true,
     },
   })
-
-  return checkIns
 }
 
-/**
- * Calculate linear regression slope for trend detection
- */
 function calculateTrend(values: number[]): number {
   if (values.length < 2) return 0
 
@@ -100,34 +111,25 @@ function calculateTrend(values: number[]): number {
   return denominator === 0 ? 0 : numerator / denominator
 }
 
-/**
- * Calculate average of values
- */
 function average(values: number[]): number {
   if (values.length === 0) return 0
   return values.reduce((a, b) => a + b, 0) / values.length
 }
 
-/**
- * Detect patterns in check-in data
- */
 export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
   if (checkIns.length < 3) {
-    return [] // Need at least 3 data points for meaningful patterns
+    return []
   }
 
   const patterns: DetectedPattern[] = []
 
-  // Extract metric arrays
   const sleepQuality = checkIns.map((c) => c.sleepQuality)
-  const sleepHours = checkIns.map((c) => c.sleepHours).filter((h): h is number => h !== null)
   const soreness = checkIns.map((c) => c.soreness)
   const fatigue = checkIns.map((c) => c.fatigue)
   const stress = checkIns.map((c) => c.stress)
   const mood = checkIns.map((c) => c.mood)
   const motivation = checkIns.map((c) => c.motivation)
 
-  // 1. Sleep Degradation - Declining sleep quality
   const sleepTrend = calculateTrend(sleepQuality)
   if (sleepTrend < -0.3) {
     const severity = sleepTrend < -0.6 ? 'HIGH' : sleepTrend < -0.4 ? 'MEDIUM' : 'LOW'
@@ -141,7 +143,6 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
     })
   }
 
-  // 2. Fatigue Accumulation - Rising fatigue
   const fatigueTrend = calculateTrend(fatigue)
   if (fatigueTrend > 0.3) {
     const severity = fatigueTrend > 0.6 ? 'HIGH' : fatigueTrend > 0.4 ? 'MEDIUM' : 'LOW'
@@ -155,7 +156,6 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
     })
   }
 
-  // 3. Soreness Buildup - Increasing muscle soreness
   const sorenessTrend = calculateTrend(soreness)
   if (sorenessTrend > 0.3) {
     const severity = sorenessTrend > 0.6 ? 'HIGH' : sorenessTrend > 0.4 ? 'MEDIUM' : 'LOW'
@@ -169,7 +169,6 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
     })
   }
 
-  // 4. Stress Escalation - Rising stress levels
   const stressTrend = calculateTrend(stress)
   if (stressTrend > 0.3) {
     const severity = stressTrend > 0.6 ? 'HIGH' : stressTrend > 0.4 ? 'MEDIUM' : 'LOW'
@@ -183,7 +182,6 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
     })
   }
 
-  // 5. Mood Decline - Dropping mood
   const moodTrend = calculateTrend(mood)
   if (moodTrend < -0.3) {
     const severity = moodTrend < -0.6 ? 'HIGH' : moodTrend < -0.4 ? 'MEDIUM' : 'LOW'
@@ -197,7 +195,6 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
     })
   }
 
-  // 6. Motivation Drop - Declining motivation
   const motivationTrend = calculateTrend(motivation)
   if (motivationTrend < -0.3) {
     const severity = motivationTrend < -0.6 ? 'HIGH' : motivationTrend < -0.4 ? 'MEDIUM' : 'LOW'
@@ -211,7 +208,6 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
     })
   }
 
-  // 7. Overtraining Risk - Combination of high fatigue + high soreness + poor sleep
   const recentFatigue = average(fatigue.slice(-3))
   const recentSoreness = average(soreness.slice(-3))
   const recentSleep = average(sleepQuality.slice(-3))
@@ -229,7 +225,6 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
     })
   }
 
-  // 8. Recovery Needed - Multiple consecutive days of poor readiness
   const readinessScores = checkIns
     .map((c) => c.readinessScore)
     .filter((r): r is number => r !== null)
@@ -252,7 +247,6 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
     }
   }
 
-  // 9. Positive Trend - Things are improving!
   if (
     sleepTrend > 0.3 &&
     fatigueTrend < -0.2 &&
@@ -261,7 +255,7 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
   ) {
     patterns.push({
       type: 'POSITIVE_TREND',
-      severity: 'LOW', // Positive, so "low" concern
+      severity: 'LOW',
       metric: 'overall',
       trend: sleepQuality.slice(-5),
       change: sleepTrend,
@@ -272,9 +266,6 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
   return patterns
 }
 
-/**
- * Build AI prompt for pattern analysis
- */
 function buildPatternAnalysisPrompt(
   athleteName: string,
   patterns: DetectedPattern[],
@@ -318,9 +309,6 @@ SVARA I JSON-FORMAT (ENDAST JSON, inget annat):
 TONALITET: Omsorgsfull, professionell, handlingsorienterad.`
 }
 
-/**
- * Generate AI-powered pattern analysis and recommendations
- */
 export async function generatePatternAnalysis(
   coachUserId: string,
   athleteName: string,
@@ -354,15 +342,11 @@ export async function generatePatternAnalysis(
   }
 }
 
-/**
- * Create a pattern alert notification
- */
 export async function createPatternAlert(
   clientId: string,
   coachUserId: string,
   patterns: DetectedPattern[]
 ): Promise<string | null> {
-  // Get client name
   const client = await prisma.client.findUnique({
     where: { id: clientId },
     select: { name: true },
@@ -370,14 +354,11 @@ export async function createPatternAlert(
 
   if (!client) return null
 
-  // Get recent check-ins for context
   const recentCheckIns = await getRecentCheckIns(clientId, 7)
-
   if (recentCheckIns.length < 3) {
-    return null // Not enough data
+    return null
   }
 
-  // Check if we already sent a pattern alert today
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -390,16 +371,14 @@ export async function createPatternAlert(
   })
 
   if (existingAlert) {
-    return null // Already sent today
+    return null
   }
 
-  // Determine highest severity
   const highestSeverity = patterns.reduce((max, p) => {
     const severityOrder = { LOW: 1, MEDIUM: 2, HIGH: 3 }
     return severityOrder[p.severity] > severityOrder[max] ? p.severity : max
   }, 'LOW' as 'LOW' | 'MEDIUM' | 'HIGH')
 
-  // Generate AI analysis
   const analysis = await generatePatternAnalysis(
     coachUserId,
     client.name.split(' ')[0],
@@ -407,8 +386,8 @@ export async function createPatternAlert(
     recentCheckIns
   )
 
-  // Build notification data
-  const priority = highestSeverity === 'HIGH' ? 'HIGH' : highestSeverity === 'MEDIUM' ? 'NORMAL' : 'LOW'
+  const priority =
+    highestSeverity === 'HIGH' ? 'HIGH' : highestSeverity === 'MEDIUM' ? 'NORMAL' : 'LOW'
 
   const contextData = {
     patterns: patterns.map((p) => ({
@@ -420,7 +399,6 @@ export async function createPatternAlert(
     urgency: analysis?.urgency || 'low',
   }
 
-  // Create the notification
   const notification = await prisma.aINotification.create({
     data: {
       clientId,
@@ -435,81 +413,156 @@ export async function createPatternAlert(
       triggeredBy: patterns.map((p) => p.type).join(','),
       triggerReason: `Detected ${patterns.length} pattern(s): ${patterns.map((p) => p.type).join(', ')}`,
       scheduledFor: new Date(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Expire after 24 hours
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     },
   })
 
   return notification.id
 }
 
-/**
- * Analyze all athletes and create pattern alerts
- */
-export async function analyzeAllAthletes(): Promise<{
+async function processAthletePatternDetection(
+  athlete: AthleteCandidate
+): Promise<PatternDetectionOutcome> {
+  try {
+    const prefs = await prisma.aINotificationPreferences.findUnique({
+      where: { clientId: athlete.id },
+      select: { patternAlertsEnabled: true },
+    })
+
+    if (prefs && !prefs.patternAlertsEnabled) {
+      return 'skipped'
+    }
+
+    const checkIns = await getRecentCheckIns(athlete.id, 7)
+    if (checkIns.length < 3) {
+      return 'skipped'
+    }
+
+    const patterns = detectPatterns(checkIns)
+    const concerningPatterns = patterns.filter((p) => p.type !== 'POSITIVE_TREND')
+    if (concerningPatterns.length === 0) {
+      return 'skipped'
+    }
+
+    const alertId = await createPatternAlert(athlete.id, athlete.userId, concerningPatterns)
+    return alertId ? 'created' : 'skipped'
+  } catch (error) {
+    logger.error('Error analyzing athlete patterns', { athleteId: athlete.id }, error)
+    return 'error'
+  }
+}
+
+export async function analyzeAllAthletes(
+  options: PatternDetectionOptions = {}
+): Promise<{
+  scanned: number
   processed: number
   alertsCreated: number
+  skipped: number
   errors: number
+  exhausted: boolean
+  timedOut: boolean
+  hasMore: boolean
 }> {
+  const batchLimit = options.batchLimit ?? DEFAULT_BATCH_LIMIT
+  const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE
+  const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY
+  const executionBudgetMs = options.executionBudgetMs ?? DEFAULT_EXECUTION_BUDGET_MS
+
   const results = {
+    scanned: 0,
     processed: 0,
     alertsCreated: 0,
+    skipped: 0,
     errors: 0,
+    exhausted: false,
+    timedOut: false,
+    hasMore: false,
   }
 
-  // Get all athletes with pattern alerts enabled (or default enabled)
-  const athletes = await prisma.client.findMany({
-    where: {
-      athleteAccount: { isNot: null },
-    },
-    select: {
-      id: true,
-      userId: true,
-    },
-  })
+  const startTime = Date.now()
 
-  for (const athlete of athletes) {
-    results.processed++
+  try {
+    let cursor: string | null = null
 
-    try {
-      // Check if pattern alerts are enabled for this athlete
-      const prefs = await prisma.aINotificationPreferences.findUnique({
-        where: { clientId: athlete.id },
-        select: { patternAlertsEnabled: true },
+    while (results.processed < batchLimit) {
+      if (Date.now() - startTime >= executionBudgetMs) {
+        results.timedOut = true
+        break
+      }
+
+      const athletes: AthleteCandidate[] = await prisma.client.findMany({
+        where: {
+          athleteAccount: { isNot: null },
+        },
+        ...(cursor
+          ? {
+              cursor: { id: cursor },
+              skip: 1,
+            }
+          : {}),
+        take: pageSize,
+        orderBy: { id: 'asc' },
+        select: {
+          id: true,
+          userId: true,
+        },
       })
 
-      // Default to enabled if no preferences
-      if (prefs && !prefs.patternAlertsEnabled) {
-        continue
+      if (athletes.length === 0) {
+        results.exhausted = true
+        break
       }
 
-      // Get recent check-ins
-      const checkIns = await getRecentCheckIns(athlete.id, 7)
+      results.scanned += athletes.length
+      cursor = athletes[athletes.length - 1].id
 
-      if (checkIns.length < 3) {
-        continue // Not enough data
+      const remainingCapacity = batchLimit - results.processed
+      if (athletes.length > remainingCapacity) {
+        results.hasMore = true
+      }
+      const athletesToProcess = athletes.slice(0, remainingCapacity)
+
+      for (let i = 0; i < athletesToProcess.length; i += concurrency) {
+        if (Date.now() - startTime >= executionBudgetMs) {
+          results.timedOut = true
+          break
+        }
+
+        const chunk = athletesToProcess.slice(i, i + concurrency)
+        const outcomes = await Promise.all(chunk.map(processAthletePatternDetection))
+
+        for (const outcome of outcomes) {
+          results.processed++
+          if (outcome === 'created') {
+            results.alertsCreated++
+          } else if (outcome === 'skipped') {
+            results.skipped++
+          } else {
+            results.errors++
+          }
+        }
+
+        if (results.processed >= batchLimit) {
+          break
+        }
       }
 
-      // Detect patterns
-      const patterns = detectPatterns(checkIns)
-
-      // Filter to concerning patterns only (exclude positive trends for alerts)
-      const concerningPatterns = patterns.filter((p) => p.type !== 'POSITIVE_TREND')
-
-      if (concerningPatterns.length === 0) {
-        continue // No concerning patterns
+      if (results.timedOut) {
+        break
       }
 
-      // Create alert
-      const alertId = await createPatternAlert(athlete.id, athlete.userId, concerningPatterns)
-
-      if (alertId) {
-        results.alertsCreated++
+      if (athletes.length < pageSize) {
+        results.exhausted = true
+        break
       }
-    } catch (error) {
-      results.errors++
-      console.error(`Error analyzing athlete ${athlete.id}:`, error)
+
+      results.hasMore = true
     }
-  }
 
-  return results
+    return results
+  } catch (error) {
+    logger.error('Pattern detection failed', {}, error)
+    return results
+  }
 }

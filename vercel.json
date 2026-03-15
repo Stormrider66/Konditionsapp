@@ -23,6 +23,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/process-daily-metrics",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/reset-budgets",
       "schedule": "0 0 1 * *"
     },

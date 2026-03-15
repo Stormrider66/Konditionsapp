@@ -9,6 +9,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export type MilestoneType =
   | 'PERSONAL_RECORD'
@@ -31,11 +32,27 @@ export interface DetectedMilestone {
   celebrationLevel: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM'
 }
 
-/**
- * Calculate consistency streak (consecutive days with workouts or check-ins)
- */
+export interface MilestoneDetectionOptions {
+  batchLimit?: number
+  pageSize?: number
+  concurrency?: number
+  executionBudgetMs?: number
+}
+
+type AthleteCandidate = {
+  id: string
+}
+
+type MilestoneDetectionOutcome =
+  | { status: 'processed'; milestonesFound: number; notificationsCreated: number }
+  | { status: 'error' }
+
+const DEFAULT_BATCH_LIMIT = 120
+const DEFAULT_PAGE_SIZE = 200
+const DEFAULT_CONCURRENCY = 6
+const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
+
 async function calculateConsistencyStreak(clientId: string): Promise<number> {
-  // Get all check-in dates for the last 60 days
   const sixtyDaysAgo = new Date()
   sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
@@ -50,14 +67,11 @@ async function calculateConsistencyStreak(clientId: string): Promise<number> {
 
   if (checkIns.length === 0) return 0
 
-  // Count consecutive days from today
   let streak = 0
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const checkInDates = new Set(
-    checkIns.map((c) => c.date.toISOString().split('T')[0])
-  )
+  const checkInDates = new Set(checkIns.map((c) => c.date.toISOString().split('T')[0]))
 
   for (let i = 0; i <= 60; i++) {
     const checkDate = new Date(today)
@@ -67,7 +81,6 @@ async function calculateConsistencyStreak(clientId: string): Promise<number> {
     if (checkInDates.has(dateStr)) {
       streak++
     } else if (i > 0) {
-      // Allow missing today, but break on any other gap
       break
     }
   }
@@ -75,9 +88,6 @@ async function calculateConsistencyStreak(clientId: string): Promise<number> {
   return streak
 }
 
-/**
- * Get total workout count for an athlete
- */
 async function getTotalWorkoutCount(clientId: string): Promise<number> {
   const [strengthCount, cardioCount, hybridCount, programCount] = await Promise.all([
     prisma.strengthSessionAssignment.count({
@@ -106,19 +116,15 @@ async function getTotalWorkoutCount(clientId: string): Promise<number> {
   return strengthCount + cardioCount + hybridCount + programCount
 }
 
-/**
- * Check for personal records in recent workouts
- */
 async function checkForPersonalRecords(clientId: string): Promise<DetectedMilestone[]> {
   const milestones: DetectedMilestone[] = []
 
-  // Check strength PRs from set logs
   const recentSetLogs = await prisma.setLog.findMany({
     where: {
       assignment: {
         athleteId: clientId,
         completedAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours
+          gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
         },
       },
     },
@@ -129,17 +135,14 @@ async function checkForPersonalRecords(clientId: string): Promise<DetectedMilest
     orderBy: { createdAt: 'desc' },
   })
 
-  // Group by exercise and find max weights
   const exercisePRs = new Map<string, { weight: number; reps: number; exerciseName: string }>()
 
   for (const log of recentSetLogs) {
     if (!log.weight || !log.repsCompleted) continue
 
-    const key = log.exerciseId
-    const existing = exercisePRs.get(key)
-
+    const existing = exercisePRs.get(log.exerciseId)
     if (!existing || log.weight > existing.weight) {
-      exercisePRs.set(key, {
+      exercisePRs.set(log.exerciseId, {
         weight: log.weight,
         reps: log.repsCompleted,
         exerciseName: log.exercise?.name || 'Unknown',
@@ -147,7 +150,6 @@ async function checkForPersonalRecords(clientId: string): Promise<DetectedMilest
     }
   }
 
-  // Check if any are actual PRs (compare to historical data)
   for (const [exerciseId, recent] of exercisePRs) {
     const historicalMax = await prisma.setLog.findFirst({
       where: {
@@ -155,10 +157,10 @@ async function checkForPersonalRecords(clientId: string): Promise<DetectedMilest
         assignment: {
           athleteId: clientId,
           completedAt: {
-            lt: new Date(Date.now() - 24 * 60 * 60 * 1000), // Before last 24 hours
+            lt: new Date(Date.now() - 24 * 60 * 60 * 1000),
           },
         },
-        weight: { gt: 0 }, // Only consider non-zero weights
+        weight: { gt: 0 },
       },
       orderBy: { weight: 'desc' },
       select: { weight: true },
@@ -186,9 +188,6 @@ async function checkForPersonalRecords(clientId: string): Promise<DetectedMilest
   return milestones
 }
 
-/**
- * Check for workout count milestones
- */
 function checkWorkoutCountMilestone(count: number): DetectedMilestone | null {
   const milestones = [
     { count: 1, title: 'Första träningen!', level: 'BRONZE' as const },
@@ -215,9 +214,6 @@ function checkWorkoutCountMilestone(count: number): DetectedMilestone | null {
   }
 }
 
-/**
- * Check for consistency streak milestones
- */
 function checkStreakMilestone(streak: number): DetectedMilestone | null {
   const milestones = [
     { days: 3, title: '3 dagar i rad!', level: 'BRONZE' as const },
@@ -243,11 +239,7 @@ function checkStreakMilestone(streak: number): DetectedMilestone | null {
   }
 }
 
-/**
- * Check for training anniversary
- */
 async function checkTrainingAnniversary(clientId: string): Promise<DetectedMilestone | null> {
-  // Find first workout ever
   const firstWorkout = await prisma.strengthSessionAssignment.findFirst({
     where: { athleteId: clientId, status: 'COMPLETED' },
     orderBy: { completedAt: 'asc' },
@@ -258,11 +250,8 @@ async function checkTrainingAnniversary(clientId: string): Promise<DetectedMiles
 
   const now = new Date()
   const start = new Date(firstWorkout.completedAt)
-  const daysSinceStart = Math.floor(
-    (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-  )
+  const daysSinceStart = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 
-  // Check for anniversary milestones
   const anniversaries = [
     { days: 30, title: '1 månad av träning!', level: 'BRONZE' as const },
     { days: 90, title: '3 månader av träning!', level: 'SILVER' as const },
@@ -285,14 +274,10 @@ async function checkTrainingAnniversary(clientId: string): Promise<DetectedMiles
   }
 }
 
-/**
- * Check for recently completed programs (last 24 hours)
- */
 async function checkProgramCompletions(clientId: string): Promise<DetectedMilestone[]> {
   const milestones: DetectedMilestone[] = []
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
-  // Find programs where all workouts have been completed
   const programs = await prisma.trainingProgram.findMany({
     where: {
       clientId,
@@ -323,15 +308,12 @@ async function checkProgramCompletions(clientId: string): Promise<DetectedMilest
   })
 
   for (const program of programs) {
-    const allWorkouts = program.weeks.flatMap((w) =>
-      w.days.flatMap((d) => d.workouts)
-    )
+    const allWorkouts = program.weeks.flatMap((w) => w.days.flatMap((d) => d.workouts))
     if (allWorkouts.length === 0) continue
 
     const allCompleted = allWorkouts.every((w) => w.logs.length > 0)
     if (!allCompleted) continue
 
-    // Check if the last completion was within the last 24 hours
     const lastCompletion = allWorkouts
       .flatMap((w) => w.logs)
       .map((l) => l.completedAt)
@@ -354,45 +336,33 @@ async function checkProgramCompletions(clientId: string): Promise<DetectedMilest
   return milestones
 }
 
-/**
- * Detect all milestones for an athlete
- */
 export async function detectMilestones(clientId: string): Promise<DetectedMilestone[]> {
   const milestones: DetectedMilestone[] = []
 
-  // Check for PRs
   const prs = await checkForPersonalRecords(clientId)
   milestones.push(...prs)
 
-  // Check consistency streak
   const streak = await calculateConsistencyStreak(clientId)
   const streakMilestone = checkStreakMilestone(streak)
   if (streakMilestone) milestones.push(streakMilestone)
 
-  // Check workout count
   const workoutCount = await getTotalWorkoutCount(clientId)
   const countMilestone = checkWorkoutCountMilestone(workoutCount)
   if (countMilestone) milestones.push(countMilestone)
 
-  // Check training anniversary
   const anniversary = await checkTrainingAnniversary(clientId)
   if (anniversary) milestones.push(anniversary)
 
-  // Check program completions
   const programCompletions = await checkProgramCompletions(clientId)
   milestones.push(...programCompletions)
 
   return milestones
 }
 
-/**
- * Create milestone celebration notification
- */
 export async function createMilestoneNotification(
   clientId: string,
   milestone: DetectedMilestone
 ): Promise<string | null> {
-  // Check if we already celebrated this milestone today
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -407,7 +377,6 @@ export async function createMilestoneNotification(
 
   if (existing) return null
 
-  // Check if milestones are enabled
   const prefs = await prisma.aINotificationPreferences.findUnique({
     where: { clientId },
     select: { milestoneAlertsEnabled: true },
@@ -434,52 +403,144 @@ export async function createMilestoneNotification(
       triggeredBy: `${milestone.type}:${milestone.value}`,
       triggerReason: `Milestone achieved: ${milestone.type}`,
       scheduledFor: new Date(),
-      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // Expire after 48 hours
+      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
     },
   })
 
   return notification.id
 }
 
-/**
- * Process milestone detection for all athletes
- */
-export async function processAllAthleteMilestones(): Promise<{
+async function processAthleteMilestones(
+  athlete: AthleteCandidate
+): Promise<MilestoneDetectionOutcome> {
+  try {
+    const milestones = await detectMilestones(athlete.id)
+
+    let notificationsCreated = 0
+    for (const milestone of milestones) {
+      const notificationId = await createMilestoneNotification(athlete.id, milestone)
+      if (notificationId) {
+        notificationsCreated++
+      }
+    }
+
+    return {
+      status: 'processed',
+      milestonesFound: milestones.length,
+      notificationsCreated,
+    }
+  } catch (error) {
+    logger.error('Error detecting milestones for athlete', { athleteId: athlete.id }, error)
+    return { status: 'error' }
+  }
+}
+
+export async function processAllAthleteMilestones(
+  options: MilestoneDetectionOptions = {}
+): Promise<{
+  scanned: number
   processed: number
   milestonesFound: number
   notificationsCreated: number
   errors: number
+  exhausted: boolean
+  timedOut: boolean
+  hasMore: boolean
 }> {
+  const batchLimit = options.batchLimit ?? DEFAULT_BATCH_LIMIT
+  const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE
+  const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY
+  const executionBudgetMs = options.executionBudgetMs ?? DEFAULT_EXECUTION_BUDGET_MS
+
   const results = {
+    scanned: 0,
     processed: 0,
     milestonesFound: 0,
     notificationsCreated: 0,
     errors: 0,
+    exhausted: false,
+    timedOut: false,
+    hasMore: false,
   }
 
-  const athletes = await prisma.client.findMany({
-    where: { athleteAccount: { isNot: null } },
-    select: { id: true },
-  })
+  const startTime = Date.now()
 
-  for (const athlete of athletes) {
-    results.processed++
+  try {
+    let cursor: string | null = null
 
-    try {
-      const milestones = await detectMilestones(athlete.id)
-      results.milestonesFound += milestones.length
+    while (results.processed < batchLimit) {
+      if (Date.now() - startTime >= executionBudgetMs) {
+        results.timedOut = true
+        break
+      }
 
-      for (const milestone of milestones) {
-        const notificationId = await createMilestoneNotification(athlete.id, milestone)
-        if (notificationId) {
-          results.notificationsCreated++
+      const athletes: AthleteCandidate[] = await prisma.client.findMany({
+        where: { athleteAccount: { isNot: null } },
+        ...(cursor
+          ? {
+              cursor: { id: cursor },
+              skip: 1,
+            }
+          : {}),
+        take: pageSize,
+        orderBy: { id: 'asc' },
+        select: { id: true },
+      })
+
+      if (athletes.length === 0) {
+        results.exhausted = true
+        break
+      }
+
+      results.scanned += athletes.length
+      cursor = athletes[athletes.length - 1].id
+
+      const remainingCapacity = batchLimit - results.processed
+      if (athletes.length > remainingCapacity) {
+        results.hasMore = true
+      }
+      const athletesToProcess = athletes.slice(0, remainingCapacity)
+
+      for (let i = 0; i < athletesToProcess.length; i += concurrency) {
+        if (Date.now() - startTime >= executionBudgetMs) {
+          results.timedOut = true
+          break
+        }
+
+        const chunk = athletesToProcess.slice(i, i + concurrency)
+        const outcomes = await Promise.all(chunk.map(processAthleteMilestones))
+
+        for (const outcome of outcomes) {
+          results.processed++
+          if (outcome.status === 'error') {
+            results.errors++
+            continue
+          }
+
+          results.milestonesFound += outcome.milestonesFound
+          results.notificationsCreated += outcome.notificationsCreated
+        }
+
+        if (results.processed >= batchLimit) {
+          break
         }
       }
-    } catch (error) {
-      results.errors++
-      console.error(`Error detecting milestones for athlete ${athlete.id}:`, error)
-    }
-  }
 
-  return results
+      if (results.timedOut) {
+        break
+      }
+
+      if (athletes.length < pageSize) {
+        results.exhausted = true
+        break
+      }
+
+      results.hasMore = true
+    }
+
+    return results
+  } catch (error) {
+    logger.error('Milestone detection failed', {}, error)
+    return results
+  }
 }

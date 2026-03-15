@@ -181,6 +181,13 @@ enum JoinRequestStatus {
   REJECTED
 }
 
+enum BackgroundJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 // ==================== REFERRAL SYSTEM ====================
 
 enum ReferralStatus {
@@ -979,6 +986,7 @@ model Client {
   movementScreens      MovementScreen[]      @relation("ClientMovementScreens")
   acuteInjuryReports   AcuteInjuryReport[]   @relation("ClientAcuteInjuryReports")
   careTeamThreads      CareTeamThread[]      @relation("ClientCareTeamThreads")
+  dailyMetricsProcessingJobs DailyMetricsProcessingJob[]
 
   // Autonomous AI Agent System relations
   agentPreferences    AgentPreferences?
@@ -2886,6 +2894,30 @@ model DailyMetrics {
   @@index([clientId, readinessLevel]) // Filter by readiness level categories
   @@index([date, readinessLevel]) // Daily readiness overview across all athletes
   @@index([requestPhysioContact]) // Filter by physio contact requests
+}
+
+model DailyMetricsProcessingJob {
+  id        String              @id @default(uuid())
+  jobKey    String              @unique
+  clientId  String
+  date      DateTime            @db.Date
+  signature String
+  payload   Json
+  status    BackgroundJobStatus @default(PENDING)
+  attempts  Int                 @default(0)
+  lastError String?             @db.Text
+  runAfter  DateTime            @default(now())
+  lockedAt  DateTime?
+  startedAt DateTime?
+  completedAt DateTime?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([status, runAfter])
+  @@index([clientId, date])
+  @@index([lockedAt])
 }
 
 // ============================================

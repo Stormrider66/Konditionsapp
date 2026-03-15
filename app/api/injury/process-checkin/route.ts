@@ -76,23 +76,29 @@ interface TriggerDetection {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const internalJobSecret = request.headers.get('x-internal-job-secret')
+    const isInternalJob = !!process.env.CRON_SECRET && internalJobSecret === process.env.CRON_SECRET
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    let dbUserId: string | null = null
+    if (!isInternalJob) {
+      const supabase = await createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-    // Get user from database
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
-    })
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
 
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      const dbUser = await prisma.user.findUnique({
+        where: { email: user.email },
+      })
+
+      if (!dbUser) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      }
+
+      dbUserId = dbUser.id
     }
 
     // Parse request body
@@ -128,9 +134,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    const hasAccess = await canAccessClient(dbUser.id, clientId)
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    if (dbUserId) {
+      const hasAccess = await canAccessClient(dbUserId, clientId)
+      if (!hasAccess) {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      }
     }
 
     // ==========================================

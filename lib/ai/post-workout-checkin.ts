@@ -13,7 +13,6 @@ import { prisma } from '@/lib/prisma'
 import { generateAIResponse } from '@/lib/ai/ai-service'
 import { logger } from '@/lib/logger'
 
-// Types for completed workouts
 export interface CompletedWorkout {
   id: string
   type: 'strength' | 'cardio' | 'hybrid' | 'program'
@@ -28,145 +27,244 @@ export interface CompletedWorkout {
 export interface PostWorkoutFeedback {
   workoutId: string
   workoutType: string
-  overallFeeling: number // 1-10
-  energyLevel: number // 1-10
-  difficulty: number // 1-10 (perceived vs expected)
+  overallFeeling: number
+  energyLevel: number
+  difficulty: number
   painOrDiscomfort?: string
   notes?: string
   recoveryPlan?: string
 }
 
-/**
- * Find recently completed workouts that need check-in prompts
- */
-export async function findRecentlyCompletedWorkouts(
-  hoursAgo: number = 4
-): Promise<CompletedWorkout[]> {
-  const cutoffTime = new Date(Date.now() - hoursAgo * 60 * 60 * 1000)
-  const workouts: CompletedWorkout[] = []
+type CompletedWorkoutPhase = 'strength' | 'cardio' | 'hybrid' | 'program'
+type CompletedWorkoutScanState =
+  | { phase: CompletedWorkoutPhase; cursor: string | null }
+  | null
 
-  // 1. Check StrengthSessionAssignments
-  const strengthAssignments = await prisma.strengthSessionAssignment.findMany({
-    where: {
-      status: 'COMPLETED',
-      completedAt: { gte: cutoffTime },
-    },
-    include: {
-      session: { select: { name: true } },
-      athlete: { select: { id: true, userId: true } },
-    },
-  })
+export interface PostWorkoutCheckInProcessOptions {
+  batchLimit?: number
+  pageSize?: number
+  concurrency?: number
+  executionBudgetMs?: number
+}
 
-  for (const assignment of strengthAssignments) {
-    if (assignment.completedAt) {
-      workouts.push({
-        id: assignment.id,
-        type: 'strength',
-        name: assignment.session.name,
-        workoutType: 'STRENGTH',
-        completedAt: assignment.completedAt,
-        duration: assignment.duration ?? undefined,
-        athleteId: assignment.athleteId,
-        coachUserId: assignment.athlete.userId,
-      })
+type CompletedWorkoutPage = {
+  workouts: CompletedWorkout[]
+  scanned: number
+  nextState: CompletedWorkoutScanState
+}
+
+type ProcessWorkoutOutcome = 'created' | 'skipped' | 'error'
+
+const DEFAULT_BATCH_LIMIT = 120
+const DEFAULT_PAGE_SIZE = 200
+const DEFAULT_CONCURRENCY = 6
+const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
+
+function nextPhase(phase: CompletedWorkoutPhase): CompletedWorkoutScanState {
+  if (phase === 'strength') return { phase: 'cardio', cursor: null }
+  if (phase === 'cardio') return { phase: 'hybrid', cursor: null }
+  if (phase === 'hybrid') return { phase: 'program', cursor: null }
+  return null
+}
+
+async function fetchRecentlyCompletedWorkoutsPage(
+  state: Exclude<CompletedWorkoutScanState, null>,
+  cutoffTime: Date,
+  pageSize: number
+): Promise<CompletedWorkoutPage> {
+  if (state.phase === 'strength') {
+    const assignments = await prisma.strengthSessionAssignment.findMany({
+      where: {
+        status: 'COMPLETED',
+        completedAt: { gte: cutoffTime },
+      },
+      ...(state.cursor
+        ? {
+            cursor: { id: state.cursor },
+            skip: 1,
+          }
+        : {}),
+      take: pageSize,
+      orderBy: { id: 'asc' },
+      include: {
+        session: { select: { name: true } },
+        athlete: { select: { id: true, userId: true } },
+      },
+    })
+
+    return {
+      scanned: assignments.length,
+      workouts: assignments.flatMap((assignment) =>
+        assignment.completedAt
+          ? [
+              {
+                id: assignment.id,
+                type: 'strength' as const,
+                name: assignment.session.name,
+                workoutType: 'STRENGTH',
+                completedAt: assignment.completedAt,
+                duration: assignment.duration ?? undefined,
+                athleteId: assignment.athleteId,
+                coachUserId: assignment.athlete.userId,
+              },
+            ]
+          : []
+      ),
+      nextState:
+        assignments.length < pageSize
+          ? nextPhase('strength')
+          : { phase: 'strength', cursor: assignments[assignments.length - 1].id },
     }
   }
 
-  // 2. Check CardioSessionAssignments
-  const cardioAssignments = await prisma.cardioSessionAssignment.findMany({
-    where: {
-      status: 'COMPLETED',
-      completedAt: { gte: cutoffTime },
-    },
-    include: {
-      session: { select: { name: true, sport: true } },
-      athlete: { select: { id: true, userId: true } },
-    },
-  })
+  if (state.phase === 'cardio') {
+    const assignments = await prisma.cardioSessionAssignment.findMany({
+      where: {
+        status: 'COMPLETED',
+        completedAt: { gte: cutoffTime },
+      },
+      ...(state.cursor
+        ? {
+            cursor: { id: state.cursor },
+            skip: 1,
+          }
+        : {}),
+      take: pageSize,
+      orderBy: { id: 'asc' },
+      include: {
+        session: { select: { name: true, sport: true } },
+        athlete: { select: { id: true, userId: true } },
+      },
+    })
 
-  for (const assignment of cardioAssignments) {
-    if (assignment.completedAt) {
-      workouts.push({
-        id: assignment.id,
-        type: 'cardio',
-        name: assignment.session.name,
-        workoutType: assignment.session.sport ?? 'CARDIO',
-        completedAt: assignment.completedAt,
-        duration: assignment.actualDuration ? Math.floor(assignment.actualDuration / 60) : undefined,
-        athleteId: assignment.athleteId,
-        coachUserId: assignment.athlete.userId,
-      })
+    return {
+      scanned: assignments.length,
+      workouts: assignments.flatMap((assignment) =>
+        assignment.completedAt
+          ? [
+              {
+                id: assignment.id,
+                type: 'cardio' as const,
+                name: assignment.session.name,
+                workoutType: assignment.session.sport ?? 'CARDIO',
+                completedAt: assignment.completedAt,
+                duration: assignment.actualDuration
+                  ? Math.floor(assignment.actualDuration / 60)
+                  : undefined,
+                athleteId: assignment.athleteId,
+                coachUserId: assignment.athlete.userId,
+              },
+            ]
+          : []
+      ),
+      nextState:
+        assignments.length < pageSize
+          ? nextPhase('cardio')
+          : { phase: 'cardio', cursor: assignments[assignments.length - 1].id },
     }
   }
 
-  // 3. Check HybridWorkoutAssignments
-  const hybridAssignments = await prisma.hybridWorkoutAssignment.findMany({
-    where: {
-      status: 'COMPLETED',
-      completedAt: { gte: cutoffTime },
-    },
-    include: {
-      workout: { select: { name: true, format: true } },
-      athlete: { select: { id: true, userId: true } },
-    },
-  })
+  if (state.phase === 'hybrid') {
+    const assignments = await prisma.hybridWorkoutAssignment.findMany({
+      where: {
+        status: 'COMPLETED',
+        completedAt: { gte: cutoffTime },
+      },
+      ...(state.cursor
+        ? {
+            cursor: { id: state.cursor },
+            skip: 1,
+          }
+        : {}),
+      take: pageSize,
+      orderBy: { id: 'asc' },
+      include: {
+        workout: { select: { name: true, format: true } },
+        athlete: { select: { id: true, userId: true } },
+      },
+    })
 
-  for (const assignment of hybridAssignments) {
-    if (assignment.completedAt) {
-      workouts.push({
-        id: assignment.id,
-        type: 'hybrid',
-        name: assignment.workout.name,
-        workoutType: assignment.workout.format ?? 'HYBRID',
-        completedAt: assignment.completedAt,
-        athleteId: assignment.athleteId,
-        coachUserId: assignment.athlete.userId,
-      })
+    return {
+      scanned: assignments.length,
+      workouts: assignments.flatMap((assignment) =>
+        assignment.completedAt
+          ? [
+              {
+                id: assignment.id,
+                type: 'hybrid' as const,
+                name: assignment.workout.name,
+                workoutType: assignment.workout.format ?? 'HYBRID',
+                completedAt: assignment.completedAt,
+                athleteId: assignment.athleteId,
+                coachUserId: assignment.athlete.userId,
+              },
+            ]
+          : []
+      ),
+      nextState:
+        assignments.length < pageSize
+          ? nextPhase('hybrid')
+          : { phase: 'hybrid', cursor: assignments[assignments.length - 1].id },
     }
   }
 
-  // 4. Check WorkoutLogs (program-based workouts)
   const workoutLogs = await prisma.workoutLog.findMany({
     where: {
       completed: true,
       completedAt: { gte: cutoffTime },
     },
+    ...(state.cursor
+      ? {
+          cursor: { id: state.cursor },
+          skip: 1,
+        }
+      : {}),
+    take: pageSize,
+    orderBy: { id: 'asc' },
     include: {
       workout: { select: { name: true, type: true } },
-      athlete: { select: { id: true } },
+      athlete: {
+        select: {
+          athleteAccount: {
+            select: {
+              client: {
+                select: {
+                  id: true,
+                  userId: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   })
 
-  for (const log of workoutLogs) {
-    if (log.completedAt) {
-      // Get coach userId from the client
-      const client = await prisma.client.findFirst({
-        where: { athleteAccount: { userId: log.athleteId } },
-        select: { userId: true, id: true },
-      })
-
-      if (client) {
-        workouts.push({
-          id: log.id,
-          type: 'program',
-          name: log.workout.name,
-          workoutType: log.workout.type,
-          completedAt: log.completedAt,
-          duration: log.duration ?? undefined,
-          athleteId: client.id,
-          coachUserId: client.userId,
-        })
-      }
-    }
+  return {
+    scanned: workoutLogs.length,
+    workouts: workoutLogs.flatMap((log) =>
+      log.completedAt && log.athlete.athleteAccount?.client
+        ? [
+            {
+              id: log.id,
+              type: 'program' as const,
+              name: log.workout.name,
+              workoutType: log.workout.type,
+              completedAt: log.completedAt,
+              duration: log.duration ?? undefined,
+              athleteId: log.athlete.athleteAccount.client.id,
+              coachUserId: log.athlete.athleteAccount.client.userId,
+            },
+          ]
+        : []
+    ),
+    nextState:
+      workoutLogs.length < pageSize
+        ? null
+        : { phase: 'program', cursor: workoutLogs[workoutLogs.length - 1].id },
   }
-
-  // Sort by completion time (most recent first)
-  return workouts.sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime())
 }
 
-/**
- * Check if a post-workout check-in already exists for this workout
- */
 async function hasExistingCheckIn(workoutId: string): Promise<boolean> {
   const existing = await prisma.aINotification.findFirst({
     where: {
@@ -177,9 +275,6 @@ async function hasExistingCheckIn(workoutId: string): Promise<boolean> {
   return !!existing
 }
 
-/**
- * Build prompt for generating personalized check-in questions
- */
 function buildCheckInPrompt(
   athleteName: string,
   workout: CompletedWorkout
@@ -217,9 +312,6 @@ SVARA I JSON-FORMAT (ENDAST JSON, inget annat):
 TONALITET: Uppmuntrande, intresserad, stöttande.`
 }
 
-/**
- * Generate AI-powered check-in prompt
- */
 export async function generateCheckInPrompt(
   coachUserId: string,
   athleteName: string,
@@ -251,29 +343,22 @@ export async function generateCheckInPrompt(
   }
 }
 
-/**
- * Create a post-workout check-in notification
- */
 export async function createPostWorkoutCheckIn(
   workout: CompletedWorkout
 ): Promise<string | null> {
-  // Check if we already sent a check-in for this workout
   if (await hasExistingCheckIn(workout.id)) {
     return null
   }
 
-  // Check if post-workout checks are enabled for this athlete
   const prefs = await prisma.aINotificationPreferences.findUnique({
     where: { clientId: workout.athleteId },
     select: { postWorkoutCheckEnabled: true },
   })
 
-  // Default to enabled if no preferences
   if (prefs && !prefs.postWorkoutCheckEnabled) {
     return null
   }
 
-  // Get athlete name
   const client = await prisma.client.findUnique({
     where: { id: workout.athleteId },
     select: { name: true },
@@ -281,14 +366,12 @@ export async function createPostWorkoutCheckIn(
 
   if (!client) return null
 
-  // Generate AI check-in prompt
   const checkInPrompt = await generateCheckInPrompt(
     workout.coachUserId,
     client.name.split(' ')[0],
     workout
   )
 
-  // Build notification content
   const title = checkInPrompt?.title || `Hur gick ${workout.name}?`
   const message = checkInPrompt?.greeting || `Bra jobbat med ${workout.name}! Hur känns kroppen?`
 
@@ -306,7 +389,6 @@ export async function createPostWorkoutCheckIn(
     recoveryTip: checkInPrompt?.recoveryTip || 'Kom ihåg att dricka vatten och stretcha!',
   }
 
-  // Create the notification
   const notification = await prisma.aINotification.create({
     data: {
       clientId: workout.athleteId,
@@ -321,65 +403,125 @@ export async function createPostWorkoutCheckIn(
       triggeredBy: workout.id,
       triggerReason: `Completed workout: ${workout.name}`,
       scheduledFor: new Date(),
-      expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000), // Expire after 12 hours
+      expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000),
     },
   })
 
   return notification.id
 }
 
-/**
- * Process all recently completed workouts and create check-ins
- */
+async function processCompletedWorkout(workout: CompletedWorkout): Promise<ProcessWorkoutOutcome> {
+  try {
+    const checkInId = await createPostWorkoutCheckIn(workout)
+    return checkInId ? 'created' : 'skipped'
+  } catch (error) {
+    logger.error('Error creating post-workout check-in', { workoutId: workout.id }, error)
+    return 'error'
+  }
+}
+
 export async function processPostWorkoutCheckIns(
-  hoursAgo: number = 4
+  hoursAgo: number = 4,
+  options: PostWorkoutCheckInProcessOptions = {}
 ): Promise<{
+  scanned: number
   processed: number
   checkInsCreated: number
   skipped: number
   errors: number
+  exhausted: boolean
+  timedOut: boolean
+  hasMore: boolean
 }> {
+  const batchLimit = options.batchLimit ?? DEFAULT_BATCH_LIMIT
+  const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE
+  const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY
+  const executionBudgetMs = options.executionBudgetMs ?? DEFAULT_EXECUTION_BUDGET_MS
+
   const results = {
+    scanned: 0,
     processed: 0,
     checkInsCreated: 0,
     skipped: 0,
     errors: 0,
+    exhausted: false,
+    timedOut: false,
+    hasMore: false,
   }
 
+  const cutoffTime = new Date(Date.now() - hoursAgo * 60 * 60 * 1000)
+  const startTime = Date.now()
+
   try {
-    const completedWorkouts = await findRecentlyCompletedWorkouts(hoursAgo)
-    results.processed = completedWorkouts.length
+    let state: CompletedWorkoutScanState = { phase: 'strength', cursor: null }
 
-    for (const workout of completedWorkouts) {
-      try {
-        const checkInId = await createPostWorkoutCheckIn(workout)
+    while (state && results.processed < batchLimit) {
+      if (Date.now() - startTime >= executionBudgetMs) {
+        results.timedOut = true
+        break
+      }
 
-        if (checkInId) {
-          results.checkInsCreated++
-        } else {
-          results.skipped++
+      const page = await fetchRecentlyCompletedWorkoutsPage(state, cutoffTime, pageSize)
+      results.scanned += page.scanned
+      state = page.nextState
+
+      if (page.workouts.length === 0) {
+        continue
+      }
+
+      const remainingCapacity = batchLimit - results.processed
+      if (page.workouts.length > remainingCapacity) {
+        results.hasMore = true
+      }
+      const workoutsToProcess = page.workouts.slice(0, remainingCapacity)
+
+      for (let i = 0; i < workoutsToProcess.length; i += concurrency) {
+        if (Date.now() - startTime >= executionBudgetMs) {
+          results.timedOut = true
+          break
         }
-      } catch (error) {
-        results.errors++
-        console.error(`Error creating check-in for workout ${workout.id}:`, error)
+
+        const chunk = workoutsToProcess.slice(i, i + concurrency)
+        const outcomes = await Promise.all(chunk.map(processCompletedWorkout))
+
+        for (const outcome of outcomes) {
+          results.processed++
+          if (outcome === 'created') {
+            results.checkInsCreated++
+          } else if (outcome === 'skipped') {
+            results.skipped++
+          } else {
+            results.errors++
+          }
+        }
+
+        if (results.processed >= batchLimit) {
+          break
+        }
+      }
+
+      if (results.timedOut) {
+        break
+      }
+
+      if (state !== null) {
+        results.hasMore = true
       }
     }
+
+    results.exhausted = state === null
   } catch (error) {
-    console.error('Error processing post-workout check-ins:', error)
+    logger.error('Error processing post-workout check-ins', {}, error)
   }
 
   return results
 }
 
-/**
- * Save post-workout feedback from athlete
- */
 export async function savePostWorkoutFeedback(
   notificationId: string,
   feedback: PostWorkoutFeedback
 ): Promise<boolean> {
   try {
-    // Get the notification
     const notification = await prisma.aINotification.findUnique({
       where: { id: notificationId },
       select: { clientId: true, contextData: true },
@@ -387,7 +529,6 @@ export async function savePostWorkoutFeedback(
 
     if (!notification) return false
 
-    // Mark notification as action taken
     const existingContext = (notification.contextData as object) || {}
     await prisma.aINotification.update({
       where: { id: notificationId },
@@ -407,9 +548,7 @@ export async function savePostWorkoutFeedback(
       },
     })
 
-    // If there was pain/discomfort, we might want to flag it for the coach
     if (feedback.painOrDiscomfort && feedback.painOrDiscomfort.trim().length > 0) {
-      // Could create a coach notification here
       logger.info('Athlete reported discomfort', { discomfort: feedback.painOrDiscomfort })
     }
 

@@ -4,15 +4,20 @@
  * Runs periodically to check for athletes with upcoming workouts
  * and generates personalized pre-workout nudges.
  *
- * Should be called every 30 minutes via external cron service.
+ * Processed in bounded, paged batches to avoid sweeping the full
+ * athlete population in a single serial request.
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { findUpcomingWorkouts, createPreWorkoutNudge } from '@/lib/ai/preworkout-nudge-generator'
 import { logger } from '@/lib/logger'
 
-// Verify cron secret to prevent unauthorized access
+const DEFAULT_BATCH_LIMIT = 120
+const DEFAULT_PAGE_SIZE = 200
+const DEFAULT_CONCURRENCY = 6
+const DEFAULT_EXECUTION_BUDGET_MS = 50_000
+
 function verifyCronSecret(request: Request): boolean {
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
@@ -25,86 +30,139 @@ function verifyCronSecret(request: Request): boolean {
   return authHeader === `Bearer ${cronSecret}`
 }
 
-export async function GET(request: Request) {
-  // Verify authorization
+type AthletePage = {
+  id: string
+  userId: string
+  aiNotificationPrefs: {
+    preWorkoutNudgeEnabled: boolean
+    preWorkoutLeadTime: number
+  } | null
+}
+
+export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const batchLimit = parseBoundedInt(
+    request.nextUrl.searchParams.get('limit'),
+    DEFAULT_BATCH_LIMIT,
+    1,
+    500
+  )
+  const pageSize = parseBoundedInt(
+    request.nextUrl.searchParams.get('pageSize'),
+    DEFAULT_PAGE_SIZE,
+    25,
+    500
+  )
+  const concurrency = parseBoundedInt(
+    request.nextUrl.searchParams.get('concurrency'),
+    DEFAULT_CONCURRENCY,
+    1,
+    20
+  )
+  const executionBudgetMs = parseBoundedInt(
+    request.nextUrl.searchParams.get('budgetMs'),
+    DEFAULT_EXECUTION_BUDGET_MS,
+    10_000,
+    DEFAULT_EXECUTION_BUDGET_MS
+  )
+
   const startTime = Date.now()
   const results = {
+    scanned: 0,
     processed: 0,
     nudgesCreated: 0,
     errors: 0,
     skipped: 0,
+    exhausted: false,
+    timedOut: false,
   }
+  let hasMore = false
 
   try {
-    // Fetch ALL notification preferences to properly check opt-out
-    const allPreferences = await prisma.aINotificationPreferences.findMany({
-      select: {
-        clientId: true,
-        preWorkoutNudgeEnabled: true,
-        preWorkoutLeadTime: true, // Minutes before workout
-      },
-    })
+    let cursor: string | null = null
 
-    // Build a map for quick lookup
-    const prefsMap = new Map(allPreferences.map((p) => [p.clientId, p]))
-
-    // Get all athletes with accounts who might have workouts
-    const allAthletes = await prisma.client.findMany({
-      where: {
-        athleteAccount: { isNot: null },
-      },
-      select: {
-        id: true,
-        userId: true, // Coach's user ID for API key access
-      },
-    })
-
-    // Process each athlete
-    for (const athlete of allAthletes) {
-      results.processed++
-
-      try {
-        const prefs = prefsMap.get(athlete.id)
-
-        // Skip if athlete has explicitly disabled nudges
-        if (prefs && !prefs.preWorkoutNudgeEnabled) {
-          results.skipped++
-          continue
-        }
-
-        // Use preference lead time, or default 120 minutes (2 hours)
-        const leadTime = prefs?.preWorkoutLeadTime ?? 120
-
-        // Find upcoming workouts within the lead time window
-        const upcomingWorkouts = await findUpcomingWorkouts(athlete.id, leadTime)
-
-        if (upcomingWorkouts.length === 0) {
-          results.skipped++
-          continue
-        }
-
-        // Generate nudge for the next workout
-        const nextWorkout = upcomingWorkouts[0]
-        const nudgeId = await createPreWorkoutNudge(
-          athlete.id,
-          athlete.userId,
-          nextWorkout
-        )
-
-        if (nudgeId) {
-          results.nudgesCreated++
-          logger.debug('Created pre-workout nudge', { athleteId: athlete.id, nudgeId })
-        } else {
-          results.skipped++ // Already sent or generation failed
-        }
-      } catch (error) {
-        results.errors++
-        console.error(`Error processing athlete ${athlete.id}:`, error)
+    while (results.processed < batchLimit) {
+      if (Date.now() - startTime >= executionBudgetMs) {
+        results.timedOut = true
+        break
       }
+
+      const athletes: AthletePage[] = await prisma.client.findMany({
+        where: {
+          athleteAccount: { isNot: null },
+        },
+        ...(cursor
+          ? {
+              cursor: { id: cursor },
+              skip: 1,
+            }
+          : {}),
+        take: pageSize,
+        orderBy: { id: 'asc' },
+        select: {
+          id: true,
+          userId: true,
+          aiNotificationPrefs: {
+            select: {
+              preWorkoutNudgeEnabled: true,
+              preWorkoutLeadTime: true,
+            },
+          },
+        },
+      })
+
+      if (athletes.length === 0) {
+        results.exhausted = true
+        break
+      }
+
+      results.scanned += athletes.length
+      cursor = athletes[athletes.length - 1].id
+
+      const remainingCapacity = batchLimit - results.processed
+      if (athletes.length > remainingCapacity) {
+        hasMore = true
+      }
+      const athletesToProcess = athletes.slice(0, remainingCapacity)
+
+      for (let i = 0; i < athletesToProcess.length; i += concurrency) {
+        if (Date.now() - startTime >= executionBudgetMs) {
+          results.timedOut = true
+          break
+        }
+
+        const chunk = athletesToProcess.slice(i, i + concurrency)
+        const outcomes = await Promise.all(chunk.map(processAthlete))
+
+        for (const outcome of outcomes) {
+          results.processed++
+          if (outcome === 'created') {
+            results.nudgesCreated++
+          } else if (outcome === 'skipped') {
+            results.skipped++
+          } else {
+            results.errors++
+          }
+        }
+
+        if (results.processed >= batchLimit) {
+          break
+        }
+      }
+
+      if (results.timedOut) {
+        break
+      }
+
+      if (athletes.length < pageSize) {
+        results.exhausted = true
+        break
+      }
+
+      hasMore = true
     }
 
     const duration = Date.now() - startTime
@@ -113,9 +171,10 @@ export async function GET(request: Request) {
       success: true,
       duration: `${duration}ms`,
       results,
+      hasMore: hasMore || !results.exhausted,
     })
   } catch (error) {
-    console.error('Pre-workout nudges cron error:', error)
+    logger.error('Pre-workout nudges cron error', {}, error)
     return NextResponse.json(
       {
         success: false,
@@ -127,7 +186,53 @@ export async function GET(request: Request) {
   }
 }
 
-// Also support POST for flexibility
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   return GET(request)
+}
+
+async function processAthlete(athlete: AthletePage): Promise<'created' | 'skipped' | 'error'> {
+  try {
+    const prefs = athlete.aiNotificationPrefs
+
+    if (prefs && !prefs.preWorkoutNudgeEnabled) {
+      return 'skipped'
+    }
+
+    const leadTime = prefs?.preWorkoutLeadTime ?? 120
+    const upcomingWorkouts = await findUpcomingWorkouts(athlete.id, leadTime)
+
+    if (upcomingWorkouts.length === 0) {
+      return 'skipped'
+    }
+
+    const nextWorkout = upcomingWorkouts[0]
+    const nudgeId = await createPreWorkoutNudge(
+      athlete.id,
+      athlete.userId,
+      nextWorkout
+    )
+
+    if (nudgeId) {
+      logger.debug('Created pre-workout nudge', { athleteId: athlete.id, nudgeId })
+      return 'created'
+    }
+
+    return 'skipped'
+  } catch (error) {
+    logger.error('Error processing pre-workout nudge athlete', { athleteId: athlete.id }, error)
+    return 'error'
+  }
+}
+
+function parseBoundedInt(
+  value: string | null,
+  fallback: number,
+  min: number,
+  max: number
+) {
+  const parsed = value ? parseInt(value, 10) : fallback
+  if (!Number.isFinite(parsed)) {
+    return fallback
+  }
+  return Math.max(min, Math.min(parsed, max))
 }

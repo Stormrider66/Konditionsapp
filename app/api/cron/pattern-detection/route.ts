@@ -4,14 +4,19 @@
  * Analyzes athlete check-in data for concerning patterns
  * and creates AI-powered alerts with recommendations.
  *
- * Should be called once or twice daily via external cron service.
+ * Processed in bounded batches to avoid sweeping the entire
+ * athlete population serially in a single request.
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { analyzeAllAthletes } from '@/lib/ai/pattern-detector'
 import { logger } from '@/lib/logger'
 
-// Verify cron secret to prevent unauthorized access
+const DEFAULT_BATCH_LIMIT = 120
+const DEFAULT_PAGE_SIZE = 200
+const DEFAULT_CONCURRENCY = 6
+const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
+
 function verifyCronSecret(request: Request): boolean {
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
@@ -24,18 +29,52 @@ function verifyCronSecret(request: Request): boolean {
   return authHeader === `Bearer ${cronSecret}`
 }
 
-export async function GET(request: Request) {
-  // Verify authorization
+export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const batchLimit = parseBoundedInt(
+    request.nextUrl.searchParams.get('limit'),
+    DEFAULT_BATCH_LIMIT,
+    1,
+    500
+  )
+  const pageSize = parseBoundedInt(
+    request.nextUrl.searchParams.get('pageSize'),
+    DEFAULT_PAGE_SIZE,
+    25,
+    500
+  )
+  const concurrency = parseBoundedInt(
+    request.nextUrl.searchParams.get('concurrency'),
+    DEFAULT_CONCURRENCY,
+    1,
+    20
+  )
+  const executionBudgetMs = parseBoundedInt(
+    request.nextUrl.searchParams.get('budgetMs'),
+    DEFAULT_EXECUTION_BUDGET_MS,
+    30_000,
+    DEFAULT_EXECUTION_BUDGET_MS
+  )
+
   const startTime = Date.now()
 
   try {
-    logger.info('Starting pattern detection analysis')
+    logger.info('Starting pattern detection analysis', {
+      batchLimit,
+      pageSize,
+      concurrency,
+      executionBudgetMs,
+    })
 
-    const results = await analyzeAllAthletes()
+    const results = await analyzeAllAthletes({
+      batchLimit,
+      pageSize,
+      concurrency,
+      executionBudgetMs,
+    })
 
     const duration = Date.now() - startTime
 
@@ -45,6 +84,7 @@ export async function GET(request: Request) {
       success: true,
       duration: `${duration}ms`,
       results,
+      hasMore: results.hasMore,
     })
   } catch (error) {
     console.error('Pattern detection cron error:', error)
@@ -58,7 +98,19 @@ export async function GET(request: Request) {
   }
 }
 
-// Also support POST for flexibility
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   return GET(request)
+}
+
+function parseBoundedInt(
+  value: string | null,
+  fallback: number,
+  min: number,
+  max: number
+) {
+  const parsed = value ? parseInt(value, 10) : fallback
+  if (!Number.isFinite(parsed)) {
+    return fallback
+  }
+  return Math.max(min, Math.min(parsed, max))
 }

@@ -15,6 +15,13 @@ import {
 } from '@/lib/training/summary-calculator'
 import { generateVisualReport } from '@/lib/ai/visual-reports'
 
+export const maxDuration = 300
+
+const DEFAULT_BATCH_LIMIT = 120
+const DEFAULT_PAGE_SIZE = 200
+const DEFAULT_CONCURRENCY = 4
+const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
+
 // Helper to get Monday of the previous week
 function getPreviousWeekStart(): Date {
   const now = new Date()
@@ -34,54 +41,127 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const batchLimit = parseBoundedInt(
+    request.nextUrl.searchParams.get('limit'),
+    DEFAULT_BATCH_LIMIT,
+    1,
+    500
+  )
+  const pageSize = parseBoundedInt(
+    request.nextUrl.searchParams.get('pageSize'),
+    DEFAULT_PAGE_SIZE,
+    25,
+    500
+  )
+  const concurrency = parseBoundedInt(
+    request.nextUrl.searchParams.get('concurrency'),
+    DEFAULT_CONCURRENCY,
+    1,
+    20
+  )
+  const executionBudgetMs = parseBoundedInt(
+    request.nextUrl.searchParams.get('budgetMs'),
+    DEFAULT_EXECUTION_BUDGET_MS,
+    30_000,
+    DEFAULT_EXECUTION_BUDGET_MS
+  )
+
   const results = {
+    scanned: 0,
     processed: 0,
     weeklySummariesCreated: 0,
     monthlySummariesUpdated: 0,
+    visualReportsGenerated: 0,
     errors: 0,
     errorDetails: [] as string[],
+    exhausted: false,
+    timedOut: false,
   }
+  let hasMore = false
 
   try {
-    // Get all active athletes (clients with athlete accounts)
-    const athletes = await prisma.client.findMany({
-      where: {
-        athleteAccount: { isNot: null },
-      },
-      select: { id: true, name: true, userId: true },
-    })
-
     const previousWeekStart = getPreviousWeekStart()
     const currentMonth = new Date().getMonth() + 1
     const currentYear = new Date().getFullYear()
+    let cursor: string | null = null
 
-    for (const athlete of athletes) {
-      results.processed++
-
-      try {
-        // Calculate previous week's summary
-        await saveWeeklySummary(athlete.id, previousWeekStart)
-        results.weeklySummariesCreated++
-
-        // Update current month's summary
-        await saveMonthlySummary(athlete.id, currentMonth, currentYear)
-        results.monthlySummariesUpdated++
-
-        // Fire-and-forget: generate training summary visual report
-        generateVisualReport({
-          reportType: 'training-summary',
-          clientId: athlete.id,
-          coachId: athlete.userId,
-          locale: 'sv',
-          periodStart: previousWeekStart,
-          periodEnd: new Date(previousWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
-        }).catch(() => { /* silently ignore */ })
-      } catch (error) {
-        results.errors++
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        results.errorDetails.push(`${athlete.name}: ${errorMessage}`)
-        console.error(`Error calculating summary for athlete ${athlete.id}:`, error)
+    while (results.processed < batchLimit) {
+      if (Date.now() - startTime >= executionBudgetMs) {
+        results.timedOut = true
+        break
       }
+
+      const athletes = await prisma.client.findMany({
+        where: {
+          athleteAccount: { isNot: null },
+        },
+        ...(cursor
+          ? {
+              cursor: { id: cursor },
+              skip: 1,
+            }
+          : {}),
+        take: pageSize,
+        orderBy: { id: 'asc' },
+        select: { id: true, name: true, userId: true },
+      })
+
+      if (athletes.length === 0) {
+        results.exhausted = true
+        break
+      }
+
+      results.scanned += athletes.length
+      cursor = athletes[athletes.length - 1].id
+
+      const remainingCapacity = batchLimit - results.processed
+      if (athletes.length > remainingCapacity) {
+        hasMore = true
+      }
+      const athletesToProcess = athletes.slice(0, remainingCapacity)
+
+      for (let i = 0; i < athletesToProcess.length; i += concurrency) {
+        if (Date.now() - startTime >= executionBudgetMs) {
+          results.timedOut = true
+          break
+        }
+
+        const chunk = athletesToProcess.slice(i, i + concurrency)
+        const chunkResults = await Promise.all(
+          chunk.map((athlete) =>
+            processAthleteSummary(athlete, previousWeekStart, currentMonth, currentYear)
+          )
+        )
+
+        for (const outcome of chunkResults) {
+          results.processed++
+          if (outcome.status === 'success') {
+            results.weeklySummariesCreated++
+            results.monthlySummariesUpdated++
+            if (outcome.visualReportGenerated) {
+              results.visualReportsGenerated++
+            }
+          } else {
+            results.errors++
+            results.errorDetails.push(`${outcome.athleteName}: ${outcome.errorMessage}`)
+          }
+        }
+
+        if (results.processed >= batchLimit) {
+          break
+        }
+      }
+
+      if (results.timedOut) {
+        break
+      }
+
+      if (athletes.length < pageSize) {
+        results.exhausted = true
+        break
+      }
+
+      hasMore = true
     }
   } catch (error) {
     console.error('Weekly summary cron job failed:', error)
@@ -101,6 +181,7 @@ export async function GET(request: NextRequest) {
     success: true,
     duration: `${duration}ms`,
     results,
+    hasMore,
   })
 }
 
@@ -143,4 +224,70 @@ export async function POST(request: NextRequest) {
     { error: 'Missing required parameters' },
     { status: 400 }
   )
+}
+
+type AthleteSummaryCandidate = {
+  id: string
+  name: string
+  userId: string
+}
+
+type AthleteSummaryOutcome =
+  | {
+      status: 'success'
+      athleteName: string
+      visualReportGenerated: boolean
+    }
+  | {
+      status: 'error'
+      athleteName: string
+      errorMessage: string
+    }
+
+async function processAthleteSummary(
+  athlete: AthleteSummaryCandidate,
+  previousWeekStart: Date,
+  currentMonth: number,
+  currentYear: number
+): Promise<AthleteSummaryOutcome> {
+  try {
+    await saveWeeklySummary(athlete.id, previousWeekStart)
+    await saveMonthlySummary(athlete.id, currentMonth, currentYear)
+
+    await generateVisualReport({
+      reportType: 'training-summary',
+      clientId: athlete.id,
+      coachId: athlete.userId,
+      locale: 'sv',
+      periodStart: previousWeekStart,
+      periodEnd: new Date(previousWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
+    })
+
+    return {
+      status: 'success',
+      athleteName: athlete.name,
+      visualReportGenerated: true,
+    }
+  } catch (error) {
+    console.error(`Error calculating summary for athlete ${athlete.id}:`, error)
+    return {
+      status: 'error',
+      athleteName: athlete.name,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    }
+  }
+}
+
+function parseBoundedInt(
+  value: string | null,
+  fallback: number,
+  min: number,
+  max: number
+): number {
+  if (!value) return fallback
+
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed)) return fallback
+
+  return Math.min(Math.max(parsed, min), max)
 }

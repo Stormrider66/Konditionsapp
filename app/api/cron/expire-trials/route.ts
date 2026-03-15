@@ -15,6 +15,13 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { sendEmail, getTrialExpiredEmailTemplate } from '@/lib/email'
 
+const DEFAULT_BATCH_LIMIT = 120
+const DEFAULT_PAGE_SIZE = 200
+const DEFAULT_CONCURRENCY = 6
+const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
+
+export const maxDuration = 300
+
 export async function POST(request: NextRequest) {
   try {
     // Verify cron secret to prevent unauthorized access
@@ -36,144 +43,238 @@ export async function POST(request: NextRequest) {
     logger.info('Starting trial expiration job')
 
     const now = new Date()
+    const batchLimit = parseBoundedInt(
+      request.nextUrl.searchParams.get('limit'),
+      DEFAULT_BATCH_LIMIT,
+      1,
+      500
+    )
+    const pageSize = parseBoundedInt(
+      request.nextUrl.searchParams.get('pageSize'),
+      DEFAULT_PAGE_SIZE,
+      25,
+      500
+    )
+    const concurrency = parseBoundedInt(
+      request.nextUrl.searchParams.get('concurrency'),
+      DEFAULT_CONCURRENCY,
+      1,
+      20
+    )
+    const executionBudgetMs = parseBoundedInt(
+      request.nextUrl.searchParams.get('budgetMs'),
+      DEFAULT_EXECUTION_BUDGET_MS,
+      30_000,
+      DEFAULT_EXECUTION_BUDGET_MS
+    )
+    const startTime = Date.now()
 
-    // Find all coach subscriptions with expired trials
-    const expiredCoachTrials = await prisma.subscription.findMany({
-      where: {
-        status: 'TRIAL',
-        trialEndsAt: { lte: now },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            language: true,
-          },
-        },
-      },
-    })
-
-    // Find all athlete subscriptions with expired trials
-    const expiredAthleteTrials = await prisma.athleteSubscription.findMany({
-      where: {
-        status: 'TRIAL',
-        trialEndsAt: { lte: now },
-      },
-      include: {
-        client: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            athleteAccount: {
-              select: {
-                user: {
-                  select: {
-                    email: true,
-                    language: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    })
-
-    logger.info('Found expired trials', {
-      coachTrials: expiredCoachTrials.length,
-      athleteTrials: expiredAthleteTrials.length,
-    })
-
+    let scanned = 0
+    let processed = 0
     let coachExpired = 0
     let athleteExpired = 0
     let emailsSent = 0
     let errors = 0
+    let exhausted = false
+    let timedOut = false
+    let hasMore = false
+    let coachCursor: string | null = null
+    let athleteCursor: string | null = null
 
-    // Expire coach trials
-    for (const subscription of expiredCoachTrials) {
-      try {
-        await prisma.subscription.update({
-          where: { id: subscription.id },
-          data: { status: 'EXPIRED' },
-        })
-        coachExpired++
-
-        // Send expiration email
-        if (subscription.user.email) {
-          try {
-            const locale = (subscription.user.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
-            const template = getTrialExpiredEmailTemplate({
-              recipientName: subscription.user.name || 'Coach',
-              upgradeUrl: `${process.env.NEXT_PUBLIC_APP_URL}/coach/subscription`,
-              locale,
-            })
-            await sendEmail({
-              to: subscription.user.email,
-              subject: template.subject,
-              html: template.html,
-            })
-            emailsSent++
-          } catch (emailError) {
-            logger.warn('Failed to send trial expired email', { userId: subscription.userId }, emailError)
-          }
-        }
-      } catch (error) {
-        logger.error('Error expiring coach trial', { subscriptionId: subscription.id }, error)
-        errors++
+    while (processed < batchLimit) {
+      if (Date.now() - startTime >= executionBudgetMs) {
+        timedOut = true
+        break
       }
-    }
 
-    // Expire athlete trials
-    for (const subscription of expiredAthleteTrials) {
-      try {
-        await prisma.athleteSubscription.update({
-          where: { id: subscription.id },
-          data: { status: 'EXPIRED' },
-        })
-        athleteExpired++
+      const remainingCapacity = batchLimit - processed
+      const coachTake = Math.min(pageSize, remainingCapacity)
+      const expiredCoachTrials = coachTake > 0
+        ? await prisma.subscription.findMany({
+            where: {
+              status: 'TRIAL',
+              trialEndsAt: { lte: now },
+            },
+            ...(coachCursor
+              ? {
+                  cursor: { id: coachCursor },
+                  skip: 1,
+                }
+              : {}),
+            take: coachTake,
+            orderBy: { id: 'asc' },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  name: true,
+                  language: true,
+                },
+              },
+            },
+          })
+        : []
 
-        // Send expiration email to athlete (if they have a user account)
-        const athleteEmail = subscription.client.athleteAccount?.user?.email || subscription.client.email
-        if (athleteEmail) {
-          try {
-            const locale = (subscription.client.athleteAccount?.user?.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
-            const template = getTrialExpiredEmailTemplate({
-              recipientName: subscription.client.name,
-              upgradeUrl: `${process.env.NEXT_PUBLIC_APP_URL}/athlete/subscription`,
-              locale,
-            })
-            await sendEmail({
-              to: athleteEmail,
-              subject: template.subject,
-              html: template.html,
-            })
-            emailsSent++
-          } catch (emailError) {
-            logger.warn('Failed to send trial expired email', { clientId: subscription.clientId }, emailError)
+      scanned += expiredCoachTrials.length
+      if (expiredCoachTrials.length > 0) {
+        coachCursor = expiredCoachTrials[expiredCoachTrials.length - 1].id
+        if (expiredCoachTrials.length === coachTake && remainingCapacity === coachTake) {
+          hasMore = true
+        }
+      }
+
+      for (let i = 0; i < expiredCoachTrials.length; i += concurrency) {
+        if (Date.now() - startTime >= executionBudgetMs) {
+          timedOut = true
+          hasMore = true
+          break
+        }
+
+        const chunk = expiredCoachTrials.slice(i, i + concurrency)
+        const outcomes = await Promise.all(chunk.map(processExpiredCoachTrial))
+
+        for (const outcome of outcomes) {
+          processed++
+          if (outcome.status === 'success') {
+            coachExpired++
+            if (outcome.emailSent) {
+              emailsSent++
+            }
+          } else {
+            errors++
+          }
+
+          if (processed >= batchLimit) {
+            hasMore = true
+            break
           }
         }
-      } catch (error) {
-        logger.error('Error expiring athlete trial', { subscriptionId: subscription.id }, error)
-        errors++
+
+        if (processed >= batchLimit) {
+          break
+        }
+      }
+
+      if (timedOut || processed >= batchLimit) {
+        break
+      }
+
+      const athleteRemaining = batchLimit - processed
+      const athleteTake = Math.min(pageSize, athleteRemaining)
+      const expiredAthleteTrials = athleteTake > 0
+        ? await prisma.athleteSubscription.findMany({
+            where: {
+              status: 'TRIAL',
+              trialEndsAt: { lte: now },
+            },
+            ...(athleteCursor
+              ? {
+                  cursor: { id: athleteCursor },
+                  skip: 1,
+                }
+              : {}),
+            take: athleteTake,
+            orderBy: { id: 'asc' },
+            include: {
+              client: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  athleteAccount: {
+                    select: {
+                      user: {
+                        select: {
+                          email: true,
+                          language: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          })
+        : []
+
+      scanned += expiredAthleteTrials.length
+      if (expiredAthleteTrials.length > 0) {
+        athleteCursor = expiredAthleteTrials[expiredAthleteTrials.length - 1].id
+        if (expiredAthleteTrials.length === athleteTake && athleteRemaining === athleteTake) {
+          hasMore = true
+        }
+      }
+
+      for (let i = 0; i < expiredAthleteTrials.length; i += concurrency) {
+        if (Date.now() - startTime >= executionBudgetMs) {
+          timedOut = true
+          hasMore = true
+          break
+        }
+
+        const chunk = expiredAthleteTrials.slice(i, i + concurrency)
+        const outcomes = await Promise.all(chunk.map(processExpiredAthleteTrial))
+
+        for (const outcome of outcomes) {
+          processed++
+          if (outcome.status === 'success') {
+            athleteExpired++
+            if (outcome.emailSent) {
+              emailsSent++
+            }
+          } else {
+            errors++
+          }
+
+          if (processed >= batchLimit) {
+            hasMore = true
+            break
+          }
+        }
+
+        if (processed >= batchLimit) {
+          break
+        }
+      }
+
+      if (timedOut || processed >= batchLimit) {
+        break
+      }
+
+      if (expiredCoachTrials.length < coachTake && expiredAthleteTrials.length < athleteTake) {
+        exhausted = true
+        break
       }
     }
 
     logger.info('Trial expiration job complete', {
+      batchLimit,
+      pageSize,
+      concurrency,
+      executionBudgetMs,
+      scanned,
+      processed,
       coachExpired,
       athleteExpired,
       emailsSent,
       errors,
+      exhausted,
+      timedOut,
+      hasMore,
     })
 
     return NextResponse.json({
       success: true,
+      scanned,
+      processed,
       coachExpired,
       athleteExpired,
       emailsSent,
       errors,
+      exhausted,
+      timedOut,
+      hasMore,
       timestamp: now.toISOString(),
     })
   } catch (error) {
@@ -200,4 +301,116 @@ export async function GET(request: NextRequest) {
   }
 
   return POST(request)
+}
+
+type ExpiredCoachTrial = {
+  id: string
+  userId: string
+  user: {
+    id: string
+    email: string | null
+    name: string | null
+    language: string | null
+  }
+}
+
+type ExpiredAthleteTrial = {
+  id: string
+  clientId: string
+  client: {
+    id: string
+    name: string
+    email: string | null
+    athleteAccount: {
+      user: {
+        email: string | null
+        language: string | null
+      }
+    } | null
+  }
+}
+
+type ExpireOutcome =
+  | { status: 'success'; emailSent: boolean }
+  | { status: 'error'; emailSent: false }
+
+async function processExpiredCoachTrial(subscription: ExpiredCoachTrial): Promise<ExpireOutcome> {
+  try {
+    await prisma.subscription.update({
+      where: { id: subscription.id },
+      data: { status: 'EXPIRED' },
+    })
+
+    if (subscription.user.email) {
+      try {
+        const locale = (subscription.user.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
+        const template = getTrialExpiredEmailTemplate({
+          recipientName: subscription.user.name || 'Coach',
+          upgradeUrl: `${process.env.NEXT_PUBLIC_APP_URL}/coach/subscription`,
+          locale,
+        })
+        await sendEmail({
+          to: subscription.user.email,
+          subject: template.subject,
+          html: template.html,
+        })
+        return { status: 'success', emailSent: true }
+      } catch (emailError) {
+        logger.warn('Failed to send trial expired email', { userId: subscription.userId }, emailError)
+      }
+    }
+
+    return { status: 'success', emailSent: false }
+  } catch (error) {
+    logger.error('Error expiring coach trial', { subscriptionId: subscription.id }, error)
+    return { status: 'error', emailSent: false }
+  }
+}
+
+async function processExpiredAthleteTrial(subscription: ExpiredAthleteTrial): Promise<ExpireOutcome> {
+  try {
+    await prisma.athleteSubscription.update({
+      where: { id: subscription.id },
+      data: { status: 'EXPIRED' },
+    })
+
+    const athleteEmail = subscription.client.athleteAccount?.user?.email || subscription.client.email
+    if (athleteEmail) {
+      try {
+        const locale = (subscription.client.athleteAccount?.user?.language === 'en' ? 'en' : 'sv') as 'sv' | 'en'
+        const template = getTrialExpiredEmailTemplate({
+          recipientName: subscription.client.name,
+          upgradeUrl: `${process.env.NEXT_PUBLIC_APP_URL}/athlete/subscription`,
+          locale,
+        })
+        await sendEmail({
+          to: athleteEmail,
+          subject: template.subject,
+          html: template.html,
+        })
+        return { status: 'success', emailSent: true }
+      } catch (emailError) {
+        logger.warn('Failed to send trial expired email', { clientId: subscription.clientId }, emailError)
+      }
+    }
+
+    return { status: 'success', emailSent: false }
+  } catch (error) {
+    logger.error('Error expiring athlete trial', { subscriptionId: subscription.id }, error)
+    return { status: 'error', emailSent: false }
+  }
+}
+
+function parseBoundedInt(
+  value: string | null,
+  fallback: number,
+  min: number,
+  max: number
+): number {
+  if (!value) return fallback
+
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed)) return fallback
+
+  return Math.min(Math.max(parsed, min), max)
 }

@@ -17,6 +17,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import { performance } from 'node:perf_hooks'
 
 export interface UnifiedCalendarItem {
@@ -40,10 +41,7 @@ const UNIFIED_CALENDAR_STALE_MS = 30 * 60 * 1000
 // repeated Supabase calls / DB lookups under load.
 const AUTH_CONTEXT_TTL_MS = 2 * 60 * 1000
 const CLIENT_ACCESS_TTL_MS = 2 * 60 * 1000
-const unifiedCalendarCache = new Map<
-  string,
-  { expiresAt: number; staleUntil: number; json: string }
->()
+const unifiedCalendarCache = createDistributedJsonCache<{ json: string }>('unified-calendar')
 const unifiedCalendarInFlight = new Map<string, Promise<string>>()
 const clientAccessCache = new Map<string, { expiresAt: number; allowed: boolean }>()
 const clientAccessInFlight = new Map<string, Promise<boolean>>()
@@ -154,10 +152,10 @@ export async function GET(request: NextRequest) {
       maxItemsPerSource.toString(),
     ].join(':')
     const nowMs = Date.now()
-    const cached = unifiedCalendarCache.get(cacheKey)
+    const cached = await unifiedCalendarCache.get(cacheKey)
     if (cached && cached.expiresAt > nowMs) {
       return jsonResponse(
-        cached.json,
+        cached.payload.json,
         withHandlerTiming(
           emitDebugHeaders,
           t0,
@@ -192,7 +190,7 @@ export async function GET(request: NextRequest) {
         void refreshPromise.finally(() => unifiedCalendarInFlight.delete(cacheKey))
       }
       return jsonResponse(
-        cached.json,
+        cached.payload.json,
         withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' })
       )
     }
@@ -431,10 +429,10 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
     }
 
     const json = JSON.stringify(payload)
-    unifiedCalendarCache.set(cacheKey, {
+    await unifiedCalendarCache.set(cacheKey, {
       expiresAt: Date.now() + UNIFIED_CALENDAR_TTL_MS,
       staleUntil: Date.now() + UNIFIED_CALENDAR_STALE_MS,
-      json,
+      payload: { json },
     })
     return json
   }
@@ -1066,10 +1064,10 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
   // Cache the serialized JSON string so cached responses avoid repeating JSON.stringify()
   // under high concurrency (event-loop CPU savings).
   const json = JSON.stringify(payload)
-  unifiedCalendarCache.set(cacheKey, {
+  await unifiedCalendarCache.set(cacheKey, {
     expiresAt: Date.now() + UNIFIED_CALENDAR_TTL_MS,
     staleUntil: Date.now() + UNIFIED_CALENDAR_STALE_MS,
-    json,
+    payload: { json },
   })
   return json
 }

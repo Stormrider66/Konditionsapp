@@ -54,6 +54,8 @@ Scripts live in `load-tests/k6/`:
   - Sustained heavier read load on business/team dashboard surfaces.
 - `stress.js`
   - Write-heavy + optional AI/integration traffic toggles.
+- `prod-shape.js`
+  - Mixed production-shaped load across shared-cache reads and daily-metrics writes.
 
 ### Required env vars
 
@@ -203,6 +205,70 @@ Validation status:
 
 - Fresh post-change k6 numbers are still pending.
 - Attempted production benchmark rerun was blocked by a local `next build` hang in this environment; rerun after successful build is the immediate next step.
+
+## Repeatable Benchmark Workflow
+
+Use this flow for before/after performance comparisons after cache, cron, or query changes.
+
+### 1. Run a production-shaped benchmark
+
+Recommended command:
+
+- `K6_SUMMARY_EXPORT=load-tests/prod-shape-summary.json node load-tests/k6/run.js prod-shape`
+
+This scenario mixes:
+
+- `GET /api/calendar/unified`
+- `GET /api/daily-metrics`
+- `POST /api/daily-metrics`
+- `GET /api/business/[id]/stats`
+- `GET /api/teams/[id]/dashboard`
+
+Useful knobs:
+
+- `PROD_SHAPE_WARM_VUS`
+- `PROD_SHAPE_STEADY_VUS`
+- `PROD_SHAPE_PEAK_VUS`
+- `PROD_SHAPE_READ_WEIGHT`
+- `PROD_SHAPE_WRITE_WEIGHT`
+- `PROD_SHAPE_DASHBOARD_WEIGHT`
+- `CLIENT_IDS` (comma-separated athlete IDs to spread writes/reads)
+
+### 2. Print one compact summary
+
+- `node load-tests/k6/analyze-summary.js load-tests/prod-shape-summary.json`
+
+This prints:
+
+- overall error rate and p95/p99
+- per-endpoint p95/p99
+- per-endpoint cache hit/stale/miss ratios
+- handler p95 and queue p95 when debug headers are present
+
+### 3. Compare before/after runs
+
+Example:
+
+- `K6_SUMMARY_EXPORT=load-tests/before.json node load-tests/k6/run.js prod-shape`
+- apply code or config change
+- `K6_SUMMARY_EXPORT=load-tests/after.json node load-tests/k6/run.js prod-shape`
+- `node load-tests/k6/compare-summaries.js load-tests/before.json load-tests/after.json`
+
+The compare script prints:
+
+- overall delta for fail rate, p95, p99, and req/s
+- per-endpoint delta for p95, p99, fail rate, cache hit, stale, and miss
+
+### 4. What “better” should look like
+
+For the shared-cache endpoints (`business-stats`, `team-dashboard`, `calendar-unified`, `daily-metrics-get`):
+
+- `endpoint_cache_hit` should rise
+- `endpoint_cache_miss` should fall
+- `endpoint_duration p95/p99` should drop or stay flat at higher req/s
+- `endpoint_failed` should stay flat or improve
+
+If `endpoint_handler_ms` is low but overall `endpoint_duration` stays high, the bottleneck is likely queueing or environment saturation rather than route compute.
 
 ## Benchmark Run (Local, 2026-02-13)
 

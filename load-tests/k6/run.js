@@ -12,7 +12,7 @@ const path = require('path');
 
 const scriptName = process.argv[2];
 if (!scriptName) {
-  console.error('Usage: node load-tests/k6/run.js <smoke|baseline|stress>');
+  console.error('Usage: node load-tests/k6/run.js <smoke|baseline|stress|prod-shape>');
   process.exit(1);
 }
 

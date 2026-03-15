@@ -3,14 +3,15 @@
  *
  * POST /api/cron/coach-alerts
  *
- * Scans all athletes for issues that require coach attention:
+ * Scans athlete clients for issues that require coach attention:
  * - READINESS_DROP: 3+ consecutive days with readiness < 5.5
  * - MISSED_CHECKINS: No DailyCheckIn for 3+ days
  * - MISSED_WORKOUTS: Past due assignments not completed
  * - PAIN_MENTION: Recent injury mentions in AI conversations
  * - HIGH_ACWR: Training load ratio > 1.5
  *
- * Should be called every 30-60 minutes via external cron service.
+ * Processed in bounded, paged batches to avoid sweeping the full
+ * athlete population serially in a single request.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -18,8 +19,12 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
 
-// Allow longer execution time for batch processing
-export const maxDuration = 300 // 5 minutes
+export const maxDuration = 300
+
+const DEFAULT_BATCH_LIMIT = 120
+const DEFAULT_PAGE_SIZE = 200
+const DEFAULT_CONCURRENCY = 6
+const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
 
 type AlertType = 'READINESS_DROP' | 'MISSED_CHECKINS' | 'MISSED_WORKOUTS' | 'PAIN_MENTION' | 'HIGH_ACWR'
 type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
@@ -36,7 +41,16 @@ interface AlertData {
   expiresAt?: Date
 }
 
-// Verify cron secret
+type AlertCandidate = {
+  id: string
+  name: string
+  userId: string
+}
+
+type ProcessAlertCandidateResult =
+  | { status: 'processed'; alertsCreated: number; byType: Record<AlertType, number> }
+  | { status: 'error' }
+
 function verifyCronSecret(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization')
   const cronHeader = request.headers.get('x-cron-secret')
@@ -55,8 +69,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const batchLimit = parseBoundedInt(
+    request.nextUrl.searchParams.get('limit'),
+    DEFAULT_BATCH_LIMIT,
+    1,
+    500
+  )
+  const pageSize = parseBoundedInt(
+    request.nextUrl.searchParams.get('pageSize'),
+    DEFAULT_PAGE_SIZE,
+    25,
+    500
+  )
+  const concurrency = parseBoundedInt(
+    request.nextUrl.searchParams.get('concurrency'),
+    DEFAULT_CONCURRENCY,
+    1,
+    20
+  )
+  const executionBudgetMs = parseBoundedInt(
+    request.nextUrl.searchParams.get('budgetMs'),
+    DEFAULT_EXECUTION_BUDGET_MS,
+    30_000,
+    DEFAULT_EXECUTION_BUDGET_MS
+  )
+
   const startTime = Date.now()
   const results = {
+    scanned: 0,
     processed: 0,
     alertsCreated: 0,
     errors: 0,
@@ -66,70 +106,100 @@ export async function POST(request: NextRequest) {
       MISSED_WORKOUTS: 0,
       PAIN_MENTION: 0,
       HIGH_ACWR: 0,
-    },
+    } satisfies Record<AlertType, number>,
+    exhausted: false,
+    timedOut: false,
   }
+  let hasMore = false
 
   try {
-    // Get all coaches with their athletes
-    const coaches = await prisma.user.findMany({
-      where: {
-        role: 'COACH',
-      },
-      select: {
-        id: true,
-        clients: {
-          where: {
-            athleteAccount: { isNot: null }, // Only athletes with accounts
-          },
-          select: {
-            id: true,
-            name: true,
-            userId: true,
-          },
-        },
-      },
+    let cursor: string | null = null
+
+    logger.info('Coach alerts cron started', {
+      batchLimit,
+      pageSize,
+      concurrency,
+      executionBudgetMs,
     })
 
-    for (const coach of coaches) {
-      for (const client of coach.clients) {
-        results.processed++
+    while (results.processed < batchLimit) {
+      if (Date.now() - startTime >= executionBudgetMs) {
+        results.timedOut = true
+        break
+      }
 
-        try {
-          const alerts: AlertData[] = []
-
-          // Check for readiness drops
-          const readinessAlert = await checkReadinessDrop(coach.id, client.id, client.name)
-          if (readinessAlert) alerts.push(readinessAlert)
-
-          // Check for missed check-ins
-          const missedCheckinAlert = await checkMissedCheckins(coach.id, client.id, client.name)
-          if (missedCheckinAlert) alerts.push(missedCheckinAlert)
-
-          // Check for missed workouts
-          const missedWorkoutAlerts = await checkMissedWorkouts(coach.id, client.id, client.name)
-          alerts.push(...missedWorkoutAlerts)
-
-          // Check for pain mentions in conversations
-          const painAlerts = await checkPainMentions(coach.id, client.id, client.name)
-          alerts.push(...painAlerts)
-
-          // Check for high ACWR
-          const acwrAlert = await checkHighACWR(coach.id, client.id, client.name)
-          if (acwrAlert) alerts.push(acwrAlert)
-
-          // Create alerts (deduplicated)
-          for (const alert of alerts) {
-            const created = await createAlertIfNotExists(alert)
-            if (created) {
-              results.alertsCreated++
-              results.byType[alert.alertType]++
+      const athletes: AlertCandidate[] = await prisma.client.findMany({
+        where: {
+          athleteAccount: { isNot: null },
+          userId: { not: null },
+        },
+        ...(cursor
+          ? {
+              cursor: { id: cursor },
+              skip: 1,
             }
+          : {}),
+        take: pageSize,
+        orderBy: { id: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          userId: true,
+        },
+      })
+
+      if (athletes.length === 0) {
+        results.exhausted = true
+        break
+      }
+
+      results.scanned += athletes.length
+      cursor = athletes[athletes.length - 1].id
+
+      const remainingCapacity = batchLimit - results.processed
+      if (athletes.length > remainingCapacity) {
+        hasMore = true
+      }
+      const athletesToProcess = athletes.slice(0, remainingCapacity)
+
+      for (let i = 0; i < athletesToProcess.length; i += concurrency) {
+        if (Date.now() - startTime >= executionBudgetMs) {
+          results.timedOut = true
+          break
+        }
+
+        const chunk = athletesToProcess.slice(i, i + concurrency)
+        const outcomes = await Promise.all(chunk.map((athlete) => processAlertCandidate(athlete)))
+
+        for (const outcome of outcomes) {
+          results.processed++
+
+          if (outcome.status === 'error') {
+            results.errors++
+            continue
           }
-        } catch (error) {
-          results.errors++
-          logger.error('Error processing athlete for alerts', { clientId: client.id }, error)
+
+          results.alertsCreated += outcome.alertsCreated
+          for (const alertType of Object.keys(results.byType) as AlertType[]) {
+            results.byType[alertType] += outcome.byType[alertType]
+          }
+        }
+
+        if (results.processed >= batchLimit) {
+          break
         }
       }
+
+      if (results.timedOut) {
+        break
+      }
+
+      if (athletes.length < pageSize) {
+        results.exhausted = true
+        break
+      }
+
+      hasMore = true
     }
 
     const duration = Date.now() - startTime
@@ -139,6 +209,7 @@ export async function POST(request: NextRequest) {
       success: true,
       ...results,
       durationMs: duration,
+      hasMore: hasMore || !results.exhausted,
     })
   } catch (error) {
     logger.error('Coach alerts cron failed', {}, error)
@@ -146,6 +217,61 @@ export async function POST(request: NextRequest) {
       { error: 'Cron job failed', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
+  }
+}
+
+export async function GET(request: NextRequest) {
+  return POST(request)
+}
+
+async function processAlertCandidate(
+  athlete: AlertCandidate
+): Promise<ProcessAlertCandidateResult> {
+  try {
+    const alerts: AlertData[] = []
+
+    const readinessAlert = await checkReadinessDrop(athlete.userId, athlete.id, athlete.name)
+    if (readinessAlert) alerts.push(readinessAlert)
+
+    const missedCheckinAlert = await checkMissedCheckins(athlete.userId, athlete.id, athlete.name)
+    if (missedCheckinAlert) alerts.push(missedCheckinAlert)
+
+    const missedWorkoutAlerts = await checkMissedWorkouts(athlete.userId, athlete.id, athlete.name)
+    alerts.push(...missedWorkoutAlerts)
+
+    const painAlerts = await checkPainMentions(athlete.userId, athlete.id, athlete.name)
+    alerts.push(...painAlerts)
+
+    const acwrAlert = await checkHighACWR(athlete.userId, athlete.id, athlete.name)
+    if (acwrAlert) alerts.push(acwrAlert)
+
+    let alertsCreated = 0
+    const byType: Record<AlertType, number> = {
+      READINESS_DROP: 0,
+      MISSED_CHECKINS: 0,
+      MISSED_WORKOUTS: 0,
+      PAIN_MENTION: 0,
+      HIGH_ACWR: 0,
+    }
+
+    for (const alert of alerts) {
+      const created = await createAlertIfNotExists(alert)
+      if (!created) {
+        continue
+      }
+
+      alertsCreated++
+      byType[alert.alertType]++
+    }
+
+    return {
+      status: 'processed',
+      alertsCreated,
+      byType,
+    }
+  } catch (error) {
+    logger.error('Error processing athlete for alerts', { clientId: athlete.id }, error)
+    return { status: 'error' }
   }
 }
 
@@ -174,7 +300,6 @@ async function checkReadinessDrop(
 
   if (recentCheckIns.length < 3) return null
 
-  // Check if all 3 most recent have low readiness
   const lowReadinessThreshold = 5.5
   const consecutiveLow = recentCheckIns
     .slice(0, 3)
@@ -200,7 +325,7 @@ async function checkReadinessDrop(
       days: 3,
       scores: recentCheckIns.slice(0, 3).map((c) => c.readinessScore),
     },
-    expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
+    expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
   }
 }
 
@@ -212,12 +337,10 @@ async function checkMissedCheckins(
   clientId: string,
   clientName: string
 ): Promise<AlertData | null> {
-  // First check if athlete has a history of check-ins
   const totalCheckIns = await prisma.dailyCheckIn.count({
     where: { clientId },
   })
 
-  // Only alert if athlete has established a check-in habit (>7 check-ins)
   if (totalCheckIns < 7) return null
 
   const threeDaysAgo = new Date()
@@ -230,9 +353,8 @@ async function checkMissedCheckins(
     },
   })
 
-  if (recentCheckIn) return null // Has recent check-in
+  if (recentCheckIn) return null
 
-  // Find last check-in date
   const lastCheckIn = await prisma.dailyCheckIn.findFirst({
     where: { clientId },
     orderBy: { date: 'desc' },
@@ -257,7 +379,7 @@ async function checkMissedCheckins(
       lastCheckInDate: lastCheckIn?.date.toISOString(),
       totalHistoricalCheckIns: totalCheckIns,
     },
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
   }
 }
 
@@ -274,7 +396,6 @@ async function checkMissedWorkouts(
   const threeDaysAgo = new Date()
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
 
-  // Check strength session assignments
   const missedStrength = await prisma.strengthSessionAssignment.findMany({
     where: {
       athleteId: clientId,
@@ -292,7 +413,6 @@ async function checkMissedWorkouts(
     take: 5,
   })
 
-  // Check cardio session assignments
   const missedCardio = await prisma.cardioSessionAssignment.findMany({
     where: {
       athleteId: clientId,
@@ -334,7 +454,7 @@ async function checkMissedWorkouts(
       strengthCount: missedStrength.length,
       cardioCount: missedCardio.length,
     },
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
   })
 
   return alerts
@@ -352,7 +472,6 @@ async function checkPainMentions(
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  // Find injury mentions from conversation memory
   const painMentions = await prisma.conversationMemory.findMany({
     where: {
       clientId,
@@ -364,7 +483,6 @@ async function checkPainMentions(
   })
 
   for (const mention of painMentions) {
-    // Check if we already created an alert for this memory
     const existingAlert = await prisma.coachAlert.findFirst({
       where: {
         coachId,
@@ -393,7 +511,7 @@ async function checkPainMentions(
         extractedAt: mention.extractedAt.toISOString(),
       },
       sourceId: mention.id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     })
   }
 
@@ -408,7 +526,6 @@ async function checkHighACWR(
   clientId: string,
   clientName: string
 ): Promise<AlertData | null> {
-  // Get most recent training load with ACWR
   const recentLoad = await prisma.trainingLoad.findFirst({
     where: {
       clientId,
@@ -425,8 +542,6 @@ async function checkHighACWR(
   if (!recentLoad || recentLoad.acwr === null) return null
 
   const acwr = recentLoad.acwr
-
-  // Only alert if ACWR is in danger zone (>1.5)
   if (acwr <= 1.5) return null
 
   const severity: Severity =
@@ -446,7 +561,7 @@ async function checkHighACWR(
       injuryRisk: riskLevel,
       date: recentLoad.date.toISOString(),
     },
-    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
   }
 }
 
@@ -457,7 +572,6 @@ async function createAlertIfNotExists(alert: AlertData): Promise<boolean> {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  // Check for existing active alert of same type for same client today
   const existing = await prisma.coachAlert.findFirst({
     where: {
       coachId: alert.coachId,
@@ -465,7 +579,6 @@ async function createAlertIfNotExists(alert: AlertData): Promise<boolean> {
       alertType: alert.alertType,
       status: 'ACTIVE',
       createdAt: { gte: today },
-      // For PAIN_MENTION, also check sourceId
       ...(alert.sourceId ? { sourceId: alert.sourceId } : {}),
     },
   })
@@ -489,7 +602,15 @@ async function createAlertIfNotExists(alert: AlertData): Promise<boolean> {
   return true
 }
 
-// Also support GET for Vercel Cron
-export async function GET(request: NextRequest) {
-  return POST(request)
+function parseBoundedInt(
+  value: string | null,
+  fallback: number,
+  min: number,
+  max: number
+) {
+  const parsed = value ? parseInt(value, 10) : fallback
+  if (!Number.isFinite(parsed)) {
+    return fallback
+  }
+  return Math.max(min, Math.min(parsed, max))
 }

@@ -9,6 +9,7 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import { performance } from 'node:perf_hooks'
 
 interface RouteParams {
@@ -22,10 +23,9 @@ const BUSINESS_STATS_STALE_MS = 30 * 60 * 1000
 const BUSINESS_STATS_MAX_COMPUTE_MS = 12000
 const BUSINESS_ACCESS_TTL_MS = 2 * 60 * 1000
 const BUSINESS_STATS_ERROR_LOG_COOLDOWN_MS = 30 * 1000
-const businessStatsCache = new Map<
-  string,
-  { expiresAt: number; staleUntil: number; json: string; businessName: string }
->()
+const businessStatsCache = createDistributedJsonCache<{ json: string; businessName: string }>(
+  'business-stats'
+)
 const businessStatsInFlight = new Map<string, Promise<string>>()
 const bypassCoachCache = new Map<string, { expiresAt: number; id: string; role: string }>()
 const businessAccessCache = new Map<
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const nowMs = Date.now()
     const options = parseBusinessStatsOptions(request)
     const cacheKey = buildBusinessStatsCacheKey(id, options)
-    const cached = businessStatsCache.get(cacheKey)
+    const cached = await businessStatsCache.get(cacheKey)
 
     // If we have a fresh cached payload, avoid hitting external rate limiters
     // and avoid repeated JSON serialization under load.
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       if (!access.allowed) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
-      return jsonResponse(cached.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'hit' }))
+      return jsonResponse(cached.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'hit' }))
     }
 
     // Rate limit stats requests to prevent abuse
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (!access.allowed) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
-    const businessName = access.businessName || cached?.businessName || 'Business'
+    const businessName = access.businessName || cached?.payload.businessName || 'Business'
 
     // Get date ranges
     const now = new Date();
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           businessStatsInFlight.set(cacheKey, refreshPromise)
           void refreshPromise.finally(() => businessStatsInFlight.delete(cacheKey))
         }
-        return jsonResponse(cached.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
+        return jsonResponse(cached.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
       }
       if (inFlight) {
         try {
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           return jsonResponse(json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'inflight' }))
         } catch {
           if (cached && cached.staleUntil > Date.now()) {
-            return jsonResponse(cached.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
+            return jsonResponse(cached.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
           }
           return NextResponse.json(createDegradedBusinessStatsPayload(id, businessName), {
             headers: withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'degraded' }),
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return jsonResponse(json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'miss' }))
     } catch (error) {
       if (cached && cached.staleUntil > Date.now()) {
-        return jsonResponse(cached.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
+        return jsonResponse(cached.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
       }
       // Degraded fallback instead of hard-failing under transient DB pressure.
       return NextResponse.json(createDegradedBusinessStatsPayload(id, businessName), {
@@ -404,11 +404,10 @@ async function buildBusinessStatsPayload(input: BuildBusinessStatsPayloadInput) 
       ...(options.includeRecentTests ? { recentTests: [] } : {}),
     }
     const json = JSON.stringify(emptyPayload)
-    businessStatsCache.set(cacheKey, {
+    await businessStatsCache.set(cacheKey, {
       expiresAt: Date.now() + BUSINESS_STATS_TTL_MS,
       staleUntil: Date.now() + BUSINESS_STATS_STALE_MS,
-      json,
-      businessName,
+      payload: { json, businessName },
     })
     return json
   }
@@ -677,11 +676,10 @@ async function buildBusinessStatsPayload(input: BuildBusinessStatsPayloadInput) 
   }
 
   const json = JSON.stringify(payload)
-  businessStatsCache.set(cacheKey, {
+  await businessStatsCache.set(cacheKey, {
     expiresAt: Date.now() + BUSINESS_STATS_TTL_MS,
     staleUntil: Date.now() + BUSINESS_STATS_STALE_MS,
-    json,
-    businessName,
+    payload: { json, businessName },
   })
 
   return json

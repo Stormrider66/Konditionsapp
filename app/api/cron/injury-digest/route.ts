@@ -20,7 +20,13 @@ import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { logger } from '@/lib/logger'
 import { sanitizeForEmail } from '@/lib/sanitize'
+
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+
+const DEFAULT_BATCH_LIMIT = 120
+const DEFAULT_PAGE_SIZE = 200
+const DEFAULT_CONCURRENCY = 4
+const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
 
 interface DigestData {
   coachId: string
@@ -442,7 +448,6 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret (REQUIRED)
     const authHeader = request.headers.get('authorization')
     const cronSecret = process.env.CRON_SECRET
 
@@ -458,8 +463,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    logger.info('Starting injury digest email job')
-
     if (!resend) {
       logger.warn('RESEND_API_KEY not configured, skipping email send', {})
       return NextResponse.json(
@@ -468,70 +471,127 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get all coaches
-    const coaches = await prisma.user.findMany({
-      where: { role: 'COACH' },
-      select: { id: true, email: true, name: true },
+    const batchLimit = parseBoundedInt(
+      request.nextUrl.searchParams.get('limit'),
+      DEFAULT_BATCH_LIMIT,
+      1,
+      500
+    )
+    const pageSize = parseBoundedInt(
+      request.nextUrl.searchParams.get('pageSize'),
+      DEFAULT_PAGE_SIZE,
+      25,
+      500
+    )
+    const concurrency = parseBoundedInt(
+      request.nextUrl.searchParams.get('concurrency'),
+      DEFAULT_CONCURRENCY,
+      1,
+      20
+    )
+    const executionBudgetMs = parseBoundedInt(
+      request.nextUrl.searchParams.get('budgetMs'),
+      DEFAULT_EXECUTION_BUDGET_MS,
+      30_000,
+      DEFAULT_EXECUTION_BUDGET_MS
+    )
+
+    const startTime = Date.now()
+    const results = {
+      scanned: 0,
+      processed: 0,
+      sent: 0,
+      skipped: 0,
+      errors: 0,
+      exhausted: false,
+      timedOut: false,
+    }
+    let hasMore = false
+    let cursor: string | null = null
+
+    logger.info('Starting injury digest email job', {
+      batchLimit,
+      pageSize,
+      concurrency,
+      executionBudgetMs,
     })
 
-    logger.info('Found coaches', { count: coaches.length })
-
-    let sent = 0
-    let skipped = 0
-    let errors = 0
-
-    for (const coach of coaches) {
-      try {
-        if (!coach.email) {
-          skipped++
-          continue
-        }
-
-        // Get digest data for this coach
-        const digestData = await getCoachDigestData(coach.id)
-
-        if (!digestData) {
-          skipped++
-          continue
-        }
-
-        // Generate email HTML
-        const emailHTML = generateEmailHTML(digestData)
-
-        // Determine subject line
-        const hasAlerts =
-          digestData.pendingModifications > 0 ||
-          digestData.activeInjuries > 0 ||
-          digestData.highRiskAthletes > 0 ||
-          digestData.lowReadinessAthletes > 0
-
-        const subject = hasAlerts
-          ? `⚠️ ${digestData.pendingModifications + digestData.activeInjuries + digestData.highRiskAthletes + digestData.lowReadinessAthletes} atleter behöver din uppmärksamhet`
-          : '✅ Daglig rapport - Inga åtgärder krävs'
-
-        // Send email via Resend
-        await resend.emails.send({
-          from: process.env.EMAIL_FROM || 'noreply@trainomics.app',
-          to: coach.email,
-          subject,
-          html: emailHTML,
-        })
-
-        sent++
-        logger.info('Sent digest', { coachName: coach.name, coachEmail: coach.email })
-      } catch (coachError: unknown) {
-        logger.error('Error sending digest', { coachEmail: coach.email }, coachError)
-        errors++
+    while (results.processed < batchLimit) {
+      if (Date.now() - startTime >= executionBudgetMs) {
+        results.timedOut = true
+        break
       }
+
+      const coaches = await prisma.user.findMany({
+        where: { role: 'COACH' },
+        ...(cursor
+          ? {
+              cursor: { id: cursor },
+              skip: 1,
+            }
+          : {}),
+        take: pageSize,
+        orderBy: { id: 'asc' },
+        select: { id: true, email: true, name: true },
+      })
+
+      if (coaches.length === 0) {
+        results.exhausted = true
+        break
+      }
+
+      results.scanned += coaches.length
+      cursor = coaches[coaches.length - 1].id
+
+      const remainingCapacity = batchLimit - results.processed
+      if (coaches.length > remainingCapacity) {
+        hasMore = true
+      }
+      const coachesToProcess = coaches.slice(0, remainingCapacity)
+
+      for (let i = 0; i < coachesToProcess.length; i += concurrency) {
+        if (Date.now() - startTime >= executionBudgetMs) {
+          results.timedOut = true
+          break
+        }
+
+        const chunk = coachesToProcess.slice(i, i + concurrency)
+        const outcomes = await Promise.all(chunk.map((coach) => processCoachDigest(coach)))
+
+        for (const outcome of outcomes) {
+          results.processed++
+          if (outcome === 'sent') {
+            results.sent++
+          } else if (outcome === 'skipped') {
+            results.skipped++
+          } else {
+            results.errors++
+          }
+        }
+
+        if (results.processed >= batchLimit) {
+          break
+        }
+      }
+
+      if (results.timedOut) {
+        break
+      }
+
+      if (coaches.length < pageSize) {
+        results.exhausted = true
+        break
+      }
+
+      hasMore = true
     }
 
-    logger.info('Injury digest job complete', { sent, skipped, errors })
+    logger.info('Injury digest job complete', results)
 
     return NextResponse.json({
       success: true,
-      sent,
-      skipped,
-      errors,
+      ...results,
+      hasMore: hasMore || !results.exhausted,
       timestamp: new Date().toISOString(),
     })
   } catch (error: unknown) {
@@ -561,4 +621,58 @@ export async function GET(request: NextRequest) {
   }
 
   return POST(request)
+}
+
+async function processCoachDigest(coach: {
+  id: string
+  email: string | null
+  name: string | null
+}): Promise<'sent' | 'skipped' | 'error'> {
+  try {
+    if (!coach.email || !resend) {
+      return 'skipped'
+    }
+
+    const digestData = await getCoachDigestData(coach.id)
+    if (!digestData) {
+      return 'skipped'
+    }
+
+    const emailHTML = generateEmailHTML(digestData)
+    const hasAlerts =
+      digestData.pendingModifications > 0 ||
+      digestData.activeInjuries > 0 ||
+      digestData.highRiskAthletes > 0 ||
+      digestData.lowReadinessAthletes > 0
+
+    const subject = hasAlerts
+      ? `⚠️ ${digestData.pendingModifications + digestData.activeInjuries + digestData.highRiskAthletes + digestData.lowReadinessAthletes} atleter behöver din uppmärksamhet`
+      : '✅ Daglig rapport - Inga åtgärder krävs'
+
+    await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'noreply@trainomics.app',
+      to: coach.email,
+      subject,
+      html: emailHTML,
+    })
+
+    logger.info('Sent digest', { coachName: coach.name, coachEmail: coach.email })
+    return 'sent'
+  } catch (coachError: unknown) {
+    logger.error('Error sending digest', { coachEmail: coach.email }, coachError)
+    return 'error'
+  }
+}
+
+function parseBoundedInt(
+  value: string | null,
+  fallback: number,
+  min: number,
+  max: number
+) {
+  const parsed = value ? parseInt(value, 10) : fallback
+  if (!Number.isFinite(parsed)) {
+    return fallback
+  }
+  return Math.max(min, Math.min(parsed, max))
 }

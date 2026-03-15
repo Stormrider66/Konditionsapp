@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
+import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import { performance } from 'node:perf_hooks'
 
 interface RouteContext {
@@ -31,10 +32,7 @@ const TEAM_DASHBOARD_STALE_MS = 30 * 60 * 1000
 const TEAM_DASHBOARD_MAX_COMPUTE_MS = 4000
 // Auth context caching reduces repeated Supabase calls / user lookups under load.
 const AUTH_CONTEXT_TTL_MS = 2 * 60 * 1000
-const teamDashboardCache = new Map<
-  string,
-  { expiresAt: number; staleUntil: number; json: string }
->()
+const teamDashboardCache = createDistributedJsonCache<{ json: string }>('team-dashboard')
 const teamDashboardInFlight = new Map<string, Promise<string>>()
 const authEmailCache = new Map<string, { expiresAt: number; email: string }>()
 const userIdByEmailCache = new Map<string, { expiresAt: number; userId: string }>()
@@ -56,9 +54,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const options = parseTeamDashboardOptions(request)
     const cacheKey = `${dbUserId}:${teamId}:${buildTeamDashboardCacheKey(options)}`
     const nowMs = Date.now()
-    const cached = teamDashboardCache.get(cacheKey)
+    const cached = await teamDashboardCache.get(cacheKey)
     if (cached && cached.expiresAt > nowMs) {
-      return jsonResponse(cached.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'hit' }))
+      return jsonResponse(cached.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'hit' }))
     }
     const inFlight = teamDashboardInFlight.get(cacheKey)
     if (cached && cached.staleUntil > nowMs) {
@@ -68,7 +66,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         teamDashboardInFlight.set(cacheKey, refreshPromise)
         void refreshPromise.finally(() => teamDashboardInFlight.delete(cacheKey))
       }
-      return jsonResponse(cached.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
+      return jsonResponse(cached.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
     }
     if (inFlight) {
       try {
@@ -76,9 +74,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
         return jsonResponse(json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'inflight' }))
       } catch (error) {
         // If we have anything stale, serve it rather than piling up timeouts.
-        const fallback = teamDashboardCache.get(cacheKey)
+        const fallback = await teamDashboardCache.get(cacheKey)
         if (fallback && fallback.staleUntil > Date.now()) {
-          return jsonResponse(fallback.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
+          return jsonResponse(fallback.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
         }
         // Degraded fallback (still enforces authorization via a cheap team lookup).
         return NextResponse.json(await buildDegradedTeamDashboardPayload(dbUserId, teamId, options), {
@@ -94,9 +92,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
       const json = await withTimeout(loadPromise, TEAM_DASHBOARD_MAX_COMPUTE_MS)
       return jsonResponse(json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'miss' }))
     } catch (error) {
-      const fallback = teamDashboardCache.get(cacheKey)
+      const fallback = await teamDashboardCache.get(cacheKey)
       if (fallback && fallback.staleUntil > Date.now()) {
-        return jsonResponse(fallback.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
+        return jsonResponse(fallback.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
       }
       return NextResponse.json(await buildDegradedTeamDashboardPayload(dbUserId, teamId, options), {
         headers: withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'degraded' }),
@@ -440,10 +438,10 @@ async function buildTeamDashboardPayload(dbUserId: string, teamId: string, optio
   }
 
   const json = JSON.stringify(payload)
-  teamDashboardCache.set(`${dbUserId}:${teamId}:${buildTeamDashboardCacheKey(options)}`, {
+  await teamDashboardCache.set(`${dbUserId}:${teamId}:${buildTeamDashboardCacheKey(options)}`, {
     expiresAt: Date.now() + TEAM_DASHBOARD_TTL_MS,
     staleUntil: Date.now() + TEAM_DASHBOARD_STALE_MS,
-    json,
+    payload: { json },
   })
 
   return json
