@@ -27,6 +27,9 @@ import {
   MessageSquare,
   TrendingUp,
   CheckCircle2,
+  Dumbbell,
+  Timer,
+  Zap,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -118,6 +121,7 @@ export function DaySidebar({
   const fieldTests = items.filter((i) => i.type === 'FIELD_TEST')
   const checkIns = items.filter((i) => i.type === 'CHECK_IN')
   const wods = items.filter((i) => i.type === 'WOD')
+  const adHocWorkouts = items.filter((i) => i.type === 'AD_HOC')
 
   if (isGlass) {
     return (
@@ -178,6 +182,26 @@ export function DaySidebar({
                         wod={wod}
                         isSelected={selectedItem?.id === wod.id}
                         onClick={() => onItemClick(wod)}
+                        isGlass={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {adHocWorkouts.length > 0 && (
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-teal-500" />
+                    Ad-hoc ({adHocWorkouts.length})
+                  </h4>
+                  <div className="space-y-2.5">
+                    {adHocWorkouts.map((adHocWorkout) => (
+                      <AdHocItem
+                        key={adHocWorkout.id}
+                        workout={adHocWorkout}
+                        isSelected={selectedItem?.id === adHocWorkout.id}
+                        onClick={() => onItemClick(adHocWorkout)}
                         isGlass={true}
                       />
                     ))}
@@ -299,6 +323,10 @@ export function DaySidebar({
                   onViewWorkoutDetails={onViewWorkoutDetails}
                 />
               )}
+
+              {selectedItem?.type === 'AD_HOC' && (
+                <AdHocDetailPanel workout={selectedItem} isGlass={true} />
+              )}
             </>
           )}
 
@@ -369,6 +397,25 @@ export function DaySidebar({
                       wod={wod}
                       isSelected={selectedItem?.id === wod.id}
                       onClick={() => onItemClick(wod)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {adHocWorkouts.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-teal-500" />
+                  Ad-hoc ({adHocWorkouts.length})
+                </h4>
+                <div className="space-y-2">
+                  {adHocWorkouts.map((adHocWorkout) => (
+                    <AdHocItem
+                      key={adHocWorkout.id}
+                      workout={adHocWorkout}
+                      isSelected={selectedItem?.id === adHocWorkout.id}
+                      onClick={() => onItemClick(adHocWorkout)}
                     />
                   ))}
                 </div>
@@ -482,6 +529,10 @@ export function DaySidebar({
                 isCoachView={isCoachView}
                 onViewWorkoutDetails={onViewWorkoutDetails}
               />
+            )}
+
+            {selectedItem?.type === 'AD_HOC' && (
+              <AdHocDetailPanel workout={selectedItem} />
             )}
           </>
         )}
@@ -935,6 +986,14 @@ interface SidebarWorkoutDetail {
   duration?: number | null
   distance?: number | null
   instructions?: string | null
+  day?: {
+    week?: {
+      program?: {
+        id: string
+        clientId: string
+      } | null
+    } | null
+  } | null
 }
 
 interface SidebarWorkoutLog {
@@ -948,6 +1007,30 @@ interface SidebarWorkoutLog {
   perceivedEffort: number | null
   notes: string | null
   coachFeedback: string | null
+  intervalResults?: Array<{
+    segmentId?: string
+    segmentLabel?: string
+    reps?: Array<{
+      repNumber?: number
+      pace?: string
+      avgHR?: number
+      maxHR?: number
+      duration?: number
+      distance?: number
+      avgPower?: number
+      notes?: string
+    }>
+  }> | null
+}
+
+interface SidebarRaceResult {
+  id: string
+  raceDate: string
+  timeFormatted: string
+  goalTime?: string | null
+  avgPace?: string | null
+  avgHeartRate?: number | null
+  trainingProgramId?: string | null
 }
 
 function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorkoutDetails }: WorkoutDetailPanelProps) {
@@ -955,6 +1038,7 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
   const workoutId = (meta.workoutId as string) || workout.id
   const [detail, setDetail] = useState<SidebarWorkoutDetail | null>(null)
   const [latestLog, setLatestLog] = useState<SidebarWorkoutLog | null>(null)
+  const [raceResult, setRaceResult] = useState<SidebarRaceResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -969,12 +1053,37 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
         if (cancelled) return
         setDetail(workoutData)
         const logs = Array.isArray(logsData?.data) ? logsData.data : []
-        setLatestLog(logs.find((log: SidebarWorkoutLog) => log.completed) || logs[0] || null)
+        const completedLog = logs.find((log: SidebarWorkoutLog) => log.completed) || logs[0] || null
+        setLatestLog(completedLog)
+
+        const clientId = workoutData?.day?.week?.program?.clientId
+        const programId = workoutData?.day?.week?.program?.id
+        if (!clientId || !programId || !completedLog?.completedAt) {
+          setRaceResult(null)
+          return
+        }
+
+        fetch(`/api/race-results?clientId=${clientId}`)
+          .then((res) => (res.ok ? res.json() : []))
+          .then((results: SidebarRaceResult[]) => {
+            if (cancelled || !Array.isArray(results)) return
+            const targetTime = new Date(completedLog.completedAt as string).getTime()
+            const programResults = results.filter((result) => result.trainingProgramId === programId)
+            const closest = programResults
+              .sort((a, b) => Math.abs(new Date(a.raceDate).getTime() - targetTime) - Math.abs(new Date(b.raceDate).getTime() - targetTime))[0] || null
+            setRaceResult(closest)
+          })
+          .catch(() => {
+            if (!cancelled) {
+              setRaceResult(null)
+            }
+          })
       })
       .catch(() => {
         if (cancelled) return
         setDetail(null)
         setLatestLog(null)
+        setRaceResult(null)
       })
       .finally(() => {
         if (!cancelled) {
@@ -993,6 +1102,8 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
   const distance = detail?.distance ?? (meta.distance as number | undefined)
   const instructions = detail?.instructions || (meta.instructions as string | undefined)
   const isCompleted = latestLog?.completed || (meta.isCompleted as boolean)
+  const intervalResults = Array.isArray(latestLog?.intervalResults) ? latestLog.intervalResults : []
+  const hasIntervalDetails = intervalResults.some((segment) => Array.isArray(segment.reps) && segment.reps.length > 0)
   const completedDate = latestLog?.completedAt
     ? new Date(latestLog.completedAt).toLocaleDateString('sv-SE', {
         day: 'numeric',
@@ -1105,6 +1216,15 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs">
+              {raceResult?.timeFormatted && (
+                <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                  <p className="text-muted-foreground flex items-center gap-1"><Timer className="h-3 w-3" /> 10 km / resultat</p>
+                  <p className="font-semibold">{raceResult.timeFormatted}</p>
+                  {raceResult.goalTime ? (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Mål {raceResult.goalTime}</p>
+                  ) : null}
+                </div>
+              )}
               {(latestLog.duration != null || duration) && (
                 <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
                   <p className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Tid</p>
@@ -1163,6 +1283,45 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
                 </p>
               </div>
             )}
+
+            {hasIntervalDetails && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Intervall- och splittider</p>
+                <div className="space-y-2">
+                  {intervalResults.map((segment, segmentIndex) => {
+                    const reps = Array.isArray(segment.reps) ? segment.reps : []
+                    if (reps.length === 0) return null
+
+                    return (
+                      <div
+                        key={`${segment.segmentId || 'segment'}-${segmentIndex}`}
+                        className={cn(
+                          'rounded-lg border p-2.5 space-y-2',
+                          isGlass ? 'bg-white/5 border-white/10' : 'bg-background'
+                        )}
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                          {segment.segmentLabel || `Block ${segmentIndex + 1}`}
+                        </p>
+                        <div className="space-y-1.5">
+                          {reps.map((rep, repIndex) => (
+                            <div key={`${segmentIndex}-${repIndex}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                              <span className="font-semibold">Rep {rep.repNumber || repIndex + 1}</span>
+                              {rep.duration ? <span>Tid {formatDurationMinutes(rep.duration)}</span> : null}
+                              {rep.distance ? <span>Distans {rep.distance} km</span> : null}
+                              {rep.pace ? <span>Tempo {rep.pace}</span> : null}
+                              {rep.avgHR ? <span>Puls {rep.avgHR} bpm</span> : null}
+                              {rep.avgPower ? <span>Effekt {rep.avgPower} W</span> : null}
+                              {rep.notes ? <span className="text-muted-foreground">{rep.notes}</span> : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1186,4 +1345,254 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
       </div>
     </div>
   )
+}
+
+interface AdHocItemProps {
+  workout: UnifiedCalendarItem
+  isSelected: boolean
+  onClick: () => void
+  isGlass?: boolean
+}
+
+function AdHocItem({ workout, isSelected, onClick, isGlass = false }: AdHocItemProps) {
+  const meta = workout.metadata
+  const intensity = (meta.intensity as string) || 'MODERATE'
+
+  return (
+    <button
+      className={cn(
+        'w-full text-left p-4 rounded-xl border transition-all duration-300',
+        isGlass
+          ? 'bg-teal-500/5 border-teal-500/20 hover:bg-teal-500/10 hover:border-teal-500/30'
+          : 'border-teal-200 bg-teal-50 dark:bg-teal-950/20',
+        isSelected
+          ? (isGlass ? 'ring-1 ring-teal-500/60 bg-teal-500/10' : 'ring-2 ring-primary')
+          : ''
+      )}
+      onClick={onClick}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-sm truncate">{workout.title}</span>
+            <Badge variant="secondary" className="text-xs">
+              ✓
+            </Badge>
+          </div>
+          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+            {typeof meta.duration === 'number' && meta.duration > 0 && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {meta.duration} min
+              </span>
+            )}
+            {formatDistanceValue(meta.distance).label && (
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {formatDistanceValue(meta.distance).label}
+              </span>
+            )}
+          </div>
+        </div>
+        <Badge
+          className={cn(
+            'text-xs shrink-0',
+            INTENSITY_COLORS[intensity] || 'bg-yellow-500',
+            'text-white'
+          )}
+        >
+          {intensity.charAt(0) + intensity.slice(1).toLowerCase()}
+        </Badge>
+      </div>
+    </button>
+  )
+}
+
+interface SidebarAdHocDetail {
+  id: string
+  inputType: string
+  workoutName: string | null
+  parsedType: string | null
+  parsedStructure: Record<string, unknown> | null
+  workoutDate: string
+}
+
+function AdHocDetailPanel({ workout, isGlass = false }: { workout: UnifiedCalendarItem; isGlass?: boolean }) {
+  const [detail, setDetail] = useState<SidebarAdHocDetail | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setIsLoading(true)
+
+    fetch(`/api/adhoc-workouts/${workout.id}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((response) => {
+        if (!cancelled) {
+          setDetail(response?.data || null)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDetail(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [workout.id])
+
+  const parsed = detail?.parsedStructure || {}
+  const distance = formatDistanceValue(parsed.distance)
+  const duration = typeof parsed.duration === 'number' ? parsed.duration : null
+  const avgPace = typeof parsed.avgPace === 'string' ? parsed.avgPace : null
+  const avgHeartRate = typeof parsed.avgHeartRate === 'number' ? parsed.avgHeartRate : null
+  const intensity = typeof parsed.intensity === 'string' ? parsed.intensity : (workout.metadata.intensity as string | undefined) || 'MODERATE'
+  const feeling = typeof parsed.feeling === 'string' ? parsed.feeling : null
+  const notes = typeof parsed.notes === 'string' ? parsed.notes : null
+  const strengthCount = Array.isArray(parsed.strengthExercises) ? parsed.strengthExercises.length : 0
+  const cardioCount = Array.isArray(parsed.cardioSegments) ? parsed.cardioSegments.length : 0
+  const hybridCount = Array.isArray(parsed.hybridMovements) ? parsed.hybridMovements.length : 0
+
+  return (
+    <div className={cn(
+      'mt-6 p-5 rounded-2xl border transition-all duration-500 animate-in fade-in slide-in-from-top-2',
+      isGlass
+        ? 'bg-teal-500/5 border-teal-500/20 shadow-[0_4px_20px_rgba(20,184,166,0.12)]'
+        : 'bg-teal-50 dark:bg-teal-950/20 border-teal-200 dark:border-teal-800'
+    )}>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="font-black text-[10px] uppercase tracking-widest flex items-center gap-2 text-teal-500">
+          <CheckCircle2 className="h-4 w-4" />
+          Ad-hoc detaljer
+        </h4>
+        <Badge variant="secondary" className={cn(
+          'text-[10px] uppercase font-bold tracking-tight',
+          isGlass ? 'bg-emerald-500/20 text-emerald-400 border-none px-2' : 'bg-green-100 text-green-700'
+        )}>
+          Genomfört
+        </Badge>
+      </div>
+
+      <div className="space-y-3">
+        {isLoading && (
+          <div className={cn('flex items-center gap-2 text-xs', isGlass ? 'text-slate-400' : 'text-muted-foreground')}>
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Laddar ad-hoc-detaljer
+          </div>
+        )}
+
+        <div>
+          <p className={cn('font-black text-lg tracking-tight', isGlass ? 'text-white' : '')}>{workout.title}</p>
+          <div className="flex items-center gap-2 mt-2">
+            <Badge className={cn('text-xs', INTENSITY_COLORS[intensity] || 'bg-yellow-500', 'text-white')}>
+              {intensity.charAt(0) + intensity.slice(1).toLowerCase()}
+            </Badge>
+            <Badge variant="outline" className={cn(
+              'text-[10px] uppercase font-bold border-none px-2',
+              isGlass ? 'bg-white/5 text-slate-400' : 'text-xs'
+            )}>
+              {detail?.parsedType || detail?.inputType || 'Ad-hoc'}
+            </Badge>
+          </div>
+        </div>
+
+        {(duration || distance.label || avgPace || avgHeartRate) && (
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {duration ? (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Tid</p>
+                <p className="font-semibold">{duration} min</p>
+              </div>
+            ) : null}
+            {distance.label ? (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Distans</p>
+                <p className="font-semibold">{distance.label}</p>
+              </div>
+            ) : null}
+            {avgPace ? (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tempo</p>
+                <p className="font-semibold">{avgPace}</p>
+              </div>
+            ) : null}
+            {avgHeartRate ? (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground flex items-center gap-1"><Heart className="h-3 w-3" /> Puls</p>
+                <p className="font-semibold">{avgHeartRate} bpm</p>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {(strengthCount > 0 || cardioCount > 0 || hybridCount > 0 || feeling) && (
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {strengthCount > 0 ? (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground flex items-center gap-1"><Dumbbell className="h-3 w-3" /> Styrkeovningar</p>
+                <p className="font-semibold">{strengthCount}</p>
+              </div>
+            ) : null}
+            {cardioCount > 0 ? (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" /> Konditionsblock</p>
+                <p className="font-semibold">{cardioCount}</p>
+              </div>
+            ) : null}
+            {hybridCount > 0 ? (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground flex items-center gap-1"><Zap className="h-3 w-3" /> Hybridmoment</p>
+                <p className="font-semibold">{hybridCount}</p>
+              </div>
+            ) : null}
+            {feeling ? (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground">Känsla</p>
+                <p className="font-semibold">{feeling}</p>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {notes ? (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Anteckningar</p>
+            <p className={cn('text-xs whitespace-pre-wrap', isGlass ? 'text-slate-300' : '')}>{notes}</p>
+          </div>
+        ) : (
+          !isLoading && (
+            <p className={cn('text-xs', isGlass ? 'text-slate-400' : 'text-muted-foreground')}>
+              Inga extra detaljer registrerade för detta ad-hoc-pass.
+            </p>
+          )
+        )}
+      </div>
+    </div>
+  )
+}
+
+function formatDistanceValue(distance: unknown): { label: string | null } {
+  if (typeof distance === 'number' && Number.isFinite(distance) && distance > 0) {
+    return { label: `${distance % 1 === 0 ? distance.toFixed(0) : distance.toFixed(1)} km` }
+  }
+  if (typeof distance === 'string' && distance.trim()) {
+    const normalized = distance.trim()
+    return { label: normalized.includes('km') ? normalized : `${normalized} km` }
+  }
+  return { label: null }
+}
+
+function formatDurationMinutes(minutes: number): string {
+  if (!Number.isFinite(minutes) || minutes <= 0) return '-'
+  if (minutes < 1) {
+    return `${Math.round(minutes * 60)} s`
+  }
+  return `${minutes} min`
 }

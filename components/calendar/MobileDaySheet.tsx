@@ -182,6 +182,7 @@ export function MobileDaySheet({
   if (!isOpen || !date) return null
 
   const workouts = items.filter((i) => i.type === 'WORKOUT')
+  const adHocWorkouts = items.filter((i) => i.type === 'AD_HOC')
   const races = items.filter((i) => i.type === 'RACE')
   const events = items.filter((i) => i.type === 'CALENDAR_EVENT')
   const fieldTests = items.filter((i) => i.type === 'FIELD_TEST')
@@ -317,6 +318,20 @@ export function MobileDaySheet({
                         onClose()
                         onViewWorkoutDetails(workout.metadata.workoutId as string || workout.id)
                       } : undefined}
+                      isGlass={isGlass}
+                    />
+                  ))}
+                </Section>
+              )}
+
+              {adHocWorkouts.length > 0 && (
+                <Section title="Ad-hoc" count={adHocWorkouts.length} isGlass={isGlass}>
+                  {adHocWorkouts.map((workout) => (
+                    <WorkoutCard
+                      key={workout.id}
+                      workout={workout}
+                      isSelected={selectedItem?.id === workout.id}
+                      onClick={() => onItemClick(workout)}
                       isGlass={isGlass}
                     />
                   ))}
