@@ -458,6 +458,8 @@ interface DraggableItemProps {
 function DraggableItem({ item, onItemClick }: DraggableItemProps) {
   // Only workouts are draggable
   const isDraggable = item.type === 'WORKOUT'
+  const isCompleted = Boolean(item.metadata.isCompleted)
+  const preview = getMonthPreview(item)
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.id,
@@ -482,8 +484,7 @@ function DraggableItem({ item, onItemClick }: DraggableItemProps) {
           'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200',
         item.type === 'WOD' &&
           'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200',
-        item.metadata.isCompleted && 'border-emerald-400/40',
-        !item.metadata.isCompleted && 'border-transparent',
+        isCompleted ? 'border-emerald-400/40' : 'border-transparent',
         isDragging && 'opacity-30',
         isDraggable && 'cursor-grab active:cursor-grabbing'
       )}
@@ -498,11 +499,11 @@ function DraggableItem({ item, onItemClick }: DraggableItemProps) {
         {isDraggable && (
           <GripVertical className="h-3 w-3 text-muted-foreground shrink-0" />
         )}
-        {item.metadata.isCompleted ? <span className="text-[10px] shrink-0">✓</span> : null}
+        {isCompleted ? <span className="text-[10px] shrink-0">✓</span> : null}
         <span className="truncate flex-1">{item.title}</span>
       </div>
-      {getMonthPreview(item) && (
-        <span className="text-[10px] opacity-70 shrink-0">{getMonthPreview(item)}</span>
+      {preview && (
+        <span className="text-[10px] opacity-70 shrink-0">{preview}</span>
       )}
     </div>
   )

@@ -291,32 +291,38 @@ function DayCell({ day, isSelected, onClick, onItemClick }: DayCellProps) {
       {day.items.length > 0 && (
         <div className="hidden md:block mt-1">
           {day.items.slice(0, 2).map((item) => (
-            <div
-              key={item.id}
-              className={cn(
-                'text-xs truncate px-1.5 py-1 rounded mb-0.5 border',
-                item.type === 'WORKOUT' && 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200',
-                item.type === 'RACE' && 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200',
-                item.type === 'CALENDAR_EVENT' && 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200',
-                item.type === 'FIELD_TEST' && 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200',
-                item.type === 'AD_HOC' && 'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200',
-                item.type === 'WOD' && 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200',
-                item.metadata.isCompleted && 'border-emerald-400/40',
-                !item.metadata.isCompleted && 'border-transparent'
-              )}
-              onClick={(e) => {
-                e.stopPropagation()
-                onItemClick(item)
-              }}
-            >
-              <div className="flex items-center gap-1">
-                {item.metadata.isCompleted ? <span className="text-[10px]">✓</span> : null}
-                <span className="truncate">{item.title}</span>
-              </div>
-              {getMonthPreview(item) && (
-                <div className="text-[10px] opacity-70 truncate">{getMonthPreview(item)}</div>
-              )}
-            </div>
+            (() => {
+              const isCompleted = Boolean(item.metadata.isCompleted)
+              const preview = getMonthPreview(item)
+
+              return (
+                <div
+                  key={item.id}
+                  className={cn(
+                    'text-xs truncate px-1.5 py-1 rounded mb-0.5 border',
+                    item.type === 'WORKOUT' && 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200',
+                    item.type === 'RACE' && 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200',
+                    item.type === 'CALENDAR_EVENT' && 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200',
+                    item.type === 'FIELD_TEST' && 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200',
+                    item.type === 'AD_HOC' && 'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200',
+                    item.type === 'WOD' && 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200',
+                    isCompleted ? 'border-emerald-400/40' : 'border-transparent'
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onItemClick(item)
+                  }}
+                >
+                  <div className="flex items-center gap-1">
+                    {isCompleted ? <span className="text-[10px]">✓</span> : null}
+                    <span className="truncate">{item.title}</span>
+                  </div>
+                  {preview && (
+                    <div className="text-[10px] opacity-70 truncate">{preview}</div>
+                  )}
+                </div>
+              )
+            })()
           ))}
           {day.items.length > 2 && (
             <div className="text-xs text-muted-foreground px-1">
