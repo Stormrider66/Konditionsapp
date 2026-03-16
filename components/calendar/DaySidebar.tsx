@@ -1026,6 +1026,7 @@ interface SidebarWorkoutLog {
 interface SidebarRaceResult {
   id: string
   raceDate: string
+  distance?: string | null
   timeFormatted: string
   goalTime?: string | null
   avgPace?: string | null
@@ -1152,7 +1153,7 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
             "font-black text-lg tracking-tight",
             isGlass ? "text-white" : ""
           )}>{workout.title}</p>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex flex-wrap items-center gap-2 mt-2">
             <Badge
               className={cn(
                 'text-xs',
@@ -1160,14 +1161,22 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
                 'text-white'
               )}
             >
-              {intensity.charAt(0) + intensity.slice(1).toLowerCase()}
+              {formatIntensityLabel(intensity)}
             </Badge>
             <Badge variant="outline" className={cn(
               "text-[10px] uppercase font-bold border-none px-2",
               isGlass ? "bg-white/5 text-slate-400" : "text-xs"
             )}>
-              {workoutType}
+              {formatWorkoutTypeLabel(workoutType)}
             </Badge>
+            {isCompleted && completedDate && (
+              <span className={cn(
+                'text-[10px] uppercase tracking-widest font-bold',
+                isGlass ? 'text-slate-500' : 'text-muted-foreground'
+              )}>
+                Slutfört {completedDate}
+              </span>
+            )}
           </div>
         </div>
 
@@ -1218,7 +1227,7 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
             <div className="grid grid-cols-2 gap-2 text-xs">
               {raceResult?.timeFormatted && (
                 <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                  <p className="text-muted-foreground flex items-center gap-1"><Timer className="h-3 w-3" /> 10 km / resultat</p>
+                  <p className="text-muted-foreground flex items-center gap-1"><Timer className="h-3 w-3" /> {formatRaceDistanceLabel(raceResult.distance)}</p>
                   <p className="font-semibold">{raceResult.timeFormatted}</p>
                   {raceResult.goalTime ? (
                     <p className="text-[10px] text-muted-foreground mt-0.5">Mål {raceResult.goalTime}</p>
@@ -1247,6 +1256,12 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
                 <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
                   <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tempo</p>
                   <p className="font-semibold">{latestLog.avgPace}</p>
+                </div>
+              )}
+              {!latestLog.avgPace && raceResult?.avgPace && (
+                <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                  <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tävlingstempo</p>
+                  <p className="font-semibold">{raceResult.avgPace}</p>
                 </div>
               )}
               {(latestLog.avgHR != null || latestLog.perceivedEffort != null) && (
@@ -1357,6 +1372,7 @@ interface AdHocItemProps {
 function AdHocItem({ workout, isSelected, onClick, isGlass = false }: AdHocItemProps) {
   const meta = workout.metadata
   const intensity = (meta.intensity as string) || 'MODERATE'
+  const distance = formatDistanceValue(meta.distance)
 
   return (
     <button
@@ -1386,10 +1402,10 @@ function AdHocItem({ workout, isSelected, onClick, isGlass = false }: AdHocItemP
                 {meta.duration} min
               </span>
             )}
-            {formatDistanceValue(meta.distance).label && (
+            {distance.label && (
               <span className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
-                {formatDistanceValue(meta.distance).label}
+                {distance.label}
               </span>
             )}
           </div>
@@ -1401,7 +1417,7 @@ function AdHocItem({ workout, isSelected, onClick, isGlass = false }: AdHocItemP
             'text-white'
           )}
         >
-          {intensity.charAt(0) + intensity.slice(1).toLowerCase()}
+          {formatIntensityLabel(intensity)}
         </Badge>
       </div>
     </button>
@@ -1459,6 +1475,7 @@ function AdHocDetailPanel({ workout, isGlass = false }: { workout: UnifiedCalend
   const strengthCount = Array.isArray(parsed.strengthExercises) ? parsed.strengthExercises.length : 0
   const cardioCount = Array.isArray(parsed.cardioSegments) ? parsed.cardioSegments.length : 0
   const hybridCount = Array.isArray(parsed.hybridMovements) ? parsed.hybridMovements.length : 0
+  const previewItems = getAdHocPreviewItems(parsed)
 
   return (
     <div className={cn(
@@ -1490,16 +1507,22 @@ function AdHocDetailPanel({ workout, isGlass = false }: { workout: UnifiedCalend
 
         <div>
           <p className={cn('font-black text-lg tracking-tight', isGlass ? 'text-white' : '')}>{workout.title}</p>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex flex-wrap items-center gap-2 mt-2">
             <Badge className={cn('text-xs', INTENSITY_COLORS[intensity] || 'bg-yellow-500', 'text-white')}>
-              {intensity.charAt(0) + intensity.slice(1).toLowerCase()}
+              {formatIntensityLabel(intensity)}
             </Badge>
             <Badge variant="outline" className={cn(
               'text-[10px] uppercase font-bold border-none px-2',
               isGlass ? 'bg-white/5 text-slate-400' : 'text-xs'
             )}>
-              {detail?.parsedType || detail?.inputType || 'Ad-hoc'}
+              {formatAdHocTypeLabel(detail?.parsedType)}
             </Badge>
+            <span className={cn(
+              'text-[10px] uppercase tracking-widest font-bold',
+              isGlass ? 'text-slate-500' : 'text-muted-foreground'
+            )}>
+              {formatAdHocInputType(detail?.inputType)}
+            </span>
           </div>
         </div>
 
@@ -1536,7 +1559,7 @@ function AdHocDetailPanel({ workout, isGlass = false }: { workout: UnifiedCalend
           <div className="grid grid-cols-2 gap-2 text-xs">
             {strengthCount > 0 ? (
               <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
-                <p className="text-muted-foreground flex items-center gap-1"><Dumbbell className="h-3 w-3" /> Styrkeovningar</p>
+                <p className="text-muted-foreground flex items-center gap-1"><Dumbbell className="h-3 w-3" /> Styrkeövningar</p>
                 <p className="font-semibold">{strengthCount}</p>
               </div>
             ) : null}
@@ -1555,9 +1578,28 @@ function AdHocDetailPanel({ workout, isGlass = false }: { workout: UnifiedCalend
             {feeling ? (
               <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
                 <p className="text-muted-foreground">Känsla</p>
-                <p className="font-semibold">{feeling}</p>
+                <p className="font-semibold">{formatFeelingLabel(feeling)}</p>
               </div>
             ) : null}
+          </div>
+        )}
+
+        {previewItems.length > 0 && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Innehåll</p>
+            <div className="flex flex-wrap gap-2">
+              {previewItems.map((item) => (
+                <span
+                  key={item}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-[10px] font-semibold',
+                    isGlass ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-background'
+                  )}
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1595,4 +1637,133 @@ function formatDurationMinutes(minutes: number): string {
     return `${Math.round(minutes * 60)} s`
   }
   return `${minutes} min`
+}
+
+function formatWorkoutTypeLabel(type?: string | null): string {
+  const labels: Record<string, string> = {
+    RUNNING: 'Löpning',
+    STRENGTH: 'Styrka',
+    PLYOMETRIC: 'Plyometri',
+    CORE: 'Core',
+    RECOVERY: 'Återhämtning',
+    CYCLING: 'Cykling',
+    SKIING: 'Skidor',
+    SWIMMING: 'Simning',
+    TRIATHLON: 'Triathlon',
+    HYROX: 'Hyrox',
+    ALTERNATIVE: 'Alternativt',
+    OTHER: 'Övrigt',
+  }
+  return labels[type || ''] || type || 'Pass'
+}
+
+function formatIntensityLabel(intensity?: string | null): string {
+  const labels: Record<string, string> = {
+    RECOVERY: 'Återhämtning',
+    EASY: 'Lätt',
+    MODERATE: 'Måttlig',
+    THRESHOLD: 'Tröskel',
+    INTERVAL: 'Intervall',
+    MAX: 'Max',
+  }
+  return labels[intensity || ''] || intensity || 'Pass'
+}
+
+function formatFeelingLabel(feeling?: string | null): string {
+  const labels: Record<string, string> = {
+    Great: 'Fantastiskt',
+    Good: 'Bra',
+    Okay: 'Okej',
+    Tired: 'Trött',
+    Struggled: 'Kämpigt',
+  }
+  return labels[feeling || ''] || feeling || '-'
+}
+
+function formatAdHocInputType(inputType?: string | null): string {
+  const labels: Record<string, string> = {
+    PHOTO: 'Foto',
+    AUDIO: 'Ljud',
+    TEXT: 'Text',
+    MANUAL_FORM: 'Manuell',
+    GARMIN: 'Garmin',
+    STRAVA: 'Strava',
+    TEMPLATE: 'Mall',
+  }
+  return labels[inputType || ''] || 'Ad-hoc'
+}
+
+function formatAdHocTypeLabel(parsedType?: string | null): string {
+  return formatWorkoutTypeLabel(parsedType || 'OTHER')
+}
+
+function formatRaceDistanceLabel(distance?: string | null): string {
+  const labels: Record<string, string> = {
+    '5K': '5 km-resultat',
+    '10K': '10 km-resultat',
+    HALF_MARATHON: 'Halvmaraton-resultat',
+    MARATHON: 'Maraton-resultat',
+    CUSTOM: 'Tävlingsresultat',
+  }
+  return labels[distance || ''] || 'Tävlingsresultat'
+}
+
+function getAdHocPreviewItems(parsed: Record<string, unknown>): string[] {
+  const items: string[] = []
+
+  const strengthExercises = Array.isArray(parsed.strengthExercises) ? parsed.strengthExercises : []
+  for (const exercise of strengthExercises.slice(0, 3)) {
+    if (exercise && typeof exercise === 'object') {
+      const nameSv = typeof (exercise as { nameSv?: unknown }).nameSv === 'string'
+        ? (exercise as { nameSv?: string }).nameSv
+        : null
+      const name = typeof (exercise as { name?: unknown }).name === 'string'
+        ? (exercise as { name?: string }).name
+        : null
+      if (nameSv || name) {
+        items.push(nameSv || name || '')
+      }
+    }
+  }
+
+  const cardioSegments = Array.isArray(parsed.cardioSegments) ? parsed.cardioSegments : []
+  for (const segment of cardioSegments.slice(0, 3 - items.length)) {
+    if (segment && typeof segment === 'object') {
+      const segmentType = typeof (segment as { type?: unknown }).type === 'string'
+        ? (segment as { type?: string }).type
+        : null
+      const duration = typeof (segment as { duration?: unknown }).duration === 'number'
+        ? (segment as { duration?: number }).duration
+        : null
+      if (segmentType) {
+        items.push(`${formatCardioSegmentLabel(segmentType)}${duration ? ` ${duration} min` : ''}`)
+      }
+    }
+  }
+
+  const hybridMovements = Array.isArray(parsed.hybridMovements) ? parsed.hybridMovements : []
+  for (const movement of hybridMovements.slice(0, 3 - items.length)) {
+    if (movement && typeof movement === 'object') {
+      const name = typeof (movement as { movementName?: unknown }).movementName === 'string'
+        ? (movement as { movementName?: string }).movementName
+        : null
+      if (name) {
+        items.push(name)
+      }
+    }
+  }
+
+  return items.slice(0, 3)
+}
+
+function formatCardioSegmentLabel(type: string): string {
+  const labels: Record<string, string> = {
+    WARMUP: 'Uppvärmning',
+    WORK: 'Arbete',
+    INTERVAL: 'Intervall',
+    RECOVERY: 'Återhämtning',
+    COOLDOWN: 'Nedjogg',
+    REST: 'Vila',
+  }
+  return labels[type] || type
 }
