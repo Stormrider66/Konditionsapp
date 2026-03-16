@@ -52,21 +52,21 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
   const previewChips = getAdHocPreviewChips(parsed)
 
   return (
-    <div className="min-h-screen pb-20 pt-6 px-4 max-w-4xl mx-auto">
+    <div className="mx-auto min-h-screen max-w-4xl px-4 pb-20 pt-4 sm:pt-6">
       <Link href="/athlete/history">
-        <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white transition-colors">
+        <Button variant="ghost" className="mb-6 px-2 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white transition-colors sm:mb-8">
           <ArrowLeft className="mr-2 h-3.5 w-3.5" />
           Träningshistorik
         </Button>
       </Link>
 
-      <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
+      <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-700 sm:mb-10">
+        <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-end sm:gap-6">
           <div className="space-y-2">
-            <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tighter uppercase leading-none">
+            <h1 className="text-3xl font-black tracking-tighter text-white sm:text-5xl">
               {parsed?.name || adHocWorkout.workoutName || 'Ad-hoc pass'}
             </h1>
-            <div className="flex flex-wrap items-center gap-3 text-[11px] font-black uppercase tracking-widest text-slate-500">
+            <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 sm:gap-3 sm:text-[11px]">
               <Calendar className="h-3.5 w-3.5 text-blue-500" />
               <span>{format(new Date(adHocWorkout.workoutDate), 'EEEE d MMM yyyy', { locale: sv })}</span>
               <span className="text-slate-700">|</span>
@@ -80,22 +80,22 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-8">
-        <Badge variant="outline" className="rounded-xl h-9 bg-white/5 border-white/10 text-white font-bold px-4">
+      <div className="mb-8 flex flex-wrap gap-2 sm:gap-3">
+        <Badge variant="outline" className="h-8 rounded-xl border-white/10 bg-white/5 px-3 text-xs font-bold text-white sm:h-9 sm:px-4">
           {formatWorkoutType(parsed?.type || 'MIXED')}
         </Badge>
         {parsed?.intensity && (
-          <Badge variant="outline" className={cn("rounded-xl h-9 border-0 font-bold px-4", getIntensityBadgeClass(parsed.intensity))}>
+          <Badge variant="outline" className={cn("h-8 rounded-xl border-0 px-3 text-xs font-bold sm:h-9 sm:px-4", getIntensityBadgeClass(parsed.intensity))}>
             {formatIntensity(parsed.intensity)}
           </Badge>
         )}
-        <Badge variant="outline" className="rounded-xl h-9 bg-white/5 border-white/10 text-slate-300 font-bold px-4">
+        <Badge variant="outline" className="h-8 rounded-xl border-white/10 bg-white/5 px-3 text-xs font-bold text-slate-300 sm:h-9 sm:px-4">
           {formatInputType(adHocWorkout.inputType)}
         </Badge>
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
         {parsed?.duration && (
           <GlassCard>
             <GlassCardContent className="pt-5">
@@ -163,7 +163,7 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
 
       {/* Extra cardio metrics */}
       {parsed && (parsed.maxHeartRate || parsed.avgPace || parsed.elevationGain) && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+        <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
           {parsed.maxHeartRate && (
             <GlassCard>
               <GlassCardContent className="pt-5">
@@ -222,7 +222,7 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
-            <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
               <Badge variant="outline" className="rounded-lg h-7 bg-white/5 border-white/10 text-white font-bold px-3">
                 {formatWorkoutType(parsed.type)}
               </Badge>
@@ -412,7 +412,7 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
       )}
 
       {/* Metadata footer */}
-      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 flex justify-between items-center px-2 mb-20">
+      <div className="mb-20 flex flex-col gap-2 px-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 sm:flex-row sm:items-center sm:justify-between">
         <span>Registrerad {format(new Date(adHocWorkout.createdAt), 'PPP HH:mm', { locale: sv })}</span>
         {adHocWorkout.parsingModel && (
           <span>Tolkad av {adHocWorkout.parsingModel}</span>
@@ -428,7 +428,7 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
 
 function StrengthExerciseRow({ exercise, index }: { exercise: ParsedStrengthExercise; index: number }) {
   return (
-    <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
+    <div className="flex items-start gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 sm:items-center sm:gap-4">
       <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-xs font-black shrink-0">
         {index + 1}
       </div>
@@ -436,7 +436,7 @@ function StrengthExerciseRow({ exercise, index }: { exercise: ParsedStrengthExer
         <p className="font-black text-white text-sm uppercase tracking-tight truncate">
           {exercise.exerciseName}
         </p>
-        <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
           <span>{exercise.sets} set x {exercise.reps} reps</span>
           {exercise.weight && <span>{exercise.weight} kg</span>}
           {exercise.weightString && !exercise.weight && <span>{exercise.weightString}</span>}
@@ -453,7 +453,7 @@ function StrengthExerciseRow({ exercise, index }: { exercise: ParsedStrengthExer
 
 function CardioSegmentRow({ segment, index }: { segment: ParsedCardioSegment; index: number }) {
   return (
-    <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
+    <div className="flex items-start gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 sm:items-center sm:gap-4">
       <div className={cn(
         "w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 border",
         getSegmentTypeClass(segment.type)
@@ -464,7 +464,7 @@ function CardioSegmentRow({ segment, index }: { segment: ParsedCardioSegment; in
         <p className="font-black text-white text-sm uppercase tracking-tight">
           {formatSegmentType(segment.type)}
         </p>
-        <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
           {segment.duration && <span>{Math.round(segment.duration / 60)} min</span>}
           {segment.distance && <span>{(segment.distance / 1000).toFixed(2)} km</span>}
           {segment.pace && <span>{segment.pace}</span>}
@@ -481,7 +481,7 @@ function CardioSegmentRow({ segment, index }: { segment: ParsedCardioSegment; in
 
 function HybridMovementRow({ movement }: { movement: ParsedHybridMovement }) {
   return (
-    <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5">
+    <div className="flex items-start gap-3 rounded-2xl border border-white/5 bg-white/5 p-4 sm:items-center sm:gap-4">
       <div className="w-8 h-8 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 text-xs font-black shrink-0">
         {movement.order}
       </div>
@@ -489,7 +489,7 @@ function HybridMovementRow({ movement }: { movement: ParsedHybridMovement }) {
         <p className="font-black text-white text-sm uppercase tracking-tight truncate">
           {movement.name}
         </p>
-        <div className="flex items-center gap-3 mt-1 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
           {movement.reps && <span>{movement.reps} reps</span>}
           {movement.duration && <span>{movement.duration}s</span>}
           {movement.distance && <span>{movement.distance}m</span>}

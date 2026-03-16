@@ -125,7 +125,7 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
         <Button
           variant="ghost"
           size="icon"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-white/80 dark:bg-slate-800/80 shadow-md hover:bg-white dark:hover:bg-slate-700"
+          className="absolute left-2 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 rounded-full bg-white/80 shadow-md hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 sm:inline-flex"
           onClick={goPrev}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -135,7 +135,7 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full bg-white/80 dark:bg-slate-800/80 shadow-md hover:bg-white dark:hover:bg-slate-700"
+          className="absolute right-2 top-1/2 z-10 hidden h-8 w-8 -translate-y-1/2 rounded-full bg-white/80 shadow-md hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-700 sm:inline-flex"
           onClick={goNext}
         >
           <ChevronRight className="h-4 w-4" />
@@ -146,7 +146,7 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
       {renderItem(current, athleteName, basePath, () => handleRemoveRequest(current))}
 
       {/* Dot indicators + counter */}
-      <div className="flex items-center justify-center gap-2 mt-3">
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
         <span className="text-xs text-muted-foreground font-medium">
           {activeIndex + 1}/{items.length}
         </span>
@@ -172,6 +172,11 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
             )
           })}
         </div>
+        {items.length > 1 && (
+          <span className="w-full text-center text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground sm:hidden">
+            Svep for att byta pass
+          </span>
+        )}
       </div>
 
       {/* Shared remove dialog */}

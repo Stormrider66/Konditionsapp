@@ -102,21 +102,21 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
   workoutDate.setDate(workoutDate.getDate() + dayOffset)
 
   return (
-    <div className="min-h-screen pb-20 pt-6 px-4 max-w-4xl mx-auto">
+    <div className="mx-auto min-h-screen max-w-4xl px-4 pb-20 pt-4 sm:pt-6">
       <Link href={`/athlete/programs/${workout.day.week.program.id}`}>
-        <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+        <Button variant="ghost" className="mb-6 px-2 font-black uppercase tracking-widest text-[10px] text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors sm:mb-8">
           <ArrowLeft className="mr-2 h-3.5 w-3.5" />
           Programöversikt
         </Button>
       </Link>
 
-      <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
+      <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-700 sm:mb-10">
+        <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-end sm:gap-6">
           <div className="space-y-2">
-            <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none transition-colors">
+            <h1 className="text-3xl font-black leading-none tracking-tighter text-slate-900 transition-colors dark:text-white sm:text-5xl">
               {workout.name}
             </h1>
-            <div className="flex flex-wrap items-center gap-3 text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">
+            <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-colors dark:text-slate-500 sm:gap-3 sm:text-[11px]">
               <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-500 transition-colors" />
               <span>
                 {format(workoutDate, 'EEEE d MMM yyyy', { locale: sv })}
@@ -136,20 +136,20 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-8">
-        <Badge variant="outline" className="rounded-xl h-9 bg-slate-100 border-slate-200 text-slate-700 dark:bg-white/5 dark:border-white/10 dark:text-white font-bold px-4 transition-colors">
+      <div className="mb-8 flex flex-wrap gap-2 sm:gap-3">
+        <Badge variant="outline" className="h-8 rounded-xl border-slate-200 bg-slate-100 px-3 text-xs font-bold text-slate-700 transition-colors dark:border-white/10 dark:bg-white/5 dark:text-white sm:h-9 sm:px-4">
           {formatWorkoutType(workout.type)}
         </Badge>
-        <Badge variant="outline" className={cn("rounded-xl h-9 border-0 font-bold px-4 transition-colors", getIntensityBadgeClass(workout.intensity, true))}>
+        <Badge variant="outline" className={cn("h-8 rounded-xl border-0 px-3 text-xs font-bold transition-colors sm:h-9 sm:px-4", getIntensityBadgeClass(workout.intensity, true))}>
           {formatIntensity(workout.intensity)}
         </Badge>
-        <Badge variant="outline" className="rounded-xl h-9 bg-slate-100 border-slate-200 text-slate-700 dark:bg-white/5 dark:border-white/10 dark:text-white font-bold px-4 transition-colors">
+        <Badge variant="outline" className="h-8 rounded-xl border-slate-200 bg-slate-100 px-3 text-xs font-bold text-slate-700 transition-colors dark:border-white/10 dark:bg-white/5 dark:text-white sm:h-9 sm:px-4">
           {workout.day.week.program.name}
         </Badge>
       </div>
 
       {/* Workout Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
         <GlassCard className="md:col-span-2">
           <GlassCardHeader className="pb-3">
             <GlassCardTitle className="text-lg font-black tracking-tight flex items-center gap-2 text-slate-900 dark:text-white transition-colors">
@@ -177,7 +177,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
           </GlassCardContent>
         </GlassCard>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <GlassCard>
             <GlassCardHeader className="pb-3">
               <GlassCardTitle className="text-lg font-black tracking-tight flex items-center gap-2 text-blue-600 dark:text-blue-400 transition-colors">
@@ -185,7 +185,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
                 Planerade Mål
               </GlassCardTitle>
             </GlassCardHeader>
-            <GlassCardContent className="space-y-6">
+            <GlassCardContent className="space-y-4 sm:space-y-6">
               {workout.duration && (
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 border-blue-100 dark:bg-blue-500/10 dark:border-blue-500/10 flex items-center justify-center border transition-colors">
@@ -248,8 +248,8 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
               </Link>
             </div>
           </GlassCardHeader>
-          <GlassCardContent className="space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <GlassCardContent className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4 sm:gap-4">
               {completedHighlights.map((highlight) => (
                 <div key={highlight.label} className="rounded-2xl border border-emerald-200/70 dark:border-white/10 bg-white/70 dark:bg-white/5 p-4">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{highlight.label}</p>
@@ -295,7 +295,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
 
             {raceResult?.timeFormatted && (
               <div className="pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
-                <div className="bg-red-50 border border-red-100 dark:bg-red-600/10 dark:border-red-600/20 rounded-[2rem] p-6 transition-colors">
+                <div className="rounded-[1.75rem] border border-red-100 bg-red-50 p-4 transition-colors dark:border-red-600/20 dark:bg-red-600/10 sm:rounded-[2rem] sm:p-6">
                   <div className="flex gap-4">
                     <div className="hidden sm:flex w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-600/20 items-center justify-center shrink-0 border border-red-200 dark:border-red-600/20 transition-colors">
                       <Trophy className="h-6 w-6 text-red-600 dark:text-red-500 transition-colors" />
@@ -328,7 +328,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
 
             {(existingLog.perceivedEffort || existingLog.difficulty) && (
               <div className="pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
                   {existingLog.perceivedEffort && (
                     <div className="space-y-2">
                       <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Perceived Effort (RPE)</p>
@@ -411,7 +411,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
               </div>
             )}
 
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-600 pt-6 border-t border-slate-200 dark:border-white/5 flex justify-between items-center transition-colors">
+            <div className="flex flex-col gap-2 border-t border-slate-200 pt-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 transition-colors dark:border-white/5 dark:text-slate-600 sm:flex-row sm:items-center sm:justify-between">
               <span>Timestamp</span>
               <span>{existingLog.completedAt ? format(new Date(existingLog.completedAt), 'PPP HH:mm', { locale: sv }) : '-'}</span>
             </div>
@@ -420,10 +420,10 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
       )}
 
       {/* Action Buttons */}
-      <div className="flex gap-4 mt-12 mb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <div className="mt-10 mb-20 flex gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 sm:mt-12">
         <Link href={`/athlete/workouts/${workout.id}/log`} className="flex-1">
           <Button className={cn(
-            "w-full h-16 rounded-[2rem] font-black uppercase tracking-widest text-sm shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99]",
+            "h-14 w-full rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-[0.99] sm:h-16 sm:rounded-[2rem] sm:text-sm sm:hover:scale-[1.01]",
             isCompleted
               ? "bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:border-white/10 dark:text-white dark:hover:bg-white/20"
               : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/20"

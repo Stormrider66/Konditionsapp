@@ -577,7 +577,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
       {/* Progress Charts */}
       <WorkoutHistoryCharts logs={logs as any} timeframe={timeframe} variant="glass" />
 
-      {/* Workout History Table */}
+      {/* Workout History */}
       <GlassCard>
         <GlassCardHeader>
           <GlassCardTitle className="text-xl font-black tracking-tight text-white uppercase italic">Alla träningspass</GlassCardTitle>
@@ -592,98 +592,152 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
               <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Inga pass hittades för vald period</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-white/5 hover:bg-transparent">
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Datum</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Träningspass</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Kategori</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Distans</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tid</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1 text-center">RPE</TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Åtgärd</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {historyItems.map((item) => (
-                    <TableRow key={item.id} className="border-white/5 hover:bg-white/5 transition-colors group">
-                      <TableCell className="py-5">
-                        <div className="inline-flex flex-col rounded-2xl border border-white/5 bg-white/5 px-3 py-2">
-                          <span className="font-black text-xs text-white">
-                            {format(new Date(item.date), 'd MMM', { locale: sv })}
-                          </span>
-                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
-                            {format(new Date(item.date), 'yyyy', { locale: sv })}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-5">
-                        <Link href={getItemHref(item)} className="block space-y-0.5">
-                          <div className="font-black text-white uppercase italic tracking-tight group-hover:text-blue-400 transition-colors flex flex-wrap items-center gap-2">
+            <div className="space-y-4">
+              <div className="space-y-3 md:hidden">
+                {historyItems.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={getItemHref(item)}
+                    className="block rounded-[1.75rem] border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-black uppercase italic tracking-tight text-white">
                             {item.name}
-                            {getSourceBadge(item)}
-                          </div>
-                          <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                            {getHistorySubtitle(item)}
-                          </div>
-                          <div className="flex flex-wrap gap-2 pt-2">
-                            {getHistoryMetaChips(item).map((chip) => (
-                              <span key={chip} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">
-                                {chip}
-                              </span>
-                            ))}
-                          </div>
-                        </Link>
-                      </TableCell>
-                      <TableCell className="py-5">
-                        <Badge className="bg-white/5 border-0 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg h-6">
-                          {formatWorkoutType(item.type)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-5 font-black text-white text-xs">
-                        {item.distance ? `${item.distance.toFixed(1)} km` : '-'}
-                      </TableCell>
-                      <TableCell className="py-5 font-black text-white text-xs">
-                        {item.duration ? `${item.duration} min` : '-'}
-                      </TableCell>
-                      <TableCell className="py-5 text-center">
+                          </p>
+                          {getSourceBadge(item)}
+                        </div>
+                        <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                          {getHistorySubtitle(item)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-white/5 bg-white/5 px-3 py-2 text-right">
+                        <p className="text-xs font-black text-white">{format(new Date(item.date), 'd MMM', { locale: sv })}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{format(new Date(item.date), 'yyyy', { locale: sv })}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {getHistoryMetaChips(item).map((chip) => (
+                        <span key={chip} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl border border-white/5 bg-black/10 px-3 py-2">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Distans</p>
+                        <p className="mt-1 text-sm font-black text-white">{item.distance ? `${item.distance.toFixed(1)} km` : '-'}</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/5 bg-black/10 px-3 py-2">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Tid</p>
+                        <p className="mt-1 text-sm font-black text-white">{item.duration ? `${item.duration} min` : '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">RPE</p>
                         {item.perceivedEffort ? (
                           <div className={cn(
-                            "inline-flex items-center justify-center w-8 h-8 rounded-lg font-black text-xs",
+                            "mt-1 inline-flex h-8 w-8 items-center justify-center rounded-lg font-black text-xs",
                             getRPEBadgeClass(item.perceivedEffort)
                           )}>
                             {item.perceivedEffort}
                           </div>
                         ) : (
-                          <span className="text-slate-700 font-black">-</span>
+                          <span className="mt-1 inline-block text-sm font-black text-slate-700">-</span>
                         )}
-                      </TableCell>
-                      <TableCell className="py-5 text-right">
-                        {item.isAdHoc ? (
-                          <Link href={`/athlete/ad-hoc/${item.id}`}>
-                            <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
-                              Visa
-                            </Button>
-                          </Link>
-                        ) : item.linkHref ? (
-                          <Link href={item.linkHref}>
-                            <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
-                              Visa
-                            </Button>
-                          </Link>
-                        ) : (
-                          <Link href={`/athlete/workouts/${item.workoutId}`}>
-                            <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
-                              Visa
-                            </Button>
-                          </Link>
-                        )}
-                      </TableCell>
+                      </div>
+                      <Button variant="ghost" className="h-10 rounded-xl border border-white/5 bg-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-slate-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white">
+                        Visa detaljer
+                      </Button>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-white/5 hover:bg-transparent">
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Datum</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Träningspass</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Kategori</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Distans</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tid</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1 text-center">RPE</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500 text-right">Åtgärd</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {historyItems.map((item) => (
+                      <TableRow key={item.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                        <TableCell className="py-5">
+                          <div className="inline-flex flex-col rounded-2xl border border-white/5 bg-white/5 px-3 py-2">
+                            <span className="font-black text-xs text-white">
+                              {format(new Date(item.date), 'd MMM', { locale: sv })}
+                            </span>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                              {format(new Date(item.date), 'yyyy', { locale: sv })}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-5">
+                          <Link href={getItemHref(item)} className="block space-y-0.5">
+                            <div className="font-black text-white uppercase italic tracking-tight group-hover:text-blue-400 transition-colors flex flex-wrap items-center gap-2">
+                              {item.name}
+                              {getSourceBadge(item)}
+                            </div>
+                            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                              {getHistorySubtitle(item)}
+                            </div>
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              {getHistoryMetaChips(item).map((chip) => (
+                                <span key={chip} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                                  {chip}
+                                </span>
+                              ))}
+                            </div>
+                          </Link>
+                        </TableCell>
+                        <TableCell className="py-5">
+                          <Badge className="bg-white/5 border-0 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg h-6">
+                            {formatWorkoutType(item.type)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-5 font-black text-white text-xs">
+                          {item.distance ? `${item.distance.toFixed(1)} km` : '-'}
+                        </TableCell>
+                        <TableCell className="py-5 font-black text-white text-xs">
+                          {item.duration ? `${item.duration} min` : '-'}
+                        </TableCell>
+                        <TableCell className="py-5 text-center">
+                          {item.perceivedEffort ? (
+                            <div className={cn(
+                              "inline-flex items-center justify-center w-8 h-8 rounded-lg font-black text-xs",
+                              getRPEBadgeClass(item.perceivedEffort)
+                            )}>
+                              {item.perceivedEffort}
+                            </div>
+                          ) : (
+                            <span className="text-slate-700 font-black">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-5 text-right">
+                          <Link href={getItemHref(item)}>
+                            <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
+                              Visa
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </GlassCardContent>
