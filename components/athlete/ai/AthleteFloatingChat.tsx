@@ -46,6 +46,7 @@ import type { MergedProgram } from '@/lib/ai/program-generator'
 import { AIChatUsageMeter, AIChatUsageCompact } from '@/components/athlete/AIChatUsageMeter'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import Link from 'next/link'
+import { useFloatingChatDrag } from '@/components/ai-studio/useFloatingChatDrag'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -68,6 +69,7 @@ export function AthleteFloatingChat({
 }: AthleteFloatingChatProps) {
   const { toast } = useToast()
   const basePath = useBasePath()
+  const { floatingStyle, handleDragStart, handleActivatorClick } = useFloatingChatDrag()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pageCtx = usePageContextOptional()
@@ -614,7 +616,11 @@ export function AthleteFloatingChat({
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 z-50 fixed-bottom-safe"
+        onMouseUp={handleActivatorClick}
+        onPointerDown={handleDragStart}
+        style={floatingStyle}
+        data-floating-chat-root
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 z-50 fixed-bottom-safe touch-none cursor-grab active:cursor-grabbing"
         size="icon"
       >
         <Sparkles className="h-6 w-6 text-white" />
@@ -630,6 +636,8 @@ export function AthleteFloatingChat({
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
           'bottom-6 left-3 right-3 h-[200px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
+        style={floatingStyle}
+        data-floating-chat-root
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
           <div className="flex items-center gap-2">
@@ -660,6 +668,8 @@ export function AthleteFloatingChat({
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
           'bottom-6 left-3 right-3 h-[300px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
+        style={floatingStyle}
+        data-floating-chat-root
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
           <div className="flex items-center gap-2">
@@ -696,6 +706,8 @@ export function AthleteFloatingChat({
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
           'bottom-6 left-3 right-3 h-[350px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
+        style={floatingStyle}
+        data-floating-chat-root
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-lg">
           <div className="flex items-center gap-2">
@@ -748,6 +760,8 @@ export function AthleteFloatingChat({
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
           'bottom-6 left-3 right-3 max-h-[420px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
+        style={floatingStyle}
+        data-floating-chat-root
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
           <div className="flex items-center gap-2">
@@ -828,10 +842,18 @@ export function AthleteFloatingChat({
           ? 'bottom-4 right-4 left-4 top-20 md:left-auto md:w-[500px]'
           : 'bottom-6 left-3 right-3 h-[500px] sm:left-auto sm:right-6 sm:w-[380px]'
       )}
+      style={!isExpanded ? floatingStyle : undefined}
+      data-floating-chat-root
     >
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
-        <div className="flex items-center gap-2">
+        <div
+          onPointerDown={!isExpanded ? handleDragStart : undefined}
+          className={cn(
+            'flex items-center gap-2 touch-none',
+            !isExpanded && 'cursor-grab active:cursor-grabbing'
+          )}
+        >
           <Bot className="h-5 w-5 text-white" />
           <span className="font-semibold text-white">AI-assistent</span>
           {renderModelBadge()}
