@@ -4,9 +4,8 @@ import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, CheckCircle2, Clock, MapPin, Calendar, Edit, ClipboardList, Info, Activity, Zap } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock, MapPin, Calendar, Edit, Info, Activity, Zap, Trophy } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import { WorkoutSegments } from '@/components/athlete/workout/WorkoutSegments'
@@ -82,6 +81,19 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
 
   const existingLog = workout.logs[0]
   const isCompleted = existingLog && existingLog.completed
+  const raceResult = await prisma.raceResult.findFirst({
+    where: {
+      clientId,
+      trainingProgramId: workout.day.week.program.id,
+    },
+    orderBy: {
+      raceDate: 'desc',
+    },
+  })
+  const intervalResults = Array.isArray(existingLog?.intervalResults)
+    ? existingLog.intervalResults as Array<Record<string, unknown>>
+    : []
+  const completedHighlights = getCompletedHighlights(existingLog, raceResult)
 
   // Calculate workout date
   const programStartDate = new Date(workout.day.week.program.startDate)
@@ -104,7 +116,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
             <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none transition-colors">
               {workout.name}
             </h1>
-            <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">
+            <div className="flex flex-wrap items-center gap-3 text-[11px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 transition-colors">
               <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-500 transition-colors" />
               <span>
                 {format(workoutDate, 'EEEE d MMM yyyy', { locale: sv })}
@@ -122,6 +134,18 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
             </div>
           )}
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3 mb-8">
+        <Badge variant="outline" className="rounded-xl h-9 bg-slate-100 border-slate-200 text-slate-700 dark:bg-white/5 dark:border-white/10 dark:text-white font-bold px-4 transition-colors">
+          {formatWorkoutType(workout.type)}
+        </Badge>
+        <Badge variant="outline" className={cn("rounded-xl h-9 border-0 font-bold px-4 transition-colors", getIntensityBadgeClass(workout.intensity, true))}>
+          {formatIntensity(workout.intensity)}
+        </Badge>
+        <Badge variant="outline" className="rounded-xl h-9 bg-slate-100 border-slate-200 text-slate-700 dark:bg-white/5 dark:border-white/10 dark:text-white font-bold px-4 transition-colors">
+          {workout.day.week.program.name}
+        </Badge>
       </div>
 
       {/* Workout Info Cards */}
@@ -225,32 +249,82 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
             </div>
           </GlassCardHeader>
           <GlassCardContent className="space-y-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {existingLog.duration && (
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Loggad Tid</p>
-                  <p className="text-2xl font-black text-slate-900 dark:text-white transition-colors">{existingLog.duration} <span className="text-xs text-slate-500 dark:text-slate-600">min</span></p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {completedHighlights.map((highlight) => (
+                <div key={highlight.label} className="rounded-2xl border border-emerald-200/70 dark:border-white/10 bg-white/70 dark:bg-white/5 p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{highlight.label}</p>
+                  <p className="mt-1 text-xl font-black text-slate-900 dark:text-white transition-colors">{highlight.value}</p>
+                  {highlight.subvalue ? (
+                    <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-500 mt-1">{highlight.subvalue}</p>
+                  ) : null}
                 </div>
-              )}
-              {existingLog.distance && (
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Loggad Distans</p>
-                  <p className="text-2xl font-black text-slate-900 dark:text-white transition-colors">{existingLog.distance} <span className="text-xs text-slate-500 dark:text-slate-600">km</span></p>
-                </div>
-              )}
-              {existingLog.avgPace && (
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Tempo</p>
-                  <p className="text-2xl font-black text-slate-900 dark:text-white transition-colors">{existingLog.avgPace} <span className="text-xs text-slate-500 dark:text-slate-600">/km</span></p>
-                </div>
-              )}
-              {existingLog.avgHR && (
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">Snittpuls</p>
-                  <p className="text-2xl font-black text-slate-900 dark:text-white transition-colors">{existingLog.avgHR} <span className="text-xs text-slate-500 dark:text-slate-600">bpm</span></p>
-                </div>
-              )}
+              ))}
             </div>
+
+            {intervalResults.length > 0 && (
+              <div className="pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3 transition-colors">Intervall- och splittider</p>
+                <div className="space-y-3">
+                  {intervalResults.map((segment, segmentIndex) => {
+                    const reps = Array.isArray(segment.reps) ? segment.reps as Array<Record<string, unknown>> : []
+                    if (reps.length === 0) return null
+
+                    return (
+                      <div key={`${segmentIndex}-${String(segment.segmentId || 'segment')}`} className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-4 transition-colors">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2 transition-colors">
+                          {typeof segment.segmentLabel === 'string' ? segment.segmentLabel : `Block ${segmentIndex + 1}`}
+                        </p>
+                        <div className="space-y-2">
+                          {reps.map((rep, repIndex) => (
+                            <div key={`${segmentIndex}-${repIndex}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                              <span className="text-slate-900 dark:text-white">Rep {typeof rep.repNumber === 'number' ? rep.repNumber : repIndex + 1}</span>
+                              {typeof rep.duration === 'number' ? <span>Tid {formatDuration(rep.duration)}</span> : null}
+                              {typeof rep.distance === 'number' ? <span>Distans {rep.distance} km</span> : null}
+                              {typeof rep.pace === 'string' ? <span>Tempo {rep.pace}</span> : null}
+                              {typeof rep.avgHR === 'number' ? <span>Puls {rep.avgHR} bpm</span> : null}
+                              {typeof rep.avgPower === 'number' ? <span>Effekt {rep.avgPower} W</span> : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {raceResult?.timeFormatted && (
+              <div className="pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
+                <div className="bg-red-50 border border-red-100 dark:bg-red-600/10 dark:border-red-600/20 rounded-[2rem] p-6 transition-colors">
+                  <div className="flex gap-4">
+                    <div className="hidden sm:flex w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-600/20 items-center justify-center shrink-0 border border-red-200 dark:border-red-600/20 transition-colors">
+                      <Trophy className="h-6 w-6 text-red-600 dark:text-red-500 transition-colors" />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="font-black text-red-600 dark:text-red-500 text-[10px] uppercase tracking-[0.2em] transition-colors">Tävlingsresultat</p>
+                        <span className="text-[8px] font-black text-slate-500 dark:text-slate-600 uppercase transition-colors">{formatRaceDistance(raceResult.distance, raceResult.customDistanceKm)}</span>
+                      </div>
+                      <p className="text-red-900 dark:text-red-100 text-2xl font-black transition-colors">
+                        {raceResult.timeFormatted}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {raceResult.goalTime ? (
+                          <Badge variant="outline" className="rounded-lg bg-white border-red-200 text-red-700 dark:bg-white/5 dark:border-red-500/20 dark:text-red-300 font-bold">
+                            Mål {raceResult.goalTime}
+                          </Badge>
+                        ) : null}
+                        {raceResult.avgPace ? (
+                          <Badge variant="outline" className="rounded-lg bg-white border-red-200 text-red-700 dark:bg-white/5 dark:border-red-500/20 dark:text-red-300 font-bold">
+                            Tempo {raceResult.avgPace}
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {(existingLog.perceivedEffort || existingLog.difficulty) && (
               <div className="pt-6 border-t border-slate-200 dark:border-white/10 transition-colors">
@@ -446,3 +520,39 @@ function getEffortBadgeClass(effort: number, isGlass: boolean = false): string {
   return 'border-red-300 text-red-700'
 }
 
+function getCompletedHighlights(existingLog: any, raceResult: any) {
+  const highlights: Array<{ label: string; value: string; subvalue?: string }> = []
+
+  if (raceResult?.timeFormatted) {
+    highlights.push({
+      label: 'Tävlingsresultat',
+      value: raceResult.timeFormatted,
+      subvalue: formatRaceDistance(raceResult.distance, raceResult.customDistanceKm),
+    })
+  }
+  if (existingLog?.duration) highlights.push({ label: 'Loggad tid', value: `${existingLog.duration} min` })
+  if (existingLog?.distance) highlights.push({ label: 'Loggad distans', value: `${existingLog.distance} km` })
+  if (existingLog?.avgPace) highlights.push({ label: 'Tempo', value: existingLog.avgPace })
+  if (existingLog?.avgHR) highlights.push({ label: 'Snittpuls', value: `${existingLog.avgHR} bpm` })
+  if (existingLog?.perceivedEffort) highlights.push({ label: 'RPE', value: `${existingLog.perceivedEffort}/10`, subvalue: getEffortLabel(existingLog.perceivedEffort) })
+
+  return highlights.slice(0, 4)
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes < 1) {
+    return `${Math.round(minutes * 60)} s`
+  }
+  return `${minutes} min`
+}
+
+function formatRaceDistance(distance?: string | null, customDistanceKm?: number | null): string {
+  const map: Record<string, string> = {
+    '5K': '5 km',
+    '10K': '10 km',
+    HALF_MARATHON: 'Halvmaraton',
+    MARATHON: 'Maraton',
+    CUSTOM: customDistanceKm ? `${customDistanceKm} km` : 'Anpassad distans',
+  }
+  return map[distance || ''] || distance || 'Tävlingsresultat'
+}

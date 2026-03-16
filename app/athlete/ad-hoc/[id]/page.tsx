@@ -49,6 +49,7 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
 
   const parsed = adHocWorkout.parsedStructure as unknown as ParsedWorkout | null
   const formattedDistanceKm = formatParsedWorkoutDistanceKm(parsed)
+  const previewChips = getAdHocPreviewChips(parsed)
 
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-4xl mx-auto">
@@ -65,7 +66,7 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
             <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tighter uppercase leading-none">
               {parsed?.name || adHocWorkout.workoutName || 'Ad-hoc pass'}
             </h1>
-            <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-slate-500">
+            <div className="flex flex-wrap items-center gap-3 text-[11px] font-black uppercase tracking-widest text-slate-500">
               <Calendar className="h-3.5 w-3.5 text-blue-500" />
               <span>{format(new Date(adHocWorkout.workoutDate), 'EEEE d MMM yyyy', { locale: sv })}</span>
               <span className="text-slate-700">|</span>
@@ -77,6 +78,20 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3 mb-8">
+        <Badge variant="outline" className="rounded-xl h-9 bg-white/5 border-white/10 text-white font-bold px-4">
+          {formatWorkoutType(parsed?.type || 'MIXED')}
+        </Badge>
+        {parsed?.intensity && (
+          <Badge variant="outline" className={cn("rounded-xl h-9 border-0 font-bold px-4", getIntensityBadgeClass(parsed.intensity))}>
+            {formatIntensity(parsed.intensity)}
+          </Badge>
+        )}
+        <Badge variant="outline" className="rounded-xl h-9 bg-white/5 border-white/10 text-slate-300 font-bold px-4">
+          {formatInputType(adHocWorkout.inputType)}
+        </Badge>
       </div>
 
       {/* Overview Cards */}
@@ -245,6 +260,26 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
                 </Badge>
               </div>
             )}
+          </GlassCardContent>
+        </GlassCard>
+      )}
+
+      {previewChips.length > 0 && (
+        <GlassCard className="mb-8">
+          <GlassCardHeader className="pb-3">
+            <GlassCardTitle className="text-lg font-black tracking-tight flex items-center gap-2 text-white">
+              <Zap className="h-4 w-4 text-orange-500" />
+              Passöversikt
+            </GlassCardTitle>
+          </GlassCardHeader>
+          <GlassCardContent>
+            <div className="flex flex-wrap gap-2">
+              {previewChips.map((chip) => (
+                <span key={chip} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-300">
+                  {chip}
+                </span>
+              ))}
+            </div>
           </GlassCardContent>
         </GlassCard>
       )}
@@ -576,4 +611,29 @@ function formatPace(secondsPerKm: number): string {
   const min = Math.floor(secondsPerKm / 60)
   const sec = Math.round(secondsPerKm % 60)
   return `${min}:${sec.toString().padStart(2, '0')}`
+}
+
+function getAdHocPreviewChips(parsed: ParsedWorkout | null): string[] {
+  if (!parsed) return []
+  const chips: string[] = []
+
+  if (parsed.strengthExercises?.length) {
+    parsed.strengthExercises.slice(0, 3).forEach((exercise) => {
+      if (exercise.exerciseName) chips.push(exercise.exerciseName)
+    })
+  }
+
+  if (chips.length < 4 && parsed.cardioSegments?.length) {
+    parsed.cardioSegments.slice(0, 4 - chips.length).forEach((segment) => {
+      chips.push(formatSegmentType(segment.type))
+    })
+  }
+
+  if (chips.length < 4 && parsed.movements?.length) {
+    parsed.movements.slice(0, 4 - chips.length).forEach((movement) => {
+      if (movement.name) chips.push(movement.name)
+    })
+  }
+
+  return chips.slice(0, 4)
 }

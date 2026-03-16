@@ -608,39 +608,31 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
                 <TableBody>
                   {historyItems.map((item) => (
                     <TableRow key={item.id} className="border-white/5 hover:bg-white/5 transition-colors group">
-                      <TableCell className="py-5 font-black text-xs text-slate-400">
-                        {format(new Date(item.date), 'd MMM yyyy', { locale: sv })}
+                      <TableCell className="py-5">
+                        <div className="inline-flex flex-col rounded-2xl border border-white/5 bg-white/5 px-3 py-2">
+                          <span className="font-black text-xs text-white">
+                            {format(new Date(item.date), 'd MMM', { locale: sv })}
+                          </span>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                            {format(new Date(item.date), 'yyyy', { locale: sv })}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="py-5">
                         <Link href={getItemHref(item)} className="block space-y-0.5">
-                          <div className="font-black text-white uppercase italic tracking-tight group-hover:text-blue-400 transition-colors flex items-center gap-2">
+                          <div className="font-black text-white uppercase italic tracking-tight group-hover:text-blue-400 transition-colors flex flex-wrap items-center gap-2">
                             {item.name}
-                            {item.isAdHoc && (
-                              <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                <Plus className="h-2.5 w-2.5" />
-                                Ad-hoc
-                              </span>
-                            )}
-                            {item.source === 'wod' && (
-                              <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                                <Sparkles className="h-2.5 w-2.5" />
-                                AI-Pass
-                              </span>
-                            )}
-                            {item.source === 'ai-chat' && (
-                              <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                                <Sparkles className="h-2.5 w-2.5" />
-                                AI-Chatt
-                              </span>
-                            )}
-                            {item.source && !['wod', 'ai-chat'].includes(item.source) && (
-                              <span className="inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                Studio
-                              </span>
-                            )}
+                            {getSourceBadge(item)}
                           </div>
                           <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                            {item.programName || (item.isAdHoc ? 'Eget pass' : item.source === 'wod' ? 'AI-genererat pass' : item.source === 'ai-chat' ? 'AI-chatt pass' : item.source ? 'Studio-pass' : '-')}
+                            {getHistorySubtitle(item)}
+                          </div>
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            {getHistoryMetaChips(item).map((chip) => (
+                              <span key={chip} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                                {chip}
+                              </span>
+                            ))}
                           </div>
                         </Link>
                       </TableCell>
@@ -698,6 +690,70 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
       </GlassCard>
     </div>
   )
+}
+
+function getHistorySubtitle(item: {
+  isAdHoc: boolean
+  programName?: string
+  source?: string
+}): string {
+  if (item.programName) return item.programName
+  if (item.isAdHoc) return 'Eget pass'
+  if (item.source === 'wod') return 'AI-genererat pass'
+  if (item.source === 'ai-chat') return 'AI-chatt pass'
+  if (item.source) return 'Studio-pass'
+  return '-'
+}
+
+function getSourceBadge(item: {
+  isAdHoc: boolean
+  source?: string
+}) {
+  if (item.isAdHoc) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <Plus className="h-2.5 w-2.5" />
+        Ad-hoc
+      </span>
+    )
+  }
+  if (item.source === 'wod') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+        <Sparkles className="h-2.5 w-2.5" />
+        AI-Pass
+      </span>
+    )
+  }
+  if (item.source === 'ai-chat') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+        <Sparkles className="h-2.5 w-2.5" />
+        AI-Chatt
+      </span>
+    )
+  }
+  if (item.source) {
+    return (
+      <span className="inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+        Studio
+      </span>
+    )
+  }
+  return null
+}
+
+function getHistoryMetaChips(item: {
+  type: string
+  distance?: number | null
+  duration?: number | null
+  perceivedEffort?: number | null
+}) {
+  const chips = [formatWorkoutType(item.type)]
+  if (item.distance) chips.push(`${item.distance.toFixed(1)} km`)
+  if (item.duration) chips.push(`${item.duration} min`)
+  if (item.perceivedEffort) chips.push(`RPE ${item.perceivedEffort}`)
+  return chips
 }
 
 // Helper functions
