@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client'
 import { deduplicateActivities } from './activity-deduplication'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import { estimateAdHocZoneDistribution } from '@/lib/adhoc-workout/zone-estimation'
 
 // Types for internal calculations
 interface DailyTrainingData {
@@ -132,6 +133,7 @@ async function fetchWeeklyTrainingData(
     stravaZoneDistributions,
     garminZoneDistributions,
     adHocWorkouts,
+    sportProfile,
   ] = await Promise.all([
     // Daily training loads (already calculated TSS)
     prisma.trainingLoad.findMany({
@@ -235,7 +237,15 @@ async function fetchWeeklyTrainingData(
         athleteId: clientId,
         status: 'CONFIRMED',
         workoutDate: { gte: weekStart, lte: weekEnd },
+        inputType: {
+          notIn: ['STRAVA_IMPORT', 'GARMIN_IMPORT'],
+        },
       },
+    }),
+
+    prisma.sportProfile.findUnique({
+      where: { clientId },
+      select: { primarySport: true },
     }),
   ])
 
@@ -382,6 +392,22 @@ async function fetchWeeklyTrainingData(
     zoneDistribution.zone4Seconds += dist.zone4Seconds
     zoneDistribution.zone5Seconds += dist.zone5Seconds
     zoneDistribution.totalTrackedSeconds += dist.totalTrackedSeconds
+  }
+
+  for (const adhoc of adHocWorkouts) {
+    const estimated = estimateAdHocZoneDistribution(adhoc.parsedStructure as ParsedWorkout | null, {
+      fallbackSport: sportProfile?.primarySport,
+    })
+    if (!estimated) {
+      continue
+    }
+
+    zoneDistribution.zone1Seconds += estimated.zone1Seconds
+    zoneDistribution.zone2Seconds += estimated.zone2Seconds
+    zoneDistribution.zone3Seconds += estimated.zone3Seconds
+    zoneDistribution.zone4Seconds += estimated.zone4Seconds
+    zoneDistribution.zone5Seconds += estimated.zone5Seconds
+    zoneDistribution.totalTrackedSeconds += estimated.totalTrackedSeconds
   }
 
   return {

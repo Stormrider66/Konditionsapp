@@ -70,8 +70,23 @@ export function NutritionTimingCard() {
   if (isLoading || isDismissed) return null
   if (!guidance || guidance.isRestDay || guidance.todaysWorkouts.length === 0) return null
 
-  const workout = guidance.todaysWorkouts[0]
-  const preWorkout = guidance.preWorkoutGuidance?.[0]
+  const upcomingWorkout = guidance.todaysWorkouts.find((workout) => workout.status !== 'COMPLETED')
+  const completedWorkout = [...guidance.todaysWorkouts]
+    .filter((workout) => workout.status === 'COMPLETED')
+    .sort((a, b) => {
+      const aTime = a.scheduledTime ? new Date(a.scheduledTime).getTime() : 0
+      const bTime = b.scheduledTime ? new Date(b.scheduledTime).getTime() : 0
+      return bTime - aTime
+    })[0]
+
+  const isPostWorkoutMode = !upcomingWorkout && !!completedWorkout
+  const workout = upcomingWorkout || completedWorkout
+
+  if (!workout) return null
+
+  const workoutIndex = guidance.todaysWorkouts.findIndex((item) => item.id === workout.id)
+  const preWorkout = workoutIndex >= 0 ? guidance.preWorkoutGuidance?.[workoutIndex] : undefined
+  const postWorkout = workoutIndex >= 0 ? guidance.postWorkoutGuidance?.[workoutIndex] : undefined
 
   // Calculate workout hour and meal deadline (only when actual time is known)
   const hasScheduledTime = !!workout.scheduledTime
@@ -115,7 +130,11 @@ export function NutritionTimingCard() {
                 Nutrition Timing
               </h3>
               <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                {hasScheduledTime ? `Träning kl ${formatHour(workoutHour!)}` : 'Dagens träning'}
+                {isPostWorkoutMode
+                  ? 'Återhämtning efter dagens pass'
+                  : hasScheduledTime
+                    ? `Träning kl ${formatHour(workoutHour!)}`
+                    : 'Dagens träning'}
               </p>
             </div>
           </div>
@@ -146,13 +165,18 @@ export function NutritionTimingCard() {
           <Clock className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
-              {mealDeadline !== null
-                ? `Ät senast kl ${formatHour(mealDeadline)}`
-                : 'Ät 2-3 timmar före passet'}
+              {isPostWorkoutMode
+                ? (postWorkout?.timingLabel || 'Ät inom 30-60 minuter efter passet')
+                : mealDeadline !== null
+                  ? `Ät senast kl ${formatHour(mealDeadline)}`
+                  : 'Ät 2-3 timmar före passet'}
             </p>
             <p className="text-xs text-emerald-700 dark:text-emerald-300">
-              {preWorkout?.recommendation ||
-                `${preWorkout?.carbsTargetG ? `${preWorkout.carbsTargetG}g` : '60-80g'} kolhydrater (pasta, ris, potatis)`}
+              {isPostWorkoutMode
+                ? (postWorkout?.recommendation ||
+                  `${postWorkout?.carbsTargetG ? `${postWorkout.carbsTargetG}g` : '60-80g'} kolhydrater och ${postWorkout?.proteinTargetG ? `${postWorkout.proteinTargetG}g` : '20-30g'} protein för återhämtning`)
+                : (preWorkout?.recommendation ||
+                  `${preWorkout?.carbsTargetG ? `${preWorkout.carbsTargetG}g` : '60-80g'} kolhydrater (pasta, ris, potatis)`)}
             </p>
           </div>
         </div>
@@ -161,25 +185,27 @@ export function NutritionTimingCard() {
         <div className="flex items-start gap-2">
           <Droplets className="h-4 w-4 text-cyan-600 dark:text-cyan-400 mt-0.5 flex-shrink-0" />
           <p className="text-sm text-emerald-700 dark:text-emerald-300">
-            Drick {preWorkout?.hydrationMl || 500}ml vatten innan passet
+            {isPostWorkoutMode
+              ? `Drick ${postWorkout?.hydrationMl || 500}ml vätska efter passet och fortsätt fylla på under eftermiddagen`
+              : `Drick ${preWorkout?.hydrationMl || 500}ml vatten innan passet`}
           </p>
         </div>
 
         {/* Expandable details */}
-        {isExpanded && preWorkout && (
+        {isExpanded && (isPostWorkoutMode ? postWorkout : preWorkout) && (
           <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800 space-y-2">
-            {preWorkout.timingLabel && (
+            {(isPostWorkoutMode ? postWorkout : preWorkout)?.timingLabel && (
               <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                {preWorkout.timingLabel}
+                {(isPostWorkoutMode ? postWorkout : preWorkout)?.timingLabel}
               </p>
             )}
-            {preWorkout.foodSuggestions && preWorkout.foodSuggestions.length > 0 && (
+            {(isPostWorkoutMode ? postWorkout : preWorkout)?.foodSuggestions && ((isPostWorkoutMode ? postWorkout : preWorkout)?.foodSuggestions.length || 0) > 0 && (
               <div>
                 <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300 mb-1">
                   Förslag:
                 </p>
                 <ul className="text-xs text-emerald-700 dark:text-emerald-300 space-y-0.5">
-                  {preWorkout.foodSuggestions.slice(0, 4).map((food, i) => (
+                  {(isPostWorkoutMode ? postWorkout : preWorkout)!.foodSuggestions.slice(0, 4).map((food, i) => (
                     <li key={i}>
                       • {food.nameSv} ({food.portion})
                     </li>
@@ -187,9 +213,9 @@ export function NutritionTimingCard() {
                 </ul>
               </div>
             )}
-            {preWorkout.reasoning && (
+            {(isPostWorkoutMode ? postWorkout : preWorkout)?.reasoning && (
               <p className="text-xs text-emerald-600 dark:text-emerald-400 italic">
-                {preWorkout.reasoning}
+                {(isPostWorkoutMode ? postWorkout : preWorkout)?.reasoning}
               </p>
             )}
           </div>
@@ -197,7 +223,7 @@ export function NutritionTimingCard() {
 
         {/* Actions */}
         <div className="flex items-center justify-between pt-2">
-          {preWorkout && (
+          {(isPostWorkoutMode ? postWorkout : preWorkout) && (
             <Button
               variant="ghost"
               size="sm"

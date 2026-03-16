@@ -20,6 +20,8 @@ import {
   ZoneDistribution,
 } from '@/lib/calculations/hr-zone-distribution'
 import { calculateIndividualizedZones, IndividualizedThresholdInput } from '@/lib/calculations/zones'
+import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import { estimateAdHocZoneDistribution } from '@/lib/adhoc-workout/zone-estimation'
 
 /**
  * Process zone distribution for a Strava activity
@@ -433,33 +435,66 @@ export async function getAggregatedZoneDistribution(
   totalMinutes: number
   activityCount: number
 }> {
-  // Get Strava activities with zone distribution
-  const stravaDistributions = await prisma.activityHRZoneDistribution.findMany({
-    where: {
-      stravaActivity: {
-        clientId,
-        startDate: {
+  const [stravaDistributions, garminDistributions, adHocWorkouts, sportProfile] = await Promise.all([
+    prisma.activityHRZoneDistribution.findMany({
+      where: {
+        stravaActivity: {
+          clientId,
+          startDate: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      },
+    }),
+    prisma.activityHRZoneDistribution.findMany({
+      where: {
+        garminActivity: {
+          clientId,
+          startDate: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      },
+    }),
+    prisma.adHocWorkout.findMany({
+      where: {
+        athleteId: clientId,
+        status: 'CONFIRMED',
+        workoutDate: {
           gte: startDate,
           lte: endDate,
         },
-      },
-    },
-  })
-
-  // Get Garmin activities with zone distribution
-  const garminDistributions = await prisma.activityHRZoneDistribution.findMany({
-    where: {
-      garminActivity: {
-        clientId,
-        startDate: {
-          gte: startDate,
-          lte: endDate,
+        inputType: {
+          notIn: ['STRAVA_IMPORT', 'GARMIN_IMPORT'],
         },
       },
-    },
-  })
+      select: {
+        parsedStructure: true,
+      },
+    }),
+    prisma.sportProfile.findUnique({
+      where: { clientId },
+      select: { primarySport: true },
+    }),
+  ])
 
-  const allDistributions = [...stravaDistributions, ...garminDistributions]
+  const athleteZones = adHocWorkouts.some((workout) => {
+    const parsed = workout.parsedStructure as ParsedWorkout | null
+    return Boolean(parsed?.avgHeartRate)
+  })
+    ? await getAthleteZones(clientId)
+    : null
+
+  const adHocDistributions = adHocWorkouts
+    .map((workout) => estimateAdHocZoneDistribution(workout.parsedStructure as ParsedWorkout | null, {
+      fallbackSport: sportProfile?.primarySport,
+      athleteZones: athleteZones?.zones,
+    }))
+    .filter((distribution): distribution is ZoneDistribution => Boolean(distribution))
+
+  const allDistributions = [...stravaDistributions, ...garminDistributions, ...adHocDistributions]
 
   const totals = allDistributions.reduce(
     (acc, dist) => ({
