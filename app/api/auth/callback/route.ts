@@ -9,8 +9,6 @@ type SupportedEmailOtpType =
   | 'signup'
   | 'email'
   | 'email_change'
-  | 'email_change_new'
-  | 'email_change_current'
 
 function isSupportedEmailOtpType(value: string | null): value is SupportedEmailOtpType {
   return [
@@ -20,8 +18,6 @@ function isSupportedEmailOtpType(value: string | null): value is SupportedEmailO
     'signup',
     'email',
     'email_change',
-    'email_change_new',
-    'email_change_current',
   ].includes(value ?? '')
 }
 
