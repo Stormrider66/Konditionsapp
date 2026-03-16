@@ -80,7 +80,13 @@ export function FloatingAIChat({
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
-  const { floatingStyle, handleDragStart, handleActivatorClick } = useFloatingChatDrag()
+  const {
+    buttonFloatingStyle,
+    panelFloatingStyle,
+    handleButtonDragStart,
+    handlePanelDragStart,
+    handleActivatorClick,
+  } = useFloatingChatDrag()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -612,8 +618,8 @@ export function FloatingAIChat({
       <Button
         onClick={() => setIsOpen(true)}
         onMouseUp={handleActivatorClick}
-        onPointerDown={handleDragStart}
-        style={floatingStyle}
+        onPointerDown={handleButtonDragStart}
+        style={buttonFloatingStyle}
         data-floating-chat-root
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 z-50 fixed-bottom-safe touch-none cursor-grab active:cursor-grabbing"
         size="icon"
@@ -631,7 +637,7 @@ export function FloatingAIChat({
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
           'bottom-6 right-6 w-[380px] h-[200px]'
         )}
-        style={floatingStyle}
+        style={panelFloatingStyle}
         data-floating-chat-root
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg">
@@ -665,7 +671,7 @@ export function FloatingAIChat({
             ? 'bottom-4 right-4 left-4 top-20 md:left-auto md:w-[600px]'
             : 'bottom-6 right-6 w-[380px] h-[500px]'
         )}
-        style={!isExpanded ? floatingStyle : undefined}
+        style={!isExpanded ? panelFloatingStyle : undefined}
         data-floating-chat-root
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg">
@@ -716,13 +722,13 @@ export function FloatingAIChat({
           ? 'bottom-4 right-4 left-4 top-20 md:left-auto md:w-[600px]'
           : 'bottom-6 right-6 w-[380px] h-[500px]'
       )}
-      style={!isExpanded ? floatingStyle : undefined}
+      style={!isExpanded ? panelFloatingStyle : undefined}
       data-floating-chat-root
     >
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg">
         <div
-          onPointerDown={!isExpanded ? handleDragStart : undefined}
+          onPointerDown={!isExpanded ? handlePanelDragStart : undefined}
           className={cn(
             'flex items-center gap-2 touch-none',
             !isExpanded && 'cursor-grab active:cursor-grabbing'

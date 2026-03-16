@@ -34,10 +34,7 @@ export function useFloatingChatDrag() {
     return () => window.removeEventListener('resize', updateDesktopState)
   }, [])
 
-  const handleDragStart = useCallback(
-    (event: React.PointerEvent<HTMLElement>) => {
-      if (!isDesktop) return
-
+  const startDrag = useCallback((event: React.PointerEvent<HTMLElement>) => {
       const root = event.currentTarget.closest('[data-floating-chat-root]') as HTMLElement | null
       if (!root) return
 
@@ -87,11 +84,25 @@ export function useFloatingChatDrag() {
 
       window.addEventListener('pointermove', handlePointerMove)
       window.addEventListener('pointerup', handlePointerUp)
-    },
-    [isDesktop]
-  )
+    }, [])
 
-  const floatingStyle = isDesktop
+  const handleButtonDragStart = useCallback((event: React.PointerEvent<HTMLElement>) => {
+    startDrag(event)
+  }, [startDrag])
+
+  const handlePanelDragStart = useCallback((event: React.PointerEvent<HTMLElement>) => {
+    if (!isDesktop) return
+    startDrag(event)
+  }, [isDesktop, startDrag])
+
+  const buttonFloatingStyle = {
+    right: `${position.right}px`,
+    bottom: `${position.bottom}px`,
+    left: 'auto',
+    top: 'auto',
+  }
+
+  const panelFloatingStyle = isDesktop
     ? {
         right: `${position.right}px`,
         bottom: `${position.bottom}px`,
@@ -110,8 +121,10 @@ export function useFloatingChatDrag() {
 
   return {
     isDesktop,
-    floatingStyle,
-    handleDragStart,
+    buttonFloatingStyle,
+    panelFloatingStyle,
+    handleButtonDragStart,
+    handlePanelDragStart,
     handleActivatorClick,
   }
 }

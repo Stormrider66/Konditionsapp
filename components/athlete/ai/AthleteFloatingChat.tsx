@@ -69,7 +69,13 @@ export function AthleteFloatingChat({
 }: AthleteFloatingChatProps) {
   const { toast } = useToast()
   const basePath = useBasePath()
-  const { floatingStyle, handleDragStart, handleActivatorClick } = useFloatingChatDrag()
+  const {
+    buttonFloatingStyle,
+    panelFloatingStyle,
+    handleButtonDragStart,
+    handlePanelDragStart,
+    handleActivatorClick,
+  } = useFloatingChatDrag()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const pageCtx = usePageContextOptional()
@@ -617,8 +623,8 @@ export function AthleteFloatingChat({
       <Button
         onClick={() => setIsOpen(true)}
         onMouseUp={handleActivatorClick}
-        onPointerDown={handleDragStart}
-        style={floatingStyle}
+        onPointerDown={handleButtonDragStart}
+        style={buttonFloatingStyle}
         data-floating-chat-root
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 z-50 fixed-bottom-safe touch-none cursor-grab active:cursor-grabbing"
         size="icon"
@@ -636,7 +642,7 @@ export function AthleteFloatingChat({
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
           'bottom-6 left-3 right-3 h-[200px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
-        style={floatingStyle}
+        style={panelFloatingStyle}
         data-floating-chat-root
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
@@ -668,7 +674,7 @@ export function AthleteFloatingChat({
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
           'bottom-6 left-3 right-3 h-[300px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
-        style={floatingStyle}
+        style={panelFloatingStyle}
         data-floating-chat-root
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
@@ -706,7 +712,7 @@ export function AthleteFloatingChat({
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
           'bottom-6 left-3 right-3 h-[350px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
-        style={floatingStyle}
+        style={panelFloatingStyle}
         data-floating-chat-root
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-lg">
@@ -760,7 +766,7 @@ export function AthleteFloatingChat({
           'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
           'bottom-6 left-3 right-3 max-h-[420px] sm:left-auto sm:right-6 sm:w-[380px]'
         )}
-        style={floatingStyle}
+        style={panelFloatingStyle}
         data-floating-chat-root
       >
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
@@ -842,13 +848,13 @@ export function AthleteFloatingChat({
           ? 'bottom-4 right-4 left-4 top-20 md:left-auto md:w-[500px]'
           : 'bottom-6 left-3 right-3 h-[500px] sm:left-auto sm:right-6 sm:w-[380px]'
       )}
-      style={!isExpanded ? floatingStyle : undefined}
+      style={!isExpanded ? panelFloatingStyle : undefined}
       data-floating-chat-root
     >
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
         <div
-          onPointerDown={!isExpanded ? handleDragStart : undefined}
+          onPointerDown={!isExpanded ? handlePanelDragStart : undefined}
           className={cn(
             'flex items-center gap-2 touch-none',
             !isExpanded && 'cursor-grab active:cursor-grabbing'
