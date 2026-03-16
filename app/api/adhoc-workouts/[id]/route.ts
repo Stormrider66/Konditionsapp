@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import { normalizeParsedWorkoutDistance } from '@/lib/adhoc-workout/distance'
 
 // ============================================
 // VALIDATION SCHEMAS
@@ -154,6 +155,9 @@ export async function PATCH(
     }
 
     const data = validation.data
+    const normalizedParsedStructure = data.parsedStructure
+      ? normalizeParsedWorkoutDistance(data.parsedStructure as unknown as ParsedWorkout)
+      : undefined
 
     // Update the ad-hoc workout
     const updated = await prisma.adHocWorkout.update({
@@ -161,13 +165,13 @@ export async function PATCH(
       data: {
         workoutName: data.workoutName,
         workoutDate: data.workoutDate,
-        parsedStructure: data.parsedStructure
-          ? (data.parsedStructure as unknown as Prisma.InputJsonValue)
+        parsedStructure: normalizedParsedStructure
+          ? (normalizedParsedStructure as unknown as Prisma.InputJsonValue)
           : undefined,
         athleteEdits: data.athleteEdits
           ? (data.athleteEdits as unknown as Prisma.InputJsonValue)
           : undefined,
-        athleteReviewed: data.parsedStructure ? true : adHocWorkout.athleteReviewed,
+        athleteReviewed: normalizedParsedStructure ? true : adHocWorkout.athleteReviewed,
       },
     })
 

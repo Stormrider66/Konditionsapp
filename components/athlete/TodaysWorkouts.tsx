@@ -109,7 +109,9 @@ export function TodaysWorkouts({ items, variant = 'default', clientId, basePath 
               ? <WorkoutCard key={getItemId(item)} workout={item.workout} theme={theme} variant="glass" clientId={clientId} basePath={basePath} />
               : item.kind === 'wod'
                 ? <WODCard key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
-                : <AssignmentCard key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
+                : item.kind === 'assignment'
+                  ? <AssignmentCard key={getItemId(item)} item={item} theme={theme} variant="glass" basePath={basePath} />
+                  : null
           ))}
         </GlassCardContent>
       </GlassCard>
@@ -138,7 +140,9 @@ export function TodaysWorkouts({ items, variant = 'default', clientId, basePath 
             ? <WorkoutCard key={getItemId(item)} workout={item.workout} theme={theme} clientId={clientId} basePath={basePath} />
             : item.kind === 'wod'
               ? <WODCard key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
-              : <AssignmentCard key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
+              : item.kind === 'assignment'
+                ? <AssignmentCard key={getItemId(item)} item={item} theme={theme} basePath={basePath} />
+                : null
         ))}
       </CardContent>
     </Card>

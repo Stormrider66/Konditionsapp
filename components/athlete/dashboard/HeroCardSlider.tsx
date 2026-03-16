@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { HeroWorkoutCard } from './HeroWorkoutCard'
 import { AssignmentHeroCard } from './AssignmentHeroCard'
 import { WODHeroCard } from './WODHeroCard'
+import { AdHocWorkoutHeroCard } from './AdHocWorkoutHeroCard'
 import { RemoveWorkoutDialog } from './RemoveWorkoutDialog'
 import { removeDashboardItem } from '@/app/actions/remove-dashboard-item'
 import type { DashboardItem } from '@/types/dashboard-items'
@@ -27,6 +28,8 @@ function buildPayload(item: DashboardItem) {
       return { kind: 'program' as const, workoutId: item.workout.id, isCustom: item.workout.isCustom }
     case 'assignment':
       return { kind: 'assignment' as const, assignmentType: item.assignmentType, id: item.id }
+    case 'adhoc':
+      return null
   }
 }
 
@@ -70,9 +73,14 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
 
   const handleRemoveConfirm = useCallback(async () => {
     if (!removeTarget) return
+    const payload = buildPayload(removeTarget)
+    if (!payload) {
+      setRemoveTarget(null)
+      return
+    }
     setIsRemoving(true)
     try {
-      const result = await removeDashboardItem(buildPayload(removeTarget))
+      const result = await removeDashboardItem(payload)
       if (!result.success) {
         toast.error(result.error || 'Kunde inte ta bort passet')
       }
@@ -205,6 +213,13 @@ function renderItem(item: DashboardItem, athleteName?: string, basePath?: string
           athleteName={athleteName}
           basePath={basePath}
           onRemove={onRemove}
+        />
+      )
+    case 'adhoc':
+      return (
+        <AdHocWorkoutHeroCard
+          workout={item}
+          athleteName={athleteName}
         />
       )
   }

@@ -8,6 +8,8 @@
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { deduplicateActivities } from './activity-deduplication'
+import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
+import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 
 // Types for internal calculations
 interface DailyTrainingData {
@@ -291,13 +293,7 @@ async function fetchWeeklyTrainingData(
 
   for (const adhoc of adHocWorkouts) {
     // Extract data from parsedStructure
-    const parsed = adhoc.parsedStructure as {
-      duration?: number
-      distance?: number
-      intensity?: string
-      type?: string
-      estimatedCalories?: number
-    } | null
+    const parsed = adhoc.parsedStructure as ParsedWorkout | null
 
     // Get TSS from linked TrainingLoad
     const tss = adhoc.trainingLoadId ? trainingLoadTssMap.get(adhoc.trainingLoadId) ?? 0 : 0
@@ -305,7 +301,7 @@ async function fetchWeeklyTrainingData(
     activities.push({
       date: new Date(adhoc.workoutDate),
       tss,
-      distance: parsed?.distance ? parsed.distance / 1000 : 0, // Convert m to km
+      distance: getParsedWorkoutDistanceKm(parsed) ?? 0,
       duration: parsed?.duration ?? 0,
       calories: parsed?.estimatedCalories ?? undefined,
       workoutType: adhoc.parsedType ?? parsed?.type ?? undefined,

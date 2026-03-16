@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
 import type { ParsedWorkout, ParsedStrengthExercise, ParsedCardioSegment, ParsedHybridMovement } from '@/lib/adhoc-workout/types'
+import { formatParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 
 interface AdHocWorkoutDetailPageProps {
   params: Promise<{ id: string }>
@@ -47,6 +48,7 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
   }
 
   const parsed = adHocWorkout.parsedStructure as unknown as ParsedWorkout | null
+  const formattedDistanceKm = formatParsedWorkoutDistanceKm(parsed)
 
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-4xl mx-auto">
@@ -94,7 +96,7 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
             </GlassCardContent>
           </GlassCard>
         )}
-        {parsed?.distance && (
+        {formattedDistanceKm && (
           <GlassCard>
             <GlassCardContent className="pt-5">
               <div className="flex items-center gap-3">
@@ -103,7 +105,7 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
                 </div>
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Distans</p>
-                  <p className="text-xl font-black text-white">{parsed.distance} <span className="text-xs text-slate-600">km</span></p>
+                  <p className="text-xl font-black text-white">{formattedDistanceKm} <span className="text-xs text-slate-600">km</span></p>
                 </div>
               </div>
             </GlassCardContent>

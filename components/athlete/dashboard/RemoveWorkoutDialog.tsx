@@ -22,12 +22,16 @@ interface RemoveWorkoutDialogProps {
 }
 
 function getItemLabel(item: DashboardItem): string {
+  if (item.kind === 'adhoc') return item.workoutName
   if (item.kind === 'wod') return item.title
   if (item.kind === 'program') return item.workout.name
   return item.name
 }
 
 function getDescription(item: DashboardItem): string {
+  if (item.kind === 'adhoc') {
+    return 'Det loggade passet går inte att ta bort härifrån.'
+  }
   if (item.kind === 'wod') {
     return 'Passet tas bort från din dashboard.'
   }
@@ -49,6 +53,7 @@ export function RemoveWorkoutDialog({
   isRemoving,
 }: RemoveWorkoutDialogProps) {
   if (!item) return null
+  const isUnsupported = item.kind === 'adhoc'
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -66,9 +71,11 @@ export function RemoveWorkoutDialog({
           <AlertDialogAction
             onClick={(e) => {
               e.preventDefault()
-              onConfirm()
+              if (!isUnsupported) {
+                onConfirm()
+              }
             }}
-            disabled={isRemoving}
+            disabled={isRemoving || isUnsupported}
             className="bg-red-600 hover:bg-red-700 text-white"
           >
             {isRemoving ? (

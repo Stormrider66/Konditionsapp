@@ -117,7 +117,7 @@ export function QuickForm({ onSubmit, isProcessing }: QuickFormProps) {
       confidence: 1, // Manual entry = full confidence
       name: workoutName || undefined,
       duration: duration,
-      distance: distance ? parseFloat(distance) : undefined,
+      distance: distance ? Math.round(parseFloat(distance) * 1000) : undefined,
       intensity: intensity as any,
       perceivedEffort,
       feeling: feeling as any,

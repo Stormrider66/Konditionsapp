@@ -112,7 +112,7 @@ export async function parseWorkoutFromStrava(
     confidence: 0.95, // High confidence since data is structured
     name: activity.name,
     duration: durationMinutes,
-    distance: distanceKm > 0 ? distanceKm : undefined,
+    distance: activity.distance > 0 ? activity.distance : undefined,
     intensity: mapping.intensity as ParsedWorkout['intensity'],
     sport: mapping.sport as ParsedWorkout['sport'],
     avgHeartRate: activity.averageHeartrate,
@@ -145,7 +145,7 @@ export async function parseWorkoutFromGarmin(
     confidence: 0.95, // High confidence since data is structured
     name: activity.activityName,
     duration: durationMinutes,
-    distance: distanceKm > 0 ? distanceKm : undefined,
+    distance: activity.distance > 0 ? activity.distance : undefined,
     intensity: mapping.intensity as ParsedWorkout['intensity'],
     sport: mapping.sport as ParsedWorkout['sport'],
     avgHeartRate: activity.averageHR,

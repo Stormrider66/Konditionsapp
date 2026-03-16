@@ -68,6 +68,7 @@ import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import {
   DashboardItem,
   DashboardAssignment,
+  DashboardAdHocWorkout,
   DashboardWOD,
   isItemCompleted,
   getItemDate,
@@ -78,6 +79,7 @@ import {
   mapHybridAssignment,
   mapAgilityAssignment,
   mapWODToDashboard,
+  mapAdHocWorkoutToDashboard,
 } from '@/types/dashboard-items'
 
 export default async function AthleteDashboardPage() {
@@ -208,7 +210,8 @@ export default async function AthleteDashboardPage() {
     recentLogsWithSetLogs,
     weeklyTrainingLoad,
     activeInjuries,
-    wodHistory
+    wodHistory,
+    confirmedAdHocWorkouts,
   ] = await Promise.all([
     // 1. Active Programs
     prisma.trainingProgram.findMany({
@@ -361,6 +364,25 @@ export default async function AthleteDashboardPage() {
         completedAt: true,
       },
     }),
+
+    prisma.adHocWorkout.findMany({
+      where: {
+        athleteId: clientId,
+        status: 'CONFIRMED',
+        workoutDate: { gte: todayStart, lte: todayEnd },
+      },
+      orderBy: { workoutDate: 'desc' },
+      select: {
+        id: true,
+        workoutDate: true,
+        workoutName: true,
+        status: true,
+        inputType: true,
+        createdAt: true,
+        parsedType: true,
+        parsedStructure: true,
+      },
+    }),
   ])
 
   // Fetch today's WODs for dashboard items
@@ -390,6 +412,12 @@ export default async function AthleteDashboardPage() {
   })
 
   const todayWODItems: DashboardWOD[] = todayWODs.map(w => mapWODToDashboard(w as any))
+  const todayAdHocItems: DashboardAdHocWorkout[] = confirmedAdHocWorkouts.map(workout =>
+    mapAdHocWorkoutToDashboard({
+      ...workout,
+      parsedStructure: workout.parsedStructure as any,
+    })
+  )
 
   // Fetch workouts with program info
   const todaysWorkoutsWithProgram = await prisma.workout.findMany({
@@ -541,6 +569,7 @@ export default async function AthleteDashboardPage() {
     ...todaysWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
     ...todayAssignments,
     ...todayWODItems,
+    ...todayAdHocItems,
   ]
   const upcomingItems: DashboardItem[] = [
     ...upcomingWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
@@ -624,6 +653,7 @@ export default async function AthleteDashboardPage() {
 
   // Get next item for rest day card
   const nextItem: DashboardItem | null = upcomingItems.length > 0 ? upcomingItems[0] : null
+  const restDayMode = currentProgram ? 'rest-day' : 'open-day'
 
   // Calculate WOD stats
   const startOfWeek = startOfDay(addDays(now, -now.getDay() + 1)) // Monday
@@ -649,7 +679,15 @@ export default async function AthleteDashboardPage() {
   }
 
   // Hero Card Data - prioritize: incomplete programs > assignments > WODs > completed
-  const kindPriority = (kind: string) => kind === 'program' ? 0 : kind === 'assignment' ? 1 : 2
+  const kindPriority = (kind: string) => (
+    kind === 'program'
+      ? 0
+      : kind === 'assignment'
+        ? 1
+        : kind === 'wod'
+          ? 2
+          : 3
+  )
   const sortedTodayItems = [...todayItems].sort((a, b) => {
     const aCompleted = isItemCompleted(a)
     const bCompleted = isItemCompleted(b)
@@ -663,7 +701,9 @@ export default async function AthleteDashboardPage() {
     return 0
   })
   // First incomplete item for "Start Session" button
-  const firstIncompleteItem = sortedTodayItems.find(item => !isItemCompleted(item)) || sortedTodayItems[0] || null
+  const firstActionableItem = sortedTodayItems.find(
+    (item) => item.kind !== 'adhoc' && !isItemCompleted(item)
+  ) || null
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
@@ -683,15 +723,15 @@ export default async function AthleteDashboardPage() {
         </div>
         <QuickActionsGrid
           sessionHref={
-            firstIncompleteItem?.kind === 'program'
-              ? `/athlete/workouts/${firstIncompleteItem.workout.id}/log`
-              : firstIncompleteItem?.kind === 'assignment'
-                ? getAssignmentRoute(firstIncompleteItem, basePath)
-                : firstIncompleteItem?.kind === 'wod'
-                  ? getWODRoute(firstIncompleteItem, basePath)
+            firstActionableItem?.kind === 'program'
+              ? `/athlete/workouts/${firstActionableItem.workout.id}/log`
+              : firstActionableItem?.kind === 'assignment'
+                ? getAssignmentRoute(firstActionableItem, basePath)
+                : firstActionableItem?.kind === 'wod'
+                  ? getWODRoute(firstActionableItem, basePath)
                   : '/athlete/browse-workouts'
           }
-          sessionLabel={firstIncompleteItem ? 'Starta pass' : 'Hitta pass'}
+          sessionLabel={firstActionableItem ? 'Starta pass' : 'Hitta pass'}
         />
       </div>
 
@@ -756,6 +796,9 @@ export default async function AthleteDashboardPage() {
             nextItem={nextItem}
             readinessScore={readinessScore}
             athleteName={client.name.split(' ')[0]}
+            mode={restDayMode}
+            sportType={primarySport}
+            basePath={basePath}
           />
         )}
 

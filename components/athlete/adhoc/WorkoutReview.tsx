@@ -38,6 +38,7 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import { formatParsedWorkoutDistanceKm, getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import { cn } from '@/lib/utils'
 
 interface WorkoutReviewProps {
@@ -87,7 +88,10 @@ export function WorkoutReview({
 
   // Editable fields
   const [duration, setDuration] = useState(parsedWorkout.duration?.toString() || '')
-  const [distance, setDistance] = useState(parsedWorkout.distance?.toString() || '')
+  const [distance, setDistance] = useState(() => {
+    const distanceKm = getParsedWorkoutDistanceKm(parsedWorkout)
+    return distanceKm !== null ? distanceKm.toString() : ''
+  })
   const [rpe, setRpe] = useState(parsedWorkout.perceivedEffort || 6)
   const [feeling, setFeeling] = useState<typeof FEELING_OPTIONS[0]['value'] | undefined>(
     parsedWorkout.feeling
@@ -101,7 +105,7 @@ export function WorkoutReview({
     const updatedWorkout: ParsedWorkout = {
       ...parsedWorkout,
       duration: duration ? parseInt(duration) : parsedWorkout.duration,
-      distance: distance ? parseFloat(distance) : parsedWorkout.distance,
+      distance: distance ? Math.round(parseFloat(distance) * 1000) : parsedWorkout.distance,
       perceivedEffort: rpe,
       feeling: feeling as ParsedWorkout['feeling'],
       notes,
@@ -190,7 +194,7 @@ export function WorkoutReview({
             <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
               <MapPin className="h-4 w-4 text-muted-foreground" />
               <div>
-                <div className="text-sm font-medium">{parsedWorkout.distance.toFixed(1)} km</div>
+                <div className="text-sm font-medium">{formatParsedWorkoutDistanceKm(parsedWorkout)} km</div>
                 <div className="text-xs text-muted-foreground">Distans</div>
               </div>
             </div>

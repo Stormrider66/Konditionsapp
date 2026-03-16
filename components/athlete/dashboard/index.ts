@@ -7,6 +7,7 @@
 export { HeroWorkoutCard } from './HeroWorkoutCard'
 export { AssignmentHeroCard } from './AssignmentHeroCard'
 export { WODHeroCard } from './WODHeroCard'
+export { AdHocWorkoutHeroCard } from './AdHocWorkoutHeroCard'
 export { RestDayHeroCard } from './RestDayHeroCard'
 export { HeroCardSlider } from './HeroCardSlider'
 export { ReadinessPanel } from './ReadinessPanel'

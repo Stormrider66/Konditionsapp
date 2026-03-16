@@ -1,5 +1,7 @@
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { Dumbbell, Heart, Flame, Zap, Sparkles, type LucideIcon } from 'lucide-react'
+import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
+import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -50,7 +52,30 @@ export interface DashboardWOD {
   primarySport: string | null
 }
 
-export type DashboardItem = DashboardProgramWorkout | DashboardAssignment | DashboardWOD
+export interface DashboardAdHocWorkout {
+  kind: 'adhoc'
+  id: string
+  workoutDate: Date
+  workoutName: string
+  status: string
+  inputType: string
+  createdAt: Date
+  parsedType: string | null
+  summary: {
+    durationMinutes: number | null
+    distanceKm: number | null
+    intensity: string | null
+    estimatedCalories: number | null
+    feeling: string | null
+    notes: string | null
+  }
+}
+
+export type DashboardItem =
+  | DashboardProgramWorkout
+  | DashboardAssignment
+  | DashboardWOD
+  | DashboardAdHocWorkout
 
 // ── Utility Functions ──────────────────────────────────────────────────────
 
@@ -60,6 +85,9 @@ export function isItemCompleted(item: DashboardItem): boolean {
   }
   if (item.kind === 'wod') {
     return item.status === 'COMPLETED'
+  }
+  if (item.kind === 'adhoc') {
+    return item.status === 'CONFIRMED'
   }
   return item.status === 'COMPLETED'
 }
@@ -71,6 +99,9 @@ export function getItemDate(item: DashboardItem): Date {
   if (item.kind === 'wod') {
     return new Date(item.createdAt)
   }
+  if (item.kind === 'adhoc') {
+    return new Date(item.workoutDate)
+  }
   return new Date(item.assignedDate)
 }
 
@@ -80,6 +111,9 @@ export function getItemName(item: DashboardItem): string {
   }
   if (item.kind === 'wod') {
     return item.title
+  }
+  if (item.kind === 'adhoc') {
+    return item.workoutName
   }
   return item.name
 }
@@ -91,6 +125,9 @@ export function getItemStartTime(item: DashboardItem): string | null {
   if (item.kind === 'wod') {
     return null // WODs don't have scheduled start times
   }
+  if (item.kind === 'adhoc') {
+    return null
+  }
   return item.startTime ?? null
 }
 
@@ -100,6 +137,9 @@ export function getItemLocationName(item: DashboardItem): string | null {
   }
   if (item.kind === 'wod') {
     return null // WODs don't have locations
+  }
+  if (item.kind === 'adhoc') {
+    return null
   }
   return item.locationName ?? null
 }
@@ -347,6 +387,38 @@ export function mapWODToDashboard(raw: RawWOD): DashboardWOD {
     intensityAdjusted: raw.intensityAdjusted,
     sessionRPE: raw.sessionRPE,
     primarySport: raw.primarySport,
+  }
+}
+
+interface RawAdHocWorkout {
+  id: string
+  workoutDate: Date
+  workoutName: string | null
+  status: string
+  inputType: string
+  createdAt: Date
+  parsedType: string | null
+  parsedStructure?: ParsedWorkout | null
+}
+
+export function mapAdHocWorkoutToDashboard(raw: RawAdHocWorkout): DashboardAdHocWorkout {
+  return {
+    kind: 'adhoc',
+    id: raw.id,
+    workoutDate: raw.workoutDate,
+    workoutName: raw.workoutName || raw.parsedStructure?.name || 'Loggat pass',
+    status: raw.status,
+    inputType: raw.inputType,
+    createdAt: raw.createdAt,
+    parsedType: raw.parsedType,
+    summary: {
+      durationMinutes: raw.parsedStructure?.duration ?? null,
+      distanceKm: getParsedWorkoutDistanceKm(raw.parsedStructure) ?? null,
+      intensity: raw.parsedStructure?.intensity ?? null,
+      estimatedCalories: raw.parsedStructure?.estimatedCalories ?? null,
+      feeling: raw.parsedStructure?.feeling ?? null,
+      notes: raw.parsedStructure?.notes ?? null,
+    },
   }
 }
 

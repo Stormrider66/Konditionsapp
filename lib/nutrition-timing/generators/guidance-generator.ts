@@ -258,6 +258,7 @@ function generatePreWorkoutGuidanceList(
 ): NutritionGuidance[] {
   return workouts
     .filter((w) => {
+      if (w.status === 'COMPLETED') return false
       if (!w.scheduledTime) return true
       return w.scheduledTime > currentTime
     })
@@ -310,7 +311,7 @@ function generateDuringWorkoutGuidanceList(
   goalType?: NutritionGoalType
 ): NutritionGuidance[] {
   return workouts
-    .filter((w) => w.duration && w.duration >= 60)
+    .filter((w) => w.status !== 'COMPLETED' && w.duration && w.duration >= 60)
     .map((workout) => {
       const { carbsPerHour, hydrationMl, needsMultipleTransportable } = calculateDuringWorkoutFueling(
         workout.duration!,

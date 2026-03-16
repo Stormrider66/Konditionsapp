@@ -96,6 +96,9 @@ export interface WorkoutContext {
   duration: number | null       // planned minutes
   distance: number | null       // planned km
   scheduledTime?: Date          // when the workout is scheduled
+  source?: 'PROGRAM' | 'AI_WOD' | 'AD_HOC'
+  status?: 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED'
+  estimatedCaloriesKcal?: number | null
   isToday: boolean
   isTomorrow: boolean
   daysUntil: number

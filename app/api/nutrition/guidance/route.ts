@@ -15,6 +15,8 @@ import { logger } from '@/lib/logger'
 import { generateDailyGuidance } from '@/lib/nutrition-timing'
 import type { WorkoutContext, GuidanceGeneratorInput } from '@/lib/nutrition-timing'
 import type { WorkoutIntensity, WorkoutType } from '@prisma/client'
+import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 
 /**
  * GET /api/nutrition/guidance
@@ -51,7 +53,7 @@ export async function GET() {
     const tomorrowEnd = addDays(todayEnd, 1)
 
     // Fetch today's and tomorrow's workouts in parallel (including AI WODs)
-    const [todaysWorkoutsRaw, tomorrowsWorkoutsRaw, bodyComposition, todaysAiWods] = await Promise.all([
+    const [todaysWorkoutsRaw, tomorrowsWorkoutsRaw, bodyComposition, todaysAiWods, todaysAdHocWorkouts] = await Promise.all([
       prisma.workout.findMany({
         where: {
           day: {
@@ -110,6 +112,21 @@ export async function GET() {
         },
         orderBy: { createdAt: 'asc' },
       }),
+      prisma.adHocWorkout.findMany({
+        where: {
+          athleteId: client.id,
+          status: 'CONFIRMED',
+          workoutDate: { gte: todayStart, lte: todayEnd },
+        },
+        orderBy: { workoutDate: 'desc' },
+        select: {
+          id: true,
+          workoutDate: true,
+          workoutName: true,
+          parsedType: true,
+          parsedStructure: true,
+        },
+      }),
     ])
 
     // Map to WorkoutContext type
@@ -132,10 +149,37 @@ export async function GET() {
       duration: w.duration,
       distance: w.distance,
       scheduledTime: undefined, // day.date is just the calendar date (midnight), not an actual workout time
+      source: 'PROGRAM',
+      status: 'PLANNED',
       isToday,
       isTomorrow: !isToday,
       daysUntil: isToday ? 0 : 1,
     })
+
+    const mapAdHocTypeToWorkoutType = (parsed: ParsedWorkout | null): WorkoutType => {
+      if (!parsed) return 'OTHER'
+      if (parsed.type === 'STRENGTH') return 'STRENGTH'
+      if (parsed.type === 'CARDIO') {
+        switch (parsed.sport) {
+          case 'RUNNING':
+            return 'RUNNING'
+          case 'CYCLING':
+            return 'CYCLING'
+          case 'SKIING':
+            return 'SKIING'
+          case 'SWIMMING':
+            return 'SWIMMING'
+          case 'TRIATHLON':
+            return 'TRIATHLON'
+          case 'HYROX':
+            return 'HYROX'
+          default:
+            return 'OTHER'
+        }
+      }
+
+      return parsed.sport === 'HYROX' ? 'HYROX' : 'OTHER'
+    }
 
     // Filter out completed workouts - nutrition guidance only applies to upcoming/incomplete workouts
     const incompleteWorkouts = todaysWorkoutsRaw.filter((w) => {
@@ -159,13 +203,35 @@ export async function GET() {
       duration: wod.actualDuration || wod.requestedDuration,
       distance: null,
       scheduledTime: wod.completedAt || wod.startedAt || wod.createdAt,
+      source: 'AI_WOD',
+      status: wod.status === 'COMPLETED' ? 'COMPLETED' : wod.status === 'STARTED' ? 'IN_PROGRESS' : 'PLANNED',
       isToday: true,
       isTomorrow: false,
       daysUntil: 0,
     }))
 
+    const adHocContexts: WorkoutContext[] = todaysAdHocWorkouts.map((workout) => {
+      const parsed = workout.parsedStructure as ParsedWorkout | null
+
+      return {
+        id: workout.id,
+        name: workout.workoutName || parsed?.name || 'Loggat pass',
+        type: mapAdHocTypeToWorkoutType(parsed),
+        intensity: parsed?.intensity || 'MODERATE',
+        duration: parsed?.duration ?? null,
+        distance: getParsedWorkoutDistanceKm(parsed),
+        scheduledTime: workout.workoutDate,
+        source: 'AD_HOC',
+        status: 'COMPLETED',
+        estimatedCaloriesKcal: parsed?.estimatedCalories ?? null,
+        isToday: true,
+        isTomorrow: false,
+        daysUntil: 0,
+      }
+    })
+
     // Merge AI WODs with program workouts
-    const allTodaysWorkouts = [...todaysWorkouts, ...aiWodContexts]
+    const allTodaysWorkouts = [...todaysWorkouts, ...aiWodContexts, ...adHocContexts]
 
     // Build generator input
     const input: GuidanceGeneratorInput = {
@@ -248,6 +314,7 @@ export async function GET() {
       todaysWorkoutsCount: allTodaysWorkouts.length,
       programWorkouts: todaysWorkouts.length,
       aiWods: aiWodContexts.length,
+      adHocWorkouts: adHocContexts.length,
       tipsCount: guidance.tips.length,
     })
 

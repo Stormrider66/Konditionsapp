@@ -13,6 +13,7 @@ import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { estimateCalories } from '@/lib/adhoc-workout/calorie-estimator'
+import { normalizeParsedWorkoutDistance } from '@/lib/adhoc-workout/distance'
 import { logger } from '@/lib/logger'
 
 // ============================================
@@ -98,15 +99,17 @@ export async function POST(
     const data = validation.data
 
     // Get the final parsed structure (use override if provided)
-    const finalStructure = (data.parsedStructure ||
+    const finalStructureRaw = (data.parsedStructure ||
       adHocWorkout.parsedStructure) as ParsedWorkout | null
 
-    if (!finalStructure) {
+    if (!finalStructureRaw) {
       return NextResponse.json(
         { success: false, error: 'No parsed workout data available' },
         { status: 400 }
       )
     }
+
+    const finalStructure = normalizeParsedWorkoutDistance(finalStructureRaw)
 
     // Apply any edits
     if (data.perceivedEffort !== undefined) {

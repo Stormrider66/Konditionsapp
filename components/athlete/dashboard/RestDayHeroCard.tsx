@@ -39,6 +39,8 @@ interface RestDayHeroCardProps {
   wodRemainingCount?: number
   wodIsUnlimited?: boolean
   basePath?: string
+  mode?: 'rest-day' | 'open-day'
+  sportType?: string
 }
 
 // Recovery messages based on readiness score
@@ -69,6 +71,27 @@ const RECOVERY_MESSAGES = [
   },
 ]
 
+const OPEN_DAY_MESSAGES = [
+  {
+    title: 'Bra läge för smart träning',
+    description: 'Du har inget schemalagt pass idag. Välj en insats som stärker kontinuiteten utan att störa återhämtningen.',
+    tip: 'Prioritera ett pass som matchar din nuvarande energi och din långsiktiga profil.',
+    icon: Sparkles,
+  },
+  {
+    title: 'Håll rytmen',
+    description: 'En lugn, kontrollerad aktivitet kan ge bra effekt även på dagar utan fast schema.',
+    tip: '20-40 minuter lätt arbete, teknik eller rörlighet räcker långt.',
+    icon: Heart,
+  },
+  {
+    title: 'Kapacitet att använda',
+    description: 'Din status ser stabil ut. Om du vill träna idag, välj kvalitet framför slumpmässig volym.',
+    tip: 'Korta kvalitetspass, drills eller styrka med god teknik ger bäst utväxling.',
+    icon: Zap,
+  },
+]
+
 // Get message based on readiness (deterministic to avoid hydration mismatch)
 function getRecoveryMessage(readinessScore: number | null) {
   if (readinessScore !== null) {
@@ -85,6 +108,175 @@ function getRecoveryMessage(readinessScore: number | null) {
   }
   // Default when no readiness data (stable across SSR/client)
   return RECOVERY_MESSAGES[0]
+}
+
+function getSportAwareRestDayHint(sportType: string | undefined, readinessScore: number | null): string {
+  if (readinessScore !== null && readinessScore < 5) {
+    switch (sportType) {
+      case 'SWIMMING':
+        return 'Prioritera sömn, vätska och lätt rörlighet för axlar och bröstrygg så att du är fräsch till nästa simpass.'
+      case 'CYCLING':
+        return 'Fokusera på återhämtning i ben, höfter och energiintag så att du är redo för nästa kvalitetspass på cykeln.'
+      case 'TRIATHLON':
+        return 'Låt kroppen absorbera belastningen idag. Enkel mobilitet och bra energi hjälper dig tillbaka starkare i alla tre disciplinerna.'
+      case 'HYROX':
+      case 'FUNCTIONAL_FITNESS':
+      case 'GENERAL_FITNESS':
+        return 'Återhämtning i dag ger bättre kvalitet i nästa kombination av styrka och engine. Håll dig till lätt rörlighet och bra mat.'
+      case 'STRENGTH':
+        return 'Ge nervsystem, muskler och leder tid att återhämta sig idag så att nästa styrkepass kan genomföras med kvalitet.'
+      case 'SKIING':
+        return 'Prioritera lugn återhämtning, bränsle och rörlighet för höfter, fotleder och överkropp inför nästa skidpass.'
+      case 'TENNIS':
+      case 'PADEL':
+        return 'Återhämta underben, axlar och bål idag så att du får bättre kvalitet i nästa pass med riktningsförändringar och slag.'
+      case 'TEAM_FOOTBALL':
+      case 'TEAM_ICE_HOCKEY':
+      case 'TEAM_HANDBALL':
+      case 'TEAM_FLOORBALL':
+      case 'TEAM_BASKETBALL':
+      case 'TEAM_VOLLEYBALL':
+        return 'Låt senor, muskler och nervsystem få återhämtning idag så att du kan vara snabb och explosiv nästa lagpass.'
+      case 'RUNNING':
+        return 'Ge senor, vader och fötter lugn belastning idag så att du får bättre kvalitet i nästa löppass.'
+      default:
+        return 'Prioritera sömn, vätska och lätt rörlighet idag så att kroppen hinner absorbera träningen.'
+    }
+  }
+
+  switch (sportType) {
+    case 'SWIMMING':
+      return 'Använd vilodagen till att återställa axlar, rygg och energi så att nästa simpass får bättre kvalitet.'
+    case 'CYCLING':
+      return 'Vilodagen hjälper benen att svara bättre på nästa tröskel-, VO2- eller distanspass på cykeln.'
+    case 'TRIATHLON':
+      return 'Återhämtning idag stärker din helhet över simning, cykel och löpning och gör nästa nyckelpass mer värdefullt.'
+    case 'HYROX':
+      return 'Vilodagen låter styrka, engine och tålighet byggas upp inför nästa HYROX-pass.'
+    case 'FUNCTIONAL_FITNESS':
+    case 'GENERAL_FITNESS':
+      return 'Återhämtning idag förbättrar kvaliteten i nästa pass med styrka, puls och teknik.'
+    case 'STRENGTH':
+      return 'Musklerna blir starkare när du återhämtar dig. En lugn dag idag höjer kvaliteten i nästa lyft.'
+    case 'SKIING':
+      return 'Vilodagen ger plats för bättre teknik och kraftutveckling i nästa skid- eller stakpass.'
+    case 'TENNIS':
+    case 'PADEL':
+      return 'Återhämtning idag hjälper dig vara snabbare i fotarbete och skarpare i tajming nästa pass.'
+    case 'TEAM_FOOTBALL':
+    case 'TEAM_ICE_HOCKEY':
+    case 'TEAM_HANDBALL':
+    case 'TEAM_FLOORBALL':
+    case 'TEAM_BASKETBALL':
+    case 'TEAM_VOLLEYBALL':
+      return 'Vilodagen ger bättre explosivitet, beslutsförmåga och tålighet till nästa lagträning.'
+    case 'RUNNING':
+      return 'Dina muskler, senor och energisystem bygger kapacitet medan du vilar inför nästa löppass.'
+    default:
+      return 'Dina muskler anpassar sig och blir starkare medan du vilar.'
+  }
+}
+
+function getSportAwareRestDayDescription(
+  sportType: string | undefined,
+  fallbackDescription: string
+): string {
+  switch (sportType) {
+    case 'SWIMMING':
+      return 'Bra sömn, bra mat och lugn rörlighet idag ger bättre kvalitet i nästa simpass.'
+    case 'CYCLING':
+      return 'Ladda med sömn, energi och återhämtning i benen så att nästa cykelpass får rätt tryck.'
+    case 'TRIATHLON':
+      return 'Återhämta systematiskt idag så att du kan möta nästa disciplin med bättre kvalitet.'
+    case 'HYROX':
+      return 'Ge kroppen en dag att återställa styrka, engine och grepp inför nästa HYROX-pass.'
+    case 'FUNCTIONAL_FITNESS':
+    case 'GENERAL_FITNESS':
+      return 'Återhämtning idag skapar bättre kvalitet i nästa pass med styrka, puls och teknik.'
+    case 'STRENGTH':
+      return 'Bra återhämtning idag ger bättre kraftutveckling och kvalitet i nästa styrkepass.'
+    case 'SKIING':
+      return 'Kvalitetssömn och bra energi idag ger bättre tryck och teknik i nästa skidpass.'
+    case 'TENNIS':
+    case 'PADEL':
+      return 'Lätt återhämtning idag ger bättre tajming, fotarbete och kvalitet i nästa racketpass.'
+    case 'TEAM_FOOTBALL':
+    case 'TEAM_ICE_HOCKEY':
+    case 'TEAM_HANDBALL':
+    case 'TEAM_FLOORBALL':
+    case 'TEAM_BASKETBALL':
+    case 'TEAM_VOLLEYBALL':
+      return 'Återhämtning idag ger bättre explosivitet och kvalitet i nästa lagträning.'
+    default:
+      return fallbackDescription
+  }
+}
+
+function getOpenDayMessage(readinessScore: number | null) {
+  if (readinessScore !== null) {
+    if (readinessScore < 5) return OPEN_DAY_MESSAGES[1]
+    if (readinessScore < 7) return OPEN_DAY_MESSAGES[0]
+    return OPEN_DAY_MESSAGES[2]
+  }
+
+  return OPEN_DAY_MESSAGES[0]
+}
+
+function getSportAwareOpenDayHint(sportType: string | undefined, readinessScore: number | null): string {
+  if (readinessScore !== null && readinessScore < 5) {
+    return 'Din status talar för låg belastning idag. Välj rörlighet, lätt cirkulation eller teknik med låg stress.'
+  }
+
+  switch (sportType) {
+    case 'CYCLING':
+      return readinessScore !== null && readinessScore >= 7
+        ? 'Bra dag för ett kort kvalitetspass på cykel, kadensarbete eller ett kontrollerat tröskelblock.'
+        : 'En lugn distansrunda, teknik på trainer eller rörlighet för höft och fotled passar bra idag.'
+    case 'SWIMMING':
+      return readinessScore !== null && readinessScore >= 7
+        ? 'Bra dag för teknikserier, fartkänsla eller ett kort kvalitativt simpass.'
+        : 'Fokusera på teknik, vattenläge och lugn aerob volym om du vill träna idag.'
+    case 'TRIATHLON':
+      return readinessScore !== null && readinessScore >= 7
+        ? 'Välj en tydlig disciplin idag, till exempel ett kort kvalitetspass eller övergångsarbete med kontroll.'
+        : 'En lugn disciplin i zon 1-2 eller teknikarbete ger bäst effekt utan att störa helheten.'
+    case 'HYROX':
+    case 'FUNCTIONAL_FITNESS':
+    case 'GENERAL_FITNESS':
+      return readinessScore !== null && readinessScore >= 7
+        ? 'Bra läge för teknik under puls, stationsarbete eller ett kort styrke- och engine-pass.'
+        : 'Håll det enkelt idag: lätt engine, rörlighet och tekniskt rena repetitioner.'
+    case 'STRENGTH':
+      return readinessScore !== null && readinessScore >= 7
+        ? 'Bra dag för ett fokuserat styrkepass med kvalitet i huvudlyften eller kompletterande arbete.'
+        : 'Teknikset, bålstabilitet och lätt kompletteringsstyrka passar bättre idag än hög belastning.'
+    case 'SKIING':
+      return readinessScore !== null && readinessScore >= 7
+        ? 'Bra dag för stakstyrka, teknikintervaller eller ett kort kvalitetspass på rullskidor/skierg.'
+        : 'Lugn aerob träning och teknikfokus ger mest värde idag.'
+    case 'TENNIS':
+    case 'PADEL':
+      return readinessScore !== null && readinessScore >= 7
+        ? 'Bra dag för fotarbete, riktningsförändringar och korta intensiva sekvenser med god kvalitet.'
+        : 'Prioritera rörelsekvalitet, lättare slagvolym och skadeförebyggande arbete idag.'
+    case 'TEAM_FOOTBALL':
+    case 'TEAM_ICE_HOCKEY':
+    case 'TEAM_HANDBALL':
+    case 'TEAM_FLOORBALL':
+    case 'TEAM_BASKETBALL':
+    case 'TEAM_VOLLEYBALL':
+      return readinessScore !== null && readinessScore >= 7
+        ? 'Bra dag för accelerationer, teknik i matchsituationer eller ett kort styrke- och power-pass.'
+        : 'Lätt fotarbete, mobilitet och skadeförebyggande arbete passar bättre än extra högintensiv volym idag.'
+    case 'RUNNING':
+      return readinessScore !== null && readinessScore >= 7
+        ? 'Bra dag för strides, backteknik eller ett kort kvalitativt löppass om du vill hålla rytmen.'
+        : 'Lugn jogg, promenad eller löpskolning ger mer än att jaga extra belastning idag.'
+    default:
+      return readinessScore !== null && readinessScore >= 7
+        ? 'Din status ser bra ut för ett kort kvalitativt pass, teknikblock eller fokuserad styrka.'
+        : 'Lågintensiv träning, teknikarbete eller rörlighet passar bäst idag.'
+  }
 }
 
 // Format date for next workout display (absolute format, hydration-safe)
@@ -139,9 +331,23 @@ export function RestDayHeroCard({
   wodRemainingCount = 3,
   wodIsUnlimited = false,
   basePath = '',
+  mode = 'rest-day',
+  sportType,
 }: RestDayHeroCardProps) {
-  const message = useMemo(() => getRecoveryMessage(readinessScore), [readinessScore])
+  const message = useMemo(
+    () => mode === 'rest-day' ? getRecoveryMessage(readinessScore) : getOpenDayMessage(readinessScore),
+    [mode, readinessScore]
+  )
   const MessageIcon = message.icon
+  const badgeLabel = mode === 'rest-day' ? 'Vilodag' : 'Öppen dag'
+  const badgeIcon = mode === 'rest-day' ? Sunrise : Sparkles
+  const BadgeIcon = badgeIcon
+  const description = mode === 'rest-day'
+    ? getSportAwareRestDayDescription(sportType, message.description)
+    : message.description
+  const contextualHint = mode === 'open-day'
+    ? getSportAwareOpenDayHint(sportType, readinessScore)
+    : getSportAwareRestDayHint(sportType, readinessScore)
 
   // Relative date labels (client-only to avoid SSR/client timezone mismatch)
   const [relativeDateLabel, setRelativeDateLabel] = useState<string | null>(null)
@@ -211,8 +417,8 @@ export function RestDayHeroCard({
         <div>
           {/* Rest Day Badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-500/10 border border-cyan-200 dark:border-cyan-500/20 text-cyan-700 dark:text-cyan-400 text-xs font-bold uppercase tracking-wider mb-4 transition-colors">
-            <Sunrise className="w-3 h-3" />
-            Vilodag
+            <BadgeIcon className="w-3 h-3" />
+            {badgeLabel}
           </div>
 
           {/* Title with Icon */}
@@ -225,7 +431,7 @@ export function RestDayHeroCard({
                 {message.title}
               </h2>
               <p className="text-slate-600 dark:text-slate-400 max-w-md text-sm md:text-base transition-colors">
-                {message.description}
+                {description}
               </p>
             </div>
           </div>
@@ -234,7 +440,7 @@ export function RestDayHeroCard({
           <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 transition-colors">
             <p className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2">
               <Sparkles className="w-4 h-4 text-cyan-500 dark:text-cyan-400 mt-0.5 flex-shrink-0" />
-              <span>{message.tip}</span>
+              <span>{contextualHint}</span>
             </p>
           </div>
 

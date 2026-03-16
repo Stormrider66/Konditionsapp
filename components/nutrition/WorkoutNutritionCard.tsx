@@ -152,6 +152,17 @@ function getIntensityLabel(intensity: string): string {
   }
 }
 
+function getSourceLabel(workout: WorkoutContext): string | null {
+  switch (workout.source) {
+    case 'AD_HOC':
+      return 'Loggat pass'
+    case 'AI_WOD':
+      return 'AI-pass'
+    default:
+      return null
+  }
+}
+
 export function WorkoutNutritionCard({
   workout,
   preWorkout,
@@ -164,6 +175,7 @@ export function WorkoutNutritionCard({
   const isGlass = variant === 'glass'
 
   const hasGuidance = preWorkout || duringWorkout || postWorkout
+  const sourceLabel = getSourceLabel(workout)
 
   if (!hasGuidance) {
     return null
@@ -243,6 +255,16 @@ export function WorkoutNutritionCard({
               <GlassCardTitle className="text-base">{workout.name}</GlassCardTitle>
             </div>
             <div className="flex items-center gap-2">
+              {sourceLabel && (
+                <Badge variant="outline" className="border-slate-700 text-slate-300">
+                  {sourceLabel}
+                </Badge>
+              )}
+              {workout.estimatedCaloriesKcal ? (
+                <Badge variant="outline" className="border-orange-500/20 bg-orange-500/10 text-orange-300">
+                  {workout.estimatedCaloriesKcal} kcal
+                </Badge>
+              ) : null}
               {workout.duration && (
                 <span className="flex items-center gap-1 text-xs text-slate-400">
                   <Timer className="h-3.5 w-3.5" />

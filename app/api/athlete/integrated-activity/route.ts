@@ -19,6 +19,8 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
+import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import {
   deduplicateActivities,
   normalizeStravaActivity,
@@ -342,29 +344,7 @@ export async function GET(request: NextRequest) {
     // Process confirmed ad-hoc workouts
     for (const adhoc of adHocWorkouts) {
       // Extract data from parsedStructure
-      const parsed = adhoc.parsedStructure as {
-        name?: string
-        type?: string
-        sport?: string
-        duration?: number
-        distance?: number
-        avgHeartRate?: number
-        maxHeartRate?: number
-        avgPace?: number | string
-        intensity?: string
-        perceivedEffort?: number
-        estimatedCalories?: number
-        notes?: string
-        avgPower?: number
-        maxPower?: number
-        normalizedPower?: number
-        cadence?: number
-        avgSpeed?: number
-        elevationGain?: number
-        strengthExercises?: Array<{ exerciseName: string; sets: number; reps: number | string; weight?: number; weightString?: string }>
-        hybridFormat?: string
-        movements?: Array<{ name: string; reps?: number; weight?: number; distance?: number }>
-      } | null
+      const parsed = adhoc.parsedStructure as ParsedWorkout | null
 
       // Build workout name
       let workoutName = adhoc.workoutName || parsed?.name
@@ -393,7 +373,7 @@ export async function GET(request: NextRequest) {
         sport: parsed?.sport || undefined,
         date: adhoc.workoutDate,
         duration: parsed?.duration || undefined,
-        distance: parsed?.distance ? parsed.distance / 1000 : undefined, // Convert m to km
+        distance: getParsedWorkoutDistanceKm(parsed) || undefined,
         avgHR: parsed?.avgHeartRate || undefined,
         maxHR: parsed?.maxHeartRate || undefined,
         calories: parsed?.estimatedCalories || undefined,

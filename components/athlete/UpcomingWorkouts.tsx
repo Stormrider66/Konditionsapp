@@ -179,6 +179,10 @@ function ItemRow({ item, theme, variant = 'default', basePath = '' }: { item: Da
     )
   }
 
+  if (item.kind === 'adhoc') {
+    return null
+  }
+
   // Program workout rendering (existing)
   const workout = item.workout
   if (variant === 'glass') {
@@ -273,6 +277,9 @@ function getItemDateKey(item: DashboardItem): string {
   }
   if (item.kind === 'wod') {
     return format(new Date(item.createdAt), 'yyyy-MM-dd')
+  }
+  if (item.kind === 'adhoc') {
+    return format(new Date(item.workoutDate), 'yyyy-MM-dd')
   }
   return format(new Date(item.assignedDate), 'yyyy-MM-dd')
 }
