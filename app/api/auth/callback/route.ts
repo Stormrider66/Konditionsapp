@@ -2,6 +2,41 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+type SupportedEmailOtpType =
+  | 'recovery'
+  | 'invite'
+  | 'magiclink'
+  | 'signup'
+  | 'email'
+  | 'email_change'
+  | 'email_change_new'
+  | 'email_change_current'
+
+function isSupportedEmailOtpType(value: string | null): value is SupportedEmailOtpType {
+  return [
+    'recovery',
+    'invite',
+    'magiclink',
+    'signup',
+    'email',
+    'email_change',
+    'email_change_new',
+    'email_change_current',
+  ].includes(value ?? '')
+}
+
+function getSafeNextPath(next: string | null): string {
+  if (!next || !next.startsWith('/')) {
+    return '/login'
+  }
+
+  if (next.startsWith('//')) {
+    return '/login'
+  }
+
+  return next
+}
+
 // GET /api/auth/callback
 // Handles the PKCE code exchange after Supabase email verification redirects.
 // Supabase appends ?code=... to the redirect URL; this route exchanges
@@ -10,12 +45,15 @@ import { cookies } from 'next/headers'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/login'
+  const tokenHash = searchParams.get('token_hash')
+  const type = searchParams.get('type')
+  const next = getSafeNextPath(searchParams.get('next'))
 
   // Build absolute redirect URL (keep it on the same origin)
   const origin = request.nextUrl.origin
+  const redirectUrl = `${origin}${next}`
 
-  if (code) {
+  if (code || (tokenHash && isSupportedEmailOtpType(type))) {
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,10 +73,15 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { error } = code
+      ? await supabase.auth.exchangeCodeForSession(code)
+      : await supabase.auth.verifyOtp({
+          token_hash: tokenHash!,
+          type: type!,
+        })
 
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(redirectUrl)
     }
   }
 
