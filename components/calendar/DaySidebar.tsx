@@ -16,6 +16,7 @@ import {
   Activity,
   Heart,
   Target,
+  Loader2,
   Edit,
   Trash2,
   ExternalLink,
@@ -23,6 +24,9 @@ import {
   Mountain,
   Thermometer,
   Sparkles,
+  MessageSquare,
+  TrendingUp,
+  CheckCircle2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -48,7 +52,7 @@ import {
 } from './types'
 import { PostEventMonitor } from './PostEventMonitor'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   GlassCard,
   GlassCardHeader,
@@ -923,15 +927,80 @@ interface WorkoutDetailPanelProps {
   onViewWorkoutDetails?: (workoutId: string) => void
 }
 
+interface SidebarWorkoutDetail {
+  id: string
+  name: string
+  type: string
+  intensity?: string | null
+  duration?: number | null
+  distance?: number | null
+  instructions?: string | null
+}
+
+interface SidebarWorkoutLog {
+  id: string
+  completed: boolean
+  completedAt: string | null
+  duration: number | null
+  distance: number | null
+  avgPace: string | null
+  avgHR: number | null
+  perceivedEffort: number | null
+  notes: string | null
+  coachFeedback: string | null
+}
+
 function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorkoutDetails }: WorkoutDetailPanelProps) {
   const meta = workout.metadata
-  const workoutType = (meta.workoutType as string) || 'RUNNING'
-  const intensity = (meta.intensity as string) || 'MODERATE'
-  const duration = meta.duration as number | undefined
-  const distance = meta.distance as number | undefined
-  const instructions = meta.instructions as string | undefined
-  const isCompleted = meta.isCompleted as boolean
-  const workoutId = meta.workoutId as string | undefined
+  const workoutId = (meta.workoutId as string) || workout.id
+  const [detail, setDetail] = useState<SidebarWorkoutDetail | null>(null)
+  const [latestLog, setLatestLog] = useState<SidebarWorkoutLog | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setIsLoading(true)
+
+    Promise.all([
+      fetch(`/api/workouts/${workoutId}`).then((res) => (res.ok ? res.json() : null)),
+      fetch(`/api/workouts/${workoutId}/logs`).then((res) => (res.ok ? res.json() : { data: [] })),
+    ])
+      .then(([workoutData, logsData]) => {
+        if (cancelled) return
+        setDetail(workoutData)
+        const logs = Array.isArray(logsData?.data) ? logsData.data : []
+        setLatestLog(logs.find((log: SidebarWorkoutLog) => log.completed) || logs[0] || null)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setDetail(null)
+        setLatestLog(null)
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [workoutId])
+
+  const workoutType = detail?.type || (meta.workoutType as string) || 'RUNNING'
+  const intensity = detail?.intensity || (meta.intensity as string) || 'MODERATE'
+  const duration = detail?.duration ?? (meta.duration as number | undefined)
+  const distance = detail?.distance ?? (meta.distance as number | undefined)
+  const instructions = detail?.instructions || (meta.instructions as string | undefined)
+  const isCompleted = latestLog?.completed || (meta.isCompleted as boolean)
+  const completedDate = latestLog?.completedAt
+    ? new Date(latestLog.completedAt).toLocaleDateString('sv-SE', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : null
 
   return (
     <div className={cn(
@@ -956,6 +1025,16 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
       </div>
 
       <div className="space-y-3">
+        {isLoading && (
+          <div className={cn(
+            'flex items-center gap-2 text-xs',
+            isGlass ? 'text-slate-400' : 'text-muted-foreground'
+          )}>
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Laddar passdetaljer
+          </div>
+        )}
+
         {/* Title */}
         <div>
           <p className={cn(
@@ -1010,8 +1089,85 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
           </div>
         )}
 
+        {latestLog?.completed && (
+          <div className={cn(
+            'rounded-xl border p-3 space-y-3',
+            isGlass ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50 border-emerald-200'
+          )}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Genomfört pass
+              </p>
+              {completedDate && (
+                <span className="text-[10px] text-muted-foreground">{completedDate}</span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {(latestLog.duration != null || duration) && (
+                <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                  <p className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Tid</p>
+                  <p className="font-semibold">
+                    {latestLog.duration != null ? `${latestLog.duration} min` : '-'}
+                    {duration ? <span className="text-muted-foreground font-normal"> / plan {duration} min</span> : null}
+                  </p>
+                </div>
+              )}
+              {(latestLog.distance != null || distance) && (
+                <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                  <p className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Distans</p>
+                  <p className="font-semibold">
+                    {latestLog.distance != null ? `${latestLog.distance} km` : '-'}
+                    {distance ? <span className="text-muted-foreground font-normal"> / plan {distance} km</span> : null}
+                  </p>
+                </div>
+              )}
+              {latestLog.avgPace && (
+                <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                  <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tempo</p>
+                  <p className="font-semibold">{latestLog.avgPace}</p>
+                </div>
+              )}
+              {(latestLog.avgHR != null || latestLog.perceivedEffort != null) && (
+                <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                  <p className="text-muted-foreground flex items-center gap-1"><Heart className="h-3 w-3" /> Belastning</p>
+                  <p className="font-semibold">
+                    {latestLog.avgHR != null ? `${latestLog.avgHR} bpm` : 'Ingen puls'}
+                    {latestLog.perceivedEffort != null ? ` • RPE ${latestLog.perceivedEffort}/10` : ''}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {latestLog.notes && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Atletens anteckningar</p>
+                <p className={cn('text-xs whitespace-pre-wrap', isGlass ? 'text-slate-300' : '')}>
+                  {latestLog.notes}
+                </p>
+              </div>
+            )}
+
+            {latestLog.coachFeedback && (
+              <div className={cn(
+                'rounded-lg border p-2.5',
+                isGlass ? 'bg-blue-500/5 border-blue-500/20' : 'bg-blue-50 border-blue-200'
+              )}>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1 flex items-center gap-1">
+                  <MessageSquare className="h-3 w-3" />
+                  Tränarfeedback
+                </p>
+                <p className={cn('text-xs whitespace-pre-wrap', isGlass ? 'text-slate-300' : '')}>
+                  {latestLog.coachFeedback}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
-        {workoutId && onViewWorkoutDetails && (
+        {onViewWorkoutDetails && (
           <div className="pt-2">
             <Button
               variant="outline"
@@ -1023,7 +1179,7 @@ function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorko
               onClick={() => onViewWorkoutDetails(workoutId)}
             >
               <Activity className="h-3.5 w-3.5 mr-1.5" />
-              Visa detaljer
+              {latestLog?.completed ? 'Visa fullständig genomgång' : 'Visa detaljer'}
             </Button>
           </div>
         )}
