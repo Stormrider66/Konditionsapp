@@ -1695,6 +1695,8 @@ function RaceDetailPanel({ race, isGlass = false }: { race: UnifiedCalendarItem;
   }, [race.id])
 
   const meta = race.metadata
+  const targetTime = detail?.goalTime || (typeof meta.targetTime === 'string' ? meta.targetTime : null)
+  const actualPace = detail?.avgPace || (typeof meta.actualPace === 'string' ? meta.actualPace : null)
   const completed = (meta.isCompleted as boolean) || !!detail?.timeFormatted
   const confidence = formatConfidenceLabel(detail?.confidence)
   const dateLabel = detail?.raceDate
@@ -1760,16 +1762,16 @@ function RaceDetailPanel({ race, isGlass = false }: { race: UnifiedCalendarItem;
               <p className="font-semibold">{detail.timeFormatted}</p>
             </div>
           )}
-          {(detail?.goalTime || meta.targetTime) && (
+          {targetTime && (
             <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
               <p className="text-muted-foreground">Måltid</p>
-              <p className="font-semibold">{detail?.goalTime || String(meta.targetTime)}</p>
+              <p className="font-semibold">{targetTime}</p>
             </div>
           )}
-          {(detail?.avgPace || meta.actualPace) && (
+          {actualPace && (
             <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
               <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tempo</p>
-              <p className="font-semibold">{detail?.avgPace || String(meta.actualPace)}</p>
+              <p className="font-semibold">{actualPace}</p>
             </div>
           )}
           {detail?.avgHeartRate && (
