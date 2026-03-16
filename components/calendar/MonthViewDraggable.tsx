@@ -299,6 +299,11 @@ function DroppableDayCell({
   })
 
   const maxIndicators = 4
+  const completedCount = day.items.filter((item) =>
+    (item.type === 'WORKOUT' || item.type === 'AD_HOC' || item.type === 'RACE') &&
+    Boolean(item.metadata.isCompleted)
+  ).length
+  const richDetailCount = day.items.filter((item) => hasRichDetails(item)).length
 
   // Get unique event indicators
   const indicators: { type: string; color: string; label: string }[] = []
@@ -388,13 +393,24 @@ function DroppableDayCell({
           {format(day.date, 'd')}
         </span>
 
-        {/* Blocked/Reduced indicator */}
-        {day.isBlocked && (
-          <span className="text-xs text-red-600 dark:text-red-400">🚫</span>
-        )}
-        {day.isReduced && !day.isBlocked && (
-          <span className="text-xs text-yellow-600 dark:text-yellow-400">⚠️</span>
-        )}
+        <div className="flex items-center gap-1">
+          {completedCount > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 font-bold">
+              {completedCount} klar
+            </span>
+          )}
+          {richDetailCount > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-bold">
+              Detalj
+            </span>
+          )}
+          {day.isBlocked && (
+            <span className="text-xs text-red-600 dark:text-red-400">🚫</span>
+          )}
+          {day.isReduced && !day.isBlocked && (
+            <span className="text-xs text-yellow-600 dark:text-yellow-400">⚠️</span>
+          )}
+        </div>
       </div>
 
       {/* Event Indicators */}
@@ -453,7 +469,7 @@ function DraggableItem({ item, onItemClick }: DraggableItemProps) {
     <div
       ref={setNodeRef}
       className={cn(
-        'text-xs truncate px-1 py-0.5 rounded flex items-center gap-0.5',
+        'text-xs truncate px-1.5 py-1 rounded border',
         item.type === 'WORKOUT' &&
           'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200',
         item.type === 'RACE' &&
@@ -466,6 +482,8 @@ function DraggableItem({ item, onItemClick }: DraggableItemProps) {
           'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200',
         item.type === 'WOD' &&
           'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200',
+        item.metadata.isCompleted && 'border-emerald-400/40',
+        !item.metadata.isCompleted && 'border-transparent',
         isDragging && 'opacity-30',
         isDraggable && 'cursor-grab active:cursor-grabbing'
       )}
@@ -476,10 +494,47 @@ function DraggableItem({ item, onItemClick }: DraggableItemProps) {
         onItemClick(item)
       }}
     >
-      {isDraggable && (
-        <GripVertical className="h-3 w-3 text-muted-foreground shrink-0" />
+      <div className="flex items-center gap-1 min-w-0 flex-1">
+        {isDraggable && (
+          <GripVertical className="h-3 w-3 text-muted-foreground shrink-0" />
+        )}
+        {item.metadata.isCompleted ? <span className="text-[10px] shrink-0">✓</span> : null}
+        <span className="truncate flex-1">{item.title}</span>
+      </div>
+      {getMonthPreview(item) && (
+        <span className="text-[10px] opacity-70 shrink-0">{getMonthPreview(item)}</span>
       )}
-      <span className="truncate flex-1">{item.title}</span>
     </div>
   )
+}
+
+function hasRichDetails(item: UnifiedCalendarItem): boolean {
+  if (item.type === 'WORKOUT') return Boolean(item.metadata.isCompleted)
+  if (item.type === 'AD_HOC') return Boolean(item.metadata.isCompleted)
+  if (item.type === 'RACE') return Boolean(item.metadata.isCompleted || item.metadata.actualTime)
+  if (item.type === 'FIELD_TEST') return true
+  return false
+}
+
+function getMonthPreview(item: UnifiedCalendarItem): string | null {
+  if (item.type === 'WORKOUT' || item.type === 'AD_HOC') {
+    if (typeof item.metadata.distance === 'number' && item.metadata.distance > 0) {
+      return `${item.metadata.distance} km`
+    }
+    if (typeof item.metadata.duration === 'number' && item.metadata.duration > 0) {
+      return `${item.metadata.duration} min`
+    }
+  }
+  if (item.type === 'RACE') {
+    if (typeof item.metadata.actualTime === 'string' && item.metadata.actualTime) {
+      return item.metadata.actualTime
+    }
+    if (typeof item.metadata.targetTime === 'string' && item.metadata.targetTime) {
+      return `Mål ${item.metadata.targetTime}`
+    }
+  }
+  if (item.type === 'FIELD_TEST' && typeof item.metadata.testType === 'string') {
+    return item.metadata.testType.replace(/_/g, ' ')
+  }
+  return null
 }

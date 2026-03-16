@@ -30,6 +30,8 @@ import {
   Dumbbell,
   Timer,
   Zap,
+  Trophy,
+  Beaker,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -327,6 +329,14 @@ export function DaySidebar({
               {selectedItem?.type === 'AD_HOC' && (
                 <AdHocDetailPanel workout={selectedItem} isGlass={true} />
               )}
+
+              {selectedItem?.type === 'RACE' && (
+                <RaceDetailPanel race={selectedItem} isGlass={true} />
+              )}
+
+              {selectedItem?.type === 'FIELD_TEST' && (
+                <FieldTestDetailPanel test={selectedItem} isGlass={true} />
+              )}
             </>
           )}
 
@@ -533,6 +543,14 @@ export function DaySidebar({
 
             {selectedItem?.type === 'AD_HOC' && (
               <AdHocDetailPanel workout={selectedItem} />
+            )}
+
+            {selectedItem?.type === 'RACE' && (
+              <RaceDetailPanel race={selectedItem} />
+            )}
+
+            {selectedItem?.type === 'FIELD_TEST' && (
+              <FieldTestDetailPanel test={selectedItem} />
             )}
           </>
         )}
@@ -1032,6 +1050,31 @@ interface SidebarRaceResult {
   avgPace?: string | null
   avgHeartRate?: number | null
   trainingProgramId?: string | null
+  conditions?: string | null
+  athleteNotes?: string | null
+  coachNotes?: string | null
+  terrain?: string | null
+  temperature?: number | null
+  windSpeed?: number | null
+  elevation?: number | null
+  confidence?: string | null
+}
+
+interface SidebarFieldTestDetail {
+  id: string
+  testType: string
+  date: string
+  lt1Pace?: number | null
+  lt1HR?: number | null
+  lt2Pace?: number | null
+  lt2HR?: number | null
+  confidence?: string | null
+  valid: boolean
+  notes?: string | null
+  warnings?: unknown
+  errors?: unknown
+  conditions?: Record<string, unknown> | null
+  results?: Record<string, unknown> | null
 }
 
 function WorkoutDetailPanel({ workout, isCoachView, isGlass = false, onViewWorkoutDetails }: WorkoutDetailPanelProps) {
@@ -1620,6 +1663,343 @@ function AdHocDetailPanel({ workout, isGlass = false }: { workout: UnifiedCalend
   )
 }
 
+function RaceDetailPanel({ race, isGlass = false }: { race: UnifiedCalendarItem; isGlass?: boolean }) {
+  const [detail, setDetail] = useState<SidebarRaceResult | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setIsLoading(true)
+
+    fetch(`/api/race-results/${race.id}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled) {
+          setDetail(data)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDetail(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [race.id])
+
+  const meta = race.metadata
+  const completed = (meta.isCompleted as boolean) || !!detail?.timeFormatted
+  const confidence = formatConfidenceLabel(detail?.confidence)
+  const dateLabel = detail?.raceDate
+    ? new Date(detail.raceDate).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+    : null
+
+  return (
+    <div className={cn(
+      'mt-6 p-5 rounded-2xl border transition-all duration-500 animate-in fade-in slide-in-from-top-2',
+      isGlass
+        ? 'bg-red-500/5 border-red-500/20 shadow-[0_4px_20px_rgba(239,68,68,0.12)]'
+        : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+    )}>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="font-black text-[10px] uppercase tracking-widest flex items-center gap-2 text-red-500">
+          <Trophy className="h-4 w-4" />
+          Tävling
+        </h4>
+        {completed && (
+          <Badge variant="secondary" className={cn(
+            'text-[10px] uppercase font-bold tracking-tight',
+            isGlass ? 'bg-emerald-500/20 text-emerald-400 border-none px-2' : 'bg-green-100 text-green-700'
+          )}>
+            Genomförd
+          </Badge>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        {isLoading && (
+          <div className={cn('flex items-center gap-2 text-xs', isGlass ? 'text-slate-400' : 'text-muted-foreground')}>
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Laddar tävlingsdetaljer
+          </div>
+        )}
+
+        <div>
+          <p className={cn('font-black text-lg tracking-tight', isGlass ? 'text-white' : '')}>{race.title}</p>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <Badge className="text-xs bg-red-500 text-white">
+              {formatRaceDistanceLabel(detail?.distance || (meta.distance as string | undefined))}
+            </Badge>
+            {typeof meta.classification === 'string' && (
+              <Badge variant="outline" className={cn(
+                'text-[10px] uppercase font-bold border-none px-2',
+                isGlass ? 'bg-white/5 text-slate-400' : 'text-xs'
+              )}>
+                Klass {meta.classification}
+              </Badge>
+            )}
+            {dateLabel && (
+              <span className={cn('text-[10px] uppercase tracking-widest font-bold', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                {dateLabel}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          {detail?.timeFormatted && (
+            <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+              <p className="text-muted-foreground flex items-center gap-1"><Timer className="h-3 w-3" /> Resultat</p>
+              <p className="font-semibold">{detail.timeFormatted}</p>
+            </div>
+          )}
+          {(detail?.goalTime || meta.targetTime) && (
+            <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+              <p className="text-muted-foreground">Måltid</p>
+              <p className="font-semibold">{detail?.goalTime || String(meta.targetTime)}</p>
+            </div>
+          )}
+          {(detail?.avgPace || meta.actualPace) && (
+            <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+              <p className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Tempo</p>
+              <p className="font-semibold">{detail?.avgPace || String(meta.actualPace)}</p>
+            </div>
+          )}
+          {detail?.avgHeartRate && (
+            <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+              <p className="text-muted-foreground flex items-center gap-1"><Heart className="h-3 w-3" /> Snittpuls</p>
+              <p className="font-semibold">{detail.avgHeartRate} bpm</p>
+            </div>
+          )}
+        </div>
+
+        {(detail?.terrain || detail?.temperature || detail?.windSpeed || detail?.elevation || confidence) && (
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {detail?.terrain && (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground">Bana</p>
+                <p className="font-semibold">{detail.terrain}</p>
+              </div>
+            )}
+            {detail?.temperature != null && (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground">Temperatur</p>
+                <p className="font-semibold">{detail.temperature}°C</p>
+              </div>
+            )}
+            {detail?.windSpeed != null && (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground">Vind</p>
+                <p className="font-semibold">{detail.windSpeed} m/s</p>
+              </div>
+            )}
+            {confidence && (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground">Analyskvalitet</p>
+                <p className="font-semibold">{confidence}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {detail?.conditions && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Förhållanden</p>
+            <p className={cn('text-xs whitespace-pre-wrap', isGlass ? 'text-slate-300' : '')}>
+              {detail.conditions}
+            </p>
+          </div>
+        )}
+
+        {detail?.athleteNotes && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Atletens anteckningar</p>
+            <p className={cn('text-xs whitespace-pre-wrap', isGlass ? 'text-slate-300' : '')}>{detail.athleteNotes}</p>
+          </div>
+        )}
+
+        {detail?.coachNotes && (
+          <div className={cn('rounded-lg border p-2.5', isGlass ? 'bg-blue-500/5 border-blue-500/20' : 'bg-blue-50 border-blue-200')}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">Coachanalys</p>
+            <p className={cn('text-xs whitespace-pre-wrap', isGlass ? 'text-slate-300' : '')}>{detail.coachNotes}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function FieldTestDetailPanel({ test, isGlass = false }: { test: UnifiedCalendarItem; isGlass?: boolean }) {
+  const [detail, setDetail] = useState<SidebarFieldTestDetail | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    setIsLoading(true)
+
+    fetch(`/api/field-tests/${test.id}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled) {
+          setDetail(data)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDetail(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [test.id])
+
+  const warnings = normalizeMessages(detail?.warnings)
+  const errors = normalizeMessages(detail?.errors)
+  const dateLabel = detail?.date
+    ? new Date(detail.date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+    : null
+  const metrics = getFieldTestMetrics(detail?.results || null)
+
+  return (
+    <div className={cn(
+      'mt-6 p-5 rounded-2xl border transition-all duration-500 animate-in fade-in slide-in-from-top-2',
+      isGlass
+        ? 'bg-green-500/5 border-green-500/20 shadow-[0_4px_20px_rgba(34,197,94,0.12)]'
+        : 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+    )}>
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="font-black text-[10px] uppercase tracking-widest flex items-center gap-2 text-green-500">
+          <Beaker className="h-4 w-4" />
+          Fälttest
+        </h4>
+        {detail && (
+          <Badge variant="secondary" className={cn(
+            'text-[10px] uppercase font-bold tracking-tight',
+            detail.valid
+              ? (isGlass ? 'bg-emerald-500/20 text-emerald-400 border-none px-2' : 'bg-green-100 text-green-700')
+              : (isGlass ? 'bg-yellow-500/20 text-yellow-300 border-none px-2' : 'bg-yellow-100 text-yellow-700')
+          )}>
+            {detail.valid ? 'Validerat' : 'Behöver kontroll'}
+          </Badge>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        {isLoading && (
+          <div className={cn('flex items-center gap-2 text-xs', isGlass ? 'text-slate-400' : 'text-muted-foreground')}>
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Laddar testdetaljer
+          </div>
+        )}
+
+        <div>
+          <p className={cn('font-black text-lg tracking-tight', isGlass ? 'text-white' : '')}>{test.title}</p>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
+            <Badge className="text-xs bg-green-500 text-white">
+              {formatFieldTestType(detail?.testType || (test.metadata.testType as string | undefined))}
+            </Badge>
+            {dateLabel && (
+              <span className={cn('text-[10px] uppercase tracking-widest font-bold', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                {dateLabel}
+              </span>
+            )}
+            {detail?.confidence && (
+              <span className={cn('text-[10px] uppercase tracking-widest font-bold', isGlass ? 'text-slate-500' : 'text-muted-foreground')}>
+                {formatConfidenceLabel(detail.confidence)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {(detail?.lt1Pace || detail?.lt1HR || detail?.lt2Pace || detail?.lt2HR) && (
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {(detail?.lt1Pace || detail?.lt1HR) && (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground">LT1</p>
+                <p className="font-semibold">
+                  {detail?.lt1Pace ? `${formatPaceSeconds(detail.lt1Pace)}` : 'Tempo saknas'}
+                  {detail?.lt1HR ? ` • ${Math.round(detail.lt1HR)} bpm` : ''}
+                </p>
+              </div>
+            )}
+            {(detail?.lt2Pace || detail?.lt2HR) && (
+              <div className={cn('rounded-lg border p-2', isGlass ? 'bg-white/5 border-white/10' : 'bg-background')}>
+                <p className="text-muted-foreground">LT2</p>
+                <p className="font-semibold">
+                  {detail?.lt2Pace ? `${formatPaceSeconds(detail.lt2Pace)}` : 'Tempo saknas'}
+                  {detail?.lt2HR ? ` • ${Math.round(detail.lt2HR)} bpm` : ''}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {metrics.length > 0 && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Nyckelvärden</p>
+            <div className="flex flex-wrap gap-2">
+              {metrics.map((metric) => (
+                <span
+                  key={metric}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-[10px] font-semibold',
+                    isGlass ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-background'
+                  )}
+                >
+                  {metric}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {warnings.length > 0 && (
+          <div className={cn('rounded-lg border p-2.5', isGlass ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-yellow-50 border-yellow-200')}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-500 mb-1">Varningar</p>
+            <ul className={cn('space-y-1 text-xs', isGlass ? 'text-slate-300' : '')}>
+              {warnings.slice(0, 3).map((warning) => (
+                <li key={warning}>• {warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {errors.length > 0 && (
+          <div className={cn('rounded-lg border p-2.5', isGlass ? 'bg-red-500/5 border-red-500/20' : 'bg-red-50 border-red-200')}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">Kvalitetsproblem</p>
+            <ul className={cn('space-y-1 text-xs', isGlass ? 'text-slate-300' : '')}>
+              {errors.slice(0, 3).map((error) => (
+                <li key={error}>• {error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {detail?.notes && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Anteckningar</p>
+            <p className={cn('text-xs whitespace-pre-wrap', isGlass ? 'text-slate-300' : '')}>{detail.notes}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function formatDistanceValue(distance: unknown): { label: string | null } {
   if (typeof distance === 'number' && Number.isFinite(distance) && distance > 0) {
     return { label: `${distance % 1 === 0 ? distance.toFixed(0) : distance.toFixed(1)} km` }
@@ -1766,4 +2146,62 @@ function formatCardioSegmentLabel(type: string): string {
     REST: 'Vila',
   }
   return labels[type] || type
+}
+
+function formatConfidenceLabel(confidence?: string | null): string | null {
+  if (!confidence) return null
+  const labels: Record<string, string> = {
+    VERY_HIGH: 'Mycket hög säkerhet',
+    HIGH: 'Hög säkerhet',
+    MEDIUM: 'Medelhög säkerhet',
+    LOW: 'Låg säkerhet',
+  }
+  return labels[confidence] || confidence
+}
+
+function formatFieldTestType(type?: string): string {
+  const labels: Record<string, string> = {
+    THIRTY_MIN_TT: '30 min TT',
+    TWENTY_MIN_TT: '20 min TT',
+    HR_DRIFT: 'HR-drift',
+    CRITICAL_VELOCITY: 'Critical Velocity',
+    RACE_BASED: 'Tävlingsbaserat',
+  }
+  return labels[type || ''] || type || 'Fälttest'
+}
+
+function formatPaceSeconds(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.round(seconds % 60)
+  return `${mins}:${String(secs).padStart(2, '0')}/km`
+}
+
+function normalizeMessages(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string')
+  }
+  return []
+}
+
+function getFieldTestMetrics(results: Record<string, unknown> | null): string[] {
+  if (!results) return []
+  const metrics: string[] = []
+
+  if (typeof results.thresholdPace === 'number') {
+    metrics.push(`Tröskeltempo ${formatPaceSeconds(results.thresholdPace)}`)
+  }
+  if (typeof results.thresholdHR === 'number') {
+    metrics.push(`Tröskelpuls ${Math.round(results.thresholdHR)} bpm`)
+  }
+  if (typeof results.driftPercent === 'number') {
+    metrics.push(`Drift ${results.driftPercent.toFixed(1)}%`)
+  }
+  if (typeof results.criticalVelocity === 'number') {
+    metrics.push(`CV ${results.criticalVelocity.toFixed(2)} m/s`)
+  }
+  if (typeof results.vdot === 'number') {
+    metrics.push(`VDOT ${results.vdot.toFixed(1)}`)
+  }
+
+  return metrics.slice(0, 4)
 }
