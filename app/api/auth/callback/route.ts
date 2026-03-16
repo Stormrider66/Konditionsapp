@@ -75,12 +75,18 @@ export async function GET(request: NextRequest) {
       }
     )
 
-    const { error } = code
-      ? await supabase.auth.exchangeCodeForSession(code)
-      : await supabase.auth.verifyOtp({
-          token_hash: tokenHash!,
-          type: otpType,
-        })
+    let error: Error | null = null
+
+    if (code) {
+      const result = await supabase.auth.exchangeCodeForSession(code)
+      error = result.error
+    } else if (tokenHash && otpType) {
+      const result = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: otpType,
+      })
+      error = result.error
+    }
 
     if (!error) {
       return NextResponse.redirect(redirectUrl)
