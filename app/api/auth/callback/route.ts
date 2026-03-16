@@ -46,14 +46,16 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const tokenHash = searchParams.get('token_hash')
-  const type = searchParams.get('type')
+  const rawType = searchParams.get('type')
   const next = getSafeNextPath(searchParams.get('next'))
 
   // Build absolute redirect URL (keep it on the same origin)
   const origin = request.nextUrl.origin
   const redirectUrl = `${origin}${next}`
 
-  if (code || (tokenHash && isSupportedEmailOtpType(type))) {
+  const otpType = isSupportedEmailOtpType(rawType) ? rawType : null
+
+  if (code || (tokenHash && otpType)) {
     const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest) {
       ? await supabase.auth.exchangeCodeForSession(code)
       : await supabase.auth.verifyOtp({
           token_hash: tokenHash!,
-          type: type!,
+          type: otpType,
         })
 
     if (!error) {
