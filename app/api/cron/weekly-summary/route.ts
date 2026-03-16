@@ -22,6 +22,12 @@ const DEFAULT_PAGE_SIZE = 200
 const DEFAULT_CONCURRENCY = 4
 const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
 
+interface WeeklySummaryAthlete {
+  id: string
+  name: string
+  userId: string
+}
+
 // Helper to get Monday of the previous week
 function getPreviousWeekStart(): Date {
   const now = new Date()
@@ -91,7 +97,7 @@ export async function GET(request: NextRequest) {
         break
       }
 
-      const athletes = await prisma.client.findMany({
+      const athletes: WeeklySummaryAthlete[] = await prisma.client.findMany({
         where: {
           athleteAccount: { isNot: null },
         },

@@ -57,7 +57,7 @@ interface SportProfile {
 
 interface MobileNavProps {
   user: User | null
-  userRole?: 'COACH' | 'ATHLETE' | 'ADMIN' | null
+  userRole?: 'COACH' | 'ATHLETE' | 'ADMIN' | 'PHYSIO' | null
   sportProfile?: SportProfile | null
   clientId?: string
 }

@@ -70,6 +70,15 @@ type RecomputeDailyMetricsAssessmentsInput = {
   date: string
 }
 
+function normalizeTenPointScoreToFivePoint(score: number): 1 | 2 | 3 | 4 | 5 {
+  const normalized = Math.round(score / 2)
+  return Math.max(1, Math.min(normalized, 5)) as 1 | 2 | 3 | 4 | 5
+}
+
+function invertFivePointScore(score: 1 | 2 | 3 | 4 | 5): 1 | 2 | 3 | 4 | 5 {
+  return (6 - score) as 1 | 2 | 3 | 4 | 5
+}
+
 export function buildDailyMetricsJobKey(clientId: string, date: string) {
   return `${clientId}:${date}`
 }
@@ -86,7 +95,7 @@ export async function enqueueDailyMetricsPostWriteJob(
       clientId: input.clientId,
       date: metricsDate,
       signature: input.signature,
-      payload: input as Prisma.InputJsonValue,
+      payload: input as unknown as Prisma.InputJsonValue,
       status: BackgroundJobStatus.PENDING,
       runAfter: new Date(),
       lockedAt: null,
@@ -98,7 +107,7 @@ export async function enqueueDailyMetricsPostWriteJob(
       clientId: input.clientId,
       date: metricsDate,
       signature: input.signature,
-      payload: input as Prisma.InputJsonValue,
+      payload: input as unknown as Prisma.InputJsonValue,
       status: BackgroundJobStatus.PENDING,
       runAfter: new Date(),
     },
@@ -327,8 +336,8 @@ async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAsse
       timestamp: metricsDate,
       rmssd: dailyMetrics.hrvRMSSD,
       quality: normalizeMeasurementQuality(dailyMetrics.hrvQuality),
-      artifactPercentage: dailyMetrics.hrvArtifactPercent ?? undefined,
-      measurementDuration: dailyMetrics.hrvDuration ?? undefined,
+      artifactPercent: dailyMetrics.hrvArtifactPercent ?? 0,
+      duration: dailyMetrics.hrvDuration ?? 0,
       position: normalizePosition(dailyMetrics.hrvPosition),
     }
 
@@ -338,8 +347,8 @@ async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAsse
         timestamp: m.date,
         rmssd: m.hrvRMSSD as number,
         quality: normalizeMeasurementQuality(m.hrvQuality),
-        artifactPercentage: m.hrvArtifactPercent ?? undefined,
-        measurementDuration: m.hrvDuration ?? undefined,
+        artifactPercent: m.hrvArtifactPercent ?? 0,
+        duration: m.hrvDuration ?? 0,
         position: normalizePosition(m.hrvPosition),
       }))
 
@@ -362,6 +371,9 @@ async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAsse
     const measurement: RHRMeasurement = {
       timestamp: metricsDate,
       heartRate: dailyMetrics.restingHR,
+      quality: 'GOOD',
+      duration: 60,
+      position: 'SUPINE',
     }
 
     const historicalMeasurements = historicalMetrics
@@ -369,6 +381,9 @@ async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAsse
       .map((m): RHRMeasurement => ({
         timestamp: m.date,
         heartRate: m.restingHR as number,
+        quality: 'GOOD',
+        duration: 60,
+        position: 'SUPINE',
       }))
 
     const baseline =
@@ -378,7 +393,7 @@ async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAsse
 
     rhrAssessment = assessRHR(measurement, baseline)
     restingHRStatus = rhrAssessment.status
-    restingHRDev = rhrAssessment.deviation
+    restingHRDev = rhrAssessment.deviationFromBaseline
   }
 
   let calculatedWellnessScore: number | null = null
@@ -399,31 +414,35 @@ async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAsse
     dailyMetrics.injuryPain !== null
   ) {
     const wellnessResponses: WellnessResponses = {
-      sleepQuality: dailyMetrics.sleepQuality,
-      sleepHours: dailyMetrics.sleepHours,
-      muscleSoreness: dailyMetrics.muscleSoreness,
-      energyLevel: dailyMetrics.energyLevel,
-      mood: dailyMetrics.mood,
-      stress: dailyMetrics.stress,
-      injuryPain: dailyMetrics.injuryPain,
+      sleepQuality: normalizeTenPointScoreToFivePoint(dailyMetrics.sleepQuality),
+      sleepDuration: dailyMetrics.sleepHours,
+      fatigueLevel: normalizeTenPointScoreToFivePoint(dailyMetrics.energyLevel),
+      muscleSoreness: invertFivePointScore(
+        normalizeTenPointScoreToFivePoint(dailyMetrics.muscleSoreness)
+      ),
+      stressLevel: invertFivePointScore(
+        normalizeTenPointScoreToFivePoint(dailyMetrics.stress)
+      ),
+      mood: normalizeTenPointScoreToFivePoint(dailyMetrics.mood),
+      motivationToTrain: normalizeTenPointScoreToFivePoint(dailyMetrics.energyLevel),
     }
 
     const wellnessScoreData = calculateWellnessScore(wellnessResponses)
-    calculatedWellnessScore = wellnessScoreData.score
+    calculatedWellnessScore = wellnessScoreData.totalScore
 
     if (hrvAssessment && rhrAssessment) {
       const readinessScoreData = calculateReadinessScore({
-        hrvAssessment,
-        rhrAssessment,
-        wellnessScore: wellnessScoreData,
+        hrv: hrvAssessment,
+        rhr: rhrAssessment,
+        wellness: wellnessScoreData,
       })
 
       readinessScore = readinessScoreData.score
-      readinessLevel = readinessScoreData.level
-      recommendedAction = readinessScoreData.recommendedAction
-      factorScores = readinessScoreData.factorScores as Record<string, unknown>
-      redFlags = readinessScoreData.redFlags
-      yellowFlags = readinessScoreData.yellowFlags
+      readinessLevel = readinessScoreData.status
+      recommendedAction = readinessScoreData.recommendation
+      factorScores = readinessScoreData.componentScores as Record<string, unknown>
+      redFlags = readinessScoreData.criticalFlags
+      yellowFlags = readinessScoreData.warnings
     }
   }
 
@@ -444,7 +463,9 @@ async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAsse
       readinessScore,
       readinessLevel,
       recommendedAction,
-      factorScores: factorScores ?? undefined,
+      factorScores: factorScores
+        ? (factorScores as unknown as Prisma.InputJsonValue)
+        : undefined,
       redFlags: redFlags ?? undefined,
       yellowFlags: yellowFlags ?? undefined,
     },

@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { buildVoiceWorkoutPreview } from '@/lib/ai/voice-workout-generator'
 import { normalizeStoragePath } from '@/lib/storage/supabase-storage'
 import { createSignedUrl } from '@/lib/storage/supabase-storage-server'
@@ -17,15 +17,6 @@ import { voiceWorkoutUpdateIntentSchema } from '@/lib/validations/voice-workout-
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import type { VoiceWorkoutIntent } from '@/types/voice-workout'
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured');
-}
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 type RouteContext = {
   params: Promise<{ id: string }>
@@ -105,6 +96,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
+    const supabase = createAdminSupabaseClient()
+
     const user = await requireCoach()
     const { id } = await context.params
 

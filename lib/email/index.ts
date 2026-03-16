@@ -17,7 +17,7 @@ import {
 import type { EmailBranding } from './email-branding-types';
 import { PLATFORM_NAME } from '@/lib/branding/types';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const DEFAULT_FROM_EMAIL = `${PLATFORM_NAME} <noreply@trainomics.app>`;
 
@@ -44,6 +44,11 @@ async function sendEmailInternal(
     const fromEmail = branding?.senderName && branding.senderName !== PLATFORM_NAME
       ? `${branding.senderName} <noreply@trainomics.app>`
       : DEFAULT_FROM_EMAIL;
+
+    if (!resend) {
+      logger.warn('Resend client unavailable, email not sent', { to, subject });
+      return { success: false, error: 'Email service not configured' };
+    }
 
     const { data, error } = await resend.emails.send({
       from: fromEmail,

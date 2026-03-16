@@ -31,6 +31,11 @@ type BriefingCandidate = {
   coachUserId: string
 }
 
+type MorningBriefingClient = {
+  id: string
+  userId: string
+}
+
 type CandidatePage = {
   athletes: BriefingCandidate[]
   scanned: number
@@ -270,7 +275,7 @@ async function fetchBriefingCandidates(
     }
   }
 
-  const clients = await prisma.client.findMany({
+  const clients: MorningBriefingClient[] = await prisma.client.findMany({
     where: {
       athleteAccount: { isNot: null },
       aiNotificationPrefs: { is: null },

@@ -10,7 +10,7 @@ import { PLATFORM_NAME } from '@/lib/branding/types'
 import { resolveEmailBranding } from '@/lib/email/branding'
 import { emailLayout } from '@/lib/email/email-branding-types'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 // Maximum PDF size: 10MB
 const MAX_PDF_SIZE = 10 * 1024 * 1024
@@ -130,6 +130,16 @@ export async function POST(request: NextRequest) {
     const safeFilename = `Konditionstest_${safeClientName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')}_${safeTestDate.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`
 
     // Send email using Resend
+    if (!resend) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Email service not configured',
+        },
+        { status: 503 }
+      )
+    }
+
     const senderName = emailBranding.senderName || PLATFORM_NAME
     const { data, error } = await resend.emails.send({
       from: `${senderName} <noreply@trainomics.app>`,

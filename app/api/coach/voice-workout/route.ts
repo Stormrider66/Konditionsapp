@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { parseVoiceWorkoutIntent } from '@/lib/ai/voice-workout-parser'
 import { buildVoiceWorkoutPreview } from '@/lib/ai/voice-workout-generator'
 import { decryptSecret } from '@/lib/crypto/secretbox'
@@ -16,15 +16,6 @@ import { normalizeStoragePath } from '@/lib/storage/supabase-storage'
 import { createSignedUrl, downloadAsBase64 } from '@/lib/storage/supabase-storage-server'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured');
-}
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
 
 const ALLOWED_TYPES = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/ogg']
 const MAX_FILE_SIZE = 15 * 1024 * 1024 // 15MB
@@ -34,6 +25,8 @@ export const maxDuration = 300 // Allow up to 5 minutes for AI processing
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createAdminSupabaseClient()
+
     const user = await requireCoach()
 
     const rateLimited = await rateLimitJsonResponse('voice-workout:upload', user.id, {

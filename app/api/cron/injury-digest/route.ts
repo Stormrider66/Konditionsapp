@@ -64,6 +64,12 @@ interface DigestData {
   }
 }
 
+interface CoachDigestTarget {
+  id: string
+  email: string | null
+  name: string | null
+}
+
 function generateEmailHTML(data: DigestData): string {
   const s = (value: unknown) => sanitizeForEmail(value == null ? '' : String(value))
 
@@ -522,7 +528,7 @@ export async function POST(request: NextRequest) {
         break
       }
 
-      const coaches = await prisma.user.findMany({
+      const coaches: CoachDigestTarget[] = await prisma.user.findMany({
         where: { role: 'COACH' },
         ...(cursor
           ? {

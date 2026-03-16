@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
       const remainingCapacity = batchLimit - processed
       const coachTake = Math.min(pageSize, remainingCapacity)
-      const expiredCoachTrials = coachTake > 0
+      const expiredCoachTrials: ExpiredCoachTrial[] = coachTake > 0
         ? await prisma.subscription.findMany({
             where: {
               status: 'TRIAL',
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
 
       const athleteRemaining = batchLimit - processed
       const athleteTake = Math.min(pageSize, athleteRemaining)
-      const expiredAthleteTrials = athleteTake > 0
+      const expiredAthleteTrials: ExpiredAthleteTrial[] = athleteTake > 0
         ? await prisma.athleteSubscription.findMany({
             where: {
               status: 'TRIAL',

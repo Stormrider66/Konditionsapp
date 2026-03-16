@@ -6,6 +6,9 @@ import {
 import { Activity, Users, Calendar, AlertCircle, ArrowRight, Dumbbell, Trophy, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DashboardMode } from '@/lib/coach/dashboard-mode'
+import type { getTranslations } from '@/i18n/server'
+
+type CoachTranslator = Awaited<ReturnType<typeof getTranslations>>
 
 interface DashboardStatCardsProps {
   basePath: string
@@ -24,7 +27,7 @@ interface DashboardStatCardsProps {
     prsThisWeek: number
     plateauCount: number
   }
-  t: (key: string, params?: Record<string, unknown>) => string
+  t: CoachTranslator
 }
 
 export function DashboardStatCards({

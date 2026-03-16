@@ -19,6 +19,10 @@ const DEFAULT_PAGE_SIZE = 200
 const DEFAULT_CONCURRENCY = 4
 const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
 
+interface NutritionWrappedClient {
+  id: string
+}
+
 export async function GET(request: NextRequest) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization')
@@ -88,7 +92,7 @@ export async function GET(request: NextRequest) {
         break
       }
 
-      const clients = await prisma.client.findMany({
+      const clients: NutritionWrappedClient[] = await prisma.client.findMany({
         where: {
           mealLogs: {
             some: {

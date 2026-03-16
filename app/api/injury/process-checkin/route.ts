@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
       {
         persistRecord: true,
         createRestriction: true,
-        createdByUserId: dbUser.id
+        createdByUserId: dbUserId ?? undefined
       }
     )
 

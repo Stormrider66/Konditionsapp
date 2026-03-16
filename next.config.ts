@@ -1,11 +1,18 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from '@sentry/nextjs';
 
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: [
+    'archiver',
+    'bluebird',
+    'exceljs',
+    'jszip',
+    'unzipper',
+  ],
   experimental: {
     serverActions: {
       bodySizeLimit: '100mb',
@@ -22,32 +29,33 @@ const nextConfig: NextConfig = {
   },
 };
 
-const sentryConfig = withSentryConfig(withNextIntl(nextConfig), {
-  // For all available options, see:
-  // https://github.com/getsentry/sentry-webpack-plugin#options
+const sentryEnabled = Boolean(
+  process.env.SENTRY_AUTH_TOKEN &&
+  process.env.SENTRY_ORG &&
+  process.env.SENTRY_PROJECT
+);
 
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
+const baseConfig = withNextIntl(nextConfig);
 
-  // Only print logs for uploading source maps in CI
-  silent: !process.env.CI,
+export default sentryEnabled
+  ? withSentryConfig(baseConfig, {
+      // For all available options, see:
+      // https://github.com/getsentry/sentry-webpack-plugin#options
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
 
-  // For all available options, see:
-  // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+      // Only print logs for uploading source maps in CI
+      silent: !process.env.CI,
 
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
+      // Upload a larger set of source maps for prettier stack traces (increases build time)
+      widenClientFileUpload: true,
 
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-  // This can increase your server load as well as your hosting bill.
-  // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-  // side errors will fail.
-  tunnelRoute: "/monitoring-tunnel",
+      // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+      tunnelRoute: '/monitoring-tunnel',
 
-  // Hide source maps from generated client bundles
-  sourcemaps: {
-    deleteSourcemapsAfterUpload: true,
-  },
-});
-
-export default sentryConfig;
+      // Hide source maps from generated client bundles
+      sourcemaps: {
+        deleteSourcemapsAfterUpload: true,
+      },
+    })
+  : baseConfig;

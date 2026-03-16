@@ -8,26 +8,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveAthleteClientId, requireCoach, canAccessClient } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminSupabaseClient } from '@/lib/supabase/admin';
 import { normalizeStoragePath } from '@/lib/storage/supabase-storage';
 import { createSignedUrl } from '@/lib/storage/supabase-storage-server';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
-
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be configured');
-}
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 const ALLOWED_TYPES = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/ogg'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createAdminSupabaseClient()
+
     // Can be uploaded by athlete or coach
     let user;
     let clientId: string;

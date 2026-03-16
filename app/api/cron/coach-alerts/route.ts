@@ -131,7 +131,6 @@ export async function POST(request: NextRequest) {
       const athletes: AlertCandidate[] = await prisma.client.findMany({
         where: {
           athleteAccount: { isNot: null },
-          userId: { not: null },
         },
         ...(cursor
           ? {
