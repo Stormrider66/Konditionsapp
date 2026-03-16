@@ -61,6 +61,7 @@ export interface DashboardAdHocWorkout {
   inputType: string
   createdAt: Date
   parsedType: string | null
+  previewChips: string[]
   summary: {
     durationMinutes: number | null
     distanceKm: number | null
@@ -411,6 +412,7 @@ export function mapAdHocWorkoutToDashboard(raw: RawAdHocWorkout): DashboardAdHoc
     inputType: raw.inputType,
     createdAt: raw.createdAt,
     parsedType: raw.parsedType,
+    previewChips: getAdHocPreviewChips(raw.parsedStructure ?? null),
     summary: {
       durationMinutes: raw.parsedStructure?.duration ?? null,
       distanceKm: getParsedWorkoutDistanceKm(raw.parsedStructure) ?? null,
@@ -424,6 +426,46 @@ export function mapAdHocWorkoutToDashboard(raw: RawAdHocWorkout): DashboardAdHoc
 
 export function getWODRoute(wod: DashboardWOD, basePath: string): string {
   return `${basePath}/athlete/wod/${wod.id}`
+}
+
+function getAdHocPreviewChips(parsed: ParsedWorkout | null): string[] {
+  if (!parsed) return []
+
+  const chips: string[] = []
+
+  if (parsed.strengthExercises?.length) {
+    parsed.strengthExercises.slice(0, 3).forEach((exercise) => {
+      if (exercise.exerciseName) chips.push(exercise.exerciseName)
+    })
+  }
+
+  if (chips.length < 4 && parsed.cardioSegments?.length) {
+    parsed.cardioSegments.slice(0, 4 - chips.length).forEach((segment) => {
+      chips.push(formatSegmentType(segment.type))
+    })
+  }
+
+  if (chips.length < 4 && parsed.movements?.length) {
+    parsed.movements.slice(0, 4 - chips.length).forEach((movement) => {
+      if (movement.name) chips.push(movement.name)
+    })
+  }
+
+  return chips.slice(0, 4)
+}
+
+function formatSegmentType(type: string): string {
+  const labels: Record<string, string> = {
+    WARMUP: 'Uppvärmning',
+    COOLDOWN: 'Nedvarvning',
+    INTERVAL: 'Intervaller',
+    STEADY: 'Jämn fart',
+    RECOVERY: 'Återhämtning',
+    HILL: 'Backe',
+    DRILLS: 'Teknik',
+  }
+
+  return labels[type] || type
 }
 
 export function getWODModeLabel(mode: WODMode): string {

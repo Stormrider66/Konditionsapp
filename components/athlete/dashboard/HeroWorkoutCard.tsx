@@ -12,7 +12,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Activity, Flame, Timer, Dumbbell, Play, Zap, Route, TrendingUp, Clock, MapPin, X } from 'lucide-react'
+import { Activity, Flame, Timer, Dumbbell, Play, Zap, Route, TrendingUp, Clock, MapPin, X, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
@@ -317,8 +317,13 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
 
   const categoryImage = getCategoryImage(focus.category)
   const volume = estimateVolume(workout.segments)
-  const isCompleted = workout.logs && workout.logs.length > 0 && workout.logs[0].completed
+  const completedLog = workout.logs?.[0]
+  const isCompleted = !!completedLog?.completed
   const BadgeIcon = getBadgeIcon(workout.type)
+  const completedHighlights = useMemo(() => getCompletedHighlights(completedLog), [completedLog])
+  const completedAtLabel = completedLog?.completedAt
+    ? new Date(completedLog.completedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+    : null
 
   return (
     <GlassCard className="lg:col-span-2 rounded-2xl group transition-all">
@@ -375,6 +380,18 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
             {focus.description}
           </p>
 
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+              {formatWorkoutTypeLabel(workout.type)}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+              {formatIntensity(workout.intensity)}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-medium text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
+              {workout.programName}
+            </span>
+          </div>
+
           {/* Scheduling info */}
           {(workout.startTime || workout.locationName || workout.location?.name) && (
             <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-slate-600 dark:text-slate-400">
@@ -395,9 +412,40 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
 
           {/* Completed badge */}
           {isCompleted && (
-            <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-medium transition-colors">
-              <TrendingUp className="w-3 h-3" />
-              Slutfört
+            <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Slutfört
+                  {completedAtLabel ? <span className="text-emerald-600/80 dark:text-emerald-300/70">{completedAtLabel}</span> : null}
+                </div>
+                {completedLog?.notes ? (
+                  <span className="text-xs text-emerald-700/80 dark:text-emerald-200/80">
+                    {completedLog.notes}
+                  </span>
+                ) : null}
+              </div>
+
+              {completedHighlights.length > 0 && (
+                <div className="mt-3 grid grid-cols-2 gap-3 lg:max-w-xl">
+                  {completedHighlights.map((highlight) => (
+                    <div
+                      key={highlight.label}
+                      className="rounded-xl border border-emerald-200/80 bg-white/75 p-3 dark:border-white/10 dark:bg-white/5"
+                    >
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700/70 dark:text-emerald-300/70">
+                        {highlight.label}
+                      </div>
+                      <div className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+                        {highlight.value}
+                      </div>
+                      {highlight.subvalue ? (
+                        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{highlight.subvalue}</div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -452,7 +500,7 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
                 className="w-full sm:w-auto min-h-[48px] border-slate-200 dark:border-white/20 text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/30 transition-all"
               >
                 <TrendingUp className="w-4 h-4 mr-2" />
-                Visa resultat
+                Visa detaljer
               </Button>
             </Link>
           ) : (
@@ -467,4 +515,51 @@ export function HeroWorkoutCard({ workout, athleteName, modification, basePath =
       </div>
     </GlassCard>
   )
+}
+
+function getCompletedHighlights(log: DashboardWorkoutWithContext['logs'][number] | undefined) {
+  if (!log) return []
+
+  const highlights: Array<{ label: string; value: string; subvalue?: string }> = []
+
+  if (log.duration) highlights.push({ label: 'Tid', value: `${log.duration} min` })
+  if (log.distance) highlights.push({ label: 'Distans', value: `${log.distance} km` })
+  if (log.avgPace) highlights.push({ label: 'Tempo', value: String(log.avgPace) })
+  if (log.avgHR) highlights.push({ label: 'Snittpuls', value: `${log.avgHR} bpm` })
+  if (log.perceivedEffort) {
+    highlights.push({
+      label: 'RPE',
+      value: `${log.perceivedEffort}/10`,
+      subvalue: getEffortLabel(log.perceivedEffort),
+    })
+  }
+
+  return highlights.slice(0, 4)
+}
+
+function getEffortLabel(effort: number): string {
+  if (effort <= 3) return 'Latt belastning'
+  if (effort <= 5) return 'Kontrollerad'
+  if (effort <= 7) return 'Utmanande'
+  if (effort <= 9) return 'Mycket hard'
+  return 'Maximal'
+}
+
+function formatWorkoutTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    RUNNING: 'Lopning',
+    STRENGTH: 'Styrka',
+    PLYOMETRIC: 'Plyometri',
+    CORE: 'Core',
+    RECOVERY: 'Aterhamtning',
+    CYCLING: 'Cykling',
+    SKIING: 'Skidor',
+    SWIMMING: 'Simning',
+    TRIATHLON: 'Triathlon',
+    HYROX: 'Hyrox',
+    ALTERNATIVE: 'Alternativt',
+    OTHER: 'Pass',
+  }
+
+  return labels[type] || type
 }

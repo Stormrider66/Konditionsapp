@@ -220,6 +220,7 @@ function renderItem(item: DashboardItem, athleteName?: string, basePath?: string
         <AdHocWorkoutHeroCard
           workout={item}
           athleteName={athleteName}
+          basePath={basePath}
         />
       )
   }
