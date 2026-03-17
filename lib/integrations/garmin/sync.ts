@@ -16,6 +16,7 @@ import {
   getGarminActivities,
   getGarminActivityDetails,
   extractGarminHRZoneSeconds,
+  extractGarminHRSamples,
   getGarminSleepData,
   getGarminHRVData,
   GarminDailySummary,
@@ -342,25 +343,36 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
     },
   });
 
-  // Try to fetch detailed activity data for HR zones
+  // Try to fetch detailed activity data for HR stream and zones
   let hrZoneFetched = false;
   if (activity.averageHeartRateInBeatsPerMinute) {
     try {
       const details = await getGarminActivityDetails(clientId, activity.activityId);
       const hrZoneSeconds = extractGarminHRZoneSeconds(details);
+      const hrSamples = extractGarminHRSamples(details);
+
+      const updateData: Record<string, unknown> = {};
+
+      if (hrSamples && hrSamples.length > 0) {
+        updateData.hrStream = hrSamples;
+        updateData.hrStreamFetched = true;
+      }
 
       if (hrZoneSeconds) {
+        updateData.hrZoneSeconds = hrZoneSeconds;
+        hrZoneFetched = true;
+      }
+
+      if (Object.keys(updateData).length > 0) {
         await prisma.garminActivity.update({
           where: { garminActivityId: BigInt(activity.activityId) },
-          data: {
-            hrZoneSeconds: hrZoneSeconds,
-          },
+          data: updateData,
         });
-        hrZoneFetched = true;
-        logger.info('Fetched HR zones for Garmin activity', {
+        logger.info('Fetched HR data for Garmin activity', {
           clientId,
           activityId: activity.activityId,
-          zones: hrZoneSeconds,
+          hasHRStream: Boolean(hrSamples?.length),
+          hasZones: Boolean(hrZoneSeconds),
         });
       }
     } catch (error) {

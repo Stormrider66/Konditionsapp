@@ -127,6 +127,8 @@ export async function processGarminActivityZones(
       where: { id: garminActivityId },
       select: {
         id: true,
+        hrStream: true,
+        hrStreamFetched: true,
         hrZoneSeconds: true,
         maxHeartrate: true,
         averageHeartrate: true,
@@ -141,10 +143,16 @@ export async function processGarminActivityZones(
 
     let distribution: ZoneDistribution
 
-    // Priority 1: Remap Garmin zones to athlete's test-based zones
+    // Priority 1: Use HR stream data — most accurate, uses athlete's real zones
+    // Works regardless of Garmin zone configuration
+    if (activity.hrStream && Array.isArray(activity.hrStream) && zones.length > 0) {
+      distribution = calculateHRZoneDistribution(activity.hrStream as number[], zones)
+      distribution.source = 'STRAVA_STREAM' // Same method as Strava HR streams
+    }
+    // Priority 2: Remap Garmin zones to athlete's test-based zones
     // Garmin zones are fixed %maxHR — with the activity's maxHR we can derive
     // the HR boundaries and redistribute time into the athlete's real zones
-    if (
+    else if (
       activity.hrZoneSeconds &&
       typeof activity.hrZoneSeconds === 'object' &&
       activity.maxHeartrate &&
@@ -163,7 +171,7 @@ export async function processGarminActivityZones(
         zones
       )
     }
-    // Priority 2: Use Garmin zones directly (no athlete zones or no maxHR)
+    // Priority 3: Use Garmin zones directly (no athlete zones or no maxHR)
     else if (activity.hrZoneSeconds && typeof activity.hrZoneSeconds === 'object') {
       const garminZones = activity.hrZoneSeconds as {
         zone1?: number
@@ -174,7 +182,7 @@ export async function processGarminActivityZones(
       }
       distribution = calculateFromGarminZones(garminZones)
     }
-    // Priority 3: Estimate from average HR
+    // Priority 4: Estimate from average HR
     else if (activity.averageHeartrate && activity.duration) {
       distribution = estimateZoneFromAvgHR(
         activity.averageHeartrate,
@@ -359,12 +367,14 @@ export async function processClientActivityZones(
   }
 
   // Process Garmin activities without zone distribution
-  // Use averageHeartrate check - activities with hrZoneSeconds will also have averageHeartrate
   const garminActivities = await prisma.garminActivity.findMany({
     where: {
       clientId,
       zoneDistribution: null,
-      averageHeartrate: { not: null },
+      OR: [
+        { hrStreamFetched: true },
+        { averageHeartrate: { not: null } },
+      ],
     },
     select: { id: true },
     take: limit - result.processed,

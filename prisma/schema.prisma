@@ -1002,12 +1002,33 @@ model Client {
   coachReviews        CoachReview[]    @relation("AthleteCoachReviews")
   coachEarningsSource CoachEarnings[]  @relation("AthleteCoachEarnings")
 
+  // Shared Achievement relations
+  sharedAchievements SharedAchievement[]
+
   @@index([userId])
   @@index([businessId])
   @@index([teamId])
   @@index([name])
   @@index([email])
   @@index([isDirect])
+}
+
+model SharedAchievement {
+  id              String   @id @default(uuid())
+  clientId        String
+  achievementType String   // "MILESTONE" | "STREAK"
+  title           String
+  description     String
+  imageUrl        String?
+  storagePath     String?
+  contextData     Json?
+  publicToken     String   @unique
+  publicExpiresAt DateTime
+  createdAt       DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
 }
 
 model Test {
@@ -2008,6 +2029,10 @@ model GarminActivity {
 
   // HR Zone data from Garmin activity details
   hrZoneSeconds Json? // { zone1: 120, zone2: 300, ... }
+
+  // HR Stream data for accurate zone tracking
+  hrStream        Json? // Second-by-second HR data: number[]
+  hrStreamFetched Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
