@@ -38,6 +38,30 @@ import {
   GarminHRVData,
 } from '@/lib/integrations/garmin/client';
 
+const DEFAULT_MAX_HR = 185;
+
+/**
+ * Get athlete's max HR from profile or latest test result, falling back to default
+ */
+async function getAthleteMaxHR(clientId: string): Promise<number> {
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: {
+      manualMaxHR: true,
+      tests: {
+        where: { maxHR: { not: null } },
+        orderBy: { testDate: 'desc' },
+        take: 1,
+        select: { maxHR: true },
+      },
+    },
+  });
+
+  return client?.manualMaxHR
+    ?? client?.tests[0]?.maxHR
+    ?? DEFAULT_MAX_HR;
+}
+
 // Webhook verify token (set in environment)
 const GARMIN_WEBHOOK_VERIFY_TOKEN = process.env.GARMIN_WEBHOOK_VERIFY_TOKEN;
 
@@ -77,12 +101,13 @@ function calculateTSS(
   duration: number,
   avgHr?: number,
   avgSpeed?: number,
-  avgWatts?: number
+  avgWatts?: number,
+  maxHR: number = DEFAULT_MAX_HR
 ): number {
   let intensityFactor = 0.7;
 
   if (avgHr) {
-    const hrRatio = avgHr / 185;
+    const hrRatio = avgHr / maxHR;
     intensityFactor = Math.min(1.2, Math.max(0.4, hrRatio));
   } else if (avgWatts) {
     intensityFactor = avgWatts / 200;
@@ -359,11 +384,15 @@ async function processActivity(activity: GarminActivity & { userId?: string }) {
     intensity: 'MODERATE',
   };
 
+  // Get athlete-specific max HR (from profile or test results, fallback to 185)
+  const maxHR = await getAthleteMaxHR(clientId);
+
   const tss = calculateTSS(
     activity.activityDurationInSeconds,
     activity.averageHeartRateInBeatsPerMinute,
     activity.averageSpeedInMetersPerSecond,
-    activity.averagePowerInWatts
+    activity.averagePowerInWatts,
+    maxHR
   );
 
   const startDate = new Date(activity.startTimeInSeconds * 1000);
@@ -375,7 +404,7 @@ async function processActivity(activity: GarminActivity & { userId?: string }) {
   // Map intensity from HR ratio (same logic as sync.ts)
   let mappedIntensity = typeInfo.intensity;
   if (activity.averageHeartRateInBeatsPerMinute) {
-    const hrRatio = activity.averageHeartRateInBeatsPerMinute / 185;
+    const hrRatio = activity.averageHeartRateInBeatsPerMinute / maxHR;
     if (hrRatio < 0.65) mappedIntensity = 'EASY';
     else if (hrRatio < 0.80) mappedIntensity = 'MODERATE';
     else if (hrRatio < 0.90) mappedIntensity = 'HARD';

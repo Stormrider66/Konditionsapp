@@ -25,6 +25,30 @@ import {
   GarminActivity,
 } from './client';
 
+const DEFAULT_MAX_HR = 185;
+
+/**
+ * Get athlete's max HR from profile (manualMaxHR) or latest test result, falling back to default
+ */
+async function getAthleteMaxHR(clientId: string): Promise<number> {
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: {
+      manualMaxHR: true,
+      tests: {
+        where: { maxHR: { not: null } },
+        orderBy: { testDate: 'desc' },
+        take: 1,
+        select: { maxHR: true },
+      },
+    },
+  });
+
+  return client?.manualMaxHR
+    ?? client?.tests[0]?.maxHR
+    ?? DEFAULT_MAX_HR;
+}
+
 interface SyncResult {
   dailySummaries: number;
   activities: number;
@@ -255,10 +279,13 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
 
   const mappedType = typeMap[activity.activityType] || 'OTHER';
 
+  // Get athlete-specific max HR (from profile or test results, fallback to 185)
+  const maxHR = await getAthleteMaxHR(clientId);
+
   // Map intensity based on HR or pace
   let mappedIntensity = 'MODERATE';
   if (activity.averageHeartRateInBeatsPerMinute) {
-    const hrRatio = activity.averageHeartRateInBeatsPerMinute / 185; // Estimate max HR
+    const hrRatio = activity.averageHeartRateInBeatsPerMinute / maxHR;
     if (hrRatio < 0.65) mappedIntensity = 'EASY';
     else if (hrRatio < 0.80) mappedIntensity = 'MODERATE';
     else if (hrRatio < 0.90) mappedIntensity = 'HARD';
@@ -266,7 +293,7 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
   }
 
   // Calculate TSS estimate
-  const tss = calculateGarminTSS(activity);
+  const tss = calculateGarminTSS(activity, maxHR);
 
   // Convert timestamp to Date
   const startDate = new Date(activity.startTimeInSeconds * 1000);
@@ -501,12 +528,12 @@ async function syncHRVData(clientId: string, hrv: GarminHRVData): Promise<void> 
 /**
  * Calculate TSS estimate from Garmin activity
  */
-function calculateGarminTSS(activity: GarminActivity): number {
+function calculateGarminTSS(activity: GarminActivity, maxHR: number = DEFAULT_MAX_HR): number {
   const duration = activity.activityDurationInSeconds;
   let intensityFactor = 0.7;
 
   if (activity.averageHeartRateInBeatsPerMinute) {
-    const hrRatio = activity.averageHeartRateInBeatsPerMinute / 185;
+    const hrRatio = activity.averageHeartRateInBeatsPerMinute / maxHR;
     intensityFactor = Math.min(1.2, Math.max(0.4, hrRatio));
   } else if (activity.normalizedPowerInWatts) {
     intensityFactor = activity.normalizedPowerInWatts / 200;
