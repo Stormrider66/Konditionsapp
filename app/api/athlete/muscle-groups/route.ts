@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
-import { getMuscleGroupData } from '@/app/api/business/[id]/strength/muscle-groups/route'
+import { getMuscleGroupData } from '@/lib/strength/muscle-group-data'
 
 const querySchema = z.object({
   period: z.enum(['week', 'month']).default('week'),
