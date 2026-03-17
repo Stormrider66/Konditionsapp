@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { logger } from '@/lib/logger'
 import { sendCoachInviteEmail } from '@/lib/email'
-import { fixLocalhostUrl } from '@/lib/url-utils'
+import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
 
 type BusinessMemberRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'COACH'
 
@@ -149,12 +149,9 @@ export async function inviteUserToBusiness({
       logger.error('Invite: recovery link generation failed', { email }, linkError)
     }
 
-    // Use generated recovery link, or fall back to forgot-password page
-    // Fix localhost URLs when Supabase Site URL is misconfigured
-    const setPasswordUrl = fixLocalhostUrl(
-      linkData?.properties?.action_link || `${appUrl}/forgot-password`,
-      appUrl
-    )
+    // Prefer our own callback URL when a hashed recovery token is available.
+    const setPasswordUrl =
+      buildRecoveryCallbackUrl(linkData, appUrl) || `${appUrl}/forgot-password`
 
     // Always send invite email
     const emailResult = await sendCoachInviteEmail(email, name, business.name, setPasswordUrl).catch((emailErr) => {

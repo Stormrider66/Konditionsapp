@@ -5,7 +5,7 @@ import { handleApiError } from '@/lib/api-error'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { sendCoachInviteEmail } from '@/lib/email'
 import { logger } from '@/lib/logger'
-import { fixLocalhostUrl } from '@/lib/url-utils'
+import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
 
 // POST /api/coach/admin/members/[memberId]/send-invite
 export async function POST(
@@ -93,12 +93,9 @@ export async function POST(
       logger.error('Send invite: recovery link generation failed', { email: user.email }, linkError)
     }
 
-    // Use generated recovery link, or fall back to forgot-password page
-    // Fix localhost URLs when Supabase Site URL is misconfigured
-    const setPasswordUrl = fixLocalhostUrl(
-      linkData?.properties?.action_link || `${appUrl}/forgot-password`,
-      appUrl
-    )
+    // Prefer our own callback URL when a hashed recovery token is available.
+    const setPasswordUrl =
+      buildRecoveryCallbackUrl(linkData, appUrl) || `${appUrl}/forgot-password`
 
     // Send the invite email
     const emailResult = await sendCoachInviteEmail(

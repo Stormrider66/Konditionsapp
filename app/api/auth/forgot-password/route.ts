@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { sendPasswordResetEmail } from '@/lib/email'
-import { fixLocalhostUrl } from '@/lib/url-utils'
+import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
 import { rateLimitJsonResponse, getRequestIp } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 
@@ -60,13 +60,12 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    if (linkError || !linkData?.properties?.action_link) {
+    const resetUrl = buildRecoveryCallbackUrl(linkData, appUrl)
+
+    if (linkError || !resetUrl) {
       logger.error('Forgot password: recovery link generation failed', { email }, linkError)
       return successResponse()
     }
-
-    // Fix localhost URLs when Supabase Site URL is misconfigured
-    const resetUrl = fixLocalhostUrl(linkData.properties.action_link, appUrl)
 
     // Send via Resend
     await sendPasswordResetEmail(email, resetUrl, user.name || undefined).catch((err) => {

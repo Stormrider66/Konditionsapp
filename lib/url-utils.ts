@@ -19,3 +19,39 @@ export function fixLocalhostUrl(url: string, appUrl: string): string {
     return url
   }
 }
+
+type RecoveryLinkData = {
+  properties?: {
+    action_link?: string | null
+    hashed_token?: string | null
+  } | null
+} | null
+
+/**
+ * Build a recovery callback URL that always lands in this app.
+ *
+ * Supabase `admin.generateLink()` can ignore `redirectTo` and send users back
+ * to the project's Site URL instead. When we get a hashed recovery token, we
+ * bypass that redirect entirely and send users straight to our callback route.
+ */
+export function buildRecoveryCallbackUrl(
+  linkData: RecoveryLinkData,
+  appUrl: string,
+  nextPath = '/reset-password'
+): string | null {
+  const tokenHash = linkData?.properties?.hashed_token
+  if (tokenHash) {
+    const callbackUrl = new URL('/api/auth/callback', appUrl)
+    callbackUrl.searchParams.set('token_hash', tokenHash)
+    callbackUrl.searchParams.set('type', 'recovery')
+    callbackUrl.searchParams.set('next', nextPath)
+    return callbackUrl.toString()
+  }
+
+  const actionLink = linkData?.properties?.action_link
+  if (actionLink) {
+    return fixLocalhostUrl(actionLink, appUrl)
+  }
+
+  return null
+}

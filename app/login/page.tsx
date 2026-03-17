@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
@@ -35,6 +35,28 @@ export default function LoginPage() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   })
+
+  useEffect(() => {
+    const hash = window.location.hash
+    const search = window.location.search
+    const hasRecoveryParams = hash.includes('type=recovery') || search.includes('type=recovery')
+
+    if (hasRecoveryParams) {
+      router.replace(`/reset-password${search}${hash}`)
+      return
+    }
+
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        router.replace('/reset-password')
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [router])
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
