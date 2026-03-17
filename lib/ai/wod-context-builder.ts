@@ -10,6 +10,8 @@ import { subDays, startOfWeek, endOfWeek } from 'date-fns'
 import type { WODAthleteContext, WODEquipment, WODUsageStats } from '@/types/wod'
 import { WOD_USAGE_LIMITS } from '@/types/wod'
 import { getRestrictionsForWOD } from '@/lib/training-restrictions'
+import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
+import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 
 // ============================================
 // LOCATION EQUIPMENT FETCHING
@@ -148,6 +150,8 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
     latestMetrics,
     activeInjuries,
     recentWorkoutLogs,
+    recentAdHocWorkouts,
+    recentCompletedWODs,
     weeklyTrainingLoad,
     locationEquipment,
     trainingRestrictions,
@@ -256,6 +260,38 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
       take: 10,
     }),
 
+    prisma.adHocWorkout.findMany({
+      where: {
+        athleteId: clientId,
+        status: 'CONFIRMED',
+        workoutDate: { gte: fourDaysAgo },
+      },
+      select: {
+        workoutDate: true,
+        workoutName: true,
+        parsedType: true,
+        parsedStructure: true,
+      },
+      orderBy: { workoutDate: 'desc' },
+      take: 10,
+    }),
+
+    prisma.aIGeneratedWOD.findMany({
+      where: {
+        clientId,
+        status: 'COMPLETED',
+        completedAt: { gte: fourDaysAgo },
+      },
+      select: {
+        title: true,
+        workoutType: true,
+        intensityAdjusted: true,
+        completedAt: true,
+      },
+      orderBy: { completedAt: 'desc' },
+      take: 10,
+    }),
+
     // 7. Weekly training load
     prisma.trainingLoad.findMany({
       where: {
@@ -306,7 +342,9 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
   const experienceLevel = getExperienceLevel(sportProfile, athleteProfile)
 
   // Map recent workouts to context format
-  const recentWorkouts = recentWorkoutLogs.map(log => ({
+  const recentProgramWorkouts = recentWorkoutLogs.map(log => ({
+    source: 'program' as const,
+    name: undefined,
     type: log.workout.type,
     date: log.completedAt!,
     intensity: log.workout.intensity,
@@ -314,6 +352,37 @@ export async function buildWODContext(clientId: string): Promise<WODAthleteConte
       .map(s => s.exercise?.muscleGroup)
       .filter((g): g is string => !!g),
   }))
+
+  const recentAdHocItems = recentAdHocWorkouts.map((workout) => {
+    const parsed = workout.parsedStructure as ParsedWorkout | null
+    const distanceKm = getParsedWorkoutDistanceKm(parsed)
+    return {
+      source: 'adhoc' as const,
+      name: parsed?.name || workout.workoutName || undefined,
+      type: parsed?.type || workout.parsedType || 'OTHER',
+      date: workout.workoutDate,
+      intensity: parsed?.intensity || 'MODERATE',
+      muscleGroups: [
+        ...(parsed?.strengthExercises?.map((exercise) => exercise.exerciseName).slice(0, 2) || []),
+        ...(distanceKm ? [`${distanceKm.toFixed(1)} km`] : []),
+      ],
+    }
+  })
+
+  const recentWODItems = recentCompletedWODs
+    .filter((wod) => wod.completedAt)
+    .map((wod) => ({
+      source: 'wod' as const,
+      name: wod.title,
+      type: mapWODWorkoutType(wod.workoutType),
+      date: wod.completedAt as Date,
+      intensity: mapWODIntensity(wod.intensityAdjusted),
+      muscleGroups: [],
+    }))
+
+  const recentWorkouts = [...recentProgramWorkouts, ...recentAdHocItems, ...recentWODItems]
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 10)
 
   // Map injuries
   const injuries = activeInjuries.map(injury => ({
@@ -505,6 +574,31 @@ function mapEquipmentName(name: string): WODEquipment | null {
   if (lowered.includes('ski')) return 'skierg'
 
   return null
+}
+
+function mapWODWorkoutType(type: string | null): string {
+  switch (type) {
+    case 'cardio':
+      return 'CARDIO'
+    case 'mixed':
+      return 'HYBRID'
+    case 'core':
+      return 'CORE'
+    case 'strength':
+    default:
+      return 'STRENGTH'
+  }
+}
+
+function mapWODIntensity(intensity: string | null): string {
+  if (!intensity) return 'MODERATE'
+
+  const normalized = intensity.toLowerCase()
+  if (normalized.includes('recovery')) return 'RECOVERY'
+  if (normalized.includes('easy') || normalized.includes('light')) return 'EASY'
+  if (normalized.includes('threshold')) return 'THRESHOLD'
+  if (normalized.includes('max')) return 'MAX'
+  return 'MODERATE'
 }
 
 /**

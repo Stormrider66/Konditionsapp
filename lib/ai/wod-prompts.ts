@@ -36,6 +36,7 @@ export function buildWODPrompt(
   const constraintsSection = generateGuardrailConstraints(guardrails)
   const excludedCategories = getExcludedExerciseCategories(guardrails.excludedAreas)
   const jsonTemplate = getJsonTemplate(workoutType)
+  const explicitEquipment = normalizeRequestedEquipment(request.equipment || ['none'])
 
   return `${SYSTEM_CONTEXT}
 
@@ -67,11 +68,13 @@ ${excludedCategories.length > 0 ? `\n## EXKLUDERADE ÖVNINGSKATEGORIER\n${exclud
 ## PASSSPECIFIKATION
 - **Träningstyp**: ${WOD_LABELS.workoutTypes[workoutType].title}
 - **Längd**: ${request.duration || 45} minuter
-- **Önskad utrustning**: ${formatEquipment(request.equipment || ['none'])}
+- **Önskad utrustning**: ${formatEquipment(explicitEquipment)}
 - **Fokusområde**: ${request.focusArea ? WOD_LABELS.focusAreas[request.focusArea] : 'Helkropp'}
 - **Justerad intensitet**: ${WOD_LABELS.intensity[guardrails.adjustedIntensity]}
 
-${formatLocationEquipment(context.locationEquipment)}
+${buildEquipmentConstraintSection(explicitEquipment)}
+
+${formatLocationEquipment(context.locationEquipment, explicitEquipment)}
 
 ${context.aiInstructions ? `## SPECIFIKA INSTRUKTIONER FÖR DENNA ATLET\n${context.aiInstructions}\n` : ''}
 ## OUTPUT FORMAT
@@ -87,6 +90,7 @@ VIKTIGT:
 - Övningsnamn ska ha både svenskt namn (nameSv) och engelskt namn (name)
 - Passet ska passa den angivna längden exakt
 - Respektera ALLA begränsningar ovan
+- Använd ENDAST den utrustning som uttryckligen är tillåten för detta pass
 - Inkludera alltid uppvärmning och nedvarvning
 - Var kreativ med passnamnet - gör det inspirerande!
 - ALDRIG använd "tröskel" eller "threshold" för styrkepass - det är endast ett konditionsbegrepp
@@ -441,7 +445,9 @@ function formatRecentWorkouts(
     .map(w => {
       const date = new Date(w.date).toLocaleDateString('sv-SE', { weekday: 'short' })
       const muscles = w.muscleGroups?.length ? ` (${w.muscleGroups.slice(0, 2).join(', ')})` : ''
-      return `- ${date}: ${translateWorkoutType(w.type)} - ${translateIntensity(w.intensity)}${muscles}`
+      const name = w.name ? ` ${w.name}` : ''
+      const source = w.source ? ` [${translateWorkoutSource(w.source)}]` : ''
+      return `- ${date}:${source} ${translateWorkoutType(w.type)}${name} - ${translateIntensity(w.intensity)}${muscles}`
     })
     .join('\n')
 }
@@ -483,20 +489,48 @@ function formatEquipment(equipment: WODEquipment[]): string {
     .join(', ')
 }
 
+function normalizeRequestedEquipment(equipment: WODEquipment[]): WODEquipment[] {
+  const withoutNone = equipment.filter(e => e !== 'none')
+  return withoutNone.length > 0 ? withoutNone : ['none']
+}
+
+function buildEquipmentConstraintSection(equipment: WODEquipment[]): string {
+  if (equipment.length === 1 && equipment[0] === 'none') {
+    return `## UTRUSTNINGSRESTRIKTION
+VIKTIGT: Skapa ett pass som endast använder kroppsvikt och fri golvyta. Använd inte maskiner, vikter eller annan utrustning.`
+  }
+
+  return `## UTRUSTNINGSRESTRIKTION
+VIKTIGT: Detta pass MÅSTE byggas enbart med följande utrustning: ${formatEquipment(equipment)}.
+Du får dessutom använda kroppsvikt, men du får INTE använda någon annan utrustning än listan ovan även om gymmet har mer tillgängligt.`
+}
+
 /**
  * Format location equipment for the prompt
  * Shows what's available at the athlete's gym
  */
 function formatLocationEquipment(
-  locationEquipment: WODAthleteContext['locationEquipment']
+  locationEquipment: WODAthleteContext['locationEquipment'],
+  requestedEquipment: WODEquipment[]
 ): string {
   if (!locationEquipment || locationEquipment.equipment.length === 0) {
     return ''
   }
 
+  const equipmentFilter = new Set(normalizeRequestedEquipment(requestedEquipment))
+  const filteredEquipment =
+    equipmentFilter.has('none')
+      ? []
+      : locationEquipment.equipment.filter((item) => {
+          const mapped = mapLocationEquipmentToWOD(item.nameSv || item.name)
+          return mapped ? equipmentFilter.has(mapped) : false
+        })
+
+  const equipmentToRender = filteredEquipment.length > 0 ? filteredEquipment : locationEquipment.equipment
+
   // Group equipment by category for cleaner output
   const byCategory: Record<string, string[]> = {}
-  for (const item of locationEquipment.equipment) {
+  for (const item of equipmentToRender) {
     const category = translateEquipmentCategory(item.category)
     if (!byCategory[category]) {
       byCategory[category] = []
@@ -510,12 +544,12 @@ function formatLocationEquipment(
     .map(([cat, items]) => `- **${cat}**: ${items.join(', ')}`)
     .join('\n')
 
-  return `## TILLGÄNGLIG UTRUSTNING PÅ ${locationEquipment.locationName.toUpperCase()}
-VIKTIGT: Skapa passet med den utrustning som finns tillgänglig nedan. Använd INTE utrustning som inte listas här.
+  return `## TILLGÄNGLIG MATCHANDE UTRUSTNING PÅ ${locationEquipment.locationName.toUpperCase()}
+Använd endast utrustning som både finns på platsen och är tillåten i passpecifikationen ovan.
 
 ${categoryLines}
 
-Använd denna utrustning för att skapa ett varierat och effektivt pass!`
+Använd denna utrustning för att skapa ett effektivt pass inom de valda ramarna.`
 }
 
 /**
@@ -532,6 +566,38 @@ function translateEquipmentCategory(category: string): string {
     RECOVERY: 'Återhämtning',
   }
   return translations[category] || category
+}
+
+function mapLocationEquipmentToWOD(name: string): WODEquipment | null {
+  const lowered = name.toLowerCase()
+
+  if (lowered.includes('treadmill') || lowered.includes('löpband')) return 'treadmill'
+  if (lowered.includes('assault bike') || lowered.includes('air bike') || lowered.includes('airbike')) return 'airbike'
+  if (lowered.includes('bikeerg') || lowered === 'bike' || lowered.includes('cykel')) return 'bike'
+  if (lowered.includes('skierg') || lowered.includes('ski erg')) return 'skierg'
+  if (lowered.includes('rower') || lowered.includes('rodd')) return 'rower'
+  if (lowered.includes('dumbbell') || lowered.includes('hantel')) return 'dumbbells'
+  if (lowered.includes('barbell') || lowered.includes('skivstång')) return 'barbell'
+  if (lowered.includes('kettlebell')) return 'kettlebell'
+  if (lowered.includes('band') || lowered.includes('gummi')) return 'resistance_band'
+  if (lowered.includes('pull-up') || lowered.includes('räcke')) return 'pull_up_bar'
+  if (lowered.includes('cable')) return 'cable_machine'
+  if (lowered.includes('rings')) return 'rings'
+  if (lowered.includes('box')) return 'box'
+  if (lowered.includes('sled')) return 'sled'
+  if (lowered.includes('sandbag')) return 'sandbag'
+  if (lowered.includes('wall ball')) return 'wall_ball'
+  if (lowered.includes('jump rope') || lowered.includes('hopprep')) return 'jump_rope'
+  if (lowered.includes('medicine ball')) return 'medicine_ball'
+  if (lowered.includes('stability ball') || lowered.includes('pilatesboll')) return 'stability_ball'
+
+  return null
+}
+
+function translateWorkoutSource(source: 'program' | 'adhoc' | 'wod'): string {
+  if (source === 'adhoc') return 'ad-hoc'
+  if (source === 'wod') return 'ai-pass'
+  return 'program'
 }
 
 // ============================================

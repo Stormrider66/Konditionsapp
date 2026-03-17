@@ -174,6 +174,8 @@ export interface WODAthleteContext {
 
   // Recent training (for avoiding overload)
   recentWorkouts: {
+    name?: string
+    source?: 'program' | 'adhoc' | 'wod'
     type: string
     date: Date
     intensity: string
