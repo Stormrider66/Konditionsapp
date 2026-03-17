@@ -225,29 +225,33 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    await enqueueDailyMetricsPostWriteJob({
-      clientId,
-      date,
-      signature: writeSignature,
-      shouldRunSideEffects: true,
-      sideEffectsInput: {
+    try {
+      await enqueueDailyMetricsPostWriteJob({
         clientId,
         date,
-        injuryPain: injuryPain ?? 0,
-        stress: stress ?? 0,
-        sleepHours: sleepHours ?? 0,
-        energyLevel: energyLevel ?? 0,
-        readinessScore: null,
-        readinessLevel: null,
-        muscleSoreness: muscleSoreness ?? 0,
-        injuryDetails,
-        keywordAnalysis,
-        requestPhysioContact: requestPhysioContact ?? false,
-        physioContactReason,
-        rehabPainDuring,
-        rehabPainAfter,
-      },
-    })
+        signature: writeSignature,
+        shouldRunSideEffects: true,
+        sideEffectsInput: {
+          clientId,
+          date,
+          injuryPain: injuryPain ?? 0,
+          stress: stress ?? 0,
+          sleepHours: sleepHours ?? 0,
+          energyLevel: energyLevel ?? 0,
+          readinessScore: null,
+          readinessLevel: null,
+          muscleSoreness: muscleSoreness ?? 0,
+          injuryDetails,
+          keywordAnalysis,
+          requestPhysioContact: requestPhysioContact ?? false,
+          physioContactReason,
+          rehabPainDuring,
+          rehabPainAfter,
+        },
+      })
+    } catch (error) {
+      logger.warn('Failed to enqueue daily-metrics post-write job; continuing with saved metrics', { clientId, date }, error)
+    }
 
     const responsePayload = {
       success: true,
@@ -273,11 +277,15 @@ export async function POST(request: NextRequest) {
     })
 
     const response = NextResponse.json(responsePayload)
-    const cacheKeySuffix = `:${clientId}:`
-    for (const key of dailyMetricsGetCache.keys()) {
-      if (key.includes(cacheKeySuffix)) {
-        void dailyMetricsGetCache.delete(key)
+    try {
+      const cacheKeySuffix = `:${clientId}:`
+      for (const key of dailyMetricsGetCache.keys()) {
+        if (key.includes(cacheKeySuffix)) {
+          void dailyMetricsGetCache.delete(key)
+        }
       }
+    } catch (error) {
+      logger.warn('Failed to clear daily-metrics cache after write', { clientId }, error)
     }
 
     void processDailyMetricsPostWriteJobs({ limit: 1, jobKey: writeKey }).catch(error => {
