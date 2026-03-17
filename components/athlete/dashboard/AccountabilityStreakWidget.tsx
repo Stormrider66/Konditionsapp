@@ -20,6 +20,7 @@ import { Flame, Trophy, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { StreakCalendar } from './StreakCalendar'
+import { ShareAchievementButton } from '@/components/athlete/shareable/ShareAchievementButton'
 import type { StreakResponse } from '@/types/streak'
 
 interface AccountabilityStreakWidgetProps {
@@ -78,6 +79,18 @@ export function AccountabilityStreakWidget({ className, basePath = '' }: Account
         <GlassCardTitle className="flex items-center gap-1.5 text-sm">
           <Flame className="h-4 w-4 text-orange-500" />
           Streak <InfoTooltip conceptKey="checkinStreak" />
+          {data?.data && data.data.currentStreak > 0 && (
+            <ShareAchievementButton
+              type="STREAK"
+              title={`${data.data.currentStreak} dagars streak`}
+              description="Jag håller min streak levande!"
+              streakData={{
+                currentStreak: data.data.currentStreak,
+                personalBest: data.data.personalBest,
+                checkInHistory: data.data.checkInHistory,
+              }}
+            />
+          )}
         </GlassCardTitle>
       </GlassCardHeader>
 

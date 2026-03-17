@@ -73,6 +73,17 @@ export function resolveExerciseImageUrls(paths: string[] | null | undefined): st
   return paths.map(path => getExerciseImagePublicUrl(path))
 }
 
+export const SHARED_ACHIEVEMENTS_BUCKET = 'shared-achievements'
+
+export function getSharedAchievementPublicUrl(path: string): string {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!supabaseUrl) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not defined')
+  }
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path
+  return `${supabaseUrl}/storage/v1/object/public/${SHARED_ACHIEVEMENTS_BUCKET}/${normalizedPath}`
+}
+
 export function getProgramInfographicPublicUrl(path: string): string {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   if (!supabaseUrl) {
