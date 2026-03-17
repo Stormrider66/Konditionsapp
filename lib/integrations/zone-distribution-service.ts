@@ -15,6 +15,7 @@ import { TrainingZone } from '@/types'
 import {
   calculateHRZoneDistribution,
   calculateFromGarminZones,
+  remapGarminZonesToAthleteZones,
   estimateZoneFromAvgHR,
   createZoneConfigSnapshot,
   ZoneDistribution,
@@ -127,6 +128,7 @@ export async function processGarminActivityZones(
       select: {
         id: true,
         hrZoneSeconds: true,
+        maxHeartrate: true,
         averageHeartrate: true,
         duration: true,
       },
@@ -139,8 +141,30 @@ export async function processGarminActivityZones(
 
     let distribution: ZoneDistribution
 
-    // Priority 1: Use Garmin's pre-calculated zone data
-    if (activity.hrZoneSeconds && typeof activity.hrZoneSeconds === 'object') {
+    // Priority 1: Remap Garmin zones to athlete's test-based zones
+    // Garmin zones are fixed %maxHR — with the activity's maxHR we can derive
+    // the HR boundaries and redistribute time into the athlete's real zones
+    if (
+      activity.hrZoneSeconds &&
+      typeof activity.hrZoneSeconds === 'object' &&
+      activity.maxHeartrate &&
+      zones.length > 0
+    ) {
+      const garminZones = activity.hrZoneSeconds as {
+        zone1?: number
+        zone2?: number
+        zone3?: number
+        zone4?: number
+        zone5?: number
+      }
+      distribution = remapGarminZonesToAthleteZones(
+        garminZones,
+        activity.maxHeartrate,
+        zones
+      )
+    }
+    // Priority 2: Use Garmin zones directly (no athlete zones or no maxHR)
+    else if (activity.hrZoneSeconds && typeof activity.hrZoneSeconds === 'object') {
       const garminZones = activity.hrZoneSeconds as {
         zone1?: number
         zone2?: number
@@ -149,16 +173,14 @@ export async function processGarminActivityZones(
         zone5?: number
       }
       distribution = calculateFromGarminZones(garminZones)
-      distribution.source = 'GARMIN_ZONES'
     }
-    // Priority 2: Estimate from average HR
+    // Priority 3: Estimate from average HR
     else if (activity.averageHeartrate && activity.duration) {
       distribution = estimateZoneFromAvgHR(
         activity.averageHeartrate,
         activity.duration,
         zones
       )
-      distribution.source = 'ESTIMATED'
     }
     // No HR data available
     else {

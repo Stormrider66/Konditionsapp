@@ -26,7 +26,7 @@ export interface ZoneDistribution {
   zone4Seconds: number
   zone5Seconds: number
   totalTrackedSeconds: number
-  source: 'STRAVA_STREAM' | 'GARMIN_ZONES' | 'ESTIMATED'
+  source: 'STRAVA_STREAM' | 'GARMIN_ZONES' | 'GARMIN_REMAPPED' | 'ESTIMATED'
 }
 
 /**
@@ -189,6 +189,120 @@ export function calculateFromGarminZones(
     result.zone5Seconds
 
   return result
+}
+
+/**
+ * Garmin's default zone boundaries as percentage of max HR
+ */
+const GARMIN_ZONE_PERCENTAGES = [
+  { zone: 1, min: 0.50, max: 0.60 },
+  { zone: 2, min: 0.60, max: 0.70 },
+  { zone: 3, min: 0.70, max: 0.80 },
+  { zone: 4, min: 0.80, max: 0.90 },
+  { zone: 5, min: 0.90, max: 1.00 },
+]
+
+/**
+ * Remap Garmin zone seconds to athlete's training zones
+ *
+ * Garmin defines zones as fixed percentages of max HR. Given the activity's
+ * max HR from Garmin, we can derive the HR boundaries of each Garmin zone,
+ * then redistribute the time into the athlete's own zones (from lactate testing)
+ * based on how the HR ranges overlap.
+ *
+ * Assumes uniform HR distribution within each Garmin zone.
+ *
+ * @param garminZones - Seconds per Garmin zone
+ * @param garminMaxHR - Max HR from the Garmin activity
+ * @param athleteZones - Athlete's 5 training zones (from lactate test)
+ * @returns Zone distribution remapped to athlete's zones
+ */
+export function remapGarminZonesToAthleteZones(
+  garminZones: GarminZoneSeconds,
+  garminMaxHR: number,
+  athleteZones: TrainingZone[]
+): ZoneDistribution {
+  const result: ZoneDistribution = {
+    zone1Seconds: 0,
+    zone2Seconds: 0,
+    zone3Seconds: 0,
+    zone4Seconds: 0,
+    zone5Seconds: 0,
+    totalTrackedSeconds: 0,
+    source: 'GARMIN_REMAPPED',
+  }
+
+  const sortedAthleteZones = [...athleteZones].sort((a, b) => a.zone - b.zone)
+
+  for (const gZone of GARMIN_ZONE_PERCENTAGES) {
+    const garminZoneKey = `zone${gZone.zone}` as keyof GarminZoneSeconds
+    const secondsInGarminZone = garminZones[garminZoneKey] ?? 0
+
+    if (secondsInGarminZone <= 0) continue
+
+    const garminLow = garminMaxHR * gZone.min
+    const garminHigh = garminMaxHR * gZone.max
+    const garminWidth = garminHigh - garminLow
+
+    if (garminWidth <= 0) continue
+
+    // Calculate overlap between this Garmin zone and each athlete zone
+    let totalOverlap = 0
+    const overlaps: { zone: number; overlap: number }[] = []
+
+    for (const aZone of sortedAthleteZones) {
+      const overlapLow = Math.max(garminLow, aZone.hrMin)
+      const overlapHigh = Math.min(garminHigh, aZone.hrMax)
+      const overlap = Math.max(0, overlapHigh - overlapLow)
+
+      if (overlap > 0) {
+        overlaps.push({ zone: aZone.zone, overlap })
+        totalOverlap += overlap
+      }
+    }
+
+    // No overlap: Garmin zone falls entirely outside athlete zone boundaries
+    // Assign all time to the closest athlete zone (mirrors getZoneForHR behavior)
+    if (totalOverlap === 0) {
+      const garminMid = (garminLow + garminHigh) / 2
+      const closestZone = getZoneForHR(garminMid, athleteZones)
+      addSecondsToZone(result, closestZone, secondsInGarminZone)
+      continue
+    }
+
+    // Distribute time proportionally based on HR range overlap
+    let distributed = 0
+    for (let i = 0; i < overlaps.length; i++) {
+      const { zone, overlap } = overlaps[i]
+      // Last overlap gets the remainder to avoid rounding drift
+      const seconds =
+        i === overlaps.length - 1
+          ? secondsInGarminZone - distributed
+          : Math.round(secondsInGarminZone * (overlap / totalOverlap))
+      addSecondsToZone(result, zone, seconds)
+      distributed += seconds
+    }
+  }
+
+  result.totalTrackedSeconds =
+    result.zone1Seconds +
+    result.zone2Seconds +
+    result.zone3Seconds +
+    result.zone4Seconds +
+    result.zone5Seconds
+
+  return result
+}
+
+/** Helper to add seconds to the correct zone bucket */
+function addSecondsToZone(result: ZoneDistribution, zone: number, seconds: number): void {
+  switch (zone) {
+    case 1: result.zone1Seconds += seconds; break
+    case 2: result.zone2Seconds += seconds; break
+    case 3: result.zone3Seconds += seconds; break
+    case 4: result.zone4Seconds += seconds; break
+    case 5: result.zone5Seconds += seconds; break
+  }
 }
 
 /**
