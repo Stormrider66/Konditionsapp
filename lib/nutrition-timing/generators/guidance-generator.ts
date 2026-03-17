@@ -65,6 +65,8 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
   } = input
 
   const weightKg = client.weightKg
+  const completedTodaysWorkouts = todaysWorkouts.filter((workout) => workout.status === 'COMPLETED')
+  // Calorie targets should only reflect completed work — not scheduled workouts
   const isRestDay = todaysWorkouts.length === 0
   const isDoubleDay = todaysWorkouts.length >= 2
   const goalType = goal?.goalType
@@ -75,8 +77,8 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
   // Calculate daily targets
   const targets = calculateDailyTargets(
     weightKg,
-    todaysWorkouts,
-    isRestDay,
+    completedTodaysWorkouts,
+    completedTodaysWorkouts.length === 0,
     goalType,
     bodyComposition?.bmrKcal
   )
@@ -98,7 +100,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
   )
 
   const postWorkoutGuidance = generatePostWorkoutGuidanceList(
-    todaysWorkouts,
+    completedTodaysWorkouts,
     preferences ?? undefined,
     weightKg,
     goalType

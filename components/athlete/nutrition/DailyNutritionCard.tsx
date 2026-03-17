@@ -58,6 +58,7 @@ interface WorkoutInfo {
   time?: string
   type?: string
   hasWorkout: boolean
+  isCompleted?: boolean
 }
 
 interface DailyNutritionCardProps {
@@ -201,8 +202,8 @@ export function DailyNutritionCard({
     }
   }
 
-  // Adjust goals for training day
-  const adjustedGoals = workoutInfo?.hasWorkout
+  // Adjust goals only when the workout is completed — scheduled but undone workouts shouldn't bump calories
+  const adjustedGoals = workoutInfo?.hasWorkout && workoutInfo.isCompleted
     ? {
         calories: goals.calories + 300,
         proteinGrams: goals.proteinGrams,
