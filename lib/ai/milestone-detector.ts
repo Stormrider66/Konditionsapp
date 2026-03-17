@@ -401,7 +401,7 @@ export async function createMilestoneNotification(
       triggeredBy: triggerKey,
       triggerReason: `Milestone achieved: ${milestone.type}`,
       scheduledFor: new Date(),
-      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+      expiresAt: endOfLocalDay(),
     },
   })
 
@@ -414,6 +414,12 @@ function getMilestoneTriggerKey(milestone: DetectedMilestone): string {
   }
 
   return `${milestone.type}:${milestone.value}`
+}
+
+function endOfLocalDay(): Date {
+  const now = new Date()
+  now.setHours(23, 59, 59, 999)
+  return now
 }
 
 async function processAthleteMilestones(

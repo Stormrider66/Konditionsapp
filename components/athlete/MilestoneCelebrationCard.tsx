@@ -107,7 +107,10 @@ export function MilestoneCelebrationCard() {
           const milestoneNotifications = (data.notifications || []).filter(
             (n: Notification) => n.notificationType === 'MILESTONE'
           )
-          setNotifications(dedupeMilestoneNotifications(milestoneNotifications))
+          const todaysMilestones = dedupeMilestoneNotifications(milestoneNotifications).filter(
+            (notification) => isSameLocalDay(notification.createdAt, new Date())
+          )
+          setNotifications(todaysMilestones)
 
           // Mark as read
           for (const n of milestoneNotifications) {
@@ -275,4 +278,13 @@ function getMilestoneNotificationKey(notification: Notification): string {
 
   const context = notification.contextData
   return `${context?.milestoneType || notification.title}:${context?.value || ''}`
+}
+
+function isSameLocalDay(dateString: string, targetDate: Date): boolean {
+  const date = new Date(dateString)
+  return (
+    date.getFullYear() === targetDate.getFullYear() &&
+    date.getMonth() === targetDate.getMonth() &&
+    date.getDate() === targetDate.getDate()
+  )
 }

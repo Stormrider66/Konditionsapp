@@ -7,8 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
-import { canAccessClient } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import {
   enqueueDailyMetricsPostWriteJob,
   processDailyMetricsPostWriteJobs,
@@ -17,20 +16,14 @@ import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import { logger } from '@/lib/logger'
 
 const dailyMetricsWriteInFlight = new Map<string, Promise<void>>()
-const clientAccessCache = new Map<string, { expiresAt: number; allowed: boolean }>()
 const dailyMetricsGetCache = createDistributedJsonCache<{ data: unknown }>('daily-metrics-get')
 const dailyMetricsGetInFlight = new Map<string, Promise<unknown>>()
 const dailyMetricsRecentWriteCache = new Map<
   string,
   { expiresAt: number; signature: string; payload: unknown }
 >()
-const authEmailCache = new Map<string, { expiresAt: number; email: string }>()
-const userIdByEmailCache = new Map<string, { expiresAt: number; userId: string }>()
-const authEmailInFlight = new Map<string, Promise<string>>()
-const userIdByEmailInFlight = new Map<string, Promise<string | null>>()
 
 const DAILY_METRICS_RECENT_WRITE_TTL_MS = 2 * 60 * 1000
-const AUTH_CONTEXT_TTL_MS = 30 * 1000
 
 export async function POST(request: NextRequest) {
   let activeWriteKey: string | null = null
@@ -38,11 +31,10 @@ export async function POST(request: NextRequest) {
   let rejectWriteLock: (reason?: unknown) => void = () => {}
 
   try {
-    const authResult = await resolveAuthenticatedUserId(request)
-    if (!authResult.ok) {
-      return authResult.response
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const dbUserId = authResult.userId
 
     const body = await request.json()
     const {
@@ -79,20 +71,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const accessCacheKey = `${dbUserId}:${clientId}`
-    const cachedAccess = clientAccessCache.get(accessCacheKey)
-    let hasAccess: boolean
-    if (cachedAccess && cachedAccess.expiresAt > Date.now()) {
-      hasAccess = cachedAccess.allowed
-    } else {
-      hasAccess = await canAccessClient(dbUserId, clientId)
-      clientAccessCache.set(accessCacheKey, {
-        expiresAt: Date.now() + 2 * 60 * 1000,
-        allowed: hasAccess,
-      })
-    }
-
-    if (!hasAccess) {
+    if (resolved.clientId !== clientId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
@@ -323,11 +302,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await resolveAuthenticatedUserId(request)
-    if (!authResult.ok) {
-      return authResult.response
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    const dbUserId = authResult.userId
 
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
@@ -339,24 +317,11 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    const accessCacheKey = `${dbUserId}:${clientId}`
-    const cachedAccess = clientAccessCache.get(accessCacheKey)
-    let hasAccess: boolean
-    if (cachedAccess && cachedAccess.expiresAt > Date.now()) {
-      hasAccess = cachedAccess.allowed
-    } else {
-      hasAccess = await canAccessClient(dbUserId, clientId)
-      clientAccessCache.set(accessCacheKey, {
-        expiresAt: Date.now() + 2 * 60 * 1000,
-        allowed: hasAccess,
-      })
-    }
-    if (!hasAccess) {
+    if (resolved.clientId !== clientId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    const cacheKey = `${dbUserId}:${clientId}:${days}`
+    const cacheKey = `${resolved.user.id}:${clientId}:${days}`
     const nowMs = Date.now()
     const cached = await dailyMetricsGetCache.get(cacheKey)
     if (cached && cached.expiresAt > nowMs) {
@@ -459,112 +424,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-async function resolveAuthenticatedUserId(
-  request: NextRequest
-): Promise<
-  | { ok: true; userId: string }
-  | { ok: false; response: NextResponse }
-> {
-  const forwardedEmail = request.headers.get('x-auth-user-email')
-  const authCacheKey = buildAuthCacheKey(request, forwardedEmail)
-  const nowMs = Date.now()
-
-  let authEmail = forwardedEmail
-  if (!authEmail) {
-    const cachedEmail = authEmailCache.get(authCacheKey)
-    if (cachedEmail && cachedEmail.expiresAt > nowMs) {
-      authEmail = cachedEmail.email
-    } else {
-      const inFlightEmail = authEmailInFlight.get(authCacheKey)
-      if (inFlightEmail) {
-        authEmail = await inFlightEmail
-      } else {
-        const resolveEmailPromise = (async () => {
-          const supabase = await createClient()
-          const {
-            data: { user },
-          } = await supabase.auth.getUser()
-          if (!user?.email) {
-            throw new Error('UNAUTHORIZED')
-          }
-          return user.email
-        })()
-        authEmailInFlight.set(authCacheKey, resolveEmailPromise)
-        try {
-          authEmail = await resolveEmailPromise
-        } catch (error) {
-          if (error instanceof Error && error.message === 'UNAUTHORIZED') {
-            return {
-              ok: false,
-              response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
-            }
-          }
-          throw error
-        } finally {
-          authEmailInFlight.delete(authCacheKey)
-        }
-      }
-      authEmailCache.set(authCacheKey, {
-        expiresAt: nowMs + AUTH_CONTEXT_TTL_MS,
-        email: authEmail,
-      })
-    }
-  }
-
-  const cachedUserId = userIdByEmailCache.get(authEmail)
-  if (cachedUserId && cachedUserId.expiresAt > nowMs) {
-    return { ok: true, userId: cachedUserId.userId }
-  }
-
-  const inFlightUserId = userIdByEmailInFlight.get(authEmail)
-  const resolvedUserId = inFlightUserId
-    ? await inFlightUserId
-    : await (() => {
-        const lookupPromise = prisma.user
-          .findUnique({
-            where: { email: authEmail },
-            select: { id: true },
-          })
-          .then(user => user?.id ?? null)
-        userIdByEmailInFlight.set(authEmail, lookupPromise)
-        return lookupPromise.finally(() => {
-          userIdByEmailInFlight.delete(authEmail)
-        })
-      })()
-
-  if (!resolvedUserId) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: 'User not found' }, { status: 404 }),
-    }
-  }
-
-  userIdByEmailCache.set(authEmail, {
-    expiresAt: nowMs + AUTH_CONTEXT_TTL_MS,
-    userId: resolvedUserId,
-  })
-
-  return { ok: true, userId: resolvedUserId }
-}
-
-function buildAuthCacheKey(request: NextRequest, forwardedEmail?: string | null): string {
-  if (forwardedEmail) {
-    return `forwarded:${forwardedEmail}`
-  }
-
-  const cookieHeader = request.headers.get('cookie') || ''
-  const supabaseSessionCookie = cookieHeader
-    .split(';')
-    .map(part => part.trim())
-    .find(part => part.startsWith('sb-') && part.includes('auth-token='))
-
-  if (supabaseSessionCookie) {
-    return `cookie:${supabaseSessionCookie}`
-  }
-
-  return `cookie:${cookieHeader.slice(0, 256)}`
 }
 
 function createDailyMetricsWriteSignature(body: Record<string, unknown>): string {
