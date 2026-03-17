@@ -293,7 +293,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
         },
         body: JSON.stringify({
           clientId,
-          date: new Date().toISOString(),
+          date: getLocalDateInputValue(),
           hrvRMSSD: data.hrvRMSSD || null,
           hrvQuality: data.hrvQuality || null,
           restingHR: data.restingHR || null,
@@ -1097,4 +1097,12 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
       )}
     </div>
   )
+}
+
+function getLocalDateInputValue(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }

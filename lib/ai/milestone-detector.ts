@@ -363,15 +363,13 @@ export async function createMilestoneNotification(
   clientId: string,
   milestone: DetectedMilestone
 ): Promise<string | null> {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  const triggerKey = getMilestoneTriggerKey(milestone)
 
   const existing = await prisma.aINotification.findFirst({
     where: {
       clientId,
       notificationType: 'MILESTONE',
-      triggeredBy: `${milestone.type}:${milestone.value}`,
-      createdAt: { gte: today },
+      triggeredBy: triggerKey,
     },
   })
 
@@ -400,7 +398,7 @@ export async function createMilestoneNotification(
         improvement: milestone.improvement,
         celebrationLevel: milestone.celebrationLevel,
       },
-      triggeredBy: `${milestone.type}:${milestone.value}`,
+      triggeredBy: triggerKey,
       triggerReason: `Milestone achieved: ${milestone.type}`,
       scheduledFor: new Date(),
       expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
@@ -408,6 +406,14 @@ export async function createMilestoneNotification(
   })
 
   return notification.id
+}
+
+function getMilestoneTriggerKey(milestone: DetectedMilestone): string {
+  if (milestone.type === 'PROGRAM_COMPLETED' || milestone.type === 'PERSONAL_RECORD') {
+    return `${milestone.type}:${milestone.title}`
+  }
+
+  return `${milestone.type}:${milestone.value}`
 }
 
 async function processAthleteMilestones(

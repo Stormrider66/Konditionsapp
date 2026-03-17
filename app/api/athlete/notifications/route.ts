@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
         actionUrl: true,
         actionLabel: true,
         contextData: true,
+        triggeredBy: true,
         readAt: true,
         createdAt: true,
         expiresAt: true,

@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     activeWriteKey = writeKey
     dailyMetricsWriteInFlight.set(writeKey, writeLockPromise)
 
-    const metricsDate = new Date(date)
+    const metricsDate = normalizeMetricsDate(date)
     const needsHrvAssessment = hrvRMSSD !== undefined && hrvQuality !== undefined
     const needsRhrAssessment = restingHR !== undefined
     const hasWellnessInputs =
@@ -570,7 +570,7 @@ function buildAuthCacheKey(request: NextRequest, forwardedEmail?: string | null)
 function createDailyMetricsWriteSignature(body: Record<string, unknown>): string {
   return JSON.stringify({
     clientId: body.clientId ?? null,
-    date: body.date ?? null,
+    date: typeof body.date === 'string' ? body.date.slice(0, 10) : body.date ?? null,
     hrvRMSSD: body.hrvRMSSD ?? null,
     hrvQuality: body.hrvQuality ?? null,
     hrvArtifactPercent: body.hrvArtifactPercent ?? null,
@@ -594,4 +594,9 @@ function createDailyMetricsWriteSignature(body: Record<string, unknown>): string
     requestPhysioContact: body.requestPhysioContact ?? null,
     physioContactReason: body.physioContactReason ?? null,
   })
+}
+
+function normalizeMetricsDate(input: string): Date {
+  const datePart = input.slice(0, 10)
+  return new Date(`${datePart}T00:00:00.000Z`)
 }

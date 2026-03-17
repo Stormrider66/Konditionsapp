@@ -35,6 +35,7 @@ interface Notification {
   message: string
   icon?: string
   contextData: ContextData
+  triggeredBy?: string | null
   readAt?: string
   createdAt: string
 }
@@ -106,7 +107,7 @@ export function MilestoneCelebrationCard() {
           const milestoneNotifications = (data.notifications || []).filter(
             (n: Notification) => n.notificationType === 'MILESTONE'
           )
-          setNotifications(milestoneNotifications)
+          setNotifications(dedupeMilestoneNotifications(milestoneNotifications))
 
           // Mark as read
           for (const n of milestoneNotifications) {
@@ -129,16 +130,22 @@ export function MilestoneCelebrationCard() {
     fetchNotifications()
   }, [])
 
-  async function handleDismiss(id: string) {
-    setDismissingId(id)
+  async function handleDismiss(notification: Notification) {
+    const relatedNotifications = notifications.filter((candidate) => (
+      getMilestoneNotificationKey(candidate) === getMilestoneNotificationKey(notification)
+    ))
+    const idsToDismiss = relatedNotifications.map((candidate) => candidate.id)
+    setDismissingId(notification.id)
 
     try {
-      await fetch(`/api/athlete/notifications/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'dismiss' }),
-      })
-      setNotifications((prev) => prev.filter((n) => n.id !== id))
+      await Promise.all(idsToDismiss.map((id) => (
+        fetch(`/api/athlete/notifications/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'dismiss' }),
+        })
+      )))
+      setNotifications((prev) => prev.filter((candidate) => !idsToDismiss.includes(candidate.id)))
     } catch (error) {
       console.error('Error dismissing notification:', error)
     } finally {
@@ -200,7 +207,7 @@ export function MilestoneCelebrationCard() {
                   variant="ghost"
                   size="icon"
                   className={cn('h-8 w-8 hover:bg-white/50', colors.textColor)}
-                  onClick={() => handleDismiss(notification.id)}
+                  onClick={() => handleDismiss(notification)}
                   disabled={dismissingId === notification.id}
                 >
                   {dismissingId === notification.id ? (
@@ -245,4 +252,27 @@ export function MilestoneCelebrationCard() {
       })}
     </div>
   )
+}
+
+function dedupeMilestoneNotifications(notifications: Notification[]): Notification[] {
+  const deduped = new Map<string, Notification>()
+
+  notifications.forEach((notification) => {
+    const key = getMilestoneNotificationKey(notification)
+    const existing = deduped.get(key)
+    if (!existing || new Date(notification.createdAt) > new Date(existing.createdAt)) {
+      deduped.set(key, notification)
+    }
+  })
+
+  return Array.from(deduped.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
+}
+
+function getMilestoneNotificationKey(notification: Notification): string {
+  if (notification.triggeredBy) return notification.triggeredBy
+
+  const context = notification.contextData
+  return `${context?.milestoneType || notification.title}:${context?.value || ''}`
 }
