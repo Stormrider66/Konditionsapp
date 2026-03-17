@@ -139,22 +139,28 @@ export async function GET() {
         duration: number | null
         distance: number | null
         day: { date: Date }
+        logs?: Array<{ completed: boolean; completedAt: Date | null }>
       },
       isToday: boolean
-    ): WorkoutContext => ({
-      id: w.id,
-      name: w.name,
-      type: w.type,
-      intensity: w.intensity,
-      duration: w.duration,
-      distance: w.distance,
-      scheduledTime: undefined, // day.date is just the calendar date (midnight), not an actual workout time
-      source: 'PROGRAM',
-      status: 'PLANNED',
-      isToday,
-      isTomorrow: !isToday,
-      daysUntil: isToday ? 0 : 1,
-    })
+    ): WorkoutContext => {
+      const log = w.logs?.[0]
+      const status = log?.completed ? 'COMPLETED' : 'PLANNED'
+
+      return {
+        id: w.id,
+        name: w.name,
+        type: w.type,
+        intensity: w.intensity,
+        duration: w.duration,
+        distance: w.distance,
+        scheduledTime: log?.completedAt ?? undefined,
+        source: 'PROGRAM',
+        status,
+        isToday,
+        isTomorrow: !isToday,
+        daysUntil: isToday ? 0 : 1,
+      }
+    }
 
     const mapAdHocTypeToWorkoutType = (parsed: ParsedWorkout | null): WorkoutType => {
       if (!parsed) return 'OTHER'
@@ -181,13 +187,7 @@ export async function GET() {
       return parsed.sport === 'HYROX' ? 'HYROX' : 'OTHER'
     }
 
-    // Filter out completed workouts - nutrition guidance only applies to upcoming/incomplete workouts
-    const incompleteWorkouts = todaysWorkoutsRaw.filter((w) => {
-      const log = w.logs?.[0]
-      return !log?.completed // Only include if not completed
-    })
-
-    const todaysWorkouts = incompleteWorkouts.map((w) => mapToContext(w, true))
+    const todaysWorkouts = todaysWorkoutsRaw.map((w) => mapToContext(w, true))
     const tomorrowsWorkouts = tomorrowsWorkoutsRaw.map((w) => mapToContext(w, false))
 
     // Map AI WODs to WorkoutContext and add to today's workouts (exclude completed ones)
@@ -312,6 +312,7 @@ export async function GET() {
       clientId: client.id,
       isRestDay: guidance.isRestDay,
       todaysWorkoutsCount: allTodaysWorkouts.length,
+      completedTodaysWorkoutsCount: allTodaysWorkouts.filter((workout) => workout.status === 'COMPLETED').length,
       programWorkouts: todaysWorkouts.length,
       aiWods: aiWodContexts.length,
       adHocWorkouts: adHocContexts.length,

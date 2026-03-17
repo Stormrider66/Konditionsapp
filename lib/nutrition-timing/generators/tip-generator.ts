@@ -112,6 +112,7 @@ function findUpcomingWorkout(
   currentTime: Date
 ): WorkoutContext | undefined {
   return workouts.find((w) => {
+    if (w.status === 'COMPLETED') return false
     if (!w.scheduledTime) return true // Assume upcoming if no time set
     return w.scheduledTime > currentTime
   })
@@ -123,6 +124,7 @@ function findRecentlyCompletedWorkout(
 ): WorkoutContext | undefined {
   const twoHoursAgo = new Date(currentTime.getTime() - 2 * 60 * 60 * 1000)
   return workouts.find((w) => {
+    if (w.status !== 'COMPLETED') return false
     if (!w.scheduledTime) return false
     return w.scheduledTime < currentTime && w.scheduledTime > twoHoursAgo
   })
