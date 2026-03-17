@@ -588,19 +588,15 @@ export async function canAccessWorkout(
 ): Promise<boolean> {
   const workout = await prisma.workout.findUnique({
     where: { id: workoutId },
-    include: {
+    select: {
       day: {
-        include: {
+        select: {
           week: {
-            include: {
+            select: {
               program: {
-                include: {
-                  client: {
-                    include: {
-                      athleteAccount: true,
-                    },
-                  },
-                },
+                select: {
+                  clientId: true,
+                }
               },
             },
           },
@@ -610,27 +606,7 @@ export async function canAccessWorkout(
   })
 
   if (!workout) return false
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-  })
-
-  if (!user) return false
-
-  // Admins can access everything
-  if (user.role === 'ADMIN') return true
-
-  // Professionals with coach capability can access workouts in programs they created
-  if (await canAccessCoachPlatform(userId)) {
-    return workout.day.week.program.coachId === userId
-  }
-
-  // Athletes can access workouts in their programs
-  if (user.role === 'ATHLETE') {
-    return workout.day.week.program.client.athleteAccount?.userId === userId
-  }
-
-  return false
+  return canAccessClient(userId, workout.day.week.program.clientId)
 }
 
 /**
