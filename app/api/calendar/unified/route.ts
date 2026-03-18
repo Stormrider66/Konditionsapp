@@ -22,7 +22,7 @@ import { performance } from 'node:perf_hooks'
 
 export interface UnifiedCalendarItem {
   id: string
-  type: 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN' | 'WOD' | 'AD_HOC'
+  type: 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN' | 'WOD' | 'AD_HOC' | 'GARMIN'
   title: string
   description?: string | null
   date: Date
@@ -791,7 +791,36 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
         })
     : Promise.resolve([])
 
-  const [workouts, races, fieldTests, events, checkIns, wods, adHocWorkouts] = await Promise.all([
+  // Garmin activities
+  const garminPromise = clientId
+    ? prisma.garminActivity.findMany({
+        where: {
+          clientId,
+          startDate: { gte: startDate, lte: endDate },
+        },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          mappedType: true,
+          startDate: true,
+          distance: true,
+          duration: true,
+          averageHeartrate: true,
+          maxHeartrate: true,
+          averageSpeed: true,
+          averageWatts: true,
+          calories: true,
+          tss: true,
+          deviceName: true,
+          indoor: true,
+        },
+        take: maxItemsPerSource,
+        orderBy: { startDate: 'asc' },
+      })
+    : Promise.resolve([])
+
+  const [workouts, races, fieldTests, events, checkIns, wods, adHocWorkouts, garminActivities] = await Promise.all([
     workoutsPromise,
     racesPromise,
     fieldTestsPromise,
@@ -799,6 +828,7 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
     checkInsPromise,
     wodsPromise,
     adHocPromise,
+    garminPromise,
   ])
 
   const needsItems = includeItems || includeGroupedByDate
@@ -812,6 +842,7 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
     checkIns: 0,
     wods: 0,
     adHoc: 0,
+    garmin: 0,
   }
 
   for (const workout of workouts) {
@@ -1023,6 +1054,45 @@ async function buildUnifiedCalendarPayload(input: BuildUnifiedCalendarPayloadInp
               feeling: parsed?.feeling,
               confidence: (adHoc as any).parsingConfidence,
             }),
+      },
+    })
+  }
+
+  for (const garmin of garminActivities) {
+    counts.total += 1
+    counts.garmin += 1
+    if (!needsItems) continue
+    const distanceKm = garmin.distance ? garmin.distance / 1000 : null
+    const durationMin = garmin.duration ? Math.round(garmin.duration / 60) : null
+    let pace: string | null = null
+    if (garmin.averageSpeed && garmin.distance && garmin.distance > 0) {
+      const secPerKm = 1000 / garmin.averageSpeed
+      const min = Math.floor(secPerKm / 60)
+      const sec = Math.round(secPerKm % 60)
+      pace = `${min}:${sec.toString().padStart(2, '0')}/km`
+    }
+    items.push({
+      id: garmin.id,
+      type: 'GARMIN',
+      title: garmin.name || garmin.type || 'Garmin Activity',
+      description: null,
+      date: garmin.startDate,
+      status: 'COMPLETED',
+      metadata: {
+        workoutType: garmin.mappedType || garmin.type,
+        garminType: garmin.type,
+        isCompleted: true,
+        duration: durationMin,
+        distance: distanceKm,
+        avgHR: garmin.averageHeartrate,
+        maxHR: garmin.maxHeartrate,
+        pace,
+        avgPower: garmin.averageWatts,
+        calories: garmin.calories,
+        tss: garmin.tss,
+        deviceName: garmin.deviceName,
+        indoor: garmin.indoor,
+        source: 'garmin',
       },
     })
   }
