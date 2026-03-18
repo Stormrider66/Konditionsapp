@@ -96,6 +96,10 @@ const ACTIVITY_TYPE_MAP: Record<string, { type: string; intensity: string }> = {
   RESORT_SKIING: { type: 'SKIING', intensity: 'MODERATE' },
   BACKCOUNTRY_SKIING: { type: 'SKIING', intensity: 'HARD' },
   STRENGTH_TRAINING: { type: 'STRENGTH', intensity: 'MODERATE' },
+  INDOOR_CARDIO: { type: 'CROSS_TRAINING', intensity: 'MODERATE' },
+  HIIT: { type: 'STRENGTH', intensity: 'HARD' },
+  ELLIPTICAL: { type: 'CROSS_TRAINING', intensity: 'MODERATE' },
+  STAIR_CLIMBING: { type: 'CROSS_TRAINING', intensity: 'MODERATE' },
   YOGA: { type: 'RECOVERY', intensity: 'EASY' },
   PILATES: { type: 'RECOVERY', intensity: 'EASY' },
 };

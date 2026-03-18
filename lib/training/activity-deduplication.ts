@@ -174,8 +174,12 @@ function checkMatch(
     return { isMatch: false, reason: 'different_day', confidence: 0 }
   }
 
-  // Must be same or compatible type
-  if (!areTypesCompatible(a.type, b.type)) {
+  // Check type compatibility — but allow "OTHER" to match anything
+  // since Garmin raw types (INDOOR_CARDIO, etc.) often map to OTHER
+  const typesCompatible = areTypesCompatible(a.type, b.type)
+  const hasOtherType = a.type === 'OTHER' || b.type === 'OTHER'
+
+  if (!typesCompatible && !hasOtherType) {
     return { isMatch: false, reason: 'incompatible_type', confidence: 0 }
   }
 
@@ -235,6 +239,10 @@ function checkMatch(
   if (a.type === b.type) {
     confidence += 0.1
     reasons.push('exact_type')
+  } else if (hasOtherType && !typesCompatible) {
+    // One side is OTHER (unmapped Garmin type) — slight penalty but don't block
+    confidence -= 0.05
+    reasons.push('other_type_fuzzy')
   }
 
   // Threshold for considering a match
@@ -261,13 +269,14 @@ function areTypesCompatible(typeA: string, typeB: string): boolean {
 
   // Compatible type groups
   const compatibleGroups: string[][] = [
-    ['RUNNING', 'RUN', 'TRAIL_RUNNING', 'TRAIL_RUN', 'TREADMILL'],
-    ['CYCLING', 'RIDE', 'VIRTUAL_RIDE', 'INDOOR_CYCLING', 'INDOOR_RIDE'],
+    ['RUNNING', 'RUN', 'TRAIL_RUNNING', 'TRAIL_RUN', 'TREADMILL', 'INDOOR_RUNNING', 'TREADMILL_RUNNING'],
+    ['CYCLING', 'RIDE', 'VIRTUAL_RIDE', 'INDOOR_CYCLING', 'INDOOR_RIDE', 'MOUNTAIN_BIKING', 'GRAVEL_CYCLING'],
     ['ROWING', 'INDOOR_ROWING', 'ROWER'],
-    ['SKIING', 'SKIERG', 'CROSS_COUNTRY_SKI', 'NORDIC_SKI'],
-    ['SWIMMING', 'SWIM', 'POOL_SWIM', 'OPEN_WATER_SWIM'],
-    ['STRENGTH', 'WEIGHT_TRAINING', 'WEIGHTS', 'GYM'],
+    ['SKIING', 'SKIERG', 'CROSS_COUNTRY_SKI', 'NORDIC_SKI', 'CROSS_COUNTRY_SKIING', 'RESORT_SKIING', 'BACKCOUNTRY_SKIING'],
+    ['SWIMMING', 'SWIM', 'POOL_SWIM', 'OPEN_WATER_SWIM', 'POOL_SWIMMING', 'OPEN_WATER_SWIMMING'],
+    ['STRENGTH', 'WEIGHT_TRAINING', 'WEIGHTS', 'GYM', 'STRENGTH_TRAINING', 'INDOOR_CARDIO', 'HIIT', 'CARDIO', 'CROSS_TRAINING', 'FUNCTIONAL_FITNESS'],
     ['WALKING', 'WALK', 'HIKE', 'HIKING'],
+    ['RECOVERY', 'YOGA', 'PILATES', 'STRETCHING'],
   ]
 
   for (const group of compatibleGroups) {
