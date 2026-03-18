@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPolicyPage() {
-  const lastUpdated = '2026-02-21'
+  const lastUpdated = '2026-03-18'
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -148,6 +148,51 @@ export default function PrivacyPolicyPage() {
                   <p>
                     Payments are processed by Stripe. We do not store credit card numbers. Stripe&apos;s
                     privacy policy governs payment data processing.
+                  </p>
+
+                  <h3 className="text-lg font-semibold mt-4 mb-2">6.5 AI Processing of Device-Sourced Data (Garmin)</h3>
+                  <p>
+                    When you connect your Garmin account, data from your Garmin device (including heart rate
+                    variability, resting heart rate, sleep patterns, stress levels, and activity metrics) may
+                    be used as input to our AI-powered features. This section describes how we use this data
+                    in compliance with Garmin&apos;s data sharing requirements.
+                  </p>
+
+                  <h4 className="text-base font-semibold mt-3 mb-1">Nature and Purpose of AI Processing</h4>
+                  <p>Garmin device-sourced data is processed by AI systems for the following purposes:</p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li><strong>Readiness scoring</strong> &mdash; Your HRV, resting heart rate, and sleep data are analyzed to calculate a daily readiness score that indicates your body&apos;s recovery state</li>
+                    <li><strong>Training recommendations</strong> &mdash; AI models use your Garmin activity history, training load, and recovery data to suggest appropriate training intensity and volume</li>
+                    <li><strong>Program generation</strong> &mdash; When generating personalized training programs, the AI considers your Garmin-derived fitness level, training patterns, and recovery trends</li>
+                    <li><strong>Daily workout adjustments</strong> &mdash; Daily workout suggestions (WOD) are adjusted based on your current readiness, sleep quality, and recent training load from Garmin data</li>
+                    <li><strong>Pattern and milestone detection</strong> &mdash; The system analyzes trends in your Garmin data to identify fitness improvements, overtraining risks, and notable achievements</li>
+                  </ul>
+                  <p>
+                    When Garmin data is used in AI-derived insights, this is clearly indicated in the user
+                    interface with the notice: &quot;Insights derived in part from Garmin device-sourced data.&quot;
+                    Trainomics does not claim that any AI-generated insight is endorsed by or affiliated with Garmin.
+                  </p>
+
+                  <h4 className="text-base font-semibold mt-3 mb-1">Consent and Control</h4>
+                  <p>
+                    AI processing of your Garmin data requires your explicit consent, which you provide when:
+                  </p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li>You connect your Garmin account and authorize data sharing via the Garmin Connect consent screen</li>
+                    <li>You use AI-powered features that incorporate your Garmin data (such as readiness-based workout recommendations)</li>
+                  </ul>
+
+                  <h4 className="text-base font-semibold mt-3 mb-1">Withdrawing Consent</h4>
+                  <p>You can withdraw consent for AI processing of your Garmin data at any time by:</p>
+                  <ul className="list-disc pl-6 space-y-1">
+                    <li><strong>Disconnecting Garmin</strong> &mdash; Go to Settings &rarr; Integrations &rarr; Garmin Connect &rarr; &quot;Koppla bort&quot; (Disconnect). This immediately stops all data collection and AI processing of Garmin data</li>
+                    <li><strong>Revoking access in Garmin Connect</strong> &mdash; You can also revoke Trainomics&apos; access directly from the Garmin Connect app or website</li>
+                    <li><strong>Contacting us</strong> &mdash; Email privacy@trainomics.app to request deletion of all stored Garmin data</li>
+                  </ul>
+                  <p>
+                    Withdrawing consent does not affect the lawfulness of processing carried out before
+                    withdrawal. Previously generated AI insights based on Garmin data will remain in your
+                    account history unless you request their deletion.
                   </p>
                 </Section>
 
