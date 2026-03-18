@@ -430,6 +430,11 @@ async function processActivity(activity: GarminActivity & { userId?: string; dev
   if (!activity.activityDurationInSeconds && activity.durationInSeconds) {
     activity.activityDurationInSeconds = activity.durationInSeconds
   }
+
+  // Estimate duration from distance/speed if still missing
+  if (!activity.activityDurationInSeconds && activity.distanceInMeters && activity.averageSpeedInMetersPerSecond && activity.averageSpeedInMetersPerSecond > 0) {
+    activity.activityDurationInSeconds = Math.round(activity.distanceInMeters / activity.averageSpeedInMetersPerSecond)
+  }
   const clientId = await findClientId(activity.userId);
   if (!clientId) {
     logger.warn('No client found for Garmin activity')
