@@ -36,6 +36,7 @@ import {
   GarminActivity,
   GarminSleepData,
   GarminHRVData,
+  GarminBodyComposition,
 } from '@/lib/integrations/garmin/client';
 
 // Garmin requires minimum 10MB payload acceptance (100MB for activity details).
@@ -189,6 +190,7 @@ export async function POST(request: NextRequest) {
       hasActivities: Array.isArray(payload?.activities),
       hasActivityDetails: Array.isArray(payload?.activityDetails),
       hasSleeps: Array.isArray(payload?.sleeps),
+      hasBodyComps: Array.isArray(payload?.bodyComps),
       hasHrv: Array.isArray(payload?.hrv),
       hasDeregistrations: Array.isArray(payload?.deregistrations),
       hasUserPermissionsChange: Array.isArray(payload?.userPermissionsChange),
@@ -200,6 +202,7 @@ export async function POST(request: NextRequest) {
       activities: 0,
       activityDetails: 0,
       sleeps: 0,
+      bodyComps: 0,
       hrv: 0,
       deregistrations: 0,
       permissionChanges: 0,
@@ -250,6 +253,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Process body composition data
+    if (payload.bodyComps && Array.isArray(payload.bodyComps)) {
+      for (const bodyComp of payload.bodyComps) {
+        try {
+          await processBodyComposition(bodyComp);
+          results.bodyComps++;
+        } catch (error) {
+          results.errors.push(`BodyComp ${bodyComp.summaryId ?? bodyComp.measurementTimeInSeconds ?? 'unknown'}: ${error instanceof Error ? error.message : 'Unknown'}`);
+        }
+      }
+    }
+
     // Process HRV data
     if (payload.hrv && Array.isArray(payload.hrv)) {
       for (const hrv of payload.hrv) {
@@ -291,6 +306,7 @@ export async function POST(request: NextRequest) {
       activities: results.activities,
       activityDetails: results.activityDetails,
       sleeps: results.sleeps,
+      bodyComps: results.bodyComps,
       hrv: results.hrv,
       deregistrations: results.deregistrations,
       permissionChanges: results.permissionChanges,
@@ -589,6 +605,127 @@ async function processSleepData(sleep: GarminSleepData & { userId?: string }) {
 }
 
 /**
+ * Process body composition data from webhook
+ */
+async function processBodyComposition(bodyComp: GarminBodyComposition) {
+  const clientId = await findClientId(bodyComp.userId);
+  if (!clientId) {
+    logger.warn('No client found for Garmin body composition data');
+    return;
+  }
+
+  const measurementDate = getBodyCompMeasurementDate(bodyComp);
+  const weightKg = gramsToKg(bodyComp.weightInGrams) ?? bodyComp.weightInKilograms ?? null;
+  const bodyFatPercent = bodyComp.bodyFatInPercent ?? bodyComp.bodyFatPercent ?? null;
+  const muscleMassKg =
+    gramsToKg(bodyComp.skeletalMuscleMassInGrams)
+    ?? gramsToKg(bodyComp.muscleMassInGrams)
+    ?? bodyComp.muscleMassInKilograms
+    ?? null;
+  const boneMassKg = gramsToKg(bodyComp.boneMassInGrams) ?? bodyComp.boneMassInKilograms ?? null;
+  const waterPercent = bodyComp.bodyWaterInPercent ?? bodyComp.totalBodyWaterInPercent ?? null;
+  const visceralFat = bodyComp.visceralFatRating ?? null;
+  const bmrKcal = bodyComp.basalMetabolicRateInCalories ?? null;
+  const metabolicAge = bodyComp.metabolicAge ?? null;
+
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: { height: true },
+  });
+
+  const bmi = weightKg && client?.height
+    ? Math.round((weightKg / Math.pow(client.height / 100, 2)) * 10) / 10
+    : null;
+
+  const ffmi = weightKg && bodyFatPercent && client?.height
+    ? Math.round((((weightKg * (1 - bodyFatPercent / 100)) / Math.pow(client.height / 100, 2)) * 10)) / 10
+    : null;
+
+  await prisma.bodyComposition.upsert({
+    where: {
+      clientId_measurementDate: {
+        clientId,
+        measurementDate,
+      },
+    },
+    update: {
+      weightKg,
+      bodyFatPercent,
+      muscleMassKg,
+      visceralFat,
+      boneMassKg,
+      waterPercent,
+      bmrKcal,
+      metabolicAge,
+      bmi,
+      ffmi,
+      deviceBrand: 'Garmin',
+      notes: buildGarminBodyCompNotes(bodyComp),
+      updatedAt: new Date(),
+    },
+    create: {
+      clientId,
+      measurementDate,
+      weightKg,
+      bodyFatPercent,
+      muscleMassKg,
+      visceralFat,
+      boneMassKg,
+      waterPercent,
+      bmrKcal,
+      metabolicAge,
+      bmi,
+      ffmi,
+      deviceBrand: 'Garmin',
+      notes: buildGarminBodyCompNotes(bodyComp),
+    },
+  });
+
+  const existingMetrics = await prisma.dailyMetrics.findUnique({
+    where: {
+      clientId_date: {
+        clientId,
+        date: measurementDate,
+      },
+    },
+  });
+
+  const factorScores = (existingMetrics?.factorScores as Record<string, unknown>) || {};
+  const bodyCompSnapshot = {
+    weightKg,
+    bodyFatPercent,
+    muscleMassKg,
+    boneMassKg,
+    waterPercent,
+    visceralFat,
+    bmrKcal,
+    metabolicAge,
+    syncedAt: new Date().toISOString(),
+    source: 'webhook',
+  };
+
+  await prisma.dailyMetrics.upsert({
+    where: {
+      clientId_date: {
+        clientId,
+        date: measurementDate,
+      },
+    },
+    update: {
+      factorScores: { ...factorScores, garminBodyComposition: bodyCompSnapshot },
+      updatedAt: new Date(),
+    },
+    create: {
+      clientId,
+      date: measurementDate,
+      factorScores: { garminBodyComposition: bodyCompSnapshot },
+    },
+  });
+
+  logger.debug('Synced Garmin body composition', { clientId, date: measurementDate.toISOString().slice(0, 10) });
+}
+
+/**
  * Process HRV data from webhook
  */
 async function processHRVData(hrv: GarminHRVData & { userId?: string }) {
@@ -847,4 +984,30 @@ async function findClientId(userId?: string): Promise<string | null> {
   })
 
   return token?.clientId ?? null
+}
+
+function gramsToKg(value?: number): number | null {
+  if (typeof value !== 'number' || Number.isNaN(value)) return null;
+  return Math.round((value / 1000) * 100) / 100;
+}
+
+function getBodyCompMeasurementDate(bodyComp: GarminBodyComposition): Date {
+  if (bodyComp.calendarDate) return new Date(bodyComp.calendarDate);
+
+  const unixSeconds = bodyComp.measurementTimeInSeconds ?? bodyComp.startTimeInSeconds;
+  if (typeof unixSeconds === 'number') {
+    const timestamp = new Date(unixSeconds * 1000);
+    return new Date(timestamp.toISOString().slice(0, 10));
+  }
+
+  return new Date(new Date().toISOString().slice(0, 10));
+}
+
+function buildGarminBodyCompNotes(bodyComp: GarminBodyComposition): string | null {
+  const extra: string[] = [];
+
+  if (bodyComp.summaryId) extra.push(`summaryId=${bodyComp.summaryId}`);
+  if (bodyComp.physiqueRating !== undefined) extra.push(`physiqueRating=${String(bodyComp.physiqueRating)}`);
+
+  return extra.length > 0 ? `Garmin webhook: ${extra.join(', ')}` : 'Garmin webhook';
 }

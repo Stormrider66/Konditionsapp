@@ -104,6 +104,29 @@ export interface GarminHRVData {
   status?: 'LOW' | 'UNBALANCED' | 'BALANCED' | 'HIGH';
 }
 
+export interface GarminBodyComposition {
+  userId?: string;
+  summaryId?: string;
+  calendarDate?: string;
+  measurementTimeInSeconds?: number;
+  startTimeInSeconds?: number;
+  weightInGrams?: number;
+  weightInKilograms?: number;
+  bodyFatInPercent?: number;
+  bodyFatPercent?: number;
+  skeletalMuscleMassInGrams?: number;
+  muscleMassInGrams?: number;
+  muscleMassInKilograms?: number;
+  boneMassInGrams?: number;
+  boneMassInKilograms?: number;
+  bodyWaterInPercent?: number;
+  totalBodyWaterInPercent?: number;
+  visceralFatRating?: number;
+  basalMetabolicRateInCalories?: number;
+  metabolicAge?: number;
+  physiqueRating?: string | number;
+}
+
 /**
  * Garmin Activity Details - More detailed activity data
  * including samples and HR zone information
