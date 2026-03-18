@@ -29,6 +29,7 @@ import {
 import { WorkoutHistoryCharts } from '@/components/athlete/WorkoutHistoryCharts'
 import { PersonalRecords } from '@/components/athlete/PersonalRecords'
 import { ExportDataButton } from '@/components/athlete/ExportDataButton'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 import {
   GlassCard,
   GlassCardHeader,
@@ -94,8 +95,8 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
     },
   }
 
-  // Fetch workout logs, ad-hoc workouts, and all 4 assignment types in parallel
-  const [logs, adHocWorkouts, strengthAssignments, cardioAssignments, hybridAssignments, agilityAssignments, completedWODs] = await Promise.all([
+  // Fetch workout logs, ad-hoc workouts, Garmin activities, and all assignment types in parallel
+  const [logs, adHocWorkouts, garminActivities, strengthAssignments, cardioAssignments, hybridAssignments, agilityAssignments, completedWODs] = await Promise.all([
     prisma.workoutLog.findMany({
       where: whereClause,
       include: {
@@ -141,6 +142,14 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
       orderBy: {
         workoutDate: 'desc',
       },
+    }),
+    // Garmin synced activities
+    prisma.garminActivity.findMany({
+      where: {
+        clientId,
+        startDate: { gte: startDate, lte: now },
+      },
+      orderBy: { startDate: 'desc' },
     }),
     // Completed strength session assignments
     prisma.strengthSessionAssignment.findMany({
@@ -214,13 +223,17 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
   // Parse ad-hoc workout data
   const adHocWithParsedData = adHocWorkouts.map((adHoc) => {
     const parsed = adHoc.parsedStructure as any
+    // Distance in parsedStructure is stored in meters — convert to km for display
+    const distanceKm = parsed?.distance
+      ? (parsed.distance >= 100 ? parsed.distance / 1000 : parsed.distance)
+      : null
     return {
       id: adHoc.id,
       workoutDate: adHoc.workoutDate,
       name: parsed?.name || adHoc.workoutName || 'Ad-hoc pass',
       type: parsed?.type || 'OTHER',
       sport: parsed?.sport,
-      distance: parsed?.distance,
+      distance: distanceKm,
       duration: parsed?.duration,
       perceivedEffort: parsed?.perceivedEffort,
       isAdHoc: true,
@@ -292,21 +305,38 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
     linkHref: `${basePath}/athlete/wod/${wod.id}`,
   }))
 
-  // Calculate stats (including ad-hoc workouts, assignments, and WODs)
-  const totalWorkouts = logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length
+  // Map Garmin activities
+  const garminItems = garminActivities.map((a) => ({
+    id: a.id,
+    date: a.startDate,
+    name: a.name || a.type || 'Garmin Activity',
+    type: a.mappedType || a.type || 'OTHER',
+    duration: a.duration ? Math.round(a.duration / 60) : null, // seconds → minutes
+    perceivedEffort: null as number | null,
+    distance: a.distance ? a.distance / 1000 : null, // meters → km
+    source: 'garmin' as const,
+    deviceName: a.deviceName || null,
+    linkHref: undefined as string | undefined,
+  }))
+
+  // Calculate stats (including ad-hoc workouts, assignments, WODs, and Garmin)
+  const totalWorkouts = logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length + garminItems.length
   const totalDistance = logs.reduce((sum, log) => sum + (log.distance || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.distance || 0), 0) +
-    allAssignmentItems.reduce((sum, a) => sum + (a.distance || 0), 0)
+    allAssignmentItems.reduce((sum, a) => sum + (a.distance || 0), 0) +
+    garminItems.reduce((sum, a) => sum + (a.distance || 0), 0)
   const totalDuration = logs.reduce((sum, log) => sum + (log.duration || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.duration || 0), 0) +
     allAssignmentItems.reduce((sum, a) => sum + (a.duration || 0), 0) +
-    wodItems.reduce((sum, w) => sum + (w.duration || 0), 0)
+    wodItems.reduce((sum, w) => sum + (w.duration || 0), 0) +
+    garminItems.reduce((sum, a) => sum + (a.duration || 0), 0)
 
   const allEfforts = [
     ...logs.filter(log => log.perceivedEffort).map(log => log.perceivedEffort!),
     ...adHocWithParsedData.filter(w => w.perceivedEffort).map(w => w.perceivedEffort!),
     ...allAssignmentItems.filter(a => a.perceivedEffort).map(a => a.perceivedEffort!),
     ...wodItems.filter(w => w.perceivedEffort).map(w => w.perceivedEffort!),
+    // Garmin activities don't have RPE
   ]
   const avgRPE = allEfforts.length > 0
     ? (allEfforts.reduce((sum, e) => sum + e, 0) / allEfforts.length).toFixed(1)
@@ -327,6 +357,7 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
     workoutId?: string
     source?: string
     linkHref?: string
+    deviceName?: string | null
   }
 
   const historyItems: HistoryItem[] = [
@@ -379,6 +410,19 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
       isAdHoc: false,
       source: w.source,
       linkHref: w.linkHref,
+    })),
+    ...garminItems.map((a) => ({
+      id: a.id,
+      date: a.date,
+      name: a.name,
+      type: a.type,
+      programName: undefined,
+      distance: a.distance,
+      duration: a.duration,
+      perceivedEffort: a.perceivedEffort,
+      isAdHoc: false,
+      source: 'garmin' as const,
+      deviceName: a.deviceName,
     })),
   ]
     .filter((item) => !sp.type || item.type === sp.type)
@@ -634,14 +678,19 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
                                 AI-Chatt
                               </span>
                             )}
-                            {item.source && !['wod', 'ai-chat'].includes(item.source) && (
+                            {item.source === 'garmin' && (
+                              <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                Garmin
+                              </span>
+                            )}
+                            {item.source && !['wod', 'ai-chat', 'garmin'].includes(item.source) && (
                               <span className="inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                 Studio
                               </span>
                             )}
                           </div>
                           <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                            {item.programName || (item.isAdHoc ? 'Eget pass' : item.source === 'wod' ? 'AI-genererat pass' : item.source === 'ai-chat' ? 'AI-chatt pass' : item.source ? 'Studio-pass' : '-')}
+                            {item.programName || (item.isAdHoc ? 'Eget pass' : item.source === 'garmin' ? (item.deviceName || 'Garmin Connect') : item.source === 'wod' ? 'AI-genererat pass' : item.source === 'ai-chat' ? 'AI-chatt pass' : item.source ? 'Studio-pass' : '-')}
                           </div>
                         </Link>
                       </TableCell>
@@ -720,6 +769,8 @@ function formatWorkoutType(type: string): string {
     SWIMMING: 'Simning',
     ROWING: 'Rodd',
     WALKING: 'Promenad',
+    CROSS_TRAINING: 'Kondition',
+    HYROX: 'HYROX',
   }
   return types[type] || type
 }
