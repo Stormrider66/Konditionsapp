@@ -25,7 +25,6 @@ import { useToast } from '@/hooks/use-toast'
 import {
   Link2,
   CheckCircle2,
-  XCircle,
   RefreshCw,
   Activity,
   Watch,
@@ -211,6 +210,34 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
         variant: 'destructive',
       })
       setConnecting(prev => ({ ...prev, concept2: false }))
+    }
+  }
+
+  const connectGarmin = async () => {
+    setConnecting(prev => ({ ...prev, garmin: true }))
+    try {
+      const response = await fetch('/api/integrations/garmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.authUrl) {
+          window.location.href = data.authUrl
+        }
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to connect')
+      }
+    } catch (error) {
+      toast({
+        title: 'Anslutningsfel',
+        description: error instanceof Error ? error.message : 'Kunde inte ansluta till Garmin',
+        variant: 'destructive',
+      })
+      setConnecting(prev => ({ ...prev, garmin: false }))
     }
   }
 
@@ -503,7 +530,20 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                   </Button>
                 </>
               ) : (
-                <XCircle className="h-4 w-4 text-slate-600" />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={connectGarmin}
+                  disabled={connecting.garmin}
+                  className="h-7 text-xs border-white/10 text-slate-300 hover:text-white hover:bg-white/10"
+                >
+                  {connecting.garmin ? (
+                    <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <Link2 className="h-3 w-3 mr-1" />
+                  )}
+                  Anslut
+                </Button>
               )}
             </div>
           </div>
@@ -679,7 +719,20 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
                 </Button>
               </>
             ) : (
-              <XCircle className="h-4 w-4 text-gray-400" />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={connectGarmin}
+                disabled={connecting.garmin}
+                className="h-7 text-xs"
+              >
+                {connecting.garmin ? (
+                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Link2 className="h-3 w-3 mr-1" />
+                )}
+                Anslut
+              </Button>
             )}
           </div>
         </div>
