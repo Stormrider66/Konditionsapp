@@ -718,7 +718,9 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
                         )}
                       </TableCell>
                       <TableCell className="py-5 text-right">
-                        {item.isAdHoc ? (
+                        {item.source === 'garmin' ? (
+                          <GarminAttribution deviceModel={item.deviceName} />
+                        ) : item.isAdHoc ? (
                           <Link href={`${basePath}/athlete/ad-hoc/${item.id}`}>
                             <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
                               Visa
