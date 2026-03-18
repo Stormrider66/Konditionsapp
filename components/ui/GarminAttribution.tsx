@@ -77,7 +77,7 @@ export function GarminAttribution({
         unoptimized
       />
       {deviceModel ? (
-        <span>Garmin {deviceModel}</span>
+        <span>{deviceModel.startsWith('Garmin') ? deviceModel : `Garmin ${deviceModel}`}</span>
       ) : (
         <span>Garmin Connect&trade;</span>
       )}
