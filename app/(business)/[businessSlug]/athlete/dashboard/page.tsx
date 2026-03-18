@@ -44,7 +44,7 @@ import {
   Stethoscope
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
-import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid } from '@/components/athlete/dashboard'
+import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid, GarminHealthCard } from '@/components/athlete/dashboard'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
@@ -314,7 +314,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       }
     }),
 
-    // 4. Latest DailyMetrics for readiness score
+    // 4. Latest DailyMetrics for readiness score + Garmin health data
     prisma.dailyMetrics.findFirst({
       where: {
         clientId: clientId,
@@ -324,6 +324,13 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       select: {
         readinessScore: true,
         date: true,
+        hrvRMSSD: true,
+        hrvStatus: true,
+        restingHR: true,
+        sleepHours: true,
+        sleepQuality: true,
+        stress: true,
+        factorScores: true,
       },
     }),
 
@@ -913,6 +920,25 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
           {/* WOD History Summary */}
           <WODHistorySummary recentWods={wodHistory} stats={wodStats} basePath={basePath} />
+
+          {/* Garmin Health Data */}
+          <GarminHealthCard
+            hrvRMSSD={latestMetrics?.hrvRMSSD}
+            hrvStatus={latestMetrics?.hrvStatus}
+            restingHR={latestMetrics?.restingHR}
+            sleepHours={latestMetrics?.sleepHours}
+            sleepQuality={latestMetrics?.sleepQuality}
+            stress={latestMetrics?.stress}
+            sleepDetails={(() => {
+              const fs = latestMetrics?.factorScores as Record<string, any> | null
+              return fs?.garminSleep ? {
+                deepSleepMinutes: fs.garminSleep.deepSleepMinutes,
+                lightSleepMinutes: fs.garminSleep.lightSleepMinutes,
+                remSleepMinutes: fs.garminSleep.remSleepMinutes,
+                awakeMinutes: fs.garminSleep.awakeMinutes,
+              } : null
+            })()}
+          />
 
           {/* Integration Status */}
           <IntegrationStatusWidget clientId={clientId} variant="glass" basePath={basePath} />
