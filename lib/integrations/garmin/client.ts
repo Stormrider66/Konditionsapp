@@ -20,7 +20,7 @@ import { logger } from '@/lib/logger'
 
 // Garmin API configuration
 const GARMIN_API_BASE = 'https://apis.garmin.com/wellness-api/rest';
-const GARMIN_AUTH_URL = 'https://apis.garmin.com/tools/oauth2/authorizeUser';
+const GARMIN_AUTH_URL = 'https://connect.garmin.com/oauthConfirm';
 const GARMIN_TOKEN_URL = 'https://diauth.garmin.com/di-oauth2-service/oauth/token';
 
 // Environment variables (OAuth 2.0 naming)
