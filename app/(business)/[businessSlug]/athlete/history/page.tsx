@@ -25,6 +25,7 @@ import {
   Filter,
   Plus,
   Sparkles,
+  Heart,
 } from 'lucide-react'
 import { WorkoutHistoryCharts } from '@/components/athlete/WorkoutHistoryCharts'
 import { PersonalRecords } from '@/components/athlete/PersonalRecords'
@@ -305,7 +306,7 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
     linkHref: `${basePath}/athlete/wod/${wod.id}`,
   }))
 
-  // Map Garmin activities
+  // Map Garmin activities with full detail
   const garminItems = garminActivities.map((a) => ({
     id: a.id,
     date: a.startDate,
@@ -317,19 +318,57 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
     source: 'garmin' as const,
     deviceName: a.deviceName || null,
     linkHref: undefined as string | undefined,
+    // Extra Garmin detail for inline summary
+    avgHR: a.averageHeartrate || null,
+    maxHR: a.maxHeartrate || null,
+    calories: a.calories || null,
+    avgSpeed: a.averageSpeed || null, // m/s
+    avgPower: a.averageWatts || null,
+    tss: a.tss || null,
+    indoor: a.indoor,
+    elevationGain: a.elevationGain || null,
+    avgCadence: a.averageCadence || null,
   }))
 
-  // Calculate stats (including ad-hoc workouts, assignments, WODs, and Garmin)
-  const totalWorkouts = logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length + garminItems.length
+  // Deduplicate: remove Garmin items that match an ad-hoc or manual workout (same day + similar duration/distance)
+  const manualDates = [...adHocWithParsedData, ...logs].map((w) => {
+    const d = 'workoutDate' in w ? w.workoutDate : (w as any).completedAt
+    return {
+      dateKey: d ? new Date(d).toISOString().split('T')[0] : '',
+      duration: ('duration' in w ? w.duration : 0) || 0,
+      distance: ('distance' in w ? w.distance : 0) || 0,
+    }
+  })
+
+  const deduplicatedGarminItems = garminItems.filter((g) => {
+    const gDateKey = new Date(g.date).toISOString().split('T')[0]
+    return !manualDates.some((m) => {
+      if (m.dateKey !== gDateKey) return false
+      // Check duration match (within 20%)
+      if (g.duration && m.duration) {
+        const durRatio = Math.abs(g.duration - m.duration) / Math.max(g.duration, m.duration)
+        if (durRatio < 0.20) return true
+      }
+      // Check distance match (within 10%)
+      if (g.distance && m.distance && g.distance > 0 && m.distance > 0) {
+        const distRatio = Math.abs(g.distance - m.distance) / Math.max(g.distance, m.distance)
+        if (distRatio < 0.10) return true
+      }
+      return false
+    })
+  })
+
+  // Calculate stats using deduplicated Garmin items
+  const totalWorkouts = logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length + deduplicatedGarminItems.length
   const totalDistance = logs.reduce((sum, log) => sum + (log.distance || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.distance || 0), 0) +
     allAssignmentItems.reduce((sum, a) => sum + (a.distance || 0), 0) +
-    garminItems.reduce((sum, a) => sum + (a.distance || 0), 0)
+    deduplicatedGarminItems.reduce((sum, a) => sum + (a.distance || 0), 0)
   const totalDuration = logs.reduce((sum, log) => sum + (log.duration || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.duration || 0), 0) +
     allAssignmentItems.reduce((sum, a) => sum + (a.duration || 0), 0) +
     wodItems.reduce((sum, w) => sum + (w.duration || 0), 0) +
-    garminItems.reduce((sum, a) => sum + (a.duration || 0), 0)
+    deduplicatedGarminItems.reduce((sum, a) => sum + (a.duration || 0), 0)
 
   const allEfforts = [
     ...logs.filter(log => log.perceivedEffort).map(log => log.perceivedEffort!),
@@ -358,6 +397,15 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
     source?: string
     linkHref?: string
     deviceName?: string | null
+    // Garmin extras
+    avgHR?: number | null
+    maxHR?: number | null
+    calories?: number | null
+    avgSpeed?: number | null
+    avgPower?: number | null
+    tss?: number | null
+    elevationGain?: number | null
+    avgCadence?: number | null
   }
 
   const historyItems: HistoryItem[] = [
@@ -411,7 +459,7 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
       source: w.source,
       linkHref: w.linkHref,
     })),
-    ...garminItems.map((a) => ({
+    ...deduplicatedGarminItems.map((a) => ({
       id: a.id,
       date: a.date,
       name: a.name,
@@ -423,6 +471,14 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
       isAdHoc: false,
       source: 'garmin' as const,
       deviceName: a.deviceName,
+      avgHR: a.avgHR,
+      maxHR: a.maxHR,
+      calories: a.calories,
+      avgSpeed: a.avgSpeed,
+      avgPower: a.avgPower,
+      tss: a.tss,
+      elevationGain: a.elevationGain,
+      avgCadence: a.avgCadence,
     })),
   ]
     .filter((item) => !sp.type || item.type === sp.type)
@@ -719,7 +775,48 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
                       </TableCell>
                       <TableCell className="py-5 text-right">
                         {item.source === 'garmin' ? (
-                          <GarminAttribution deviceModel={item.deviceName} />
+                          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                            {item.avgHR && (
+                              <span title="Snitt puls">
+                                <Heart className="inline h-3 w-3 mr-0.5 text-red-400" />{Math.round(item.avgHR)} bpm
+                              </span>
+                            )}
+                            {item.maxHR && (
+                              <span title="Max puls" className="text-slate-500">
+                                max {Math.round(item.maxHR)}
+                              </span>
+                            )}
+                            {item.avgSpeed && item.distance && item.distance > 0 && (
+                              <span title="Tempo">
+                                {(() => {
+                                  const paceSecPerKm = 1000 / item.avgSpeed
+                                  const min = Math.floor(paceSecPerKm / 60)
+                                  const sec = Math.round(paceSecPerKm % 60)
+                                  return `${min}:${sec.toString().padStart(2, '0')}/km`
+                                })()}
+                              </span>
+                            )}
+                            {item.avgPower && (
+                              <span title="Snitt watt">
+                                <Zap className="inline h-3 w-3 mr-0.5 text-yellow-400" />{Math.round(item.avgPower)} W
+                              </span>
+                            )}
+                            {item.calories && (
+                              <span title="Kalorier">
+                                {Math.round(item.calories)} kcal
+                              </span>
+                            )}
+                            {item.tss && (
+                              <span title="TSS" className="font-bold text-slate-300">
+                                TSS {Math.round(item.tss)}
+                              </span>
+                            )}
+                            {item.elevationGain && item.elevationGain > 0 && (
+                              <span title="Höjdmeter">
+                                ↗ {Math.round(item.elevationGain)} m
+                              </span>
+                            )}
+                          </div>
                         ) : item.isAdHoc ? (
                           <Link href={`${basePath}/athlete/ad-hoc/${item.id}`}>
                             <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
