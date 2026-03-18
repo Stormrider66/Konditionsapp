@@ -18,7 +18,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Watch, Moon, Activity } from 'lucide-react'
+import { Moon, Activity } from 'lucide-react'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import {
   LineChart,
@@ -301,6 +302,10 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
                   <AlertDescription>{data.current.recommendedAction}</AlertDescription>
                 </Alert>
               )}
+
+              {garminData?.available && (
+                <GarminAttribution derived className="mt-2" />
+              )}
             </div>
           ) : (
             <p className="text-muted-foreground">
@@ -390,8 +395,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Watch className="h-4 w-4 text-blue-500" />
-                Garmin Data
+                <GarminAttribution />
               </CardTitle>
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                 {garminData.lastSyncAt

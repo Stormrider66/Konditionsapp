@@ -23,6 +23,7 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TrendingUp, Activity, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 
 interface TrainingLoadData {
   weeklyTSS: number
@@ -254,6 +255,8 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
                   : 'Din belastning är stabil'}
             </p>
           </div>
+
+          <GarminAttribution derived className="pt-2" />
         </GlassCardContent>
       </GlassCard>
     )
@@ -347,6 +350,8 @@ export function TrainingLoadWidget({ clientId, variant = 'default' }: TrainingLo
                 : 'Din belastning är stabil'}
           </p>
         </div>
+
+        <GarminAttribution derived className="pt-2" />
       </CardContent>
     </Card>
   )

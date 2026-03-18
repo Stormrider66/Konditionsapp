@@ -490,6 +490,152 @@ export async function garminApiRequest<T>(
   return response.json();
 }
 
+/**
+ * Make authenticated request to Garmin API using a raw access token (no DB lookup).
+ * Used during OAuth callback before the token is stored.
+ */
+async function garminApiRequestWithToken<T>(
+  accessToken: string,
+  endpoint: string,
+  method: string = 'GET'
+): Promise<T> {
+  const url = `${GARMIN_API_BASE}${endpoint}`;
+
+  const response = await fetchWithTimeoutAndRetry(
+    url,
+    {
+      method,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    { timeoutMs: 12_000, maxAttempts: 2 }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Garmin API error: ${response.status} ${error}`);
+  }
+
+  return response.json();
+}
+
+// ─── User ID ────────────────────────────────────────────────────────────────
+
+/**
+ * Get Garmin user ID using a raw access token.
+ * Must be called immediately after OAuth token exchange.
+ * Returns the Garmin userId string used in webhook payloads.
+ */
+export async function getGarminUserId(accessToken: string): Promise<string> {
+  const data = await garminApiRequestWithToken<{ userId: string }>(
+    accessToken,
+    '/user/id'
+  );
+  return data.userId;
+}
+
+// ─── Backfill API ───────────────────────────────────────────────────────────
+
+type BackfillSummaryType = 'dailies' | 'activities' | 'activityDetails' | 'sleeps' | 'hrv' | 'stressDetails' | 'bodyComps' | 'respiration';
+
+/**
+ * Request a historical data backfill from Garmin.
+ *
+ * Garmin delivers the data asynchronously via webhook push (not in the response).
+ * Returns HTTP 202 on success.
+ *
+ * Max date ranges:
+ * - Health API types (dailies, sleeps, hrv, etc.): 90 days
+ * - Activity API types (activities, activityDetails): 30 days
+ */
+export async function requestBackfill(
+  clientId: string,
+  summaryType: BackfillSummaryType,
+  startDate: Date,
+  endDate: Date
+): Promise<void> {
+  const accessToken = await getValidGarminAccessToken(clientId);
+  if (!accessToken) {
+    throw new Error('No valid Garmin access token');
+  }
+
+  const startSeconds = Math.floor(startDate.getTime() / 1000);
+  const endSeconds = Math.floor(endDate.getTime() / 1000);
+
+  const url = `${GARMIN_API_BASE}/backfill/${summaryType}?summaryStartTimeInSeconds=${startSeconds}&summaryEndTimeInSeconds=${endSeconds}`;
+
+  const response = await fetchWithTimeoutAndRetry(
+    url,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    { timeoutMs: 15_000, maxAttempts: 2 }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Garmin backfill request failed for ${summaryType}: ${response.status} ${error}`);
+  }
+
+  logger.info('Garmin backfill requested', { clientId, summaryType, startSeconds, endSeconds });
+}
+
+/**
+ * Request backfill for all enabled summary types.
+ * Used after initial OAuth connection and for manual sync.
+ */
+export async function requestFullBackfill(
+  clientId: string,
+  options: {
+    daysBack?: number;
+    includeDailies?: boolean;
+    includeActivities?: boolean;
+    includeSleep?: boolean;
+    includeHRV?: boolean;
+  } = {}
+): Promise<{ requested: string[]; errors: string[] }> {
+  const {
+    daysBack = 30,
+    includeDailies = true,
+    includeActivities = true,
+    includeSleep = true,
+    includeHRV = true,
+  } = options;
+
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - daysBack);
+
+  const requested: string[] = [];
+  const errors: string[] = [];
+
+  const types: { type: BackfillSummaryType; enabled: boolean }[] = [
+    { type: 'dailies', enabled: includeDailies },
+    { type: 'activities', enabled: includeActivities },
+    { type: 'activityDetails', enabled: includeActivities },
+    { type: 'sleeps', enabled: includeSleep },
+    { type: 'hrv', enabled: includeHRV },
+  ];
+
+  for (const { type, enabled } of types) {
+    if (!enabled) continue;
+    try {
+      await requestBackfill(clientId, type, startDate, endDate);
+      requested.push(type);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      errors.push(`${type}: ${msg}`);
+      logger.warn('Backfill request failed', { clientId, type, error: msg });
+    }
+  }
+
+  return { requested, errors };
+}
+
 // ─── Data Fetching (unchanged — uses garminApiRequest with Bearer auth) ─────
 
 /**
@@ -651,7 +797,10 @@ export async function hasGarminConnection(clientId: string): Promise<boolean> {
 }
 
 /**
- * Disconnect Garmin integration
+ * Disconnect Garmin integration.
+ *
+ * Calls DELETE /wellness-api/rest/user/registration to deregister with Garmin
+ * (stops webhook pushes), then removes the local token.
  */
 export async function disconnectGarmin(clientId: string): Promise<void> {
   const token = await prisma.integrationToken.findUnique({
@@ -664,8 +813,35 @@ export async function disconnectGarmin(clientId: string): Promise<void> {
   });
 
   if (token) {
-    // Note: Garmin doesn't have a token revocation endpoint
-    // We just delete from our database
+    // Deregister with Garmin to stop webhook pushes
+    const accessToken = decryptIntegrationSecret(token.accessToken);
+    if (accessToken) {
+      try {
+        const url = `${GARMIN_API_BASE}/user/registration`;
+        const response = await fetchWithTimeoutAndRetry(
+          url,
+          {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+          { timeoutMs: 10_000, maxAttempts: 2 }
+        );
+        if (!response.ok) {
+          logger.warn('Garmin deregistration API returned non-OK', {
+            clientId,
+            status: response.status,
+          });
+        } else {
+          logger.info('Garmin user deregistered via API', { clientId });
+        }
+      } catch (error) {
+        // Log but don't block local cleanup
+        logger.warn('Failed to call Garmin deregistration API', { clientId }, error);
+      }
+    }
+
     await prisma.integrationToken.delete({
       where: { id: token.id },
     });

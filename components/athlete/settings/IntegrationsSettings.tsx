@@ -10,7 +10,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Link2, Unlink, Activity, Watch, RefreshCw, CheckCircle2, XCircle, Waves } from 'lucide-react'
+import { Loader2, Link2, Unlink, Activity, RefreshCw, CheckCircle2, XCircle, Waves } from 'lucide-react'
+import Image from 'next/image'
 import { IntegrationsHelpModal } from './IntegrationsHelpModal'
 
 interface IntegrationStatus {
@@ -259,8 +260,8 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
 
       if (response.ok) {
         toast({
-          title: 'Synkronisering klar',
-          description: 'Garmin-data har synkroniserats',
+          title: 'Synkbegäran skickad',
+          description: 'Garmin-data kommer att anlända via push inom kort.',
         })
         fetchGarminStatus()
       } else {
@@ -508,15 +509,22 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center",
+                "w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden",
                 isGlass ? "bg-blue-500/10 border border-blue-500/20" : "bg-blue-100"
               )}>
-                <Watch className={cn("h-5 w-5", isGlass ? "text-blue-400" : "text-blue-600")} />
+                <Image
+                  src="/garmin-connect-badge.png"
+                  alt="Garmin Connect"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                  unoptimized
+                />
               </div>
               <div>
-                <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>Garmin</h3>
+                <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>Garmin Connect&trade;</h3>
                 <p className={cn("text-xs", isGlass ? "text-slate-500" : "text-muted-foreground")}>
-                  Synkronisera HRV och sömn
+                  Synkronisera HRV, sömn och aktiviteter
                 </p>
               </div>
             </div>

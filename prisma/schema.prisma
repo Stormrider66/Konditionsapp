@@ -2023,6 +2023,9 @@ model GarminActivity {
   mappedType      String? // RUNNING, CYCLING, STRENGTH, etc.
   mappedIntensity String? // EASY, MODERATE, HARD
 
+  // Device info (for Garmin brand compliance attribution)
+  deviceName String? // Garmin device model (e.g. "Forerunner 265")
+
   // Detailed data (JSON)
   laps   Json? // Lap data from Garmin
   splits Json? // Split data

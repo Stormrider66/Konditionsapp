@@ -9,10 +9,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import {
-  syncGarminData,
   getGarminReadinessData,
   getGarminTrainingLoad,
 } from '@/lib/integrations/garmin/sync';
+import { requestFullBackfill } from '@/lib/integrations/garmin/client';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
 import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
@@ -118,7 +118,11 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST - Trigger data sync
+ * POST - Request a Garmin backfill (replaces pull-based sync).
+ *
+ * Garmin requires that partners use the push model (webhooks) and the
+ * Backfill API for historical data. Direct pull requests are prohibited.
+ * Data will arrive asynchronously via webhook push notifications.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -183,8 +187,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Perform sync
-    const result = await syncGarminData(clientId, {
+    // Request backfill — data arrives asynchronously via webhook
+    const result = await requestFullBackfill(clientId, {
       daysBack,
       includeDailies,
       includeActivities,
@@ -192,24 +196,19 @@ export async function POST(request: NextRequest) {
       includeHRV,
     });
 
-    // Update sync status if there were errors
-    if (result.errors.length > 0) {
-      await prisma.integrationToken.update({
-        where: { id: token.id },
-        data: {
-          lastSyncError: result.errors.join('; '),
-        },
-      });
-    }
+    // Update last sync timestamp
+    await prisma.integrationToken.update({
+      where: { id: token.id },
+      data: {
+        lastSyncAt: new Date(),
+        ...(result.errors.length > 0 ? { lastSyncError: result.errors.join('; ') } : { lastSyncError: null }),
+      },
+    });
 
     return NextResponse.json({
       success: true,
-      synced: {
-        dailySummaries: result.dailySummaries,
-        activities: result.activities,
-        sleepRecords: result.sleepRecords,
-        hrvRecords: result.hrvRecords,
-      },
+      message: 'Backfill requested. Data will arrive via webhook push notifications.',
+      requested: result.requested,
       errors: result.errors,
     });
   } catch (error) {
@@ -220,7 +219,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to sync Garmin data' },
+      { error: 'Failed to request Garmin backfill' },
       { status: 500 }
     );
   }

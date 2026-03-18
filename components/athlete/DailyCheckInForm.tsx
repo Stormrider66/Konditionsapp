@@ -41,7 +41,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { Mic, ClipboardList, Watch, CheckCircle2, ChevronRight, Zap, Moon, Activity, Smile, AlertCircle, Loader2, Stethoscope, MessageCircle } from 'lucide-react'
+import { Mic, ClipboardList, CheckCircle2, ChevronRight, Zap, Moon, Activity, Smile, AlertCircle, Loader2, Stethoscope, MessageCircle } from 'lucide-react'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   GlassCard,
@@ -531,11 +532,11 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
         )}>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center">
-                <Watch className="h-6 w-6 text-blue-400" />
+              <div className="flex items-center">
+                <GarminAttribution size="md" />
               </div>
               <div>
-                <p className={cn("font-black tracking-tight", isGlass ? "text-white" : "text-blue-900")}>Hämta från Garmin</p>
+                <p className={cn("font-black tracking-tight", isGlass ? "text-white" : "text-blue-900")}>Hämta från Garmin Connect&trade;</p>
                 <p className={cn("text-xs font-medium", isGlass ? "text-slate-400" : "text-blue-700")}>
                   HRV, puls och sömndata finns tillgängligt.
                 </p>

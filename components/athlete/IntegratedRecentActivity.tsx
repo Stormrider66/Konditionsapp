@@ -18,6 +18,7 @@ import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship, Sparkles, Zap, Dumbbell } from 'lucide-react'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 
@@ -48,6 +49,8 @@ interface UnifiedActivity {
   // Concept2 specific
   strokeRate?: number
   equipmentType?: string
+  // Device info (Garmin brand compliance)
+  deviceModel?: string
   // AI WOD specific
   sessionRPE?: number
   // Strength/hybrid details
@@ -350,6 +353,10 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
         </div>
 
         <ActivityDetails activity={activity} variant="glass" />
+
+        {activity.source === 'garmin' && (
+          <GarminAttribution deviceModel={activity.deviceModel} />
+        )}
       </div>
     )
   }
@@ -444,6 +451,10 @@ function ActivityCard({ activity, variant = 'default' }: { activity: UnifiedActi
       </div>
 
       <ActivityDetails activity={activity} />
+
+      {activity.source === 'garmin' && (
+        <GarminAttribution deviceModel={activity.deviceModel} />
+      )}
 
       {activity.notes && (
         <p className="text-xs text-muted-foreground line-clamp-2">{activity.notes}</p>

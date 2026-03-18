@@ -38,6 +38,12 @@ import {
   GarminHRVData,
 } from '@/lib/integrations/garmin/client';
 
+// Garmin requires minimum 10MB payload acceptance (100MB for activity details).
+// Vercel Pro allows body sizes up to 6MB by default; the vercel.json functions
+// config increases maxDuration for this route. For payloads exceeding Vercel's
+// body limit, Garmin will split into multiple pushes.
+export const maxDuration = 60; // seconds — allow longer processing for large payloads
+
 const DEFAULT_MAX_HR = 185;
 
 /**
@@ -177,18 +183,22 @@ export async function POST(request: NextRequest) {
     logger.info('Garmin webhook event received', {
       hasDailies: Array.isArray(payload?.dailies),
       hasActivities: Array.isArray(payload?.activities),
+      hasActivityDetails: Array.isArray(payload?.activityDetails),
       hasSleeps: Array.isArray(payload?.sleeps),
       hasHrv: Array.isArray(payload?.hrv),
       hasDeregistrations: Array.isArray(payload?.deregistrations),
+      hasUserPermissionsChange: Array.isArray(payload?.userPermissionsChange),
     });
 
     // Process each data type
     const results = {
       dailies: 0,
       activities: 0,
+      activityDetails: 0,
       sleeps: 0,
       hrv: 0,
       deregistrations: 0,
+      permissionChanges: 0,
       errors: [] as string[],
     };
 
@@ -248,12 +258,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Process activity details (push — replaces pull-based detail fetching)
+    if (payload.activityDetails && Array.isArray(payload.activityDetails)) {
+      for (const detail of payload.activityDetails) {
+        try {
+          await processActivityDetails(detail);
+          results.activityDetails++;
+        } catch (error) {
+          results.errors.push(`ActivityDetails ${detail.activityId}: ${error instanceof Error ? error.message : 'Unknown'}`);
+        }
+      }
+    }
+
+    // Handle user permission changes (required by Garmin Start Guide)
+    if (payload.userPermissionsChange && Array.isArray(payload.userPermissionsChange)) {
+      for (const change of payload.userPermissionsChange) {
+        try {
+          await handleUserPermissionsChange(change);
+          results.permissionChanges++;
+        } catch (error) {
+          results.errors.push(`PermissionChange ${change.userId}: ${error instanceof Error ? error.message : 'Unknown'}`);
+        }
+      }
+    }
+
     logger.info('Garmin webhook processing results', {
       dailies: results.dailies,
       activities: results.activities,
+      activityDetails: results.activityDetails,
       sleeps: results.sleeps,
       hrv: results.hrv,
       deregistrations: results.deregistrations,
+      permissionChanges: results.permissionChanges,
       errorCount: results.errors.length,
     })
 
@@ -372,7 +408,7 @@ async function processDailySummary(summary: GarminDailySummary & { userId?: stri
 /**
  * Process activity from webhook — stores in GarminActivity model (consistent with pull sync)
  */
-async function processActivity(activity: GarminActivity & { userId?: string }) {
+async function processActivity(activity: GarminActivity & { userId?: string; deviceName?: string }) {
   const clientId = await findClientId(activity.userId);
   if (!clientId) {
     logger.warn('No client found for Garmin activity')
@@ -432,6 +468,7 @@ async function processActivity(activity: GarminActivity & { userId?: string }) {
       tss,
       mappedType: typeInfo.type,
       mappedIntensity,
+      ...(activity.deviceName ? { deviceName: activity.deviceName } : {}),
       updatedAt: new Date(),
     },
     create: {
@@ -454,6 +491,7 @@ async function processActivity(activity: GarminActivity & { userId?: string }) {
       tss,
       mappedType: typeInfo.type,
       mappedIntensity,
+      deviceName: activity.deviceName || null,
       laps: Prisma.JsonNull,
       splits: Prisma.JsonNull,
     },
@@ -581,6 +619,185 @@ async function processHRVData(hrv: GarminHRVData & { userId?: string }) {
   });
 
   logger.debug('Synced Garmin HRV data', { clientId, date: hrv.calendarDate })
+}
+
+/**
+ * Process activity details from webhook push.
+ *
+ * Garmin pushes full activity detail data (HR samples, zones, laps, GPS)
+ * via the activityDetails push notification. This replaces the pull-based
+ * detail fetching that previously happened in sync.ts.
+ */
+async function processActivityDetails(detail: {
+  activityId?: number;
+  userId?: string;
+  summary?: {
+    activityId?: number;
+    activityType?: string;
+    startTimeInSeconds?: number;
+    durationInSeconds?: number;
+    distanceInMeters?: number;
+    averageHeartRateInBeatsPerMinute?: number;
+    maxHeartRateInBeatsPerMinute?: number;
+    averageSpeedInMetersPerSecond?: number;
+    activeKilocalories?: number;
+    averagePowerInWatts?: number;
+    normalizedPowerInWatts?: number;
+    deviceName?: string;
+  };
+  heartRateZones?: {
+    zone1TimeInSeconds?: number;
+    zone2TimeInSeconds?: number;
+    zone3TimeInSeconds?: number;
+    zone4TimeInSeconds?: number;
+    zone5TimeInSeconds?: number;
+  };
+  samples?: Array<{
+    recordingTime: number;
+    heartRate?: number;
+    speed?: number;
+    power?: number;
+    cadence?: number;
+    altitude?: number;
+  }>;
+  laps?: unknown[];
+}) {
+  const activityId = detail.activityId || detail.summary?.activityId;
+  if (!activityId) {
+    logger.warn('Activity details push missing activityId');
+    return;
+  }
+
+  const clientId = await findClientId(detail.userId);
+  if (!clientId) {
+    logger.warn('No client found for Garmin activity details', { activityId });
+    return;
+  }
+
+  // Check if we have this activity stored
+  const existing = await prisma.garminActivity.findUnique({
+    where: { garminActivityId: BigInt(activityId) },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    logger.debug('Activity details received before activity summary, skipping', { activityId });
+    return;
+  }
+
+  const updateData: Record<string, unknown> = {};
+
+  // Extract HR zone seconds
+  if (detail.heartRateZones) {
+    const zones = detail.heartRateZones;
+    const hasZoneData =
+      zones.zone1TimeInSeconds !== undefined ||
+      zones.zone2TimeInSeconds !== undefined ||
+      zones.zone3TimeInSeconds !== undefined ||
+      zones.zone4TimeInSeconds !== undefined ||
+      zones.zone5TimeInSeconds !== undefined;
+
+    if (hasZoneData) {
+      updateData.hrZoneSeconds = {
+        zone1: zones.zone1TimeInSeconds ?? 0,
+        zone2: zones.zone2TimeInSeconds ?? 0,
+        zone3: zones.zone3TimeInSeconds ?? 0,
+        zone4: zones.zone4TimeInSeconds ?? 0,
+        zone5: zones.zone5TimeInSeconds ?? 0,
+      };
+    }
+  }
+
+  // Extract HR samples
+  if (detail.samples && detail.samples.length > 0) {
+    const hrSamples = detail.samples
+      .filter(s => s.heartRate !== undefined && s.heartRate > 0)
+      .map(s => s.heartRate as number);
+
+    if (hrSamples.length > 0) {
+      updateData.hrStream = hrSamples;
+      updateData.hrStreamFetched = true;
+    }
+  }
+
+  // Store laps if available
+  if (detail.laps && detail.laps.length > 0) {
+    updateData.laps = detail.laps;
+  }
+
+  // Store device name if available
+  if (detail.summary?.deviceName) {
+    updateData.deviceName = detail.summary.deviceName;
+  }
+
+  if (Object.keys(updateData).length > 0) {
+    updateData.updatedAt = new Date();
+    await prisma.garminActivity.update({
+      where: { garminActivityId: BigInt(activityId) },
+      data: updateData,
+    });
+    logger.debug('Updated Garmin activity with details', {
+      clientId,
+      activityId,
+      fields: Object.keys(updateData),
+    });
+  }
+}
+
+/**
+ * Handle user permissions change notification.
+ *
+ * Garmin sends this when the user changes their data sharing permissions
+ * in Garmin Connect. We update stored permissions and disable sync
+ * if all permissions are revoked.
+ */
+async function handleUserPermissionsChange(change: {
+  userId?: string;
+  permissions?: Record<string, boolean>;
+}) {
+  if (!change.userId) {
+    logger.warn('Garmin userPermissionsChange missing userId');
+    return;
+  }
+
+  const token = await prisma.integrationToken.findFirst({
+    where: {
+      type: 'GARMIN',
+      externalUserId: change.userId,
+    },
+    select: { id: true, clientId: true },
+  });
+
+  if (!token) {
+    logger.warn('No token found for Garmin permission change', { userId: change.userId });
+    return;
+  }
+
+  // Check if all permissions are revoked
+  const permissions = change.permissions || {};
+  const allRevoked = Object.values(permissions).every(v => v === false);
+
+  if (allRevoked) {
+    await prisma.integrationToken.update({
+      where: { id: token.id },
+      data: {
+        syncEnabled: false,
+        scope: JSON.stringify(permissions),
+        lastSyncError: 'All permissions revoked by user in Garmin Connect',
+      },
+    });
+    logger.info('Disabled Garmin sync — all permissions revoked', { clientId: token.clientId });
+  } else {
+    await prisma.integrationToken.update({
+      where: { id: token.id },
+      data: {
+        scope: JSON.stringify(permissions),
+        syncEnabled: true,
+        lastSyncError: null,
+      },
+    });
+    logger.info('Updated Garmin permissions', { clientId: token.clientId, permissions });
+  }
 }
 
 /**

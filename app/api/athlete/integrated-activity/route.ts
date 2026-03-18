@@ -53,6 +53,7 @@ interface UnifiedActivity {
   notes?: string
   stravaId?: string
   garminId?: number
+  deviceModel?: string
   concept2Id?: number
   // Power/cadence (cycling, skiing, rowing)
   avgPower?: number // watts
@@ -273,6 +274,7 @@ export async function GET(request: NextRequest) {
         speed,
         elevationGain: activity.elevationGain || undefined,
         garminId: Number(activity.garminActivityId),
+        deviceModel: activity.deviceName || undefined,
       })
     }
 

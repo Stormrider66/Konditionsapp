@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { RefreshCw, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 
 interface GarminSyncResult {
   clientId: string
@@ -46,7 +47,10 @@ export function GarminSyncPanel({ sessionId }: GarminSyncPanelProps) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">Garmin-synkronisering</CardTitle>
+        <div className="space-y-1">
+          <CardTitle className="text-lg">Garmin-synkronisering</CardTitle>
+          <GarminAttribution />
+        </div>
         <Button onClick={handleSync} disabled={loading} size="sm">
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           {loading ? 'Synkar...' : 'Synka Garmin'}

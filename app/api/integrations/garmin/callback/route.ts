@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { exchangeGarminCode, findClientIdByState } from '@/lib/integrations/garmin/client';
+import { exchangeGarminCode, findClientIdByState, getGarminUserId, requestFullBackfill } from '@/lib/integrations/garmin/client';
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto';
 import { logger } from '@/lib/logger'
@@ -116,6 +116,16 @@ export async function GET(request: NextRequest) {
     // Exchange authorization code for tokens
     const tokens = await exchangeGarminCode(code, codeVerifier, APP_URL);
 
+    // Retrieve Garmin user ID (required for webhook user matching)
+    let externalUserId: string | undefined;
+    try {
+      externalUserId = await getGarminUserId(tokens.access_token);
+      logger.info('Retrieved Garmin user ID', { clientId, externalUserId });
+    } catch (err) {
+      logger.error('Failed to retrieve Garmin user ID', { clientId }, err);
+      // Continue — tokens are still valid, webhook matching will be degraded
+    }
+
     // Calculate token expiry
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
@@ -131,6 +141,7 @@ export async function GET(request: NextRequest) {
         accessToken: encryptIntegrationSecret(tokens.access_token)!,
         refreshToken: encryptIntegrationSecret(tokens.refresh_token),
         expiresAt,
+        externalUserId,
         lastSyncError: null,
         syncEnabled: true,
       },
@@ -140,11 +151,19 @@ export async function GET(request: NextRequest) {
         accessToken: encryptIntegrationSecret(tokens.access_token)!,
         refreshToken: encryptIntegrationSecret(tokens.refresh_token),
         expiresAt,
+        externalUserId,
         syncEnabled: true,
       },
     });
 
-    logger.info('Garmin connected', { clientId })
+    logger.info('Garmin connected', { clientId, externalUserId });
+
+    // Trigger initial backfill for historical data (30 days, async — don't block redirect)
+    requestFullBackfill(clientId, { daysBack: 30 }).then(({ requested, errors }) => {
+      logger.info('Initial Garmin backfill completed', { clientId, requested, errors });
+    }).catch((err) => {
+      logger.error('Initial Garmin backfill failed', { clientId }, err);
+    });
 
     // Redirect to success page
     return NextResponse.redirect(
