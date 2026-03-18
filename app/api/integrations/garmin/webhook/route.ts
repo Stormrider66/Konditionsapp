@@ -411,8 +411,25 @@ async function processDailySummary(summary: GarminDailySummary & { userId?: stri
 
 /**
  * Process activity from webhook — stores in GarminActivity model (consistent with pull sync)
+ * Handles both push and backfill field naming (e.g. activityDurationInSeconds vs durationInSeconds)
  */
-async function processActivity(activity: GarminActivity & { userId?: string; deviceName?: string }) {
+async function processActivity(activity: GarminActivity & { userId?: string; deviceName?: string; durationInSeconds?: number; summary?: { activityType?: string; startTimeInSeconds?: number; durationInSeconds?: number; distanceInMeters?: number; averageHeartRateInBeatsPerMinute?: number; maxHeartRateInBeatsPerMinute?: number; averageSpeedInMetersPerSecond?: number; maxSpeedInMetersPerSecond?: number; activeKilocalories?: number; averagePowerInWatts?: number; normalizedPowerInWatts?: number; averageCadenceInRoundsPerMinute?: number; maxCadenceInRoundsPerMinute?: number; deviceName?: string } }) {
+  // Merge summary fields from backfill (activityDetails pushes nest data under summary)
+  if (activity.summary) {
+    activity.activityDurationInSeconds = activity.activityDurationInSeconds || activity.summary.durationInSeconds || 0
+    activity.distanceInMeters = activity.distanceInMeters || activity.summary.distanceInMeters || 0
+    activity.averageHeartRateInBeatsPerMinute = activity.averageHeartRateInBeatsPerMinute || activity.summary.averageHeartRateInBeatsPerMinute
+    activity.maxHeartRateInBeatsPerMinute = activity.maxHeartRateInBeatsPerMinute || activity.summary.maxHeartRateInBeatsPerMinute
+    activity.averageSpeedInMetersPerSecond = activity.averageSpeedInMetersPerSecond || activity.summary.averageSpeedInMetersPerSecond
+    activity.maxSpeedInMetersPerSecond = activity.maxSpeedInMetersPerSecond || activity.summary.maxSpeedInMetersPerSecond
+    activity.activeKilocalories = activity.activeKilocalories || activity.summary.activeKilocalories
+    activity.averagePowerInWatts = activity.averagePowerInWatts || activity.summary.averagePowerInWatts
+    activity.deviceName = activity.deviceName || activity.summary.deviceName
+  }
+  // Handle backfill field name variant
+  if (!activity.activityDurationInSeconds && activity.durationInSeconds) {
+    activity.activityDurationInSeconds = activity.durationInSeconds
+  }
   const clientId = await findClientId(activity.userId);
   if (!clientId) {
     logger.warn('No client found for Garmin activity')
