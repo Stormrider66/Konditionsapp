@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -32,9 +32,11 @@ import {
   AlertCircle,
   Sparkles,
   Loader2,
+  Repeat,
 } from 'lucide-react'
 import { MealType } from '@prisma/client'
 import { cn } from '@/lib/utils'
+import { guessDefaultMealType } from '@/lib/nutrition/guess-meal-type'
 
 interface QuickMealLogProps {
   open: boolean
@@ -100,7 +102,7 @@ export function QuickMealLog({
     isCompleteProtein?: boolean
   }>({})
   const [formData, setFormData] = useState({
-    mealType: defaultMealType || 'LUNCH' as MealType,
+    mealType: defaultMealType || guessDefaultMealType(),
     time: '',
     description: '',
     calories: '',
@@ -111,6 +113,52 @@ export function QuickMealLog({
     isPostWorkout: false,
     notes: '',
   })
+
+  // Personalized quick meals
+  const [personalMeals, setPersonalMeals] = useState<typeof QUICK_MEALS | null>(null)
+
+  // Yesterday's meal for current meal type
+  const [yesterdayMeal, setYesterdayMeal] = useState<{
+    description: string
+    calories: number | null
+    proteinGrams: number | null
+    carbsGrams: number | null
+    fatGrams: number | null
+  } | null>(null)
+
+  // Fetch personalized meals + yesterday's meals when dialog opens
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/nutrition/food-history?view=top-meals&range=90d')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.topMeals && data.topMeals.length >= 3) {
+          setPersonalMeals(data.topMeals.map((m: { description: string; calories: number; protein: number; carbs: number; fat: number }) => ({
+            description: m.description,
+            calories: m.calories,
+            protein: m.protein,
+            carbs: m.carbs,
+            fat: m.fat,
+          })))
+        }
+      })
+      .catch(() => {})
+    fetch('/api/nutrition/food-history?view=yesterday')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.yesterdayMeals) {
+          const currentType = defaultMealType || guessDefaultMealType()
+          const match = data.yesterdayMeals[currentType]
+          if (match?.description) {
+            setYesterdayMeal(match)
+          }
+        }
+      })
+      .catch(() => {})
+  }, [open, defaultMealType])
+
+  const quickMeals = personalMeals || QUICK_MEALS
+  const quickMealsLabel = personalMeals ? 'Dina vanligaste' : 'Snabbval'
 
   const handleQuickMealSelect = (meal: typeof QUICK_MEALS[0]) => {
     setFormData(prev => ({
@@ -223,7 +271,7 @@ export function QuickMealLog({
 
   const handleClose = () => {
     setFormData({
-      mealType: defaultMealType || 'LUNCH',
+      mealType: defaultMealType || guessDefaultMealType(),
       time: '',
       description: '',
       calories: '',
@@ -236,6 +284,7 @@ export function QuickMealLog({
     })
     setShowMacros(false)
     setEnhancedFields({})
+    setYesterdayMeal(null)
     setError(null)
     onClose()
   }
@@ -290,11 +339,33 @@ export function QuickMealLog({
             </div>
           </div>
 
+          {/* Same as yesterday */}
+          {yesterdayMeal && !formData.description && (
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2 text-sm dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700"
+              onClick={() => {
+                setFormData(prev => ({
+                  ...prev,
+                  description: yesterdayMeal.description,
+                  calories: yesterdayMeal.calories?.toString() || '',
+                  proteinGrams: yesterdayMeal.proteinGrams?.toString() || '',
+                  carbsGrams: yesterdayMeal.carbsGrams?.toString() || '',
+                  fatGrams: yesterdayMeal.fatGrams?.toString() || '',
+                }))
+                if (yesterdayMeal.calories) setShowMacros(true)
+              }}
+            >
+              <Repeat className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="truncate">Samma som igår: <span className="font-medium">{yesterdayMeal.description}</span></span>
+            </Button>
+          )}
+
           {/* Quick Meals */}
           <div className="space-y-2">
-            <Label className="text-sm text-muted-foreground">Snabbval</Label>
+            <Label className="text-sm text-muted-foreground">{quickMealsLabel}</Label>
             <div className="flex flex-wrap gap-2">
-              {QUICK_MEALS.slice(0, 6).map((meal) => (
+              {quickMeals.slice(0, 6).map((meal) => (
                 <Button
                   key={meal.description}
                   variant="outline"

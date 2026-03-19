@@ -5,7 +5,7 @@
  *
  * Query params:
  * - range: "7d" | "30d" | "90d" | "365d" | "all" (default: "30d")
- * - view: "top-foods" | "nutrient-sources" | "timeline" (default: "top-foods")
+ * - view: "top-foods" | "top-meals" | "yesterday" | "nutrient-sources" | "timeline" (default: "top-foods")
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -108,6 +108,122 @@ export async function GET(request: NextRequest) {
         totalUniqueItems: foodMap.size,
         totalItemCount: items.length,
         topFoods,
+      })
+    }
+
+    if (view === 'top-meals') {
+      const meals = await prisma.mealLog.findMany({
+        where: {
+          clientId,
+          date: { gte: startDate },
+          description: { not: '' },
+          calories: { gt: 0 },
+        },
+        select: {
+          description: true,
+          calories: true,
+          proteinGrams: true,
+          carbsGrams: true,
+          fatGrams: true,
+        },
+      })
+
+      // Aggregate by description (case-insensitive)
+      const mealMap = new Map<string, {
+        description: string
+        count: number
+        totalCalories: number
+        totalProtein: number
+        totalCarbs: number
+        totalFat: number
+      }>()
+
+      for (const meal of meals) {
+        if (!meal.description || meal.calories == null) continue
+        const key = meal.description.toLowerCase().trim()
+        const existing = mealMap.get(key)
+        if (existing) {
+          existing.count++
+          existing.totalCalories += meal.calories ?? 0
+          existing.totalProtein += meal.proteinGrams ?? 0
+          existing.totalCarbs += meal.carbsGrams ?? 0
+          existing.totalFat += meal.fatGrams ?? 0
+        } else {
+          mealMap.set(key, {
+            description: meal.description.trim(),
+            count: 1,
+            totalCalories: meal.calories ?? 0,
+            totalProtein: meal.proteinGrams ?? 0,
+            totalCarbs: meal.carbsGrams ?? 0,
+            totalFat: meal.fatGrams ?? 0,
+          })
+        }
+      }
+
+      const topMeals = Array.from(mealMap.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8)
+        .map(m => ({
+          description: m.description,
+          calories: Math.round(m.totalCalories / m.count),
+          protein: Math.round((m.totalProtein / m.count) * 10) / 10,
+          carbs: Math.round((m.totalCarbs / m.count) * 10) / 10,
+          fat: Math.round((m.totalFat / m.count) * 10) / 10,
+          count: m.count,
+        }))
+
+      return NextResponse.json({
+        success: true,
+        range,
+        topMeals,
+      })
+    }
+
+    if (view === 'yesterday') {
+      const now = new Date()
+      const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+      const yesterdayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+      const meals = await prisma.mealLog.findMany({
+        where: {
+          clientId,
+          date: { gte: yesterdayStart, lt: yesterdayEnd },
+        },
+        select: {
+          mealType: true,
+          description: true,
+          calories: true,
+          proteinGrams: true,
+          carbsGrams: true,
+          fatGrams: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      // Key by meal type (first/most recent entry per type)
+      const byType: Record<string, {
+        description: string
+        calories: number | null
+        proteinGrams: number | null
+        carbsGrams: number | null
+        fatGrams: number | null
+      }> = {}
+
+      for (const meal of meals) {
+        if (!byType[meal.mealType] && meal.description) {
+          byType[meal.mealType] = {
+            description: meal.description,
+            calories: meal.calories,
+            proteinGrams: meal.proteinGrams,
+            carbsGrams: meal.carbsGrams,
+            fatGrams: meal.fatGrams,
+          }
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        yesterdayMeals: byType,
       })
     }
 

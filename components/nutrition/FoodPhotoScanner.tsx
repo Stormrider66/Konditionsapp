@@ -45,6 +45,7 @@ import {
   type EditableFoodItem,
   type NutrientDensity,
 } from '@/lib/nutrition/food-scan-recalculation'
+import { guessDefaultMealType } from '@/lib/nutrition/guess-meal-type'
 
 type Step = 'CAPTURE' | 'ANALYZING' | 'REVIEW' | 'SAVING' | 'DONE'
 
@@ -79,7 +80,7 @@ export function FoodPhotoScanner({
 
   // Review state
   const [items, setItems] = useState<EditableFoodItem[]>([])
-  const [mealType, setMealType] = useState(defaultMealType || '')
+  const [mealType, setMealType] = useState(defaultMealType || guessDefaultMealType())
   const [mealTime, setMealTime] = useState(
     new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
   )
