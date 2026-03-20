@@ -404,7 +404,12 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
 
       {/* Food Photo Scanner Sheet */}
       <Sheet open={scannerOpen} onOpenChange={setScannerOpen}>
-        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto bg-slate-950 border-white/10">
+        <SheetContent
+          side="bottom"
+          className="h-[90vh] overflow-y-auto bg-slate-950 border-white/10"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
           <SheetHeader>
             <SheetTitle className="text-white">Skanna måltid</SheetTitle>
             <SheetDescription className="text-slate-400">
@@ -417,6 +422,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
                 fetchAllData()
               }}
               onClose={() => setScannerOpen(false)}
+              redirectPathOnSave={`${basePath}/athlete/dashboard`}
             />
           </div>
         </SheetContent>

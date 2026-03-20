@@ -9,7 +9,8 @@
  * Steps: CAPTURE → ANALYZING → REVIEW → SAVING → DONE
  */
 
-import { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -65,6 +66,7 @@ interface FoodPhotoScannerProps {
   onClose?: () => void
   defaultMealType?: string
   defaultDate?: string
+  redirectPathOnSave?: string
 }
 
 export function FoodPhotoScanner({
@@ -72,7 +74,9 @@ export function FoodPhotoScanner({
   onClose,
   defaultMealType,
   defaultDate,
+  redirectPathOnSave,
 }: FoodPhotoScannerProps) {
+  const router = useRouter()
   const [step, setStep] = useState<Step>('CAPTURE')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -286,8 +290,15 @@ export function FoodPhotoScanner({
       }
 
       const data = await response.json()
-      setStep('DONE')
       onMealSaved?.(data.data)
+
+      if (redirectPathOnSave) {
+        onClose?.()
+        router.push(redirectPathOnSave)
+        return
+      }
+
+      setStep('DONE')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunde inte spara måltiden')
       setStep('REVIEW')

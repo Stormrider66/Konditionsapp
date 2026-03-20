@@ -29,9 +29,15 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
   const [quickMealOpen, setQuickMealOpen] = useState(false)
 
   const handleMealMethod = (method: 'photo' | 'voice' | 'quick') => {
-    if (method === 'photo') setFoodScannerOpen(true)
-    else if (method === 'voice') setVoiceMealOpen(true)
-    else setQuickMealOpen(true)
+    setMealSelectorOpen(false)
+
+    // Let the selector dialog fully close before opening the next sheet.
+    // This avoids stacked Radix dialog state races on mobile camera return.
+    window.setTimeout(() => {
+      if (method === 'photo') setFoodScannerOpen(true)
+      else if (method === 'voice') setVoiceMealOpen(true)
+      else setQuickMealOpen(true)
+    }, 0)
   }
 
   return (
@@ -82,7 +88,12 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
 
       {/* Food photo scanner sheet */}
       <Sheet open={foodScannerOpen} onOpenChange={setFoodScannerOpen}>
-        <SheetContent side="bottom" className="h-[90vh] overflow-y-auto bg-slate-900 text-white border-slate-700">
+        <SheetContent
+          side="bottom"
+          className="h-[90vh] overflow-y-auto bg-slate-900 text-white border-slate-700"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
           <SheetHeader>
             <SheetTitle>Fota din mat</SheetTitle>
           </SheetHeader>
@@ -92,13 +103,19 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
               window.dispatchEvent(new Event('meal-logged'))
             }}
             onClose={() => setFoodScannerOpen(false)}
+            redirectPathOnSave={`${basePath}/athlete/dashboard`}
           />
         </SheetContent>
       </Sheet>
 
       {/* Voice meal capture sheet */}
       <Sheet open={voiceMealOpen} onOpenChange={setVoiceMealOpen}>
-        <SheetContent side="bottom" className="h-[85vh] overflow-y-auto bg-slate-900 text-white border-slate-700">
+        <SheetContent
+          side="bottom"
+          className="h-[85vh] overflow-y-auto bg-slate-900 text-white border-slate-700"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
           <SheetHeader>
             <SheetTitle className="text-white">Beskriv din måltid</SheetTitle>
           </SheetHeader>
