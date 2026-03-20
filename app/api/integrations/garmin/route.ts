@@ -90,9 +90,11 @@ export async function GET(request: NextRequest) {
       where: { clientId },
     });
 
+    const isConnected = token.syncEnabled !== false;
+
     return NextResponse.json({
       configured: true,
-      connected: true,
+      connected: isConnected,
       clientId,
       externalUserId: token.externalUserId,
       lastSyncAt: token.lastSyncAt,
