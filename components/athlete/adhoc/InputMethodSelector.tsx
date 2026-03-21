@@ -79,8 +79,8 @@ const INPUT_METHODS: InputMethod[] = [
   },
   {
     id: 'garmin',
-    label: 'Garmin',
-    description: 'Importera från din Garmin-aktivitet',
+    label: 'Garmin Connect',
+    description: 'Importera från din Garmin Connect-aktivitet',
     icon: <Watch className="h-6 w-6" />,
     color: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
     available: true,

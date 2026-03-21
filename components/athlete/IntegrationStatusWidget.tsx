@@ -35,6 +35,7 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { sv } from 'date-fns/locale'
 import Link from 'next/link'
+import Image from 'next/image'
 import { IntegrationsHelpModal } from './settings/IntegrationsHelpModal'
 
 interface IntegrationStatus {
@@ -340,7 +341,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
               ) : (
                 <Watch className="h-3 w-3 mr-1" />
               )}
-              Garmin
+              Garmin Connect
             </Badge>
           )}
           {concept2Status?.connected && (
@@ -398,7 +399,7 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
             ) : (
               <Watch className="h-3 w-3 mr-1" />
             )}
-            Garmin
+            Garmin Connect
           </Badge>
         )}
         {concept2Status?.connected && (
@@ -497,13 +498,18 @@ export function IntegrationStatusWidget({ clientId, compact = false, variant = '
           {/* Garmin */}
           <div className="flex items-center justify-between border-b border-white/5 pb-2 last:border-0 last:pb-0">
             <div className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${garminStatus?.connected ? 'bg-blue-500/20' : 'bg-white/5'
-                }`}>
-                <Watch className={`h-4 w-4 ${garminStatus?.connected ? 'text-blue-500' : 'text-slate-500'
-                  }`} />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                <Image
+                  src="/garmin-connect-icon.png"
+                  alt="Garmin Connect"
+                  width={32}
+                  height={32}
+                  className={`object-contain ${!garminStatus?.connected ? 'opacity-40 grayscale' : ''}`}
+                  unoptimized
+                />
               </div>
               <div>
-                <p className="text-sm font-medium text-white">Garmin</p>
+                <p className="text-sm font-medium text-white">Garmin Connect</p>
                 {garminStatus?.connected ? (
                   <p className="text-xs text-slate-400">
                     {garminStatus.lastSyncAt

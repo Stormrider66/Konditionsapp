@@ -132,7 +132,7 @@ export default function GarminImportPage() {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Watch className="h-6 w-6 text-cyan-500" />
-              Garmin Import
+              Garmin Connect Import
             </h1>
             <p className="text-muted-foreground">
               Välj en aktivitet att importera
@@ -183,7 +183,7 @@ export default function GarminImportPage() {
             <Watch className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="font-semibold mb-2">Inga aktiviteter hittades</h3>
             <p className="text-sm text-muted-foreground">
-              Se till att ditt Garmin-konto är kopplat och synkroniserat
+              Se till att ditt Garmin Connect-konto är kopplat och synkroniserat
             </p>
           </CardContent>
         </Card>

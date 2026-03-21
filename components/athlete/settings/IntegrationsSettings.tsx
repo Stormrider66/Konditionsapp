@@ -513,11 +513,11 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                 isGlass ? "bg-blue-500/10 border border-blue-500/20" : "bg-blue-100"
               )}>
                 <Image
-                  src="/garmin-connect-badge.png"
+                  src="/garmin-connect-icon.png"
                   alt="Garmin Connect"
                   width={32}
                   height={32}
-                  className="object-contain"
+                  className="object-contain rounded-md"
                   unoptimized
                 />
               </div>
@@ -599,7 +599,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                 ) : (
                   <Link2 className="h-3.5 w-3.5 mr-2" />
                 )}
-                Anslut Garmin
+                Anslut Garmin Connect
               </Button>
             )}
           </div>

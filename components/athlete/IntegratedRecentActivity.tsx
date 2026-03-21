@@ -170,7 +170,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
                 )}
                 {counts.garmin > 0 && (
                   <Badge variant="outline" className="text-xs bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20">
-                    {counts.garmin} Garmin
+                    {counts.garmin} Garmin Connect
                   </Badge>
                 )}
                 {counts.ai > 0 && (
@@ -188,7 +188,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
               <Activity className="mx-auto h-12 w-12 text-slate-600 mb-4" />
               <p className="text-slate-400">Ingen aktivitet ännu</p>
               <p className="text-sm text-slate-500 mt-2">
-                Logga ett pass eller anslut Strava/Garmin
+                Logga ett pass eller anslut Strava/Garmin Connect
               </p>
             </div>
           ) : (
@@ -220,7 +220,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
               )}
               {counts.garmin > 0 && (
                 <Badge variant="outline" className="text-xs bg-blue-50">
-                  {counts.garmin} Garmin
+                  {counts.garmin} Garmin Connect
                 </Badge>
               )}
               {counts.ai > 0 && (

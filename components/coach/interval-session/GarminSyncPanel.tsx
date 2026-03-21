@@ -38,7 +38,7 @@ export function GarminSyncPanel({ sessionId }: GarminSyncPanelProps) {
       setResults(data.results)
       toast.success(`Garmin-synk klar: ${data.summary.matched}/${data.summary.total} matchade`)
     } catch {
-      toast.error('Kunde inte synka Garmin-data')
+      toast.error('Kunde inte synka Garmin Connect-data')
     } finally {
       setLoading(false)
     }
@@ -48,18 +48,18 @@ export function GarminSyncPanel({ sessionId }: GarminSyncPanelProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="space-y-1">
-          <CardTitle className="text-lg">Garmin-synkronisering</CardTitle>
+          <CardTitle className="text-lg">Garmin Connect-synkronisering</CardTitle>
           <GarminAttribution />
         </div>
         <Button onClick={handleSync} disabled={loading} size="sm">
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Synkar...' : 'Synka Garmin'}
+          {loading ? 'Synkar...' : 'Synka Garmin Connect'}
         </Button>
       </CardHeader>
       <CardContent>
         {!results ? (
           <p className="text-sm text-muted-foreground">
-            Synka Garmin-data for att berika sessionen med puls- och hastighetsdata.
+            Synka Garmin Connect-data for att berika sessionen med puls- och hastighetsdata.
             Matchar aktiviteter inom 30 min fran sessionens tidsram.
           </p>
         ) : (
