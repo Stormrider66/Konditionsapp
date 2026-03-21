@@ -14,6 +14,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -534,8 +535,15 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
         )}>
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="flex items-center">
-                <GarminAttribution size="md" />
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+                <Image
+                  src="/garmin-connect-icon.png"
+                  alt="Garmin Connect"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                  unoptimized
+                />
               </div>
               <div>
                 <p className={cn("font-black tracking-tight", isGlass ? "text-white" : "text-blue-900")}>Hämta från Garmin Connect&trade;</p>
@@ -587,7 +595,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                   Heart Rate Variability
                 </GlassCardTitle>
                 <GlassCardDescription className="text-slate-400">
-                  Valfritt - hämta från Garmin eller fyll i manuellt.
+                  Valfritt - hämta från Garmin Connect eller fyll i manuellt.
                 </GlassCardDescription>
               </GlassCardHeader>
               <GlassCardContent className="space-y-6">
