@@ -240,6 +240,8 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
 
     if (data.hrvRMSSD) {
       form.setValue('hrvRMSSD', data.hrvRMSSD)
+      // Garmin-measured HRV is device-grade quality
+      form.setValue('hrvQuality', 'GOOD')
     }
     if (data.restingHR) {
       form.setValue('restingHR', data.restingHR)
