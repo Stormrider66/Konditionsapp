@@ -253,17 +253,70 @@ export async function POST(request: NextRequest) {
       logger.warn('Failed to enqueue daily-metrics post-write job; continuing with saved metrics', { clientId, date }, error)
     }
 
+    // Process the job synchronously so readiness score is available immediately
+    let assessments = {
+      hrv: null as unknown,
+      rhr: null as unknown,
+      wellness: null as unknown,
+      readiness: null as unknown,
+      deferred: false,
+      strengthFatigue: null as unknown,
+    }
+
+    try {
+      await processDailyMetricsPostWriteJobs({ limit: 1, jobKey: writeKey })
+
+      // Re-read the updated metrics to get computed readiness
+      const updated = await prisma.dailyMetrics.findUnique({
+        where: {
+          clientId_date: { clientId, date: normalizeMetricsDate(date) },
+        },
+        select: {
+          readinessScore: true,
+          readinessLevel: true,
+          recommendedAction: true,
+          wellnessScore: true,
+          hrvStatus: true,
+          hrvPercent: true,
+          hrvTrend: true,
+          restingHRStatus: true,
+          restingHRDev: true,
+          factorScores: true,
+        },
+      })
+
+      if (updated) {
+        assessments = {
+          hrv: updated.hrvStatus ? {
+            status: updated.hrvStatus,
+            percentOfBaseline: updated.hrvPercent,
+            trend: updated.hrvTrend,
+          } : null,
+          rhr: updated.restingHRStatus ? {
+            status: updated.restingHRStatus,
+            deviationFromBaseline: updated.restingHRDev,
+          } : null,
+          wellness: updated.wellnessScore ? {
+            score: updated.wellnessScore,
+          } : null,
+          readiness: updated.readinessScore ? {
+            score: updated.readinessScore,
+            level: updated.readinessLevel,
+            recommendation: updated.recommendedAction,
+          } : null,
+          deferred: false,
+          strengthFatigue: null,
+        }
+      }
+    } catch (error) {
+      logger.warn('Synchronous daily-metrics job processing failed; cron will retry', { writeKey }, error)
+      assessments.deferred = true
+    }
+
     const responsePayload = {
       success: true,
       dailyMetrics,
-      assessments: {
-        hrv: null,
-        rhr: null,
-        wellness: null,
-        readiness: null,
-        deferred: true,
-        strengthFatigue: null,
-      },
+      assessments,
       injuryResponse: {
         triggered: false,
         pendingEvaluation: true,
@@ -276,7 +329,6 @@ export async function POST(request: NextRequest) {
       payload: responsePayload,
     })
 
-    const response = NextResponse.json(responsePayload)
     try {
       const cacheKeySuffix = `:${clientId}:`
       for (const key of dailyMetricsGetCache.keys()) {
@@ -288,12 +340,8 @@ export async function POST(request: NextRequest) {
       logger.warn('Failed to clear daily-metrics cache after write', { clientId }, error)
     }
 
-    void processDailyMetricsPostWriteJobs({ limit: 1, jobKey: writeKey }).catch(error => {
-      logger.warn('Immediate daily-metrics job processing failed; cron will retry', { writeKey }, error)
-    })
-
     releaseWriteLock()
-    return response
+    return NextResponse.json(responsePayload)
   } catch (error) {
     rejectWriteLock(error)
     logger.error('Error saving daily metrics', {}, error)
