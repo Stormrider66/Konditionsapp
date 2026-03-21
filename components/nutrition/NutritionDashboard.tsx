@@ -12,18 +12,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
 import {
   Utensils,
   Settings,
@@ -42,10 +34,9 @@ import { NutritionTargets, NutritionTargetsSkeleton } from './NutritionTargets'
 import { NutritionTrendChart } from './NutritionTrendChart'
 import { WorkoutNutritionCard, WorkoutNutritionCardSkeleton } from './WorkoutNutritionCard'
 import { NutritionTipCard } from './NutritionTipCard'
-import { FoodPhotoScanner } from './FoodPhotoScanner'
 import { NutritionScore } from '@/components/athlete/nutrition/NutritionScore'
 import { DeficitSurplusTracker } from '@/components/athlete/nutrition/DeficitSurplusTracker'
-import type { DailyNutritionGuidance, NutritionTip } from '@/lib/nutrition-timing'
+import type { DailyNutritionGuidance } from '@/lib/nutrition-timing'
 
 interface DailyAggregate {
   date: string
@@ -73,7 +64,6 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
   const [nutritionGoal, setNutritionGoal] = useState<NutritionGoal | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [scannerOpen, setScannerOpen] = useState(false)
 
   const fetchAllData = async () => {
     setIsLoading(true)
@@ -205,14 +195,10 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
               <TrendingUp className="h-4 w-4" />
             </Link>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setScannerOpen(true)}
-            className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
-            title="Skanna måltid"
-          >
-            <Camera className="h-4 w-4" />
+          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title="Skanna måltid">
+            <Link href={`${basePath}/athlete/nutrition/scan?returnTo=nutrition`}>
+              <Camera className="h-4 w-4" />
+            </Link>
           </Button>
           <Button
             variant="ghost"
@@ -401,32 +387,6 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           </div>
         )}
       </div>
-
-      {/* Food Photo Scanner Sheet */}
-      <Sheet open={scannerOpen} onOpenChange={setScannerOpen}>
-        <SheetContent
-          side="bottom"
-          className="h-[90vh] overflow-y-auto bg-slate-950 border-white/10"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-        >
-          <SheetHeader>
-            <SheetTitle className="text-white">Skanna måltid</SheetTitle>
-            <SheetDescription className="text-slate-400">
-              Ta en bild av din mat för att automatiskt beräkna kalorier och makros
-            </SheetDescription>
-          </SheetHeader>
-          <div className="mt-4">
-            <FoodPhotoScanner
-              onMealSaved={() => {
-                fetchAllData()
-              }}
-              onClose={() => setScannerOpen(false)}
-              redirectPathOnSave={`${basePath}/athlete/dashboard`}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }

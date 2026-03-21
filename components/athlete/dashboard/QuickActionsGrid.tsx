@@ -7,7 +7,6 @@ import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { InputMethodSelector } from '@/components/athlete/adhoc/InputMethodSelector'
 import { MealInputMethodSelector } from '@/components/athlete/nutrition/MealInputMethodSelector'
 import { VoiceMealCapture } from '@/components/athlete/nutrition/VoiceMealCapture'
-import { FoodPhotoScanner } from '@/components/nutrition/FoodPhotoScanner'
 import { QuickMealLog } from '@/components/athlete/nutrition/QuickMealLog'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
@@ -24,18 +23,21 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
 
   const [workoutSelectorOpen, setWorkoutSelectorOpen] = useState(false)
   const [mealSelectorOpen, setMealSelectorOpen] = useState(false)
-  const [foodScannerOpen, setFoodScannerOpen] = useState(false)
   const [voiceMealOpen, setVoiceMealOpen] = useState(false)
   const [quickMealOpen, setQuickMealOpen] = useState(false)
 
   const handleMealMethod = (method: 'photo' | 'voice' | 'quick') => {
-    setMealSelectorOpen(false)
+    if (method === 'photo') {
+      // Use a full navigation here because dialog teardown on mobile browsers can swallow
+      // Next router pushes from this callback. The dedicated scan page avoids the old modal issue.
+      window.location.assign(`${basePath}/athlete/nutrition/scan?returnTo=dashboard`)
+      return
+    }
 
-    // Let the selector dialog fully close before opening the next sheet.
+    // Let the selector dialog fully close before opening the next surface.
     // This avoids stacked Radix dialog state races on mobile camera return.
     window.setTimeout(() => {
-      if (method === 'photo') setFoodScannerOpen(true)
-      else if (method === 'voice') setVoiceMealOpen(true)
+      if (method === 'voice') setVoiceMealOpen(true)
       else setQuickMealOpen(true)
     }, 0)
   }
@@ -85,28 +87,6 @@ export function QuickActionsGrid({ sessionHref, sessionLabel }: QuickActionsGrid
         onOpenChange={setMealSelectorOpen}
         onSelectMethod={handleMealMethod}
       />
-
-      {/* Food photo scanner sheet */}
-      <Sheet open={foodScannerOpen} onOpenChange={setFoodScannerOpen}>
-        <SheetContent
-          side="bottom"
-          className="h-[90vh] overflow-y-auto bg-slate-900 text-white border-slate-700"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-        >
-          <SheetHeader>
-            <SheetTitle>Fota din mat</SheetTitle>
-          </SheetHeader>
-          <FoodPhotoScanner
-            onMealSaved={() => {
-              setFoodScannerOpen(false)
-              window.dispatchEvent(new Event('meal-logged'))
-            }}
-            onClose={() => setFoodScannerOpen(false)}
-            redirectPathOnSave={`${basePath}/athlete/dashboard`}
-          />
-        </SheetContent>
-      </Sheet>
 
       {/* Voice meal capture sheet */}
       <Sheet open={voiceMealOpen} onOpenChange={setVoiceMealOpen}>
