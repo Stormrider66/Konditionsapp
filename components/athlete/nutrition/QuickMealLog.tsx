@@ -291,7 +291,7 @@ export function QuickMealLog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[500px] max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Logga måltid</DialogTitle>
           <DialogDescription>
@@ -372,11 +372,11 @@ export function QuickMealLog({
                   size="sm"
                   onClick={() => handleQuickMealSelect(meal)}
                   className={cn(
-                    "text-xs dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700",
+                    "text-xs truncate max-w-full dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700",
                     formData.description === meal.description && "border-primary bg-primary/5 dark:bg-primary/15 dark:text-white"
                   )}
                 >
-                  {meal.description}
+                  {meal.description.length > 30 ? meal.description.slice(0, 30) + '…' : meal.description}
                 </Button>
               ))}
             </div>
