@@ -381,13 +381,16 @@ export async function middleware(request: NextRequest) {
   // =========================
   // If the request comes from a custom domain, resolve it to a business slug
   // and rewrite the URL to inject the slug as the first path segment.
-  const requestHost = request.headers.get('host')?.split(':')[0] // strip port
+  const requestHost = request.headers.get('host')?.split(':')[0] ?? null // strip port
   const defaultHost = request.nextUrl.hostname
-  const isCustomDomain = requestHost && requestHost !== defaultHost
+  const isCustomDomain = Boolean(
+    requestHost
+    && requestHost !== defaultHost
     && requestHost !== 'localhost'
     && requestHost !== '127.0.0.1'
     && !requestHost.endsWith('.trainomics.app')
     && !requestHost.endsWith('.vercel.app')
+  )
 
   let customDomainSlug: string | null = null
   if (isCustomDomain && requestHost) {
