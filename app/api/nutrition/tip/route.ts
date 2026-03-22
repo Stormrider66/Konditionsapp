@@ -19,6 +19,7 @@ import { logger } from '@/lib/logger'
 import { generatePostCheckInTip } from '@/lib/nutrition-timing'
 import type { WorkoutContext } from '@/lib/nutrition-timing'
 import type { WorkoutIntensity, WorkoutType } from '@prisma/client'
+import { getCompletedWorkoutContextsForDay } from '@/lib/nutrition-timing/completed-workouts'
 
 // Request validation schema
 const requestSchema = z.object({
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const client = athleteAccount.client
+    const athleteUserId = athleteAccount.userId
     const now = new Date()
     const todayStart = startOfDay(now)
     const todayEnd = endOfDay(now)
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
     const tomorrowEnd = addDays(todayEnd, 1)
 
     // Fetch today's and tomorrow's workouts
-    const [todaysWorkoutsRaw, tomorrowsWorkoutsRaw] = await Promise.all([
+    const [todaysWorkoutsRaw, tomorrowsWorkoutsRaw, todaysCompletedWorkouts] = await Promise.all([
       prisma.workout.findMany({
         where: {
           day: {
@@ -97,6 +99,12 @@ export async function POST(request: NextRequest) {
         include: { day: true },
         orderBy: { order: 'asc' },
       }),
+      getCompletedWorkoutContextsForDay({
+        clientId: client.id,
+        athleteUserId,
+        dayStart: todayStart,
+        dayEnd: todayEnd,
+      }),
     ])
 
     // Map to WorkoutContext type
@@ -124,7 +132,7 @@ export async function POST(request: NextRequest) {
       daysUntil: isToday ? 0 : 1,
     })
 
-    const todaysWorkouts = todaysWorkoutsRaw.map((w) => mapToContext(w, true))
+    const todaysWorkouts = [...todaysWorkoutsRaw.map((w) => mapToContext(w, true)), ...todaysCompletedWorkouts]
     const tomorrowsWorkouts = tomorrowsWorkoutsRaw.map((w) => mapToContext(w, false))
 
     // Map dietary preferences to the expected input type

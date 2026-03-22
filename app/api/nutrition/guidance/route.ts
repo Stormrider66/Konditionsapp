@@ -17,6 +17,7 @@ import type { WorkoutContext, GuidanceGeneratorInput } from '@/lib/nutrition-tim
 import type { WorkoutIntensity, WorkoutType } from '@prisma/client'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
+import { getCompletedWorkoutContextsForDay } from '@/lib/nutrition-timing/completed-workouts'
 
 /**
  * GET /api/nutrition/guidance
@@ -30,12 +31,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { user, clientId } = resolved
+    const { clientId } = resolved
 
     // Get client with all related data
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       include: {
+        athleteAccount: {
+          select: { userId: true },
+        },
         dietaryPreferences: true,
         nutritionGoal: true,
         sportProfile: true,
@@ -46,6 +50,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
+    if (!client.athleteAccount?.userId) {
+      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
+    }
+
     const now = new Date()
     const todayStart = startOfDay(now)
     const todayEnd = endOfDay(now)
@@ -53,7 +61,7 @@ export async function GET() {
     const tomorrowEnd = addDays(todayEnd, 1)
 
     // Fetch today's and tomorrow's workouts in parallel (including AI WODs)
-    const [todaysWorkoutsRaw, tomorrowsWorkoutsRaw, bodyComposition, todaysAiWods, todaysAdHocWorkouts] = await Promise.all([
+    const [todaysWorkoutsRaw, tomorrowsWorkoutsRaw, bodyComposition, todaysAiWods, todaysAdHocWorkouts, todaysCompletedWorkouts] = await Promise.all([
       prisma.workout.findMany({
         where: {
           day: {
@@ -70,7 +78,7 @@ export async function GET() {
           day: true,
           // Include logs to check completion status
           logs: {
-            where: { athleteId: user.id },
+            where: { athleteId: client.athleteAccount.userId },
             select: { completed: true, completedAt: true },
             take: 1,
           },
@@ -126,6 +134,12 @@ export async function GET() {
           parsedType: true,
           parsedStructure: true,
         },
+      }),
+      getCompletedWorkoutContextsForDay({
+        clientId: client.id,
+        athleteUserId: client.athleteAccount.userId,
+        dayStart: todayStart,
+        dayEnd: todayEnd,
       }),
     ])
 
@@ -231,7 +245,7 @@ export async function GET() {
     })
 
     // Merge AI WODs with program workouts
-    const allTodaysWorkouts = [...todaysWorkouts, ...aiWodContexts, ...adHocContexts]
+    const allTodaysWorkouts = [...todaysWorkouts, ...aiWodContexts, ...adHocContexts, ...todaysCompletedWorkouts]
 
     // Build generator input
     const input: GuidanceGeneratorInput = {
@@ -328,3 +342,6 @@ export async function GET() {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+    if (!client.athleteAccount?.userId) {
+      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
+    }
