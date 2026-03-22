@@ -99,6 +99,43 @@ async function isUserMemberOfBusiness(dbUserId: string, businessSlug: string): P
   return false
 }
 
+function safeGetOrigin(urlValue: string | null): string | null {
+  if (!urlValue) return null
+
+  try {
+    return new URL(urlValue).origin
+  } catch {
+    return null
+  }
+}
+
+function logApiCsrfDenial(
+  reason: 'invalid_origin' | 'invalid_referer',
+  request: NextRequest,
+  context: {
+    isCustomDomain: boolean
+    originHeader: string | null
+    refererHeader: string | null
+    requestHost: string | null
+    requestOrigin: string
+  }
+) {
+  console.warn(
+    JSON.stringify({
+      host: context.requestHost,
+      isCustomDomain: context.isCustomDomain,
+      message: 'API CSRF check failed',
+      method: request.method,
+      originHeader: context.originHeader,
+      pathname: request.nextUrl.pathname,
+      reason,
+      refererOrigin: safeGetOrigin(context.refererHeader),
+      requestOrigin: context.requestOrigin,
+      timestamp: new Date().toISOString(),
+    })
+  )
+}
+
 // Reserved top-level routes that are NOT business slugs
 const RESERVED_ROUTES = [
   'api',
@@ -424,6 +461,13 @@ export async function middleware(request: NextRequest) {
 
     // If Origin is present, enforce match (including custom domain)
     if (originHeader && !isAllowedOrigin) {
+      logApiCsrfDenial('invalid_origin', request, {
+        isCustomDomain,
+        originHeader,
+        refererHeader,
+        requestHost,
+        requestOrigin,
+      })
       return finalizeResponse(
         NextResponse.json({ error: 'Invalid origin' }, { status: 403 })
       )
@@ -436,12 +480,26 @@ export async function middleware(request: NextRequest) {
         const isAllowedReferer = refererOrigin === requestOrigin
           || (isCustomDomain && requestHost && refererOrigin === `https://${requestHost}`)
         if (!isAllowedReferer) {
+          logApiCsrfDenial('invalid_referer', request, {
+            isCustomDomain,
+            originHeader,
+            refererHeader,
+            requestHost,
+            requestOrigin,
+          })
           return finalizeResponse(
             NextResponse.json({ error: 'Invalid referer' }, { status: 403 })
           )
         }
       } catch {
         // If referer is malformed, fail closed for browser-like requests (referer present)
+        logApiCsrfDenial('invalid_referer', request, {
+          isCustomDomain,
+          originHeader,
+          refererHeader,
+          requestHost,
+          requestOrigin,
+        })
         return finalizeResponse(
           NextResponse.json({ error: 'Invalid referer' }, { status: 403 })
         )

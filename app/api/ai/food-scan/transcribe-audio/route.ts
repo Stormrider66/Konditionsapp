@@ -19,7 +19,7 @@ import {
   getGeminiModelId,
 } from '@/lib/ai/google-genai-client'
 import { logger } from '@/lib/logger'
-import { getResolvedGoogleKey } from '@/lib/user-api-keys'
+import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 
 const MAX_AUDIO_SIZE = 5 * 1024 * 1024 // 5MB
 
@@ -64,19 +64,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve Google API key
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true },
+    const keyContext = await resolveAthleteGoogleKeyContext({
+      clientId,
+      isCoachInAthleteMode,
+      userId: user.id,
     })
 
-    if (!client) {
+    if (!keyContext) {
       return NextResponse.json({ error: 'Athlete account not found' }, { status: 400 })
     }
 
-    const keyOwnerId = isCoachInAthleteMode ? user.id : client.userId
-
     // Audio transcription is powered by Gemini for this flow.
-    const googleKey = await getResolvedGoogleKey(keyOwnerId)
+    const googleKey = keyContext.googleKey
 
     if (!googleKey) {
       return NextResponse.json(

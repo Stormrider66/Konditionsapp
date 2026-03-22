@@ -17,15 +17,31 @@ import { FoodPhotoAnalysisSchema } from '@/lib/validations/gemini-schemas'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
-import { getResolvedGoogleKey } from '@/lib/user-api-keys'
+import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 
 export async function POST(request: NextRequest) {
+  let logContext:
+    | {
+        clientId: string
+        isCoachInAthleteMode: boolean
+        route: 'food-scan-refine'
+        userId: string
+      }
+    | undefined
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
+    logContext = {
+      clientId,
+      isCoachInAthleteMode,
+      route: 'food-scan-refine',
+      userId: user.id,
+    }
+    const requestLogger = logger.child(logContext)
 
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied
@@ -47,21 +63,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve Google API key
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true },
+    const keyContext = await resolveAthleteGoogleKeyContext({
+      clientId,
+      isCoachInAthleteMode,
+      userId: user.id,
     })
 
-    if (!client) {
+    if (!keyContext) {
       return NextResponse.json({ error: 'Athlete account not found' }, { status: 400 })
     }
 
-    const keyOwnerId = isCoachInAthleteMode ? user.id : client.userId
-
     // Refinement can include image context and should stay on Gemini.
-    const googleKey = await getResolvedGoogleKey(keyOwnerId)
+    const googleKey = keyContext.googleKey
 
     if (!googleKey) {
+      requestLogger.warn('Food scan refine missing Google key', {
+        businessId: keyContext.businessId,
+        keyOwnerId: keyContext.keyOwnerId,
+      })
       return NextResponse.json(
         { error: 'Google/Gemini API-nyckel saknas för bildanalys. Aktivera Gemini i AI-inställningar.' },
         { status: 400 }
@@ -114,6 +133,16 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
       messages: [{ role: 'user', content }],
     })
 
+    if (!result.object.success) {
+      requestLogger.warn('Food scan refine returned unsuccessful analysis', {
+        businessId: keyContext.businessId,
+        confidence: result.object.confidence,
+        hadImageContext: Boolean(imageBase64 && mimeForGemini),
+        itemCount: result.object.items.length,
+        keyOwnerId: keyContext.keyOwnerId,
+      })
+    }
+
     return NextResponse.json({
       success: true,
       result: result.object,
@@ -121,7 +150,11 @@ UTÖKAD ANALYS: Inkludera även fettfördelning (mättat, enkelomättat, flerom�
       generatedAt: new Date().toISOString(),
     })
   } catch (error) {
-    logger.error('Food scan refine error', {}, error)
+    logger.error(
+      'Food scan refine error',
+      logContext,
+      error
+    )
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

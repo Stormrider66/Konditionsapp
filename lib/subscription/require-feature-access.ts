@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server'
 import { checkAthleteFeatureAccess, type AthleteFeature } from './feature-access'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export type CoachFeature = 'program_generation' | 'advanced_intelligence' | 'nutrition_planning' | 'lactate_ocr' | 'smart_test_import'
 
@@ -44,6 +45,14 @@ export async function requireFeatureAccess(
 
   if (result.allowed) return null
 
+  logger.warn('Athlete feature access denied', {
+    clientId,
+    code: result.code || 'FEATURE_DISABLED',
+    feature,
+    reason: result.reason,
+    upgradeUrl: result.upgradeUrl || '/athlete/subscription',
+  })
+
   const label = options?.featureLabel || FEATURE_LABELS[feature] || feature
   return NextResponse.json(
     {
@@ -76,6 +85,13 @@ export async function requireCoachFeatureAccess(
   // No subscription → deny
   if (!subscription) {
     const label = options?.featureLabel || FEATURE_LABELS[feature] || feature
+    logger.warn('Coach feature access denied', {
+      code: 'NO_SUBSCRIPTION',
+      feature,
+      reason: `${label} kräver en prenumeration.`,
+      upgradeUrl: '/coach/subscription',
+      userId,
+    })
     return NextResponse.json(
       {
         error: `${label} kräver en prenumeration.`,
@@ -93,6 +109,13 @@ export async function requireCoachFeatureAccess(
       return null // allowed
     }
     // Trial expired
+    logger.warn('Coach feature access denied', {
+      code: 'TRIAL_EXPIRED',
+      feature,
+      reason: 'Din provperiod har löpt ut. Uppgradera för att fortsätta använda denna funktion.',
+      upgradeUrl: '/coach/subscription',
+      userId,
+    })
     return NextResponse.json(
       {
         error: 'Din provperiod har löpt ut. Uppgradera för att fortsätta använda denna funktion.',
@@ -106,6 +129,13 @@ export async function requireCoachFeatureAccess(
 
   // Expired / cancelled
   if (subscription.status === 'EXPIRED' || subscription.status === 'CANCELLED') {
+    logger.warn('Coach feature access denied', {
+      code: 'SUBSCRIPTION_EXPIRED',
+      feature,
+      reason: 'Din prenumeration har löpt ut. Förnya för att fortsätta.',
+      upgradeUrl: '/coach/subscription',
+      userId,
+    })
     return NextResponse.json(
       {
         error: 'Din prenumeration har löpt ut. Förnya för att fortsätta.',
@@ -121,6 +151,13 @@ export async function requireCoachFeatureAccess(
   const allowedTiers = COACH_FEATURE_TIERS[feature]
   if (!allowedTiers.has(subscription.tier)) {
     const label = options?.featureLabel || FEATURE_LABELS[feature] || feature
+    logger.warn('Coach feature access denied', {
+      code: 'FEATURE_DISABLED',
+      feature,
+      reason: `${label} kräver en högre prenumerationsnivå.`,
+      upgradeUrl: '/coach/subscription',
+      userId,
+    })
     return NextResponse.json(
       {
         error: `${label} kräver en högre prenumerationsnivå.`,

@@ -18,7 +18,7 @@ import { FoodPhotoAnalysisSchema } from '@/lib/validations/gemini-schemas'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
-import { getResolvedGoogleKey } from '@/lib/user-api-keys'
+import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 import { z } from 'zod'
 
 const requestSchema = z.object({
@@ -54,20 +54,20 @@ export async function POST(request: NextRequest) {
     const { description } = validation.data
 
     // Resolve Google API key
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true },
+    const keyContext = await resolveAthleteGoogleKeyContext({
+      clientId,
+      isCoachInAthleteMode,
+      userId: user.id,
     })
 
-    if (!client) {
+    if (!keyContext) {
       return NextResponse.json(
         { error: 'Athlete account not found' },
         { status: 400 }
       )
     }
 
-    const keyOwnerId = isCoachInAthleteMode ? user.id : client.userId
-    const googleKey = await getResolvedGoogleKey(keyOwnerId)
+    const googleKey = keyContext.googleKey
 
     if (!googleKey) {
       return NextResponse.json(

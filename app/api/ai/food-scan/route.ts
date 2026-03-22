@@ -17,7 +17,7 @@ import { FoodPhotoAnalysisSchema } from '@/lib/validations/gemini-schemas'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
-import { getResolvedGoogleKey } from '@/lib/user-api-keys'
+import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,22 +70,21 @@ export async function POST(request: NextRequest) {
     // Resolve Google API key:
     // For athletes → use coach's key via client.userId
     // For coach-in-athlete-mode → use own key
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { userId: true },
+    const keyContext = await resolveAthleteGoogleKeyContext({
+      clientId,
+      isCoachInAthleteMode,
+      userId: user.id,
     })
 
-    if (!client) {
+    if (!keyContext) {
       return NextResponse.json(
         { error: 'Athlete account not found' },
         { status: 400 }
       )
     }
 
-    const keyOwnerId = isCoachInAthleteMode ? user.id : client.userId
-
     // Food photo analysis is vision-based and must run on Gemini/Google.
-    const googleKey = await getResolvedGoogleKey(keyOwnerId)
+    const googleKey = keyContext.googleKey
 
     if (!googleKey) {
       return NextResponse.json(
