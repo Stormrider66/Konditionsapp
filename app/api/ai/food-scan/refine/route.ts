@@ -79,11 +79,17 @@ export async function POST(request: NextRequest) {
 
     // Build message content
     const content: Array<{ type: 'text'; text: string } | { type: 'image'; image: string }> = []
+    const normalizedImageMimeType =
+      imageMimeType === 'image/jpg' ? 'image/jpeg' : imageMimeType
+    const mimeForGemini =
+      normalizedImageMimeType === 'image/heic' || normalizedImageMimeType === 'image/heif'
+        ? 'image/jpeg'
+        : normalizedImageMimeType
 
-    if (imageBase64 && imageMimeType) {
+    if (imageBase64 && mimeForGemini) {
       content.push({
         type: 'image',
-        image: `data:${imageMimeType};base64,${imageBase64}`,
+        image: `data:${mimeForGemini};base64,${imageBase64}`,
       })
     }
 

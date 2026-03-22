@@ -69,6 +69,21 @@ interface FoodPhotoScannerProps {
   redirectPathOnSave?: string
 }
 
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result)
+        return
+      }
+
+      reject(new Error('Kunde inte läsa bildfilen'))
+    }
+    reader.onerror = () => reject(new Error('Kunde inte läsa bildfilen'))
+    reader.readAsDataURL(file)
+  })
+
 export function FoodPhotoScanner({
   onMealSaved,
   onClose,
@@ -341,15 +356,20 @@ export function FoodPhotoScanner({
         notes: notes ? notes.split('\n') : [],
       }
 
-      // Optionally include the image if available
+      // Re-read the uploaded file instead of using the preview URL.
+      // The preview is usually a blob: URL after canvas normalization.
       let imageBase64: string | undefined
       let imageMimeType: string | undefined
-      if (imagePreview) {
-        // imagePreview is already a data URL (data:mime;base64,...)
-        const base64Part = imagePreview.split(',')[1]
-        if (base64Part) {
-          imageBase64 = base64Part
-          imageMimeType = imageFile?.type
+      if (imageFile) {
+        try {
+          const dataUrl = await readFileAsDataUrl(imageFile)
+          const base64Part = dataUrl.split(',')[1]
+          if (base64Part) {
+            imageBase64 = base64Part
+            imageMimeType = imageFile.type
+          }
+        } catch {
+          // Fall back to text-only refine if the image cannot be re-read.
         }
       }
 
@@ -372,16 +392,17 @@ export function FoodPhotoScanner({
       const data = await response.json()
       const result: FoodPhotoAnalysisResult = data.result
 
-      if (result.success) {
-        if (data.enhancedMode != null) setEnhancedMode(data.enhancedMode)
-        setItems(result.items.map(createEditableFoodItem))
-        setMealDescription(result.mealDescription)
-        setConfidence(result.confidence)
-        if (result.notes?.length) {
-          setNotes(result.notes.join('\n'))
-        }
-        setRefinementText('')
+      if (!result.success) {
+        setError('Kunde inte uppdatera analysen utifrån korrigeringen. Försök beskriva ändringen mer exakt.')
+        return
       }
+
+      if (data.enhancedMode != null) setEnhancedMode(data.enhancedMode)
+      setItems(result.items.map(createEditableFoodItem))
+      setMealDescription(result.mealDescription)
+      setConfidence(result.confidence)
+      setNotes(result.notes?.join('\n') ?? '')
+      setRefinementText('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Kunde inte uppdatera analysen')
     } finally {
@@ -669,7 +690,7 @@ export function FoodPhotoScanner({
                 size="sm"
                 className="w-full gap-2"
                 onClick={handleRefine}
-                disabled={isRefining}
+                disabled={isRefining || isTranscribing}
               >
                 {isRefining && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 Uppdatera analys

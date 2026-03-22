@@ -6,12 +6,42 @@ import userEvent from '@testing-library/user-event'
 import { FoodPhotoScanner } from './FoodPhotoScanner'
 
 const pushMock = vi.fn()
+const baseAnalysisResult = {
+  success: true,
+  items: [
+    {
+      name: 'Pasta',
+      category: 'GRAIN',
+      estimatedGrams: 250,
+      portionDescription: '1 portion',
+      calories: 500,
+      proteinGrams: 18,
+      carbsGrams: 82,
+      fatGrams: 10,
+      fiberGrams: 4,
+    },
+  ],
+  totals: {
+    calories: 500,
+    proteinGrams: 18,
+    carbsGrams: 82,
+    fatGrams: 10,
+    fiberGrams: 4,
+  },
+  mealDescription: 'Pasta',
+  suggestedMealType: 'LUNCH',
+  confidence: 0.9,
+  notes: [],
+}
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushMock }),
 }))
 
 describe('FoodPhotoScanner', () => {
+  let refineRequestBody: Record<string, unknown> | null
+  let refineResponse: Record<string, unknown>
+
   beforeAll(() => {
     Object.defineProperty(URL, 'createObjectURL', {
       writable: true,
@@ -60,6 +90,37 @@ describe('FoodPhotoScanner', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    refineRequestBody = null
+    refineResponse = {
+      result: {
+        success: true,
+        items: [
+          {
+            name: 'Morot',
+            category: 'VEGETABLE',
+            estimatedGrams: 240,
+            portionDescription: '4 st',
+            calories: 100,
+            proteinGrams: 2,
+            carbsGrams: 24,
+            fatGrams: 0.4,
+            fiberGrams: 7,
+          },
+        ],
+        totals: {
+          calories: 100,
+          proteinGrams: 2,
+          carbsGrams: 24,
+          fatGrams: 0.4,
+          fiberGrams: 7,
+        },
+        mealDescription: 'Stor portion morot',
+        suggestedMealType: 'AFTERNOON_SNACK',
+        confidence: 0.88,
+        notes: ['uppdaterad'],
+      },
+      enhancedMode: false,
+    }
 
     vi.stubGlobal(
       'fetch',
@@ -71,35 +132,18 @@ describe('FoodPhotoScanner', () => {
             ok: true,
             status: 200,
             json: async () => ({
-              result: {
-                success: true,
-                items: [
-                  {
-                    name: 'Pasta',
-                    category: 'GRAIN',
-                    estimatedGrams: 250,
-                    portionDescription: '1 portion',
-                    calories: 500,
-                    proteinGrams: 18,
-                    carbsGrams: 82,
-                    fatGrams: 10,
-                    fiberGrams: 4,
-                  },
-                ],
-                totals: {
-                  calories: 500,
-                  proteinGrams: 18,
-                  carbsGrams: 82,
-                  fatGrams: 10,
-                  fiberGrams: 4,
-                },
-                mealDescription: 'Pasta',
-                suggestedMealType: 'LUNCH',
-                confidence: 0.9,
-                notes: [],
-              },
+              result: baseAnalysisResult,
               enhancedMode: false,
             }),
+          } as Response
+        }
+
+        if (url === '/api/ai/food-scan/refine' && init?.method === 'POST') {
+          refineRequestBody = JSON.parse(String(init.body || '{}')) as Record<string, unknown>
+          return {
+            ok: true,
+            status: 200,
+            json: async () => refineResponse,
           } as Response
         }
 
@@ -146,6 +190,82 @@ describe('FoodPhotoScanner', () => {
       expect(onMealSaved).toHaveBeenCalledWith({ id: 'meal_1' })
       expect(onClose).toHaveBeenCalled()
       expect(pushMock).toHaveBeenCalledWith('/athlete/dashboard')
+    })
+  })
+
+  it('re-sends the normalized image file during refine and updates the review state', async () => {
+    const user = userEvent.setup()
+
+    const { container } = render(<FoodPhotoScanner />)
+
+    const fileInput = container.querySelector('input[capture="environment"]')
+    expect(fileInput).not.toBeNull()
+
+    const file = new File(['image'], 'meal.png', { type: 'image/png' })
+    fireEvent.change(fileInput as HTMLInputElement, {
+      target: { files: [file] },
+    })
+
+    await user.click(await screen.findByRole('button', { name: /analysera måltid/i }))
+    expect(await screen.findByDisplayValue('Pasta')).toBeInTheDocument()
+
+    const textareas = container.querySelectorAll('textarea')
+    expect(textareas.length).toBeGreaterThan(0)
+    await user.type(textareas[0] as HTMLTextAreaElement, 'portionen var större')
+    await user.click(screen.getAllByRole('button', { name: /^uppdatera analys$/i }).at(-1)!)
+
+    await waitFor(() => {
+      expect(refineRequestBody).not.toBeNull()
+      expect(refineRequestBody?.refinementText).toBe('portionen var större')
+      expect(refineRequestBody?.imageBase64).toBe('ZmFrZQ==')
+      expect(refineRequestBody?.imageMimeType).toBe('image/jpeg')
+      expect(screen.getByDisplayValue('Morot')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('4 st')).toBeInTheDocument()
+    })
+  })
+
+  it('shows an error instead of silently doing nothing when refine returns success false', async () => {
+    refineResponse = {
+      result: {
+        success: false,
+        items: [],
+        totals: {
+          calories: 0,
+          proteinGrams: 0,
+          carbsGrams: 0,
+          fatGrams: 0,
+          fiberGrams: 0,
+        },
+        mealDescription: 'Ingen uppdatering',
+        confidence: 0.2,
+        notes: ['oklar korrigering'],
+      },
+      enhancedMode: false,
+    }
+
+    const user = userEvent.setup()
+
+    const { container } = render(<FoodPhotoScanner />)
+
+    const fileInput = container.querySelector('input[capture="environment"]')
+    expect(fileInput).not.toBeNull()
+
+    const file = new File(['image'], 'meal.png', { type: 'image/png' })
+    fireEvent.change(fileInput as HTMLInputElement, {
+      target: { files: [file] },
+    })
+
+    await user.click(await screen.findByRole('button', { name: /analysera måltid/i }))
+
+    const textareas = container.querySelectorAll('textarea')
+    await user.type(textareas[0] as HTMLTextAreaElement, 'det var något annat')
+    await user.click(screen.getAllByRole('button', { name: /^uppdatera analys$/i }).at(-1)!)
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/kunde inte uppdatera analysen utifrån korrigeringen/i)
+      ).toBeInTheDocument()
+      expect(textareas[0]).toHaveValue('det var något annat')
     })
   })
 })
