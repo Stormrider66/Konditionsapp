@@ -339,6 +339,10 @@ async function processDailySummary(summary: GarminDailySummary & { userId?: stri
 
   const date = new Date(summary.calendarDate)
   const stressLevel = summary.averageStressLevel ? Math.round(summary.averageStressLevel / 10) : null
+  const existingMetrics = await prisma.dailyMetrics.findUnique({
+    where: { clientId_date: { clientId, date } },
+  })
+  const factorScores = (existingMetrics?.factorScores as Record<string, unknown>) || {}
 
   await prisma.dailyMetrics.upsert({
     where: { clientId_date: { clientId, date } },
@@ -346,6 +350,7 @@ async function processDailySummary(summary: GarminDailySummary & { userId?: stri
       restingHR: summary.restingHeartRateInBeatsPerMinute,
       stress: stressLevel,
       factorScores: {
+        ...factorScores,
         garminDaily: {
           steps: summary.steps,
           activeMinutes: Math.round(summary.activeTimeInSeconds / 60),

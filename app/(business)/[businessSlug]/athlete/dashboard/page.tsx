@@ -81,6 +81,7 @@ import {
   mapWODToDashboard,
   mapAdHocWorkoutToDashboard,
 } from '@/types/dashboard-items'
+import { getDashboardRecentActivitySummary, getDashboardWeeklyTSS } from '@/lib/dashboard/activity-insights'
 
 interface BusinessAthleteDashboardProps {
   params: Promise<{ businessSlug: string }>
@@ -240,10 +241,11 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     plannedStats,
     latestMetrics,
     recentLogsWithSetLogs,
-    weeklyTrainingLoad,
+    weeklyTSS,
     activeInjuries,
     wodHistory,
     confirmedAdHocWorkouts,
+    recentActivitySummary,
   ] = await Promise.all([
     // 1. Active Programs
     prisma.trainingProgram.findMany({
@@ -318,7 +320,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     prisma.dailyMetrics.findFirst({
       where: {
         clientId: clientId,
-        date: { gte: todayStart },
+        date: { gte: subDays(todayStart, 7) },
       },
       orderBy: { date: 'desc' },
       select: {
@@ -364,15 +366,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
     }),
 
     // 6. Weekly training load (sum of dailyLoad for last 7 days)
-    prisma.trainingLoad.findMany({
-      where: {
-        clientId: clientId,
-        date: { gte: subDays(now, 7) },
-      },
-      select: {
-        dailyLoad: true,
-      },
-    }),
+    getDashboardWeeklyTSS(clientId),
 
     // 7. Active injuries (not fully recovered)
     prisma.injuryAssessment.findMany({
@@ -422,6 +416,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         parsedStructure: true,
       },
     }),
+    getDashboardRecentActivitySummary(clientId),
   ])
 
   // Fetch last completed program (for "What's Next?" card when no active programs)
@@ -683,8 +678,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
 
   // Get readiness data
   const readinessScore = latestMetrics?.readinessScore ?? null
-  const hasCheckedInToday = latestMetrics !== null
-  const weeklyTSS = weeklyTrainingLoad.reduce((sum, load) => sum + (load.dailyLoad || 0), 0)
+  const hasCheckedInToday = latestMetrics ? latestMetrics.date >= todayStart : false
   const weeklyTSSTarget = 1000 // Default target, could be from athlete profile
 
   // Get next item for rest day card
@@ -835,6 +829,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
             basePath={basePath}
             mode={restDayMode}
             sportType={primarySport}
+            recentActivity={recentActivitySummary}
           />
         )}
 

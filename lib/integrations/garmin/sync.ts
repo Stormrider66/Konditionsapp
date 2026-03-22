@@ -185,6 +185,15 @@ export async function syncGarminData(
  */
 async function syncDailySummary(clientId: string, summary: GarminDailySummary): Promise<void> {
   const date = new Date(summary.calendarDate);
+  const existingMetrics = await prisma.dailyMetrics.findUnique({
+    where: {
+      clientId_date: {
+        clientId,
+        date,
+      },
+    },
+  });
+  const factorScores = (existingMetrics?.factorScores as Record<string, unknown>) || {};
 
   // Map stress level (0-100) to our 1-10 scale
   const stressLevel = summary.averageStressLevel
@@ -207,6 +216,7 @@ async function syncDailySummary(clientId: string, summary: GarminDailySummary): 
 
       // Store full data in factorScores for detailed analysis
       factorScores: {
+        ...factorScores,
         garminDaily: {
           steps: summary.steps,
           activeMinutes: Math.round(summary.activeTimeInSeconds / 60),

@@ -14,12 +14,13 @@
 
 import Link from 'next/link'
 import { useState, useMemo, useEffect } from 'react'
-import { Moon, Sunrise, Heart, Battery, Calendar, ChevronRight, Sparkles, Zap } from 'lucide-react'
+import { Moon, Sunrise, Heart, Battery, Calendar, ChevronRight, Sparkles, Zap, Activity, Timer, Route } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { WODGeneratorModal, WODPreviewScreen } from '@/components/athlete/wod'
 import type { WODResponse } from '@/types/wod'
+import type { DashboardRecentActivitySummary } from '@/types/dashboard-recent-activity'
 import {
   DashboardItem,
   getItemName,
@@ -41,6 +42,7 @@ interface RestDayHeroCardProps {
   basePath?: string
   mode?: 'rest-day' | 'open-day'
   sportType?: string
+  recentActivity?: DashboardRecentActivitySummary | null
 }
 
 // Recovery messages based on readiness score
@@ -333,21 +335,27 @@ export function RestDayHeroCard({
   basePath = '',
   mode = 'rest-day',
   sportType,
+  recentActivity,
 }: RestDayHeroCardProps) {
   const message = useMemo(
     () => mode === 'rest-day' ? getRecoveryMessage(readinessScore) : getOpenDayMessage(readinessScore),
     [mode, readinessScore]
   )
-  const MessageIcon = message.icon
-  const badgeLabel = mode === 'rest-day' ? 'Vilodag' : 'Öppen dag'
-  const badgeIcon = mode === 'rest-day' ? Sunrise : Sparkles
+  const hasRecentActivity = !!recentActivity
+  const MessageIcon = hasRecentActivity ? getRecentActivityIcon(recentActivity.type) : message.icon
+  const badgeLabel = hasRecentActivity ? 'Senaste pass' : mode === 'rest-day' ? 'Vilodag' : 'Öppen dag'
+  const badgeIcon = hasRecentActivity ? Activity : mode === 'rest-day' ? Sunrise : Sparkles
   const BadgeIcon = badgeIcon
-  const description = mode === 'rest-day'
-    ? getSportAwareRestDayDescription(sportType, message.description)
-    : message.description
-  const contextualHint = mode === 'open-day'
-    ? getSportAwareOpenDayHint(sportType, readinessScore)
-    : getSportAwareRestDayHint(sportType, readinessScore)
+  const description = hasRecentActivity
+    ? buildRecentActivityDescription(recentActivity)
+    : mode === 'rest-day'
+      ? getSportAwareRestDayDescription(sportType, message.description)
+      : message.description
+  const contextualHint = hasRecentActivity
+    ? getRecentActivityHint(recentActivity, readinessScore)
+    : mode === 'open-day'
+      ? getSportAwareOpenDayHint(sportType, readinessScore)
+      : getSportAwareRestDayHint(sportType, readinessScore)
 
   // Relative date labels (client-only to avoid SSR/client timezone mismatch)
   const [relativeDateLabel, setRelativeDateLabel] = useState<string | null>(null)
@@ -428,13 +436,78 @@ export function RestDayHeroCard({
             </div>
             <div>
               <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
-                {message.title}
+                {hasRecentActivity ? buildRecentActivityTitle(recentActivity) : message.title}
               </h2>
               <p className="text-slate-600 dark:text-slate-400 max-w-md text-sm md:text-base transition-colors">
                 {description}
               </p>
             </div>
           </div>
+
+          {recentActivity && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              <Badge variant="secondary" className="bg-white/60 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                {formatRecentActivitySource(recentActivity.source)}
+              </Badge>
+              <Badge variant="secondary" className="bg-white/60 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                {formatRecentActivityDate(recentActivity.date)}
+              </Badge>
+              {recentActivity.deviceModel ? (
+                <Badge variant="secondary" className="bg-white/60 text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                  {recentActivity.deviceModel}
+                </Badge>
+              ) : null}
+            </div>
+          )}
+
+          {recentActivity && (
+            <div className="grid grid-cols-2 gap-3 lg:max-w-xl">
+              {recentActivity.durationMinutes ? (
+                <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    Längd
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+                    <Timer className="h-4 w-4 text-cyan-500" />
+                    {recentActivity.durationMinutes} min
+                  </div>
+                </div>
+              ) : null}
+              {recentActivity.distanceKm ? (
+                <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    Distans
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+                    <Route className="h-4 w-4 text-cyan-500" />
+                    {recentActivity.distanceKm} km
+                  </div>
+                </div>
+              ) : null}
+              {recentActivity.avgHR ? (
+                <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    Puls
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+                    <Heart className="h-4 w-4 text-cyan-500" />
+                    {recentActivity.avgHR} bpm
+                  </div>
+                </div>
+              ) : null}
+              {recentActivity.tss ? (
+                <div className="rounded-xl border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    Belastning
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+                    <Zap className="h-4 w-4 text-cyan-500" />
+                    {recentActivity.tss} TSS
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
 
           {/* Recovery Tip */}
           <div className="mt-4 p-3 rounded-lg bg-white/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 transition-colors">
@@ -617,4 +690,80 @@ export function RestDayHeroCard({
       />
     </GlassCard>
   )
+}
+
+function getRecentActivityIcon(type: string) {
+  const normalized = type.toUpperCase()
+  if (normalized.includes('RUN')) return Activity
+  if (normalized.includes('CYCLE') || normalized.includes('BIKE')) return Activity
+  if (normalized.includes('SWIM')) return Activity
+  return Activity
+}
+
+function buildRecentActivityTitle(activity: DashboardRecentActivitySummary): string {
+  const label = formatRecentActivityType(activity.type)
+  return `Senaste passet: ${label}`
+}
+
+function buildRecentActivityDescription(activity: DashboardRecentActivitySummary): string {
+  const metrics = [
+    activity.durationMinutes ? `${activity.durationMinutes} min` : null,
+    activity.distanceKm ? `${activity.distanceKm} km` : null,
+    activity.avgHR ? `${activity.avgHR} bpm` : null,
+    activity.tss ? `${activity.tss} TSS` : null,
+  ].filter(Boolean)
+
+  if (metrics.length === 0) {
+    return `Ditt senaste registrerade pass var ${formatRecentActivityType(activity.type).toLowerCase()}. Använd det som utgångspunkt för dagens beslut.`
+  }
+
+  return `${metrics.join(' • ')}. Det ger en bättre referens för hur resten av dagen bör disponeras.`
+}
+
+function getRecentActivityHint(activity: DashboardRecentActivitySummary, readinessScore: number | null): string {
+  if (readinessScore !== null && readinessScore < 5) {
+    return 'Kroppen har redan fått belastning nyligen. Prioritera återhämtning, vätska och lågintensiv rörelse innan du lägger på mer.'
+  }
+
+  if ((activity.tss || 0) >= 70) {
+    return 'Det senaste passet var belastande. Om du tränar igen idag, håll nästa insats kort, kontrollerad och kompletterande.'
+  }
+
+  return 'Använd senaste passet som kompass. Om du väljer att träna igen idag, komplettera snarare än att duplicera belastningen.'
+}
+
+function formatRecentActivityType(type: string): string {
+  const labels: Record<string, string> = {
+    RUNNING: 'Löpning',
+    CYCLING: 'Cykel',
+    SWIMMING: 'Simning',
+    STRENGTH: 'Styrka',
+    CROSS_TRAINING: 'Alternativträning',
+    SKIING: 'Skidträning',
+    ROWING: 'Rodd',
+    RECOVERY: 'Återhämtning',
+    OTHER: 'Träning',
+  }
+  return labels[type] || type.replace(/_/g, ' ').toLowerCase()
+}
+
+function formatRecentActivitySource(source: DashboardRecentActivitySummary['source']): string {
+  const labels: Record<DashboardRecentActivitySummary['source'], string> = {
+    manual: 'Manuell',
+    strava: 'Strava',
+    garmin: 'Garmin Connect',
+    concept2: 'Concept2',
+    ai: 'AI-pass',
+    adhoc: 'Manuell logg',
+  }
+  return labels[source]
+}
+
+function formatRecentActivityDate(date: Date): string {
+  return new Intl.DateTimeFormat('sv-SE', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(date))
 }
