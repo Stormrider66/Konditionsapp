@@ -11,6 +11,8 @@ import { logger } from '@/lib/logger'
 import { resolveModel, type AvailableKeys } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 
+const SWEDISH_DAYS = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag']
+
 export interface BriefingContext {
   athleteName: string
   readinessScore?: number
@@ -37,6 +39,29 @@ export interface BriefingContext {
     temp: number
     condition: string
   }
+  previousBriefingTopics: string[]
+  recentMilestones: { title: string; type: string; createdAt: Date }[]
+  activePatternAlerts: { title: string; priority: string; message: string }[]
+  latestACWR?: { acwr: number; acwrZone: string; injuryRisk: string }
+  currentWeeklySummary?: {
+    workoutCount: number
+    totalDuration: number
+    compliancePercent?: number
+    polarizationRatio?: number
+  }
+  recentWorkoutCompletions: {
+    name: string
+    completedAt: Date
+    feeling?: string
+    rpe?: number
+  }[]
+  activeInjuries: {
+    bodyPart: string
+    side?: string
+    painLevel: number
+    phase?: string
+  }[]
+  dayOfWeek: string
 }
 
 export interface GeneratedBriefing {
@@ -47,24 +72,235 @@ export interface GeneratedBriefing {
   quickActions: { label: string; action: string }[]
 }
 
-/**
- * Build context for morning briefing generation
- */
+// ---------------------------------------------------------------------------
+// Data-fetching helpers (each self-contained with try/catch)
+// ---------------------------------------------------------------------------
+
+async function getPreviousBriefingTopics(clientId: string): Promise<string[]> {
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const previous = await prisma.aIBriefing.findMany({
+      where: {
+        clientId,
+        briefingType: 'MORNING',
+        scheduledFor: { lt: today },
+      },
+      orderBy: { scheduledFor: 'desc' },
+      take: 3,
+      select: { highlights: true },
+    })
+
+    return previous.flatMap((b) => b.highlights)
+  } catch (error) {
+    logger.error('Error fetching previous briefing topics', { clientId }, error)
+    return []
+  }
+}
+
+async function getRecentMilestones(
+  clientId: string
+): Promise<{ title: string; type: string; createdAt: Date }[]> {
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+
+    const milestones = await prisma.aINotification.findMany({
+      where: {
+        clientId,
+        notificationType: 'MILESTONE',
+        createdAt: { gte: sevenDaysAgo },
+        dismissedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      select: { title: true, notificationType: true, createdAt: true },
+    })
+
+    return milestones.map((m) => ({
+      title: m.title,
+      type: m.notificationType,
+      createdAt: m.createdAt,
+    }))
+  } catch (error) {
+    logger.error('Error fetching recent milestones', { clientId }, error)
+    return []
+  }
+}
+
+async function getActivePatternAlerts(
+  clientId: string
+): Promise<{ title: string; priority: string; message: string }[]> {
+  try {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+
+    const alerts = await prisma.aINotification.findMany({
+      where: {
+        clientId,
+        notificationType: 'PATTERN_ALERT',
+        createdAt: { gte: threeDaysAgo },
+        dismissedAt: null,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 2,
+      select: { title: true, priority: true, message: true },
+    })
+
+    return alerts
+  } catch (error) {
+    logger.error('Error fetching pattern alerts', { clientId }, error)
+    return []
+  }
+}
+
+async function getLatestACWRData(
+  clientId: string
+): Promise<{ acwr: number; acwrZone: string; injuryRisk: string } | undefined> {
+  try {
+    const load = await prisma.trainingLoad.findFirst({
+      where: { clientId, acwr: { not: null } },
+      orderBy: { date: 'desc' },
+      select: { acwr: true, acwrZone: true, injuryRisk: true },
+    })
+
+    if (!load?.acwr || !load.acwrZone || !load.injuryRisk) return undefined
+
+    return { acwr: load.acwr, acwrZone: load.acwrZone, injuryRisk: load.injuryRisk }
+  } catch (error) {
+    logger.error('Error fetching ACWR', { clientId }, error)
+    return undefined
+  }
+}
+
+async function getCurrentWeeklySummary(
+  clientId: string
+): Promise<
+  | {
+      workoutCount: number
+      totalDuration: number
+      compliancePercent?: number
+      polarizationRatio?: number
+    }
+  | undefined
+> {
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const summary = await prisma.weeklyTrainingSummary.findFirst({
+      where: {
+        clientId,
+        weekStart: { lte: today },
+        weekEnd: { gte: today },
+      },
+      select: {
+        workoutCount: true,
+        totalDuration: true,
+        compliancePercent: true,
+        polarizationRatio: true,
+      },
+    })
+
+    if (!summary) return undefined
+
+    return {
+      workoutCount: summary.workoutCount,
+      totalDuration: summary.totalDuration,
+      compliancePercent: summary.compliancePercent ?? undefined,
+      polarizationRatio: summary.polarizationRatio ?? undefined,
+    }
+  } catch (error) {
+    logger.error('Error fetching weekly summary', { clientId }, error)
+    return undefined
+  }
+}
+
+async function getRecentWorkoutCompletions(
+  userId: string
+): Promise<{ name: string; completedAt: Date; feeling?: string; rpe?: number }[]> {
+  try {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+
+    const logs = await prisma.workoutLog.findMany({
+      where: {
+        athleteId: userId,
+        completed: true,
+        completedAt: { gte: threeDaysAgo },
+      },
+      orderBy: { completedAt: 'desc' },
+      take: 3,
+      select: {
+        completedAt: true,
+        feeling: true,
+        perceivedEffort: true,
+        workout: { select: { name: true } },
+      },
+    })
+
+    return logs
+      .filter((l) => l.completedAt !== null)
+      .map((l) => ({
+        name: l.workout.name,
+        completedAt: l.completedAt!,
+        feeling: l.feeling ?? undefined,
+        rpe: l.perceivedEffort ?? undefined,
+      }))
+  } catch (error) {
+    logger.error('Error fetching recent workout completions', { userId }, error)
+    return []
+  }
+}
+
+async function getActiveInjuries(
+  clientId: string
+): Promise<{ bodyPart: string; side?: string; painLevel: number; phase?: string }[]> {
+  try {
+    const injuries = await prisma.injuryAssessment.findMany({
+      where: {
+        clientId,
+        status: { in: ['ACTIVE', 'MONITORING'] },
+        resolved: false,
+      },
+      orderBy: { date: 'desc' },
+      take: 2,
+      select: { bodyPart: true, side: true, painLevel: true, phase: true },
+    })
+
+    return injuries
+      .filter((i) => i.bodyPart !== null)
+      .map((i) => ({
+        bodyPart: i.bodyPart!,
+        side: i.side ?? undefined,
+        painLevel: i.painLevel,
+        phase: i.phase ?? undefined,
+      }))
+  } catch (error) {
+    logger.error('Error fetching active injuries', { clientId }, error)
+    return []
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Build context for morning briefing generation
+// ---------------------------------------------------------------------------
+
 export async function buildBriefingContext(clientId: string): Promise<BriefingContext | null> {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
 
   // Get client with related data
   const client = await prisma.client.findUnique({
     where: { id: clientId },
     select: {
       name: true,
+      userId: true,
       dailyCheckIns: {
         orderBy: { date: 'desc' },
         take: 1,
         where: {
           date: {
-            gte: new Date(today.getTime() - 24 * 60 * 60 * 1000), // Last 24 hours
+            gte: new Date(today.getTime() - 24 * 60 * 60 * 1000),
           },
         },
         select: {
@@ -79,17 +315,20 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
       },
       conversationMemories: {
         where: {
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+          AND: [
+            { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+            { createdAt: { gte: thirtyDaysAgo } },
+          ],
         },
         orderBy: { importance: 'desc' },
-        take: 5,
+        take: 3,
         select: { content: true },
       },
       calendarEvents: {
         where: {
           startDate: {
             gte: today,
-            lt: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000), // Next 7 days
+            lt: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000),
           },
         },
         orderBy: { startDate: 'asc' },
@@ -108,14 +347,43 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
     return null
   }
 
-  // Get today's scheduled workout from training program
-  const todaysWorkout = await getTodaysWorkout(clientId)
+  // Fetch all enrichment data in parallel
+  const [
+    todaysWorkout,
+    previousBriefingTopics,
+    recentMilestones,
+    activePatternAlerts,
+    latestACWR,
+    currentWeeklySummary,
+    recentWorkoutCompletions,
+    activeInjuries,
+  ] = await Promise.all([
+    getTodaysWorkout(clientId),
+    getPreviousBriefingTopics(clientId),
+    getRecentMilestones(clientId),
+    getActivePatternAlerts(clientId),
+    getLatestACWRData(clientId),
+    getCurrentWeeklySummary(clientId),
+    client.userId
+      ? getRecentWorkoutCompletions(client.userId)
+      : Promise.resolve([] as { name: string; completedAt: Date; feeling?: string; rpe?: number }[]),
+    getActiveInjuries(clientId),
+  ])
+
+  // Filter milestones already mentioned in previous briefings
+  const filteredMilestones = recentMilestones.filter(
+    (m) =>
+      !previousBriefingTopics.some(
+        (topic) =>
+          topic.toLowerCase().includes(m.title.toLowerCase()) ||
+          m.title.toLowerCase().includes(topic.toLowerCase())
+      )
+  )
 
   // Calculate readiness score from check-in data
   const checkIn = client.dailyCheckIns[0]
   let readinessScore: number | undefined
   if (checkIn) {
-    // Simple readiness calculation: average of inverted fatigue, inverted soreness, mood, sleep quality
     const scores = []
     if (checkIn.fatigue) scores.push(11 - checkIn.fatigue) // Invert 1-10 scale
     if (checkIn.soreness) scores.push(11 - checkIn.soreness) // Invert 1-10 scale
@@ -126,8 +394,10 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
     }
   }
 
+  const now = new Date()
+
   return {
-    athleteName: client.name.split(' ')[0], // First name only
+    athleteName: client.name.split(' ')[0],
     readinessScore,
     sleepHours: checkIn?.sleepHours ?? undefined,
     sleepQuality: checkIn?.sleepQuality ?? undefined,
@@ -143,6 +413,14 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
       date: e.startDate,
       type: e.type,
     })),
+    previousBriefingTopics,
+    recentMilestones: filteredMilestones,
+    activePatternAlerts,
+    latestACWR,
+    currentWeeklySummary,
+    recentWorkoutCompletions,
+    activeInjuries,
+    dayOfWeek: SWEDISH_DAYS[now.getDay()],
   }
 }
 
@@ -210,7 +488,7 @@ export async function generateMorningBriefing(
     const response = await generateText({
       model: createModelInstance(resolved),
       prompt,
-      maxOutputTokens: 1024,
+      maxOutputTokens: 1200,
     })
 
     const textContent = response.text
@@ -239,67 +517,164 @@ export async function generateMorningBriefing(
 }
 
 /**
+ * Get a rotating daily angle hint based on day of week
+ */
+function getDailyAngle(dayIndex: number): string {
+  switch (dayIndex) {
+    case 1:
+      return 'Veckan framåt & mål — fokusera på vad som väntar denna vecka'
+    case 2:
+    case 3:
+    case 4:
+      return 'Träningskvalitet & framsteg — lyft fram utveckling och bra arbete'
+    case 5:
+      return 'Återhämtning & helgförberedelse — fokusera på vila och planering'
+    case 6:
+      return 'Prestation & glädje — betona det roliga med träning'
+    case 0:
+      return 'Veckoreflektion & konsistens — summera veckans insatser'
+    default:
+      return 'Träningskvalitet & framsteg'
+  }
+}
+
+/**
  * Build the AI prompt for briefing generation
  */
 function buildBriefingPrompt(context: BriefingContext): string {
-  let dataSection = ''
+  const sections: string[] = []
 
+  // 1. Previous topics — deduplication
+  if (context.previousBriefingTopics.length > 0) {
+    sections.push(
+      `ÄMNEN SOM REDAN TAGITS UPP (UPPREPA INTE):\n${context.previousBriefingTopics.map((t) => `- ${t}`).join('\n')}\nDu MÅSTE hitta NYA vinklar varje dag. Nämn INTE dessa ämnen igen.`
+    )
+  }
+
+  // 2. Athlete data today
+  let dataLines = ''
   if (context.readinessScore !== undefined) {
-    dataSection += `\n- Readiness-poäng: ${context.readinessScore.toFixed(1)}/10`
+    dataLines += `\n- Readiness-poäng: ${context.readinessScore.toFixed(1)}/10`
   }
   if (context.sleepHours !== undefined) {
-    dataSection += `\n- Sömn: ${context.sleepHours} timmar`
+    dataLines += `\n- Sömn: ${context.sleepHours} timmar`
   }
   if (context.sleepQuality !== undefined) {
-    dataSection += `\n- Sömnkvalitet: ${context.sleepQuality}/10`
+    dataLines += `\n- Sömnkvalitet: ${context.sleepQuality}/10`
   }
   if (context.fatigue !== undefined) {
-    dataSection += `\n- Trötthet: ${context.fatigue}/10`
+    dataLines += `\n- Trötthet: ${context.fatigue}/10`
   }
   if (context.soreness !== undefined) {
-    dataSection += `\n- Muskelömhet: ${context.soreness}/10`
+    dataLines += `\n- Muskelömhet: ${context.soreness}/10`
   }
   if (context.hrv !== undefined) {
-    dataSection += `\n- HRV: ${context.hrv} ms`
+    dataLines += `\n- HRV: ${context.hrv} ms`
+  }
+  if (context.restingHR !== undefined) {
+    dataLines += `\n- Vilopuls: ${context.restingHR} bpm`
+  }
+  sections.push(`ATLETENS DATA IDAG:${dataLines || '\n- Ingen check-in-data tillgänglig'}`)
+
+  // 3. Active warnings (Tier 1 — urgent)
+  const warnings: string[] = []
+  if (context.activePatternAlerts.length > 0) {
+    for (const alert of context.activePatternAlerts) {
+      warnings.push(`⚠ ${alert.title}: ${alert.message} (prioritet: ${alert.priority})`)
+    }
+  }
+  if (context.activeInjuries.length > 0) {
+    for (const injury of context.activeInjuries) {
+      const sideStr = injury.side ? ` (${injury.side})` : ''
+      const phaseStr = injury.phase ? `, fas: ${injury.phase}` : ''
+      warnings.push(
+        `🩹 Skada: ${injury.bodyPart}${sideStr} — smärtnivå ${injury.painLevel}/10${phaseStr}`
+      )
+    }
+  }
+  if (context.latestACWR && ['DANGER', 'CRITICAL'].includes(context.latestACWR.acwrZone)) {
+    warnings.push(
+      `🔴 ACWR ${context.latestACWR.acwr.toFixed(2)} — zon: ${context.latestACWR.acwrZone}, skaderisk: ${context.latestACWR.injuryRisk}`
+    )
+  }
+  if (warnings.length > 0) {
+    sections.push(`AKTUELLA VARNINGAR:\n${warnings.join('\n')}`)
   }
 
-  let workoutSection = ''
+  // 4. Today's workout
   if (context.todaysWorkout) {
-    workoutSection = `
-DAGENS PLANERADE TRÄNING:
-- Namn: ${context.todaysWorkout.name}
-- Typ: ${context.todaysWorkout.type}
-${context.todaysWorkout.duration ? `- Längd: ${context.todaysWorkout.duration} min` : ''}
-${context.todaysWorkout.description ? `- Beskrivning: ${context.todaysWorkout.description}` : ''}`
+    let workoutLines = `- Namn: ${context.todaysWorkout.name}\n- Typ: ${context.todaysWorkout.type}`
+    if (context.todaysWorkout.duration) {
+      workoutLines += `\n- Längd: ${context.todaysWorkout.duration} min`
+    }
+    if (context.todaysWorkout.description) {
+      workoutLines += `\n- Beskrivning: ${context.todaysWorkout.description}`
+    }
+    sections.push(`DAGENS PLANERADE TRÄNING:\n${workoutLines}`)
   }
 
-  let memorySection = ''
+  // 5. Recent workout completions
+  if (context.recentWorkoutCompletions.length > 0) {
+    const completionLines = context.recentWorkoutCompletions.map((w) => {
+      const date = new Date(w.completedAt).toLocaleDateString('sv-SE')
+      const details: string[] = []
+      if (w.feeling) details.push(`känsla: ${w.feeling}`)
+      if (w.rpe) details.push(`RPE: ${w.rpe}/10`)
+      return `- ${w.name} (${date})${details.length > 0 ? ' — ' + details.join(', ') : ''}`
+    })
+    sections.push(`SENASTE TRÄNINGEN:\n${completionLines.join('\n')}`)
+  }
+
+  // 6. New milestones (already filtered against previous topics)
+  if (context.recentMilestones.length > 0) {
+    const milestoneLines = context.recentMilestones.map(
+      (m) => `- ${m.title} (${new Date(m.createdAt).toLocaleDateString('sv-SE')})`
+    )
+    sections.push(`NYA PRESTATIONER:\n${milestoneLines.join('\n')}`)
+  }
+
+  // 7. Weekly summary (Mon/Wed/Sat only for variety)
+  const dayIndex = new Date().getDay()
+  if (context.currentWeeklySummary && [1, 3, 6].includes(dayIndex)) {
+    const ws = context.currentWeeklySummary
+    let summaryLines = `- Antal pass: ${ws.workoutCount}\n- Total tid: ${ws.totalDuration} min`
+    if (ws.compliancePercent !== undefined) {
+      summaryLines += `\n- Följsamhet: ${ws.compliancePercent.toFixed(0)}%`
+    }
+    if (ws.polarizationRatio !== undefined) {
+      summaryLines += `\n- Polariseringskvot: ${ws.polarizationRatio.toFixed(2)}`
+    }
+    sections.push(`VECKANS TRÄNING:\n${summaryLines}`)
+  }
+
+  // 8. Memories & events (trimmed)
+  const contextNotes: string[] = []
   if (context.recentMemories && context.recentMemories.length > 0) {
-    memorySection = `
-VIKTIGT ATT KOMMA IHÅG OM ATLETEN:
-${context.recentMemories.map((m) => `- ${m}`).join('\n')}`
+    contextNotes.push(...context.recentMemories.map((m) => `- ${m}`))
   }
-
-  let eventsSection = ''
   if (context.upcomingEvents && context.upcomingEvents.length > 0) {
-    eventsSection = `
-KOMMANDE HÄNDELSER:
-${context.upcomingEvents.map((e) => `- ${e.name} (${e.type}) - ${new Date(e.date).toLocaleDateString('sv-SE')}`).join('\n')}`
+    for (const e of context.upcomingEvents) {
+      contextNotes.push(
+        `- Händelse: ${e.name} (${e.type}) — ${new Date(e.date).toLocaleDateString('sv-SE')}`
+      )
+    }
+  }
+  if (contextNotes.length > 0) {
+    sections.push(`VIKTIGT ATT KOMMA IHÅG:\n${contextNotes.join('\n')}`)
   }
 
-  return `Generera en personlig morgonbriefing för atleten ${context.athleteName}.
+  // 9. Daily angle hint
+  sections.push(`DAGENS VINKEL (${context.dayOfWeek}):\n${getDailyAngle(dayIndex)}`)
 
-ATLETENS DATA IDAG:${dataSection || '\n- Ingen check-in-data tillgänglig'}
-${workoutSection}
-${memorySection}
-${eventsSection}
-
-INSTRUKTIONER:
+  // 10. Instructions
+  const instructions = `INSTRUKTIONER:
 1. Skriv en kort, personlig morgonhälsning (max 2-3 meningar)
-2. Lyft fram det viktigaste för dagen
-3. Ge 1-3 konkreta tips baserat på data
-4. Varna om något ser oroande ut (låg sömn, hög trötthet, etc.)
-5. Var uppmuntrande men realistisk
+2. Var ALDRIG upprepande — hitta nya vinklar varje dag
+3. Om inga nya prestationer finns, fokusera på process och framsteg
+4. Lyft fram det viktigaste för dagen
+5. Ge 1-3 konkreta tips baserat på data
+6. Varna om något ser oroande ut (skador, hög trötthet, ACWR-varning)
+7. Var uppmuntrande men realistisk
 
 SVARA I JSON-FORMAT:
 {
@@ -317,9 +692,9 @@ SVARA I JSON-FORMAT:
 }
 
 ALERT TYPER:
-- warning: Något som behöver uppmärksamhet (låg sömn, hög trötthet)
+- warning: Något som behöver uppmärksamhet (skada, hög trötthet, ACWR-varning)
 - info: Neutral information
-- success: Positiva saker (bra återhämtning, nått mål)
+- success: Positiva saker (bra återhämtning, nått mål, nytt rekord)
 
 QUICK ACTIONS:
 - log_workout: Öppna träningsloggning
@@ -327,8 +702,9 @@ QUICK ACTIONS:
 - check_in: Gör daglig check-in
 - view_program: Se träningsprogram
 
-TONALITET: Vänlig, personlig, motiverande. Som en bra tränare som bryr sig.
-`
+TONALITET: Vänlig, personlig, motiverande. Som en bra tränare som bryr sig.`
+
+  return `Generera en personlig morgonbriefing för atleten ${context.athleteName}.\n\n${sections.join('\n\n')}\n\n${instructions}\n`
 }
 
 /**
@@ -354,11 +730,46 @@ function getDefaultBriefing(context: BriefingContext): GeneratedBriefing {
     alerts.push({ type: 'warning', message: `Du sov bara ${context.sleepHours} timmar` })
   }
 
+  // Add injury warnings
+  for (const injury of context.activeInjuries) {
+    const sideStr = injury.side ? ` (${injury.side})` : ''
+    alerts.push({
+      type: 'warning',
+      message: `Aktiv skada: ${injury.bodyPart}${sideStr} — smärtnivå ${injury.painLevel}/10`,
+    })
+  }
+
+  // Add ACWR danger/critical alerts
+  if (context.latestACWR && ['DANGER', 'CRITICAL'].includes(context.latestACWR.acwrZone)) {
+    alerts.push({
+      type: 'warning',
+      message: `Hög träningsbelastning (ACWR ${context.latestACWR.acwr.toFixed(2)}) — var försiktig`,
+    })
+  }
+
+  // Add milestone highlights
+  for (const milestone of context.recentMilestones) {
+    highlights.push(milestone.title)
+  }
+
+  // Mention last completed workout
+  if (context.recentWorkoutCompletions.length > 0) {
+    const last = context.recentWorkoutCompletions[0]
+    highlights.push(`Senaste passet: ${last.name}${last.feeling ? ` (${last.feeling})` : ''}`)
+  }
+
+  let content: string
+  if (context.todaysWorkout) {
+    content = `Idag väntar ${context.todaysWorkout.name}. Ha en bra träningsdag!`
+  } else if (context.recentWorkoutCompletions.length > 0) {
+    content = `Bra jobbat med ${context.recentWorkoutCompletions[0].name}! Ha en bra dag.`
+  } else {
+    content = 'Ha en bra dag! Glöm inte att röra på dig.'
+  }
+
   return {
     title: `God morgon ${context.athleteName}!`,
-    content: context.todaysWorkout
-      ? `Idag väntar ${context.todaysWorkout.name}. Ha en bra träningsdag!`
-      : 'Ha en bra dag! Glöm inte att röra på dig.',
+    content,
     highlights,
     alerts,
     quickActions: [
