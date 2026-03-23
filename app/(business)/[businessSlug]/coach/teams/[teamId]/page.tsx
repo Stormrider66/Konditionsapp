@@ -464,6 +464,22 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       <div className="mt-8">
         <TeamLeaderboard teamId={teamId} />
       </div>
+
+      <div className="mt-8">
+        <Card className="dark:bg-slate-900/50 dark:border-white/10">
+          <CardHeader>
+            <CardTitle className="dark:text-white">Multivariat analys</CardTitle>
+            <CardDescription>
+              Hitta mönster med PCA och identifiera drivkrafter med PLS-regression
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href={`/${businessSlug}/coach/teams/${teamId}/analysis`}>
+              <Button>Öppna analys</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
