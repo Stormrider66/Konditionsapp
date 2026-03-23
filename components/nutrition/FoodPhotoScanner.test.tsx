@@ -193,6 +193,28 @@ describe('FoodPhotoScanner', () => {
     })
   })
 
+  it('still shows the analyze action when preview generation fails', async () => {
+    const createObjectURLMock = vi.mocked(URL.createObjectURL)
+    createObjectURLMock.mockImplementationOnce(() => {
+      throw new Error('preview failed')
+    })
+
+    const { container } = render(<FoodPhotoScanner />)
+
+    const fileInput = container.querySelector('input[capture="environment"]')
+    expect(fileInput).not.toBeNull()
+
+    const file = new File(['image'], 'meal.png', { type: 'image/png' })
+    fireEvent.change(fileInput as HTMLInputElement, {
+      target: { files: [file] },
+    })
+
+    expect(await screen.findByRole('button', { name: /analysera måltid/i })).toBeVisible()
+    expect(
+      screen.getByText(/förhandsgranskningen kunde inte visas, men du kan fortfarande analysera bilden/i)
+    ).toBeInTheDocument()
+  })
+
   it('re-sends the normalized image file during refine and updates the review state', async () => {
     const user = userEvent.setup()
 

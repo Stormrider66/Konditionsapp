@@ -9,7 +9,7 @@
  * Steps: CAPTURE → ANALYZING → REVIEW → SAVING → DONE
  */
 
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,6 +84,51 @@ const readFileAsDataUrl = (file: File) =>
     reader.readAsDataURL(file)
   })
 
+const normalizeImageToJpeg = async (file: File) => {
+  try {
+    const dataUrl = await readFileAsDataUrl(file)
+
+    return await new Promise<File | null>((resolve) => {
+      const img = new Image()
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.naturalWidth
+          canvas.height = img.naturalHeight
+
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            resolve(null)
+            return
+          }
+
+          ctx.drawImage(img, 0, 0)
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                resolve(null)
+                return
+              }
+
+              resolve(new File([blob], 'photo.jpg', { type: 'image/jpeg' }))
+            },
+            'image/jpeg',
+            0.92
+          )
+        } catch {
+          resolve(null)
+        }
+      }
+
+      img.onerror = () => resolve(null)
+      img.src = dataUrl
+    })
+  } catch {
+    return null
+  }
+}
+
 export function FoodPhotoScanner({
   onMealSaved,
   onClose,
@@ -120,6 +165,43 @@ export function FoodPhotoScanner({
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const previewUrlRef = useRef<string | null>(null)
+  const selectionRequestIdRef = useRef(0)
+
+  const revokePreviewUrl = useCallback(() => {
+    if (previewUrlRef.current?.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrlRef.current)
+    }
+    previewUrlRef.current = null
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      revokePreviewUrl()
+    }
+  }, [revokePreviewUrl])
+
+  const normalizeSelectedImage = useCallback(async (file: File, requestId: number) => {
+    const normalizedFile = await normalizeImageToJpeg(file)
+    if (!normalizedFile || selectionRequestIdRef.current !== requestId) {
+      return
+    }
+
+    setImageFile(normalizedFile)
+  }, [])
+
+  const setSelectedImage = useCallback((file: File) => {
+    setImageFile(file)
+    revokePreviewUrl()
+
+    try {
+      const previewUrl = URL.createObjectURL(file)
+      previewUrlRef.current = previewUrl
+      setImagePreview(previewUrl)
+    } catch {
+      setImagePreview(null)
+    }
+  }, [revokePreviewUrl])
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -127,63 +209,23 @@ export function FoodPhotoScanner({
 
     if (!file.type.startsWith('image/')) {
       setError('Vänligen välj en bildfil')
+      event.target.value = ''
       return
     }
 
     if (file.size > 10 * 1024 * 1024) {
       setError('Bilden får inte vara större än 10MB')
+      event.target.value = ''
       return
     }
 
     setError(null)
-
-    // Convert to JPEG via canvas to normalize format across all devices
-    // (some Android phones send image/jpg, HEIC, or other non-standard types)
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string
-      const img = new Image()
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas')
-          canvas.width = img.naturalWidth
-          canvas.height = img.naturalHeight
-          const ctx = canvas.getContext('2d')
-          if (ctx) {
-            ctx.drawImage(img, 0, 0)
-            canvas.toBlob(
-              (blob) => {
-                if (blob) {
-                  const jpegFile = new File([blob], 'photo.jpg', { type: 'image/jpeg' })
-                  setImageFile(jpegFile)
-                  setImagePreview(URL.createObjectURL(blob))
-                } else {
-                  // Fallback: use original file
-                  setImageFile(file)
-                  setImagePreview(dataUrl)
-                }
-              },
-              'image/jpeg',
-              0.92
-            )
-          } else {
-            setImageFile(file)
-            setImagePreview(dataUrl)
-          }
-        } catch {
-          setImageFile(file)
-          setImagePreview(dataUrl)
-        }
-      }
-      img.onerror = () => {
-        // Fallback: use original file if canvas conversion fails
-        setImageFile(file)
-        setImagePreview(dataUrl)
-      }
-      img.src = dataUrl
-    }
-    reader.readAsDataURL(file)
-  }, [])
+    const requestId = selectionRequestIdRef.current + 1
+    selectionRequestIdRef.current = requestId
+    setSelectedImage(file)
+    void normalizeSelectedImage(file, requestId)
+    event.target.value = ''
+  }, [normalizeSelectedImage, setSelectedImage])
 
   const handleAnalyze = async () => {
     if (!imageFile) return
@@ -321,6 +363,8 @@ export function FoodPhotoScanner({
   }
 
   const handleReset = () => {
+    selectionRequestIdRef.current += 1
+    revokePreviewUrl()
     setStep('CAPTURE')
     setImagePreview(null)
     setImageFile(null)
@@ -513,30 +557,48 @@ export function FoodPhotoScanner({
     totals.polyunsaturatedFatGrams != null ||
     totals.sugarGrams != null ||
     totals.complexCarbsGrams != null
+  const hasSelectedImage = Boolean(imageFile)
 
   return (
     <div className="flex flex-col gap-4 pb-4">
       {/* CAPTURE step */}
       {step === 'CAPTURE' && (
         <>
-          {imagePreview ? (
+          {hasSelectedImage ? (
             <div className="space-y-3">
-              <div className="relative rounded-lg overflow-hidden border border-white/10">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={imagePreview}
-                  alt="Förhandsgranskning"
-                  className="w-full h-auto max-h-64 object-contain bg-black/20"
-                />
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="absolute top-2 right-2 h-8 w-8 bg-black/50 hover:bg-black/70"
-                  onClick={handleReset}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              {imagePreview ? (
+                <div className="relative rounded-lg overflow-hidden border border-white/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imagePreview}
+                    alt="Förhandsgranskning"
+                    className="w-full h-auto max-h-64 object-contain bg-black/20"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8 bg-black/50 hover:bg-black/70"
+                    onClick={handleReset}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center">
+                  <Camera className="mx-auto h-7 w-7 text-slate-400" />
+                  <p className="mt-3 text-sm font-medium text-white">Bild vald</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Förhandsgranskningen kunde inte visas, men du kan fortfarande analysera bilden.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="mt-4 bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                    onClick={handleReset}
+                  >
+                    Välj annan bild
+                  </Button>
+                </div>
+              )}
               <Button
                 className="w-full gap-2"
                 onClick={handleAnalyze}
