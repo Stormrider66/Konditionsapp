@@ -679,6 +679,9 @@ model User {
   workoutTemplates         WorkoutTemplate[]         @relation("WorkoutTemplateOwner")
   workoutTemplateFavorites WorkoutTemplateFavorite[]
 
+  // Multivariate Analysis models (as coach)
+  mvaModels MVAModel[]
+
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -738,6 +741,9 @@ model Team {
 
   // Physiotherapist System relations
   physioAssignments PhysioAssignment[] @relation("TeamPhysioAssignments")
+
+  // Multivariate Analysis models
+  mvaModels MVAModel[]
 
   @@index([userId])
   @@index([name])
@@ -1004,6 +1010,9 @@ model Client {
 
   // Shared Achievement relations
   sharedAchievements SharedAchievement[]
+
+  // Multivariate Analysis scores
+  mvaScores MVAAthleteScore[]
 
   @@index([userId])
   @@index([businessId])
@@ -9856,4 +9865,49 @@ model WorkoutTemplateFavorite {
 
   @@unique([userId, templateId])
   @@index([userId])
+}
+
+// ==================== MULTIVARIATE ANALYSIS (MVA) ====================
+
+model MVAModel {
+  id                 String    @id @default(cuid())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  teamId             String
+  team               Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  coachId            String
+  coach              User      @relation(fields: [coachId], references: [id])
+  sport              SportType
+  modelType          String    // "PCA" (Phase 1), "PLS"/"PLS-DA" (future phases)
+  config             Json      // PreprocessingConfig
+  xVariables         Json      // string[] of variable IDs included
+  nObservations      Int
+  nXVariables        Int
+  nComponents        Int
+  explainedVarianceX Float[]   // per component
+  modelData          Json      // Serialized loadings, means, stds for reconstruction
+  status             String    @default("COMPLETED")
+  version            Int       @default(1)
+  athleteScores      MVAAthleteScore[]
+
+  @@index([teamId, modelType])
+  @@index([teamId, createdAt])
+}
+
+model MVAAthleteScore {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  modelId         String
+  model           MVAModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  athleteId       String
+  athlete         Client   @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  scores          Float[]  // [PC1, PC2, ..., PCn]
+  hotellingT2     Float
+  dmodx           Float
+  isOutlierT2     Boolean  @default(false)
+  isOutlierDModX  Boolean  @default(false)
+  topContributors Json?    // [{ variableId, contribution, direction }]
+
+  @@unique([modelId, athleteId])
+  @@index([athleteId])
 }
