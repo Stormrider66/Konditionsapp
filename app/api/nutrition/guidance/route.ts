@@ -342,6 +342,3 @@ export async function GET() {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-    if (!client.athleteAccount?.userId) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
-    }
