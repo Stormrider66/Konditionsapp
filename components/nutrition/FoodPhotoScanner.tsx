@@ -9,7 +9,7 @@
  * Steps: CAPTURE → ANALYZING → REVIEW → SAVING → DONE
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useEffect, useId } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -137,6 +137,8 @@ export function FoodPhotoScanner({
   redirectPathOnSave,
 }: FoodPhotoScannerProps) {
   const router = useRouter()
+  const cameraInputId = useId()
+  const fileInputId = useId()
   const [step, setStep] = useState<Step>('CAPTURE')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -611,35 +613,41 @@ export function FoodPhotoScanner({
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <Button
+                  asChild
                   variant="outline"
-                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white"
-                  onClick={() => cameraInputRef.current?.click()}
+                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white cursor-pointer"
                 >
-                  <Camera className="h-7 w-7" />
-                  <span className="text-sm">Kamera</span>
+                  <label htmlFor={cameraInputId} role="button" tabIndex={0}>
+                    <Camera className="h-7 w-7" />
+                    <span className="text-sm">Kamera</span>
+                  </label>
                 </Button>
                 <input
+                  id={cameraInputId}
                   ref={cameraInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,android/force-camera-workaround"
                   capture="environment"
-                  className="hidden"
+                  className="absolute -left-[9999px] h-px w-px opacity-0"
                   onChange={handleFileSelect}
                 />
 
                 <Button
+                  asChild
                   variant="outline"
-                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white"
-                  onClick={() => fileInputRef.current?.click()}
+                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white cursor-pointer"
                 >
-                  <Upload className="h-7 w-7" />
-                  <span className="text-sm">Välj bild</span>
+                  <label htmlFor={fileInputId} role="button" tabIndex={0}>
+                    <Upload className="h-7 w-7" />
+                    <span className="text-sm">Välj bild</span>
+                  </label>
                 </Button>
                 <input
+                  id={fileInputId}
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  className="hidden"
+                  className="absolute -left-[9999px] h-px w-px opacity-0"
                   onChange={handleFileSelect}
                 />
               </div>
