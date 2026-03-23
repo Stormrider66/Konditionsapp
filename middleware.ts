@@ -245,10 +245,14 @@ const PHYSIO_REDIRECT_ROUTES = [
   '/physio/settings',
 ]
 
+function allowsInAppCamera(pathname: string): boolean {
+  return pathname === '/athlete/nutrition/scan' || pathname.endsWith('/athlete/nutrition/scan')
+}
+
 /**
  * Add security headers to response
  */
-function addSecurityHeaders(response: NextResponse): NextResponse {
+function addSecurityHeaders(response: NextResponse, pathname: string): NextResponse {
   const isProd = process.env.NODE_ENV === 'production'
 
   // Prevent MIME type sniffing
@@ -275,8 +279,7 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
   // Restrict browser features
   response.headers.set(
     'Permissions-Policy',
-    // Allow in-app audio recording (daily audio journal) while still disabling camera.
-    'camera=(), microphone=(self), geolocation=(), interest-cohort=()'
+    `${allowsInAppCamera(pathname) ? 'camera=(self)' : 'camera=()'}, microphone=(self), geolocation=(), interest-cohort=()`
   )
 
   // Content Security Policy (keep dev flexible; tighten in production)
@@ -373,7 +376,7 @@ export async function middleware(request: NextRequest) {
 
   function finalizeResponse(res: NextResponse): NextResponse {
     res.headers.set('x-correlation-id', correlationId)
-    return addSecurityHeaders(res)
+    return addSecurityHeaders(res, pathname)
   }
 
   // =========================

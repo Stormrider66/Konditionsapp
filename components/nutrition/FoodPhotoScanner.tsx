@@ -137,12 +137,13 @@ export function FoodPhotoScanner({
   redirectPathOnSave,
 }: FoodPhotoScannerProps) {
   const router = useRouter()
-  const cameraInputId = useId()
   const fileInputId = useId()
   const [step, setStep] = useState<Step>('CAPTURE')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [isStartingCamera, setIsStartingCamera] = useState(false)
 
   // Review state
   const [items, setItems] = useState<EditableFoodItem[]>([])
@@ -164,11 +165,13 @@ export function FoodPhotoScanner({
   const [isTranscribing, setIsTranscribing] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const cameraInputRef = useRef<HTMLInputElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const previewUrlRef = useRef<string | null>(null)
   const selectionRequestIdRef = useRef(0)
+  const cameraStreamRef = useRef<MediaStream | null>(null)
+  const cameraVideoRef = useRef<HTMLVideoElement>(null)
+  const cameraCanvasRef = useRef<HTMLCanvasElement>(null)
 
   const revokePreviewUrl = useCallback(() => {
     if (previewUrlRef.current?.startsWith('blob:')) {
@@ -177,11 +180,23 @@ export function FoodPhotoScanner({
     previewUrlRef.current = null
   }, [])
 
+  const stopCameraStream = useCallback(() => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop())
+      cameraStreamRef.current = null
+    }
+
+    if (cameraVideoRef.current) {
+      cameraVideoRef.current.srcObject = null
+    }
+  }, [])
+
   useEffect(() => {
     return () => {
+      stopCameraStream()
       revokePreviewUrl()
     }
-  }, [revokePreviewUrl])
+  }, [revokePreviewUrl, stopCameraStream])
 
   const normalizeSelectedImage = useCallback(async (file: File, requestId: number) => {
     const normalizedFile = await normalizeImageToJpeg(file)
@@ -364,8 +379,95 @@ export function FoodPhotoScanner({
     }
   }
 
+  const closeCamera = useCallback(() => {
+    stopCameraStream()
+    setIsCameraOpen(false)
+    setIsStartingCamera(false)
+  }, [stopCameraStream])
+
+  const handleOpenCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('Din webbläsare stöder inte kamerafångst. Välj bild istället.')
+      return
+    }
+
+    try {
+      setError(null)
+      setIsCameraOpen(true)
+      setIsStartingCamera(true)
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      })
+
+      stopCameraStream()
+      cameraStreamRef.current = stream
+
+      const attachStream = () => {
+        if (cameraStreamRef.current !== stream) {
+          return
+        }
+
+        if (!cameraVideoRef.current) {
+          window.requestAnimationFrame(attachStream)
+          return
+        }
+
+        cameraVideoRef.current.srcObject = stream
+        void cameraVideoRef.current.play().catch(() => {})
+      }
+
+      attachStream()
+    } catch {
+      setError('Kunde inte öppna kameran. Kontrollera behörigheter eller välj bild istället.')
+      stopCameraStream()
+      setIsCameraOpen(false)
+    } finally {
+      setIsStartingCamera(false)
+    }
+  }
+
+  const handleCaptureFromCamera = async () => {
+    const video = cameraVideoRef.current
+    const canvas = cameraCanvasRef.current
+    if (!video || !canvas || !video.videoWidth || !video.videoHeight) {
+      setError('Kunde inte ta bilden. Försök igen.')
+      return
+    }
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      setError('Kunde inte ta bilden. Försök igen.')
+      return
+    }
+
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/jpeg', 0.92)
+    })
+
+    if (!blob) {
+      setError('Kunde inte ta bilden. Försök igen.')
+      return
+    }
+
+    const requestId = selectionRequestIdRef.current + 1
+    selectionRequestIdRef.current = requestId
+    setSelectedImage(new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' }))
+    closeCamera()
+  }
+
   const handleReset = () => {
     selectionRequestIdRef.current += 1
+    closeCamera()
     revokePreviewUrl()
     setStep('CAPTURE')
     setImagePreview(null)
@@ -382,7 +484,6 @@ export function FoodPhotoScanner({
     setIsRecording(false)
     setIsTranscribing(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
-    if (cameraInputRef.current) cameraInputRef.current.value = ''
   }
 
   const handleRefine = async () => {
@@ -566,7 +667,42 @@ export function FoodPhotoScanner({
       {/* CAPTURE step */}
       {step === 'CAPTURE' && (
         <>
-          {hasSelectedImage ? (
+          {isCameraOpen ? (
+            <div className="space-y-3">
+              <div className="relative overflow-hidden rounded-lg border border-white/10 bg-black aspect-[3/4]">
+                <video
+                  ref={cameraVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="h-full w-full object-cover"
+                />
+                {isStartingCamera && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70">
+                    <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+                    <p className="text-sm text-slate-200">Öppnar kameran...</p>
+                  </div>
+                )}
+              </div>
+              <canvas ref={cameraCanvasRef} className="hidden" />
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                  onClick={closeCamera}
+                >
+                  Avbryt
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleCaptureFromCamera}
+                  disabled={isStartingCamera}
+                >
+                  Ta bild
+                </Button>
+              </div>
+            </div>
+          ) : hasSelectedImage ? (
             <div className="space-y-3">
               {imagePreview ? (
                 <div className="relative rounded-lg overflow-hidden border border-white/10">
@@ -613,24 +749,13 @@ export function FoodPhotoScanner({
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <Button
-                  asChild
                   variant="outline"
-                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white cursor-pointer"
+                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white"
+                  onClick={handleOpenCamera}
                 >
-                  <label htmlFor={cameraInputId} role="button" tabIndex={0}>
-                    <Camera className="h-7 w-7" />
-                    <span className="text-sm">Kamera</span>
-                  </label>
+                  <Camera className="h-7 w-7" />
+                  <span className="text-sm">Kamera</span>
                 </Button>
-                <input
-                  id={cameraInputId}
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*,android/force-camera-workaround"
-                  capture="environment"
-                  className="absolute -left-[9999px] h-px w-px opacity-0"
-                  onChange={handleFileSelect}
-                />
 
                 <Button
                   asChild
