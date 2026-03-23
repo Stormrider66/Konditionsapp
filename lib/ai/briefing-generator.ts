@@ -297,7 +297,7 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
       name: true,
       userId: true,
       athleteAccount: { select: { userId: true } },
-      dailyCheckIns: {
+      dailyMetrics: {
         orderBy: { date: 'desc' },
         take: 1,
         where: {
@@ -308,11 +308,14 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
         select: {
           sleepQuality: true,
           sleepHours: true,
-          fatigue: true,
-          soreness: true,
+          energyLevel: true,
+          muscleSoreness: true,
           mood: true,
+          stress: true,
           restingHR: true,
-          hrv: true,
+          hrvRMSSD: true,
+          readinessScore: true,
+          readinessLevel: true,
         },
       },
       conversationMemories: {
@@ -382,32 +385,41 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
       )
   )
 
-  // Calculate readiness score from check-in data
-  const checkIn = client.dailyCheckIns[0]
+  // Use readiness from DailyMetrics (computed by the readiness engine)
+  const metrics = client.dailyMetrics[0]
   let readinessScore: number | undefined
-  if (checkIn) {
-    const scores = []
-    if (checkIn.fatigue) scores.push(11 - checkIn.fatigue) // Invert 1-10 scale
-    if (checkIn.soreness) scores.push(11 - checkIn.soreness) // Invert 1-10 scale
-    if (checkIn.mood) scores.push(checkIn.mood)
-    if (checkIn.sleepQuality) scores.push(checkIn.sleepQuality)
-    if (scores.length > 0) {
-      readinessScore = scores.reduce((a, b) => a + b, 0) / scores.length
+  if (metrics) {
+    if (metrics.readinessScore !== null) {
+      readinessScore = metrics.readinessScore
+    } else {
+      // Fallback: compute from individual fields
+      const scores = []
+      if (metrics.energyLevel) scores.push(metrics.energyLevel)
+      if (metrics.muscleSoreness) scores.push(11 - metrics.muscleSoreness)
+      if (metrics.mood) scores.push(metrics.mood)
+      if (metrics.sleepQuality) scores.push(metrics.sleepQuality)
+      if (scores.length > 0) {
+        readinessScore = scores.reduce((a, b) => a + b, 0) / scores.length
+      }
     }
   }
+
+  // Map DailyMetrics fields to BriefingContext
+  // energyLevel (1=exhausted,10=energized) → fatigue inverted (10=extreme fatigue)
+  const fatigue = metrics?.energyLevel ? 11 - metrics.energyLevel : undefined
 
   const now = new Date()
 
   return {
     athleteName: client.name.split(' ')[0],
     readinessScore,
-    sleepHours: checkIn?.sleepHours ?? undefined,
-    sleepQuality: checkIn?.sleepQuality ?? undefined,
-    fatigue: checkIn?.fatigue ?? undefined,
-    soreness: checkIn?.soreness ?? undefined,
-    mood: checkIn?.mood ?? undefined,
-    restingHR: checkIn?.restingHR ?? undefined,
-    hrv: checkIn?.hrv ?? undefined,
+    sleepHours: metrics?.sleepHours ?? undefined,
+    sleepQuality: metrics?.sleepQuality ?? undefined,
+    fatigue,
+    soreness: metrics?.muscleSoreness ?? undefined,
+    mood: metrics?.mood ?? undefined,
+    restingHR: metrics?.restingHR ?? undefined,
+    hrv: metrics?.hrvRMSSD ?? undefined,
     todaysWorkout: todaysWorkout ?? undefined,
     recentMemories: client.conversationMemories.map((m) => m.content),
     upcomingEvents: client.calendarEvents.map((e) => ({
