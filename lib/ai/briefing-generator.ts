@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { resolveModel, type AvailableKeys } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
+import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 const SWEDISH_DAYS = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag']
 
@@ -295,6 +296,7 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
     select: {
       name: true,
       userId: true,
+      athleteAccount: { select: { userId: true } },
       dailyCheckIns: {
         orderBy: { date: 'desc' },
         take: 1,
@@ -364,8 +366,8 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
     getActivePatternAlerts(clientId),
     getLatestACWRData(clientId),
     getCurrentWeeklySummary(clientId),
-    client.userId
-      ? getRecentWorkoutCompletions(client.userId)
+    client.athleteAccount?.userId
+      ? getRecentWorkoutCompletions(client.athleteAccount.userId)
       : Promise.resolve([] as { name: string; completedAt: Date; feeling?: string; rpe?: number }[]),
     getActiveInjuries(clientId),
   ])
@@ -818,6 +820,50 @@ export async function createMorningBriefing(
     return saved.id
   } catch (error) {
     logger.error('Error creating morning briefing', { clientId }, error)
+    return null
+  }
+}
+
+/**
+ * Regenerate today's morning briefing after new data (e.g. check-in).
+ * Deletes the existing briefing and creates a fresh one with updated context.
+ * Resolves AI keys from the client's coach automatically.
+ */
+export async function regenerateTodaysBriefing(clientId: string): Promise<string | null> {
+  try {
+    // Look up coach userId for AI key resolution
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { userId: true },
+    })
+
+    if (!client) {
+      logger.warn('Client not found for briefing regeneration', { clientId })
+      return null
+    }
+
+    const apiKeys = await getResolvedAiKeys(client.userId)
+    if (!apiKeys.anthropicKey && !apiKeys.googleKey && !apiKeys.openaiKey) {
+      logger.warn('No AI API keys available for briefing regeneration', { clientId })
+      return null
+    }
+
+    // Delete today's existing morning briefing
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    await prisma.aIBriefing.deleteMany({
+      where: {
+        clientId,
+        briefingType: 'MORNING',
+        scheduledFor: { gte: today },
+      },
+    })
+
+    // Create a fresh briefing with updated context
+    return createMorningBriefing(clientId, apiKeys)
+  } catch (error) {
+    logger.error('Error regenerating morning briefing', { clientId }, error)
     return null
   }
 }

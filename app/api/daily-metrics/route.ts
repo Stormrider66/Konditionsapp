@@ -14,6 +14,7 @@ import {
 } from '@/lib/daily-metrics-jobs'
 import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import { logger } from '@/lib/logger'
+import { regenerateTodaysBriefing } from '@/lib/ai/briefing-generator'
 
 const dailyMetricsWriteInFlight = new Map<string, Promise<void>>()
 const dailyMetricsGetCache = createDistributedJsonCache<{ data: unknown }>('daily-metrics-get')
@@ -312,6 +313,11 @@ export async function POST(request: NextRequest) {
       logger.warn('Synchronous daily-metrics job processing failed; cron will retry', { writeKey }, error)
       assessments.deferred = true
     }
+
+    // Regenerate morning briefing with fresh check-in data (fire-and-forget)
+    void regenerateTodaysBriefing(clientId).catch((err) => {
+      logger.warn('Background briefing regeneration failed', { clientId }, err)
+    })
 
     const responsePayload = {
       success: true,
