@@ -292,10 +292,19 @@ export function WeeklyTrainingSummaryCard({
 
   const acwrConfig = summary.acwrZone ? ACWR_ZONE_CONFIG[summary.acwrZone] : null;
 
-  // Trend: compare totalTSS between current and previous week (>15% = increasing, <-15% = decreasing)
+  // Trend: compare daily TSS rate (current vs previous week).
+  // The current week may be partial (e.g. Tuesday = 2 days), so comparing raw
+  // totals is misleading ("Minskande 95%"). Normalize to TSS/day instead.
   const trend = (() => {
     if (!previousSummary || previousSummary.totalTSS === 0) return null;
-    const changePercent = ((summary.totalTSS - previousSummary.totalTSS) / previousSummary.totalTSS) * 100;
+    const now = new Date();
+    const weekStartDate = new Date(summary.weekStart);
+    const daysElapsed = Math.max(1, Math.min(7,
+      Math.ceil((now.getTime() - weekStartDate.getTime()) / (1000 * 60 * 60 * 24))
+    ));
+    const currentDailyRate = summary.totalTSS / daysElapsed;
+    const previousDailyRate = previousSummary.totalTSS / 7;
+    const changePercent = ((currentDailyRate - previousDailyRate) / previousDailyRate) * 100;
     if (changePercent > 15) return { direction: 'increasing' as const, changePercent };
     if (changePercent < -15) return { direction: 'decreasing' as const, changePercent };
     return { direction: 'stable' as const, changePercent };
