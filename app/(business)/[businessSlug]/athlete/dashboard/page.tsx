@@ -7,15 +7,10 @@ import { prisma } from '@/lib/prisma'
 import { SportType } from '@prisma/client'
 import { addDays, startOfDay, endOfDay, subDays, format, differenceInWeeks } from 'date-fns'
 import { tzSafeDayStart, tzSafeDayEnd } from '@/lib/date-utils'
-import Link from 'next/link'
-import { getTranslations } from '@/i18n/server'
 import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
 import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
-import { TrainingLoadWidget } from '@/components/athlete/TrainingLoadWidget'
-import { IntegrationStatusWidget } from '@/components/athlete/IntegrationStatusWidget'
 import { ActivePrograms } from '@/components/athlete/ActivePrograms'
 import { AISuggestionsBanner } from '@/components/athlete/ai/AISuggestionsBanner'
-import { AthleteStats } from '@/components/athlete/AthleteStats'
 import { CyclingDashboard } from '@/components/athlete/CyclingDashboard'
 import { SkiingDashboard } from '@/components/athlete/SkiingDashboard'
 import { SwimmingDashboard } from '@/components/athlete/SwimmingDashboard'
@@ -31,24 +26,13 @@ import { BasketballDashboard } from '@/components/athlete/BasketballDashboard'
 import { VolleyballDashboard } from '@/components/athlete/VolleyballDashboard'
 import { TennisDashboard } from '@/components/athlete/TennisDashboard'
 import { PadelDashboard } from '@/components/athlete/PadelDashboard'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
-import { Button } from '@/components/ui/button'
 import {
-  Zap,
-  ClipboardList,
-  User,
-  Utensils,
   CalendarDays,
-  TrendingUp,
-  Calendar,
-  Stethoscope
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid, GarminHealthCard } from '@/components/athlete/dashboard'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
-import { InjuryPreventionWidget } from '@/components/athlete/injury-prevention'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
-import { RacePredictionWidget } from '@/components/athlete/RacePredictionWidget'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 import { WODHistorySummary } from '@/components/athlete/wod'
 import { LogWorkoutButton } from '@/components/athlete/adhoc'
@@ -62,7 +46,6 @@ import { NutritionTimingCard } from '@/components/athlete/NutritionTimingCard'
 import { WeeklyTrainingSummaryCard } from '@/components/athlete/WeeklyTrainingSummaryCard'
 import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
 import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary'
-import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 import {
@@ -89,8 +72,6 @@ interface BusinessAthleteDashboardProps {
 
 export default async function BusinessAthleteDashboardPage({ params }: BusinessAthleteDashboardProps) {
   const { businessSlug } = await params
-  const t = await getTranslations('athlete')
-  const tNav = await getTranslations('nav')
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -237,8 +218,6 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   // Parallel data fetching for better performance
   const [
     activePrograms,
-    recentLogs,
-    plannedStats,
     latestMetrics,
     recentLogsWithSetLogs,
     weeklyTSS,
@@ -271,52 +250,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       },
     }),
 
-    // 2. Recent Activity
-    prisma.workoutLog.findMany({
-      where: {
-        athleteId: user.id,
-        completedAt: {
-          gte: subDays(now, 7),
-        },
-      },
-      include: {
-        workout: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            intensity: true,
-          },
-        },
-      },
-      orderBy: {
-        completedAt: 'desc',
-      },
-      take: 10,
-    }),
-
-    // 3. Planned Stats (this week)
-    prisma.workout.findMany({
-      where: {
-        day: {
-          date: {
-            gte: startOfDay(addDays(now, -now.getDay() + 1)), // Monday
-            lte: endOfDay(addDays(now, -now.getDay() + 7)),   // Sunday
-          },
-          week: {
-            program: {
-              clientId: clientId
-            }
-          }
-        }
-      },
-      select: {
-        distance: true,
-        duration: true,
-      }
-    }),
-
-    // 4. Latest DailyMetrics for readiness score + Garmin health data
+    // 2. Latest DailyMetrics for readiness score + Garmin health data
     prisma.dailyMetrics.findFirst({
       where: {
         clientId: clientId,
@@ -695,19 +629,6 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
       .reduce((sum, w) => sum + (w.actualDuration || w.requestedDuration || 0), 0),
   }
 
-  // Quick links based on sport
-  const getQuickLinks = () => {
-    const baseLinks = [
-      { href: `${basePath}/athlete/tests`, icon: ClipboardList, label: t('testsAndReports'), color: 'text-red-500' },
-      { href: `${basePath}/athlete/history`, icon: TrendingUp, label: t('trainingHistory'), color: 'text-blue-500' },
-      { href: `${basePath}/athlete/programs`, icon: Calendar, label: t('allPrograms'), color: 'text-green-500' },
-      { href: `${basePath}/athlete/rehab`, icon: Stethoscope, label: 'Rehabilitering', color: 'text-teal-500' },
-      { href: `${basePath}/athlete/settings/nutrition`, icon: Utensils, label: t('nutritionSettings'), color: 'text-emerald-500' },
-      { href: `${basePath}/athlete/profile`, icon: User, label: t('myProfile'), color: 'text-purple-500' },
-    ]
-    return baseLinks
-  }
-
   // Hero Card Data - prioritize: incomplete programs > assignments > WODs > completed
   const kindPriority = (kind: string) => (
     kind === 'program'
@@ -765,53 +686,6 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         />
       </div>
 
-      {/* Milestone Celebrations */}
-      <div className="mb-6">
-        <MilestoneCelebrationCard />
-      </div>
-
-      {/* Morning Briefing Card */}
-      <div className="mb-6">
-        <MorningBriefingCard />
-      </div>
-
-      {/* Pre-Workout Nudges */}
-      <div className="mb-6">
-        <PreWorkoutNudgeCard />
-      </div>
-
-      {/* Pattern Alerts */}
-      <div className="mb-6">
-        <PatternAlertCard />
-      </div>
-
-      {/* Mental Prep (Pre-Competition) */}
-      <div className="mb-6">
-        <MentalPrepCard />
-      </div>
-
-      {/* Nutrition Timing */}
-      <div className="mb-6">
-        <NutritionTimingCard />
-      </div>
-
-      {/* Post-Workout Check-ins */}
-      <div className="mb-6">
-        <PostWorkoutCheckCard />
-      </div>
-
-      {/* AI Suggestions Banner */}
-      <div className="mb-8">
-        <AISuggestionsBanner />
-      </div>
-
-      {/* Sport-Specific Dashboard */}
-      {renderSportDashboard() && (
-        <div className="mb-8">
-          {renderSportDashboard()}
-        </div>
-      )}
-
       {/* Main Grid - Hero Card + Readiness Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* HERO CARD(S) (Left 2/3) */}
@@ -845,33 +719,46 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         />
       </div>
 
+      {/* Contextual Cards */}
+      <div className="mb-6">
+        <MilestoneCelebrationCard />
+      </div>
+      <div className="mb-6">
+        <MorningBriefingCard />
+      </div>
+      <div className="mb-6">
+        <PreWorkoutNudgeCard />
+      </div>
+      <div className="mb-6">
+        <PatternAlertCard />
+      </div>
+      <div className="mb-6">
+        <MentalPrepCard />
+      </div>
+      <div className="mb-6">
+        <NutritionTimingCard />
+      </div>
+      <div className="mb-6">
+        <PostWorkoutCheckCard />
+      </div>
+      <div className="mb-8">
+        <AISuggestionsBanner />
+      </div>
+
+      {/* Sport-Specific Dashboard */}
+      {renderSportDashboard() && (
+        <div className="mb-8">
+          {renderSportDashboard()}
+        </div>
+      )}
+
       {/* Secondary Grid (Widget Layout) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Left Column (2/3) */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Upcoming Workouts */}
           <UpcomingWorkouts items={upcomingItems} variant="glass" basePath={basePath} />
 
-          {/* Training Load Widget */}
-          <TrainingLoadWidget clientId={clientId} variant="glass" />
-
-          {/* Training Trend Chart */}
-          <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
-
-          {/* Zone Distribution Chart */}
-          <ZoneDistributionChart clientId={clientId} variant="glass" />
-
-          {/* Nutrition Dashboard */}
-          <NutritionDashboard clientId={clientId} />
-
-          {/* Integrated Recent Activity */}
-          <IntegratedRecentActivity clientId={clientId} variant="glass" />
-        </div>
-
-        {/* Right Column (1/3) */}
-        <div className="space-y-6">
-          {/* Weekly Training Summary */}
           <WeeklyTrainingSummaryCard
             clientId={clientId}
             variant="glass"
@@ -879,28 +766,25 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
             intensityTargets={intensityTargets}
           />
 
-          {/* Weekly Zone Summary */}
+          <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
+
+          <NutritionDashboard clientId={clientId} />
+
+          <IntegratedRecentActivity clientId={clientId} variant="glass" />
+        </div>
+
+        {/* Right Column (1/3) */}
+        <div className="space-y-6">
           <WeeklyZoneSummary clientId={clientId} variant="glass" />
 
-          {/* Log Ad-Hoc Workout */}
           <LogWorkoutButton variant="card" />
 
-          {/* Accountability Streak Widget */}
           <AccountabilityStreakWidget basePath={basePath} />
 
-          {/* AI Agent Recommendations */}
           <AgentRecommendationsPanel basePath={basePath} />
 
-          {/* Active Training Restrictions */}
           <ActiveRestrictionsCard clientId={clientId} />
 
-          {/* Injury Prevention Widget */}
-          <InjuryPreventionWidget />
-
-          {/* Race Predictions Widget */}
-          <RacePredictionWidget clientId={clientId} />
-
-          {/* Active Programs */}
           <ActivePrograms
             programs={activePrograms}
             variant="glass"
@@ -913,10 +797,8 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
             athleteContext={dashboardAthleteContext}
           />
 
-          {/* WOD History Summary */}
           <WODHistorySummary recentWods={wodHistory} stats={wodStats} basePath={basePath} />
 
-          {/* Garmin Health Data */}
           <GarminHealthCard
             hrvRMSSD={latestMetrics?.hrvRMSSD}
             hrvStatus={latestMetrics?.hrvStatus}
@@ -934,26 +816,6 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
               } : null
             })()}
           />
-
-          {/* Integration Status */}
-          <IntegrationStatusWidget clientId={clientId} variant="glass" basePath={basePath} />
-
-          {/* Quick Links */}
-          <GlassCard>
-            <GlassCardHeader className="pb-3">
-              <GlassCardTitle className="text-base">{t('quickLinks')}</GlassCardTitle>
-            </GlassCardHeader>
-            <GlassCardContent className="space-y-2">
-              {getQuickLinks().map((link) => (
-                <Link key={link.href} href={link.href} className="block">
-                  <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
-                    <link.icon className={`h-4 w-4 ${link.color}`} />
-                    <span className="text-sm">{link.label}</span>
-                  </div>
-                </Link>
-              ))}
-            </GlassCardContent>
-          </GlassCard>
         </div>
 
       </div>

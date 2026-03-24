@@ -23,6 +23,8 @@ import {
   Route,
   Target,
   TrendingUp,
+  TrendingDown,
+  Minus,
   AlertTriangle,
   CheckCircle,
   Zap,
@@ -195,6 +197,7 @@ export function WeeklyTrainingSummaryCard({
   intensityTargets,
 }: WeeklyTrainingSummaryCardProps) {
   const [summary, setSummary] = useState<WeeklySummary | null>(null);
+  const [previousSummary, setPreviousSummary] = useState<WeeklySummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Get effective targets: custom targets override sport defaults
@@ -203,11 +206,14 @@ export function WeeklyTrainingSummaryCard({
   const fetchSummary = useCallback(async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/athlete/training-summary?clientId=${clientId}&period=week&count=1`);
+      const res = await fetch(`/api/athlete/training-summary?clientId=${clientId}&period=week&count=2`);
       if (res.ok) {
         const data = await res.json();
         if (data.summaries && data.summaries.length > 0) {
           setSummary(data.summaries[0]);
+          if (data.summaries.length > 1) {
+            setPreviousSummary(data.summaries[1]);
+          }
         }
       }
     } catch (error) {
@@ -264,6 +270,24 @@ export function WeeklyTrainingSummaryCard({
   }
 
   const acwrConfig = summary.acwrZone ? ACWR_ZONE_CONFIG[summary.acwrZone] : null;
+
+  // Trend: compare totalTSS between current and previous week (>15% = increasing, <-15% = decreasing)
+  const trend = (() => {
+    if (!previousSummary || previousSummary.totalTSS === 0) return null;
+    const changePercent = ((summary.totalTSS - previousSummary.totalTSS) / previousSummary.totalTSS) * 100;
+    if (changePercent > 15) return { direction: 'increasing' as const, changePercent };
+    if (changePercent < -15) return { direction: 'decreasing' as const, changePercent };
+    return { direction: 'stable' as const, changePercent };
+  })();
+
+  const TREND_CONFIG = {
+    increasing: { label: 'Ökande', color: 'bg-orange-100 text-orange-800', icon: <TrendingUp className="h-3 w-3" />, context: 'Din belastning ökar jämfört med förra veckan' },
+    decreasing: { label: 'Minskande', color: 'bg-blue-100 text-blue-800', icon: <TrendingDown className="h-3 w-3" />, context: 'Din belastning minskar jämfört med förra veckan' },
+    stable: { label: 'Stabil', color: 'bg-green-100 text-green-800', icon: <Minus className="h-3 w-3" />, context: 'Din belastning är stabil jämfört med förra veckan' },
+  };
+
+  const trendConfig = trend ? TREND_CONFIG[trend.direction] : null;
+
   const totalIntensityMinutes = summary.easyMinutes + summary.moderateMinutes + summary.hardMinutes;
 
   // Calculate weekly hours for volume-adjusted recommendations
@@ -336,12 +360,20 @@ export function WeeklyTrainingSummaryCard({
             <Activity className="h-4 w-4" />
             Veckans traning
           </CardTitle>
-          {acwrConfig && (
-            <Badge className={acwrConfig.color}>
-              {acwrConfig.icon}
-              <span className="ml-1">{acwrConfig.label}</span>
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {trendConfig && (
+              <Badge className={trendConfig.color}>
+                {trendConfig.icon}
+                <span className="ml-1">{trendConfig.label} {Math.abs(Math.round(trend!.changePercent))}%</span>
+              </Badge>
+            )}
+            {acwrConfig && (
+              <Badge className={acwrConfig.color}>
+                {acwrConfig.icon}
+                <span className="ml-1">{acwrConfig.label}</span>
+              </Badge>
+            )}
+          </div>
         </div>
         <CardDescription>
           Vecka {summary.weekNumber} • {getWeekDateRange(summary.weekStart, summary.weekEnd)}
@@ -492,6 +524,13 @@ export function WeeklyTrainingSummaryCard({
                 </p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Trend context */}
+        {trendConfig && (
+          <div className="text-xs text-muted-foreground text-center pt-1">
+            {trendConfig.context}
           </div>
         )}
 
