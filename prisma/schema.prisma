@@ -679,9 +679,6 @@ model User {
   workoutTemplates         WorkoutTemplate[]         @relation("WorkoutTemplateOwner")
   workoutTemplateFavorites WorkoutTemplateFavorite[]
 
-  // Multivariate Analysis models (as coach)
-  mvaModels MVAModel[]
-
   @@index([email])
   @@index([role])
   @@index([referredByBusinessId])
@@ -741,9 +738,6 @@ model Team {
 
   // Physiotherapist System relations
   physioAssignments PhysioAssignment[] @relation("TeamPhysioAssignments")
-
-  // Multivariate Analysis models
-  mvaModels MVAModel[]
 
   @@index([userId])
   @@index([name])
@@ -1010,9 +1004,6 @@ model Client {
 
   // Shared Achievement relations
   sharedAchievements SharedAchievement[]
-
-  // Multivariate Analysis scores
-  mvaScores MVAAthleteScore[]
 
   @@index([userId])
   @@index([businessId])
@@ -9874,11 +9865,9 @@ model MVAModel {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   teamId             String
-  team               Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
   coachId            String
-  coach              User      @relation(fields: [coachId], references: [id])
   sport              SportType
-  modelType          String    // "PCA" (Phase 1), "PLS"/"PLS-DA" (future phases)
+  modelType          String    // "PCA", "PLS"
   config             Json      // PreprocessingConfig
   xVariables         Json      // string[] of variable IDs included
   nObservations      Int
@@ -9900,7 +9889,6 @@ model MVAAthleteScore {
   modelId         String
   model           MVAModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
   athleteId       String
-  athlete         Client   @relation(fields: [athleteId], references: [id], onDelete: Cascade)
   scores          Float[]  // [PC1, PC2, ..., PCn]
   hotellingT2     Float
   dmodx           Float

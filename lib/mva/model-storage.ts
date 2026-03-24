@@ -149,18 +149,18 @@ export async function loadLatestModel(teamId: string) {
   const model = await prisma.mVAModel.findFirst({
     where: { teamId, modelType: 'PCA', status: 'COMPLETED' },
     orderBy: { createdAt: 'desc' },
-    include: {
-      athleteScores: {
-        include: {
-          athlete: {
-            select: { id: true, name: true },
-          },
-        },
-      },
-    },
+    include: { athleteScores: true },
   })
 
   if (!model) return null
+
+  // Fetch athlete names separately (no relation on MVAAthleteScore → Client)
+  const athleteIds = model.athleteScores.map((s) => s.athleteId)
+  const athletes = await prisma.client.findMany({
+    where: { id: { in: athleteIds } },
+    select: { id: true, name: true },
+  })
+  const nameMap = new Map(athletes.map((a) => [a.id, a.name]))
 
   const modelData = model.modelData as {
     loadings: number[][]
@@ -204,7 +204,7 @@ export async function loadLatestModel(teamId: string) {
     nXVariables: model.nXVariables,
     athleteScores: model.athleteScores.map((s) => ({
       clientId: s.athleteId,
-      clientName: s.athlete.name,
+      clientName: nameMap.get(s.athleteId) ?? 'Okänd',
       scores: s.scores,
       hotellingT2: s.hotellingT2,
       dmodx: s.dmodx,
@@ -222,18 +222,18 @@ export async function loadLatestPLSModel(teamId: string) {
   const model = await prisma.mVAModel.findFirst({
     where: { teamId, modelType: 'PLS', status: 'COMPLETED' },
     orderBy: { createdAt: 'desc' },
-    include: {
-      athleteScores: {
-        include: {
-          athlete: {
-            select: { id: true, name: true },
-          },
-        },
-      },
-    },
+    include: { athleteScores: true },
   })
 
   if (!model) return null
+
+  // Fetch athlete names separately
+  const athleteIds = model.athleteScores.map((s) => s.athleteId)
+  const athletes = await prisma.client.findMany({
+    where: { id: { in: athleteIds } },
+    select: { id: true, name: true },
+  })
+  const nameMap = new Map(athletes.map((a) => [a.id, a.name]))
 
   const modelData = model.modelData as {
     xLoadings: number[][]
@@ -281,6 +281,6 @@ export async function loadLatestPLSModel(teamId: string) {
     xVariableNames: modelData.xVariableNames,
     variableCategories,
     config: model.config,
-    athleteNames: model.athleteScores.map((s) => s.athlete.name),
+    athleteNames: model.athleteScores.map((s) => nameMap.get(s.athleteId) ?? 'Okänd'),
   }
 }
