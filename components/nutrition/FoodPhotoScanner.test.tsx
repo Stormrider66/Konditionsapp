@@ -175,7 +175,7 @@ describe('FoodPhotoScanner', () => {
       />
     )
 
-    const fileInput = container.querySelector('input[type="file"]')
+    const fileInput = container.querySelector('input[type="file"]:not([capture])')
     expect(fileInput).not.toBeNull()
 
     const file = new File(['image'], 'meal.png', { type: 'image/png' })
@@ -201,7 +201,7 @@ describe('FoodPhotoScanner', () => {
 
     const { container } = render(<FoodPhotoScanner />)
 
-    const fileInput = container.querySelector('input[type="file"]')
+    const fileInput = container.querySelector('input[type="file"]:not([capture])')
     expect(fileInput).not.toBeNull()
 
     const file = new File(['image'], 'meal.png', { type: 'image/png' })
@@ -220,7 +220,7 @@ describe('FoodPhotoScanner', () => {
 
     const { container } = render(<FoodPhotoScanner />)
 
-    const fileInput = container.querySelector('input[type="file"]')
+    const fileInput = container.querySelector('input[type="file"]:not([capture])')
     expect(fileInput).not.toBeNull()
 
     const file = new File(['image'], 'meal.png', { type: 'image/png' })
@@ -269,7 +269,7 @@ describe('FoodPhotoScanner', () => {
 
     const { container } = render(<FoodPhotoScanner />)
 
-    const fileInput = container.querySelector('input[type="file"]')
+    const fileInput = container.querySelector('input[type="file"]:not([capture])')
     expect(fileInput).not.toBeNull()
 
     const file = new File(['image'], 'meal.png', { type: 'image/png' })
