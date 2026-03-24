@@ -512,18 +512,6 @@ const SKILL_DEFINITIONS: SkillDef[] = [
     priority: 6,
     maxChunks: 3,
   },
-  {
-    name: 'Multivariat Analys (PCA & PLS)',
-    nameEn: 'Multivariate Analysis (PCA & PLS)',
-    category: 'ANALYSIS',
-    keywords: ['mva', 'pca', 'pls', 'multivariat', 'multivariate', 'vip', 'principal component', 'principalkomponent', 'drivkraft', 'driver', 'hotelling', 'score plot', 'loading', 'laddning', 'poängdiagram', 'mönsteranalys', 'drivkraftsanalys', 'r2', 'q2', 'korsvalidering', 'cross-validation', 'vip-poäng', 'variable importance'],
-    description: 'Multivariat analys med PCA (mönsteranalys) och PLS (drivkraftsanalys) för lag. PCA identifierar mönster och outliers i lagets data. PLS visar vilka variabler som driver en specifik utfallsvariabel (beredskap, ACWR, sprint). VIP-poäng, R²Y, Q², Hotelling T², observerat vs predikterat. ~85 variabler från fysiologiska tester, kraft/hastighet, daglig uppföljning, träningsbelastning, integrationer och trender.',
-    docFiles: [
-      { dir: 'knowledge-library', file: 'multivariate-analysis.md' },
-    ],
-    priority: 8,
-    maxChunks: 4,
-  },
 ];
 
 // ============================================================================
