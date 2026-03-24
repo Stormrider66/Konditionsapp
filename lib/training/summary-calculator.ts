@@ -280,11 +280,36 @@ async function fetchWeeklyTrainingData(
     })
   }
 
-  // Add manual workout logs
+  // Build TrainingLoad lookup maps
+  // 1) id → TSS (for ad-hoc workout lookup)
+  // 2) workoutId → TrainingLoad (for WorkoutLog TSS fallback)
+  const trainingLoadTssMap = new Map<string, number>()
+  const workoutIdToLoadTss = new Map<string, number>()
+  for (const load of trainingLoads) {
+    trainingLoadTssMap.set(load.id, load.dailyLoad)
+    if (load.workoutId) {
+      workoutIdToLoadTss.set(
+        load.workoutId,
+        (workoutIdToLoadTss.get(load.workoutId) ?? 0) + load.dailyLoad
+      )
+    }
+  }
+
+  // Track which TrainingLoad entries are covered by other activity sources
+  const coveredTrainingLoadIds = new Set<string>()
+
+  // Add manual workout logs (use TrainingLoad TSS as fallback when WorkoutLog.tss is null)
+  const coveredWorkoutIds = new Set(workoutLogs.map((log) => log.workoutId))
+  for (const load of trainingLoads) {
+    if (load.workoutId && coveredWorkoutIds.has(load.workoutId)) {
+      coveredTrainingLoadIds.add(load.id)
+    }
+  }
+
   for (const log of workoutLogs) {
     activities.push({
       date: new Date(log.completedAt!),
-      tss: log.tss ?? 0,
+      tss: log.tss ?? workoutIdToLoadTss.get(log.workoutId) ?? 0,
       distance: log.distance ?? 0,
       duration: log.duration ?? 0,
       calories: undefined,
@@ -295,18 +320,15 @@ async function fetchWeeklyTrainingData(
   }
 
   // Add confirmed ad-hoc workouts
-  // Build a map of trainingLoadId -> TSS for quick lookup
-  const trainingLoadTssMap = new Map<string, number>()
-  for (const load of trainingLoads) {
-    trainingLoadTssMap.set(load.id, load.dailyLoad)
-  }
-
   for (const adhoc of adHocWorkouts) {
     // Extract data from parsedStructure
     const parsed = adhoc.parsedStructure as ParsedWorkout | null
 
     // Get TSS from linked TrainingLoad
     const tss = adhoc.trainingLoadId ? trainingLoadTssMap.get(adhoc.trainingLoadId) ?? 0 : 0
+    if (adhoc.trainingLoadId) {
+      coveredTrainingLoadIds.add(adhoc.trainingLoadId)
+    }
 
     activities.push({
       date: new Date(adhoc.workoutDate),
@@ -317,6 +339,23 @@ async function fetchWeeklyTrainingData(
       workoutType: adhoc.parsedType ?? parsed?.type ?? undefined,
       intensity: parsed?.intensity ?? undefined,
       source: 'adhoc',
+    })
+  }
+
+  // Add standalone TrainingLoad entries not already covered by WorkoutLogs or AdHocWorkouts.
+  // This matches how the training-load API includes manual loads after dedup.
+  for (const load of trainingLoads) {
+    if (coveredTrainingLoadIds.has(load.id)) continue
+
+    activities.push({
+      date: load.date,
+      tss: load.dailyLoad,
+      distance: load.distance ?? 0,
+      duration: load.duration ?? 0,
+      calories: undefined,
+      workoutType: load.workoutType ?? undefined,
+      intensity: load.intensity ?? undefined,
+      source: 'manual',
     })
   }
 
@@ -469,7 +508,7 @@ export async function calculateWeeklySummary(
     totalDuration += activity.duration
     if (activity.calories) totalCalories += activity.calories
 
-    // Intensity distribution
+    // Intensity distribution (fallback per-activity, overridden below if zone data exists)
     const intensityLevel = classifyIntensity(
       activity.workoutType,
       activity.tss,
@@ -496,6 +535,17 @@ export async function calculateWeeklySummary(
     // Daily TSS tracking
     const dateKey = activity.date.toISOString().split('T')[0]
     dailyTSS[dateKey] = (dailyTSS[dateKey] || 0) + activity.tss
+  }
+
+  // Override intensity distribution with actual HR zone data when available.
+  // The per-activity classifyIntensity() assigns the ENTIRE workout to one bucket
+  // (e.g. "moderate") based on average metrics, losing the real zone spread.
+  // Zone distribution from ActivityHRZoneDistribution uses actual HR time-in-zone.
+  if (zoneDistribution.totalTrackedSeconds > 0) {
+    const zd = zoneDistribution
+    easyMinutes = (zd.zone1Seconds + zd.zone2Seconds) / 60
+    moderateMinutes = zd.zone3Seconds / 60
+    hardMinutes = (zd.zone4Seconds + zd.zone5Seconds) / 60
   }
 
   // Calculate averages
