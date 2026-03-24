@@ -5,10 +5,10 @@ import { collectTeamData, computeVariableCoverage } from '@/lib/mva/data-collect
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ teamId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { teamId } = await params
+    const { id: teamId } = await params
 
     // Auth
     const supabase = await createClient()

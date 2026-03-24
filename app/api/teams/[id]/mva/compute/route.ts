@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { analyzeTeamPLS } from '@/lib/mva/team-analyzer'
+import { analyzeTeam } from '@/lib/mva/team-analyzer'
 import { MVA_VARIABLE_REGISTRY } from '@/lib/mva/variable-registry'
 import type { SportType } from '@prisma/client'
 
@@ -9,10 +9,10 @@ export const maxDuration = 60
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ teamId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { teamId } = await params
+    const { id: teamId } = await params
 
     // Auth
     const supabase = await createClient()
@@ -43,37 +43,27 @@ export async function POST(
 
     const sport: SportType = team.sportType || 'GENERAL_FITNESS'
 
-    // Parse body
-    let yVariableId: string | undefined
+    // Parse optional selectedVariableIds from body
     let selectedVariableIds: string[] | undefined
     try {
       const body = await request.json()
-      yVariableId = body?.yVariableId
       if (Array.isArray(body?.selectedVariableIds) && body.selectedVariableIds.length > 0) {
         selectedVariableIds = body.selectedVariableIds
       }
     } catch {
-      // Invalid JSON
+      // Empty body is fine — use all variables
     }
 
-    if (!yVariableId || typeof yVariableId !== 'string') {
-      return NextResponse.json(
-        { success: false, error: 'yVariableId krävs' },
-        { status: 400 }
-      )
-    }
-
-    const { modelId, result } = await analyzeTeamPLS({
+    const { modelId, result } = await analyzeTeam({
       teamId,
       coachId: user.id,
       sport,
-      yVariableId,
       selectedVariableIds,
     })
 
     // Build variable categories map from registry
     const variableCategories: Record<string, string> = {}
-    for (const vid of result.xVariableIds) {
+    for (const vid of result.variableIds) {
       const reg = MVA_VARIABLE_REGISTRY.find((v) => v.id === vid)
       if (reg) variableCategories[vid] = reg.category
     }
@@ -84,20 +74,20 @@ export async function POST(
         modelId,
         nComponents: result.nComponents,
         nObservations: result.athleteIds.length,
-        nXVariables: result.xVariableIds.length,
-        r2Y: result.r2Y,
-        q2: result.q2,
-        r2X: result.r2X,
-        vipScores: result.vipScores,
-        yVariableId: result.yVariableId,
-        yVariableName: result.yVariableName,
-        yObserved: result.yObserved,
-        yPredicted: result.yPredicted,
-        xVariableIds: result.xVariableIds,
-        xVariableNames: result.xVariableNames,
+        nVariables: result.variableIds.length,
+        explainedVariance: result.explainedVariance,
+        cumulativeVariance: result.cumulativeVariance,
+        scores: result.scores,
+        loadings: result.loadings,
+        eigenvalues: result.eigenvalues,
+        variableIds: result.variableIds,
+        variableNames: result.variableNames,
         athleteIds: result.athleteIds,
         athleteNames: result.athleteNames,
-        aiInsight: result.aiInsight ?? null,
+        diagnostics: result.diagnostics,
+        t2Limit95: result.t2Limit95,
+        t2Limit99: result.t2Limit99,
+        dmodxLimit: result.dmodxLimit,
         excludedAthletes: result.preprocessedData.excludedAthletes,
         excludedVariables: result.preprocessedData.excludedVariables,
         imputedCells: result.preprocessedData.imputedCells,
@@ -105,7 +95,7 @@ export async function POST(
       },
     })
   } catch (error) {
-    console.error('MVA PLS compute error:', error)
+    console.error('MVA compute error:', error)
     const message = error instanceof Error ? error.message : 'Serverfel vid beräkning'
     return NextResponse.json(
       { success: false, error: message },
