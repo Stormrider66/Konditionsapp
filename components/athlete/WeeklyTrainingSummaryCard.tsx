@@ -27,6 +27,7 @@ import {
   Minus,
   AlertTriangle,
   CheckCircle,
+  Heart,
   Zap,
   Dumbbell,
   CalendarDays,
@@ -66,6 +67,16 @@ interface WeeklySummary {
   strengthVolume: number | null;
   stravaActivities: number;
   garminActivities: number;
+}
+
+interface ZoneDistribution {
+  zone1Minutes: number;
+  zone2Minutes: number;
+  zone3Minutes: number;
+  zone4Minutes: number;
+  zone5Minutes: number;
+  totalMinutes: number;
+  polarizationRatio: number | null;
 }
 
 interface WeeklyTrainingSummaryCardProps {
@@ -198,17 +209,21 @@ export function WeeklyTrainingSummaryCard({
 }: WeeklyTrainingSummaryCardProps) {
   const [summary, setSummary] = useState<WeeklySummary | null>(null);
   const [previousSummary, setPreviousSummary] = useState<WeeklySummary | null>(null);
+  const [zoneData, setZoneData] = useState<ZoneDistribution | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Get effective targets: custom targets override sport defaults
   const targets = intensityTargets || getDefaultTargetsForSport(activeSport);
 
-  const fetchSummary = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/athlete/training-summary?clientId=${clientId}&period=week&count=2`);
-      if (res.ok) {
-        const data = await res.json();
+      const [summaryRes, zoneRes] = await Promise.all([
+        fetch(`/api/athlete/training-summary?clientId=${clientId}&period=week&count=2`),
+        fetch(`/api/athlete/zone-distribution?clientId=${clientId}&period=week&count=1`),
+      ]);
+      if (summaryRes.ok) {
+        const data = await summaryRes.json();
         if (data.summaries && data.summaries.length > 0) {
           setSummary(data.summaries[0]);
           if (data.summaries.length > 1) {
@@ -216,16 +231,22 @@ export function WeeklyTrainingSummaryCard({
           }
         }
       }
+      if (zoneRes.ok) {
+        const data = await zoneRes.json();
+        if (data.distributions && data.distributions.length > 0) {
+          setZoneData(data.distributions[data.distributions.length - 1]);
+        }
+      }
     } catch (error) {
-      console.error('Failed to fetch training summary:', error);
+      console.error('Failed to fetch training data:', error);
     } finally {
       setIsLoading(false);
     }
   }, [clientId]);
 
   useEffect(() => {
-    fetchSummary();
-  }, [fetchSummary]);
+    fetchData();
+  }, [fetchData]);
 
   const cardClass = variant === 'glass'
     ? 'backdrop-blur-sm bg-white/80 dark:bg-gray-900/80 border-white/20'
@@ -526,6 +547,75 @@ export function WeeklyTrainingSummaryCard({
             </div>
           </div>
         )}
+
+        {/* HR Zone breakdown */}
+        {zoneData && zoneData.totalMinutes > 0 && (() => {
+          const zp = {
+            low: Math.round(((zoneData.zone1Minutes + zoneData.zone2Minutes) / zoneData.totalMinutes) * 100),
+            tempo: Math.round((zoneData.zone3Minutes / zoneData.totalMinutes) * 100),
+            high: Math.round(((zoneData.zone4Minutes + zoneData.zone5Minutes) / zoneData.totalMinutes) * 100),
+          };
+          const isPolarized = zoneData.polarizationRatio != null && zoneData.polarizationRatio >= 75;
+          return (
+            <div className="space-y-2 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-red-500" />
+                  HR-zoner
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDuration(zoneData.totalMinutes)} total
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-green-500 to-blue-500" />
+                    Lågt (Z1-Z2)
+                  </span>
+                  <span className="font-medium">
+                    {formatDuration(zoneData.zone1Minutes + zoneData.zone2Minutes)}
+                    <span className="text-muted-foreground ml-1">({zp.low}%)</span>
+                  </span>
+                </div>
+                <Progress value={zp.low} className="h-1.5" />
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                    Tempo (Z3)
+                  </span>
+                  <span className="font-medium">
+                    {formatDuration(zoneData.zone3Minutes)}
+                    <span className="text-muted-foreground ml-1">({zp.tempo}%)</span>
+                  </span>
+                </div>
+                <Progress value={zp.tempo} className="h-1.5 [&>[role=progressbar]]:bg-yellow-500" />
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500" />
+                    Högt (Z4-Z5)
+                  </span>
+                  <span className="font-medium">
+                    {formatDuration(zoneData.zone4Minutes + zoneData.zone5Minutes)}
+                    <span className="text-muted-foreground ml-1">({zp.high}%)</span>
+                  </span>
+                </div>
+                <Progress value={zp.high} className="h-1.5 [&>[role=progressbar]]:bg-red-500" />
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs text-muted-foreground">Polarisering</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-bold">{zoneData.polarizationRatio?.toFixed(0) || 0}%</span>
+                  {isPolarized ? (
+                    <span className="text-[10px] text-green-600">Optimalt</span>
+                  ) : (
+                    <span className="text-[10px] text-yellow-600">Förbättringsbar</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Trend context */}
         {trendConfig && (

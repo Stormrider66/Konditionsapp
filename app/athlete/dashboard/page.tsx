@@ -35,7 +35,6 @@ import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
 import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 import { WODHistorySummary } from '@/components/athlete/wod'
-import { LogWorkoutButton } from '@/components/athlete/adhoc'
 import { MorningBriefingCard } from '@/components/athlete/MorningBriefingCard'
 import { PreWorkoutNudgeCard } from '@/components/athlete/PreWorkoutNudgeCard'
 import { PatternAlertCard } from '@/components/athlete/PatternAlertCard'
@@ -45,7 +44,6 @@ import { MentalPrepCard } from '@/components/athlete/MentalPrepCard'
 import { NutritionTimingCard } from '@/components/athlete/NutritionTimingCard'
 import { WeeklyTrainingSummaryCard } from '@/components/athlete/WeeklyTrainingSummaryCard'
 import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
-import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary'
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import { getDashboardRecentActivitySummary, getDashboardWeeklyTSS } from '@/lib/dashboard/activity-insights'
@@ -709,10 +707,6 @@ export default async function AthleteDashboardPage() {
 
         {/* Right Column (1/3) */}
         <div className="space-y-6">
-          <WeeklyZoneSummary clientId={clientId} variant="glass" />
-
-          <LogWorkoutButton variant="card" />
-
           <AccountabilityStreakWidget basePath={basePath} />
 
           <AgentRecommendationsPanel basePath={basePath} />
