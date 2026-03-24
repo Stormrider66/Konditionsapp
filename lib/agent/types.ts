@@ -42,6 +42,7 @@ export interface ReadinessData {
 
 export type ReadinessSource =
   | 'DAILY_CHECKIN'
+  | 'DAILY_METRICS'
   | 'GARMIN'
   | 'STRAVA'
   | 'WHOOP'
@@ -62,6 +63,8 @@ export interface TrainingLoadData {
   acwrZone: ACWRZone
   /** Load trend */
   loadTrend: LoadTrend
+  /** True if latest TrainingLoad record is older than 48 hours */
+  dataStale?: boolean
 }
 
 export type ACWRZone = 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'

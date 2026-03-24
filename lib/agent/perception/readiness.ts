@@ -48,27 +48,81 @@ export async function perceiveReadiness(clientId: string): Promise<ReadinessData
     }
   }
 
-  // Try to get Garmin/Strava data if available
-  const garminActivity = await prisma.garminActivity.findFirst({
-    where: { clientId },
-    orderBy: { startDate: 'desc' },
+  // Use DailyMetrics as fallback/supplement — contains Garmin-synced health data
+  // (HRV, resting HR, sleep, stress) that may be available even without a manual check-in.
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+
+  const latestMetrics = await prisma.dailyMetrics.findFirst({
+    where: {
+      clientId,
+      date: { gte: sevenDaysAgo },
+    },
+    orderBy: { date: 'desc' },
+    select: {
+      readinessScore: true,
+      hrvRMSSD: true,
+      hrvStatus: true,
+      restingHR: true,
+      restingHRStatus: true,
+      sleepHours: true,
+      sleepQuality: true,
+      stress: true,
+    },
   })
 
-  if (garminActivity) {
-    sources.push('GARMIN')
-    // Could extract HRV-based readiness from Garmin if available
+  if (latestMetrics) {
+    // Use DailyMetrics readiness if no manual check-in readiness
+    if (readinessScore === null && latestMetrics.readinessScore !== null) {
+      readinessScore = latestMetrics.readinessScore
+      sources.push('DAILY_METRICS')
+    }
+
+    // Fill sleep score from Garmin sleep data if not set from check-in
+    if (sleepScore === null && latestMetrics.sleepQuality !== null) {
+      sleepScore = latestMetrics.sleepQuality * 10
+      if (!sources.includes('DAILY_METRICS')) sources.push('DAILY_METRICS')
+    }
+
+    // Fill stress from Garmin if not set from check-in (Garmin stress is 0-100, higher = worse)
+    if (stressScore === null && latestMetrics.stress !== null) {
+      stressScore = latestMetrics.stress
+      if (!sources.includes('DAILY_METRICS')) sources.push('DAILY_METRICS')
+    }
+
+    // Derive fatigue from HRV status if not set from check-in
+    if (fatigueScore === null && latestMetrics.hrvStatus) {
+      const hrvFatigueMap: Record<string, number> = {
+        EXCELLENT: 10, ABOVE_AVERAGE: 20, AVERAGE: 40,
+        BELOW_AVERAGE: 65, POOR: 80, VERY_POOR: 95,
+      }
+      fatigueScore = hrvFatigueMap[latestMetrics.hrvStatus] ?? null
+      if (fatigueScore !== null && !sources.includes('GARMIN')) sources.push('GARMIN')
+    }
   }
 
-  const stravaActivity = await prisma.stravaActivity.findFirst({
-    where: { clientId },
-    orderBy: { startDate: 'desc' },
-  })
+  // Check for Garmin/Strava activity presence
+  const [garminActivity, stravaActivity] = await Promise.all([
+    prisma.garminActivity.findFirst({
+      where: { clientId },
+      orderBy: { startDate: 'desc' },
+      select: { id: true },
+    }),
+    prisma.stravaActivity.findFirst({
+      where: { clientId },
+      orderBy: { startDate: 'desc' },
+      select: { id: true },
+    }),
+  ])
 
+  if (garminActivity && !sources.includes('GARMIN')) {
+    sources.push('GARMIN')
+  }
   if (stravaActivity) {
     sources.push('STRAVA')
   }
 
-  // Calculate composite readiness if we have component scores
+  // Calculate composite readiness if we have component scores but no direct readiness
   if (readinessScore === null && (sleepScore !== null || fatigueScore !== null)) {
     const components: number[] = []
     if (sleepScore !== null) components.push(sleepScore)
@@ -101,24 +155,34 @@ export async function getReadinessTrend(
   const startDate = new Date()
   startDate.setDate(startDate.getDate() - days)
 
-  const checkIns = await prisma.dailyCheckIn.findMany({
-    where: {
-      clientId,
-      date: { gte: startDate },
-    },
-    orderBy: { date: 'asc' },
-    select: {
-      date: true,
-      readinessScore: true,
-    },
-  })
+  // Fetch from both DailyCheckIn and DailyMetrics, merge by date
+  const [checkIns, metrics] = await Promise.all([
+    prisma.dailyCheckIn.findMany({
+      where: { clientId, date: { gte: startDate } },
+      orderBy: { date: 'asc' },
+      select: { date: true, readinessScore: true },
+    }),
+    prisma.dailyMetrics.findMany({
+      where: { clientId, date: { gte: startDate }, readinessScore: { not: null } },
+      orderBy: { date: 'asc' },
+      select: { date: true, readinessScore: true },
+    }),
+  ])
 
-  return checkIns
-    .filter((c) => c.readinessScore !== null)
-    .map((c) => ({
-      date: c.date,
-      score: c.readinessScore || 0,
-    }))
+  // Merge: prefer DailyCheckIn, fill gaps with DailyMetrics
+  const scoreByDate = new Map<string, { date: Date; score: number }>()
+  for (const m of metrics) {
+    if (m.readinessScore !== null) {
+      scoreByDate.set(m.date.toISOString().split('T')[0], { date: m.date, score: m.readinessScore })
+    }
+  }
+  for (const c of checkIns) {
+    if (c.readinessScore !== null) {
+      scoreByDate.set(c.date.toISOString().split('T')[0], { date: c.date, score: c.readinessScore })
+    }
+  }
+
+  return Array.from(scoreByDate.values()).sort((a, b) => a.date.getTime() - b.date.getTime())
 }
 
 /**
@@ -134,16 +198,38 @@ export async function detectLowReadinessPattern(
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-  const checkIns = await prisma.dailyCheckIn.findMany({
-    where: {
-      clientId,
-      date: { gte: sevenDaysAgo },
-    },
-    orderBy: { date: 'desc' },
-    select: { readinessScore: true },
-  })
+  // Merge readiness from both DailyCheckIn and DailyMetrics
+  const [checkIns, metrics] = await Promise.all([
+    prisma.dailyCheckIn.findMany({
+      where: { clientId, date: { gte: sevenDaysAgo } },
+      orderBy: { date: 'desc' },
+      select: { date: true, readinessScore: true },
+    }),
+    prisma.dailyMetrics.findMany({
+      where: { clientId, date: { gte: sevenDaysAgo }, readinessScore: { not: null } },
+      orderBy: { date: 'desc' },
+      select: { date: true, readinessScore: true },
+    }),
+  ])
 
-  if (checkIns.length === 0) {
+  // Merge by date: prefer DailyCheckIn, fill gaps with DailyMetrics
+  const scoreByDate = new Map<string, number>()
+  for (const m of metrics) {
+    if (m.readinessScore !== null) {
+      scoreByDate.set(m.date.toISOString().split('T')[0], m.readinessScore)
+    }
+  }
+  for (const c of checkIns) {
+    if (c.readinessScore !== null) {
+      scoreByDate.set(c.date.toISOString().split('T')[0], c.readinessScore)
+    }
+  }
+
+  const scores = Array.from(scoreByDate.entries())
+    .sort((a, b) => b[0].localeCompare(a[0])) // desc by date
+    .map(([, score]) => score)
+
+  if (scores.length === 0) {
     return {
       hasPattern: false,
       consecutiveLowDays: 0,
@@ -153,8 +239,8 @@ export async function detectLowReadinessPattern(
 
   // Count consecutive low readiness days (readiness < 50 on 0-100 scale)
   let consecutiveLowDays = 0
-  for (const checkIn of checkIns) {
-    if (checkIn.readinessScore !== null && checkIn.readinessScore < 50) {
+  for (const score of scores) {
+    if (score < 50) {
       consecutiveLowDays++
     } else {
       break
@@ -162,11 +248,9 @@ export async function detectLowReadinessPattern(
   }
 
   // Calculate average
-  const validCheckIns = checkIns.filter((c) => c.readinessScore !== null)
   const averageReadiness7d =
-    validCheckIns.length > 0
-      ? validCheckIns.reduce((sum, c) => sum + (c.readinessScore || 0), 0) /
-        validCheckIns.length
+    scores.length > 0
+      ? scores.reduce((sum, s) => sum + s, 0) / scores.length
       : null
 
   return {

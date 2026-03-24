@@ -48,8 +48,10 @@ export async function perceiveBehavior(clientId: string): Promise<BehaviorData> 
  * Calculate current check-in streak
  */
 async function calculateCheckInStreak(clientId: string): Promise<number> {
+  // Only count days with explicit check-ins (readinessScore set).
+  // Garmin auto-syncs create DailyCheckIn/DailyMetrics without readinessScore.
   const checkIns = await prisma.dailyCheckIn.findMany({
-    where: { clientId },
+    where: { clientId, readinessScore: { not: null } },
     orderBy: { date: 'desc' },
     take: 30,
     select: { date: true },

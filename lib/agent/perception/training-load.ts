@@ -50,12 +50,19 @@ export async function perceiveTrainingLoad(
     }
   }
 
+  // Flag stale data — if latest TrainingLoad is older than 48 hours,
+  // the agent's load picture is outdated and decisions may be unreliable.
+  const dataStale = !latestLoad || (
+    Date.now() - latestLoad.date.getTime() > 48 * 60 * 60 * 1000
+  )
+
   return {
     acuteLoad,
     chronicLoad,
     acwr,
     acwrZone: getACWRZone(acwr),
     loadTrend,
+    dataStale,
   }
 }
 
