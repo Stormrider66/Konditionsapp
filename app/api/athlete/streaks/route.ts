@@ -41,10 +41,14 @@ export async function GET() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
     thirtyDaysAgo.setHours(0, 0, 0, 0)
 
+    // Only count days where the athlete explicitly checked in (readinessScore set).
+    // Garmin auto-syncs (daily summaries, sleep, HRV) create DailyMetrics records
+    // without readinessScore, which inflated the streak for connected athletes.
     const metrics = await prisma.dailyMetrics.findMany({
       where: {
         clientId,
         date: { gte: thirtyDaysAgo },
+        readinessScore: { not: null },
       },
       orderBy: { date: 'desc' },
       select: { date: true },
