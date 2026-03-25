@@ -44,6 +44,7 @@ import { MentalPrepCard } from '@/components/athlete/MentalPrepCard'
 import { NutritionTimingCard } from '@/components/athlete/NutritionTimingCard'
 import { WeeklyTrainingSummaryCard } from '@/components/athlete/WeeklyTrainingSummaryCard'
 import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
+import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
 import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 import {
@@ -765,6 +766,8 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
           />
 
           <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
+
+          <ZoneDistributionChart clientId={clientId} variant="glass" />
 
           <NutritionDashboard clientId={clientId} />
 

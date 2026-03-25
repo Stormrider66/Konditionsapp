@@ -44,6 +44,7 @@ import { MentalPrepCard } from '@/components/athlete/MentalPrepCard'
 import { NutritionTimingCard } from '@/components/athlete/NutritionTimingCard'
 import { WeeklyTrainingSummaryCard } from '@/components/athlete/WeeklyTrainingSummaryCard'
 import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
+import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import { getDashboardRecentActivitySummary, getDashboardWeeklyTSS } from '@/lib/dashboard/activity-insights'
@@ -699,6 +700,8 @@ export default async function AthleteDashboardPage() {
           />
 
           <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
+
+          <ZoneDistributionChart clientId={clientId} variant="glass" />
 
           <NutritionDashboard clientId={clientId} />
 
