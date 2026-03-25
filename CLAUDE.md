@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+## Git Workflow
+
+Always commit and push directly to `main`. Do NOT create feature branches or pull requests unless explicitly asked. After making changes, commit with a clear message and `git push origin main`.
+
 ## Project Overview
 
 **Elite Training Platform** - Next.js 15 SaaS for physiological testing, AI training programs, and athlete management. Multi-tenant architecture for coaches, athletes, and physiotherapists.
