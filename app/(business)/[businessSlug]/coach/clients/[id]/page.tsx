@@ -326,7 +326,7 @@ export default function BusinessClientDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6 lg:py-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-12">
         <div className="text-center dark:text-slate-300">Laddar klientinformation...</div>
       </div>
     )
@@ -334,7 +334,7 @@ export default function BusinessClientDetailPage() {
 
   if (error || !client) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6 lg:py-12">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-12">
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
           <p className="text-red-800 dark:text-red-300">Fel: {error || 'Client not found'}</p>
         </div>
@@ -350,10 +350,10 @@ export default function BusinessClientDetailPage() {
 
   const overviewContent = (
     <>
-      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold dark:text-white">Personuppgifter</h2>
-          <div className="flex items-center gap-2">
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Personuppgifter</h2>
+          <div className="flex flex-wrap items-center gap-2">
             <CreateAthleteAccountDialog
               clientId={id}
               clientName={client.name}
@@ -363,8 +363,8 @@ export default function BusinessClientDetailPage() {
             />
             <Link href={`${basePath}/clients/${id}/profile`}>
               <Button variant="default" size="sm">
-                <UserCircle className="w-4 h-4 mr-2" />
-                Fullständig profil
+                <UserCircle className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Fullständig profil</span>
               </Button>
             </Link>
             <AIContextButton
@@ -373,59 +373,59 @@ export default function BusinessClientDetailPage() {
             />
             <Link href={`${basePath}/clients/${id}/edit`}>
               <Button variant="outline" size="sm">
-                <Edit2 className="w-4 h-4 mr-2" />
-                Redigera
+                <Edit2 className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Redigera</span>
               </Button>
             </Link>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <div>
-            <p className="text-sm text-gray-500 dark:text-slate-400">Ålder</p>
-            <p className="text-lg font-medium dark:text-slate-200">{calculateAge(client.birthDate)} år</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Ålder</p>
+            <p className="text-base sm:text-lg font-medium dark:text-slate-200">{calculateAge(client.birthDate)} år</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500 dark:text-slate-400">Kön</p>
-            <p className="text-lg font-medium dark:text-slate-200">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Kön</p>
+            <p className="text-base sm:text-lg font-medium dark:text-slate-200">
               {client.gender === 'MALE' ? 'Man' : 'Kvinna'}
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-500 dark:text-slate-400">Födelsedatum</p>
-            <p className="text-lg font-medium dark:text-slate-200">
+          <div className="col-span-2 sm:col-span-1">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Födelsedatum</p>
+            <p className="text-base sm:text-lg font-medium dark:text-slate-200">
               {format(new Date(client.birthDate), 'PPP', { locale: sv })}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500 dark:text-slate-400">Längd</p>
-            <p className="text-lg font-medium dark:text-slate-200">{client.height} cm</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Längd</p>
+            <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.height} cm</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500 dark:text-slate-400">Vikt</p>
-            <p className="text-lg font-medium dark:text-slate-200">{client.weight} kg</p>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Vikt</p>
+            <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.weight} kg</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500 dark:text-slate-400">BMI</p>
-            <p className="text-lg font-medium dark:text-slate-200">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">BMI</p>
+            <p className="text-base sm:text-lg font-medium dark:text-slate-200">
               {calculateBMI(client.weight, client.height)}
             </p>
           </div>
           {client.email && (
-            <div>
-              <p className="text-sm text-gray-500 dark:text-slate-400">E-post</p>
-              <p className="text-lg font-medium dark:text-slate-200">{client.email}</p>
+            <div className="col-span-2 sm:col-span-1">
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">E-post</p>
+              <p className="text-base sm:text-lg font-medium dark:text-slate-200 truncate">{client.email}</p>
             </div>
           )}
           {client.phone && (
             <div>
-              <p className="text-sm text-gray-500 dark:text-slate-400">Telefon</p>
-              <p className="text-lg font-medium dark:text-slate-200">{client.phone}</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Telefon</p>
+              <p className="text-base sm:text-lg font-medium dark:text-slate-200">{client.phone}</p>
             </div>
           )}
           {(client as any).team && (
             <div>
-              <p className="text-sm text-gray-500 dark:text-slate-400">Lag/Klubb</p>
-              <p className="text-lg font-medium dark:text-slate-200">{(client as any).team.name}</p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Lag/Klubb</p>
+              <p className="text-base sm:text-lg font-medium dark:text-slate-200">{(client as any).team.name}</p>
             </div>
           )}
         </div>
@@ -438,7 +438,7 @@ export default function BusinessClientDetailPage() {
       </div>
 
       {!sportProfileLoading && sportProfile && (
-        <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-6 mb-6">
+        <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
           <h2 className="text-xl font-semibold mb-4 dark:text-white">Sportspecifik Data</h2>
           <SportSpecificAthleteView
             clientId={id}
@@ -476,9 +476,9 @@ export default function BusinessClientDetailPage() {
         <Concept2SummaryWidget clientId={id} />
       </div>
 
-      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4 dark:text-white">Pulszonanalys</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6 mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4 dark:text-white">Pulszonanalys</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="lg:col-span-1">
             <WeeklyZoneSummary clientId={id} />
           </div>
@@ -509,16 +509,16 @@ export default function BusinessClientDetailPage() {
   )
 
   const logsContent = (
-    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-6">
-      <div className="flex justify-between items-center mb-4">
+    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
         <div>
-          <h2 className="text-xl font-semibold dark:text-white">Träningsloggar</h2>
-          <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
+          <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Träningsloggar</h2>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-slate-400 mt-1">
             Följ upp atletens träning och ge feedback
           </p>
         </div>
         <Link href={`${basePath}/athletes/${id}/logs`}>
-          <Button size="sm">
+          <Button size="sm" className="w-full sm:w-auto">
             <ExternalLink className="w-4 h-4 mr-2" />
             Öppna fullständig vy
           </Button>
@@ -558,9 +558,9 @@ export default function BusinessClientDetailPage() {
   )
 
   const programsContent = (
-    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-6">
+    <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold dark:text-white">Träningsprogram</h2>
+        <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Träningsprogram</h2>
         <Link href={`${basePath}/programs/new`}>
           <Button size="sm">+ Nytt program</Button>
         </Link>
@@ -628,11 +628,11 @@ export default function BusinessClientDetailPage() {
 
   const testsContent = (
     <>
-      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-6">
-        <div className="flex flex-col gap-4 mb-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div>
-              <h2 className="text-xl font-semibold dark:text-white">Testhistorik</h2>
+              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">Testhistorik</h2>
               {(searchTerm || filterTestType !== 'ALL') && client.tests && (
                 <p className="text-sm text-muted-foreground mt-1">
                   Visar {sortedAndFilteredTests.length} av {client.tests.length} tester
@@ -981,10 +981,10 @@ export default function BusinessClientDetailPage() {
   )
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 lg:py-12">
-      <div className="mb-6">
-        <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{client.name}</h2>
-        <p className="text-gray-600 dark:text-slate-400 mt-1 text-sm lg:text-base">Klientdetaljer och testhistorik</p>
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-12">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{client.name}</h2>
+        <p className="text-gray-600 dark:text-slate-400 mt-1 text-xs sm:text-sm lg:text-base">Klientdetaljer och testhistorik</p>
       </div>
 
       <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin" /></div>}>
