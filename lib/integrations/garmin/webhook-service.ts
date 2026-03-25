@@ -496,6 +496,24 @@ async function processActivity(activity: GarminActivityPayload) {
   })
 
   logger.debug('Synced Garmin activity to GarminActivity model', { clientId, activityId: activity.activityId })
+
+  // Auto-link with matching ad-hoc workout if one exists
+  try {
+    const { findMatchingAdHocWorkout, linkAdHocToGarmin } = await import('@/lib/training/adhoc-garmin-matcher')
+    const garminRecord = await prisma.garminActivity.findFirst({
+      where: { garminActivityId: BigInt(activity.activityId) },
+      select: { id: true, clientId: true, startDate: true, duration: true, type: true, mappedType: true },
+    })
+    if (garminRecord) {
+      const match = await findMatchingAdHocWorkout(garminRecord)
+      if (match) {
+        await linkAdHocToGarmin(match.id, garminRecord.id)
+        logger.info('Auto-linked Garmin activity to ad-hoc workout', { garminActivityId: garminRecord.id, adHocWorkoutId: match.id })
+      }
+    }
+  } catch (err) {
+    logger.warn('Failed to auto-link Garmin to ad-hoc', { error: err })
+  }
 }
 
 async function processSleepData(sleep: GarminSleepData & { userId?: string }) {

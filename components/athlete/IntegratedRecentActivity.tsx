@@ -72,6 +72,7 @@ const SOURCE_CONFIG = {
   concept2: { label: 'Concept2', color: 'bg-cyan-100 text-cyan-700', icon: '🚣' },
   ai: { label: 'AI-Pass', color: 'bg-purple-100 text-purple-700', icon: '✨' },
   adhoc: { label: 'Manuell', color: 'bg-emerald-100 text-emerald-700', icon: '✏️' },
+  'adhoc+garmin': { label: 'Manuell + Garmin', color: 'bg-teal-100 text-teal-700', icon: '📱' },
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {

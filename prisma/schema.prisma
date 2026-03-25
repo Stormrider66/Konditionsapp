@@ -2042,6 +2042,7 @@ model GarminActivity {
 
   client           Client                      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   zoneDistribution ActivityHRZoneDistribution?
+  adHocWorkout     AdHocWorkout?               @relation("AdHocGarminLink")
 
   @@index([clientId])
   @@index([startDate])
@@ -7661,6 +7662,10 @@ model AdHocWorkout {
 
   // Training load reference (created after confirmation)
   trainingLoadId String?
+
+  // Link to matching Garmin activity (auto-linked or manual)
+  garminActivityId String?          @unique
+  garminActivity   GarminActivity?  @relation("AdHocGarminLink", fields: [garminActivityId], references: [id], onDelete: SetNull)
 
   // Relations
   athlete Client @relation("ClientAdHocWorkouts", fields: [athleteId], references: [id], onDelete: Cascade)

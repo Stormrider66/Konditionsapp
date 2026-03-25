@@ -259,7 +259,7 @@ function checkMatch(
 /**
  * Check if two activity types are compatible (could be the same activity)
  */
-function areTypesCompatible(typeA: string, typeB: string): boolean {
+export function areTypesCompatible(typeA: string, typeB: string): boolean {
   const normalizedA = normalizeType(typeA)
   const normalizedB = normalizeType(typeB)
 

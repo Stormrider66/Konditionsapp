@@ -167,12 +167,26 @@ export async function GET(request: NextRequest) {
         take: limit,
       }),
 
-      // Ad-hoc workouts (confirmed only)
+      // Ad-hoc workouts (confirmed only), include linked Garmin activity
       prisma.adHocWorkout.findMany({
         where: {
           athleteId: clientId,
           status: 'CONFIRMED',
           workoutDate: { gte: startDate },
+        },
+        include: {
+          garminActivity: {
+            select: {
+              id: true,
+              tss: true,
+              averageHeartrate: true,
+              maxHeartrate: true,
+              duration: true,
+              distance: true,
+              calories: true,
+              deviceName: true,
+            },
+          },
         },
         orderBy: { workoutDate: 'desc' },
         take: limit,
@@ -237,8 +251,17 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Build set of Garmin activity IDs linked to ad-hoc workouts (to skip in Garmin loop)
+    const linkedGarminIds = new Set(
+      adHocWorkouts
+        .filter((a: any) => a.garminActivityId)
+        .map((a: any) => a.garminActivityId as string)
+    )
+
     // Process Garmin activities from GarminActivity model (Gap 5 fix)
     for (const activity of garminActivities) {
+      // Skip if this Garmin activity is linked to an ad-hoc workout (merged display handled there)
+      if (linkedGarminIds.has(activity.id)) continue
       const durationMin = activity.duration ? Math.round(activity.duration / 60) : undefined
       const distanceKm = activity.distance ? activity.distance / 1000 : undefined
 
@@ -343,15 +366,19 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Process confirmed ad-hoc workouts
+    // Process confirmed ad-hoc workouts (merge with linked Garmin data when available)
     for (const adhoc of adHocWorkouts) {
       // Extract data from parsedStructure
       const parsed = adhoc.parsedStructure as ParsedWorkout | null
+      const garmin = (adhoc as any).garminActivity as {
+        id: string; tss: number | null; averageHeartrate: number | null;
+        maxHeartrate: number | null; duration: number | null;
+        distance: number | null; calories: number | null; deviceName: string | null;
+      } | null
 
       // Build workout name
       let workoutName = adhoc.workoutName || parsed?.name
       if (!workoutName) {
-        // Generate name from type/sport
         const type = adhoc.parsedType || parsed?.type || 'OTHER'
         const sport = parsed?.sport
         workoutName = sport ? `${sport} ${type}` : type
@@ -367,18 +394,27 @@ export async function GET(request: NextRequest) {
         adhocPace = parsed.avgPace as unknown as string
       }
 
+      // When linked to Garmin, prefer sensor data for metrics
+      const mergedDuration = garmin?.duration ? Math.round(garmin.duration / 60) : parsed?.duration || undefined
+      const mergedDistance = garmin?.distance ? garmin.distance / 1000 : getParsedWorkoutDistanceKm(parsed) || undefined
+      const mergedAvgHR = garmin?.averageHeartrate || parsed?.avgHeartRate || undefined
+      const mergedMaxHR = garmin?.maxHeartrate || parsed?.maxHeartRate || undefined
+      const mergedCalories = garmin?.calories || parsed?.estimatedCalories || undefined
+      const mergedTSS = garmin?.tss || undefined
+
       activities.push({
         id: adhoc.id,
-        source: 'adhoc',
+        source: garmin ? 'adhoc+garmin' : 'adhoc',
         name: workoutName,
         type: adhoc.parsedType || parsed?.type || 'OTHER',
         sport: parsed?.sport || undefined,
         date: adhoc.workoutDate,
-        duration: parsed?.duration || undefined,
-        distance: getParsedWorkoutDistanceKm(parsed) || undefined,
-        avgHR: parsed?.avgHeartRate || undefined,
-        maxHR: parsed?.maxHeartRate || undefined,
-        calories: parsed?.estimatedCalories || undefined,
+        duration: mergedDuration,
+        distance: mergedDistance,
+        avgHR: mergedAvgHR,
+        maxHR: mergedMaxHR,
+        calories: mergedCalories,
+        tss: mergedTSS,
         pace: adhocPace,
         speed: parsed?.avgSpeed || undefined,
         elevationGain: parsed?.elevationGain || undefined,
@@ -402,6 +438,7 @@ export async function GET(request: NextRequest) {
           weight: m.weight,
           distance: m.distance,
         })) || undefined,
+        deviceModel: garmin?.deviceName || undefined,
       })
     }
 

@@ -182,6 +182,24 @@ export async function POST(
       tss: trainingLoad.tss,
     })
 
+    // Auto-link with matching Garmin activity if one exists
+    try {
+      const { findMatchingGarminActivity, linkAdHocToGarmin } = await import('@/lib/training/adhoc-garmin-matcher')
+      const garminMatch = await findMatchingGarminActivity(
+        { workoutDate: adHocWorkout.workoutDate, parsedStructure: finalStructure, parsedType: adHocWorkout.parsedType },
+        clientId
+      )
+      if (garminMatch) {
+        await linkAdHocToGarmin(result.adHocWorkout.id, garminMatch.id)
+        logger.info('Auto-linked ad-hoc workout to Garmin activity', {
+          adHocWorkoutId: result.adHocWorkout.id,
+          garminActivityId: garminMatch.id,
+        })
+      }
+    } catch (err) {
+      logger.warn('Failed to auto-link ad-hoc to Garmin', { error: err })
+    }
+
     return NextResponse.json({
       success: true,
       data: {

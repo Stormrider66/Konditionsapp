@@ -240,6 +240,7 @@ async function fetchWeeklyTrainingData(
         inputType: {
           notIn: ['STRAVA_IMPORT', 'GARMIN_IMPORT'],
         },
+        garminActivityId: null, // Linked ad-hocs are represented by their Garmin counterpart
       },
     }),
 
