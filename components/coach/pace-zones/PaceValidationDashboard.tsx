@@ -151,10 +151,10 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
           <CardDescription>Training level and metabolic profile</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div>
-              <p className="text-sm text-muted-foreground">Level</p>
-              <div className="text-2xl font-bold mt-1">
+              <p className="text-xs sm:text-sm text-muted-foreground">Level</p>
+              <div className="mt-1">
                 <Badge variant={
                   athleteClassification.level === 'ELITE' ? 'default' :
                   athleteClassification.level === 'ADVANCED' ? 'secondary' :
@@ -165,12 +165,12 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
               </div>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Metabolic Type</p>
-              <p className="text-lg font-semibold">{athleteClassification.metabolicType}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Metabolic Type</p>
+              <p className="text-sm sm:text-lg font-semibold break-words">{athleteClassification.metabolicType}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Compression Factor</p>
-              <p className="text-lg font-semibold">
+              <p className="text-xs sm:text-sm text-muted-foreground">Compression Factor</p>
+              <p className="text-sm sm:text-lg font-semibold">
                 {(athleteClassification.compressionFactor * 100).toFixed(1)}%
               </p>
               <p className="text-xs text-muted-foreground">
@@ -178,7 +178,7 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Confidence</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Confidence</p>
               <Badge variant={
                 confidence === 'VERY_HIGH' ? 'default' :
                 confidence === 'HIGH' ? 'secondary' :
@@ -200,17 +200,17 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
             <CardDescription>Jack Daniels Running Calculator</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">VDOT</p>
-                <p className="text-3xl font-bold">{vdotResult.vdot}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">VDOT</p>
+                <p className="text-2xl sm:text-3xl font-bold">{vdotResult.vdot}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Race Age</p>
-                <p className="text-lg font-semibold">{vdotResult.ageInDays} days</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Race Age</p>
+                <p className="text-base sm:text-lg font-semibold">{vdotResult.ageInDays} days</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Confidence</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Confidence</p>
                 <Badge variant={
                   vdotResult.confidence === 'VERY_HIGH' ? 'default' :
                   vdotResult.confidence === 'HIGH' ? 'secondary' :
@@ -220,12 +220,12 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
                 </Badge>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Age Adjusted</p>
-                <p className="text-lg">{vdotResult.adjustments.ageAdjusted ? 'Yes' : 'No'}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Age Adjusted</p>
+                <p className="text-base sm:text-lg">{vdotResult.adjustments.ageAdjusted ? 'Yes' : 'No'}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Gender Adjusted</p>
-                <p className="text-lg">{vdotResult.adjustments.genderAdjusted ? 'Yes' : 'No'}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Gender Adjusted</p>
+                <p className="text-base sm:text-lg">{vdotResult.adjustments.genderAdjusted ? 'Yes' : 'No'}</p>
               </div>
             </div>
 
@@ -246,45 +246,49 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
             <CardDescription>Individual ratio method - LT2 as % of max lactate</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Max Lactate</p>
-                <p className="text-2xl font-bold">{lactateProfile.maxLactate.toFixed(1)} mmol/L</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Max Lactate</p>
+                <p className="text-lg sm:text-2xl font-bold">{lactateProfile.maxLactate.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">mmol/L</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">LT2 Lactate</p>
-                <p className="text-2xl font-bold">{lactateProfile.lt2.lactate.toFixed(1)} mmol/L</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">LT2 Lactate</p>
+                <p className="text-lg sm:text-2xl font-bold">{lactateProfile.lt2.lactate.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">mmol/L</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">LT2 Ratio</p>
-                <p className="text-2xl font-bold">{(lactateProfile.lt2Ratio * 100).toFixed(0)}%</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">LT2 Ratio</p>
+                <p className="text-lg sm:text-2xl font-bold">{(lactateProfile.lt2Ratio * 100).toFixed(0)}%</p>
                 <p className="text-xs text-muted-foreground">of max lactate</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">LT2 Speed</p>
-                <p className="text-xl font-semibold">{lactateProfile.lt2.speed.toFixed(1)} km/h</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">LT2 Speed</p>
+                <p className="text-lg sm:text-xl font-semibold">{lactateProfile.lt2.speed.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">km/h</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">LT2 HR</p>
-                <p className="text-xl font-semibold">{lactateProfile.lt2.heartRate} bpm</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">LT2 HR</p>
+                <p className="text-lg sm:text-xl font-semibold">{lactateProfile.lt2.heartRate}</p>
+                <p className="text-xs text-muted-foreground">bpm</p>
               </div>
             </div>
 
             {lactateProfile.dmaxResult && (
               <div className="mt-4 pt-4 border-t">
                 <p className="text-sm font-semibold">D-max Analysis</p>
-                <div className="grid grid-cols-4 gap-4 mt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-2">
                   <div>
                     <p className="text-xs text-muted-foreground">R² (Fit Quality)</p>
-                    <p className="text-lg font-semibold">{lactateProfile.dmaxResult.rSquared.toFixed(3)}</p>
+                    <p className="text-base sm:text-lg font-semibold">{lactateProfile.dmaxResult.rSquared.toFixed(3)}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">D-max Speed</p>
-                    <p className="text-lg font-semibold">{lactateProfile.dmaxResult.intensity.toFixed(1)} km/h</p>
+                    <p className="text-base sm:text-lg font-semibold">{lactateProfile.dmaxResult.intensity.toFixed(1)} km/h</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">D-max Lactate</p>
-                    <p className="text-lg font-semibold">{lactateProfile.dmaxResult.lactate.toFixed(1)} mmol/L</p>
+                    <p className="text-base sm:text-lg font-semibold">{lactateProfile.dmaxResult.lactate.toFixed(1)} mmol/L</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Method</p>
@@ -304,33 +308,33 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
           <CardDescription>Key paces for program generation</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">Easy</p>
-              <p className="text-lg font-semibold">{easyPace.minPace}</p>
-              <p className="text-lg font-semibold">- {easyPace.maxPace}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Easy</p>
+              <p className="text-base sm:text-lg font-semibold">{easyPace.minPace}</p>
+              <p className="text-base sm:text-lg font-semibold">- {easyPace.maxPace}</p>
               <p className="text-xs text-muted-foreground">
                 {easyPace.minKmh.toFixed(1)}-{easyPace.maxKmh.toFixed(1)} km/h
               </p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">Marathon</p>
-              <p className="text-2xl font-bold">{marathonPace.pace}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Marathon</p>
+              <p className="text-lg sm:text-2xl font-bold">{marathonPace.pace}</p>
               <p className="text-xs text-muted-foreground">{marathonPace.kmh.toFixed(1)} km/h</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">Threshold</p>
-              <p className="text-2xl font-bold">{thresholdPace.pace}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Threshold</p>
+              <p className="text-lg sm:text-2xl font-bold">{thresholdPace.pace}</p>
               <p className="text-xs text-muted-foreground">{thresholdPace.kmh.toFixed(1)} km/h</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">Interval</p>
-              <p className="text-lg font-semibold">{intervalPace.pace}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Interval</p>
+              <p className="text-base sm:text-lg font-semibold">{intervalPace.pace}</p>
               <p className="text-xs text-muted-foreground">{intervalPace.kmh.toFixed(1)} km/h</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">Repetition</p>
-              <p className="text-lg font-semibold">{repetitionPace.pace}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-1">Repetition</p>
+              <p className="text-base sm:text-lg font-semibold">{repetitionPace.pace}</p>
               <p className="text-xs text-muted-foreground">{repetitionPace.kmh.toFixed(1)} km/h</p>
             </div>
           </div>
@@ -339,11 +343,11 @@ export function PaceValidationDashboard({ clientId, clientName }: PaceValidation
 
       {/* Zone Systems Tabs */}
       <Tabs defaultValue="daniels" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="daniels">Daniels (5 Zones)</TabsTrigger>
-          <TabsTrigger value="canova">Canova (7 Zones)</TabsTrigger>
-          <TabsTrigger value="norwegian">Norwegian (3 Zones)</TabsTrigger>
-          <TabsTrigger value="hr">Heart Rate (5 Zones)</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsTrigger value="daniels" className="text-xs sm:text-sm">Daniels (5)</TabsTrigger>
+          <TabsTrigger value="canova" className="text-xs sm:text-sm">Canova (7)</TabsTrigger>
+          <TabsTrigger value="norwegian" className="text-xs sm:text-sm">Norwegian (3)</TabsTrigger>
+          <TabsTrigger value="hr" className="text-xs sm:text-sm">Heart Rate (5)</TabsTrigger>
         </TabsList>
 
         {/* Daniels Zones */}
