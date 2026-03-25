@@ -15,7 +15,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
 import {
   Activity,
   Flame,
@@ -557,13 +556,15 @@ export function WeeklyTrainingSummaryCard({
           </div>
         )}
 
-        {/* HR Zone breakdown */}
+        {/* HR Zone breakdown (5 zones) */}
         {zoneData && zoneData.totalMinutes > 0 && (() => {
-          const zp = {
-            low: Math.round(((zoneData.zone1Minutes + zoneData.zone2Minutes) / zoneData.totalMinutes) * 100),
-            tempo: Math.round((zoneData.zone3Minutes / zoneData.totalMinutes) * 100),
-            high: Math.round(((zoneData.zone4Minutes + zoneData.zone5Minutes) / zoneData.totalMinutes) * 100),
-          };
+          const zones = [
+            { label: 'Z1 Återhämtning', minutes: zoneData.zone1Minutes, color: 'bg-green-500' },
+            { label: 'Z2 Aerob bas', minutes: zoneData.zone2Minutes, color: 'bg-blue-500' },
+            { label: 'Z3 Tempo', minutes: zoneData.zone3Minutes, color: 'bg-yellow-500' },
+            { label: 'Z4 Tröskel', minutes: zoneData.zone4Minutes, color: 'bg-orange-500' },
+            { label: 'Z5 VO₂max', minutes: zoneData.zone5Minutes, color: 'bg-red-500' },
+          ];
           const isPolarized = zoneData.polarizationRatio != null && zoneData.polarizationRatio >= 75;
           return (
             <div className="space-y-2 pt-2 border-t">
@@ -576,40 +577,25 @@ export function WeeklyTrainingSummaryCard({
                   {formatDuration(zoneData.totalMinutes)} total
                 </span>
               </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-green-500 to-blue-500" />
-                    Lågt (Z1-Z2)
-                  </span>
-                  <span className="font-medium">
-                    {formatDuration(zoneData.zone1Minutes + zoneData.zone2Minutes)}
-                    <span className="text-muted-foreground ml-1">({zp.low}%)</span>
-                  </span>
-                </div>
-                <Progress value={zp.low} className="h-1.5" />
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                    Tempo (Z3)
-                  </span>
-                  <span className="font-medium">
-                    {formatDuration(zoneData.zone3Minutes)}
-                    <span className="text-muted-foreground ml-1">({zp.tempo}%)</span>
-                  </span>
-                </div>
-                <Progress value={zp.tempo} className="h-1.5 [&>[role=progressbar]]:bg-yellow-500" />
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-orange-500 to-red-500" />
-                    Högt (Z4-Z5)
-                  </span>
-                  <span className="font-medium">
-                    {formatDuration(zoneData.zone4Minutes + zoneData.zone5Minutes)}
-                    <span className="text-muted-foreground ml-1">({zp.high}%)</span>
-                  </span>
-                </div>
-                <Progress value={zp.high} className="h-1.5 [&>[role=progressbar]]:bg-red-500" />
+              <div className="space-y-1">
+                {zones.map((zone) => {
+                  const pct = Math.round((zone.minutes / zoneData.totalMinutes) * 100);
+                  return (
+                    <div key={zone.label} className="flex items-center gap-2 text-xs">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${zone.color}`} />
+                      <span className="w-24 truncate">{zone.label}</span>
+                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${zone.color}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="font-medium w-16 text-right">
+                        {formatDuration(zone.minutes)}
+                      </span>
+                      <span className="text-muted-foreground w-10 text-right">
+                        {pct}%
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-xs text-muted-foreground">Polarisering</span>
