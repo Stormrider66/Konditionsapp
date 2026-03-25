@@ -140,6 +140,7 @@ export function FoodPhotoScanner({
 }: FoodPhotoScannerProps) {
   const router = useRouter()
   const fileInputId = useId()
+  const cameraInputId = useId()
   const [step, setStep] = useState<Step>('CAPTURE')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -242,6 +243,46 @@ export function FoodPhotoScanner({
       setImagePreview(null)
     }
   }, [revokePreviewUrl])
+
+  // Safety net: detect return from native camera when onChange may not fire
+  useEffect(() => {
+    if (step !== 'CAPTURE') return
+
+    let checkTimeoutId: ReturnType<typeof setTimeout> | null = null
+
+    const checkForFiles = () => {
+      const cameraFile = cameraInputRef.current?.files?.[0]
+      const galleryFile = fileInputRef.current?.files?.[0]
+      const file = cameraFile || galleryFile
+      if (!file || !file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) return
+
+      clearSessionStorage()
+      const requestId = selectionRequestIdRef.current + 1
+      selectionRequestIdRef.current = requestId
+      setSelectedImage(file)
+      void normalizeSelectedImage(file, requestId)
+      if (cameraInputRef.current && cameraFile) cameraInputRef.current.value = ''
+      if (fileInputRef.current && galleryFile) fileInputRef.current.value = ''
+    }
+
+    const handleFocusReturn = () => {
+      if (checkTimeoutId) clearTimeout(checkTimeoutId)
+      checkTimeoutId = setTimeout(checkForFiles, 500)
+    }
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) handleFocusReturn()
+    }
+
+    window.addEventListener('focus', handleFocusReturn)
+    window.addEventListener('pageshow', handlePageShow)
+
+    return () => {
+      window.removeEventListener('focus', handleFocusReturn)
+      window.removeEventListener('pageshow', handlePageShow)
+      if (checkTimeoutId) clearTimeout(checkTimeoutId)
+    }
+  }, [step, clearSessionStorage, setSelectedImage, normalizeSelectedImage])
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -402,11 +443,6 @@ export function FoodPhotoScanner({
       setStep('REVIEW')
     }
   }
-
-  const handleOpenNativeCamera = useCallback(() => {
-    saveStateToSessionStorage()
-    cameraInputRef.current?.click()
-  }, [saveStateToSessionStorage])
 
   const handleReset = () => {
     selectionRequestIdRef.current += 1
@@ -658,12 +694,14 @@ export function FoodPhotoScanner({
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <Button
+                  asChild
                   variant="outline"
-                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white"
-                  onClick={handleOpenNativeCamera}
+                  className="h-28 flex-col gap-2 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-white cursor-pointer"
                 >
-                  <Camera className="h-7 w-7" />
-                  <span className="text-sm">Kamera</span>
+                  <label htmlFor={cameraInputId} role="button" tabIndex={0} onClick={saveStateToSessionStorage}>
+                    <Camera className="h-7 w-7" />
+                    <span className="text-sm">Kamera</span>
+                  </label>
                 </Button>
 
                 <Button
@@ -677,6 +715,7 @@ export function FoodPhotoScanner({
                   </label>
                 </Button>
                 <input
+                  id={cameraInputId}
                   ref={cameraInputRef}
                   type="file"
                   accept="image/*"
