@@ -71,10 +71,20 @@ interface FoodPhotoScannerProps {
   redirectPathOnSave?: string
 }
 
-const readFileAsDataUrl = (file: File) =>
+const readFileAsDataUrl = (file: File, timeoutMs?: number) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    if (timeoutMs) {
+      timer = setTimeout(() => {
+        reader.abort()
+        reject(new Error('Timeout reading file'))
+      }, timeoutMs)
+    }
+
     reader.onload = () => {
+      if (timer) clearTimeout(timer)
       if (typeof reader.result === 'string') {
         resolve(reader.result)
         return
@@ -82,7 +92,14 @@ const readFileAsDataUrl = (file: File) =>
 
       reject(new Error('Kunde inte läsa bildfilen'))
     }
-    reader.onerror = () => reject(new Error('Kunde inte läsa bildfilen'))
+    reader.onerror = () => {
+      if (timer) clearTimeout(timer)
+      reject(new Error('Kunde inte läsa bildfilen'))
+    }
+    reader.onabort = () => {
+      if (timer) clearTimeout(timer)
+      reject(new Error('File read aborted'))
+    }
     reader.readAsDataURL(file)
   })
 
@@ -489,7 +506,7 @@ export function FoodPhotoScanner({
       let imageMimeType: string | undefined
       if (imageFile) {
         try {
-          const dataUrl = await readFileAsDataUrl(imageFile)
+          const dataUrl = await readFileAsDataUrl(imageFile, 8000)
           const base64Part = dataUrl.split(',')[1]
           if (base64Part) {
             imageBase64 = base64Part
