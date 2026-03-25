@@ -34,7 +34,7 @@ import {
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai' | 'adhoc'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai' | 'adhoc' | 'adhoc+garmin'
   name: string
   type: string
   sport?: string
@@ -448,7 +448,7 @@ export async function GET(request: NextRequest) {
     // Create normalized activities for deduplication
     const normalizedActivities: NormalizedActivity[] = activities.map(activity => ({
       id: activity.id,
-      source: activity.source as ActivitySource,
+      source: (activity.source === 'adhoc+garmin' ? 'adhoc' : activity.source) as ActivitySource,
       date: new Date(activity.date),
       startTime: new Date(activity.date),
       duration: (activity.duration || 0) * 60, // Convert to seconds
