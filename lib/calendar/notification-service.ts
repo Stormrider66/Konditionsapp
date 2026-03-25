@@ -57,6 +57,7 @@ const HIGH_IMPACT_TRAINING_IMPACTS = ['NO_TRAINING', 'REDUCED']
  * Send calendar change notification to relevant parties
  */
 export async function sendCalendarNotification(data: CalendarNotificationData): Promise<void> {
+  if (process.env.EMAILS_PAUSED === 'true') return
   if (!resend) {
     logger.debug('Resend not configured, skipping email notification')
     return
@@ -173,11 +174,18 @@ async function sendNotificationEmail(
   const html = getEmailHtml(data, clientName, recipient)
 
   try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
     await resend.emails.send({
       from: `${PLATFORM_NAME} <notifications@trainomics.app>`,
+      replyTo: 'support@trainomics.app',
       to: recipient.email,
       subject,
       html,
+      text: html.replace(/<[^>]+>/g, '').replace(/\n{3,}/g, '\n\n').trim(),
+      headers: {
+        'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${appUrl}/unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
     })
     logger.info('Notification email sent', { recipientEmail: recipient.email })
   } catch (error) {

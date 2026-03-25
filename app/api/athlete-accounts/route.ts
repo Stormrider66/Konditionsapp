@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Send welcome email with temporary password
-    if (resend) {
+    if (resend && process.env.EMAILS_PAUSED !== 'true') {
       try {
         const safeClientName = escapeHtml(client.name)
         const safeEmail = escapeHtml(email)
@@ -251,11 +251,7 @@ export async function POST(request: NextRequest) {
         const loginUrlRaw = `${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/login`
         const safeLoginUrl = sanitizeAttribute(sanitizeUrl(loginUrlRaw))
 
-        await resend.emails.send({
-          from: 'Trainomics <noreply@trainomics.app>',
-          to: email,
-          subject: 'Välkommen till Konditionstest - Ditt atletkonto är skapat',
-          html: `
+        const welcomeHtml = `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <h1 style="color: #1a1a1a;">Välkommen till Konditionstest!</h1>
               <p>Hej ${safeClientName},</p>
@@ -273,7 +269,19 @@ export async function POST(request: NextRequest) {
                 Om du har frågor, kontakta din tränare direkt.
               </p>
             </div>
-          `,
+          `
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+        await resend.emails.send({
+          from: 'Trainomics <noreply@trainomics.app>',
+          replyTo: 'support@trainomics.app',
+          to: email,
+          subject: 'Välkommen till Konditionstest - Ditt atletkonto är skapat',
+          html: welcomeHtml,
+          text: welcomeHtml.replace(/<[^>]+>/g, '').replace(/\n{3,}/g, '\n\n').trim(),
+          headers: {
+            'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${appUrl}/unsubscribe>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
         })
         logger.info('Welcome email sent', { email, clientId })
       } catch (emailError) {

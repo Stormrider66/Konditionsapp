@@ -635,7 +635,7 @@ async function processCoachDigest(coach: {
   name: string | null
 }): Promise<'sent' | 'skipped' | 'error'> {
   try {
-    if (!coach.email || !resend) {
+    if (!coach.email || !resend || process.env.EMAILS_PAUSED === 'true') {
       return 'skipped'
     }
 
@@ -655,11 +655,18 @@ async function processCoachDigest(coach: {
       ? `⚠️ ${digestData.pendingModifications + digestData.activeInjuries + digestData.highRiskAthletes + digestData.lowReadinessAthletes} atleter behöver din uppmärksamhet`
       : '✅ Daglig rapport - Inga åtgärder krävs'
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
     await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'noreply@trainomics.app',
+      from: process.env.EMAIL_FROM || 'Trainomics <noreply@trainomics.app>',
+      replyTo: 'support@trainomics.app',
       to: coach.email,
       subject,
       html: emailHTML,
+      text: emailHTML.replace(/<[^>]+>/g, '').replace(/\n{3,}/g, '\n\n').trim(),
+      headers: {
+        'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${appUrl}/unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
     })
 
     logger.info('Sent digest', { coachName: coach.name, coachEmail: coach.email })

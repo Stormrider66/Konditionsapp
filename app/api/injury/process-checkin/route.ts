@@ -668,7 +668,7 @@ async function sendCoachNotification(
     logger.info('Coach notification sent', { title: notification.title, coachUserId })
 
     // Send email notification for critical/high urgency
-    if (resend && (notification.urgency === 'CRITICAL' || notification.urgency === 'HIGH')) {
+    if (resend && process.env.EMAILS_PAUSED !== 'true' && (notification.urgency === 'CRITICAL' || notification.urgency === 'HIGH')) {
       try {
         const coachUser = await prisma.user.findUnique({
           where: { id: coachUserId },
@@ -679,11 +679,8 @@ async function sendCoachNotification(
           const urgencyColor = notification.urgency === 'CRITICAL' ? '#dc2626' : '#f59e0b'
           const urgencyText = notification.urgency === 'CRITICAL' ? 'KRITISKT' : 'HÖG PRIORITET'
 
-          await resend.emails.send({
-            from: 'Trainomics <noreply@trainomics.app>',
-            to: coachUser.email,
-            subject: `[${urgencyText}] ${notification.title}`,
-            html: `
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
+          const injuryHtml = `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background-color: ${urgencyColor}; color: white; padding: 15px; border-radius: 8px 8px 0 0;">
                   <strong>${urgencyText}</strong>
@@ -691,13 +688,24 @@ async function sendCoachNotification(
                 <div style="border: 1px solid #e5e5e5; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
                   <h2 style="margin-top: 0; color: #1a1a1a;">${notification.title}</h2>
                   <p style="color: #444;">${notification.message}</p>
-                  <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'}/coach/injuries"
+                  <a href="${appUrl}/coach/injuries"
                      style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 15px;">
                     Se skadehantering
                   </a>
                 </div>
               </div>
-            `,
+            `
+          await resend.emails.send({
+            from: 'Trainomics <noreply@trainomics.app>',
+            replyTo: 'support@trainomics.app',
+            to: coachUser.email,
+            subject: `[${urgencyText}] ${notification.title}`,
+            html: injuryHtml,
+            text: injuryHtml.replace(/<[^>]+>/g, '').replace(/\n{3,}/g, '\n\n').trim(),
+            headers: {
+              'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${appUrl}/unsubscribe>`,
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            },
           })
           logger.info('Injury email notification sent', { coachEmail: coachUser.email, urgency: notification.urgency })
         }

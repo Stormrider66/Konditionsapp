@@ -129,6 +129,11 @@ export async function POST(request: NextRequest) {
     // Sanitize filename
     const safeFilename = `Konditionstest_${safeClientName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '')}_${safeTestDate.replace(/[^a-zA-Z0-9_-]/g, '')}.pdf`
 
+    // Kill switch: pause all outbound email
+    if (process.env.EMAILS_PAUSED === 'true') {
+      return NextResponse.json({ success: true, messageId: 'paused' })
+    }
+
     // Send email using Resend
     if (!resend) {
       return NextResponse.json(
@@ -141,11 +146,17 @@ export async function POST(request: NextRequest) {
     }
 
     const senderName = emailBranding.senderName || PLATFORM_NAME
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
     const { data, error } = await resend.emails.send({
       from: `${senderName} <noreply@trainomics.app>`,
+      replyTo: 'support@trainomics.app',
       to: [to],
       subject: emailSubject,
       html: emailBody,
+      headers: {
+        'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${appUrl}/unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
       attachments: [
         {
           filename: safeFilename,

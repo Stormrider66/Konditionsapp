@@ -20,6 +20,25 @@ import { PLATFORM_NAME } from '@/lib/branding/types';
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const DEFAULT_FROM_EMAIL = `${PLATFORM_NAME} <noreply@trainomics.app>`;
+const DEFAULT_REPLY_TO = 'support@trainomics.app';
+
+/** Strip HTML tags and decode common entities to produce a plain-text fallback */
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<li[^>]*>/gi, '  - ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 export interface SendEmailResult {
   success: boolean;
@@ -35,6 +54,12 @@ async function sendEmailInternal(
   branding?: EmailBranding
 ): Promise<SendEmailResult> {
   try {
+    // Kill switch: set EMAILS_PAUSED=true to suppress all outbound email
+    if (process.env.EMAILS_PAUSED === 'true') {
+      logger.info('Email paused (EMAILS_PAUSED=true), skipping', { to, subject });
+      return { success: true, messageId: 'paused' };
+    }
+
     if (!process.env.RESEND_API_KEY) {
       logger.warn('RESEND_API_KEY not configured, email not sent', { to, subject });
       return { success: false, error: 'Email service not configured' };
@@ -50,11 +75,19 @@ async function sendEmailInternal(
       return { success: false, error: 'Email service not configured' };
     }
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
+
     const { data, error } = await resend.emails.send({
       from: fromEmail,
+      replyTo: DEFAULT_REPLY_TO,
       to: [to],
       subject,
       html,
+      text: htmlToPlainText(html),
+      headers: {
+        'List-Unsubscribe': `<mailto:unsubscribe@trainomics.app?subject=unsubscribe>, <${baseUrl}/unsubscribe>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
     });
 
     if (error) {

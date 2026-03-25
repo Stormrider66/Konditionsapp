@@ -132,6 +132,10 @@ NEXT_PUBLIC_SENTRY_DSN / UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN / YOU
 
 Note: AI provider API keys are managed per-user (encrypted in DB), not via env vars.
 
+## Email Kill Switch
+
+All outbound email is paused until launch. Set `EMAILS_PAUSED=true` in env to suppress (active in `.env.local` and must be added to Vercel). Remove or set to anything other than `true` to re-enable. Guard is applied in `lib/email/index.ts` and all 5 files that call Resend directly.
+
 ## Known Issues
 
 - Lactate curve validation not enforced (users can input decreasing values)
