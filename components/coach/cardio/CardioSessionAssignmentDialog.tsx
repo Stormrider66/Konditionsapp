@@ -31,7 +31,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Users, Calendar, Loader2, Clock, ChevronDown, Watch, Search } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Users, Calendar, Loader2, Clock, ChevronDown, Watch, Search, MapPin, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
 
@@ -39,6 +40,17 @@ interface Athlete {
   id: string;
   name: string;
   email?: string;
+}
+
+interface LocationOption {
+  id: string;
+  name: string;
+}
+
+interface TrainerOption {
+  id: string;
+  name: string;
+  email: string;
 }
 
 interface CardioSessionAssignmentDialogProps {
@@ -68,6 +80,14 @@ export function CardioSessionAssignmentDialog({
   const [loading, setLoading] = useState(false);
   const [loadingAthletes, setLoadingAthletes] = useState(false);
 
+  // Location & trainer
+  const [locations, setLocations] = useState<LocationOption[]>([]);
+  const [trainers, setTrainers] = useState<TrainerOption[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState('');
+  const [customLocationName, setCustomLocationName] = useState('');
+  const [useCustomLocation, setUseCustomLocation] = useState(false);
+  const [selectedTrainerId, setSelectedTrainerId] = useState('');
+
   // Garmin push state
   const [pushToGarmin, setPushToGarmin] = useState(false);
 
@@ -87,12 +107,19 @@ export function CardioSessionAssignmentDialog({
   useEffect(() => {
     if (open) {
       fetchAthletes();
+      fetchLocations();
+      fetchTrainers();
       // Reset form
       setSelectedAthletes([]);
       setSearchQuery('');
       setAthletesExpanded(true);
       setAssignedDate(new Date().toISOString().split('T')[0]);
       setNotes('');
+      // Reset location & trainer
+      setSelectedLocationId('');
+      setCustomLocationName('');
+      setUseCustomLocation(false);
+      setSelectedTrainerId('');
       // Reset Garmin and scheduling
       setPushToGarmin(false);
       setSchedulingOpen(false);
@@ -135,6 +162,30 @@ export function CardioSessionAssignmentDialog({
     }
   }
 
+  async function fetchLocations() {
+    try {
+      const response = await fetch('/api/locations');
+      if (response.ok) {
+        const data = await response.json();
+        setLocations(data.locations || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch locations:', error);
+    }
+  }
+
+  async function fetchTrainers() {
+    try {
+      const response = await fetch('/api/trainers');
+      if (response.ok) {
+        const data = await response.json();
+        setTrainers(data.trainers || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch trainers:', error);
+    }
+  }
+
   function toggleAthlete(athleteId: string) {
     setSelectedAthletes((prev) =>
       prev.includes(athleteId)
@@ -164,6 +215,9 @@ export function CardioSessionAssignmentDialog({
           assignedDate,
           notes: notes || undefined,
           pushToGarmin: pushToGarmin || undefined,
+          locationId: selectedLocationId || undefined,
+          locationName: customLocationName || undefined,
+          responsibleCoachId: selectedTrainerId || undefined,
           // Include scheduling fields if time is set
           ...(startTime && {
             startTime,
@@ -247,6 +301,76 @@ export function CardioSessionAssignmentDialog({
             onChange={(e) => setAssignedDate(e.target.value)}
           />
         </div>
+
+        {/* Location Selection */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Plats (valfritt)
+          </Label>
+          {locations.length > 0 && !useCustomLocation ? (
+            <Select value={selectedLocationId || 'none'} onValueChange={(v) => {
+              if (v === 'custom') {
+                setUseCustomLocation(true);
+                setSelectedLocationId('');
+              } else if (v === 'none') {
+                setSelectedLocationId('');
+              } else {
+                setSelectedLocationId(v);
+                setCustomLocationName('');
+              }
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Välj plats..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Ingen plats</SelectItem>
+                {locations.map((loc) => (
+                  <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                ))}
+                <SelectItem value="custom">Annan plats...</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="space-y-1">
+              <Input
+                placeholder="Ange plats (t.ex. Löparbanan, Gymmet)"
+                value={customLocationName}
+                onChange={(e) => setCustomLocationName(e.target.value)}
+              />
+              {locations.length > 0 && (
+                <button
+                  type="button"
+                  className="text-xs text-blue-600 hover:underline"
+                  onClick={() => { setUseCustomLocation(false); setCustomLocationName(''); }}
+                >
+                  Välj från lista istället
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Trainer Selection */}
+        {trainers.length > 0 && (
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4" />
+              Tränare (valfritt)
+            </Label>
+            <Select value={selectedTrainerId || 'none'} onValueChange={(v) => setSelectedTrainerId(v === 'none' ? '' : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Välj tränare..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Ingen specifik tränare</SelectItem>
+                {trainers.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Athletes Selection */}
         <div className="space-y-2">
