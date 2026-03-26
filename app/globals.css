@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Always-visible scrollbar for scrollable lists (macOS hides native scrollbars) */
+.scrollbar-visible::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-visible::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+.scrollbar-visible::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
 :root {
   /* Professional Sports Branding - Navy, Gold, Cyan */
   --primary-gradient-start: #0f3460;
