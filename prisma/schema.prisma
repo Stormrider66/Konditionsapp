@@ -2309,6 +2309,10 @@ model Workout {
   focusGeneratedAt DateTime?
   focusGeneratedBy String? // "AI" | "RULE_BASED"
 
+  // Garmin Connect integration
+  garminWorkoutId String? // Garmin workout ID after push to Connect
+  garminPushedAt  DateTime? // When workout was last pushed
+
   day      TrainingDay      @relation(fields: [dayId], references: [id], onDelete: Cascade)
   segments WorkoutSegment[]
   logs     WorkoutLog[]

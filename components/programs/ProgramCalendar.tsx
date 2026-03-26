@@ -16,6 +16,7 @@ import { ChevronDown, ChevronUp, Pencil, Dumbbell, Activity } from 'lucide-react
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { ProgramWithWeeks, WeekWithDays, DayWithWorkouts, WorkoutWithSegments } from '@/types/prisma-types'
+import { PushToGarminButton } from '@/components/programs/PushToGarminButton'
 
 interface ProgramCalendarProps {
   program: ProgramWithWeeks
@@ -103,6 +104,7 @@ export function ProgramCalendar({ program, basePath = '/coach' }: ProgramCalenda
             isExpanded={expandedWeeks.has(week.id)}
             onToggle={() => toggleWeek(week.id)}
             isCurrent={week.weekNumber === getCurrentWeek(program)}
+            clientId={program.clientId}
           />
         ))}
       </div>
@@ -116,6 +118,7 @@ interface WeekCardProps {
   isExpanded: boolean
   onToggle: () => void
   isCurrent: boolean
+  clientId: string
 }
 
 function WeekCard({
@@ -124,6 +127,7 @@ function WeekCard({
   isExpanded,
   onToggle,
   isCurrent,
+  clientId,
 }: WeekCardProps) {
   const weekStartDate = addDays(new Date(programStartDate), (week.weekNumber - 1) * 7)
   const weekEndDate = addDays(weekStartDate, 6)
@@ -203,6 +207,7 @@ function WeekCard({
                     key={day.id}
                     day={day}
                     date={addDays(weekStartDate, day.dayNumber - 1)}
+                    clientId={clientId}
                   />
                 ))
               ) : (
@@ -221,9 +226,10 @@ function WeekCard({
 interface DayCardProps {
   day: DayWithWorkouts
   date: Date
+  clientId: string
 }
 
-function DayCard({ day, date }: DayCardProps) {
+function DayCard({ day, date, clientId }: DayCardProps) {
   const dayNames = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
   const [expandedWorkouts, setExpandedWorkouts] = useState<Set<string>>(new Set())
 
@@ -346,6 +352,13 @@ function DayCard({ day, date }: DayCardProps) {
                   <ChevronDown className="h-4 w-4" />
                 )}
               </Button>
+
+              <PushToGarminButton
+                workoutId={workout.id}
+                clientId={clientId}
+                scheduleDate={format(date, 'yyyy-MM-dd')}
+                alreadyPushed={!!workout.garminWorkoutId}
+              />
 
               <Link href={workout.type === 'STRENGTH'
                 ? `/coach/strength?workoutId=${workout.id}`
