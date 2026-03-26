@@ -60,7 +60,7 @@ export interface GarminWorkout {
   sport: string
   segments: Array<{
     segmentOrder: number
-    sportType: GarminSportType
+    sportType: GarminSportType | string
     workoutSteps: GarminWorkoutStepUnion[]
   }>
 }
@@ -413,7 +413,7 @@ export function serializeWorkoutToGarmin(workout: {
     sport,
     segments: [{
       segmentOrder: 1,
-      sportType: sportTypeObj,
+      sportType: sport,
       workoutSteps,
     }],
   }
