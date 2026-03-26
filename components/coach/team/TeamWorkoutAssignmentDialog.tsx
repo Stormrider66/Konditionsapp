@@ -197,7 +197,7 @@ export function TeamWorkoutAssignmentDialog({
     } catch (error) {
       console.error('Failed to assign workout to team:', error)
       toast.error('Tilldelning misslyckades', {
-        description: 'Ett oväntat fel intr\u00e4ffade.',
+        description: 'Ett oväntat fel inträffade.',
       })
     } finally {
       setLoading(false)
@@ -226,11 +226,11 @@ export function TeamWorkoutAssignmentDialog({
       <div className="space-y-4 py-4 overflow-y-auto min-h-0">
         {/* Team Selection */}
         <div className="space-y-2">
-          <Label>V\u00e4lj lag</Label>
+          <Label>Välj lag</Label>
           <TeamSelector
             value={selectedTeamId}
             onValueChange={setSelectedTeamId}
-            placeholder="V\u00e4lj ett lag..."
+            placeholder="Välj ett lag..."
           />
         </div>
 
