@@ -60,7 +60,6 @@ export interface GarminWorkout {
   sport: string
   segments: Array<{
     segmentOrder: number
-    sport: string
     workoutSteps: GarminWorkoutStepUnion[]
   }>
 }
@@ -317,9 +316,6 @@ function buildStep(
     if (opts.targetHigh != null) step.targetValueTwo = opts.targetHigh
   }
 
-  // Note/description for the step (shown on watch)
-  if (opts.description) step.note = opts.description
-
   return step
 }
 
@@ -402,7 +398,6 @@ export function serializeWorkoutToGarmin(workout: {
     sport,
     segments: [{
       segmentOrder: 1,
-      sport,
       workoutSteps,
     }],
   }
