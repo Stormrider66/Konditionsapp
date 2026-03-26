@@ -194,15 +194,53 @@ export async function POST(request: NextRequest, context: RouteContext) {
     let garminWorkoutPayload: ReturnType<typeof serializeWorkoutToGarmin> | null = null;
     if (pushToGarmin && garminTokensByAthlete.size > 0) {
       const segments = (session.segments as unknown as CardioSegment[]) || [];
-      const garminSegments = segments.map((s) => ({
-        type: mapSegmentType(s.type),
-        durationSeconds: s.duration || undefined,
-        distanceMeters: s.distance || undefined,
-        repeats: s.repeats || undefined,
-        targetType: resolveTargetType(s),
-        targetLow: resolveTargetLow(s),
-        targetHigh: resolveTargetHigh(s),
-      }));
+      const garminSegments = segments.map((s) => {
+        // Build repeat block with work + rest steps for intervals
+        if (s.repeats && s.repeats > 1) {
+          const workStep: {
+            type: 'interval' | 'recovery' | 'rest';
+            durationSeconds?: number;
+            distanceMeters?: number;
+            targetType?: 'pace' | 'hr' | 'power' | 'cadence' | 'none';
+            targetLow?: number;
+            targetHigh?: number;
+          } = {
+            type: 'interval',
+            durationSeconds: s.duration || undefined,
+            distanceMeters: s.distance || undefined,
+            targetType: resolveTargetType(s),
+            targetLow: resolveTargetLow(s),
+            targetHigh: resolveTargetHigh(s),
+          };
+
+          const steps = [workStep];
+
+          // Add rest/recovery step between repeats
+          if (s.restDuration && s.restDuration > 0) {
+            steps.push({
+              type: 'recovery',
+              durationSeconds: s.restDuration,
+            });
+          }
+
+          return {
+            type: mapSegmentType(s.type),
+            repeats: s.repeats,
+            steps,
+          };
+        }
+
+        // Single step (warmup, cooldown, steady, etc.)
+        return {
+          type: mapSegmentType(s.type),
+          durationSeconds: s.duration || undefined,
+          distanceMeters: s.distance || undefined,
+          repeats: undefined,
+          targetType: resolveTargetType(s),
+          targetLow: resolveTargetLow(s),
+          targetHigh: resolveTargetHigh(s),
+        };
+      });
 
       if (garminSegments.length > 0) {
         garminWorkoutPayload = serializeWorkoutToGarmin({

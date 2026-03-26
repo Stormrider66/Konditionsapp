@@ -110,15 +110,18 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
       setDescription(initialData.description || '')
       setSport(initialData.sport || 'RUNNING')
       setSegments(
-        initialData.segments.map((s) => ({
+        initialData.segments.map((s: any) => ({
           id: s.id || Math.random().toString(36).substr(2, 9),
           type: s.type as CardioSegment['type'],
-          duration: s.duration,
-          distance: s.distance,
+          duration: s.duration ? s.duration / 60 : undefined, // seconds → minutes
+          distance: s.distance ? s.distance / 1000 : undefined, // meters → km
           zone: s.zone ? String(s.zone) : '1',
           pace: s.pace || '',
+          heartRate: s.heartRate || '',
           notes: s.notes || '',
-          distanceUnit: (s.distance && s.distance < 1) ? 'm' : 'km',
+          repeats: s.repeats || undefined,
+          restDuration: s.restDuration ? s.restDuration / 60 : undefined, // seconds → minutes
+          distanceUnit: (s.distance && s.distance < 1000) ? 'm' : 'km',
         }))
       )
     } else {
@@ -206,7 +209,10 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
         distance: s.distance ? Math.round(s.distance * 1000) : undefined, // Convert km to meters
         zone: s.zone ? parseInt(s.zone) : undefined,
         pace: s.pace || undefined,
+        heartRate: s.heartRate || undefined,
         notes: s.notes || undefined,
+        repeats: s.repeats && s.repeats > 1 ? s.repeats : undefined,
+        restDuration: s.restDuration ? Math.round(s.restDuration * 60) : undefined, // Convert minutes to seconds
       }))
 
       const payload = {
@@ -551,13 +557,21 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Total tid:</span>
               <span className="font-medium">
-                {segments.reduce((acc, s) => acc + (s.duration || 0), 0)} min
+                {segments.reduce((acc, s) => {
+                  const reps = s.repeats && s.repeats > 1 ? s.repeats : 1
+                  const dur = (s.duration || 0) * reps
+                  const rest = (s.restDuration || 0) * (reps > 1 ? reps - 1 : 0)
+                  return acc + dur + rest
+                }, 0)} min
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Total distans:</span>
               <span className="font-medium">
-                {segments.reduce((acc, s) => acc + (s.distance || 0), 0).toFixed(1)} km
+                {segments.reduce((acc, s) => {
+                  const reps = s.repeats && s.repeats > 1 ? s.repeats : 1
+                  return acc + (s.distance || 0) * reps
+                }, 0).toFixed(1)} km
               </span>
             </div>
             <div className="flex justify-between text-sm">
