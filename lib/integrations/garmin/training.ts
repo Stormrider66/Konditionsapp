@@ -27,88 +27,34 @@ const GARMIN_WORKOUT_PORTAL = 'https://apis.garmin.com/workoutportal'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type GarminSportTypeKey =
-  | 'RUNNING'
-  | 'CYCLING'
-  | 'LAP_SWIMMING'
-  | 'STRENGTH_TRAINING'
-  | 'CARDIO_TRAINING'
-  | 'YOGA'
-  | 'PILATES'
-  | 'MULTI_SPORT'
+// ─── Garmin Training API v2 DTO Types ────────────────────────────────────────
+// Garmin v2 uses nested DTO objects for all enums (sport, step type, condition, target)
 
-// Garmin Training API v2 requires sportType as an object
 export interface GarminSportType {
   sportTypeId: number
   sportTypeKey: string
 }
 
-const SPORT_TYPE_OBJECTS: Record<GarminSportTypeKey, GarminSportType> = {
-  RUNNING: { sportTypeId: 1, sportTypeKey: 'running' },
-  CYCLING: { sportTypeId: 2, sportTypeKey: 'cycling' },
-  MULTI_SPORT: { sportTypeId: 3, sportTypeKey: 'multi_sport' },
-  STRENGTH_TRAINING: { sportTypeId: 4, sportTypeKey: 'strength_training' },
-  LAP_SWIMMING: { sportTypeId: 5, sportTypeKey: 'lap_swimming' },
-  YOGA: { sportTypeId: 9, sportTypeKey: 'yoga' },
-  PILATES: { sportTypeId: 10, sportTypeKey: 'pilates' },
-  CARDIO_TRAINING: { sportTypeId: 10, sportTypeKey: 'cardio_training' },
+interface GarminStepTypeDTO {
+  stepTypeId: number
+  stepTypeKey: string
 }
 
-function toSportTypeObject(key: GarminSportTypeKey): GarminSportType {
-  return SPORT_TYPE_OBJECTS[key] || SPORT_TYPE_OBJECTS.CARDIO_TRAINING
+interface GarminEndCondition {
+  conditionTypeId: number
+  conditionTypeKey: string
 }
 
-export type GarminStepType =
-  | 'WARMUP'
-  | 'COOLDOWN'
-  | 'INTERVAL'
-  | 'RECOVERY'
-  | 'REST'
-  | 'OTHER'
-
-export type GarminTargetType =
-  | 'NO_TARGET'
-  | 'PACE'
-  | 'SPEED'
-  | 'HEART_RATE'
-  | 'POWER'
-  | 'CADENCE'
-
-export type GarminDurationType =
-  | 'TIME'
-  | 'DISTANCE'
-  | 'OPEN'
-  | 'LAP_BUTTON'
-
-export interface GarminWorkoutTarget {
-  targetType: GarminTargetType
-  targetValueOne?: number  // lower bound
-  targetValueTwo?: number  // upper bound
-  zoneNumber?: number
+interface GarminTargetTypeDTO {
+  workoutTargetTypeId: number
+  workoutTargetTypeKey: string
 }
 
-export interface GarminWorkoutStep {
-  type: 'WorkoutStep'
-  stepOrder: number
-  stepType: GarminStepType
-  durationType: GarminDurationType
-  durationValue?: number          // seconds for TIME, meters for DISTANCE
-  durationValueType?: string
-  target?: GarminWorkoutTarget
-  description?: string
-}
-
-export interface GarminWorkoutRepeatStep {
-  type: 'WorkoutRepeatStep'
-  stepOrder: number
-  numberOfIterations: number
-  steps: GarminWorkoutStep[]
-}
-
-export type GarminWorkoutStepUnion = GarminWorkoutStep | GarminWorkoutRepeatStep
+type GarminWorkoutStep = Record<string, unknown>
+type GarminWorkoutStepUnion = Record<string, unknown>
 
 export interface GarminWorkout {
-  workoutId?: string // returned by Garmin after creation
+  workoutId?: string
   workoutName: string
   description?: string
   sportType: GarminSportType
@@ -117,6 +63,44 @@ export interface GarminWorkout {
     sportType: GarminSportType
     workoutSteps: GarminWorkoutStepUnion[]
   }>
+}
+
+// Sport type mapping (Trainomics → Garmin IDs)
+const SPORT_TYPES: Record<string, GarminSportType> = {
+  RUNNING:            { sportTypeId: 1, sportTypeKey: 'running' },
+  CYCLING:            { sportTypeId: 2, sportTypeKey: 'cycling' },
+  LAP_SWIMMING:       { sportTypeId: 3, sportTypeKey: 'swimming' },
+  STRENGTH_TRAINING:  { sportTypeId: 5, sportTypeKey: 'strength_training' },
+  CARDIO_TRAINING:    { sportTypeId: 6, sportTypeKey: 'cardio_training' },
+  YOGA:               { sportTypeId: 7, sportTypeKey: 'yoga' },
+  PILATES:            { sportTypeId: 8, sportTypeKey: 'pilates' },
+  MULTI_SPORT:        { sportTypeId: 5, sportTypeKey: 'multi_sport' },
+}
+
+// Step type mapping
+const STEP_TYPES: Record<string, GarminStepTypeDTO> = {
+  warmup:   { stepTypeId: 1, stepTypeKey: 'warmup' },
+  cooldown: { stepTypeId: 2, stepTypeKey: 'cooldown' },
+  interval: { stepTypeId: 3, stepTypeKey: 'interval' },
+  recovery: { stepTypeId: 4, stepTypeKey: 'recovery' },
+  rest:     { stepTypeId: 5, stepTypeKey: 'rest' },
+  steady:   { stepTypeId: 3, stepTypeKey: 'interval' },
+}
+
+// End condition (duration) mapping
+const END_CONDITIONS: Record<string, GarminEndCondition> = {
+  time:       { conditionTypeId: 2, conditionTypeKey: 'time' },
+  distance:   { conditionTypeId: 1, conditionTypeKey: 'distance' },
+  lap_button: { conditionTypeId: 0, conditionTypeKey: 'lap.button' },
+}
+
+// Target type mapping
+const TARGET_TYPES: Record<string, GarminTargetTypeDTO> = {
+  none:     { workoutTargetTypeId: 1, workoutTargetTypeKey: 'no.target' },
+  power:    { workoutTargetTypeId: 2, workoutTargetTypeKey: 'power.zone' },
+  cadence:  { workoutTargetTypeId: 3, workoutTargetTypeKey: 'cadence.zone' },
+  hr:       { workoutTargetTypeId: 4, workoutTargetTypeKey: 'heart.rate.zone' },
+  pace:     { workoutTargetTypeId: 6, workoutTargetTypeKey: 'speed.zone' },
 }
 
 export interface GarminSchedule {
@@ -275,7 +259,7 @@ export async function getGarminSchedules(
 /**
  * Map Trainomics sport type to Garmin sport type
  */
-const SPORT_TYPE_MAP: Record<string, GarminSportTypeKey> = {
+const SPORT_TYPE_MAP: Record<string, string> = {
   RUNNING: 'RUNNING',
   CYCLING: 'CYCLING',
   SWIMMING: 'LAP_SWIMMING',
@@ -289,13 +273,86 @@ const SPORT_TYPE_MAP: Record<string, GarminSportTypeKey> = {
   OTHER: 'CARDIO_TRAINING',
 }
 
+function getSportType(trainomicsSport: string): GarminSportType {
+  const key = SPORT_TYPE_MAP[trainomicsSport] || 'CARDIO_TRAINING'
+  return SPORT_TYPES[key] || SPORT_TYPES.CARDIO_TRAINING
+}
+
+// ─── DTO Builders ──────────────────────────────────────────────────────────
+
+function buildStep(
+  order: number,
+  stepType: string,
+  opts: {
+    durationSeconds?: number
+    distanceMeters?: number
+    isLapButton?: boolean
+    targetType?: string
+    targetLow?: number
+    targetHigh?: number
+    description?: string
+  } = {}
+): GarminWorkoutStep {
+  const step: GarminWorkoutStep = {
+    type: 'ExecutableStepDTO',
+    stepOrder: order,
+    stepType: STEP_TYPES[stepType] || STEP_TYPES.interval,
+    childStepId: null,
+    endCondition: END_CONDITIONS.lap_button,
+    endConditionValue: null,
+    targetType: TARGET_TYPES.none,
+    targetValueOne: null,
+    targetValueTwo: null,
+  }
+
+  // End condition (duration)
+  if (opts.isLapButton || (!opts.durationSeconds && !opts.distanceMeters)) {
+    step.endCondition = END_CONDITIONS.lap_button
+  } else if (opts.durationSeconds && opts.durationSeconds > 0) {
+    step.endCondition = END_CONDITIONS.time
+    step.endConditionValue = opts.durationSeconds
+  } else if (opts.distanceMeters && opts.distanceMeters > 0) {
+    step.endCondition = END_CONDITIONS.distance
+    step.endConditionValue = opts.distanceMeters
+  }
+
+  // Target
+  if (opts.targetType && opts.targetType !== 'none' && TARGET_TYPES[opts.targetType]) {
+    step.targetType = TARGET_TYPES[opts.targetType]
+    if (opts.targetLow != null) step.targetValueOne = opts.targetLow
+    if (opts.targetHigh != null) step.targetValueTwo = opts.targetHigh
+  }
+
+  // Description
+  if (opts.description) step.description = opts.description
+
+  return step
+}
+
+function buildRepeatGroup(
+  order: number,
+  iterations: number,
+  steps: GarminWorkoutStep[]
+): GarminWorkoutStepUnion {
+  return {
+    type: 'RepeatGroupDTO',
+    stepOrder: order,
+    repeatType: 'REPEAT_UNTIL_STEPS_CMPLT',
+    repeatValue: iterations,
+    childStepId: null,
+    numberOfIterations: iterations,
+    smartRepeat: false,
+    endCondition: {
+      conditionTypeId: 7,
+      conditionTypeKey: 'iterations',
+    },
+    endConditionValue: iterations,
+    workoutSteps: steps,
+  }
+}
+
 /**
- * Convert a Trainomics program workout to Garmin workout format.
- *
- * Handles:
- * - Warmup / cooldown segments
- * - Intervals with repeat blocks
- * - Pace, HR, and power targets
+ * Convert a Trainomics workout to Garmin Training API v2 format.
  */
 export function serializeWorkoutToGarmin(workout: {
   name: string
@@ -321,109 +378,49 @@ export function serializeWorkoutToGarmin(workout: {
     }>
   }>
 }): GarminWorkout {
-  const sportKey = SPORT_TYPE_MAP[workout.sportType] || 'CARDIO_TRAINING'
-  const garminSportType = toSportTypeObject(sportKey)
+  const sportType = getSportType(workout.sportType)
 
   const workoutSteps: GarminWorkoutStepUnion[] = []
   let stepOrder = 1
 
   for (const segment of workout.segments) {
     if (segment.repeats && segment.steps && segment.steps.length > 0) {
-      // Repeat block (interval set)
-      const repeatSteps: GarminWorkoutStep[] = segment.steps.map((step, idx) => {
-        const s: GarminWorkoutStep = {
-          type: 'WorkoutStep' as const,
-          stepOrder: idx + 1,
-          stepType: mapStepType(step.type),
-          ...(step.durationIsLapButton
-            ? { durationType: 'LAP_BUTTON' as GarminDurationType }
-            : mapDuration(step.durationSeconds, step.distanceMeters)),
-          target: mapTarget(step.targetType, step.targetLow, step.targetHigh),
-        }
-        if (step.description) s.description = step.description
-        return s
-      })
-
-      workoutSteps.push({
-        type: 'WorkoutRepeatStep',
-        stepOrder: stepOrder++,
-        numberOfIterations: segment.repeats,
-        steps: repeatSteps,
-      })
+      // Repeat block with child steps
+      const childSteps = segment.steps.map((step, idx) =>
+        buildStep(idx + 1, step.type, {
+          durationSeconds: step.durationSeconds,
+          distanceMeters: step.distanceMeters,
+          isLapButton: step.durationIsLapButton,
+          targetType: step.targetType,
+          targetLow: step.targetLow,
+          targetHigh: step.targetHigh,
+          description: step.description,
+        })
+      )
+      workoutSteps.push(buildRepeatGroup(stepOrder++, segment.repeats, childSteps))
     } else {
       // Single step
-      workoutSteps.push({
-        type: 'WorkoutStep',
-        stepOrder: stepOrder++,
-        stepType: mapStepType(segment.type),
-        ...mapDuration(segment.durationSeconds, segment.distanceMeters),
-        target: mapTarget(segment.targetType, segment.targetLow, segment.targetHigh),
-      })
+      workoutSteps.push(
+        buildStep(stepOrder++, segment.type, {
+          durationSeconds: segment.durationSeconds,
+          distanceMeters: segment.distanceMeters,
+          targetType: segment.targetType,
+          targetLow: segment.targetLow,
+          targetHigh: segment.targetHigh,
+        })
+      )
     }
   }
 
-  // Strip undefined fields — Garmin rejects null/missing sportType
   const result: GarminWorkout = {
     workoutName: workout.name,
-    sportType: garminSportType,
-    workoutSegments: [
-      {
-        segmentOrder: 1,
-        sportType: garminSportType,
-        workoutSteps,
-      },
-    ],
+    sportType,
+    workoutSegments: [{
+      segmentOrder: 1,
+      sportType,
+      workoutSteps,
+    }],
   }
   if (workout.description) result.description = workout.description
   return result
-}
-
-function mapStepType(type: string): GarminStepType {
-  switch (type) {
-    case 'warmup': return 'WARMUP'
-    case 'cooldown': return 'COOLDOWN'
-    case 'interval': return 'INTERVAL'
-    case 'recovery': return 'RECOVERY'
-    case 'rest': return 'REST'
-    case 'steady': return 'INTERVAL'
-    default: return 'OTHER'
-  }
-}
-
-function mapDuration(
-  seconds?: number,
-  meters?: number
-): { durationType: GarminDurationType; durationValue?: number } {
-  if (seconds && seconds > 0) {
-    return { durationType: 'TIME', durationValue: seconds }
-  }
-  if (meters && meters > 0) {
-    return { durationType: 'DISTANCE', durationValue: meters }
-  }
-  return { durationType: 'OPEN' }
-}
-
-function mapTarget(
-  type?: string,
-  low?: number,
-  high?: number
-): GarminWorkoutTarget | undefined {
-  if (!type || type === 'none') return undefined
-
-  const targetTypeMap: Record<string, GarminTargetType> = {
-    pace: 'PACE',
-    speed: 'SPEED',
-    hr: 'HEART_RATE',
-    power: 'POWER',
-    cadence: 'CADENCE',
-  }
-
-  const garminType = targetTypeMap[type]
-  if (!garminType) return undefined
-
-  return {
-    targetType: garminType,
-    targetValueOne: low,
-    targetValueTwo: high,
-  }
 }
