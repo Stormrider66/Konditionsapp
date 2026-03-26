@@ -50,6 +50,8 @@ interface IntervalTimerProps {
   autoStart?: boolean
   /** Segment notes */
   notes?: string
+  /** Voice coaching speak function (from useVoiceCoach) */
+  voiceSpeak?: (text: string, priority?: 'high' | 'normal') => void
 }
 
 const SEGMENT_COLORS: Record<SegmentType, { bg: string; text: string; stroke: string; badge: string }> = {
@@ -128,6 +130,7 @@ export function IntervalTimer({
   onSkip,
   autoStart = false,
   notes,
+  voiceSpeak,
 }: IntervalTimerProps) {
   const [seconds, setSeconds] = useState(duration)
   const [isRunning, setIsRunning] = useState(autoStart)
@@ -186,16 +189,22 @@ export function IntervalTimer({
           if (newValue === 30 && duration > 60) {
             playBeep(500, 150)
             vibrate(100)
+            voiceSpeak?.('Thirty seconds.')
           }
 
           // Alert at 10 seconds
           if (newValue === 10) {
             playBeep(600, 150)
             vibrate(100)
+            voiceSpeak?.('Ten seconds.')
           }
 
           // Alert at 3, 2, 1
-          if (newValue <= 3 && newValue > 0) {
+          if (newValue === 3) {
+            playBeep(700, 100)
+            vibrate(50)
+            voiceSpeak?.('Three. Two. One.', 'high')
+          } else if (newValue <= 2 && newValue > 0) {
             playBeep(700, 100)
             vibrate(50)
           }
@@ -217,7 +226,7 @@ export function IntervalTimer({
         clearInterval(intervalRef.current)
       }
     }
-  }, [isRunning, seconds, duration, playBeep, vibrate, onComplete])
+  }, [isRunning, seconds, duration, playBeep, vibrate, onComplete, voiceSpeak])
 
   // Start timer
   const startTimer = () => {

@@ -30,10 +30,19 @@ import {
   CheckCircle2,
   Activity,
   Clock,
+  Headphones,
+  HeadphonesOff,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
 import { SegmentLoggingForm } from './SegmentLoggingForm'
+import {
+  useVoiceCoach,
+  buildSegmentStartCue,
+  buildSegmentCompleteCue,
+  buildSessionStartCue,
+  buildSessionCompleteCue,
+} from '@/hooks/use-voice-coach'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
 
@@ -114,15 +123,33 @@ export function CardioFocusModeWorkout({
   const [timerElapsed, setTimerElapsed] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Voice coaching
+  const voice = useVoiceCoach({ rate: 1.05 })
+
   const currentSegment = segments[currentIndex]
   const completedCount = segments.filter((s) => s.completed || s.skipped).length
   const progressPercent = segments.length > 0 ? (completedCount / segments.length) * 100 : 0
 
+  // Announce segment on transition
+  useEffect(() => {
+    if (viewState === 'timer' && currentSegment) {
+      const cue = buildSegmentStartCue(
+        currentSegment,
+        currentIndex + 1,
+        segments.length
+      )
+      voice.speak(cue, 'high')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, viewState])
+
   // Check if all segments are complete
   useEffect(() => {
     if (completedCount === segments.length && segments.length > 0) {
+      voice.speak(buildSessionCompleteCue(), 'high')
       setShowCompleteDialog(true)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completedCount, segments.length])
 
   // Handle timer complete - show logging form
@@ -130,8 +157,11 @@ export function CardioFocusModeWorkout({
     if (currentSegment?.plannedDuration) {
       setTimerElapsed(currentSegment.plannedDuration)
     }
+    // Announce what's next
+    const nextSeg = segments[currentIndex + 1]
+    voice.speak(buildSegmentCompleteCue(nextSeg), 'high')
     setViewState('logging')
-  }, [currentSegment])
+  }, [currentSegment, currentIndex, segments, voice])
 
   // Handle timer skip - mark as skipped and move on
   const handleTimerSkip = useCallback(() => {
@@ -260,7 +290,22 @@ export function CardioFocusModeWorkout({
             Segment {currentIndex + 1} av {segments.length}
           </p>
         </div>
-        <div className="w-10" />
+        {voice.supported ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={voice.toggle}
+            className={cn(
+              'hover:bg-slate-100 dark:hover:bg-white/10',
+              voice.enabled && 'text-blue-500'
+            )}
+            title={voice.enabled ? 'Voice coach on' : 'Voice coach off'}
+          >
+            {voice.enabled ? <Headphones className="h-5 w-5" /> : <HeadphonesOff className="h-5 w-5 text-slate-400" />}
+          </Button>
+        ) : (
+          <div className="w-10" />
+        )}
       </div>
 
       {/* Progress bar */}
@@ -306,6 +351,7 @@ export function CardioFocusModeWorkout({
             onComplete={handleTimerComplete}
             onSkip={handleTimerSkip}
             autoStart={false}
+            voiceSpeak={voice.speak}
           />
         ) : viewState === 'timer' && !currentSegment.plannedDuration ? (
           // No duration - show segment info and allow marking complete
