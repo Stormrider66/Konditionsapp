@@ -57,8 +57,8 @@ export interface GarminWorkout {
   workoutId?: string
   workoutName: string
   description?: string
-  sport: string  // Simple string enum: "RUNNING", "CARDIO_TRAINING", etc.
-  workoutSegments: Array<{
+  sport: string
+  segments: Array<{
     segmentOrder: number
     sport: string
     workoutSteps: GarminWorkoutStepUnion[]
@@ -415,7 +415,7 @@ export function serializeWorkoutToGarmin(workout: {
   const result: GarminWorkout = {
     workoutName: workout.name,
     sport,
-    workoutSegments: [{
+    segments: [{
       segmentOrder: 1,
       sport,
       workoutSteps,
