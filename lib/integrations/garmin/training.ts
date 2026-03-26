@@ -424,6 +424,7 @@ export function serializeWorkoutToGarmin(workout: {
   const result: GarminWorkout = {
     workoutName: workout.name,
     sport: 'RUNNING',
+    steps,
     segments: [{
       segmentOrder: 1,
       sport: 'RUNNING',
