@@ -30,7 +30,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Users, Calendar, Loader2, Clock, ChevronDown, Watch, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -252,38 +251,36 @@ export function CardioSessionAssignmentDialog({
                   />
                 </div>
               )}
-              <ScrollArea className="h-[180px] border rounded-md p-2">
-                <div className="space-y-1">
-                  {athletes
-                    .filter((a) => {
-                      if (!searchQuery) return true;
-                      const q = searchQuery.toLowerCase();
-                      return (
-                        a.name.toLowerCase().includes(q) ||
-                        (a.email && a.email.toLowerCase().includes(q))
-                      );
-                    })
-                    .map((athlete) => (
-                      <div
-                        key={athlete.id}
-                        className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                        onClick={() => toggleAthlete(athlete.id)}
-                      >
-                        <Checkbox
-                          checked={selectedAthletes.includes(athlete.id)}
-                          onCheckedChange={() => toggleAthlete(athlete.id)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{athlete.name}</div>
-                          {athlete.email && (
-                            <div className="text-xs text-muted-foreground truncate">{athlete.email}</div>
-                          )}
-                        </div>
+              <div className="max-h-[180px] overflow-y-auto border rounded-md p-2 space-y-1">
+                {athletes
+                  .filter((a) => {
+                    if (!searchQuery) return true;
+                    const q = searchQuery.toLowerCase();
+                    return (
+                      a.name.toLowerCase().includes(q) ||
+                      (a.email && a.email.toLowerCase().includes(q))
+                    );
+                  })
+                  .map((athlete) => (
+                    <div
+                      key={athlete.id}
+                      className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                      onClick={() => toggleAthlete(athlete.id)}
+                    >
+                      <Checkbox
+                        checked={selectedAthletes.includes(athlete.id)}
+                        onCheckedChange={() => toggleAthlete(athlete.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{athlete.name}</div>
+                        {athlete.email && (
+                          <div className="text-xs text-muted-foreground truncate">{athlete.email}</div>
+                        )}
                       </div>
-                    ))}
-                </div>
-              </ScrollArea>
+                    </div>
+                  ))}
+              </div>
             </>
           )}
           {selectedAthletes.length > 0 && (
