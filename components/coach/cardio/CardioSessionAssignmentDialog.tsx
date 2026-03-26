@@ -195,7 +195,7 @@ export function CardioSessionAssignmentDialog({
   }
 
   const dialogContent = (
-    <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col">
+    <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
@@ -206,7 +206,7 @@ export function CardioSessionAssignmentDialog({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-4 py-4 overflow-y-auto min-h-0 flex-1 max-h-[calc(85vh-10rem)]">
+      <div className="space-y-4 py-4">
         {/* Date Selection */}
         <div className="space-y-2">
           <Label htmlFor="assignedDate" className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export function CardioSessionAssignmentDialog({
                   />
                 </div>
               )}
-              <div className="max-h-[180px] overflow-y-auto border rounded-md p-2 space-y-1">
+              <div className="border rounded-md p-2 space-y-1">
                 {athletes
                   .filter((a) => {
                     if (!searchQuery) return true;
