@@ -207,7 +207,7 @@ export function CardioSessionAssignmentDialog({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-4 py-4 overflow-y-auto min-h-0 flex-1">
+      <div className="space-y-4 py-4 overflow-y-auto min-h-0 flex-1 max-h-[calc(85vh-10rem)]">
         {/* Date Selection */}
         <div className="space-y-2">
           <Label htmlFor="assignedDate" className="flex items-center gap-2">
