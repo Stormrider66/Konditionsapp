@@ -308,16 +308,19 @@ export function serializeWorkoutToGarmin(workout: {
   for (const segment of workout.segments) {
     if (segment.repeats && segment.steps && segment.steps.length > 0) {
       // Repeat block (interval set)
-      const repeatSteps: GarminWorkoutStep[] = segment.steps.map((step, idx) => ({
-        type: 'WorkoutStep' as const,
-        stepOrder: idx + 1,
-        stepType: mapStepType(step.type),
-        ...(step.durationIsLapButton
-          ? { durationType: 'LAP_BUTTON' as GarminDurationType }
-          : mapDuration(step.durationSeconds, step.distanceMeters)),
-        target: mapTarget(step.targetType, step.targetLow, step.targetHigh),
-        description: step.description,
-      }))
+      const repeatSteps: GarminWorkoutStep[] = segment.steps.map((step, idx) => {
+        const s: GarminWorkoutStep = {
+          type: 'WorkoutStep' as const,
+          stepOrder: idx + 1,
+          stepType: mapStepType(step.type),
+          ...(step.durationIsLapButton
+            ? { durationType: 'LAP_BUTTON' as GarminDurationType }
+            : mapDuration(step.durationSeconds, step.distanceMeters)),
+          target: mapTarget(step.targetType, step.targetLow, step.targetHigh),
+        }
+        if (step.description) s.description = step.description
+        return s
+      })
 
       workoutSteps.push({
         type: 'WorkoutRepeatStep',

@@ -354,7 +354,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
         if (pushToGarmin && garminWorkoutPayload && garminTokensByAthlete.has(athleteId)) {
           try {
-            console.log('[Garmin Push] Sending workout for athlete:', athleteId, 'payload steps:', garminWorkoutPayload.workoutSegments?.[0]?.workoutSteps?.length);
+            console.log('[Garmin Push] Sending workout for athlete:', athleteId, JSON.stringify(garminWorkoutPayload, null, 2).slice(0, 2000));
             const created = await createGarminWorkout(athleteId, garminWorkoutPayload);
 
             if (created.workoutId) {
