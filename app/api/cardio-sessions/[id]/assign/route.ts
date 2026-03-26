@@ -37,6 +37,7 @@ interface CardioSegment {
   type: string
   duration?: number  // seconds
   distance?: number  // meters
+  calories?: number  // kcal
   zone?: number
   pace?: string      // "5:00/km"
   heartRate?: string // "140-150 bpm"
@@ -52,6 +53,7 @@ interface CardioChildStep {
   type: string
   duration?: number  // seconds
   distance?: number  // meters
+  calories?: number  // kcal (Garmin uses LAP_BUTTON for calorie steps)
   zone?: number
   pace?: string
   heartRate?: string
@@ -212,15 +214,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const garminSegments = segments.map((s) => {
         // REPEAT_GROUP: multi-step repeat block
         if (s.type === 'REPEAT_GROUP' && s.steps && s.steps.length > 0) {
-          const childSteps = s.steps.map((step) => ({
-            type: mapSegmentType(step.type),
-            durationSeconds: step.duration || undefined,
-            distanceMeters: step.distance || undefined,
-            targetType: resolveChildTargetType(step),
-            targetLow: resolveChildTargetLow(step),
-            targetHigh: resolveChildTargetHigh(step),
-            description: step.notes || undefined,
-          }));
+          const childSteps = s.steps.map((step) => {
+            // Build description: combine equipment name with calorie target
+            const descParts: string[] = [];
+            if (step.notes) descParts.push(step.notes);
+            if (step.calories) descParts.push(`${step.calories} cal`);
+            const description = descParts.length > 0 ? descParts.join(' — ') : undefined;
+
+            return {
+              type: mapSegmentType(step.type),
+              // Calorie steps use LAP_BUTTON (athlete presses lap when done)
+              ...(step.calories && !step.duration && !step.distance
+                ? { durationIsLapButton: true }
+                : {}),
+              durationSeconds: step.duration || undefined,
+              distanceMeters: step.distance || undefined,
+              targetType: resolveChildTargetType(step),
+              targetLow: resolveChildTargetLow(step),
+              targetHigh: resolveChildTargetHigh(step),
+              description,
+            };
+          });
 
           // Add rest between rounds if specified
           if (s.restBetweenRounds && s.restBetweenRounds > 0) {
@@ -244,13 +258,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
         // Single-step repeat block (legacy intervals with repeats)
         if (s.repeats && s.repeats > 1) {
+          const isCalorieBased = s.calories && !s.duration && !s.distance;
           const workStep = {
             type: 'interval' as const,
             durationSeconds: s.duration || undefined,
             distanceMeters: s.distance || undefined,
+            ...(isCalorieBased ? { durationIsLapButton: true } : {}),
             targetType: resolveTargetType(s),
             targetLow: resolveTargetLow(s),
             targetHigh: resolveTargetHigh(s),
+            description: isCalorieBased ? `${s.calories} cal${s.notes ? ` — ${s.notes}` : ''}` : (s.notes || undefined),
           };
 
           const steps: typeof workStep[] = [workStep];

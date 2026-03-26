@@ -43,6 +43,7 @@ type CardioFlatSegment = {
   type: 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
   duration?: number // minutes
   distance?: number // km
+  calories?: number // kcal
   zone: string
   pace?: string // "5:30/km"
   heartRate?: string // "145-155 bpm"
@@ -57,6 +58,7 @@ type CardioChildStep = {
   type: 'INTERVAL' | 'RECOVERY' | 'REST' | 'STEADY'
   duration?: number // minutes
   distance?: number // km
+  calories?: number // kcal
   distanceUnit?: 'km' | 'm'
   zone: string
   pace?: string
@@ -153,6 +155,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                 type: step.type as CardioChildStep['type'],
                 duration: step.duration ? step.duration / 60 : undefined,
                 distance: step.distance ? step.distance / 1000 : undefined,
+                calories: step.calories || undefined,
                 zone: step.zone ? String(step.zone) : '1',
                 pace: step.pace || '',
                 heartRate: step.heartRate || '',
@@ -168,6 +171,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
             type: s.type as CardioFlatSegment['type'],
             duration: s.duration ? s.duration / 60 : undefined,
             distance: s.distance ? s.distance / 1000 : undefined,
+            calories: s.calories || undefined,
             zone: s.zone ? String(s.zone) : '1',
             pace: s.pace || '',
             heartRate: s.heartRate || '',
@@ -268,6 +272,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
               type: step.type,
               duration: step.duration ? Math.round(step.duration * 60) : undefined,
               distance: step.distance ? Math.round(step.distance * 1000) : undefined,
+              calories: step.calories || undefined,
               zone: step.zone ? parseInt(step.zone) : undefined,
               pace: step.pace || undefined,
               heartRate: step.heartRate || undefined,
@@ -282,6 +287,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
           type: s.type,
           duration: s.duration ? Math.round(s.duration * 60) : undefined,
           distance: s.distance ? Math.round(s.distance * 1000) : undefined,
+          calories: s.calories || undefined,
           zone: s.zone ? parseInt(s.zone) : undefined,
           pace: s.pace || undefined,
           heartRate: s.heartRate || undefined,
@@ -865,17 +871,17 @@ function SortableSegmentItem({
           </Button>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           <div>
             <Label className="text-xs text-muted-foreground">Tid (min)</Label>
             <div className="flex items-center">
               <Timer className="h-3 w-3 mr-1 text-muted-foreground" />
-              <Input 
-                type="number" 
-                value={segment.duration || ''} 
+              <Input
+                type="number"
+                value={segment.duration || ''}
                 onChange={(e) => onUpdate(segment.id, 'duration', parseFloat(e.target.value))}
                 onBlur={() => onCalculate(segment.id, 'duration')}
-                className="h-7 text-sm" 
+                className="h-7 text-sm"
                 placeholder="min"
               />
             </div>
@@ -911,14 +917,27 @@ function SortableSegmentItem({
             </div>
           </div>
           <div>
+            <Label className="text-xs text-muted-foreground">Kalorier</Label>
+            <div className="flex items-center">
+              <Activity className="h-3 w-3 mr-1 text-muted-foreground" />
+              <Input
+                type="number"
+                value={segment.calories || ''}
+                onChange={(e) => onUpdate(segment.id, 'calories', parseInt(e.target.value) || undefined)}
+                className="h-7 text-sm"
+                placeholder="cal"
+              />
+            </div>
+          </div>
+          <div>
             <Label className="text-xs text-muted-foreground">Tempo (min/km)</Label>
             <div className="flex items-center">
               <Gauge className="h-3 w-3 mr-1 text-muted-foreground" />
-              <Input 
-                value={segment.pace || ''} 
+              <Input
+                value={segment.pace || ''}
                 onChange={(e) => onUpdate(segment.id, 'pace', e.target.value)}
                 onBlur={() => onCalculate(segment.id, 'pace')}
-                className="h-7 text-sm" 
+                className="h-7 text-sm"
                 placeholder="5:30"
               />
             </div>
@@ -1098,6 +1117,17 @@ function ChildStepRow({
 
         {!isRest && (
           <>
+            <div className="flex items-center gap-1">
+              <Input
+                type="number"
+                className="h-6 w-14 text-xs px-1"
+                value={step.calories || ''}
+                onChange={(e) => onUpdate(groupId, step.id, 'calories', parseInt(e.target.value) || undefined)}
+                placeholder="cal"
+              />
+              <span className="text-xs text-muted-foreground">cal</span>
+            </div>
+
             <div className="flex items-center gap-1">
               <Select value={step.targetType || 'none'} onValueChange={(v) => onUpdate(groupId, step.id, 'targetType', v)}>
                 <SelectTrigger className="h-6 w-24 text-xs">

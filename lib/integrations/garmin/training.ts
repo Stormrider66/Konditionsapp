@@ -290,9 +290,11 @@ export function serializeWorkoutToGarmin(workout: {
       type: 'interval' | 'recovery' | 'rest'
       durationSeconds?: number
       distanceMeters?: number
+      durationIsLapButton?: boolean
       targetType?: 'pace' | 'hr' | 'power' | 'cadence' | 'none'
       targetLow?: number
       targetHigh?: number
+      description?: string
     }>
   }>
 }): GarminWorkout {
@@ -308,8 +310,11 @@ export function serializeWorkoutToGarmin(workout: {
         type: 'WorkoutStep' as const,
         stepOrder: idx + 1,
         stepType: mapStepType(step.type),
-        ...mapDuration(step.durationSeconds, step.distanceMeters),
+        ...(step.durationIsLapButton
+          ? { durationType: 'LAP_BUTTON' as GarminDurationType }
+          : mapDuration(step.durationSeconds, step.distanceMeters)),
         target: mapTarget(step.targetType, step.targetLow, step.targetHigh),
+        description: step.description,
       }))
 
       workoutSteps.push({
