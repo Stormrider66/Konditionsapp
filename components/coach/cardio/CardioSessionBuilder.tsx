@@ -424,19 +424,33 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
   const addChildStep = (groupId: string) => {
     setSegments(segments.map(s => {
       if (s.id !== groupId || !isRepeatGroup(s)) return s
-      return {
-        ...s,
-        steps: [...s.steps, {
+      // Auto-insert a rest step before the new interval if the last step isn't already rest
+      const lastStep = s.steps[s.steps.length - 1]
+      const needsRest = lastStep && lastStep.type !== 'REST' && lastStep.type !== 'RECOVERY'
+      const newSteps = [...s.steps]
+      if (needsRest) {
+        newSteps.push({
           id: generateId(),
-          type: 'INTERVAL' as const,
-          duration: 3,
-          zone: '4',
+          type: 'REST' as const,
+          duration: 1,
+          zone: '1',
           notes: '',
           targetType: 'none' as const,
           targetValue: '',
           distanceUnit: 'km' as const,
-        }],
+        })
       }
+      newSteps.push({
+        id: generateId(),
+        type: 'INTERVAL' as const,
+        duration: 3,
+        zone: '4',
+        notes: '',
+        targetType: 'none' as const,
+        targetValue: '',
+        distanceUnit: 'km' as const,
+      })
+      return { ...s, steps: newSteps }
     }))
   }
 
