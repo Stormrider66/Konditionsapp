@@ -413,11 +413,10 @@ export function serializeWorkoutToGarmin(workout: {
 
   const result: GarminWorkout = {
     workoutName: workout.name,
-    sport: sportString,
+    sport: 'RUNNING',
     segments: [{
       segmentOrder: 1,
-      sport: sportString,
-      sportType: sportTypeObj,
+      sportType: { sportTypeId: 1, sportTypeKey: 'running' },
       workoutSteps,
     }],
   }
