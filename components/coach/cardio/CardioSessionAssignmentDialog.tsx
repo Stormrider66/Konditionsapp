@@ -222,7 +222,7 @@ export function CardioSessionAssignmentDialog({
   });
 
   const dialogContent = (
-    <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden p-0 sm:max-w-md">
+    <DialogContent className="flex max-h-[85vh] min-h-0 flex-col overflow-y-auto p-0 sm:max-w-md">
       <DialogHeader className="shrink-0 px-6 pt-6">
         <DialogTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
@@ -233,10 +233,10 @@ export function CardioSessionAssignmentDialog({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
         <div className="space-y-4">
           {/* Date Selection */}
-          <div className="space-y-2">
+          <div className="min-h-0 space-y-2">
             <Label htmlFor="assignedDate" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Datum
@@ -310,7 +310,7 @@ export function CardioSessionAssignmentDialog({
                         />
                       </div>
                     )}
-                    <div className="max-h-[40vh] overflow-y-auto rounded-md border p-2">
+                    <div className="max-h-72 overflow-y-auto rounded-md border p-2 sm:max-h-80">
                       <div className="space-y-1">
                         {filteredAthletes.map((athlete) => (
                           <div
