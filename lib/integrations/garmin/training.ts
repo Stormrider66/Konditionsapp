@@ -340,9 +340,9 @@ export function serializeWorkoutToGarmin(workout: {
     }
   }
 
-  return {
+  // Strip undefined fields — Garmin rejects null/missing sportType
+  const result: GarminWorkout = {
     workoutName: workout.name,
-    description: workout.description,
     sportType: garminSportType,
     workoutSegments: [
       {
@@ -352,6 +352,8 @@ export function serializeWorkoutToGarmin(workout: {
       },
     ],
   }
+  if (workout.description) result.description = workout.description
+  return result
 }
 
 function mapStepType(type: string): GarminStepType {
