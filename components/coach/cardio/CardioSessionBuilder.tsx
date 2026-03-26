@@ -469,7 +469,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
 
   const updateSegment = (id: string, field: keyof CardioFlatSegment, value: any) => {
     setSegments(segments.map(s => {
-      if (s.id !== id) return s
+      if (s.id !== id || isRepeatGroup(s)) return s
 
       const updated = { ...s }
 
@@ -521,7 +521,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
 
   const calculateSegment = (id: string, triggeredField: keyof CardioFlatSegment) => {
     setSegments(currentSegments => currentSegments.map(s => {
-      if (s.id !== id) return s
+      if (s.id !== id || isRepeatGroup(s)) return s
 
       const updated = { ...s }
       
