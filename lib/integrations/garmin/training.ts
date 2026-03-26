@@ -174,7 +174,7 @@ export async function createGarminWorkout(
 ): Promise<GarminWorkout> {
   const result = await trainingApiRequest<GarminWorkout>(
     clientId,
-    `${GARMIN_WORKOUT_PORTAL}/workout/v2`,
+    `${GARMIN_TRAINING_API}/workout`,
     'POST',
     workout
   )
@@ -309,7 +309,6 @@ function buildStep(
   } = {}
 ): GarminWorkoutStep {
   const step: GarminWorkoutStep = {
-    type: 'ExecutableStepDTO',
     stepOrder: order,
     stepType: STEP_TYPE_STRINGS[stepType] || 'INTERVAL',
   }
