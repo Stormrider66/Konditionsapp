@@ -270,16 +270,21 @@ export async function POST(request: NextRequest, context: RouteContext) {
             description: isCalorieBased ? `${s.calories} cal${s.notes ? ` — ${s.notes}` : ''}` : (s.notes || undefined),
           };
 
-          const steps: typeof workStep[] = [workStep];
+          const steps: Array<{
+            type: string;
+            durationSeconds?: number;
+            distanceMeters?: number;
+            durationIsLapButton?: boolean;
+            targetType?: string;
+            targetLow?: number;
+            targetHigh?: number;
+            description?: string;
+          }> = [workStep];
 
           if (s.restDuration && s.restDuration > 0) {
             steps.push({
-              type: 'recovery' as const,
+              type: 'recovery',
               durationSeconds: s.restDuration,
-              distanceMeters: undefined,
-              targetType: undefined,
-              targetLow: undefined,
-              targetHigh: undefined,
             });
           }
 
