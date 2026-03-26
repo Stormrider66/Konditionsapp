@@ -284,7 +284,7 @@ export function CardioSessionAssignmentDialog({
                       />
                     </div>
                   )}
-                  <div className="border rounded-md p-2 space-y-1 max-h-[200px] overflow-y-auto">
+                  <div className="border rounded-md p-2 space-y-1 max-h-[40vh] overflow-y-auto">
                     {athletes
                       .filter((a) => {
                         if (!searchQuery) return true;
