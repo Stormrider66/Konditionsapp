@@ -32,7 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
-import { Users, Calendar, Loader2, Clock, ChevronDown, Watch } from 'lucide-react';
+import { Users, Calendar, Loader2, Clock, ChevronDown, Watch, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
 
@@ -64,6 +64,7 @@ export function CardioSessionAssignmentDialog({
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
   const [assignedDate, setAssignedDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingAthletes, setLoadingAthletes] = useState(false);
 
@@ -88,6 +89,7 @@ export function CardioSessionAssignmentDialog({
       fetchAthletes();
       // Reset form
       setSelectedAthletes([]);
+      setSearchQuery('');
       setAssignedDate(new Date().toISOString().split('T')[0]);
       setNotes('');
       // Reset Garmin and scheduling
@@ -238,29 +240,51 @@ export function CardioSessionAssignmentDialog({
               Inga atleter hittades. Lägg till atleter först.
             </p>
           ) : (
-            <ScrollArea className="max-h-[150px] border rounded-md p-2">
-              <div className="space-y-2">
-                {athletes.map((athlete) => (
-                  <div
-                    key={athlete.id}
-                    className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                    onClick={() => toggleAthlete(athlete.id)}
-                  >
-                    <Checkbox
-                      checked={selectedAthletes.includes(athlete.id)}
-                      onCheckedChange={() => toggleAthlete(athlete.id)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{athlete.name}</div>
-                      {athlete.email && (
-                        <div className="text-xs text-muted-foreground">{athlete.email}</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+            <>
+              {athletes.length > 5 && (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Sök atlet..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 h-9"
+                  />
+                </div>
+              )}
+              <ScrollArea className="h-[180px] border rounded-md p-2">
+                <div className="space-y-1">
+                  {athletes
+                    .filter((a) => {
+                      if (!searchQuery) return true;
+                      const q = searchQuery.toLowerCase();
+                      return (
+                        a.name.toLowerCase().includes(q) ||
+                        (a.email && a.email.toLowerCase().includes(q))
+                      );
+                    })
+                    .map((athlete) => (
+                      <div
+                        key={athlete.id}
+                        className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                        onClick={() => toggleAthlete(athlete.id)}
+                      >
+                        <Checkbox
+                          checked={selectedAthletes.includes(athlete.id)}
+                          onCheckedChange={() => toggleAthlete(athlete.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{athlete.name}</div>
+                          {athlete.email && (
+                            <div className="text-xs text-muted-foreground truncate">{athlete.email}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </ScrollArea>
+            </>
           )}
           {selectedAthletes.length > 0 && (
             <p className="text-xs text-muted-foreground">
