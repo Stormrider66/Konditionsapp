@@ -193,7 +193,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // Prepare Garmin workout once if needed (same workout for all athletes)
     let garminWorkoutPayload: ReturnType<typeof serializeWorkoutToGarmin> | null = null;
     if (pushToGarmin && garminTokensByAthlete.size > 0) {
-      const segments = (session.segments as CardioSegment[]) || [];
+      const segments = (session.segments as unknown as CardioSegment[]) || [];
       const garminSegments = segments.map((s) => ({
         type: mapSegmentType(s.type),
         durationSeconds: s.duration || undefined,
