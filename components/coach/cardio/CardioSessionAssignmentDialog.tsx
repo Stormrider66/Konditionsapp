@@ -64,6 +64,7 @@ export function CardioSessionAssignmentDialog({
   const [assignedDate, setAssignedDate] = useState('');
   const [notes, setNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [athletesExpanded, setAthletesExpanded] = useState(true);
   const [loading, setLoading] = useState(false);
   const [loadingAthletes, setLoadingAthletes] = useState(false);
 
@@ -89,6 +90,7 @@ export function CardioSessionAssignmentDialog({
       // Reset form
       setSelectedAthletes([]);
       setSearchQuery('');
+      setAthletesExpanded(true);
       setAssignedDate(new Date().toISOString().split('T')[0]);
       setNotes('');
       // Reset Garmin and scheduling
@@ -224,69 +226,102 @@ export function CardioSessionAssignmentDialog({
         {/* Athletes Selection */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Atleter</Label>
-            <Button variant="ghost" size="sm" onClick={selectAll}>
-              {selectedAthletes.length === athletes.length ? 'Avmarkera alla' : 'Markera alla'}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1 px-0 hover:bg-transparent"
+              onClick={() => setAthletesExpanded(!athletesExpanded)}
+            >
+              <ChevronDown className={`h-4 w-4 transition-transform ${athletesExpanded ? 'rotate-180' : ''}`} />
+              <Label className="cursor-pointer">Atleter</Label>
+              {!athletesExpanded && selectedAthletes.length > 0 && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  ({selectedAthletes.length} valda)
+                </span>
+              )}
             </Button>
+            {athletesExpanded && (
+              <Button variant="ghost" size="sm" onClick={selectAll}>
+                {selectedAthletes.length === athletes.length ? 'Avmarkera alla' : 'Markera alla'}
+              </Button>
+            )}
           </div>
 
-          {loadingAthletes ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          {/* Collapsed summary */}
+          {!athletesExpanded && selectedAthletes.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {athletes
+                .filter((a) => selectedAthletes.includes(a.id))
+                .map((a) => (
+                  <span key={a.id} className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+                    {a.name}
+                  </span>
+                ))}
             </div>
-          ) : athletes.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Inga atleter hittades. Lägg till atleter först.
-            </p>
-          ) : (
-            <>
-              {athletes.length > 5 && (
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Sök atlet..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-9"
-                  />
-                </div>
-              )}
-              <div className="border rounded-md p-2 space-y-1">
-                {athletes
-                  .filter((a) => {
-                    if (!searchQuery) return true;
-                    const q = searchQuery.toLowerCase();
-                    return (
-                      a.name.toLowerCase().includes(q) ||
-                      (a.email && a.email.toLowerCase().includes(q))
-                    );
-                  })
-                  .map((athlete) => (
-                    <div
-                      key={athlete.id}
-                      className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                      onClick={() => toggleAthlete(athlete.id)}
-                    >
-                      <Checkbox
-                        checked={selectedAthletes.includes(athlete.id)}
-                        onCheckedChange={() => toggleAthlete(athlete.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{athlete.name}</div>
-                        {athlete.email && (
-                          <div className="text-xs text-muted-foreground truncate">{athlete.email}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </>
           )}
-          {selectedAthletes.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {selectedAthletes.length} atlet(er) valda
-            </p>
+
+          {/* Expanded list */}
+          {athletesExpanded && (
+            <>
+              {loadingAthletes ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : athletes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Inga atleter hittades. Lägg till atleter först.
+                </p>
+              ) : (
+                <>
+                  {athletes.length > 5 && (
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Sök atlet..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-8 h-9"
+                      />
+                    </div>
+                  )}
+                  <div className="border rounded-md p-2 space-y-1 max-h-[200px] overflow-y-auto">
+                    {athletes
+                      .filter((a) => {
+                        if (!searchQuery) return true;
+                        const q = searchQuery.toLowerCase();
+                        return (
+                          a.name.toLowerCase().includes(q) ||
+                          (a.email && a.email.toLowerCase().includes(q))
+                        );
+                      })
+                      .map((athlete) => (
+                        <div
+                          key={athlete.id}
+                          className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                          onClick={() => toggleAthlete(athlete.id)}
+                        >
+                          <Checkbox
+                            checked={selectedAthletes.includes(athlete.id)}
+                            onCheckedChange={() => toggleAthlete(athlete.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{athlete.name}</div>
+                            {athlete.email && (
+                              <div className="text-xs text-muted-foreground truncate">{athlete.email}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                  {selectedAthletes.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {selectedAthletes.length} atlet(er) valda
+                    </p>
+                  )}
+                </>
+              )}
+            </>
           )}
         </div>
 
