@@ -297,12 +297,6 @@ function buildStep(
     type: 'ExecutableStepDTO',
     stepOrder: order,
     stepType: STEP_TYPES[stepType] || STEP_TYPES.interval,
-    childStepId: null,
-    endCondition: END_CONDITIONS.lap_button,
-    endConditionValue: null,
-    targetType: TARGET_TYPES.none,
-    targetValueOne: null,
-    targetValueTwo: null,
   }
 
   // End condition (duration)
@@ -316,15 +310,15 @@ function buildStep(
     step.endConditionValue = opts.distanceMeters
   }
 
-  // Target
+  // Target (only include if there's a real target)
   if (opts.targetType && opts.targetType !== 'none' && TARGET_TYPES[opts.targetType]) {
     step.targetType = TARGET_TYPES[opts.targetType]
     if (opts.targetLow != null) step.targetValueOne = opts.targetLow
     if (opts.targetHigh != null) step.targetValueTwo = opts.targetHigh
   }
 
-  // Description
-  if (opts.description) step.description = opts.description
+  // Note/description for the step (shown on watch)
+  if (opts.description) step.note = opts.description
 
   return step
 }
@@ -337,16 +331,7 @@ function buildRepeatGroup(
   return {
     type: 'RepeatGroupDTO',
     stepOrder: order,
-    repeatType: 'REPEAT_UNTIL_STEPS_CMPLT',
-    repeatValue: iterations,
-    childStepId: null,
     numberOfIterations: iterations,
-    smartRepeat: false,
-    endCondition: {
-      conditionTypeId: 7,
-      conditionTypeKey: 'iterations',
-    },
-    endConditionValue: iterations,
     workoutSteps: steps,
   }
 }
