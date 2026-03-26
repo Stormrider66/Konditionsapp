@@ -222,8 +222,8 @@ export function CardioSessionAssignmentDialog({
   });
 
   const dialogContent = (
-    <DialogContent className="flex max-h-[85vh] min-h-0 flex-col p-0 sm:max-w-md">
-      <DialogHeader className="shrink-0 px-6 pt-6">
+    <DialogContent className="max-h-[85vh] overflow-y-auto p-0 sm:max-w-md">
+      <DialogHeader className="sticky top-0 z-10 border-b bg-background px-6 pt-6 pb-4">
         <DialogTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
           Tilldela Konditionspass
@@ -233,192 +233,190 @@ export function CardioSessionAssignmentDialog({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-        <div className="space-y-4">
-          {/* Date Selection */}
-          <div className="min-h-0 space-y-2">
-            <Label htmlFor="assignedDate" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Datum
-            </Label>
-            <Input
-              id="assignedDate"
-              type="date"
-              value={assignedDate}
-              onChange={(e) => setAssignedDate(e.target.value)}
-            />
-          </div>
+      <div className="space-y-4 px-6 py-4">
+        {/* Date Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="assignedDate" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Datum
+          </Label>
+          <Input
+            id="assignedDate"
+            type="date"
+            value={assignedDate}
+            onChange={(e) => setAssignedDate(e.target.value)}
+          />
+        </div>
 
-          {/* Athletes Selection */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-1 px-0 hover:bg-transparent"
-                onClick={() => setAthletesExpanded(!athletesExpanded)}
-              >
-                <ChevronDown className={`h-4 w-4 transition-transform ${athletesExpanded ? 'rotate-180' : ''}`} />
-                <Label className="cursor-pointer">Atleter</Label>
-                {!athletesExpanded && selectedAthletes.length > 0 && (
-                  <span className="text-xs text-muted-foreground ml-1">
-                    ({selectedAthletes.length} valda)
-                  </span>
-                )}
-              </Button>
-              {athletesExpanded && (
-                <Button variant="ghost" size="sm" onClick={selectAll}>
-                  {selectedAthletes.length === athletes.length ? 'Avmarkera alla' : 'Markera alla'}
-                </Button>
+        {/* Athletes Selection */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1 px-0 hover:bg-transparent"
+              onClick={() => setAthletesExpanded(!athletesExpanded)}
+            >
+              <ChevronDown className={`h-4 w-4 transition-transform ${athletesExpanded ? 'rotate-180' : ''}`} />
+              <Label className="cursor-pointer">Atleter</Label>
+              {!athletesExpanded && selectedAthletes.length > 0 && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  ({selectedAthletes.length} valda)
+                </span>
               )}
-            </div>
-
-            {/* Collapsed summary */}
-            {!athletesExpanded && selectedAthletes.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {athletes
-                  .filter((a) => selectedAthletes.includes(a.id))
-                  .map((a) => (
-                    <span key={a.id} className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
-                      {a.name}
-                    </span>
-                  ))}
-              </div>
-            )}
-
-            {/* Expanded list */}
+            </Button>
             {athletesExpanded && (
-              <>
-                {loadingAthletes ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : athletes.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Inga atleter hittades. Lägg till atleter först.
-                  </p>
-                ) : (
-                  <>
-                    {athletes.length > 5 && (
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Sök atlet..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-8 h-9"
-                        />
-                      </div>
-                    )}
-                    <div className="max-h-[40vh] overflow-y-scroll rounded-md border p-2">
-                      <div className="space-y-1">
-                        {filteredAthletes.map((athlete) => (
-                          <div
-                            key={athlete.id}
-                            className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                            onClick={() => toggleAthlete(athlete.id)}
-                          >
-                            <Checkbox
-                              checked={selectedAthletes.includes(athlete.id)}
-                              onCheckedChange={() => toggleAthlete(athlete.id)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="font-medium text-sm truncate">{athlete.name}</div>
-                              {athlete.email && (
-                                <div className="text-xs text-muted-foreground truncate">{athlete.email}</div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    {searchQuery && filteredAthletes.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-2">
-                        Inga atleter matchar din sökning.
-                      </p>
-                    )}
-                    {selectedAthletes.length > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {selectedAthletes.length} atlet(er) valda
-                      </p>
-                    )}
-                  </>
-                )}
-              </>
+              <Button variant="ghost" size="sm" onClick={selectAll}>
+                {selectedAthletes.length === athletes.length ? 'Avmarkera alla' : 'Markera alla'}
+              </Button>
             )}
           </div>
 
-          {/* Push to Garmin */}
-          {selectedAthletes.length > 0 && (
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="flex items-center gap-2">
-                <Watch className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <Label htmlFor="pushToGarmin" className="text-sm font-medium cursor-pointer">
-                    Skicka till Garmin
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Passet visas på atletens Garmin-klocka
-                  </p>
-                </div>
-              </div>
-              <Switch
-                id="pushToGarmin"
-                checked={pushToGarmin}
-                onCheckedChange={setPushToGarmin}
-              />
+          {/* Collapsed summary */}
+          {!athletesExpanded && selectedAthletes.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {athletes
+                .filter((a) => selectedAthletes.includes(a.id))
+                .map((a) => (
+                  <span key={a.id} className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">
+                    {a.name}
+                  </span>
+                ))}
             </div>
           )}
 
-          {/* Scheduling Section */}
-          <Collapsible open={schedulingOpen} onOpenChange={setSchedulingOpen}>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-between text-muted-foreground hover:text-foreground"
-              >
-                <span className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Schemalägg tid (valfritt)
-                </span>
-                <ChevronDown className={`h-4 w-4 transition-transform ${schedulingOpen ? 'rotate-180' : ''}`} />
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-2 pb-4">
-              <div className="border rounded-lg bg-muted/30 p-4">
-                <AppointmentSchedulingFields
-                  startTime={startTime}
-                  endTime={endTime}
-                  locationId={locationId}
-                  locationName={locationName}
-                  createCalendarEvent={createCalendarEvent}
-                  onStartTimeChange={setStartTime}
-                  onEndTimeChange={setEndTime}
-                  onLocationIdChange={setLocationId}
-                  onLocationNameChange={setLocationName}
-                  onCreateCalendarEventChange={setCreateCalendarEvent}
-                />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+          {/* Expanded list */}
+          {athletesExpanded && (
+            <>
+              {loadingAthletes ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : athletes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Inga atleter hittades. Lägg till atleter först.
+                </p>
+              ) : (
+                <>
+                  {athletes.length > 5 && (
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Sök atlet..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-8 h-9"
+                      />
+                    </div>
+                  )}
+                  <div className="rounded-md border p-2">
+                    <div className="space-y-1">
+                      {filteredAthletes.map((athlete) => (
+                        <div
+                          key={athlete.id}
+                          className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                          onClick={() => toggleAthlete(athlete.id)}
+                        >
+                          <Checkbox
+                            checked={selectedAthletes.includes(athlete.id)}
+                            onCheckedChange={() => toggleAthlete(athlete.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{athlete.name}</div>
+                            {athlete.email && (
+                              <div className="text-xs text-muted-foreground truncate">{athlete.email}</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {searchQuery && filteredAthletes.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      Inga atleter matchar din sökning.
+                    </p>
+                  )}
+                  {selectedAthletes.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {selectedAthletes.length} atlet(er) valda
+                    </p>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Anteckningar (valfritt)</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Eventuella instruktioner till atleten..."
-              rows={2}
+        {/* Push to Garmin */}
+        {selectedAthletes.length > 0 && (
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex items-center gap-2">
+              <Watch className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <Label htmlFor="pushToGarmin" className="text-sm font-medium cursor-pointer">
+                  Skicka till Garmin
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Passet visas på atletens Garmin-klocka
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="pushToGarmin"
+              checked={pushToGarmin}
+              onCheckedChange={setPushToGarmin}
             />
           </div>
+        )}
+
+        {/* Scheduling Section */}
+        <Collapsible open={schedulingOpen} onOpenChange={setSchedulingOpen}>
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-between text-muted-foreground hover:text-foreground"
+            >
+              <span className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Schemalägg tid (valfritt)
+              </span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${schedulingOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2 pb-4">
+            <div className="border rounded-lg bg-muted/30 p-4">
+              <AppointmentSchedulingFields
+                startTime={startTime}
+                endTime={endTime}
+                locationId={locationId}
+                locationName={locationName}
+                createCalendarEvent={createCalendarEvent}
+                onStartTimeChange={setStartTime}
+                onEndTimeChange={setEndTime}
+                onLocationIdChange={setLocationId}
+                onLocationNameChange={setLocationName}
+                onCreateCalendarEventChange={setCreateCalendarEvent}
+              />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Notes */}
+        <div className="space-y-2">
+          <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+          <Textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Eventuella instruktioner till atleten..."
+            rows={2}
+          />
         </div>
       </div>
 
-      <DialogFooter className="shrink-0 border-t px-6 py-4">
+      <DialogFooter className="sticky bottom-0 z-10 border-t bg-background px-6 py-4">
         <Button variant="outline" onClick={() => setOpen(false)}>
           Avbryt
         </Button>
