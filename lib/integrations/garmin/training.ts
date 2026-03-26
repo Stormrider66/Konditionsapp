@@ -58,11 +58,8 @@ export interface GarminWorkout {
   workoutName: string
   description?: string
   sport: string
-  segments: Array<{
-    segmentOrder: number
-    sportType: GarminSportType | string
-    workoutSteps: GarminWorkoutStepUnion[]
-  }>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  segments: Array<Record<string, any>>
 }
 
 // Garmin sport string values (used at workout level)
@@ -419,6 +416,7 @@ export function serializeWorkoutToGarmin(workout: {
     sport: sportString,
     segments: [{
       segmentOrder: 1,
+      sport: sportString,
       sportType: sportTypeObj,
       workoutSteps,
     }],
