@@ -309,7 +309,7 @@ export function CardioSessionAssignmentDialog({
                       />
                     </div>
                   )}
-                  <div className="rounded-md border p-2">
+                  <div className="max-h-64 overflow-y-auto rounded-md border p-2">
                     <div className="space-y-1">
                       {filteredAthletes.map((athlete) => (
                         <div
