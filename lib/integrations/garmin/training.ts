@@ -27,7 +27,7 @@ const GARMIN_WORKOUT_PORTAL = 'https://apis.garmin.com/workoutportal'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type GarminSportType =
+export type GarminSportTypeKey =
   | 'RUNNING'
   | 'CYCLING'
   | 'LAP_SWIMMING'
@@ -36,6 +36,27 @@ export type GarminSportType =
   | 'YOGA'
   | 'PILATES'
   | 'MULTI_SPORT'
+
+// Garmin Training API v2 requires sportType as an object
+export interface GarminSportType {
+  sportTypeId: number
+  sportTypeKey: string
+}
+
+const SPORT_TYPE_OBJECTS: Record<GarminSportTypeKey, GarminSportType> = {
+  RUNNING: { sportTypeId: 1, sportTypeKey: 'running' },
+  CYCLING: { sportTypeId: 2, sportTypeKey: 'cycling' },
+  MULTI_SPORT: { sportTypeId: 3, sportTypeKey: 'multi_sport' },
+  STRENGTH_TRAINING: { sportTypeId: 4, sportTypeKey: 'strength_training' },
+  LAP_SWIMMING: { sportTypeId: 5, sportTypeKey: 'lap_swimming' },
+  YOGA: { sportTypeId: 9, sportTypeKey: 'yoga' },
+  PILATES: { sportTypeId: 10, sportTypeKey: 'pilates' },
+  CARDIO_TRAINING: { sportTypeId: 10, sportTypeKey: 'cardio_training' },
+}
+
+function toSportTypeObject(key: GarminSportTypeKey): GarminSportType {
+  return SPORT_TYPE_OBJECTS[key] || SPORT_TYPE_OBJECTS.CARDIO_TRAINING
+}
 
 export type GarminStepType =
   | 'WARMUP'
@@ -254,7 +275,7 @@ export async function getGarminSchedules(
 /**
  * Map Trainomics sport type to Garmin sport type
  */
-const SPORT_TYPE_MAP: Record<string, GarminSportType> = {
+const SPORT_TYPE_MAP: Record<string, GarminSportTypeKey> = {
   RUNNING: 'RUNNING',
   CYCLING: 'CYCLING',
   SWIMMING: 'LAP_SWIMMING',
@@ -300,7 +321,8 @@ export function serializeWorkoutToGarmin(workout: {
     }>
   }>
 }): GarminWorkout {
-  const garminSportType = SPORT_TYPE_MAP[workout.sportType] || 'CARDIO_TRAINING'
+  const sportKey = SPORT_TYPE_MAP[workout.sportType] || 'CARDIO_TRAINING'
+  const garminSportType = toSportTypeObject(sportKey)
 
   const workoutSteps: GarminWorkoutStepUnion[] = []
   let stepOrder = 1
