@@ -205,7 +205,7 @@ export function CardioSessionAssignmentDialog({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-4 py-4 overflow-y-auto min-h-0">
+      <div className="space-y-4 py-4 overflow-y-auto min-h-0 flex-1">
         {/* Date Selection */}
         <div className="space-y-2">
           <Label htmlFor="assignedDate" className="flex items-center gap-2">
@@ -238,7 +238,7 @@ export function CardioSessionAssignmentDialog({
               Inga atleter hittades. Lägg till atleter först.
             </p>
           ) : (
-            <ScrollArea className="h-[200px] border rounded-md p-2">
+            <ScrollArea className="max-h-[150px] border rounded-md p-2">
               <div className="space-y-2">
                 {athletes.map((athlete) => (
                   <div
