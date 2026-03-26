@@ -57,9 +57,11 @@ export interface GarminWorkout {
   workoutId?: string
   workoutName: string
   description?: string
+  sport?: GarminSportType
   sportType: GarminSportType
   workoutSegments: Array<{
     segmentOrder: number
+    sport?: GarminSportType
     sportType: GarminSportType
     workoutSteps: GarminWorkoutStepUnion[]
   }>
