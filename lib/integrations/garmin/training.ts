@@ -289,6 +289,12 @@ function getSportString(trainomicsSport: string): string {
 
 // ─── DTO Builders ──────────────────────────────────────────────────────────
 
+// Step type string mapping
+const STEP_TYPE_STRINGS: Record<string, string> = {
+  warmup: 'WARMUP', cooldown: 'COOLDOWN', interval: 'INTERVAL',
+  recovery: 'RECOVERY', rest: 'REST', steady: 'INTERVAL',
+}
+
 function buildStep(
   order: number,
   stepType: string,
@@ -305,25 +311,30 @@ function buildStep(
   const step: GarminWorkoutStep = {
     type: 'ExecutableStepDTO',
     stepOrder: order,
-    stepType: STEP_TYPES[stepType] || STEP_TYPES.interval,
+    stepType: STEP_TYPE_STRINGS[stepType] || 'INTERVAL',
   }
 
-  // End condition (duration)
+  // End condition (duration) — try simple string format
   if (opts.isLapButton || (!opts.durationSeconds && !opts.distanceMeters)) {
-    step.endCondition = END_CONDITIONS.lap_button
+    step.endCondition = 'LAP_BUTTON'
   } else if (opts.durationSeconds && opts.durationSeconds > 0) {
-    step.endCondition = END_CONDITIONS.time
+    step.endCondition = 'TIME'
     step.endConditionValue = opts.durationSeconds
   } else if (opts.distanceMeters && opts.distanceMeters > 0) {
-    step.endCondition = END_CONDITIONS.distance
+    step.endCondition = 'DISTANCE'
     step.endConditionValue = opts.distanceMeters
   }
 
-  // Target (only include if there's a real target)
-  if (opts.targetType && opts.targetType !== 'none' && TARGET_TYPES[opts.targetType]) {
-    step.targetType = TARGET_TYPES[opts.targetType]
-    if (opts.targetLow != null) step.targetValueOne = opts.targetLow
-    if (opts.targetHigh != null) step.targetValueTwo = opts.targetHigh
+  // Target
+  if (opts.targetType && opts.targetType !== 'none') {
+    const targetMap: Record<string, string> = {
+      power: 'POWER', cadence: 'CADENCE', hr: 'HEART_RATE', pace: 'SPEED',
+    }
+    if (targetMap[opts.targetType]) {
+      step.targetType = targetMap[opts.targetType]
+      if (opts.targetLow != null) step.targetValueOne = opts.targetLow
+      if (opts.targetHigh != null) step.targetValueTwo = opts.targetHigh
+    }
   }
 
   return step
