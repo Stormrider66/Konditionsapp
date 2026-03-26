@@ -31,7 +31,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, Calendar, Loader2, Clock, ChevronDown } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Users, Calendar, Loader2, Clock, ChevronDown, Watch } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
 
@@ -66,6 +67,9 @@ export function CardioSessionAssignmentDialog({
   const [loading, setLoading] = useState(false);
   const [loadingAthletes, setLoadingAthletes] = useState(false);
 
+  // Garmin push state
+  const [pushToGarmin, setPushToGarmin] = useState(false);
+
   // Scheduling state
   const [schedulingOpen, setSchedulingOpen] = useState(false);
   const [startTime, setStartTime] = useState('');
@@ -86,7 +90,8 @@ export function CardioSessionAssignmentDialog({
       setSelectedAthletes([]);
       setAssignedDate(new Date().toISOString().split('T')[0]);
       setNotes('');
-      // Reset scheduling
+      // Reset Garmin and scheduling
+      setPushToGarmin(false);
       setSchedulingOpen(false);
       setStartTime('');
       setEndTime('');
@@ -139,6 +144,7 @@ export function CardioSessionAssignmentDialog({
           athleteIds: selectedAthletes,
           assignedDate,
           notes: notes || undefined,
+          pushToGarmin: pushToGarmin || undefined,
           // Include scheduling fields if time is set
           ...(startTime && {
             startTime,
@@ -151,9 +157,24 @@ export function CardioSessionAssignmentDialog({
       });
 
       if (response.ok) {
-        toast.success('Pass tilldelat!', {
-          description: `Tilldelat till ${selectedAthletes.length} atlet(er).`,
-        });
+        const result = await response.json();
+        let description = `Tilldelat till ${selectedAthletes.length} atlet(er).`;
+
+        if (pushToGarmin && result.garminResults) {
+          const garminSuccess = result.garminResults.filter((r: { success: boolean }) => r.success).length;
+          const garminFailed = result.garminResults.filter((r: { success: boolean }) => !r.success).length;
+          if (garminSuccess > 0) {
+            description += ` Skickat till Garmin för ${garminSuccess} atlet(er).`;
+          }
+          if (garminFailed > 0) {
+            description += ` Garmin-push misslyckades för ${garminFailed} atlet(er).`;
+          }
+          if (garminSuccess === 0 && garminFailed === 0) {
+            description += ' Ingen atlet har Garmin anslutet.';
+          }
+        }
+
+        toast.success('Pass tilldelat!', { description });
         setOpen(false);
         onAssigned?.();
       } else {
@@ -247,6 +268,28 @@ export function CardioSessionAssignmentDialog({
             </p>
           )}
         </div>
+
+        {/* Push to Garmin */}
+        {selectedAthletes.length > 0 && (
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex items-center gap-2">
+              <Watch className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <Label htmlFor="pushToGarmin" className="text-sm font-medium cursor-pointer">
+                  Skicka till Garmin
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Passet visas på atletens Garmin-klocka
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="pushToGarmin"
+              checked={pushToGarmin}
+              onCheckedChange={setPushToGarmin}
+            />
+          </div>
+        )}
 
         {/* Scheduling Section */}
         <Collapsible open={schedulingOpen} onOpenChange={setSchedulingOpen}>

@@ -2,13 +2,18 @@
  * Cardio Session Assignment API
  *
  * GET  - List assignments for a session
- * POST - Assign session to athlete(s) with optional scheduling
+ * POST - Assign session to athlete(s) with optional scheduling and Garmin push
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { logError } from '@/lib/logger-console'
+import {
+  createGarminWorkout,
+  scheduleGarminWorkout,
+  serializeWorkoutToGarmin,
+} from '@/lib/integrations/garmin/training'
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -18,12 +23,26 @@ interface AssignmentRequest {
   athleteIds: string[];
   assignedDate: string;
   notes?: string;
+  pushToGarmin?: boolean;
   // Scheduling fields
   startTime?: string;      // "HH:mm" format
   endTime?: string;        // "HH:mm" format
   locationId?: string;
   locationName?: string;
   createCalendarEvent?: boolean;  // default true if startTime provided
+}
+
+// Cardio segment type as stored in DB JSON
+interface CardioSegment {
+  type: string
+  duration?: number  // seconds
+  distance?: number  // meters
+  zone?: number
+  pace?: string      // "5:00/km"
+  heartRate?: string // "140-150 bpm"
+  notes?: string
+  repeats?: number
+  restDuration?: number // seconds
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -89,6 +108,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       athleteIds,
       assignedDate,
       notes,
+      pushToGarmin,
       startTime,
       endTime,
       locationId,
@@ -149,9 +169,52 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
     }
 
+    // If Garmin push requested, check which athletes have Garmin connected
+    let garminTokensByAthlete: Map<string, boolean> = new Map();
+    if (pushToGarmin) {
+      const garminTokens = await prisma.integrationToken.findMany({
+        where: {
+          clientId: { in: athleteIds },
+          type: 'GARMIN',
+          syncEnabled: true,
+        },
+        select: { clientId: true },
+      });
+      for (const t of garminTokens) {
+        garminTokensByAthlete.set(t.clientId, true);
+      }
+    }
+
     // Create assignments
     const date = assignedDate ? new Date(assignedDate) : new Date();
+    const dateStr = assignedDate || new Date().toISOString().split('T')[0];
     const hasScheduling = !!startTime;
+
+    // Prepare Garmin workout once if needed (same workout for all athletes)
+    let garminWorkoutPayload: ReturnType<typeof serializeWorkoutToGarmin> | null = null;
+    if (pushToGarmin && garminTokensByAthlete.size > 0) {
+      const segments = (session.segments as CardioSegment[]) || [];
+      const garminSegments = segments.map((s) => ({
+        type: mapSegmentType(s.type),
+        durationSeconds: s.duration || undefined,
+        distanceMeters: s.distance || undefined,
+        repeats: s.repeats || undefined,
+        targetType: resolveTargetType(s),
+        targetLow: resolveTargetLow(s),
+        targetHigh: resolveTargetHigh(s),
+      }));
+
+      if (garminSegments.length > 0) {
+        garminWorkoutPayload = serializeWorkoutToGarmin({
+          name: session.name,
+          description: session.description || undefined,
+          sportType: session.sport,
+          segments: garminSegments as Parameters<typeof serializeWorkoutToGarmin>[0]['segments'],
+        });
+      }
+    }
+
+    const garminResults: Array<{ athleteId: string; success: boolean; error?: string }> = [];
 
     const assignments = await Promise.all(
       athleteIds.map(async (athleteId: string) => {
@@ -182,6 +245,40 @@ export async function POST(request: NextRequest, context: RouteContext) {
           calendarEventId = calendarEvent.id;
         }
 
+        // Push to Garmin if requested and athlete has connection
+        let garminWorkoutId: string | undefined;
+        let garminPushedAt: Date | undefined;
+
+        if (pushToGarmin && garminWorkoutPayload && garminTokensByAthlete.has(athleteId)) {
+          try {
+            const created = await createGarminWorkout(athleteId, garminWorkoutPayload);
+
+            if (created.workoutId) {
+              // Schedule on the assigned date
+              try {
+                await scheduleGarminWorkout(athleteId, {
+                  workoutId: created.workoutId,
+                  calendarDate: dateStr,
+                });
+              } catch (schedErr) {
+                // Workout was created but scheduling failed — still save the workout ID
+                logError('Garmin schedule failed (workout created):', schedErr);
+              }
+
+              garminWorkoutId = created.workoutId;
+              garminPushedAt = new Date();
+              garminResults.push({ athleteId, success: true });
+            }
+          } catch (garminErr) {
+            logError('Garmin push failed for athlete:', garminErr);
+            garminResults.push({
+              athleteId,
+              success: false,
+              error: garminErr instanceof Error ? garminErr.message : 'Unknown error',
+            });
+          }
+        }
+
         return prisma.cardioSessionAssignment.upsert({
           where: {
             sessionId_athleteId_assignedDate: {
@@ -199,6 +296,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             locationName,
             scheduledBy: hasScheduling ? user.id : undefined,
             calendarEventId,
+            ...(garminWorkoutId && { garminWorkoutId, garminPushedAt }),
           },
           create: {
             sessionId: id,
@@ -213,6 +311,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             locationName,
             scheduledBy: hasScheduling ? user.id : undefined,
             calendarEventId,
+            ...(garminWorkoutId && { garminWorkoutId, garminPushedAt }),
           },
           include: {
             athlete: {
@@ -232,7 +331,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
       })
     );
 
-    return NextResponse.json({ assignments }, { status: 201 });
+    return NextResponse.json({
+      assignments,
+      ...(pushToGarmin && { garminResults }),
+    }, { status: 201 });
   } catch (error) {
     logError('Error creating assignments:', error);
     return NextResponse.json(
@@ -240,4 +342,72 @@ export async function POST(request: NextRequest, context: RouteContext) {
       { status: 500 }
     );
   }
+}
+
+// ─── Garmin Segment Helpers ──────────────────────────────────────────────────
+
+function mapSegmentType(
+  type: string
+): 'warmup' | 'interval' | 'recovery' | 'cooldown' | 'rest' | 'steady' {
+  const map: Record<string, 'warmup' | 'interval' | 'recovery' | 'cooldown' | 'rest' | 'steady'> = {
+    warmup: 'warmup',
+    WARMUP: 'warmup',
+    cooldown: 'cooldown',
+    COOLDOWN: 'cooldown',
+    interval: 'interval',
+    INTERVAL: 'interval',
+    recovery: 'recovery',
+    RECOVERY: 'recovery',
+    rest: 'rest',
+    REST: 'rest',
+    steady: 'steady',
+    STEADY: 'steady',
+    HILL: 'interval',
+    DRILLS: 'warmup',
+  }
+  return map[type] || 'interval'
+}
+
+function resolveTargetType(
+  segment: { heartRate?: string; pace?: string; zone?: number }
+): 'hr' | 'pace' | 'none' {
+  if (segment.heartRate) return 'hr'
+  if (segment.pace) return 'pace'
+  return 'none'
+}
+
+function resolveTargetLow(
+  segment: { heartRate?: string; pace?: string }
+): number | undefined {
+  if (segment.heartRate) {
+    const match = segment.heartRate.match(/(\d+)/)
+    return match ? parseInt(match[1], 10) : undefined
+  }
+  if (segment.pace) {
+    return parsePaceToMetersPerSecond(segment.pace)
+  }
+  return undefined
+}
+
+function resolveTargetHigh(
+  segment: { heartRate?: string; pace?: string }
+): number | undefined {
+  if (segment.heartRate) {
+    const match = segment.heartRate.match(/(\d+)\s*[-–]\s*(\d+)/)
+    return match ? parseInt(match[2], 10) : undefined
+  }
+  if (segment.pace) {
+    return parsePaceToMetersPerSecond(segment.pace)
+  }
+  return undefined
+}
+
+function parsePaceToMetersPerSecond(pace: string): number | undefined {
+  const match = pace.match(/(\d+):(\d+)/)
+  if (!match) return undefined
+  const minutes = parseInt(match[1], 10)
+  const seconds = parseInt(match[2], 10)
+  const totalSeconds = minutes * 60 + seconds
+  if (totalSeconds === 0) return undefined
+  return 1000 / totalSeconds
 }
