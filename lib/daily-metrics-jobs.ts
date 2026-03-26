@@ -353,7 +353,7 @@ async function recomputeDailyMetricsAssessments(input: RecomputeDailyMetricsAsse
       }))
 
     const baseline =
-      historicalMeasurements.length >= 7
+      historicalMeasurements.length >= 14
         ? establishHRVBaseline(historicalMeasurements)
         : createFallbackHRVBaseline(measurement)
 
