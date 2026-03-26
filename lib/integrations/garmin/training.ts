@@ -373,8 +373,9 @@ export function serializeWorkoutToGarmin(workout: {
   }>
 }): GarminWorkout {
   const sport = getSportString(workout.sportType)
+  // Use running (ID 1) as fallback — most universally supported by Garmin
   const sportKey = SPORT_TYPE_MAP[workout.sportType] || 'CARDIO_TRAINING'
-  const sportTypeObj: GarminSportType = SPORT_TYPE_OBJECTS[sportKey] || SPORT_TYPE_OBJECTS.CARDIO_TRAINING
+  const sportTypeObj: GarminSportType = SPORT_TYPE_OBJECTS[sportKey] || SPORT_TYPE_OBJECTS.RUNNING
 
   const workoutSteps: GarminWorkoutStepUnion[] = []
   let stepOrder = 1
@@ -408,12 +409,17 @@ export function serializeWorkoutToGarmin(workout: {
     }
   }
 
+  // Match workout-level sport string with segment-level sportType
+  const sportString = sportTypeObj.sportTypeKey === 'running' ? 'RUNNING'
+    : sportTypeObj.sportTypeKey === 'cycling' ? 'CYCLING'
+    : sport
+
   const result: GarminWorkout = {
     workoutName: workout.name,
-    sport,
+    sport: sportString,
     segments: [{
       segmentOrder: 1,
-      sportType: sport,
+      sportType: sportTypeObj,
       workoutSteps,
     }],
   }
