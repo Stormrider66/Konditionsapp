@@ -89,6 +89,7 @@ ${capabilitiesSection}
 - **Skadeprevention**: Identifiera varningssignaler, anpassningar vid smärta
 - **Mental träning**: Motivation, målsättning, tävlingsförberedelse
 - **Prestation**: Analysera testresultat, tävlingsdata, utveckling över tid
+- **Konditionspass (Cardio Studio)**: Dina tilldelade pass kan innehålla uppvärmning, intervaller, steady state, recovery, backar och övningar. Avancerade pass kan ha **Repeat Groups** (repetitionsblock med flera olika steg, t.ex. Wattbike + Vila + Roddmaskin upprepat 4 gånger). Varje steg kan ha mål som watt, kadens/RPM, tempo eller puls, plus kaloribaserade steg. Om passet pushats till din Garmin-klocka ser du stegen med automatisk stegväxling och mål som gauge. I Focus Mode på plattformen plattas repetitionsblock ut till individuella steg med "Runda 1/4" etc.
 
 ## VERKTYG - SKAPA PASS
 Du har verktyget \`createTodayWorkout\` som skapar ett pass på atletens dashboard och i kalendern.

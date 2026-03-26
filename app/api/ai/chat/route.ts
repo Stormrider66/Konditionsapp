@@ -621,6 +621,63 @@ ${pageContext}
 - Längdskidåkning (klassisk/fristil, dubbelstakning)
 - Biomekanisk videoanalys av löpteknik (kadans, markkontakttid, asymmetri, skaderisk)
 
+## CARDIO STUDIO — KONDITIONSPASSBYGGAREN
+Du kan hjälpa coacher att designa konditionspass i Cardio Studio. Här är vad som stöds:
+
+### Segmenttyper
+WARMUP, COOLDOWN, INTERVAL, STEADY, RECOVERY, HILL, DRILLS — samt **REPEAT GROUP** (repetitionsblock med flera olika steg).
+
+### Fält per segment
+- **Tid** (minuter), **Distans** (km/m), **Kalorier** (cal) — valfritt, kan kombineras
+- **Tempo** (min/km), **Puls** (bpm-intervall), **Zon** (1–5)
+- **Upprepningar** och **Vila** mellan upprepningar (t.ex. 10×200 m med 60 s vila)
+
+### Repeat Group (repetitionsblock)
+Grupperar flera olika steg som upprepas X gånger. Varje steg har:
+- Typ: Intervall / Steady / Vila / Recovery
+- Tid och/eller kalorier
+- **Måltyp**: Watt, RPM (kadens), Tempo, Puls — eller inget mål
+- **Målvärde**: t.ex. 250 (W), 62 (rpm), 2:05 (tempo)
+- **Utrustning/beskrivning**: fritext som visas på Garmin-klockan (t.ex. "Wattbike", "Roddmaskin", "Assault Bike")
+- Vila mellan rundor (valfritt)
+
+**Exempel — HYROX-liknande pass:**
+Repeat Group (4 rundor):
+1. Intervall | 3 min | Watt: 250 | "Wattbike"
+2. Vila | 1 min
+3. Intervall | 3 min | RPM: 62 | "Assault Bike"
+4. Vila | 1 min
+5. Intervall | — | 20 cal | "Roddmaskin"
+
+**Exempel — Klassiskt intervallpass:**
+Segment: INTERVAL | 200 m | Tempo: 0:50 | Zon 5 | Upprepa: 10 | Vila: 60 s
+
+**Exempel — Kaloribaserat:**
+Segment: INTERVAL | 20 cal | Upprepa: 10 | Vila: 60 s | "Row"
+
+### Garmin-integration
+Pass kan pushas direkt till atletens Garmin-klocka vid tilldelning:
+- Strukturerade pass med automatisk stegväxling (arbete → vila → nästa)
+- **Repeat Groups** → WorkoutRepeatStep med alla steg inuti
+- **Upprepade intervaller** → WorkoutRepeatStep med arbete + vila
+- **Mål visas** som gauge på klockan: watt, kadens, tempo, puls
+- **Utrustningsbeskrivning** visas som text på klockan
+- **Kaloribaserade steg** (utan tid/distans) → LAP_BUTTON-läge: atleten trycker lap när klar, vila startar automatiskt
+- Stöd för sporttyper: Löpning, Cykling, Simning, HYROX, Allmän kondition
+
+### Tilldelning
+- Tilldela till enskilda atleter eller hela lag
+- Välj plats (gym, löparbana, etc.) och ansvarig tränare
+- Valfri schemaläggning med tid och kalenderintegration
+- Push till Garmin vid tilldelning (toggle)
+
+### Atlet-vy (Focus Mode)
+Atleten ser passet som en platt steg-för-steg-lista:
+- Repeat Groups plattas ut till individuella steg med "Runda 1/4", "Runda 2/4" etc.
+- Upprepningar plattas ut till enskilda reps med vila emellan
+- Kalorier visas i stegbeskrivningen
+- Utrustning och mål visas som anteckningar
+
 ## INSTRUKTIONER
 - Svara ALLTID på svenska
 - Var konkret och ge praktiska råd baserade på vetenskaplig grund
