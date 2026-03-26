@@ -348,7 +348,7 @@ function buildRepeatGroup(
     type: 'RepeatGroupDTO',
     stepOrder: order,
     numberOfIterations: iterations,
-    workoutSteps: steps,
+    steps: steps,
   }
 }
 
@@ -384,14 +384,14 @@ export function serializeWorkoutToGarmin(workout: {
   const sportKey = SPORT_TYPE_MAP[workout.sportType] || 'CARDIO_TRAINING'
   const sportTypeObj: GarminSportType = SPORT_TYPE_OBJECTS[sportKey] || SPORT_TYPE_OBJECTS.RUNNING
 
-  const workoutSteps: GarminWorkoutStepUnion[] = []
+  const steps: GarminWorkoutStepUnion[] = []
   let stepOrder = 1
 
   for (const segment of workout.segments) {
     if (segment.repeats && segment.steps && segment.steps.length > 0) {
       // Temporarily flatten repeat steps for Garmin API testing
       for (const step of segment.steps) {
-        workoutSteps.push(
+        steps.push(
           buildStep(stepOrder++, step.type, {
             durationSeconds: step.durationSeconds,
             distanceMeters: step.distanceMeters,
@@ -404,7 +404,7 @@ export function serializeWorkoutToGarmin(workout: {
       }
     } else {
       // Single step
-      workoutSteps.push(
+      steps.push(
         buildStep(stepOrder++, segment.type, {
           durationSeconds: segment.durationSeconds,
           distanceMeters: segment.distanceMeters,
@@ -427,7 +427,7 @@ export function serializeWorkoutToGarmin(workout: {
     segments: [{
       segmentOrder: 1,
       sport: 'RUNNING',
-      workoutSteps,
+      steps,
     }],
   }
   if (workout.description) result.description = workout.description
