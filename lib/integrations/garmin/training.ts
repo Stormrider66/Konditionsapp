@@ -57,26 +57,24 @@ export interface GarminWorkout {
   workoutId?: string
   workoutName: string
   description?: string
-  sport?: GarminSportType
-  sportType: GarminSportType
+  sport: string  // Simple string enum: "RUNNING", "CARDIO_TRAINING", etc.
   workoutSegments: Array<{
     segmentOrder: number
-    sport?: GarminSportType
-    sportType: GarminSportType
+    sport: string
     workoutSteps: GarminWorkoutStepUnion[]
   }>
 }
 
-// Sport type mapping (Trainomics → Garmin IDs)
-const SPORT_TYPES: Record<string, GarminSportType> = {
-  RUNNING:            { sportTypeId: 1, sportTypeKey: 'running' },
-  CYCLING:            { sportTypeId: 2, sportTypeKey: 'cycling' },
-  LAP_SWIMMING:       { sportTypeId: 3, sportTypeKey: 'swimming' },
-  STRENGTH_TRAINING:  { sportTypeId: 5, sportTypeKey: 'strength_training' },
-  CARDIO_TRAINING:    { sportTypeId: 6, sportTypeKey: 'cardio_training' },
-  YOGA:               { sportTypeId: 7, sportTypeKey: 'yoga' },
-  PILATES:            { sportTypeId: 8, sportTypeKey: 'pilates' },
-  MULTI_SPORT:        { sportTypeId: 5, sportTypeKey: 'multi_sport' },
+// Garmin sport string values (used in workout portal v2)
+const SPORT_STRINGS: Record<string, string> = {
+  RUNNING:            'RUNNING',
+  CYCLING:            'CYCLING',
+  LAP_SWIMMING:       'LAP_SWIMMING',
+  STRENGTH_TRAINING:  'STRENGTH_TRAINING',
+  CARDIO_TRAINING:    'CARDIO_TRAINING',
+  YOGA:               'YOGA',
+  PILATES:            'PILATES',
+  MULTI_SPORT:        'MULTI_SPORT',
 }
 
 // Step type mapping
@@ -275,9 +273,9 @@ const SPORT_TYPE_MAP: Record<string, string> = {
   OTHER: 'CARDIO_TRAINING',
 }
 
-function getSportType(trainomicsSport: string): GarminSportType {
+function getSportString(trainomicsSport: string): string {
   const key = SPORT_TYPE_MAP[trainomicsSport] || 'CARDIO_TRAINING'
-  return SPORT_TYPES[key] || SPORT_TYPES.CARDIO_TRAINING
+  return SPORT_STRINGS[key] || 'CARDIO_TRAINING'
 }
 
 // ─── DTO Builders ──────────────────────────────────────────────────────────
@@ -380,7 +378,7 @@ export function serializeWorkoutToGarmin(workout: {
     }>
   }>
 }): GarminWorkout {
-  const sportType = getSportType(workout.sportType)
+  const sport = getSportString(workout.sportType)
 
   const workoutSteps: GarminWorkoutStepUnion[] = []
   let stepOrder = 1
@@ -414,18 +412,15 @@ export function serializeWorkoutToGarmin(workout: {
     }
   }
 
-  // Send both `sportType` and `sport` — different Garmin API versions expect different field names
-  const result = {
+  const result: GarminWorkout = {
     workoutName: workout.name,
-    sport: sportType,
-    sportType,
+    sport,
     workoutSegments: [{
       segmentOrder: 1,
-      sport: sportType,
-      sportType,
+      sport,
       workoutSteps,
     }],
-  } as GarminWorkout
+  }
   if (workout.description) result.description = workout.description
   return result
 }
