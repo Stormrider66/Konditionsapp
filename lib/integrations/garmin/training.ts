@@ -412,15 +412,18 @@ export function serializeWorkoutToGarmin(workout: {
     }
   }
 
-  const result: GarminWorkout = {
+  // Send both `sportType` and `sport` — different Garmin API versions expect different field names
+  const result = {
     workoutName: workout.name,
+    sport: sportType,
     sportType,
     workoutSegments: [{
       segmentOrder: 1,
+      sport: sportType,
       sportType,
       workoutSteps,
     }],
-  }
+  } as GarminWorkout
   if (workout.description) result.description = workout.description
   return result
 }
