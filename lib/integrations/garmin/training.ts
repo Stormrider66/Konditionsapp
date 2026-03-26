@@ -416,7 +416,7 @@ export function serializeWorkoutToGarmin(workout: {
     sport: 'RUNNING',
     segments: [{
       segmentOrder: 1,
-      sportType: { sportTypeId: 1, sportTypeKey: 'running' },
+      sport: 'RUNNING',
       workoutSteps,
     }],
   }
