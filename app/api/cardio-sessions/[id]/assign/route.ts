@@ -43,6 +43,21 @@ interface CardioSegment {
   notes?: string
   repeats?: number
   restDuration?: number // seconds
+  // Repeat group fields
+  steps?: CardioChildStep[]
+  restBetweenRounds?: number // seconds
+}
+
+interface CardioChildStep {
+  type: string
+  duration?: number  // seconds
+  distance?: number  // meters
+  zone?: number
+  pace?: string
+  heartRate?: string
+  notes?: string     // equipment description
+  targetType?: string // 'power' | 'pace' | 'cadence' | 'hr' | 'none'
+  targetValue?: string // "250", "62", "2:05"
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -195,17 +210,42 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (pushToGarmin && garminTokensByAthlete.size > 0) {
       const segments = (session.segments as unknown as CardioSegment[]) || [];
       const garminSegments = segments.map((s) => {
-        // Build repeat block with work + rest steps for intervals
+        // REPEAT_GROUP: multi-step repeat block
+        if (s.type === 'REPEAT_GROUP' && s.steps && s.steps.length > 0) {
+          const childSteps = s.steps.map((step) => ({
+            type: mapSegmentType(step.type),
+            durationSeconds: step.duration || undefined,
+            distanceMeters: step.distance || undefined,
+            targetType: resolveChildTargetType(step),
+            targetLow: resolveChildTargetLow(step),
+            targetHigh: resolveChildTargetHigh(step),
+            description: step.notes || undefined,
+          }));
+
+          // Add rest between rounds if specified
+          if (s.restBetweenRounds && s.restBetweenRounds > 0) {
+            childSteps.push({
+              type: 'recovery' as const,
+              durationSeconds: s.restBetweenRounds,
+              distanceMeters: undefined,
+              targetType: undefined,
+              targetLow: undefined,
+              targetHigh: undefined,
+              description: undefined,
+            });
+          }
+
+          return {
+            type: 'interval' as const,
+            repeats: s.repeats || 1,
+            steps: childSteps,
+          };
+        }
+
+        // Single-step repeat block (legacy intervals with repeats)
         if (s.repeats && s.repeats > 1) {
-          const workStep: {
-            type: 'interval' | 'recovery' | 'rest';
-            durationSeconds?: number;
-            distanceMeters?: number;
-            targetType?: 'pace' | 'hr' | 'power' | 'cadence' | 'none';
-            targetLow?: number;
-            targetHigh?: number;
-          } = {
-            type: 'interval',
+          const workStep = {
+            type: 'interval' as const,
             durationSeconds: s.duration || undefined,
             distanceMeters: s.distance || undefined,
             targetType: resolveTargetType(s),
@@ -213,13 +253,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
             targetHigh: resolveTargetHigh(s),
           };
 
-          const steps = [workStep];
+          const steps: typeof workStep[] = [workStep];
 
-          // Add rest/recovery step between repeats
           if (s.restDuration && s.restDuration > 0) {
             steps.push({
-              type: 'recovery',
+              type: 'recovery' as const,
               durationSeconds: s.restDuration,
+              distanceMeters: undefined,
+              targetType: undefined,
+              targetLow: undefined,
+              targetHigh: undefined,
             });
           }
 
@@ -448,4 +491,46 @@ function parsePaceToMetersPerSecond(pace: string): number | undefined {
   const totalSeconds = minutes * 60 + seconds
   if (totalSeconds === 0) return undefined
   return 1000 / totalSeconds
+}
+
+// ─── Child Step Target Helpers (for REPEAT_GROUP steps) ─────────────────────
+
+function resolveChildTargetType(
+  step: CardioChildStep
+): 'hr' | 'pace' | 'power' | 'cadence' | 'none' | undefined {
+  if (step.targetType && step.targetType !== 'none') {
+    return step.targetType as 'hr' | 'pace' | 'power' | 'cadence'
+  }
+  // Fall back to legacy fields
+  if (step.heartRate) return 'hr'
+  if (step.pace) return 'pace'
+  return undefined
+}
+
+function resolveChildTargetLow(step: CardioChildStep): number | undefined {
+  if (step.targetType && step.targetType !== 'none' && step.targetValue) {
+    if (step.targetType === 'pace') {
+      return parsePaceToMetersPerSecond(step.targetValue)
+    }
+    // Parse numeric value (handles "250", "240-260")
+    const match = step.targetValue.match(/(\d+(?:\.\d+)?)/)
+    return match ? parseFloat(match[1]) : undefined
+  }
+  // Fall back to legacy
+  return resolveTargetLow(step)
+}
+
+function resolveChildTargetHigh(step: CardioChildStep): number | undefined {
+  if (step.targetType && step.targetType !== 'none' && step.targetValue) {
+    if (step.targetType === 'pace') {
+      return parsePaceToMetersPerSecond(step.targetValue)
+    }
+    // Parse range "240-260" or single value
+    const rangeMatch = step.targetValue.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)/)
+    if (rangeMatch) return parseFloat(rangeMatch[2])
+    // Single value — same as low
+    const match = step.targetValue.match(/(\d+(?:\.\d+)?)/)
+    return match ? parseFloat(match[1]) : undefined
+  }
+  return resolveTargetHigh(step)
 }

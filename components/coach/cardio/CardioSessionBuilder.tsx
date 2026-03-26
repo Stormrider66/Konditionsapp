@@ -38,7 +38,7 @@ import { SessionExportButton } from '@/components/exports/SessionExportButton'
 import type { CardioSessionData, CardioSegment as CardioSegmentType } from '@/types'
 
 // Types
-type CardioSegment = {
+type CardioFlatSegment = {
   id: string
   type: 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
   duration?: number // minutes
@@ -52,7 +52,37 @@ type CardioSegment = {
   distanceUnit?: 'km' | 'm'
 }
 
-// Mock segments available to add
+type CardioChildStep = {
+  id: string
+  type: 'INTERVAL' | 'RECOVERY' | 'REST' | 'STEADY'
+  duration?: number // minutes
+  distance?: number // km
+  distanceUnit?: 'km' | 'm'
+  zone: string
+  pace?: string
+  heartRate?: string
+  notes?: string // equipment / description shown on watch
+  targetType?: 'power' | 'pace' | 'cadence' | 'hr' | 'none'
+  targetValue?: string // "250", "62", "2:05"
+}
+
+type CardioRepeatGroup = {
+  id: string
+  type: 'REPEAT_GROUP'
+  repeats: number
+  restBetweenRounds?: number // minutes
+  steps: CardioChildStep[]
+}
+
+type CardioSegment = CardioFlatSegment | CardioRepeatGroup
+
+function isRepeatGroup(seg: CardioSegment): seg is CardioRepeatGroup {
+  return seg.type === 'REPEAT_GROUP'
+}
+
+const generateId = () => Math.random().toString(36).substr(2, 9)
+
+// Segments available to add
 const AVAILABLE_SEGMENTS = [
   { id: 'seg1', name: 'Warmup (10 min)', type: 'WARMUP', defaultDuration: 10, defaultZone: '1' },
   { id: 'seg2', name: 'Steady Run (30 min)', type: 'STEADY', defaultDuration: 30, defaultZone: '2' },
@@ -61,6 +91,7 @@ const AVAILABLE_SEGMENTS = [
   { id: 'seg5', name: 'Cooldown (10 min)', type: 'COOLDOWN', defaultDuration: 10, defaultZone: '1' },
   { id: 'seg6', name: 'Hill Sprints', type: 'HILL', defaultDuration: 0, defaultZone: '5', notes: 'Max effort uphill' },
   { id: 'seg7', name: 'Running Drills', type: 'DRILLS', defaultDuration: 10, defaultZone: '1', notes: 'Focus on technique' },
+  { id: 'seg8', name: 'Repeat Group', type: 'REPEAT_GROUP', defaultDuration: 0, defaultZone: '1' },
 ]
 
 // Helper functions for auto-calculation
@@ -110,19 +141,42 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
       setDescription(initialData.description || '')
       setSport(initialData.sport || 'RUNNING')
       setSegments(
-        initialData.segments.map((s: any) => ({
-          id: s.id || Math.random().toString(36).substr(2, 9),
-          type: s.type as CardioSegment['type'],
-          duration: s.duration ? s.duration / 60 : undefined, // seconds → minutes
-          distance: s.distance ? s.distance / 1000 : undefined, // meters → km
-          zone: s.zone ? String(s.zone) : '1',
-          pace: s.pace || '',
-          heartRate: s.heartRate || '',
-          notes: s.notes || '',
-          repeats: s.repeats || undefined,
-          restDuration: s.restDuration ? s.restDuration / 60 : undefined, // seconds → minutes
-          distanceUnit: (s.distance && s.distance < 1000) ? 'm' : 'km',
-        }))
+        initialData.segments.map((s: any) => {
+          if (s.type === 'REPEAT_GROUP') {
+            return {
+              id: s.id || generateId(),
+              type: 'REPEAT_GROUP' as const,
+              repeats: s.repeats || 1,
+              restBetweenRounds: s.restBetweenRounds ? s.restBetweenRounds / 60 : undefined,
+              steps: (s.steps || []).map((step: any) => ({
+                id: step.id || generateId(),
+                type: step.type as CardioChildStep['type'],
+                duration: step.duration ? step.duration / 60 : undefined,
+                distance: step.distance ? step.distance / 1000 : undefined,
+                zone: step.zone ? String(step.zone) : '1',
+                pace: step.pace || '',
+                heartRate: step.heartRate || '',
+                notes: step.notes || '',
+                targetType: step.targetType || 'none',
+                targetValue: step.targetValue || '',
+                distanceUnit: (step.distance && step.distance < 1000) ? 'm' : 'km',
+              })),
+            } as CardioRepeatGroup
+          }
+          return {
+            id: s.id || generateId(),
+            type: s.type as CardioFlatSegment['type'],
+            duration: s.duration ? s.duration / 60 : undefined,
+            distance: s.distance ? s.distance / 1000 : undefined,
+            zone: s.zone ? String(s.zone) : '1',
+            pace: s.pace || '',
+            heartRate: s.heartRate || '',
+            notes: s.notes || '',
+            repeats: s.repeats || undefined,
+            restDuration: s.restDuration ? s.restDuration / 60 : undefined,
+            distanceUnit: (s.distance && s.distance < 1000) ? 'm' : 'km',
+          } as CardioFlatSegment
+        })
       )
     } else {
       // Reset form for new session
@@ -202,18 +256,40 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
 
     setIsSaving(true)
     try {
-      const segmentData = segments.map((s) => ({
-        id: s.id,
-        type: s.type,
-        duration: s.duration ? Math.round(s.duration * 60) : undefined, // Convert minutes to seconds
-        distance: s.distance ? Math.round(s.distance * 1000) : undefined, // Convert km to meters
-        zone: s.zone ? parseInt(s.zone) : undefined,
-        pace: s.pace || undefined,
-        heartRate: s.heartRate || undefined,
-        notes: s.notes || undefined,
-        repeats: s.repeats && s.repeats > 1 ? s.repeats : undefined,
-        restDuration: s.restDuration ? Math.round(s.restDuration * 60) : undefined, // Convert minutes to seconds
-      }))
+      const segmentData = segments.map((s) => {
+        if (isRepeatGroup(s)) {
+          return {
+            id: s.id,
+            type: 'REPEAT_GROUP',
+            repeats: s.repeats,
+            restBetweenRounds: s.restBetweenRounds ? Math.round(s.restBetweenRounds * 60) : undefined,
+            steps: s.steps.map((step) => ({
+              id: step.id,
+              type: step.type,
+              duration: step.duration ? Math.round(step.duration * 60) : undefined,
+              distance: step.distance ? Math.round(step.distance * 1000) : undefined,
+              zone: step.zone ? parseInt(step.zone) : undefined,
+              pace: step.pace || undefined,
+              heartRate: step.heartRate || undefined,
+              notes: step.notes || undefined,
+              targetType: step.targetType && step.targetType !== 'none' ? step.targetType : undefined,
+              targetValue: step.targetValue || undefined,
+            })),
+          }
+        }
+        return {
+          id: s.id,
+          type: s.type,
+          duration: s.duration ? Math.round(s.duration * 60) : undefined,
+          distance: s.distance ? Math.round(s.distance * 1000) : undefined,
+          zone: s.zone ? parseInt(s.zone) : undefined,
+          pace: s.pace || undefined,
+          heartRate: s.heartRate || undefined,
+          notes: s.notes || undefined,
+          repeats: s.repeats && s.repeats > 1 ? s.repeats : undefined,
+          restDuration: s.restDuration ? Math.round(s.restDuration * 60) : undefined,
+        }
+      })
 
       const payload = {
         name: sessionName,
@@ -284,9 +360,23 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
     const template = AVAILABLE_SEGMENTS.find(s => s.id === templateId)
     if (!template) return
 
-    const newSegment: CardioSegment = {
-      id: Math.random().toString(36).substr(2, 9),
-      type: template.type as any,
+    if (template.type === 'REPEAT_GROUP') {
+      const newGroup: CardioRepeatGroup = {
+        id: generateId(),
+        type: 'REPEAT_GROUP',
+        repeats: 4,
+        steps: [
+          { id: generateId(), type: 'INTERVAL', duration: 3, zone: '4', notes: '', targetType: 'none', targetValue: '', distanceUnit: 'km' },
+          { id: generateId(), type: 'REST', duration: 1, zone: '1', notes: '', targetType: 'none', targetValue: '', distanceUnit: 'km' },
+        ],
+      }
+      setSegments([...segments, newGroup])
+      return
+    }
+
+    const newSegment: CardioFlatSegment = {
+      id: generateId(),
+      type: template.type as CardioFlatSegment['type'],
       duration: template.defaultDuration || undefined,
       zone: template.defaultZone,
       notes: template.notes || '',
@@ -300,7 +390,78 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
     setSegments(segments.filter(s => s.id !== id))
   }
 
-  const updateSegment = (id: string, field: keyof CardioSegment, value: any) => {
+  // Repeat group helpers
+  const updateRepeatGroup = (groupId: string, field: 'repeats' | 'restBetweenRounds', value: number) => {
+    setSegments(segments.map(s => {
+      if (s.id !== groupId || !isRepeatGroup(s)) return s
+      return { ...s, [field]: value }
+    }))
+  }
+
+  const updateChildStep = (groupId: string, stepId: string, field: string, value: any) => {
+    setSegments(segments.map(s => {
+      if (s.id !== groupId || !isRepeatGroup(s)) return s
+      return {
+        ...s,
+        steps: s.steps.map(step => {
+          if (step.id !== stepId) return step
+          if (field === 'distance') {
+            const distValue = typeof value === 'string' ? parseFloat(value) : value
+            return { ...step, distance: step.distanceUnit === 'm' ? (distValue ? distValue / 1000 : undefined) : (distValue || undefined) }
+          }
+          return { ...step, [field]: value }
+        }),
+      }
+    }))
+  }
+
+  const addChildStep = (groupId: string) => {
+    setSegments(segments.map(s => {
+      if (s.id !== groupId || !isRepeatGroup(s)) return s
+      return {
+        ...s,
+        steps: [...s.steps, {
+          id: generateId(),
+          type: 'INTERVAL' as const,
+          duration: 3,
+          zone: '4',
+          notes: '',
+          targetType: 'none' as const,
+          targetValue: '',
+          distanceUnit: 'km' as const,
+        }],
+      }
+    }))
+  }
+
+  const removeChildStep = (groupId: string, stepId: string) => {
+    setSegments(segments.map(s => {
+      if (s.id !== groupId || !isRepeatGroup(s)) return s
+      return { ...s, steps: s.steps.filter(step => step.id !== stepId) }
+    }))
+  }
+
+  const addRestAfterStep = (groupId: string, afterStepId: string) => {
+    setSegments(segments.map(s => {
+      if (s.id !== groupId || !isRepeatGroup(s)) return s
+      const idx = s.steps.findIndex(step => step.id === afterStepId)
+      if (idx === -1) return s
+      const newSteps = [...s.steps]
+      newSteps.splice(idx + 1, 0, {
+        id: generateId(),
+        type: 'REST' as const,
+        duration: 1,
+        zone: '1',
+        notes: '',
+        targetType: 'none' as const,
+        targetValue: '',
+        distanceUnit: 'km' as const,
+      })
+      return { ...s, steps: newSteps }
+    }))
+  }
+
+  const updateSegment = (id: string, field: keyof CardioFlatSegment, value: any) => {
     setSegments(segments.map(s => {
       if (s.id !== id) return s
 
@@ -352,7 +513,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
     }))
   }
 
-  const calculateSegment = (id: string, triggeredField: keyof CardioSegment) => {
+  const calculateSegment = (id: string, triggeredField: keyof CardioFlatSegment) => {
     setSegments(currentSegments => currentSegments.map(s => {
       if (s.id !== id) return s
 
@@ -497,27 +658,40 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
                     strategy={verticalListSortingStrategy}
                   >
                     <div className="space-y-3">
-                      {segments.map((segment) => (
-                        <SortableSegmentItem
-                          key={segment.id}
-                          segment={segment}
-                          onRemove={() => removeSegment(segment.id)}
-                          onUpdate={updateSegment}
-                          onCalculate={calculateSegment}
-                        />
-                      ))}
+                      {segments.map((segment) =>
+                        isRepeatGroup(segment) ? (
+                          <SortableRepeatGroupItem
+                            key={segment.id}
+                            group={segment}
+                            onRemove={() => removeSegment(segment.id)}
+                            onUpdateGroup={updateRepeatGroup}
+                            onUpdateStep={updateChildStep}
+                            onAddStep={addChildStep}
+                            onRemoveStep={removeChildStep}
+                            onAddRestAfter={addRestAfterStep}
+                          />
+                        ) : (
+                          <SortableSegmentItem
+                            key={segment.id}
+                            segment={segment}
+                            onRemove={() => removeSegment(segment.id)}
+                            onUpdate={updateSegment}
+                            onCalculate={calculateSegment}
+                          />
+                        )
+                      )}
                     </div>
                   </SortableContext>
                   <DragOverlay>
                     {activeId ? (
                       <div className="opacity-50">
-                        <SortableSegmentItem 
-                          segment={segments.find(s => s.id === activeId)!} 
-                          onRemove={() => {}}
-                          onUpdate={() => {}}
-                          onCalculate={() => {}}
-                          isOverlay
-                        />
+                        {(() => {
+                          const seg = segments.find(s => s.id === activeId)!
+                          if (isRepeatGroup(seg)) {
+                            return <div className="bg-card border-2 border-indigo-400 rounded-md p-3 shadow-lg"><Badge className="bg-indigo-500 text-white">Repeat Group x{seg.repeats}</Badge></div>
+                          }
+                          return <SortableSegmentItem segment={seg} onRemove={() => {}} onUpdate={() => {}} onCalculate={() => {}} isOverlay />
+                        })()}
                       </div>
                     ) : null}
                   </DragOverlay>
@@ -558,6 +732,11 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
               <span className="text-muted-foreground">Total tid:</span>
               <span className="font-medium">
                 {segments.reduce((acc, s) => {
+                  if (isRepeatGroup(s)) {
+                    const stepsDur = s.steps.reduce((sum, step) => sum + (step.duration || 0), 0)
+                    const roundRest = s.restBetweenRounds || 0
+                    return acc + (stepsDur * s.repeats) + (roundRest * Math.max(s.repeats - 1, 0))
+                  }
                   const reps = s.repeats && s.repeats > 1 ? s.repeats : 1
                   const dur = (s.duration || 0) * reps
                   const rest = (s.restDuration || 0) * (reps > 1 ? reps - 1 : 0)
@@ -569,6 +748,10 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
               <span className="text-muted-foreground">Total distans:</span>
               <span className="font-medium">
                 {segments.reduce((acc, s) => {
+                  if (isRepeatGroup(s)) {
+                    const stepsDist = s.steps.reduce((sum, step) => sum + (step.distance || 0), 0)
+                    return acc + stepsDist * s.repeats
+                  }
                   const reps = s.repeats && s.repeats > 1 ? s.repeats : 1
                   return acc + (s.distance || 0) * reps
                 }, 0).toFixed(1)} km
@@ -608,17 +791,17 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
   )
 }
 
-function SortableSegmentItem({ 
-  segment, 
-  onRemove, 
+function SortableSegmentItem({
+  segment,
+  onRemove,
   onUpdate,
   onCalculate,
-  isOverlay = false 
-}: { 
-  segment: CardioSegment
+  isOverlay = false
+}: {
+  segment: CardioFlatSegment
   onRemove: () => void
-  onUpdate: (id: string, field: keyof CardioSegment, value: any) => void
-  onCalculate: (id: string, field: keyof CardioSegment) => void
+  onUpdate: (id: string, field: keyof CardioFlatSegment, value: any) => void
+  onCalculate: (id: string, field: keyof CardioFlatSegment) => void
   isOverlay?: boolean
 }) {
   const {
@@ -771,6 +954,193 @@ function SortableSegmentItem({
               </Select>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SortableRepeatGroupItem({
+  group,
+  onRemove,
+  onUpdateGroup,
+  onUpdateStep,
+  onAddStep,
+  onRemoveStep,
+  onAddRestAfter,
+}: {
+  group: CardioRepeatGroup
+  onRemove: () => void
+  onUpdateGroup: (groupId: string, field: 'repeats' | 'restBetweenRounds', value: number) => void
+  onUpdateStep: (groupId: string, stepId: string, field: string, value: any) => void
+  onAddStep: (groupId: string) => void
+  onRemoveStep: (groupId: string, stepId: string) => void
+  onAddRestAfter: (groupId: string, afterStepId: string) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: group.id })
+  const style = { transform: CSS.Transform.toString(transform), transition }
+
+  return (
+    <div ref={setNodeRef} style={style} className="border-2 border-indigo-400/50 rounded-lg bg-indigo-50/30 dark:bg-indigo-950/20">
+      {/* Group header */}
+      <div className="flex items-center gap-3 p-3 border-b border-indigo-200/50">
+        <div {...attributes} {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground">
+          <GripVertical className="h-5 w-5" />
+        </div>
+        <Badge className="bg-indigo-500 text-white shrink-0">
+          <Repeat className="h-3 w-3 mr-1" />
+          REPEAT GROUP
+        </Badge>
+        <div className="flex items-center gap-1">
+          <Label className="text-xs text-muted-foreground">Rundor:</Label>
+          <Input
+            type="number"
+            min={1}
+            className="h-6 w-14 text-xs px-1"
+            value={group.repeats}
+            onChange={(e) => onUpdateGroup(group.id, 'repeats', parseInt(e.target.value) || 1)}
+          />
+        </div>
+        <div className="flex items-center gap-1">
+          <Label className="text-xs text-muted-foreground">Vila mellan rundor:</Label>
+          <Input
+            type="number"
+            min={0}
+            step={0.5}
+            className="h-6 w-14 text-xs px-1"
+            value={group.restBetweenRounds || ''}
+            onChange={(e) => onUpdateGroup(group.id, 'restBetweenRounds', parseFloat(e.target.value) || 0)}
+            placeholder="min"
+          />
+          <span className="text-xs text-muted-foreground">min</span>
+        </div>
+        <div className="ml-auto">
+          <Button variant="ghost" size="sm" onClick={onRemove} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Child steps */}
+      <div className="p-3 space-y-2">
+        {group.steps.map((step, idx) => (
+          <ChildStepRow
+            key={step.id}
+            step={step}
+            stepIndex={idx + 1}
+            groupId={group.id}
+            onUpdate={onUpdateStep}
+            onRemove={() => onRemoveStep(group.id, step.id)}
+            onAddRestAfter={() => onAddRestAfter(group.id, step.id)}
+            canRemove={group.steps.length > 1}
+          />
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full border-dashed"
+          onClick={() => onAddStep(group.id)}
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          Lägg till steg
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function ChildStepRow({
+  step,
+  stepIndex,
+  groupId,
+  onUpdate,
+  onRemove,
+  onAddRestAfter,
+  canRemove,
+}: {
+  step: CardioChildStep
+  stepIndex: number
+  groupId: string
+  onUpdate: (groupId: string, stepId: string, field: string, value: any) => void
+  onRemove: () => void
+  onAddRestAfter: () => void
+  canRemove: boolean
+}) {
+  const isRest = step.type === 'REST' || step.type === 'RECOVERY'
+
+  return (
+    <div className={`rounded-md border p-2 space-y-2 ${isRest ? 'bg-muted/50 border-dashed' : 'bg-card'}`}>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground font-mono w-4">{stepIndex}.</span>
+        <Select value={step.type} onValueChange={(v) => onUpdate(groupId, step.id, 'type', v)}>
+          <SelectTrigger className="h-6 w-28 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="INTERVAL">Intervall</SelectItem>
+            <SelectItem value="STEADY">Steady</SelectItem>
+            <SelectItem value="REST">Vila</SelectItem>
+            <SelectItem value="RECOVERY">Recovery</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-1">
+          <Timer className="h-3 w-3 text-muted-foreground" />
+          <Input
+            type="number"
+            className="h-6 w-14 text-xs px-1"
+            value={step.duration || ''}
+            onChange={(e) => onUpdate(groupId, step.id, 'duration', parseFloat(e.target.value))}
+            placeholder="min"
+          />
+          <span className="text-xs text-muted-foreground">min</span>
+        </div>
+
+        {!isRest && (
+          <>
+            <div className="flex items-center gap-1">
+              <Select value={step.targetType || 'none'} onValueChange={(v) => onUpdate(groupId, step.id, 'targetType', v)}>
+                <SelectTrigger className="h-6 w-24 text-xs">
+                  <SelectValue placeholder="Mål..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Inget mål</SelectItem>
+                  <SelectItem value="power">Watt</SelectItem>
+                  <SelectItem value="cadence">RPM</SelectItem>
+                  <SelectItem value="pace">Tempo</SelectItem>
+                  <SelectItem value="hr">Puls</SelectItem>
+                </SelectContent>
+              </Select>
+              {step.targetType && step.targetType !== 'none' && (
+                <Input
+                  className="h-6 w-20 text-xs px-1"
+                  value={step.targetValue || ''}
+                  onChange={(e) => onUpdate(groupId, step.id, 'targetValue', e.target.value)}
+                  placeholder={step.targetType === 'power' ? '250' : step.targetType === 'cadence' ? '62' : step.targetType === 'pace' ? '2:05' : '145-155'}
+                />
+              )}
+            </div>
+
+            <Input
+              className="h-6 w-28 text-xs px-1"
+              value={step.notes || ''}
+              onChange={(e) => onUpdate(groupId, step.id, 'notes', e.target.value)}
+              placeholder="Utrustning..."
+            />
+          </>
+        )}
+
+        <div className="ml-auto flex items-center gap-1">
+          {!isRest && (
+            <Button variant="ghost" size="sm" onClick={onAddRestAfter} className="h-5 px-1 text-xs text-muted-foreground" title="Lägg till vila efter">
+              +Vila
+            </Button>
+          )}
+          {canRemove && (
+            <Button variant="ghost" size="sm" onClick={onRemove} className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive">
+              <X className="h-3 w-3" />
+            </Button>
+          )}
         </div>
       </div>
     </div>
