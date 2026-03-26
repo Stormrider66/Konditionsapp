@@ -31,7 +31,7 @@ import {
   Activity,
   Clock,
   Headphones,
-  HeadphonesOff,
+  HeadphoneOff,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
@@ -301,7 +301,7 @@ export function CardioFocusModeWorkout({
             )}
             title={voice.enabled ? 'Voice coach on' : 'Voice coach off'}
           >
-            {voice.enabled ? <Headphones className="h-5 w-5" /> : <HeadphonesOff className="h-5 w-5 text-slate-400" />}
+            {voice.enabled ? <Headphones className="h-5 w-5" /> : <HeadphoneOff className="h-5 w-5 text-slate-400" />}
           </Button>
         ) : (
           <div className="w-10" />
