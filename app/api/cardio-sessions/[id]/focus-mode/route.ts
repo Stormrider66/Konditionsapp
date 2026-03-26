@@ -9,9 +9,29 @@ interface CardioSegmentData {
   type: string
   duration?: number  // seconds
   distance?: number  // meters
+  calories?: number  // kcal
   pace?: string      // e.g., "5:30" per km
   zone?: number      // 1-5
   notes?: string
+  // Flat segment repeat fields
+  repeats?: number
+  restDuration?: number // seconds
+  // Repeat group fields
+  steps?: CardioChildStepData[]
+  restBetweenRounds?: number // seconds
+}
+
+interface CardioChildStepData {
+  id: string
+  type: string
+  duration?: number
+  distance?: number
+  calories?: number
+  pace?: string
+  zone?: number
+  notes?: string
+  targetType?: string
+  targetValue?: string
 }
 
 interface FocusModeSegment {
@@ -43,6 +63,7 @@ const SEGMENT_TYPE_NAMES: Record<string, string> = {
   INTERVAL: 'Intervall',
   STEADY: 'Jämn',
   RECOVERY: 'Återhämtning',
+  REST: 'Vila',
   HILL: 'Backe',
   DRILLS: 'Övningar',
 }
@@ -146,34 +167,151 @@ export async function GET(
       (existingLog?.segmentLogs || []).map(log => [log.segmentIndex, log])
     )
 
-    // Build focus mode segments array
-    const focusModeSegments: FocusModeSegment[] = segments.map((seg, index) => {
-      const log = segmentLogMap.get(index)
-      const segmentType = (seg.type?.toUpperCase() || 'STEADY') as CardioSegmentType
+    // Build focus mode segments array — flatten repeat groups and single-step repeats
+    const focusModeSegments: FocusModeSegment[] = []
+    let globalIndex = 0
 
-      return {
-        id: seg.id || `segment-${index}`,
-        index,
+    for (const seg of segments) {
+      // REPEAT_GROUP: flatten multi-step repeat blocks into individual steps
+      if (seg.type === 'REPEAT_GROUP' && seg.steps && seg.steps.length > 0) {
+        const repeats = seg.repeats || 1
+        for (let rep = 0; rep < repeats; rep++) {
+          for (const step of seg.steps) {
+            const log = segmentLogMap.get(globalIndex)
+            const segmentType = (step.type?.toUpperCase() || 'INTERVAL') as CardioSegmentType
+            const calLabel = step.calories ? `${step.calories} cal` : ''
+            const targetLabel = step.targetType && step.targetType !== 'none' && step.targetValue
+              ? `${step.targetValue} ${step.targetType === 'power' ? 'W' : step.targetType === 'cadence' ? 'rpm' : ''}`
+              : ''
+            const noteParts = [
+              `Runda ${rep + 1}/${repeats}`,
+              step.notes,
+              calLabel,
+              targetLabel,
+            ].filter(Boolean)
+
+            focusModeSegments.push({
+              id: `${seg.id}-r${rep}-${step.id}`,
+              index: globalIndex,
+              type: segmentType,
+              typeName: SEGMENT_TYPE_NAMES[segmentType] || step.type,
+              plannedDuration: step.duration,
+              plannedDistance: step.distance ? step.distance / 1000 : undefined,
+              plannedPace: parsePaceToSeconds(step.pace),
+              plannedZone: step.zone,
+              notes: noteParts.join(' — '),
+              actualDuration: log?.actualDuration ?? undefined,
+              actualDistance: log?.actualDistance ?? undefined,
+              actualPace: log?.actualPace ?? undefined,
+              actualAvgHR: log?.actualAvgHR ?? undefined,
+              actualMaxHR: log?.actualMaxHR ?? undefined,
+              completed: log?.completed ?? false,
+              skipped: log?.skipped ?? false,
+              logId: log?.id,
+            })
+            globalIndex++
+          }
+          // Rest between rounds (except after last round)
+          if (seg.restBetweenRounds && seg.restBetweenRounds > 0 && rep < repeats - 1) {
+            const log = segmentLogMap.get(globalIndex)
+            focusModeSegments.push({
+              id: `${seg.id}-r${rep}-rest`,
+              index: globalIndex,
+              type: 'RECOVERY' as CardioSegmentType,
+              typeName: 'Vila mellan rundor',
+              plannedDuration: seg.restBetweenRounds,
+              notes: `Runda ${rep + 1}/${repeats} klar`,
+              actualDuration: log?.actualDuration ?? undefined,
+              actualDistance: log?.actualDistance ?? undefined,
+              actualPace: log?.actualPace ?? undefined,
+              actualAvgHR: log?.actualAvgHR ?? undefined,
+              actualMaxHR: log?.actualMaxHR ?? undefined,
+              completed: log?.completed ?? false,
+              skipped: log?.skipped ?? false,
+              logId: log?.id,
+            })
+            globalIndex++
+          }
+        }
+        continue
+      }
+
+      // Single-step repeat (e.g. 10x200m with 60s rest): expand to individual reps
+      if (seg.repeats && seg.repeats > 1) {
+        for (let rep = 0; rep < seg.repeats; rep++) {
+          // Work step
+          const log = segmentLogMap.get(globalIndex)
+          const segmentType = (seg.type?.toUpperCase() || 'INTERVAL') as CardioSegmentType
+          const calLabel = seg.calories ? `${seg.calories} cal` : ''
+          const noteParts = [`${rep + 1}/${seg.repeats}`, seg.notes, calLabel].filter(Boolean)
+
+          focusModeSegments.push({
+            id: `${seg.id}-rep${rep}`,
+            index: globalIndex,
+            type: segmentType,
+            typeName: SEGMENT_TYPE_NAMES[segmentType] || seg.type,
+            plannedDuration: seg.duration,
+            plannedDistance: seg.distance ? seg.distance / 1000 : undefined,
+            plannedPace: parsePaceToSeconds(seg.pace),
+            plannedZone: seg.zone,
+            notes: noteParts.join(' — '),
+            actualDuration: log?.actualDuration ?? undefined,
+            actualDistance: log?.actualDistance ?? undefined,
+            actualPace: log?.actualPace ?? undefined,
+            actualAvgHR: log?.actualAvgHR ?? undefined,
+            actualMaxHR: log?.actualMaxHR ?? undefined,
+            completed: log?.completed ?? false,
+            skipped: log?.skipped ?? false,
+            logId: log?.id,
+          })
+          globalIndex++
+
+          // Rest between reps (except after last)
+          if (seg.restDuration && seg.restDuration > 0 && rep < seg.repeats - 1) {
+            const restLog = segmentLogMap.get(globalIndex)
+            focusModeSegments.push({
+              id: `${seg.id}-rest${rep}`,
+              index: globalIndex,
+              type: 'RECOVERY' as CardioSegmentType,
+              typeName: 'Vila',
+              plannedDuration: seg.restDuration,
+              completed: restLog?.completed ?? false,
+              skipped: restLog?.skipped ?? false,
+              logId: restLog?.id,
+            })
+            globalIndex++
+          }
+        }
+        continue
+      }
+
+      // Simple flat segment (no repeats)
+      const log = segmentLogMap.get(globalIndex)
+      const segmentType = (seg.type?.toUpperCase() || 'STEADY') as CardioSegmentType
+      const calLabel = seg.calories ? `${seg.calories} cal` : ''
+      const noteParts = [seg.notes, calLabel].filter(Boolean)
+
+      focusModeSegments.push({
+        id: seg.id || `segment-${globalIndex}`,
+        index: globalIndex,
         type: segmentType,
         typeName: SEGMENT_TYPE_NAMES[segmentType] || seg.type,
-        // Planned values (convert distance from meters to km)
         plannedDuration: seg.duration,
         plannedDistance: seg.distance ? seg.distance / 1000 : undefined,
         plannedPace: parsePaceToSeconds(seg.pace),
         plannedZone: seg.zone,
-        notes: seg.notes,
-        // Actual values from log
+        notes: noteParts.join(' — ') || seg.notes,
         actualDuration: log?.actualDuration ?? undefined,
         actualDistance: log?.actualDistance ?? undefined,
         actualPace: log?.actualPace ?? undefined,
         actualAvgHR: log?.actualAvgHR ?? undefined,
         actualMaxHR: log?.actualMaxHR ?? undefined,
-        // Status
         completed: log?.completed ?? false,
         skipped: log?.skipped ?? false,
         logId: log?.id,
-      }
-    })
+      })
+      globalIndex++
+    }
 
     // Calculate progress
     const totalSegments = focusModeSegments.length
