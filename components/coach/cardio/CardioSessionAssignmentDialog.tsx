@@ -222,7 +222,7 @@ export function CardioSessionAssignmentDialog({
   });
 
   const dialogContent = (
-    <DialogContent className="flex max-h-[85vh] min-h-0 flex-col overflow-y-auto p-0 sm:max-w-md">
+    <DialogContent className="flex max-h-[85vh] min-h-0 flex-col p-0 sm:max-w-md">
       <DialogHeader className="shrink-0 px-6 pt-6">
         <DialogTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
@@ -310,7 +310,7 @@ export function CardioSessionAssignmentDialog({
                         />
                       </div>
                     )}
-                    <div className="max-h-72 overflow-y-auto rounded-md border p-2 sm:max-h-80">
+                    <div className="rounded-md border p-2">
                       <div className="space-y-1">
                         {filteredAthletes.map((athlete) => (
                           <div
