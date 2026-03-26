@@ -766,7 +766,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel }: CardioS
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Snittzon:</span>
               <span className="font-medium">
-                Z{Math.round(segments.reduce((acc, s) => acc + parseInt(s.zone || '0'), 0) / (segments.length || 1))}
+                Z{Math.round(segments.reduce((acc, s) => acc + (isRepeatGroup(s) ? 0 : parseInt(s.zone || '0')), 0) / (segments.filter(s => !isRepeatGroup(s)).length || 1))}
               </span>
             </div>
             <div className="flex gap-2 mt-4">
