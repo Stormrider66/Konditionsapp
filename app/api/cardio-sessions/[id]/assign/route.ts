@@ -354,6 +354,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
         if (pushToGarmin && garminWorkoutPayload && garminTokensByAthlete.has(athleteId)) {
           try {
+            console.log('[Garmin Push] Sending workout for athlete:', athleteId, 'payload steps:', garminWorkoutPayload.workoutSegments?.[0]?.workoutSteps?.length);
             const created = await createGarminWorkout(athleteId, garminWorkoutPayload);
 
             if (created.workoutId) {
@@ -373,7 +374,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
               garminResults.push({ athleteId, success: true });
             }
           } catch (garminErr) {
-            logError('Garmin push failed for athlete:', garminErr);
+            logError('Garmin push failed for athlete:', athleteId, garminErr);
             garminResults.push({
               athleteId,
               success: false,
