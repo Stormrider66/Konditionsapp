@@ -357,19 +357,22 @@ export async function POST(request: NextRequest, context: RouteContext) {
             console.log('[Garmin Push] Sending workout for athlete:', athleteId, JSON.stringify(garminWorkoutPayload, null, 2).slice(0, 2000));
             const created = await createGarminWorkout(athleteId, garminWorkoutPayload);
 
-            if (created.workoutId) {
+            const wid = created.workoutId ?? created.id
+            if (wid) {
+              const workoutIdStr = String(wid)
               // Schedule on the assigned date
-              try {
-                await scheduleGarminWorkout(athleteId, {
-                  workoutId: created.workoutId,
-                  calendarDate: dateStr,
-                });
-              } catch (schedErr) {
-                // Workout was created but scheduling failed — still save the workout ID
-                logError('Garmin schedule failed (workout created):', schedErr);
+              if (dateStr) {
+                try {
+                  await scheduleGarminWorkout(athleteId, {
+                    workoutId: workoutIdStr,
+                    calendarDate: dateStr,
+                  });
+                } catch (schedErr) {
+                  logError('Garmin schedule failed (workout created):', schedErr);
+                }
               }
 
-              garminWorkoutId = created.workoutId;
+              garminWorkoutId = workoutIdStr;
               garminPushedAt = new Date();
               garminResults.push({ athleteId, success: true });
             }
