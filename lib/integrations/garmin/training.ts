@@ -308,7 +308,7 @@ function buildStep(
   } = {}
 ): GarminWorkoutStep {
   const step: GarminWorkoutStep = {
-    type: 'ExecutableStepDTO',
+    type: 'WorkoutStep',
     stepOrder: order,
     stepType: STEP_TYPE_STRINGS[stepType] || 'INTERVAL',
   }
@@ -345,7 +345,7 @@ function buildRepeatGroup(
   steps: GarminWorkoutStep[]
 ): GarminWorkoutStepUnion {
   return {
-    type: 'RepeatGroupDTO',
+    type: 'WorkoutRepeatStep',
     stepOrder: order,
     numberOfIterations: iterations,
     steps: steps,
