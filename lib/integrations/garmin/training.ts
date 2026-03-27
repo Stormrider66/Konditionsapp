@@ -58,6 +58,7 @@ export interface GarminWorkout {
   workoutName: string
   description?: string
   sport: string
+  steps?: GarminWorkoutStepUnion[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   segments: Array<Record<string, any>>
 }
