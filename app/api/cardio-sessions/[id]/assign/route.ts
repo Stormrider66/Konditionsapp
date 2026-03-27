@@ -357,7 +357,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             console.log('[Garmin Push] Sending workout for athlete:', athleteId, JSON.stringify(garminWorkoutPayload, null, 2).slice(0, 2000));
             const created = await createGarminWorkout(athleteId, garminWorkoutPayload);
 
-            const wid = created.workoutId ?? created.id
+            const wid = created.workoutId ?? (created as Record<string, unknown>).id
             if (wid) {
               const workoutIdStr = String(wid)
               // Schedule on the assigned date
