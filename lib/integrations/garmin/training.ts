@@ -113,7 +113,8 @@ const TARGET_TYPES: Record<string, GarminTargetTypeDTO> = {
 
 export interface GarminSchedule {
   workoutId: string
-  calendarDate: string // YYYY-MM-DD
+  date: string        // YYYY-MM-DD (Garmin field name)
+  calendarDate?: string // alias
 }
 
 // ─── API Helpers ────────────────────────────────────────────────────────────

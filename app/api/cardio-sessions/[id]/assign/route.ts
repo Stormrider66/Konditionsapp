@@ -363,8 +363,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
               // Schedule on the assigned date
               if (dateStr) {
                 try {
+                  console.log('[Garmin Schedule] workoutId:', wid, 'date:', dateStr)
                   await scheduleGarminWorkout(athleteId, {
                     workoutId: workoutIdStr,
+                    date: dateStr,
                     calendarDate: dateStr,
                   });
                 } catch (schedErr) {
