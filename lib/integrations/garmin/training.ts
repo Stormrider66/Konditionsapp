@@ -307,13 +307,20 @@ function buildStep(
     description?: string
   } = {}
 ): GarminWorkoutStep {
+  // Map step type to intensity
+  const INTENSITY_MAP: Record<string, string> = {
+    warmup: 'WARMUP', cooldown: 'COOLDOWN', interval: 'INTERVAL',
+    recovery: 'REST', rest: 'REST', steady: 'ACTIVE',
+  }
+
   const step: GarminWorkoutStep = {
     type: 'WorkoutStep',
     stepOrder: order,
     stepType: STEP_TYPE_STRINGS[stepType] || 'INTERVAL',
+    intensity: INTENSITY_MAP[stepType] || 'INTERVAL',
   }
 
-  // End condition (duration) — try simple string format
+  // End condition (duration)
   if (opts.isLapButton || (!opts.durationSeconds && !opts.distanceMeters)) {
     step.endCondition = 'LAP_BUTTON'
   } else if (opts.durationSeconds && opts.durationSeconds > 0) {
