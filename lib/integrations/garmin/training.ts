@@ -344,6 +344,9 @@ function buildStep(
     }
   }
 
+  // Step description (equipment name, calorie target — shown on watch)
+  if (opts.description) step.description = opts.description
+
   return step
 }
 
@@ -397,19 +400,19 @@ export function serializeWorkoutToGarmin(workout: {
 
   for (const segment of workout.segments) {
     if (segment.repeats && segment.steps && segment.steps.length > 0) {
-      // Temporarily flatten repeat steps for Garmin API testing
-      for (const step of segment.steps) {
-        steps.push(
-          buildStep(stepOrder++, step.type, {
-            durationSeconds: step.durationSeconds,
-            distanceMeters: step.distanceMeters,
-            isLapButton: step.durationIsLapButton,
-            targetType: step.targetType,
-            targetLow: step.targetLow,
-            targetHigh: step.targetHigh,
-          })
-        )
-      }
+      // Repeat block with child steps
+      const childSteps = segment.steps.map((step, idx) =>
+        buildStep(idx + 1, step.type, {
+          durationSeconds: step.durationSeconds,
+          distanceMeters: step.distanceMeters,
+          isLapButton: step.durationIsLapButton,
+          targetType: step.targetType,
+          targetLow: step.targetLow,
+          targetHigh: step.targetHigh,
+          description: step.description,
+        })
+      )
+      steps.push(buildRepeatGroup(stepOrder++, segment.repeats, childSteps))
     } else {
       // Single step
       steps.push(
@@ -424,14 +427,9 @@ export function serializeWorkoutToGarmin(workout: {
     }
   }
 
-  // Match workout-level sport string with segment-level sportType
-  const sportString = sportTypeObj.sportTypeKey === 'running' ? 'RUNNING'
-    : sportTypeObj.sportTypeKey === 'cycling' ? 'CYCLING'
-    : sport
-
   const result: GarminWorkout = {
     workoutName: workout.name,
-    sport: 'RUNNING',
+    sport,
     steps,
   }
   if (workout.description) result.description = workout.description
