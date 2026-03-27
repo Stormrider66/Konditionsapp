@@ -322,13 +322,13 @@ function buildStep(
 
   // End condition (duration)
   if (opts.isLapButton || (!opts.durationSeconds && !opts.distanceMeters)) {
-    step.endCondition = 'LAP_BUTTON'
+    step.durationType = 'LAP_BUTTON'
   } else if (opts.durationSeconds && opts.durationSeconds > 0) {
-    step.endCondition = 'TIME'
-    step.endConditionValue = opts.durationSeconds
+    step.durationType = 'TIME'
+    step.durationValue = opts.durationSeconds
   } else if (opts.distanceMeters && opts.distanceMeters > 0) {
-    step.endCondition = 'DISTANCE'
-    step.endConditionValue = opts.distanceMeters
+    step.durationType = 'DISTANCE'
+    step.durationValue = opts.distanceMeters
   }
 
   // Target
