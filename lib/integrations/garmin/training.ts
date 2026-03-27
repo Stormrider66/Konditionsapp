@@ -310,6 +310,7 @@ function buildStep(
   } = {}
 ): GarminWorkoutStep {
   const step: GarminWorkoutStep = {
+    type: 'ExecutableStepDTO',
     stepOrder: order,
     stepType: STEP_TYPE_STRINGS[stepType] || 'INTERVAL',
   }
@@ -426,11 +427,6 @@ export function serializeWorkoutToGarmin(workout: {
     workoutName: workout.name,
     sport: 'RUNNING',
     steps,
-    segments: [{
-      segmentOrder: 1,
-      sport: 'RUNNING',
-      steps,
-    }],
   }
   if (workout.description) result.description = workout.description
   return result
