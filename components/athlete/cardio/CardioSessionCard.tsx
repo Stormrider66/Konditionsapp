@@ -1,6 +1,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { HeadlessVoiceCoachLauncher } from '@/components/athlete/workout/HeadlessVoiceCoachLauncher'
 import {
   GlassCard,
   GlassCardContent,
@@ -245,15 +246,21 @@ export function CardioSessionCard({
             Slutförd
           </Button>
         ) : isInProgress ? (
-          <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20" onClick={() => onStartFocusMode(id)}>
-            <Play className="h-4 w-4 mr-2" />
-            Fortsätt pass
-          </Button>
+          <div className="flex gap-2">
+            <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20" onClick={() => onStartFocusMode(id)}>
+              <Play className="h-4 w-4 mr-2" />
+              Fortsätt pass
+            </Button>
+            <HeadlessVoiceCoachLauncher assignmentId={id} workoutType="cardio" />
+          </div>
         ) : (
-          <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 shadow-lg transition-all" onClick={() => onStartFocusMode(id)}>
-            <Play className="h-4 w-4 mr-2" />
-            Starta Focus Mode
-          </Button>
+          <div className="flex gap-2">
+            <Button className="flex-1 bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 shadow-lg transition-all" onClick={() => onStartFocusMode(id)}>
+              <Play className="h-4 w-4 mr-2" />
+              Starta Focus Mode
+            </Button>
+            <HeadlessVoiceCoachLauncher assignmentId={id} workoutType="cardio" />
+          </div>
         )}
       </GlassCardFooter>
     </GlassCard>

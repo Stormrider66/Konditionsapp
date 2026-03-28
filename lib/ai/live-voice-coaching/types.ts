@@ -118,6 +118,7 @@ export interface LiveExerciseStatus {
 /** Callbacks for tool call dispatch from the Live API */
 export interface LiveCoachingToolCallbacks {
   // Shared
+  onEndCoaching?: () => void
   onPauseWorkout: () => void
   onResumeWorkout: () => void
   onAdjustIntensity: (direction: 'easier' | 'harder', note?: string) => void

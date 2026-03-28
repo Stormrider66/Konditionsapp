@@ -12,6 +12,11 @@ import { Type, type FunctionDeclaration } from '@google/genai'
 
 const SHARED_TOOLS: FunctionDeclaration[] = [
   {
+    name: 'end_coaching',
+    description: 'End the voice coaching session. Use when the athlete says "stop coaching", "end session", "that\'s it", or "I\'m done".',
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+  {
     name: 'pause_workout',
     description: 'Pause the workout timer or rest timer',
     parameters: { type: Type.OBJECT, properties: {} },

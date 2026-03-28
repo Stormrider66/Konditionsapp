@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react'
+import { HeadlessVoiceCoachLauncher } from './HeadlessVoiceCoachLauncher'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -264,15 +265,18 @@ export function StrengthSessionCard({
 
           {/* Action buttons */}
           {status !== 'COMPLETED' && status !== 'SKIPPED' && (
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={() => setShowStartScreen(true)}
-            >
-              <Play className="h-5 w-5 mr-2" />
-              {progressPercent > 0 ? 'Fortsätt pass' : 'Starta pass'}
-              <ChevronRight className="h-4 w-4 ml-auto" />
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                size="lg"
+                onClick={() => setShowStartScreen(true)}
+              >
+                <Play className="h-5 w-5 mr-2" />
+                {progressPercent > 0 ? 'Fortsätt pass' : 'Starta pass'}
+                <ChevronRight className="h-4 w-4 ml-auto" />
+              </Button>
+              <HeadlessVoiceCoachLauncher assignmentId={assignment.id} workoutType="strength" />
+            </div>
           )}
 
           {status === 'COMPLETED' && (

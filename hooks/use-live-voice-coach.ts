@@ -144,6 +144,12 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
       let result: Record<string, unknown> = { success: true }
 
       switch (name) {
+        case 'end_coaching': {
+          result = { success: true, message: 'Coaching session ending' }
+          // Defer disconnect to after tool response is sent
+          setTimeout(() => { cbs.onEndCoaching?.() }, 500)
+          break
+        }
         case 'skip_segment':
           cbs.onSkipSegment()
           result = { success: true, message: 'Segment skipped' }
