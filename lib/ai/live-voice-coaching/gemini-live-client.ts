@@ -152,6 +152,15 @@ export class GeminiLiveVoiceClient {
     })
   }
 
+  /** Send a video frame to the Live API for form coaching */
+  sendVideoFrame(base64Data: string, mimeType: string): void {
+    if (!this.session || !this._isConnected) return
+
+    this.session.sendRealtimeInput({
+      media: { data: base64Data, mimeType },
+    })
+  }
+
   /** Send tool call response back to the model */
   sendToolResponse(
     functionResponses: Array<{ id: string; name: string; response: Record<string, unknown> }>

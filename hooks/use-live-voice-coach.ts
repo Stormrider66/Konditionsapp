@@ -4,7 +4,8 @@
  * Live Voice Coach Hook
  *
  * Manages a real-time bidirectional voice coaching session using the Gemini Live API.
- * Handles audio capture, playback, tool call dispatching, and session lifecycle.
+ * Handles audio capture/playback, optional video capture, HR feed, transcript collection,
+ * tool call dispatching, and session lifecycle.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -28,6 +29,12 @@ interface FocusModeSegment {
   notes?: string
 }
 
+interface TranscriptEntry {
+  role: 'athlete' | 'coach_ai'
+  content: string
+  timestamp: string
+}
+
 export interface UseLiveVoiceCoachOptions {
   assignmentId: string
   segments: FocusModeSegment[]
@@ -35,6 +42,12 @@ export interface UseLiveVoiceCoachOptions {
   isTimerRunning: boolean
   timerSecondsRemaining: number | null
   toolCallbacks: LiveCoachingToolCallbacks
+  /** Current heart rate from HR monitor (null if unavailable) */
+  heartRate?: number | null
+  /** Current HR zone (1-5) */
+  heartRateZone?: number | null
+  /** Enable camera for form coaching */
+  enableCamera?: boolean
 }
 
 export interface UseLiveVoiceCoachReturn {
@@ -59,6 +72,9 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     isTimerRunning,
     timerSecondsRemaining,
     toolCallbacks,
+    heartRate,
+    heartRateZone,
+    enableCamera,
   } = options
 
   const [status, setStatus] = useState<LiveVoiceStatus>('idle')
@@ -76,14 +92,29 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
   const callbacksRef = useRef(toolCallbacks)
   callbacksRef.current = toolCallbacks
 
+  // Transcript collection
+  const transcriptsRef = useRef<TranscriptEntry[]>([])
+
+  // HR tracking for deduplication
+  const lastSentHRRef = useRef<number | null>(null)
+
   // Keep latest state in refs for tool call responses
   const stateRef = useRef({
     currentSegmentIndex,
     segments,
     isTimerRunning,
     timerSecondsRemaining,
+    heartRate: heartRate ?? null,
+    heartRateZone: heartRateZone ?? null,
   })
-  stateRef.current = { currentSegmentIndex, segments, isTimerRunning, timerSecondsRemaining }
+  stateRef.current = {
+    currentSegmentIndex,
+    segments,
+    isTimerRunning,
+    timerSecondsRemaining,
+    heartRate: heartRate ?? null,
+    heartRateZone: heartRateZone ?? null,
+  }
 
   const supported = typeof window !== 'undefined' && AudioCaptureManager.isSupported()
 
@@ -136,7 +167,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
           break
         case 'get_current_status': {
           const seg = state.segments[state.currentSegmentIndex]
-          const status: LiveWorkoutStatus = {
+          const statusData: LiveWorkoutStatus = {
             currentSegmentIndex: state.currentSegmentIndex,
             totalSegments: state.segments.length,
             currentSegmentType: seg?.type || 'UNKNOWN',
@@ -145,7 +176,15 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
             isRunning: state.isTimerRunning,
             segmentsCompleted: state.currentSegmentIndex,
           }
-          result = status as unknown as Record<string, unknown>
+          result = statusData as unknown as Record<string, unknown>
+          break
+        }
+        case 'get_heart_rate': {
+          result = {
+            heartRate: state.heartRate,
+            zone: state.heartRateZone,
+            available: state.heartRate !== null,
+          }
           break
         }
         default:
@@ -163,13 +202,14 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
 
     setStatus('connecting')
     setError(null)
+    transcriptsRef.current = []
 
     try {
       // Fetch ephemeral token from server
       const res = await fetch('/api/athlete/live-voice-coaching/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignmentId }),
+        body: JSON.stringify({ assignmentId, enableCamera: enableCamera ?? false }),
       })
 
       if (!res.ok) {
@@ -207,7 +247,6 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
           onAudioData: (audioData) => {
             playback.enqueue(audioData)
             setIsSpeaking(true)
-            // Clear speaking flag after a short delay (last chunk indicator)
             setTimeout(() => {
               if (!playback.isSpeaking) setIsSpeaking(false)
             }, 500)
@@ -215,8 +254,24 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
           onTextResponse: (text) => {
             setTranscript(text)
           },
+          onInputTranscript: (text) => {
+            if (text.trim()) {
+              transcriptsRef.current.push({
+                role: 'athlete',
+                content: text,
+                timestamp: new Date().toISOString(),
+              })
+            }
+          },
           onOutputTranscript: (text) => {
             setTranscript(text)
+            if (text.trim()) {
+              transcriptsRef.current.push({
+                role: 'coach_ai',
+                content: text,
+                timestamp: new Date().toISOString(),
+              })
+            }
           },
           onToolCall: handleToolCall,
           onInterrupted: () => {
@@ -239,12 +294,23 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
 
       // Start capturing audio
       await capture.start()
+
+      // Start camera capture if enabled
+      if (enableCamera) {
+        import('@/lib/ai/live-voice-coaching/video-capture').then(({ VideoCaptureManager }) => {
+          const video = new VideoCaptureManager()
+          video.onFrame = (base64, mimeType) => {
+            client.sendVideoFrame(base64, mimeType)
+          }
+          video.start().catch(() => {})
+        }).catch(() => {})
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Connection failed'
       setError(message)
       setStatus('error')
     }
-  }, [assignmentId, status, handleToolCall])
+  }, [assignmentId, status, handleToolCall, enableCamera])
 
   const disconnect = useCallback(() => {
     const sessionId = sessionIdRef.current
@@ -252,6 +318,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     const capture = captureRef.current
     const playback = playbackRef.current
     const duration = startTimeRef.current > 0 ? (Date.now() - startTimeRef.current) / 1000 : 0
+    const transcripts = [...transcriptsRef.current]
 
     // Stop audio
     capture?.stop()
@@ -266,7 +333,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     setIsSpeaking(false)
     setStatus('ended')
 
-    // Report session end
+    // Report session end with transcripts
     if (sessionId && duration > 0) {
       fetch('/api/athlete/live-voice-coaching/end', {
         method: 'POST',
@@ -278,6 +345,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
           audioOutputSeconds: client?.audioOutputDuration ?? 0,
           segmentsCompleted: stateRef.current.currentSegmentIndex,
           endReason: 'user_cancelled',
+          transcripts: transcripts.length > 0 ? transcripts : undefined,
         }),
       }).catch(() => {})
     }
@@ -315,6 +383,19 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     const text = `[SEGMENT CHANGE] Now on segment ${currentSegmentIndex + 1} of ${segments.length}: ${seg.typeName}${seg.plannedDuration ? `, ${Math.floor(seg.plannedDuration / 60)} minutes` : ''}${seg.plannedZone ? `, Zone ${seg.plannedZone}` : ''}`
     clientRef.current.sendText(text)
   }, [currentSegmentIndex, segments, status])
+
+  // Send HR updates to the AI (only when HR changes by >=3 bpm to avoid spam)
+  useEffect(() => {
+    if (status !== 'connected' || !clientRef.current?.isConnected) return
+    if (heartRate == null) return
+
+    const lastSent = lastSentHRRef.current
+    if (lastSent !== null && Math.abs(heartRate - lastSent) < 3) return
+
+    lastSentHRRef.current = heartRate
+    const zoneText = heartRateZone ? ` (Zone ${heartRateZone})` : ''
+    clientRef.current.sendText(`[HR UPDATE] Current heart rate: ${heartRate} bpm${zoneText}`)
+  }, [heartRate, heartRateZone, status])
 
   return {
     status,

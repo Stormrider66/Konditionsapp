@@ -68,6 +68,15 @@ export const LIVE_COACHING_TOOLS: FunctionDeclaration[] = [
     },
   },
   {
+    name: 'get_heart_rate',
+    description:
+      "Get the athlete's current heart rate and zone from their HR monitor",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {},
+    },
+  },
+  {
     name: 'adjust_intensity',
     description:
       "Note that the athlete wants to adjust their workout intensity. This doesn't change the plan but records their preference.",

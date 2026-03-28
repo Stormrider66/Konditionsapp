@@ -54,6 +54,10 @@ interface IntervalTimerProps {
   voiceSpeak?: (text: string, priority?: 'high' | 'normal') => void
   /** Disable voice countdown cues (when live voice coach is active) */
   disableVoiceCues?: boolean
+  /** Force pause from parent (e.g. live voice coach tool call) */
+  forcePaused?: boolean
+  /** Called when timer state changes (for live voice coach status reporting) */
+  onStateChange?: (state: { seconds: number; isRunning: boolean }) => void
 }
 
 const SEGMENT_COLORS: Record<SegmentType, { bg: string; text: string; stroke: string; badge: string }> = {
@@ -134,12 +138,29 @@ export function IntervalTimer({
   notes,
   voiceSpeak,
   disableVoiceCues = false,
+  forcePaused,
+  onStateChange,
 }: IntervalTimerProps) {
   const [seconds, setSeconds] = useState(duration)
   const [isRunning, setIsRunning] = useState(autoStart)
   const [isMuted, setIsMuted] = useState(false)
   const [hasStarted, setHasStarted] = useState(autoStart)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // External pause/resume control (from live voice coach)
+  useEffect(() => {
+    if (forcePaused === undefined) return
+    if (forcePaused && isRunning) {
+      setIsRunning(false)
+    } else if (!forcePaused && hasStarted && !isRunning) {
+      setIsRunning(true)
+    }
+  }, [forcePaused]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Report state changes to parent
+  useEffect(() => {
+    onStateChange?.({ seconds, isRunning })
+  }, [seconds, isRunning]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const colors = SEGMENT_COLORS[segmentType]
 

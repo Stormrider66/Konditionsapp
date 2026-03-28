@@ -6,7 +6,7 @@ import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-key'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { initSessionSchema } from '@/lib/ai/live-voice-coaching/schemas'
+import { z } from 'zod'
 import { buildLiveCoachingSystemInstruction } from '@/lib/ai/live-voice-coaching/system-prompt'
 import { LIVE_COACHING_TOOLS } from '@/lib/ai/live-voice-coaching/tools'
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
@@ -39,7 +39,10 @@ export async function POST(request: Request) {
 
     // Validate body
     const body = await request.json()
-    const parsed = initSessionSchema.safeParse(body)
+    const parsed = z.object({
+      assignmentId: z.string().uuid(),
+      enableCamera: z.boolean().optional().default(false),
+    }).safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Invalid request', details: parsed.error.flatten() },
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { assignmentId } = parsed.data
+    const { assignmentId, enableCamera } = parsed.data
 
     // Fetch assignment with session data and verify ownership
     const assignment = await prisma.cardioSessionAssignment.findFirst({
@@ -58,7 +61,7 @@ export async function POST(request: Request) {
       include: {
         session: true,
         athlete: {
-          select: { name: true },
+          select: { name: true, preferredVoiceCoachVoice: true },
         },
       },
     })
@@ -121,7 +124,20 @@ export async function POST(request: Request) {
       totalDuration: totalDuration > 0 ? totalDuration : undefined,
     }
 
-    const systemInstruction = buildLiveCoachingSystemInstruction(workoutContext)
+    // Check if athlete has active HR session
+    const hrParticipant = await prisma.liveHRParticipant.findFirst({
+      where: { clientId, session: { status: 'ACTIVE' } },
+      select: { id: true },
+    })
+    const hrAvailable = !!hrParticipant
+
+    const systemInstruction = buildLiveCoachingSystemInstruction(workoutContext, {
+      hrAvailable,
+      cameraEnabled: enableCamera,
+    })
+
+    // Get voice preference
+    const voiceName = assignment.athlete?.preferredVoiceCoachVoice || 'Kore'
 
     // Create ephemeral token with locked config
     const model = GEMINI_MODELS.VOICE_COACHING
@@ -129,6 +145,10 @@ export async function POST(request: Request) {
       apiKey: keyContext.googleKey,
       httpOptions: { apiVersion: 'v1alpha' },
     })
+
+    const responseModalities = enableCamera
+      ? [Modality.AUDIO, Modality.IMAGE]
+      : [Modality.AUDIO]
 
     const token = await ai.authTokens.create({
       config: {
@@ -139,10 +159,10 @@ export async function POST(request: Request) {
           config: {
             systemInstruction: { parts: [{ text: systemInstruction }] },
             tools: [{ functionDeclarations: LIVE_COACHING_TOOLS }],
-            responseModalities: [Modality.AUDIO],
+            responseModalities,
             speechConfig: {
               voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: 'Kore' },
+                prebuiltVoiceConfig: { voiceName },
               },
             },
             enableAffectiveDialog: true,

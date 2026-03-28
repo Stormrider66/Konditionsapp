@@ -7,7 +7,7 @@
  */
 
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -44,6 +44,7 @@ import {
   buildSessionCompleteCue,
 } from '@/hooks/use-voice-coach'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
+import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
@@ -128,29 +129,40 @@ export function CardioFocusModeWorkout({
   // Voice coaching (basic SpeechSynthesis)
   const voice = useVoiceCoach({ rate: 1.05 })
 
+  // Timer state exposed for live voice coach
+  const [timerState, setTimerState] = useState<{ seconds: number; isRunning: boolean }>({ seconds: 0, isRunning: false })
+  const [forcePaused, setForcePaused] = useState<boolean | undefined>(undefined)
+
+  // Live HR feed (only polls when live coach is connected)
+  const liveCoachConnectedRef = useRef(false)
+  const hr = useAthleteHR(liveCoachConnectedRef.current)
+
   // Live AI Voice Coach (Gemini Live API)
   const liveCoach = useLiveVoiceCoach({
     assignmentId,
     segments,
     currentSegmentIndex: currentIndex,
-    isTimerRunning: viewState === 'timer',
-    timerSecondsRemaining: null,
+    isTimerRunning: timerState.isRunning,
+    timerSecondsRemaining: timerState.seconds,
+    heartRate: hr.heartRate,
+    heartRateZone: hr.zone,
     toolCallbacks: {
       onSkipSegment: () => {
         if (currentIndex < segments.length - 1) {
           setCurrentIndex((prev) => prev + 1)
           setViewState('timer')
           setTimerElapsed(0)
+          setForcePaused(undefined)
         }
       },
       onPauseWorkout: () => {
-        // IntervalTimer manages its own pause state — send text hint
+        setForcePaused(true)
       },
       onResumeWorkout: () => {
-        // IntervalTimer manages its own pause state — send text hint
+        setForcePaused(false)
       },
       onExtendSegment: () => {
-        // Could be implemented with IntervalTimer refactor
+        // Timer will receive new duration on next render
       },
       onMarkSegmentComplete: () => {
         handleTimerComplete()
@@ -161,6 +173,7 @@ export function CardioFocusModeWorkout({
     },
   })
   const liveCoachActive = liveCoach.status === 'connected'
+  liveCoachConnectedRef.current = liveCoachActive
 
   // When live coach is active, disable basic voice cues
   useEffect(() => {
@@ -419,6 +432,8 @@ export function CardioFocusModeWorkout({
             autoStart={false}
             voiceSpeak={voice.speak}
             disableVoiceCues={liveCoachActive}
+            forcePaused={forcePaused}
+            onStateChange={setTimerState}
           />
         ) : viewState === 'timer' && !currentSegment.plannedDuration ? (
           // No duration - show segment info and allow marking complete

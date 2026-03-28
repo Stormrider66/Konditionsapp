@@ -7,8 +7,14 @@
 
 import type { WorkoutContextForLive } from './types'
 
+export interface SystemPromptOptions {
+  hrAvailable?: boolean
+  cameraEnabled?: boolean
+}
+
 export function buildLiveCoachingSystemInstruction(
-  context: WorkoutContextForLive
+  context: WorkoutContextForLive,
+  options: SystemPromptOptions = {}
 ): string {
   const segmentList = context.segments
     .map((s) => {
@@ -31,7 +37,7 @@ export function buildLiveCoachingSystemInstruction(
     ? `${Math.round(context.totalDuration / 60)} minutes`
     : `${context.segments.length} segments`
 
-  return `You are a real-time voice coach guiding an athlete through a cardio workout session.
+  let prompt = `You are a real-time voice coach guiding an athlete through a cardio workout session.
 
 ## Workout Details
 - Session: ${context.sessionName}
@@ -66,7 +72,34 @@ You have tools to control the workout. Use them ONLY when the athlete explicitly
 - extend_segment: When athlete wants more time on current segment
 - mark_segment_complete: When athlete says "done" or "finished" with current segment
 - get_current_status: When athlete asks where they are in the workout
+- get_heart_rate: When athlete asks about their heart rate or zone
 - adjust_intensity: When athlete says "easier" or "harder"
 
 After using a tool, briefly confirm the action to the athlete.`
+
+  if (options.hrAvailable) {
+    prompt += `
+
+## Heart Rate Monitoring
+The athlete is wearing an HR monitor. You will receive periodic [HR UPDATE] messages with their current heart rate and zone.
+- Reference their HR naturally: "You're at 165, right in zone 4 — perfect for this interval."
+- Warn if HR seems too high for the segment type (e.g., zone 5 during warmup).
+- During recovery, encourage them to bring their HR down: "Let's get that heart rate below 130."
+- Use the get_heart_rate tool if the athlete asks and you haven't received a recent update.`
+  }
+
+  if (options.cameraEnabled) {
+    prompt += `
+
+## Form Coaching (Camera Active)
+The athlete's camera is active. You will receive periodic video frames showing their exercise form.
+- Provide brief, actionable form cues: "Shoulders back", "Shorter stride", "Arms closer to body."
+- Only comment on form when you notice something specific — don't narrate every frame.
+- Focus on the most impactful correction, not multiple issues at once.
+- Be encouraging when form looks good: "Great posture!" or "Nice cadence."
+- For running: watch for overstriding, arm swing, torso lean, head position.
+- For cycling: watch for knee tracking, hip stability, upper body tension.`
+  }
+
+  return prompt
 }

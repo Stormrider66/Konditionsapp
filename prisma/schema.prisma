@@ -1010,6 +1010,7 @@ model Client {
 
   // Live Voice Coaching Sessions
   liveVoiceCoachingSessions LiveVoiceCoachingSession[] @relation("ClientLiveVoiceSessions")
+  preferredVoiceCoachVoice  String? // Gemini Live voice name (e.g., Kore, Puck, Aoede)
 
   @@index([userId])
   @@index([businessId])
@@ -9180,12 +9181,18 @@ model LiveVoiceCoachingSession {
   endReason          String? // completed, user_cancelled, error, timeout
   segmentsCompleted  Int    @default(0)
 
+  // Post-session intelligence
+  summary            String?  @db.Text // AI-generated session summary
+  extractedMemories  Json?    // Memories extracted from transcripts
+  painOrInjuryFlagged Boolean @default(false) // Whether coach alert was triggered
+
   // Who paid for it (for cost attribution)
   keyOwnerId String
 
-  client     Client                  @relation("ClientLiveVoiceSessions", fields: [clientId], references: [id], onDelete: Cascade)
-  assignment CardioSessionAssignment @relation("AssignmentLiveVoiceSessions", fields: [assignmentId], references: [id], onDelete: Cascade)
-  keyOwner   User                    @relation("UserLiveVoiceKeyOwner", fields: [keyOwnerId], references: [id], onDelete: Cascade)
+  client       Client                  @relation("ClientLiveVoiceSessions", fields: [clientId], references: [id], onDelete: Cascade)
+  assignment   CardioSessionAssignment @relation("AssignmentLiveVoiceSessions", fields: [assignmentId], references: [id], onDelete: Cascade)
+  keyOwner     User                    @relation("UserLiveVoiceKeyOwner", fields: [keyOwnerId], references: [id], onDelete: Cascade)
+  transcripts  LiveVoiceTranscript[]
 
   createdAt DateTime @default(now())
   endedAt   DateTime?
@@ -9194,6 +9201,20 @@ model LiveVoiceCoachingSession {
   @@index([assignmentId])
   @@index([keyOwnerId])
   @@index([createdAt])
+}
+
+/// Individual transcript entries from a live voice coaching session
+model LiveVoiceTranscript {
+  id        String @id @default(uuid())
+  sessionId String
+  role      String // 'athlete' or 'coach_ai'
+  content   String @db.Text
+  timestamp DateTime
+
+  session LiveVoiceCoachingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([timestamp])
 }
 
 // ============================================================================
