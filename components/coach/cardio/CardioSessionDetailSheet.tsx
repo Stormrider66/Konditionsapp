@@ -320,7 +320,7 @@ export function CardioSessionDetailSheet({
               <ul className="space-y-3">
                 {segments.map((segment: CardioSegment, i: number) => {
                   // REPEAT_GROUP: render as a block with child steps
-                  if (segment.type === 'REPEAT_GROUP' && (segment as Record<string, unknown>).steps) {
+                  if ((segment.type as string) === 'REPEAT_GROUP' && (segment as Record<string, unknown>).steps) {
                     const group = segment as Record<string, unknown>;
                     const groupSteps = group.steps as Array<Record<string, unknown>>;
                     const reps = (group.repeats as number) || 1;
