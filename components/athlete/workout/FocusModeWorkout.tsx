@@ -7,7 +7,7 @@
  * Shows one exercise at a time with swipe navigation.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -38,6 +38,9 @@ import {
 } from 'lucide-react'
 import { SetLoggingForm, SetLogData } from './SetLoggingForm'
 import { RestTimer } from './RestTimer'
+import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
+import { useAthleteHR } from '@/hooks/use-athlete-hr'
+import { LiveVoiceCoachButton } from '@/components/athlete/cardio/LiveVoiceCoachButton'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { ExerciseHeader } from '@/components/themed/ExerciseHeader'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
@@ -161,6 +164,85 @@ export function FocusModeWorkout({
   const [isCompleting, setIsCompleting] = useState(false)
   const [sessionRPE, setSessionRPE] = useState<number>(7)
   const [restTime, setRestTime] = useState(90)
+
+  // Live AI Voice Coach
+  const liveCoachConnectedRef = useRef(false)
+  const hr = useAthleteHR(liveCoachConnectedRef.current)
+
+  const liveCoach = useLiveVoiceCoach({
+    assignmentId,
+    workoutType: 'strength',
+    segments: data?.exercises.map((e) => ({
+      type: e.section,
+      typeName: e.name,
+      plannedDuration: undefined,
+      plannedZone: undefined,
+      notes: `${e.sets} sets × ${e.repsTarget} reps${e.weight ? ` @ ${e.weight}kg` : ''}`,
+    })) ?? [],
+    currentSegmentIndex: currentIndex,
+    isTimerRunning: showRestTimer,
+    timerSecondsRemaining: null,
+    heartRate: hr.heartRate,
+    heartRateZone: hr.zone,
+    toolCallbacks: {
+      onPauseWorkout: () => {},
+      onResumeWorkout: () => {},
+      onAdjustIntensity: () => {},
+      onSkipSegment: () => {},
+      onExtendSegment: () => {},
+      onMarkSegmentComplete: () => {},
+      onLogSet: async (logData) => {
+        if (!currentExercise) return { success: false }
+        try {
+          const response = await fetch(`/api/strength-sessions/${assignmentId}/sets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              exerciseId: currentExercise.exerciseId,
+              setNumber: currentExercise.completedSets + 1,
+              weight: logData.weight,
+              repsCompleted: logData.reps,
+              repsTarget: typeof currentExercise.repsTarget === 'number' ? currentExercise.repsTarget : undefined,
+              rpe: logData.rpe,
+            }),
+          })
+          if (!response.ok) return { success: false }
+          const result = await response.json()
+          await fetchWorkoutData()
+          if (currentExercise.restSeconds > 0) {
+            setRestTime(currentExercise.restSeconds)
+            setShowRestTimer(true)
+          }
+          return {
+            success: true,
+            estimated1RM: result.data?.estimated1RM,
+            setNumber: result.data?.setLog?.setNumber,
+            completedSets: (currentExercise.completedSets || 0) + 1,
+            targetSets: currentExercise.sets,
+          }
+        } catch {
+          return { success: false }
+        }
+      },
+      onSkipExercise: () => {
+        if (data && currentIndex < data.exercises.length - 1) {
+          setCurrentIndex((prev) => prev + 1)
+          setShowRestTimer(false)
+        }
+      },
+      onCompleteExercise: () => {
+        if (data && currentIndex < data.exercises.length - 1) {
+          setCurrentIndex((prev) => prev + 1)
+          setShowRestTimer(false)
+        }
+      },
+      onStartRestTimer: (seconds) => {
+        setRestTime(seconds ?? currentExercise?.restSeconds ?? 90)
+        setShowRestTimer(true)
+      },
+    },
+  })
+  liveCoachConnectedRef.current = liveCoach.status === 'connected'
 
   // Fetch workout data
   const fetchWorkoutData = useCallback(async () => {
@@ -336,13 +418,29 @@ export function FocusModeWorkout({
             {sectionConfig.label}
           </Badge>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowCompleteDialog(true)}
-        >
-          Avsluta
-        </Button>
+        <div className="flex items-center gap-1">
+          {liveCoach.supported && (
+            <LiveVoiceCoachButton
+              status={liveCoach.status}
+              isListening={liveCoach.isListening}
+              isSpeaking={liveCoach.isSpeaking}
+              isMuted={liveCoach.isMuted}
+              transcript={liveCoach.transcript}
+              error={liveCoach.error}
+              supported={liveCoach.supported}
+              onConnect={liveCoach.connect}
+              onDisconnect={liveCoach.disconnect}
+              onToggleMute={liveCoach.toggleMute}
+            />
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { liveCoach.disconnect(); setShowCompleteDialog(true) }}
+          >
+            Avsluta
+          </Button>
+        </div>
       </header>
 
       {/* Progress bar */}

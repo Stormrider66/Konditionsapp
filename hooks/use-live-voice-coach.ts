@@ -37,6 +37,8 @@ interface TranscriptEntry {
 
 export interface UseLiveVoiceCoachOptions {
   assignmentId: string
+  /** Workout type: 'cardio' or 'strength' */
+  workoutType?: 'cardio' | 'strength'
   segments: FocusModeSegment[]
   currentSegmentIndex: number
   isTimerRunning: boolean
@@ -67,6 +69,7 @@ export interface UseLiveVoiceCoachReturn {
 export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoiceCoachReturn {
   const {
     assignmentId,
+    workoutType = 'cardio',
     segments,
     currentSegmentIndex,
     isTimerRunning,
@@ -187,6 +190,45 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
           }
           break
         }
+        // ─── Strength-specific tools ────────────────────────────────
+        case 'log_set': {
+          if (cbs.onLogSet) {
+            // Async tool call — send response after API completes
+            const logData = { weight: args?.weight ?? 0, reps: args?.reps ?? 0, rpe: args?.rpe }
+            cbs.onLogSet(logData).then((logResult) => {
+              clientRef.current?.sendToolResponse([{
+                id, name, response: logResult as unknown as Record<string, unknown>,
+              }])
+            }).catch(() => {
+              clientRef.current?.sendToolResponse([{
+                id, name, response: { success: false, error: 'Failed to log set' },
+              }])
+            })
+            continue // Skip synchronous response push
+          }
+          result = { success: false, error: 'Set logging not available' }
+          break
+        }
+        case 'get_exercise_status': {
+          // Delegate to parent via get_current_status equivalent for strength
+          result = { success: true, message: 'Use get_current_status for workout info' }
+          break
+        }
+        case 'skip_exercise': {
+          cbs.onSkipExercise?.()
+          result = { success: true, message: 'Exercise skipped' }
+          break
+        }
+        case 'complete_exercise': {
+          cbs.onCompleteExercise?.()
+          result = { success: true, message: 'Exercise completed' }
+          break
+        }
+        case 'start_rest_timer': {
+          cbs.onStartRestTimer?.(args?.seconds)
+          result = { success: true, message: `Rest timer started${args?.seconds ? ` for ${args.seconds}s` : ''}` }
+          break
+        }
         default:
           result = { success: false, error: `Unknown tool: ${name}` }
       }
@@ -194,7 +236,9 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
       responses.push({ id, name, response: result })
     }
 
-    clientRef.current?.sendToolResponse(responses)
+    if (responses.length > 0) {
+      clientRef.current?.sendToolResponse(responses)
+    }
   }, [])
 
   const connect = useCallback(async () => {
@@ -209,7 +253,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
       const res = await fetch('/api/athlete/live-voice-coaching/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignmentId, enableCamera: enableCamera ?? false }),
+        body: JSON.stringify({ workoutType, assignmentId, enableCamera: enableCamera ?? false }),
       })
 
       if (!res.ok) {

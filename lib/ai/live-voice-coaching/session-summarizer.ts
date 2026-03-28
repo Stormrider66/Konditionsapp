@@ -31,7 +31,10 @@ export async function generateSessionSummary(
           businessId: true,
         },
       },
-      assignment: {
+      cardioAssignment: {
+        select: { assignedBy: true },
+      },
+      strengthAssignment: {
         select: { assignedBy: true },
       },
     },
@@ -116,7 +119,7 @@ Respond ONLY with valid JSON.`
 
     // Create coach alert if pain/injury was mentioned
     if (analysis.painOrInjuryMentioned) {
-      const coachId = session.assignment?.assignedBy
+      const coachId = session.cardioAssignment?.assignedBy ?? session.strengthAssignment?.assignedBy
       if (coachId) {
         await prisma.coachAlert.create({
           data: {

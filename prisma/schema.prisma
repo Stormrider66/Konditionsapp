@@ -5879,6 +5879,9 @@ model StrengthSessionAssignment {
   calendarEvent    CalendarEvent? @relation("StrengthAssignmentCalendar", fields: [calendarEventId], references: [id])
   responsibleCoach User?          @relation("StrengthAssignmentResponsibleCoach", fields: [responsibleCoachId], references: [id], onDelete: SetNull)
 
+  // Live Voice Coaching Sessions
+  liveVoiceCoachingSessions LiveVoiceCoachingSession[] @relation("StrengthAssignmentLiveVoiceSessions")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -9167,9 +9170,13 @@ model VoiceWorkoutSession {
 
 /// Live Voice Coaching Session - tracks real-time Gemini Live API voice coaching during workouts
 model LiveVoiceCoachingSession {
-  id           String @id @default(uuid())
-  clientId     String
-  assignmentId String
+  id       String @id @default(uuid())
+  clientId String
+
+  // Workout reference (one of these is set based on workoutType)
+  workoutType            String  @default("CARDIO") // CARDIO or STRENGTH
+  cardioAssignmentId     String?
+  strengthAssignmentId   String?
 
   // Tracking
   status             String @default("ACTIVE") // ACTIVE, COMPLETED, ERROR
@@ -9189,16 +9196,18 @@ model LiveVoiceCoachingSession {
   // Who paid for it (for cost attribution)
   keyOwnerId String
 
-  client       Client                  @relation("ClientLiveVoiceSessions", fields: [clientId], references: [id], onDelete: Cascade)
-  assignment   CardioSessionAssignment @relation("AssignmentLiveVoiceSessions", fields: [assignmentId], references: [id], onDelete: Cascade)
-  keyOwner     User                    @relation("UserLiveVoiceKeyOwner", fields: [keyOwnerId], references: [id], onDelete: Cascade)
-  transcripts  LiveVoiceTranscript[]
+  client               Client                       @relation("ClientLiveVoiceSessions", fields: [clientId], references: [id], onDelete: Cascade)
+  cardioAssignment     CardioSessionAssignment?      @relation("AssignmentLiveVoiceSessions", fields: [cardioAssignmentId], references: [id], onDelete: Cascade)
+  strengthAssignment   StrengthSessionAssignment?    @relation("StrengthAssignmentLiveVoiceSessions", fields: [strengthAssignmentId], references: [id], onDelete: Cascade)
+  keyOwner             User                          @relation("UserLiveVoiceKeyOwner", fields: [keyOwnerId], references: [id], onDelete: Cascade)
+  transcripts          LiveVoiceTranscript[]
 
   createdAt DateTime @default(now())
   endedAt   DateTime?
 
   @@index([clientId])
-  @@index([assignmentId])
+  @@index([cardioAssignmentId])
+  @@index([strengthAssignmentId])
   @@index([keyOwnerId])
   @@index([createdAt])
 }

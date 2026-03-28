@@ -2,12 +2,59 @@
  * Live Voice Coaching Tool Declarations
  *
  * Function calling tools available to the Live API model during workout coaching.
+ * Split into shared, cardio-specific, and strength-specific tools.
  * These are locked into the ephemeral token and executed client-side.
  */
 
 import { Type, type FunctionDeclaration } from '@google/genai'
 
-export const LIVE_COACHING_TOOLS: FunctionDeclaration[] = [
+// ─── Shared Tools (all workout types) ───────────────────────────────────────
+
+const SHARED_TOOLS: FunctionDeclaration[] = [
+  {
+    name: 'pause_workout',
+    description: 'Pause the workout timer or rest timer',
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+  {
+    name: 'resume_workout',
+    description: 'Resume the workout after a pause',
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+  {
+    name: 'get_current_status',
+    description: 'Get the current workout status including progress and what exercise/segment is active',
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+  {
+    name: 'get_heart_rate',
+    description: "Get the athlete's current heart rate and zone from their HR monitor",
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+  {
+    name: 'adjust_intensity',
+    description: "Note that the athlete wants to adjust their workout intensity.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        direction: {
+          type: Type.STRING,
+          enum: ['easier', 'harder'],
+          description: 'Whether the athlete wants easier or harder intensity',
+        },
+        note: {
+          type: Type.STRING,
+          description: 'Additional context from the athlete',
+        },
+      },
+      required: ['direction'],
+    },
+  },
+]
+
+// ─── Cardio-Specific Tools ──────────────────────────────────────────────────
+
+const CARDIO_TOOLS: FunctionDeclaration[] = [
   {
     name: 'skip_segment',
     description: 'Skip the current workout segment and move to the next one',
@@ -19,22 +66,6 @@ export const LIVE_COACHING_TOOLS: FunctionDeclaration[] = [
           description: 'Brief reason the athlete wants to skip',
         },
       },
-    },
-  },
-  {
-    name: 'pause_workout',
-    description: 'Pause the workout timer',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {},
-    },
-  },
-  {
-    name: 'resume_workout',
-    description: 'Resume the workout timer after a pause',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {},
     },
   },
   {
@@ -53,47 +84,81 @@ export const LIVE_COACHING_TOOLS: FunctionDeclaration[] = [
   {
     name: 'mark_segment_complete',
     description: 'Mark the current segment as completed and advance to the next',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {},
-    },
+    parameters: { type: Type.OBJECT, properties: {} },
   },
+]
+
+// ─── Strength-Specific Tools ────────────────────────────────────────────────
+
+const STRENGTH_TOOLS: FunctionDeclaration[] = [
   {
-    name: 'get_current_status',
+    name: 'log_set',
     description:
-      'Get the current workout status including segment info, time remaining, and progress',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {},
-    },
-  },
-  {
-    name: 'get_heart_rate',
-    description:
-      "Get the athlete's current heart rate and zone from their HR monitor",
-    parameters: {
-      type: Type.OBJECT,
-      properties: {},
-    },
-  },
-  {
-    name: 'adjust_intensity',
-    description:
-      "Note that the athlete wants to adjust their workout intensity. This doesn't change the plan but records their preference.",
+      'Log a completed set with weight and reps. Use when the athlete reports finishing a set, e.g. "80 kilos, 8 reps" or "done, same weight".',
     parameters: {
       type: Type.OBJECT,
       properties: {
-        direction: {
-          type: Type.STRING,
-          enum: ['easier', 'harder'],
-          description: 'Whether the athlete wants easier or harder intensity',
+        weight: {
+          type: Type.NUMBER,
+          description: 'Weight lifted in kg',
         },
-        note: {
-          type: Type.STRING,
-          description: 'Additional context from the athlete',
+        reps: {
+          type: Type.INTEGER,
+          description: 'Number of reps completed',
+        },
+        rpe: {
+          type: Type.INTEGER,
+          description: 'Rate of perceived exertion (1-10), if the athlete mentions it',
         },
       },
-      required: ['direction'],
+      required: ['weight', 'reps'],
+    },
+  },
+  {
+    name: 'get_exercise_status',
+    description: 'Get current exercise info: name, sets done/remaining, target weight and reps',
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+  {
+    name: 'skip_exercise',
+    description: 'Skip the current exercise and move to the next one',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        reason: {
+          type: Type.STRING,
+          description: 'Brief reason for skipping',
+        },
+      },
+    },
+  },
+  {
+    name: 'complete_exercise',
+    description: 'Mark the current exercise as done and advance to the next exercise',
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+  {
+    name: 'start_rest_timer',
+    description: 'Start the rest timer between sets',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        seconds: {
+          type: Type.INTEGER,
+          description: 'Rest duration in seconds. Uses the exercise default if not specified.',
+        },
+      },
     },
   },
 ]
+
+// ─── Exported Tool Sets ─────────────────────────────────────────────────────
+
+/** Tools for cardio workouts */
+export const CARDIO_COACHING_TOOLS: FunctionDeclaration[] = [...SHARED_TOOLS, ...CARDIO_TOOLS]
+
+/** Tools for strength workouts */
+export const STRENGTH_COACHING_TOOLS: FunctionDeclaration[] = [...SHARED_TOOLS, ...STRENGTH_TOOLS]
+
+/** All tools (for backward compatibility) */
+export const LIVE_COACHING_TOOLS = CARDIO_COACHING_TOOLS
