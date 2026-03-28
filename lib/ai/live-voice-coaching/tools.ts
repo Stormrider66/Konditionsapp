@@ -157,6 +157,30 @@ const STRENGTH_TOOLS: FunctionDeclaration[] = [
   },
 ]
 
+// ─── Hybrid-Specific Tools ───────────────────────────────────────────────────
+
+const HYBRID_TOOLS: FunctionDeclaration[] = [
+  {
+    name: 'complete_round',
+    description:
+      'Mark the current round as complete. For AMRAP: increments round count. For FOR_TIME/CHIPPER: advances to next round.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        extraReps: {
+          type: Type.INTEGER,
+          description: 'Partial reps completed if the round was not fully finished (for AMRAP time cap)',
+        },
+      },
+    },
+  },
+  {
+    name: 'get_workout_timer',
+    description: 'Get the current elapsed time, remaining time, and round count',
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+]
+
 // ─── Exported Tool Sets ─────────────────────────────────────────────────────
 
 /** Tools for cardio workouts */
@@ -164,6 +188,9 @@ export const CARDIO_COACHING_TOOLS: FunctionDeclaration[] = [...SHARED_TOOLS, ..
 
 /** Tools for strength workouts */
 export const STRENGTH_COACHING_TOOLS: FunctionDeclaration[] = [...SHARED_TOOLS, ...STRENGTH_TOOLS]
+
+/** Tools for hybrid workouts */
+export const HYBRID_COACHING_TOOLS: FunctionDeclaration[] = [...SHARED_TOOLS, ...HYBRID_TOOLS]
 
 /** All tools (for backward compatibility) */
 export const LIVE_COACHING_TOOLS = CARDIO_COACHING_TOOLS

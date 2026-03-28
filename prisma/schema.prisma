@@ -5687,6 +5687,9 @@ model HybridWorkoutAssignment {
   calendarEvent    CalendarEvent? @relation("HybridAssignmentCalendar", fields: [calendarEventId], references: [id])
   responsibleCoach User?          @relation("HybridAssignmentResponsibleCoach", fields: [responsibleCoachId], references: [id], onDelete: SetNull)
 
+  // Live Voice Coaching Sessions
+  liveVoiceCoachingSessions LiveVoiceCoachingSession[] @relation("HybridAssignmentLiveVoiceSessions")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -9174,9 +9177,10 @@ model LiveVoiceCoachingSession {
   clientId String
 
   // Workout reference (one of these is set based on workoutType)
-  workoutType            String  @default("CARDIO") // CARDIO or STRENGTH
+  workoutType            String  @default("CARDIO") // CARDIO, STRENGTH, or HYBRID
   cardioAssignmentId     String?
   strengthAssignmentId   String?
+  hybridAssignmentId     String?
 
   // Tracking
   status             String @default("ACTIVE") // ACTIVE, COMPLETED, ERROR
@@ -9199,6 +9203,7 @@ model LiveVoiceCoachingSession {
   client               Client                       @relation("ClientLiveVoiceSessions", fields: [clientId], references: [id], onDelete: Cascade)
   cardioAssignment     CardioSessionAssignment?      @relation("AssignmentLiveVoiceSessions", fields: [cardioAssignmentId], references: [id], onDelete: Cascade)
   strengthAssignment   StrengthSessionAssignment?    @relation("StrengthAssignmentLiveVoiceSessions", fields: [strengthAssignmentId], references: [id], onDelete: Cascade)
+  hybridAssignment     HybridWorkoutAssignment?      @relation("HybridAssignmentLiveVoiceSessions", fields: [hybridAssignmentId], references: [id], onDelete: Cascade)
   keyOwner             User                          @relation("UserLiveVoiceKeyOwner", fields: [keyOwnerId], references: [id], onDelete: Cascade)
   transcripts          LiveVoiceTranscript[]
 
@@ -9208,6 +9213,7 @@ model LiveVoiceCoachingSession {
   @@index([clientId])
   @@index([cardioAssignmentId])
   @@index([strengthAssignmentId])
+  @@index([hybridAssignmentId])
   @@index([keyOwnerId])
   @@index([createdAt])
 }

@@ -8,6 +8,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { HeadlessVoiceCoachLauncher } from '@/components/athlete/workout/HeadlessVoiceCoachLauncher'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Clock,
@@ -266,15 +267,21 @@ export function HybridWorkoutCard({
             Slutförd
           </Button>
         ) : isInProgress ? (
-          <Button className="w-full" onClick={() => onStartFocusMode(id)}>
-            <Play className="h-4 w-4 mr-2" />
-            Fortsätt pass
-          </Button>
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={() => onStartFocusMode(id)}>
+              <Play className="h-4 w-4 mr-2" />
+              Fortsätt pass
+            </Button>
+            <HeadlessVoiceCoachLauncher assignmentId={id} workoutType="hybrid" />
+          </div>
         ) : (
-          <Button className="w-full" onClick={() => onStartFocusMode(id)}>
-            <Play className="h-4 w-4 mr-2" />
-            Starta Focus Mode
-          </Button>
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={() => onStartFocusMode(id)}>
+              <Play className="h-4 w-4 mr-2" />
+              Starta Focus Mode
+            </Button>
+            <HeadlessVoiceCoachLauncher assignmentId={id} workoutType="hybrid" />
+          </div>
         )}
       </CardFooter>
     </Card>

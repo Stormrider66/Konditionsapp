@@ -6,7 +6,7 @@
  * Full-screen hybrid workout execution with format-specific timers.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -28,6 +28,9 @@ import { cn } from '@/lib/utils'
 import { AMRAPTimer, EMOMTimer, ForTimeTimer, TabataTimer } from './timers'
 import { MovementCheckCard } from './MovementCheckCard'
 import { RoundTracker } from './RoundTracker'
+import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
+import { useAthleteHR } from '@/hooks/use-athlete-hr'
+import { LiveVoiceCoachButton } from '@/components/athlete/cardio/LiveVoiceCoachButton'
 
 type HybridFormat =
   | 'FOR_TIME'
@@ -121,6 +124,46 @@ export function HybridFocusModeWorkout({
 
   // Movement completion status per round
   const [movementStatus, setMovementStatus] = useState<Record<number, Record<string, boolean>>>({})
+
+  // Live AI Voice Coach
+  const liveCoachConnectedRef = useRef(false)
+  const hr = useAthleteHR(liveCoachConnectedRef.current)
+  const elapsedRef = useRef(0)
+  elapsedRef.current = elapsedTime
+
+  const liveCoach = useLiveVoiceCoach({
+    assignmentId,
+    workoutType: 'hybrid',
+    segments: movements.map((m) => ({
+      type: format,
+      typeName: m.name,
+      notes: [m.reps && `${m.reps} reps`, m.calories && `${m.calories} cal`, m.distance && `${m.distance}m`].filter(Boolean).join(', '),
+    })),
+    currentSegmentIndex: currentRound - 1,
+    isTimerRunning: true,
+    timerSecondsRemaining: timeCap ? timeCap - elapsedTime : null,
+    heartRate: hr.heartRate,
+    heartRateZone: hr.zone,
+    toolCallbacks: {
+      onEndCoaching: () => liveCoach.disconnect(),
+      onPauseWorkout: () => {},
+      onResumeWorkout: () => {},
+      onAdjustIntensity: () => {},
+      onSkipSegment: () => {},
+      onExtendSegment: () => {},
+      onMarkSegmentComplete: () => {},
+      onCompleteRound: () => {
+        handleRoundComplete()
+      },
+      onGetWorkoutTimer: () => ({
+        elapsedSeconds: elapsedRef.current,
+        remainingSeconds: timeCap ? timeCap - elapsedRef.current : null,
+        currentRound,
+        totalRounds: totalRounds || null,
+      }),
+    },
+  })
+  liveCoachConnectedRef.current = liveCoach.status === 'connected'
 
   // Get movements completed in current round (memoized to prevent unnecessary re-renders)
   const currentRoundStatus = useMemo(
@@ -388,7 +431,22 @@ export function HybridFocusModeWorkout({
             </Badge>
           </div>
         </div>
-        <div className="w-10" />
+        {liveCoach.supported ? (
+          <LiveVoiceCoachButton
+            status={liveCoach.status}
+            isListening={liveCoach.isListening}
+            isSpeaking={liveCoach.isSpeaking}
+            isMuted={liveCoach.isMuted}
+            transcript={liveCoach.transcript}
+            error={liveCoach.error}
+            supported={liveCoach.supported}
+            onConnect={liveCoach.connect}
+            onDisconnect={liveCoach.disconnect}
+            onToggleMute={liveCoach.toggleMute}
+          />
+        ) : (
+          <div className="w-10" />
+        )}
       </div>
 
       {/* Progress bar */}

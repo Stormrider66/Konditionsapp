@@ -37,8 +37,8 @@ interface TranscriptEntry {
 
 export interface UseLiveVoiceCoachOptions {
   assignmentId: string
-  /** Workout type: 'cardio' or 'strength' */
-  workoutType?: 'cardio' | 'strength'
+  /** Workout type */
+  workoutType?: 'cardio' | 'strength' | 'hybrid'
   segments: FocusModeSegment[]
   currentSegmentIndex: number
   isTimerRunning: boolean
@@ -233,6 +233,19 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
         case 'start_rest_timer': {
           cbs.onStartRestTimer?.(args?.seconds)
           result = { success: true, message: `Rest timer started${args?.seconds ? ` for ${args.seconds}s` : ''}` }
+          break
+        }
+        // ─── Hybrid-specific tools ──────────────────────────────────
+        case 'complete_round': {
+          cbs.onCompleteRound?.()
+          result = { success: true, message: 'Round completed', extraReps: args?.extraReps }
+          break
+        }
+        case 'get_workout_timer': {
+          const timerData = cbs.onGetWorkoutTimer?.()
+          result = timerData
+            ? (timerData as unknown as Record<string, unknown>)
+            : { elapsedSeconds: 0, remainingSeconds: null, currentRound: 0, totalRounds: null }
           break
         }
         default:

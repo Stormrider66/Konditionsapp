@@ -61,6 +61,34 @@ export interface StrengthExerciseForLive {
   completedSets: number
 }
 
+// ─── Hybrid Types ───────────────────────────────────────────────────────────
+
+/** Hybrid workout data serialized for the Live API system instruction */
+export interface HybridWorkoutContextForLive {
+  workoutName: string
+  format: string
+  timeCap?: number
+  workTime?: number
+  restTime?: number
+  totalRounds?: number
+  totalMinutes?: number
+  repScheme?: string
+  movements: HybridMovementForLive[]
+  athleteName?: string
+  coachNotes?: string
+}
+
+export interface HybridMovementForLive {
+  order: number
+  name: string
+  reps?: number
+  calories?: number
+  distance?: number
+  duration?: number
+  weight?: string
+  notes?: string
+}
+
 // ─── Tool Types ─────────────────────────────────────────────────────────────
 
 /** Tool function names available during live coaching */
@@ -81,6 +109,9 @@ export type LiveToolName =
   | 'skip_exercise'
   | 'complete_exercise'
   | 'start_rest_timer'
+  // Hybrid-specific tools
+  | 'complete_round'
+  | 'get_workout_timer'
 
 /** Client-reported session end data */
 export interface LiveSessionEndReport {
@@ -137,6 +168,9 @@ export interface LiveCoachingToolCallbacks {
   onSkipExercise?: () => void
   onCompleteExercise?: () => void
   onStartRestTimer?: (seconds?: number) => void
+  // Hybrid-specific
+  onCompleteRound?: () => void
+  onGetWorkoutTimer?: () => { elapsedSeconds: number; remainingSeconds: number | null; currentRound: number; totalRounds: number | null }
 }
 
 /** Live voice coach connection status */

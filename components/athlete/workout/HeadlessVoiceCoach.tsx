@@ -16,7 +16,7 @@ import { useAthleteHR } from '@/hooks/use-athlete-hr'
 
 interface HeadlessVoiceCoachProps {
   assignmentId: string
-  workoutType: 'cardio' | 'strength'
+  workoutType: 'cardio' | 'strength' | 'hybrid'
   onClose: () => void
 }
 
@@ -42,7 +42,9 @@ export function HeadlessVoiceCoach({
 
     const url = workoutType === 'strength'
       ? `/api/strength-sessions/${assignmentId}/focus-mode`
-      : `/api/cardio-sessions/${assignmentId}/focus-mode`
+      : workoutType === 'hybrid'
+        ? `/api/hybrid-workouts/${assignmentId}/focus-mode`
+        : `/api/cardio-sessions/${assignmentId}/focus-mode`
 
     fetch(url)
       .then((r) => r.json())
@@ -56,6 +58,14 @@ export function HeadlessVoiceCoach({
               type: e.section,
               typeName: e.name,
               notes: `${e.sets} sets × ${e.repsTarget} reps${e.weight ? ` @ ${e.weight}kg` : ''}`,
+            }))
+          )
+        } else if (workoutType === 'hybrid' && data.movements) {
+          setSegments(
+            data.movements.map((m: { name: string; reps?: number; calories?: number; distance?: number; weight?: number }) => ({
+              type: 'HYBRID',
+              typeName: m.name,
+              notes: [m.reps && `${m.reps} reps`, m.calories && `${m.calories} cal`, m.distance && `${m.distance}m`].filter(Boolean).join(', '),
             }))
           )
         } else if (data.segments) {

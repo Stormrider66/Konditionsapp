@@ -15,7 +15,7 @@ import { HeadlessVoiceCoach } from './HeadlessVoiceCoach'
 
 interface HeadlessVoiceCoachLauncherProps {
   assignmentId: string
-  workoutType: 'cardio' | 'strength'
+  workoutType: 'cardio' | 'strength' | 'hybrid'
 }
 
 export function HeadlessVoiceCoachLauncher({

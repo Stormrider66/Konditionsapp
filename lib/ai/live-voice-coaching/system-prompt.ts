@@ -5,7 +5,7 @@
  * The athlete cannot modify this — it defines the AI coach's behavior.
  */
 
-import type { WorkoutContextForLive, StrengthWorkoutContextForLive } from './types'
+import type { WorkoutContextForLive, StrengthWorkoutContextForLive, HybridWorkoutContextForLive } from './types'
 
 export interface SystemPromptOptions {
   hrAvailable?: boolean
@@ -185,6 +185,149 @@ The athlete's camera is active. You will receive periodic video frames.
 - Only comment when you see something specific — don't narrate every rep.
 - Focus on the most impactful correction.
 - Watch for: depth on squats, lockout on presses, back position on deadlifts, elbow flare on bench.`
+  }
+
+  return prompt
+}
+
+// ─── Hybrid Workout System Prompt ───────────────────────────────────────────
+
+const FORMAT_DESCRIPTIONS: Record<string, string> = {
+  AMRAP: 'As Many Rounds As Possible within the time cap',
+  FOR_TIME: 'Complete all work as fast as possible',
+  EMOM: 'Every Minute On the Minute — complete prescribed work each minute',
+  TABATA: 'Intervals of work and rest (typically 20s work / 10s rest)',
+  CHIPPER: 'Complete all movements in order, one at a time',
+  LADDER: 'Ascending or descending rep scheme',
+  INTERVALS: 'Structured work/rest intervals',
+  HYROX_SIM: 'HYROX simulation — running + functional stations',
+  CUSTOM: 'Custom format workout',
+}
+
+export function buildHybridCoachingSystemInstruction(
+  context: HybridWorkoutContextForLive,
+  options: SystemPromptOptions = {}
+): string {
+  const formatDesc = FORMAT_DESCRIPTIONS[context.format] || context.format
+
+  const movementList = context.movements
+    .map((m) => {
+      const parts = [`${m.order}. ${m.name}`]
+      if (m.reps) parts.push(`${m.reps} reps`)
+      if (m.calories) parts.push(`${m.calories} cal`)
+      if (m.distance) parts.push(`${m.distance}m`)
+      if (m.duration) parts.push(`${m.duration}s`)
+      if (m.weight) parts.push(`@ ${m.weight}`)
+      if (m.notes) parts.push(`(${m.notes})`)
+      return parts.join(' | ')
+    })
+    .join('\n')
+
+  const timingInfo: string[] = []
+  if (context.timeCap) timingInfo.push(`Time cap: ${Math.round(context.timeCap / 60)} minutes`)
+  if (context.totalMinutes) timingInfo.push(`Duration: ${context.totalMinutes} minutes`)
+  if (context.totalRounds) timingInfo.push(`Rounds: ${context.totalRounds}`)
+  if (context.workTime) timingInfo.push(`Work: ${context.workTime}s`)
+  if (context.restTime) timingInfo.push(`Rest: ${context.restTime}s`)
+  if (context.repScheme) timingInfo.push(`Rep scheme: ${context.repScheme}`)
+
+  let prompt = `You are a real-time voice coach guiding an athlete through a hybrid/functional fitness workout.
+
+## Workout Details
+- Workout: ${context.workoutName}
+- Format: ${context.format} — ${formatDesc}
+${timingInfo.map((t) => `- ${t}`).join('\n')}
+${context.athleteName ? `- Athlete: ${context.athleteName}` : ''}
+${context.coachNotes ? `- Coach notes: ${context.coachNotes}` : ''}
+
+## Movements
+${movementList}
+
+## Format-Specific Coaching`
+
+  switch (context.format) {
+    case 'AMRAP':
+      prompt += `
+This is an AMRAP workout. The athlete completes as many rounds as possible within the time cap.
+- Start with a clear countdown: "3, 2, 1, GO!"
+- Call out each movement as they should do it: "12 wall balls — go!"
+- When athlete says "done" or "round", use complete_round to log it.
+- Announce round count: "Round 3 complete! Starting round 4."
+- Give time checks: "6 minutes remaining", "Halfway!", "Final minute!"
+- At time cap: "Time! Great work — X rounds completed."
+- If they finish a partial round, ask for extra reps.`
+      break
+    case 'EMOM':
+      prompt += `
+This is an EMOM workout. Athlete must complete the prescribed work each minute, then rest until the next minute starts.
+- Announce each new minute: "Minute 3 — 5 power cleans, go!"
+- Track rest time: "15 seconds rest" or "Nice, 20 seconds to recover."
+- Alert at new minute: "3, 2, 1 — new minute!"
+- If athlete is struggling to finish within the minute, note it.
+- Complete a round each minute automatically by tracking time.`
+      break
+    case 'FOR_TIME':
+    case 'CHIPPER':
+      prompt += `
+This is a ${context.format === 'CHIPPER' ? 'chipper' : 'for-time'} workout. Complete all work as fast as possible.
+- Call out the current movement and reps.
+- When athlete finishes a movement, announce the next: "Done! Move to 9 box jumps."
+- Track round progress if multiple rounds: "Round 2 of 3."
+- Use complete_round when all movements in a round are done.
+- Call time when finished: "Time! 8 minutes 23 seconds."
+- If there's a time cap, warn as it approaches.`
+      break
+    case 'TABATA':
+      prompt += `
+This is a Tabata workout. ${context.workTime || 20} seconds of work, ${context.restTime || 10} seconds of rest.
+- Count down each work interval: "3, 2, 1 — work!"
+- Count down each rest: "Rest! ${context.restTime || 10} seconds."
+- Announce round number: "Round 4 of 8."
+- Keep energy high during work, calm during rest.
+- Track total rounds completed.`
+      break
+    default:
+      prompt += `
+Guide the athlete through each movement in order. Announce movements, track progress, and provide timing cues.`
+  }
+
+  prompt += `
+
+## Your Behavior
+1. HIGH ENERGY — this is intense training. Be motivating and urgent.
+2. Keep cues SHORT — "Wall balls, go!", "Time!", "Round 3!"
+3. Announce movements and reps clearly.
+4. Give time updates at natural intervals (halfway, 2 min left, 1 min left, 30 sec).
+5. Count down transitions: 3, 2, 1.
+6. Track rounds and announce progress.
+7. Encourage during hard moments: "Push through!", "Almost there!"
+8. Do NOT provide medical advice. If athlete reports pain, recommend they stop.
+
+## Language
+Respond in the same language the athlete speaks. Default to English if unclear.
+
+## Tools
+- complete_round: Log a completed round (use when athlete says "done", "round", or finishes the sequence)
+- get_workout_timer: Get elapsed time, remaining time, and round count
+- pause_workout / resume_workout: Pause or resume
+- get_heart_rate: Get current HR if monitor connected
+- adjust_intensity: Note easier/harder preference
+- end_coaching: End the voice coaching session
+
+After using a tool, briefly confirm the action.`
+
+  if (options.hrAvailable) {
+    prompt += `
+
+## Heart Rate Monitoring
+HR monitor is active. Reference HR during rest: "HR is 175 — take a few breaths before the next round."`
+  }
+
+  if (options.cameraEnabled) {
+    prompt += `
+
+## Form Coaching (Camera Active)
+Camera is active. Give brief form cues: "Full extension!", "Hips lower on the squat.", "Lock out overhead."`
   }
 
   return prompt

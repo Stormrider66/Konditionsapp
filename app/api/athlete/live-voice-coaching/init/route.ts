@@ -10,21 +10,24 @@ import { logger } from '@/lib/logger'
 import {
   buildLiveCoachingSystemInstruction,
   buildStrengthCoachingSystemInstruction,
+  buildHybridCoachingSystemInstruction,
 } from '@/lib/ai/live-voice-coaching/system-prompt'
-import { CARDIO_COACHING_TOOLS, STRENGTH_COACHING_TOOLS } from '@/lib/ai/live-voice-coaching/tools'
+import { CARDIO_COACHING_TOOLS, STRENGTH_COACHING_TOOLS, HYBRID_COACHING_TOOLS } from '@/lib/ai/live-voice-coaching/tools'
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
 import type {
   WorkoutContextForLive,
   LiveSegmentInfo,
   StrengthWorkoutContextForLive,
   StrengthExerciseForLive,
+  HybridWorkoutContextForLive,
+  HybridMovementForLive,
 } from '@/lib/ai/live-voice-coaching/types'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
 
 const initSchema = z.object({
-  workoutType: z.enum(['cardio', 'strength']).default('cardio'),
+  workoutType: z.enum(['cardio', 'strength', 'hybrid']).default('cardio'),
   assignmentId: z.string().uuid(),
   enableCamera: z.boolean().optional().default(false),
 })
@@ -89,10 +92,11 @@ export async function POST(request: Request) {
 
     let systemInstruction: string
     let tools: typeof CARDIO_COACHING_TOOLS
-    let workoutContext: WorkoutContextForLive | StrengthWorkoutContextForLive
+    let workoutContext: WorkoutContextForLive | StrengthWorkoutContextForLive | HybridWorkoutContextForLive
     let voiceName = 'Kore'
     let cardioAssignmentId: string | null = null
     let strengthAssignmentId: string | null = null
+    let hybridAssignmentId: string | null = null
 
     if (workoutType === 'strength') {
       // ─── Strength Workout ───────────────────────────────────────────
@@ -171,6 +175,51 @@ export async function POST(request: Request) {
       workoutContext = ctx
       systemInstruction = buildStrengthCoachingSystemInstruction(ctx, { hrAvailable, cameraEnabled: enableCamera })
       tools = STRENGTH_COACHING_TOOLS
+    } else if (workoutType === 'hybrid') {
+      // ─── Hybrid Workout ─────────────────────────────────────────────
+      const assignment = await prisma.hybridWorkoutAssignment.findFirst({
+        where: { id: assignmentId, athleteId: clientId },
+        include: {
+          workout: { include: { movements: { orderBy: { order: 'asc' }, include: { exercise: { select: { name: true } } } } } },
+          athlete: { select: { name: true, preferredVoiceCoachVoice: true } },
+        },
+      })
+
+      if (!assignment) {
+        return NextResponse.json({ error: 'Assignment not found or access denied' }, { status: 404 })
+      }
+
+      voiceName = assignment.athlete?.preferredVoiceCoachVoice || 'Kore'
+      hybridAssignmentId = assignmentId
+
+      const movements: HybridMovementForLive[] = assignment.workout.movements.map((m) => ({
+        order: m.order,
+        name: m.exercise?.name || 'Movement',
+        reps: m.reps ?? undefined,
+        calories: m.calories ?? undefined,
+        distance: m.distance ? Number(m.distance) : undefined,
+        duration: m.duration ?? undefined,
+        weight: m.weightMale ? `${m.weightMale}kg` : undefined,
+        notes: m.notes ?? undefined,
+      }))
+
+      const ctx: HybridWorkoutContextForLive = {
+        workoutName: assignment.workout.name || 'Hybrid Workout',
+        format: assignment.workout.format,
+        timeCap: assignment.workout.timeCap ?? undefined,
+        workTime: assignment.workout.workTime ?? undefined,
+        restTime: assignment.workout.restTime ?? undefined,
+        totalRounds: assignment.workout.totalRounds ?? undefined,
+        totalMinutes: assignment.workout.totalMinutes ?? undefined,
+        repScheme: assignment.workout.repScheme ?? undefined,
+        movements,
+        athleteName: assignment.athlete?.name ?? undefined,
+        coachNotes: assignment.notes ?? undefined,
+      }
+
+      workoutContext = ctx
+      systemInstruction = buildHybridCoachingSystemInstruction(ctx, { hrAvailable, cameraEnabled: enableCamera })
+      tools = HYBRID_COACHING_TOOLS
     } else {
       // ─── Cardio Workout ─────────────────────────────────────────────
       const assignment = await prisma.cardioSessionAssignment.findFirst({
@@ -269,6 +318,7 @@ export async function POST(request: Request) {
         workoutType: workoutType.toUpperCase(),
         cardioAssignmentId,
         strengthAssignmentId,
+        hybridAssignmentId,
         status: 'ACTIVE',
         modelUsed: model,
         keyOwnerId: keyContext.keyOwnerId,
