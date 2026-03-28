@@ -514,6 +514,13 @@ async function processActivity(activity: GarminActivityPayload) {
   } catch (err) {
     logger.warn('Failed to auto-link Garmin to ad-hoc', { error: err })
   }
+
+  // Auto-complete matching cardio session assignment
+  try {
+    await completeCardioAssignmentFromGarmin(clientId, startDate, activity)
+  } catch (err) {
+    logger.warn('Failed to auto-complete cardio assignment from Garmin', { error: err })
+  }
 }
 
 async function processSleepData(sleep: GarminSleepData & { userId?: string }) {
@@ -876,4 +883,64 @@ function buildGarminBodyCompNotes(bodyComp: GarminBodyComposition): string {
   if (bodyComp.physiqueRating !== undefined) extra.push(`physiqueRating=${String(bodyComp.physiqueRating)}`)
 
   return extra.length > 0 ? `Garmin webhook: ${extra.join(', ')}` : 'Garmin webhook'
+}
+
+/**
+ * Auto-complete a CardioSessionAssignment when a matching Garmin activity arrives.
+ *
+ * Matches by: same athlete, same day (±1 day), pending/scheduled status,
+ * has a garminWorkoutId (was pushed to Garmin).
+ */
+async function completeCardioAssignmentFromGarmin(
+  clientId: string,
+  activityStart: Date,
+  activity: GarminActivityPayload
+) {
+  // Find pending cardio assignments for this athlete around this date
+  const dayStart = new Date(activityStart)
+  dayStart.setHours(0, 0, 0, 0)
+  const dayEnd = new Date(dayStart)
+  dayEnd.setDate(dayEnd.getDate() + 1)
+
+  const assignments = await prisma.cardioSessionAssignment.findMany({
+    where: {
+      athleteId: clientId,
+      assignedDate: { gte: dayStart, lt: dayEnd },
+      status: { in: ['PENDING', 'SCHEDULED'] },
+      garminWorkoutId: { not: null },
+    },
+    select: {
+      id: true,
+      sessionId: true,
+      garminWorkoutId: true,
+      session: { select: { name: true } },
+    },
+  })
+
+  if (assignments.length === 0) return
+
+  // Pick the best match — if only one pending assignment, use it
+  const assignment = assignments[0]
+
+  await prisma.cardioSessionAssignment.update({
+    where: { id: assignment.id },
+    data: {
+      status: 'COMPLETED',
+      completedAt: new Date(),
+      actualDuration: activity.activityDurationInSeconds || null,
+      actualDistance: activity.distanceInMeters ? Math.round(activity.distanceInMeters) : null,
+      avgHeartRate: activity.averageHeartRateInBeatsPerMinute
+        ? Math.round(activity.averageHeartRateInBeatsPerMinute)
+        : null,
+    },
+  })
+
+  logger.info('Auto-completed cardio assignment from Garmin activity', {
+    clientId,
+    assignmentId: assignment.id,
+    sessionName: assignment.session.name,
+    duration: activity.activityDurationInSeconds,
+    distance: activity.distanceInMeters,
+    avgHR: activity.averageHeartRateInBeatsPerMinute,
+  })
 }
