@@ -17,6 +17,7 @@ export type AthleteFeature =
   | 'nutrition_planning'
   | 'concept2'
   | 'lactate_ocr'
+  | 'live_voice_coaching'
 
 export interface FeatureAccessResult {
   allowed: boolean
@@ -50,6 +51,7 @@ export const ATHLETE_TIER_FEATURES = {
     nutrition_planning: { enabled: false },
     concept2: { enabled: false },
     lactate_ocr: { enabled: false },
+    live_voice_coaching: { enabled: false },
   },
   STANDARD: {
     ai_chat: { enabled: true, limit: 50 }, // 50 messages per month
@@ -63,6 +65,7 @@ export const ATHLETE_TIER_FEATURES = {
     nutrition_planning: { enabled: true },
     concept2: { enabled: true },
     lactate_ocr: { enabled: true },
+    live_voice_coaching: { enabled: false },
   },
   PRO: {
     ai_chat: { enabled: true, limit: -1 }, // Unlimited
@@ -76,6 +79,7 @@ export const ATHLETE_TIER_FEATURES = {
     nutrition_planning: { enabled: true },
     concept2: { enabled: true },
     lactate_ocr: { enabled: true },
+    live_voice_coaching: { enabled: true },
   },
   ELITE: {
     ai_chat: { enabled: true, limit: -1 }, // Unlimited
@@ -89,6 +93,7 @@ export const ATHLETE_TIER_FEATURES = {
     nutrition_planning: { enabled: true },
     concept2: { enabled: true },
     lactate_ocr: { enabled: true },
+    live_voice_coaching: { enabled: true },
   },
 } as const
 

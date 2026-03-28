@@ -655,6 +655,9 @@ model User {
   // Voice Workout Creation
   voiceWorkoutSessions VoiceWorkoutSession[] @relation("CoachVoiceWorkouts")
 
+  // Live Voice Coaching (key owner attribution)
+  liveVoiceCoachingKeyOwner LiveVoiceCoachingSession[] @relation("UserLiveVoiceKeyOwner")
+
   // External Calendar Connections (Bokadirekt, Zoezi, etc.)
   externalCalendarConnections ExternalCalendarConnection[] @relation("UserCalendarConnections")
 
@@ -1004,6 +1007,9 @@ model Client {
 
   // Shared Achievement relations
   sharedAchievements SharedAchievement[]
+
+  // Live Voice Coaching Sessions
+  liveVoiceCoachingSessions LiveVoiceCoachingSession[] @relation("ClientLiveVoiceSessions")
 
   @@index([userId])
   @@index([businessId])
@@ -6024,6 +6030,9 @@ model CardioSessionAssignment {
   calendarEvent    CalendarEvent? @relation("CardioAssignmentCalendar", fields: [calendarEventId], references: [id])
   responsibleCoach User?          @relation("CardioAssignmentResponsibleCoach", fields: [responsibleCoachId], references: [id], onDelete: SetNull)
 
+  // Live Voice Coaching Sessions
+  liveVoiceCoachingSessions LiveVoiceCoachingSession[] @relation("AssignmentLiveVoiceSessions")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -9153,6 +9162,38 @@ model VoiceWorkoutSession {
   @@index([strengthSessionId])
   @@index([cardioSessionId])
   @@index([hybridWorkoutId])
+}
+
+/// Live Voice Coaching Session - tracks real-time Gemini Live API voice coaching during workouts
+model LiveVoiceCoachingSession {
+  id           String @id @default(uuid())
+  clientId     String
+  assignmentId String
+
+  // Tracking
+  status             String @default("ACTIVE") // ACTIVE, COMPLETED, ERROR
+  durationSeconds    Int?
+  audioInputSeconds  Float?
+  audioOutputSeconds Float?
+  estimatedCostUsd   Float?
+  modelUsed          String @default("gemini-3.1-flash-live-preview")
+  endReason          String? // completed, user_cancelled, error, timeout
+  segmentsCompleted  Int    @default(0)
+
+  // Who paid for it (for cost attribution)
+  keyOwnerId String
+
+  client     Client                  @relation("ClientLiveVoiceSessions", fields: [clientId], references: [id], onDelete: Cascade)
+  assignment CardioSessionAssignment @relation("AssignmentLiveVoiceSessions", fields: [assignmentId], references: [id], onDelete: Cascade)
+  keyOwner   User                    @relation("UserLiveVoiceKeyOwner", fields: [keyOwnerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  endedAt   DateTime?
+
+  @@index([clientId])
+  @@index([assignmentId])
+  @@index([keyOwnerId])
+  @@index([createdAt])
 }
 
 // ============================================================================

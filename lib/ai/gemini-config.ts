@@ -38,6 +38,9 @@ export const GEMINI_MODELS = {
 
   /** Text/multimodal embedding — Matryoshka dimensions, strong multilingual */
   EMBEDDING: 'gemini-embedding-2-preview',
+
+  /** Real-time voice coaching via Live API (bidirectional WebSocket) */
+  VOICE_COACHING: 'gemini-3.1-flash-live-preview',
 } as const;
 
 /**
@@ -115,6 +118,11 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number }> =
     input: 0.0002, // $0.20 per 1M input tokens
     output: 0,
   },
+  // Google Live API model (text token rates — audio charged separately)
+  'gemini-3.1-flash-live-preview': {
+    input: 0.00075, // $0.75 per 1M text input tokens
+    output: 0.0045, // $4.50 per 1M text output tokens
+  },
   // Anthropic Claude models
   'claude-sonnet-4-6': {
     input: 0.003, // $3.00 per 1M input tokens
@@ -188,10 +196,46 @@ export function estimateAudioCost(
 }
 
 /**
+ * Audio-specific pricing for Gemini Live API sessions.
+ * Audio tokens are charged at different rates from text tokens.
+ */
+export const GEMINI_LIVE_AUDIO_PRICING = {
+  /** Cost per second of audio input (~25 tokens/s at $3.00/M) */
+  audioInputPerSecond: 0.000075,
+  /** Cost per second of audio output (~25 tokens/s at $12.00/M) */
+  audioOutputPerSecond: 0.0003,
+} as const;
+
+/**
+ * Estimate cost for a Live API voice coaching session.
+ */
+export function estimateLiveSessionCost(
+  durationSeconds: number,
+  audioInputSeconds?: number,
+  audioOutputSeconds?: number,
+): { audioInputCost: number; audioOutputCost: number; textCost: number; totalCost: number } {
+  // Use actual audio seconds if provided, otherwise estimate from session duration
+  const audioIn = audioInputSeconds ?? durationSeconds * 0.5;
+  const audioOut = audioOutputSeconds ?? durationSeconds * 0.2;
+
+  const audioInputCost = audioIn * GEMINI_LIVE_AUDIO_PRICING.audioInputPerSecond;
+  const audioOutputCost = audioOut * GEMINI_LIVE_AUDIO_PRICING.audioOutputPerSecond;
+  // Text cost covers system prompt + tool call overhead
+  const textCost = 0.001;
+
+  return {
+    audioInputCost,
+    audioOutputCost,
+    textCost,
+    totalCost: audioInputCost + audioOutputCost + textCost,
+  };
+}
+
+/**
  * Get the recommended model for a specific task.
  */
 export function getModelForTask(
-  task: 'video' | 'audio' | 'chat' | 'quick' | 'image'
+  task: 'video' | 'audio' | 'chat' | 'quick' | 'image' | 'voice'
 ): string {
   switch (task) {
     case 'video':
@@ -204,6 +248,8 @@ export function getModelForTask(
       return GEMINI_MODELS.FLASH;
     case 'image':
       return GEMINI_MODELS.IMAGE_GENERATION;
+    case 'voice':
+      return GEMINI_MODELS.VOICE_COACHING;
     default:
       return GEMINI_MODELS.CHAT;
   }

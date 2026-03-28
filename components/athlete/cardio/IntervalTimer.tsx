@@ -52,6 +52,8 @@ interface IntervalTimerProps {
   notes?: string
   /** Voice coaching speak function (from useVoiceCoach) */
   voiceSpeak?: (text: string, priority?: 'high' | 'normal') => void
+  /** Disable voice countdown cues (when live voice coach is active) */
+  disableVoiceCues?: boolean
 }
 
 const SEGMENT_COLORS: Record<SegmentType, { bg: string; text: string; stroke: string; badge: string }> = {
@@ -131,6 +133,7 @@ export function IntervalTimer({
   autoStart = false,
   notes,
   voiceSpeak,
+  disableVoiceCues = false,
 }: IntervalTimerProps) {
   const [seconds, setSeconds] = useState(duration)
   const [isRunning, setIsRunning] = useState(autoStart)
@@ -189,21 +192,21 @@ export function IntervalTimer({
           if (newValue === 30 && duration > 60) {
             playBeep(500, 150)
             vibrate(100)
-            voiceSpeak?.('Thirty seconds.')
+            if (!disableVoiceCues) voiceSpeak?.('Thirty seconds.')
           }
 
           // Alert at 10 seconds
           if (newValue === 10) {
             playBeep(600, 150)
             vibrate(100)
-            voiceSpeak?.('Ten seconds.')
+            if (!disableVoiceCues) voiceSpeak?.('Ten seconds.')
           }
 
           // Alert at 3, 2, 1
           if (newValue === 3) {
             playBeep(700, 100)
             vibrate(50)
-            voiceSpeak?.('Three. Two. One.', 'high')
+            if (!disableVoiceCues) voiceSpeak?.('Three. Two. One.', 'high')
           } else if (newValue <= 2 && newValue > 0) {
             playBeep(700, 100)
             vibrate(50)
@@ -226,7 +229,7 @@ export function IntervalTimer({
         clearInterval(intervalRef.current)
       }
     }
-  }, [isRunning, seconds, duration, playBeep, vibrate, onComplete, voiceSpeak])
+  }, [isRunning, seconds, duration, playBeep, vibrate, onComplete, voiceSpeak, disableVoiceCues])
 
   // Start timer
   const startTimer = () => {

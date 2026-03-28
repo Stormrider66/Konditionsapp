@@ -43,6 +43,8 @@ import {
   buildSessionStartCue,
   buildSessionCompleteCue,
 } from '@/hooks/use-voice-coach'
+import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
+import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS'
 
@@ -123,15 +125,57 @@ export function CardioFocusModeWorkout({
   const [timerElapsed, setTimerElapsed] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Voice coaching
+  // Voice coaching (basic SpeechSynthesis)
   const voice = useVoiceCoach({ rate: 1.05 })
+
+  // Live AI Voice Coach (Gemini Live API)
+  const liveCoach = useLiveVoiceCoach({
+    assignmentId,
+    segments,
+    currentSegmentIndex: currentIndex,
+    isTimerRunning: viewState === 'timer',
+    timerSecondsRemaining: null,
+    toolCallbacks: {
+      onSkipSegment: () => {
+        if (currentIndex < segments.length - 1) {
+          setCurrentIndex((prev) => prev + 1)
+          setViewState('timer')
+          setTimerElapsed(0)
+        }
+      },
+      onPauseWorkout: () => {
+        // IntervalTimer manages its own pause state — send text hint
+      },
+      onResumeWorkout: () => {
+        // IntervalTimer manages its own pause state — send text hint
+      },
+      onExtendSegment: () => {
+        // Could be implemented with IntervalTimer refactor
+      },
+      onMarkSegmentComplete: () => {
+        handleTimerComplete()
+      },
+      onAdjustIntensity: () => {
+        // Noted by the AI — no direct action needed
+      },
+    },
+  })
+  const liveCoachActive = liveCoach.status === 'connected'
+
+  // When live coach is active, disable basic voice cues
+  useEffect(() => {
+    if (liveCoachActive && voice.enabled) {
+      voice.stop()
+    }
+  }, [liveCoachActive, voice])
 
   const currentSegment = segments[currentIndex]
   const completedCount = segments.filter((s) => s.completed || s.skipped).length
   const progressPercent = segments.length > 0 ? (completedCount / segments.length) * 100 : 0
 
-  // Announce segment on transition
+  // Announce segment on transition (basic voice — skip when live coach active)
   useEffect(() => {
+    if (liveCoachActive) return
     if (viewState === 'timer' && currentSegment) {
       const cue = buildSegmentStartCue(
         currentSegment,
@@ -141,27 +185,31 @@ export function CardioFocusModeWorkout({
       voice.speak(cue, 'high')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, viewState])
+  }, [currentIndex, viewState, liveCoachActive])
 
   // Check if all segments are complete
   useEffect(() => {
     if (completedCount === segments.length && segments.length > 0) {
-      voice.speak(buildSessionCompleteCue(), 'high')
+      if (!liveCoachActive) {
+        voice.speak(buildSessionCompleteCue(), 'high')
+      }
       setShowCompleteDialog(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [completedCount, segments.length])
+  }, [completedCount, segments.length, liveCoachActive])
 
   // Handle timer complete - show logging form
   const handleTimerComplete = useCallback(() => {
     if (currentSegment?.plannedDuration) {
       setTimerElapsed(currentSegment.plannedDuration)
     }
-    // Announce what's next
-    const nextSeg = segments[currentIndex + 1]
-    voice.speak(buildSegmentCompleteCue(nextSeg), 'high')
+    // Announce what's next (basic voice only — live coach handles its own)
+    if (!liveCoachActive) {
+      const nextSeg = segments[currentIndex + 1]
+      voice.speak(buildSegmentCompleteCue(nextSeg), 'high')
+    }
     setViewState('logging')
-  }, [currentSegment, currentIndex, segments, voice])
+  }, [currentSegment, currentIndex, segments, voice, liveCoachActive])
 
   // Handle timer skip - mark as skipped and move on
   const handleTimerSkip = useCallback(() => {
@@ -290,22 +338,40 @@ export function CardioFocusModeWorkout({
             Segment {currentIndex + 1} av {segments.length}
           </p>
         </div>
-        {voice.supported ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={voice.toggle}
-            className={cn(
-              'hover:bg-slate-100 dark:hover:bg-white/10',
-              voice.enabled && 'text-blue-500'
-            )}
-            title={voice.enabled ? 'Voice coach on' : 'Voice coach off'}
-          >
-            {voice.enabled ? <Headphones className="h-5 w-5" /> : <HeadphoneOff className="h-5 w-5 text-slate-400" />}
-          </Button>
-        ) : (
-          <div className="w-10" />
-        )}
+        <div className="flex items-center gap-1">
+          {/* Live AI Voice Coach */}
+          {liveCoach.supported && (
+            <LiveVoiceCoachButton
+              status={liveCoach.status}
+              isListening={liveCoach.isListening}
+              isSpeaking={liveCoach.isSpeaking}
+              isMuted={liveCoach.isMuted}
+              transcript={liveCoach.transcript}
+              error={liveCoach.error}
+              supported={liveCoach.supported}
+              onConnect={liveCoach.connect}
+              onDisconnect={liveCoach.disconnect}
+              onToggleMute={liveCoach.toggleMute}
+            />
+          )}
+          {/* Basic voice toggle (hidden when live coach is active) */}
+          {!liveCoachActive && voice.supported ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={voice.toggle}
+              className={cn(
+                'hover:bg-slate-100 dark:hover:bg-white/10',
+                voice.enabled && 'text-blue-500'
+              )}
+              title={voice.enabled ? 'Voice coach on' : 'Voice coach off'}
+            >
+              {voice.enabled ? <Headphones className="h-5 w-5" /> : <HeadphoneOff className="h-5 w-5 text-slate-400" />}
+            </Button>
+          ) : !liveCoach.supported && !voice.supported ? (
+            <div className="w-10" />
+          ) : null}
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -352,6 +418,7 @@ export function CardioFocusModeWorkout({
             onSkip={handleTimerSkip}
             autoStart={false}
             voiceSpeak={voice.speak}
+            disableVoiceCues={liveCoachActive}
           />
         ) : viewState === 'timer' && !currentSegment.plannedDuration ? (
           // No duration - show segment info and allow marking complete
@@ -444,7 +511,7 @@ export function CardioFocusModeWorkout({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Fortsätt träna</AlertDialogCancel>
-            <AlertDialogAction onClick={onClose}>
+            <AlertDialogAction onClick={() => { liveCoach.disconnect(); onClose() }}>
               Avsluta
             </AlertDialogAction>
           </AlertDialogFooter>
