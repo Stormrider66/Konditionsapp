@@ -130,8 +130,17 @@ export class GeminiLiveVoiceClient {
     // Track audio input duration (~16000 samples/sec, 2 bytes per sample)
     this.audioInputDuration += pcmData.byteLength / (16000 * 2)
 
-    const blob = new Blob([pcmData], { type: 'audio/pcm;rate=16000' })
-    this.session.sendRealtimeInput({ audio: blob })
+    // SDK expects base64-encoded data, not browser Blob
+    const bytes = new Uint8Array(pcmData)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    const base64 = btoa(binary)
+
+    this.session.sendRealtimeInput({
+      audio: { data: base64, mimeType: 'audio/pcm;rate=16000' },
+    })
   }
 
   /** Send text message (for non-audio commands) */
