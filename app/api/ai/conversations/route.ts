@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { canAccessClient, requireCoach } from '@/lib/auth-utils'
+import { canAccessClient, requireCoach, resolveAthleteClientId, getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { AIProvider } from '@prisma/client'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
@@ -14,7 +14,7 @@ import { logger } from '@/lib/logger'
 
 interface CreateConversationRequest {
   modelUsed: string
-  provider: AIProvider
+  provider: string // Accept 'INTENT' as well as AIProvider values
   athleteId?: string
   contextDocuments?: string[]
   webSearchEnabled?: boolean
@@ -89,14 +89,6 @@ export async function GET(request: NextRequest) {
 // POST - Create new conversation
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireCoach()
-
-    const rateLimited = await rateLimitJsonResponse('ai:conversations:create', user.id, {
-      limit: 20,
-      windowSeconds: 60,
-    })
-    if (rateLimited) return rateLimited
-
     const body: CreateConversationRequest = await request.json()
     const {
       modelUsed,
@@ -107,16 +99,50 @@ export async function POST(request: NextRequest) {
       title,
     } = body
 
-    if (!modelUsed || !provider) {
+    if (!modelUsed) {
       return NextResponse.json(
-        { error: 'modelUsed and provider are required' },
+        { error: 'modelUsed is required' },
         { status: 400 }
       )
     }
 
-    // Verify athlete belongs to coach if specified
-    if (athleteId) {
-      const hasAccess = await canAccessClient(user.id, athleteId)
+    // Resolve provider — athlete chat sends 'INTENT' which isn't a valid AIProvider enum.
+    // Map it to ANTHROPIC as default; the actual provider is resolved later in the chat route.
+    const validProviders = ['ANTHROPIC', 'GOOGLE', 'OPENAI'] as const
+    const resolvedProvider: AIProvider = validProviders.includes(provider as typeof validProviders[number])
+      ? (provider as AIProvider)
+      : 'ANTHROPIC'
+
+    // Support both coach and athlete roles
+    let userId: string
+    let coachId: string
+
+    // Try athlete path first (handles ATHLETE role + COACH in athlete mode)
+    const athleteResolved = await resolveAthleteClientId()
+    if (athleteResolved) {
+      userId = athleteResolved.user.id
+      // For athletes, the coachId is the coach who owns the client record
+      const clientRecord = await prisma.client.findUnique({
+        where: { id: athleteResolved.clientId },
+        select: { userId: true },
+      })
+      coachId = clientRecord?.userId || userId
+    } else {
+      // Fall back to coach auth
+      const user = await requireCoach()
+      userId = user.id
+      coachId = user.id
+    }
+
+    const rateLimited = await rateLimitJsonResponse('ai:conversations:create', userId, {
+      limit: 20,
+      windowSeconds: 60,
+    })
+    if (rateLimited) return rateLimited
+
+    // Verify athlete belongs to coach if specified (coach mode only)
+    if (athleteId && !athleteResolved) {
+      const hasAccess = await canAccessClient(coachId, athleteId)
       if (!hasAccess) {
         return NextResponse.json(
           { error: 'Athlete not found or not accessible' },
@@ -130,7 +156,7 @@ export async function POST(request: NextRequest) {
       const docs = await prisma.coachDocument.findMany({
         where: {
           id: { in: contextDocuments },
-          coachId: user.id,
+          coachId,
         },
       })
 
@@ -144,10 +170,10 @@ export async function POST(request: NextRequest) {
 
     const conversation = await prisma.aIConversation.create({
       data: {
-        coachId: user.id,
-        athleteId: athleteId || null,
+        coachId,
+        athleteId: athleteResolved?.clientId || athleteId || null,
         modelUsed,
-        provider,
+        provider: resolvedProvider,
         contextDocuments,
         webSearchEnabled,
         title: title || null,
