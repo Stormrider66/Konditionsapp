@@ -887,7 +887,7 @@ ${pageContext}
         tools: createChatTools(athleteClientId, conversationId, athleteCapabilities
           ? { canGenerateProgram: athleteCapabilities.canGenerateProgram }
           : undefined),
-        maxSteps: 2,
+        maxSteps: 4,
       }),
       // Provider-specific options for Gemini Deep Think
       ...(provider === 'GOOGLE' && deepThinkEnabled && {

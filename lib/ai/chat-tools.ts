@@ -331,7 +331,7 @@ export function createChatTools(
             calories: meal.calories,
           }
         } catch (error) {
-          logger.error('Failed to update meal via chat tool', { clientId, mealId }, error)
+          logger.error('Failed to update meal via chat tool', { clientId, mealId: input.mealId }, error)
           return { success: false, error: 'Kunde inte uppdatera måltiden. Försök igen.' }
         }
       },
@@ -415,6 +415,301 @@ export function createChatTools(
         } catch (error) {
           logger.error('Failed to list meals via chat tool', { clientId }, error)
           return { success: false, error: 'Kunde inte hämta måltider.' }
+        }
+      },
+    }),
+
+    // ── Daily check-in tool ───────────────────────────────────────────
+    logDailyCheckIn: tool({
+      description:
+        'Logga en daglig check-in åt atleten. Använd detta verktyg när atleten berättar hur de mår, ' +
+        'sov, eller hur kroppen känns. Samla in så mycket information som möjligt från samtalet.',
+      inputSchema: z.object({
+        date: z.string().optional().describe('Datum i YYYY-MM-DD-format. Standard: idag.'),
+        sleepQuality: z.number().min(1).max(10).describe('Sömnkvalitet 1-10'),
+        sleepHours: z.number().min(0).max(24).optional().describe('Antal timmars sömn'),
+        soreness: z.number().min(1).max(10).describe('Muskelömhet 1=ingen, 10=extrem'),
+        fatigue: z.number().min(1).max(10).describe('Trötthet 1=ingen, 10=extrem'),
+        stress: z.number().min(1).max(10).describe('Stressnivå 1=ingen, 10=extrem'),
+        mood: z.number().min(1).max(10).describe('Humör 1=dåligt, 10=utmärkt'),
+        motivation: z.number().min(1).max(10).describe('Motivation 1=ingen, 10=maximal'),
+        restingHR: z.number().optional().describe('Vilopuls i bpm'),
+        hrv: z.number().optional().describe('HRV (RMSSD) i ms'),
+        notes: z.string().optional().describe('Fritext-anteckningar från atleten'),
+      }),
+      execute: async ({ date, sleepQuality, sleepHours, soreness, fatigue, stress, mood, motivation, restingHR, hrv, notes }) => {
+        try {
+          const checkInDate = date ? new Date(date) : new Date()
+          checkInDate.setHours(0, 0, 0, 0)
+
+          // Calculate readiness score (weighted average, inverse for negative metrics)
+          const readinessScore = Math.round(
+            (sleepQuality * 20 + mood * 15 + motivation * 15 +
+             (11 - soreness) * 15 + (11 - fatigue) * 20 + (11 - stress) * 15) / 100 * 10
+          )
+
+          const readinessDecision = readinessScore >= 7 ? 'PROCEED'
+            : readinessScore >= 5 ? 'REDUCE'
+            : readinessScore >= 3 ? 'EASY'
+            : 'REST'
+
+          const checkIn = await prisma.dailyCheckIn.upsert({
+            where: { clientId_date: { clientId, date: checkInDate } },
+            update: {
+              sleepQuality,
+              sleepHours: sleepHours || null,
+              soreness,
+              fatigue,
+              stress,
+              mood,
+              motivation,
+              restingHR: restingHR || null,
+              hrv: hrv || null,
+              notes: notes || null,
+              readinessScore,
+              readinessDecision,
+            },
+            create: {
+              clientId,
+              date: checkInDate,
+              sleepQuality,
+              sleepHours: sleepHours || null,
+              soreness,
+              fatigue,
+              stress,
+              mood,
+              motivation,
+              restingHR: restingHR || null,
+              hrv: hrv || null,
+              notes: notes || null,
+              readinessScore,
+              readinessDecision,
+            },
+          })
+
+          logger.info('Daily check-in logged via chat tool', { checkInId: checkIn.id, clientId, readinessScore })
+
+          return {
+            success: true,
+            checkInId: checkIn.id,
+            readinessScore,
+            readinessDecision,
+            sleepQuality,
+            mood,
+            fatigue,
+          }
+        } catch (error) {
+          logger.error('Failed to log daily check-in via chat tool', { clientId }, error)
+          return { success: false, error: 'Kunde inte logga check-in. Försök igen.' }
+        }
+      },
+    }),
+
+    // ── Injury reporting tool ─────────────────────────────────────────
+    reportInjury: tool({
+      description:
+        'Rapportera en skada eller smärta. Använd detta verktyg när atleten nämner smärta, skada, ' +
+        'obehag eller begränsningar. Ställ följdfrågor om kroppsdel, sida, smärtnivå och omständigheter.',
+      inputSchema: z.object({
+        bodyPart: z.string().describe('Kroppsdel (t.ex. "KNEE", "ANKLE", "SHOULDER", "LOWER_BACK", "HIP", "CALF", "HAMSTRING", "QUADRICEPS", "SHIN")'),
+        side: z.enum(['LEFT', 'RIGHT', 'BILATERAL', 'CENTRAL']).describe('Vilken sida'),
+        painLevel: z.number().min(0).max(10).describe('Smärtnivå 0-10'),
+        description: z.string().describe('Beskrivning av skadan/smärtan'),
+        mechanism: z.string().optional().describe('Hur skadan uppstod'),
+        painTiming: z.enum([
+          'DURING_WARMUP', 'DURING_WORKOUT', 'AFTER_WORKOUT',
+          'AT_REST', 'IN_MORNING', 'CONSTANT',
+        ]).optional().describe('När smärtan uppträder'),
+        gaitAffected: z.boolean().optional().describe('Påverkas gången? (röd flagga)'),
+        swelling: z.boolean().optional().describe('Finns svullnad?'),
+      }),
+      execute: async ({ bodyPart, side, painLevel, description, mechanism, painTiming, gaitAffected, swelling }) => {
+        try {
+          // Determine phase and assessment based on pain level
+          const phase = painLevel >= 7 ? 'ACUTE' : painLevel >= 4 ? 'SUBACUTE' : 'CHRONIC'
+          const assessment = gaitAffected || painLevel >= 8 ? 'REST_1_DAY'
+            : painLevel >= 6 ? 'MODIFY'
+            : 'CONTINUE'
+
+          const injury = await prisma.injuryAssessment.create({
+            data: {
+              clientId,
+              bodyPart,
+              side,
+              painLevel,
+              description,
+              mechanism: mechanism || null,
+              painTiming: painTiming || null,
+              gaitAffected: gaitAffected || false,
+              swelling: swelling || false,
+              phase,
+              assessment,
+              status: 'ACTIVE',
+              delawarePainRuleTriggered: gaitAffected || false,
+            },
+          })
+
+          logger.info('Injury reported via chat tool', { injuryId: injury.id, clientId, bodyPart, painLevel })
+
+          return {
+            success: true,
+            injuryId: injury.id,
+            bodyPart,
+            side,
+            painLevel,
+            phase,
+            assessment,
+            warning: gaitAffected
+              ? 'RÖDA FLAGGOR: Gångpåverkan detekterad. Rekommendera vila och professionell bedömning.'
+              : painLevel >= 7
+                ? 'Hög smärtnivå. Rekommendera anpassad träning och uppföljning.'
+                : null,
+          }
+        } catch (error) {
+          logger.error('Failed to report injury via chat tool', { clientId }, error)
+          return { success: false, error: 'Kunde inte registrera skadan. Försök igen.' }
+        }
+      },
+    }),
+
+    // ── Profile update tool ───────────────────────────────────────────
+    updateAthleteProfile: tool({
+      description:
+        'Uppdatera atletens profil. Använd detta verktyg när atleten ger ny information om sig själv, ' +
+        't.ex. ny vikt, ny sport, nya mål, eller utrustning.',
+      inputSchema: z.object({
+        weight: z.number().positive().optional().describe('Ny vikt i kg'),
+        height: z.number().positive().optional().describe('Ny längd i cm'),
+        primarySport: z.enum([
+          'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON',
+          'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'STRENGTH',
+          'HOCKEY', 'FOOTBALL', 'HANDBALL', 'FLOORBALL',
+          'BASKETBALL', 'VOLLEYBALL', 'TENNIS', 'PADEL',
+        ]).optional().describe('Primär sport'),
+        currentGoal: z.string().optional().describe('Nytt träningsmål'),
+        targetDate: z.string().optional().describe('Måldatum (YYYY-MM-DD)'),
+        aiInstructions: z.string().optional().describe('Speciella instruktioner för AI-coachen (t.ex. kroniska tillstånd, preferenser)'),
+        manualVo2max: z.number().optional().describe('Manuellt VO2max-värde (ml/kg/min)'),
+        manualMaxHR: z.number().int().optional().describe('Manuellt maxpulsvärde (bpm)'),
+      }),
+      execute: async ({ weight, height, primarySport, currentGoal, targetDate, aiInstructions, manualVo2max, manualMaxHR }) => {
+        try {
+          const updates: Record<string, unknown>[] = []
+
+          // Update Client fields (weight, height, aiInstructions, manualVo2max, manualMaxHR)
+          const clientData: Record<string, unknown> = {}
+          if (weight !== undefined) clientData.weight = weight
+          if (height !== undefined) clientData.height = height
+          if (aiInstructions !== undefined) clientData.aiInstructions = aiInstructions
+          if (manualVo2max !== undefined) clientData.manualVo2max = manualVo2max
+          if (manualMaxHR !== undefined) clientData.manualMaxHR = manualMaxHR
+
+          if (Object.keys(clientData).length > 0) {
+            await prisma.client.update({
+              where: { id: clientId },
+              data: clientData,
+            })
+            updates.push(clientData)
+          }
+
+          // Update SportProfile fields (primarySport, currentGoal, targetDate)
+          if (primarySport || currentGoal || targetDate) {
+            const sportData: Record<string, unknown> = {}
+            if (primarySport) sportData.primarySport = primarySport
+            if (currentGoal) sportData.currentGoal = currentGoal
+            if (targetDate) sportData.targetDate = new Date(targetDate)
+
+            await prisma.sportProfile.upsert({
+              where: { clientId },
+              update: sportData,
+              create: { clientId, ...sportData },
+            })
+            updates.push(sportData)
+          }
+
+          logger.info('Athlete profile updated via chat tool', { clientId, fields: Object.keys(clientData) })
+
+          return {
+            success: true,
+            updatedFields: [
+              ...Object.keys(clientData),
+              ...(primarySport ? ['primarySport'] : []),
+              ...(currentGoal ? ['currentGoal'] : []),
+              ...(targetDate ? ['targetDate'] : []),
+            ],
+          }
+        } catch (error) {
+          logger.error('Failed to update athlete profile via chat tool', { clientId }, error)
+          return { success: false, error: 'Kunde inte uppdatera profilen. Försök igen.' }
+        }
+      },
+    }),
+
+    // ── Calendar event tool ───────────────────────────────────────────
+    createCalendarEvent: tool({
+      description:
+        'Skapa en kalenderhändelse som påverkar träningsplaneringen. Använd detta verktyg ' +
+        'när atleten nämner semester, resa, sjukdom, arbetskonflikt eller träningsläger.',
+      inputSchema: z.object({
+        type: z.enum([
+          'ALTITUDE_CAMP', 'TRAINING_CAMP', 'TRAVEL', 'ILLNESS',
+          'VACATION', 'WORK_BLOCKER', 'PERSONAL_BLOCKER', 'EXTERNAL_EVENT',
+        ]).describe('Typ av händelse'),
+        title: z.string().describe('Kort titel för händelsen'),
+        description: z.string().optional().describe('Beskrivning'),
+        startDate: z.string().describe('Startdatum (YYYY-MM-DD)'),
+        endDate: z.string().optional().describe('Slutdatum (YYYY-MM-DD). Standard: samma som start.'),
+        allDay: z.boolean().optional().describe('Heldagshändelse? Standard: true'),
+        startTime: z.string().optional().describe('Starttid (HH:mm) om inte heldag'),
+        endTime: z.string().optional().describe('Sluttid (HH:mm) om inte heldag'),
+        trainingImpact: z.enum(['NO_TRAINING', 'REDUCED', 'MODIFIED', 'NORMAL']).optional()
+          .describe('Påverkan på träning. Standard: NO_TRAINING'),
+        impactNotes: z.string().optional().describe('Detaljer om påverkan (t.ex. "Bara morgonpass")'),
+      }),
+      execute: async ({ type, title, description, startDate, endDate, allDay, startTime, endTime, trainingImpact, impactNotes }) => {
+        try {
+          // Get the userId for createdById
+          const client = await prisma.client.findUnique({
+            where: { id: clientId },
+            select: { userId: true },
+          })
+
+          if (!client) {
+            return { success: false, error: 'Kunde inte hitta atletens profil.' }
+          }
+
+          const event = await prisma.calendarEvent.create({
+            data: {
+              clientId,
+              type,
+              title,
+              description: description || null,
+              status: 'SCHEDULED',
+              startDate: new Date(startDate),
+              endDate: new Date(endDate || startDate),
+              allDay: allDay !== false,
+              startTime: startTime || null,
+              endTime: endTime || null,
+              trainingImpact: trainingImpact || 'NO_TRAINING',
+              impactNotes: impactNotes || null,
+              createdById: client.userId,
+            },
+          })
+
+          logger.info('Calendar event created via chat tool', { eventId: event.id, clientId, type })
+
+          return {
+            success: true,
+            eventId: event.id,
+            type,
+            title,
+            startDate,
+            endDate: endDate || startDate,
+            trainingImpact: trainingImpact || 'NO_TRAINING',
+          }
+        } catch (error) {
+          logger.error('Failed to create calendar event via chat tool', { clientId }, error)
+          return { success: false, error: 'Kunde inte skapa händelsen. Försök igen.' }
         }
       },
     }),
