@@ -10,7 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, UtensilsCrossed, TrendingUp, PieChart } from 'lucide-react'
+import { Loader2, UtensilsCrossed, TrendingUp, PieChart, Pencil, Trash2 } from 'lucide-react'
+import { QuickMealLog, type EditMealData } from '@/components/athlete/nutrition/QuickMealLog'
+import { MealType } from '@prisma/client'
 import {
   BarChart,
   Bar,
@@ -120,6 +122,21 @@ export function FoodHistoryPage() {
     totals: { proteinGrams: number; carbsGrams: number; fatGrams: number }
   } | null>(null)
   const [timelineData, setTimelineData] = useState<TimelineMeal[]>([])
+  const [editingMeal, setEditingMeal] = useState<EditMealData | null>(null)
+  const [deletingMealId, setDeletingMealId] = useState<string | null>(null)
+
+  const handleDeleteMeal = async (mealId: string) => {
+    if (!confirm('Ta bort denna måltid?')) return
+    setDeletingMealId(mealId)
+    try {
+      const res = await fetch(`/api/meals/${mealId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setTimelineData(prev => prev.filter(m => m.id !== mealId))
+      }
+    } finally {
+      setDeletingMealId(null)
+    }
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -341,6 +358,7 @@ export function FoodHistoryPage() {
 
           {/* Timeline View */}
           {view === 'timeline' && (
+            <>
             <div className="space-y-3">
               {timelineData.length === 0 ? (
                 <Card className="bg-white/5 border-white/10">
@@ -351,7 +369,7 @@ export function FoodHistoryPage() {
                 </Card>
               ) : (
                 timelineData.map((meal) => (
-                  <Card key={meal.id} className="bg-white/5 border-white/10">
+                  <Card key={meal.id} className="bg-white/5 border-white/10 group">
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -362,9 +380,41 @@ export function FoodHistoryPage() {
                             <span className="text-xs text-slate-500">{meal.time}</span>
                           )}
                         </div>
-                        <span className="text-xs text-slate-500">
-                          {new Date(meal.date).toLocaleDateString('sv-SE')}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setEditingMeal({
+                              id: meal.id,
+                              mealType: meal.mealType as MealType,
+                              time: meal.time,
+                              description: meal.description,
+                              calories: meal.calories,
+                              proteinGrams: meal.items.length > 0
+                                ? meal.items.reduce((s, i) => s + i.proteinGrams, 0)
+                                : null,
+                              carbsGrams: meal.items.length > 0
+                                ? meal.items.reduce((s, i) => s + i.carbsGrams, 0)
+                                : null,
+                              fatGrams: meal.items.length > 0
+                                ? meal.items.reduce((s, i) => s + i.fatGrams, 0)
+                                : null,
+                            })}
+                            className="p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Redigera"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-slate-400 hover:text-cyan-400" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMeal(meal.id)}
+                            disabled={deletingMealId === meal.id}
+                            className="p-1 rounded hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Ta bort"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-slate-400 hover:text-red-400" />
+                          </button>
+                          <span className="text-xs text-slate-500">
+                            {new Date(meal.date).toLocaleDateString('sv-SE')}
+                          </span>
+                        </div>
                       </div>
                       {meal.items.length > 0 ? (
                         <div className="space-y-1">
@@ -406,6 +456,19 @@ export function FoodHistoryPage() {
                 ))
               )}
             </div>
+            {editingMeal && (
+              <QuickMealLog
+                open={!!editingMeal}
+                onClose={() => setEditingMeal(null)}
+                onMealSaved={() => {
+                  setEditingMeal(null)
+                  fetchData()
+                }}
+                editMeal={editingMeal}
+                date={new Date()}
+              />
+            )}
+            </>
           )}
         </>
       )}

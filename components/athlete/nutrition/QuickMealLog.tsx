@@ -38,12 +38,27 @@ import { MealType } from '@prisma/client'
 import { cn } from '@/lib/utils'
 import { guessDefaultMealType } from '@/lib/nutrition/guess-meal-type'
 
+export interface EditMealData {
+  id: string
+  mealType: MealType
+  time?: string | null
+  description: string
+  calories?: number | null
+  proteinGrams?: number | null
+  carbsGrams?: number | null
+  fatGrams?: number | null
+  isPreWorkout?: boolean
+  isPostWorkout?: boolean
+  notes?: string | null
+}
+
 interface QuickMealLogProps {
   open: boolean
   onClose: () => void
   onMealSaved?: () => void
   date?: Date
   defaultMealType?: MealType
+  editMeal?: EditMealData | null
 }
 
 export interface MealLogData {
@@ -88,7 +103,9 @@ export function QuickMealLog({
   onMealSaved,
   date = new Date(),
   defaultMealType,
+  editMeal,
 }: QuickMealLogProps) {
+  const isEditMode = !!editMeal
   const [isLoading, setIsLoading] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -113,6 +130,27 @@ export function QuickMealLog({
     isPostWorkout: false,
     notes: '',
   })
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (editMeal && open) {
+      setFormData({
+        mealType: editMeal.mealType,
+        time: editMeal.time || '',
+        description: editMeal.description,
+        calories: editMeal.calories?.toString() || '',
+        proteinGrams: editMeal.proteinGrams?.toString() || '',
+        carbsGrams: editMeal.carbsGrams?.toString() || '',
+        fatGrams: editMeal.fatGrams?.toString() || '',
+        isPreWorkout: editMeal.isPreWorkout || false,
+        isPostWorkout: editMeal.isPostWorkout || false,
+        notes: editMeal.notes || '',
+      })
+      if (editMeal.calories || editMeal.proteinGrams || editMeal.carbsGrams || editMeal.fatGrams) {
+        setShowMacros(true)
+      }
+    }
+  }, [editMeal, open])
 
   // Personalized quick meals
   const [personalMeals, setPersonalMeals] = useState<typeof QUICK_MEALS | null>(null)
@@ -249,8 +287,11 @@ export function QuickMealLog({
         data.isCompleteProtein = enhancedFields.isCompleteProtein
       }
 
-      const res = await fetch('/api/meals', {
-        method: 'POST',
+      const url = isEditMode ? `/api/meals/${editMeal!.id}` : '/api/meals'
+      const method = isEditMode ? 'PATCH' : 'POST'
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
@@ -293,7 +334,7 @@ export function QuickMealLog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-[500px] max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
-          <DialogTitle>Logga måltid</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Redigera måltid' : 'Logga måltid'}</DialogTitle>
           <DialogDescription>
             {date.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' })}
           </DialogDescription>
@@ -518,7 +559,7 @@ export function QuickMealLog({
             onClick={handleSubmit}
             disabled={!formData.description.trim() || isLoading}
           >
-            {isLoading ? 'Sparar...' : 'Logga måltid'}
+            {isLoading ? 'Sparar...' : isEditMode ? 'Spara ändringar' : 'Logga måltid'}
           </Button>
         </DialogFooter>
       </DialogContent>

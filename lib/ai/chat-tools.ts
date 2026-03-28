@@ -212,6 +212,212 @@ export function createChatTools(
         }
       },
     }),
+
+    // ── Meal logging tool ──────────────────────────────────────────────
+    logMeal: tool({
+      description:
+        'Logga en måltid åt atleten. Använd detta verktyg när atleten berättar vad de ätit ' +
+        'eller ber dig registrera en måltid. Uppskatta kalorier och makron baserat på beskrivningen.',
+      inputSchema: z.object({
+        date: z.string().optional().describe('Datum i ISO-format (YYYY-MM-DD). Standard: idag.'),
+        mealType: z.enum([
+          'BREAKFAST', 'MORNING_SNACK', 'LUNCH', 'AFTERNOON_SNACK',
+          'PRE_WORKOUT', 'POST_WORKOUT', 'DINNER', 'EVENING_SNACK',
+        ]).describe('Måltidstyp'),
+        time: z.string().optional().describe('Tid i HH:MM-format'),
+        description: z.string().describe('Beskrivning av måltiden'),
+        calories: z.number().int().positive().optional().describe('Uppskattade kalorier'),
+        proteinGrams: z.number().positive().optional().describe('Protein i gram'),
+        carbsGrams: z.number().positive().optional().describe('Kolhydrater i gram'),
+        fatGrams: z.number().positive().optional().describe('Fett i gram'),
+        isPreWorkout: z.boolean().optional(),
+        isPostWorkout: z.boolean().optional(),
+      }),
+      execute: async ({ date, mealType, time, description, calories, proteinGrams, carbsGrams, fatGrams, isPreWorkout, isPostWorkout }) => {
+        try {
+          const mealDate = date || new Date().toISOString().split('T')[0]
+          const isHighProtein = proteinGrams != null && proteinGrams >= 20
+
+          const meal = await prisma.mealLog.create({
+            data: {
+              clientId,
+              date: new Date(mealDate),
+              mealType,
+              time: time || null,
+              description,
+              calories: calories || null,
+              proteinGrams: proteinGrams || null,
+              carbsGrams: carbsGrams || null,
+              fatGrams: fatGrams || null,
+              isHighProtein,
+              isPreWorkout: isPreWorkout || false,
+              isPostWorkout: isPostWorkout || false,
+            },
+          })
+
+          logger.info('Meal logged via chat tool', { mealId: meal.id, clientId, mealType })
+
+          return {
+            success: true,
+            mealId: meal.id,
+            description,
+            mealType,
+            calories: calories || null,
+            proteinGrams: proteinGrams || null,
+            carbsGrams: carbsGrams || null,
+            fatGrams: fatGrams || null,
+          }
+        } catch (error) {
+          logger.error('Failed to log meal via chat tool', { clientId }, error)
+          return { success: false, error: 'Kunde inte logga måltiden. Försök igen.' }
+        }
+      },
+    }),
+
+    // ── Meal editing tool ─────────────────────────────────────────────
+    updateMeal: tool({
+      description:
+        'Uppdatera en befintlig måltid. Använd detta verktyg när atleten vill ändra en loggad måltid, ' +
+        't.ex. korrigera beskrivning, kalorier eller makron. Du behöver måltids-ID:t.',
+      inputSchema: z.object({
+        mealId: z.string().describe('ID för måltiden som ska uppdateras'),
+        mealType: z.enum([
+          'BREAKFAST', 'MORNING_SNACK', 'LUNCH', 'AFTERNOON_SNACK',
+          'PRE_WORKOUT', 'POST_WORKOUT', 'DINNER', 'EVENING_SNACK',
+        ]).optional().describe('Ny måltidstyp'),
+        time: z.string().nullable().optional().describe('Ny tid i HH:MM-format'),
+        description: z.string().optional().describe('Ny beskrivning'),
+        calories: z.number().int().positive().nullable().optional().describe('Nya kalorier'),
+        proteinGrams: z.number().positive().nullable().optional().describe('Nytt protein i gram'),
+        carbsGrams: z.number().positive().nullable().optional().describe('Nya kolhydrater i gram'),
+        fatGrams: z.number().positive().nullable().optional().describe('Nytt fett i gram'),
+      }),
+      execute: async (input) => {
+        try {
+          const { mealId, mealType, time, description, calories, proteinGrams, carbsGrams, fatGrams } = input
+
+          // Verify meal belongs to athlete
+          const existing = await prisma.mealLog.findFirst({
+            where: { id: mealId, clientId },
+          })
+
+          if (!existing) {
+            return { success: false, error: 'Måltiden hittades inte.' }
+          }
+
+          const data: Record<string, unknown> = {}
+          if (mealType !== undefined) data.mealType = mealType
+          if (time !== undefined) data.time = time
+          if (description !== undefined) data.description = description
+          if (calories !== undefined) data.calories = calories
+          if (carbsGrams !== undefined) data.carbsGrams = carbsGrams
+          if (fatGrams !== undefined) data.fatGrams = fatGrams
+          if (proteinGrams !== undefined) {
+            data.proteinGrams = proteinGrams
+            data.isHighProtein = proteinGrams !== null && proteinGrams >= 20
+          }
+
+          const meal = await prisma.mealLog.update({
+            where: { id: mealId },
+            data,
+          })
+
+          logger.info('Meal updated via chat tool', { mealId, clientId })
+
+          return {
+            success: true,
+            mealId: meal.id,
+            description: meal.description,
+            calories: meal.calories,
+          }
+        } catch (error) {
+          logger.error('Failed to update meal via chat tool', { clientId, mealId }, error)
+          return { success: false, error: 'Kunde inte uppdatera måltiden. Försök igen.' }
+        }
+      },
+    }),
+
+    // ── Meal deletion tool ────────────────────────────────────────────
+    deleteMeal: tool({
+      description:
+        'Ta bort en loggad måltid. Använd detta verktyg när atleten vill radera en felaktig måltid.',
+      inputSchema: z.object({
+        mealId: z.string().describe('ID för måltiden som ska tas bort'),
+      }),
+      execute: async ({ mealId }) => {
+        try {
+          const existing = await prisma.mealLog.findFirst({
+            where: { id: mealId, clientId },
+          })
+
+          if (!existing) {
+            return { success: false, error: 'Måltiden hittades inte.' }
+          }
+
+          await prisma.mealLog.delete({ where: { id: mealId } })
+
+          logger.info('Meal deleted via chat tool', { mealId, clientId })
+          return { success: true, mealId, message: 'Måltiden har tagits bort.' }
+        } catch (error) {
+          logger.error('Failed to delete meal via chat tool', { clientId, mealId }, error)
+          return { success: false, error: 'Kunde inte ta bort måltiden. Försök igen.' }
+        }
+      },
+    }),
+
+    // ── List recent meals tool ────────────────────────────────────────
+    listRecentMeals: tool({
+      description:
+        'Hämta atletens senaste måltider. Använd detta verktyg för att hitta måltids-ID:n ' +
+        'innan du uppdaterar eller tar bort en måltid, eller för att ge näringsfeedback.',
+      inputSchema: z.object({
+        date: z.string().optional().describe('Datum att hämta måltider för (YYYY-MM-DD). Standard: idag.'),
+        limit: z.number().min(1).max(20).optional().describe('Max antal måltider att hämta (standard: 10)'),
+      }),
+      execute: async ({ date, limit }) => {
+        try {
+          const queryDate = date ? new Date(date) : new Date()
+          const startOfDay = new Date(queryDate)
+          startOfDay.setHours(0, 0, 0, 0)
+          const endOfDay = new Date(queryDate)
+          endOfDay.setHours(23, 59, 59, 999)
+
+          const meals = await prisma.mealLog.findMany({
+            where: {
+              clientId,
+              date: { gte: startOfDay, lte: endOfDay },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: limit || 10,
+            include: {
+              items: {
+                select: { name: true, calories: true, proteinGrams: true, carbsGrams: true, fatGrams: true },
+              },
+            },
+          })
+
+          return {
+            success: true,
+            date: queryDate.toISOString().split('T')[0],
+            meals: meals.map(m => ({
+              id: m.id,
+              mealType: m.mealType,
+              time: m.time,
+              description: m.description,
+              calories: m.calories,
+              proteinGrams: m.proteinGrams,
+              carbsGrams: m.carbsGrams,
+              fatGrams: m.fatGrams,
+              items: m.items,
+            })),
+            totalCalories: meals.reduce((sum, m) => sum + (m.calories || 0), 0),
+          }
+        } catch (error) {
+          logger.error('Failed to list meals via chat tool', { clientId }, error)
+          return { success: false, error: 'Kunde inte hämta måltider.' }
+        }
+      },
+    }),
   }
 
   // Only include program generation tool when the athlete has the capability

@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Sparkles,
   Trash2,
+  Pencil,
   Sunrise,
   Sun,
   Moon,
@@ -23,7 +24,7 @@ import {
   Apple,
   UtensilsCrossed,
 } from 'lucide-react'
-import { QuickMealLog } from './QuickMealLog'
+import { QuickMealLog, type EditMealData } from './QuickMealLog'
 import { MealType } from '@prisma/client'
 import { cn } from '@/lib/utils'
 
@@ -143,6 +144,7 @@ export function DailyNutritionCard({
   const [meals, setMeals] = useState<MealLog[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showAddMeal, setShowAddMeal] = useState(false)
+  const [editingMeal, setEditingMeal] = useState<EditMealData | null>(null)
   const [dailyTotals, setDailyTotals] = useState({
     calories: 0,
     proteinGrams: 0,
@@ -369,14 +371,35 @@ export function DailyNutritionCard({
                         </div>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleDeleteMeal(meal.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setEditingMeal({
+                          id: meal.id,
+                          mealType: meal.mealType,
+                          time: meal.time,
+                          description: meal.description,
+                          calories: meal.calories,
+                          proteinGrams: meal.proteinGrams,
+                          carbsGrams: meal.carbsGrams,
+                          fatGrams: meal.fatGrams,
+                          isPreWorkout: meal.isPreWorkout,
+                          isPostWorkout: meal.isPostWorkout,
+                        })}
+                      >
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleDeleteMeal(meal.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
                   </div>
                 )
               })}
@@ -394,6 +417,19 @@ export function DailyNutritionCard({
         }}
         date={date}
       />
+
+      {editingMeal && (
+        <QuickMealLog
+          open={!!editingMeal}
+          onClose={() => setEditingMeal(null)}
+          onMealSaved={() => {
+            setEditingMeal(null)
+            fetchMeals()
+          }}
+          editMeal={editingMeal}
+          date={date}
+        />
+      )}
     </Card>
   )
 }
