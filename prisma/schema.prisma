@@ -9708,6 +9708,8 @@ enum KnowledgeCategory {
   PSYCHOLOGY // Sports psychology, mental training
   MOBILITY // Warm-up, mobility, movement preparation
   TEAM_SPORTS // Team sport conditioning, GPS metrics
+  ANALYSIS // Multivariate analysis, PCA, PLS
+  PLATFORM // Platform features, AI tools, voice coaching
 }
 
 /// Curated knowledge skills for automatic RAG retrieval

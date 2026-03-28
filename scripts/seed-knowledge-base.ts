@@ -524,6 +524,18 @@ const SKILL_DEFINITIONS: SkillDef[] = [
     priority: 8,
     maxChunks: 4,
   },
+  {
+    name: 'AI-Röstcoach (Live)',
+    nameEn: 'AI Live Voice Coaching',
+    category: 'PLATFORM',
+    keywords: ['röstcoach', 'voice coach', 'ai coach', 'live coaching', 'röst', 'voice', 'prata', 'talk', 'mikrofon', 'microphone', 'hörlurar', 'earbuds', 'headless', 'garmin coach', 'röstkommando', 'voice command', 'logga set med röst', 'log set voice', 'amrap coach', 'emom coach', 'tabata coach', 'gemini live', 'real-time coaching', 'realtidscoaching'],
+    description: 'AI-röstcoach med realtids bidirektionell röstinteraktion under träningspass. Stödjer kondition (segment, zoner, nedräkningar), styrka (setloggning med röst, övningsannonsering, vila) och hybrid (AMRAP-rundor, EMOM-minuter, FOR_TIME-progression, TABATA-intervaller). Fungerar i Focus Mode och Headless Mode (Garmin-kompatibelt). Puls-integration, kamerabaserad formcoaching, transkriptioner, AI-sammanfattning, coachvarningar vid smärta, röstval (9 röster), avsluta med röst.',
+    docFiles: [
+      { dir: 'knowledge-library', file: 'ai-voice-coaching.md' },
+    ],
+    priority: 10,
+    maxChunks: 4,
+  },
 ];
 
 // ============================================================================
