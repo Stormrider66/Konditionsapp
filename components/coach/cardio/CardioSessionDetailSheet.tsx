@@ -69,8 +69,10 @@ const segmentTypeLabels: Record<string, { label: string; color: string }> = {
   INTERVAL: { label: 'Intervall', color: 'bg-red-500' },
   STEADY: { label: 'Jämnt tempo', color: 'bg-green-500' },
   RECOVERY: { label: 'Återhämtning', color: 'bg-gray-400' },
+  REST: { label: 'Vila', color: 'bg-gray-400' },
   HILL: { label: 'Backe', color: 'bg-orange-500' },
   DRILLS: { label: 'Teknik', color: 'bg-purple-500' },
+  REPEAT_GROUP: { label: 'Repetitionsblock', color: 'bg-indigo-500' },
 };
 
 const zoneColors: Record<number, string> = {
@@ -317,6 +319,62 @@ export function CardioSessionDetailSheet({
             {segments.length > 0 ? (
               <ul className="space-y-3">
                 {segments.map((segment: CardioSegment, i: number) => {
+                  // REPEAT_GROUP: render as a block with child steps
+                  if (segment.type === 'REPEAT_GROUP' && (segment as Record<string, unknown>).steps) {
+                    const group = segment as Record<string, unknown>;
+                    const groupSteps = group.steps as Array<Record<string, unknown>>;
+                    const reps = (group.repeats as number) || 1;
+                    const restBetween = group.restBetweenRounds as number;
+                    return (
+                      <li key={segment.id || i}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className="bg-indigo-500 text-white text-xs">
+                            Repetitionsblock ×{reps}
+                          </Badge>
+                          {restBetween && (
+                            <span className="text-xs" style={{ color: theme.colors.textMuted }}>
+                              Vila: {formatDuration(restBetween)} mellan rundor
+                            </span>
+                          )}
+                        </div>
+                        <ul className="ml-4 border-l-2 border-indigo-300 pl-3 space-y-2">
+                          {groupSteps.map((step, j) => {
+                            const stepType = step.type as string;
+                            const stepInfo = segmentTypeLabels[stepType] || { label: stepType, color: 'bg-gray-500' };
+                            return (
+                              <li key={(step.id as string) || j} className="flex items-start gap-2 text-sm">
+                                <span className="w-4 flex-shrink-0 font-medium" style={{ color: theme.colors.textMuted }}>
+                                  {j + 1}.
+                                </span>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge className={`${stepInfo.color} text-white text-xs`}>
+                                      {stepInfo.label}
+                                    </Badge>
+                                    {step.duration && (
+                                      <span className="text-xs" style={{ color: theme.colors.textMuted }}>
+                                        {formatDuration(step.duration as number)}
+                                      </span>
+                                    )}
+                                    {step.calories && (
+                                      <span className="text-xs" style={{ color: theme.colors.textMuted }}>
+                                        {step.calories as number} cal
+                                      </span>
+                                    )}
+                                    {step.notes && (
+                                      <span className="text-xs font-medium">{step.notes as string}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </li>
+                    );
+                  }
+
+                  // Regular flat segment
                   const typeInfo = segmentTypeLabels[segment.type] || { label: segment.type, color: 'bg-gray-500' };
                   return (
                     <li key={segment.id || i} className="flex items-start gap-3 text-sm">

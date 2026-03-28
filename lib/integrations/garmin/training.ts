@@ -358,6 +358,7 @@ function buildRepeatGroup(
   return {
     type: 'WorkoutRepeatStep',
     stepOrder: order,
+    repeatType: 'REPEAT_UNTIL_STEPS_CMPLT',
     numberOfIterations: iterations,
     steps: steps,
   }

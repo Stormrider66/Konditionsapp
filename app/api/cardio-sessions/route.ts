@@ -99,34 +99,45 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate totals from segments
+    // Calculate totals from segments (handles REPEAT_GROUP)
     const segmentList = segments || [];
-    const totalDuration = segmentList.reduce(
-      (sum: number, s: { duration?: number }) => sum + (s.duration || 0),
-      0
-    );
-    const totalDistance = segmentList.reduce(
-      (sum: number, s: { distance?: number }) => sum + (s.distance || 0),
-      0
-    );
+    let totalDuration = 0;
+    let totalDistance = 0;
+    let weightedZoneSum = 0;
+    let totalZoneDuration = 0;
 
-    // Calculate average zone (weighted by duration)
-    let avgZone: number | null = null;
-    const zonesWithDuration = segmentList.filter(
-      (s: { zone?: number; duration?: number }) => s.zone && s.duration
-    );
-    if (zonesWithDuration.length > 0) {
-      const totalZoneDuration = zonesWithDuration.reduce(
-        (sum: number, s: { duration?: number }) => sum + (s.duration || 0),
-        0
-      );
-      const weightedZoneSum = zonesWithDuration.reduce(
-        (sum: number, s: { zone?: number; duration?: number }) =>
-          sum + (s.zone || 0) * (s.duration || 0),
-        0
-      );
-      avgZone = totalZoneDuration > 0 ? weightedZoneSum / totalZoneDuration : null;
+    for (const s of segmentList as Array<Record<string, unknown>>) {
+      if (s.type === 'REPEAT_GROUP' && Array.isArray(s.steps)) {
+        const reps = (s.repeats as number) || 1;
+        const stepsDur = (s.steps as Array<Record<string, unknown>>).reduce(
+          (sum: number, step) => sum + ((step.duration as number) || 0), 0
+        );
+        const stepsDist = (s.steps as Array<Record<string, unknown>>).reduce(
+          (sum: number, step) => sum + ((step.distance as number) || 0), 0
+        );
+        const restBetween = ((s.restBetweenRounds as number) || 0) * Math.max(reps - 1, 0);
+        totalDuration += (stepsDur * reps) + restBetween;
+        totalDistance += stepsDist * reps;
+        for (const step of s.steps as Array<Record<string, unknown>>) {
+          if (step.zone && step.duration) {
+            const dur = (step.duration as number) * reps;
+            weightedZoneSum += (step.zone as number) * dur;
+            totalZoneDuration += dur;
+          }
+        }
+      } else {
+        const reps = ((s.repeats as number) && (s.repeats as number) > 1) ? (s.repeats as number) : 1;
+        const rest = ((s.restDuration as number) || 0) * Math.max(reps - 1, 0);
+        totalDuration += ((s.duration as number) || 0) * reps + rest;
+        totalDistance += ((s.distance as number) || 0) * reps;
+        if (s.zone && s.duration) {
+          const dur = (s.duration as number) * reps;
+          weightedZoneSum += (s.zone as number) * dur;
+          totalZoneDuration += dur;
+        }
+      }
     }
+    const avgZone = totalZoneDuration > 0 ? weightedZoneSum / totalZoneDuration : null;
 
     const session = await prisma.cardioSession.create({
       data: {
