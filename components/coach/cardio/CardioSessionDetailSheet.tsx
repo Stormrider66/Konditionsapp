@@ -351,19 +351,19 @@ export function CardioSessionDetailSheet({
                                     <Badge className={`${stepInfo.color} text-white text-xs`}>
                                       {stepInfo.label}
                                     </Badge>
-                                    {step.duration && (
+                                    {step.duration ? (
                                       <span className="text-xs" style={{ color: theme.colors.textMuted }}>
                                         {formatDuration(step.duration as number)}
                                       </span>
-                                    )}
-                                    {step.calories && (
+                                    ) : null}
+                                    {step.calories ? (
                                       <span className="text-xs" style={{ color: theme.colors.textMuted }}>
                                         {step.calories as number} cal
                                       </span>
-                                    )}
-                                    {step.notes && (
+                                    ) : null}
+                                    {step.notes ? (
                                       <span className="text-xs font-medium">{step.notes as string}</span>
-                                    )}
+                                    ) : null}
                                   </div>
                                 </div>
                               </li>
