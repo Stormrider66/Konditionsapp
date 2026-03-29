@@ -1511,6 +1511,9 @@ model Business {
   competitions    Competition[]        @relation("BusinessCompetitions")
   communityPosts  CommunityPost[]      @relation("BusinessCommunityPosts")
 
+  // Gym platform integrations
+  gymPlatformConnections GymPlatformConnection[] @relation("BusinessGymPlatforms")
+
   @@index([slug])
   @@index([isActive])
   @@index([customDomain])
@@ -10296,4 +10299,93 @@ model CommunityLike {
   createdAt DateTime @default(now())
 
   @@unique([postId, userId])
+}
+
+// ============================================
+// Gym Platform Integrations (Zoezi, Wondr, Boka Direkt, MindBody)
+// ============================================
+
+model GymPlatformConnection {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation("BusinessGymPlatforms", fields: [businessId], references: [id], onDelete: Cascade)
+
+  provider    String   // ZOEZI, WONDR, BOKADIREKT, MINDBODY
+  displayName String
+
+  // Authentication (encrypted at application layer)
+  apiKey         String?  @db.Text
+  apiSecret      String?  @db.Text
+  siteId         String?
+  accessToken    String?  @db.Text
+  refreshToken   String?  @db.Text
+  tokenExpiresAt DateTime?
+
+  // Sync configuration
+  syncClasses    Boolean @default(true)
+  syncBookings   Boolean @default(true)
+  pushWorkouts   Boolean @default(false)
+  syncInterval   Int     @default(30) // minutes
+
+  // Status
+  isActive       Boolean  @default(true)
+  lastSyncAt     DateTime?
+  lastSyncError  String?
+  lastSyncStats  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  syncedClasses  GymSyncedClass[]
+  syncedBookings GymSyncedBooking[]
+
+  @@unique([businessId, provider])
+  @@index([businessId])
+}
+
+model GymSyncedClass {
+  id              String                @id @default(uuid())
+  connectionId    String
+  connection      GymPlatformConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalId      String
+
+  name            String
+  instructor      String?
+  startTime       DateTime
+  endTime         DateTime
+  location        String?
+  maxCapacity     Int?
+  bookedCount     Int?
+  description     String?
+
+  groupClassScheduleId String?
+
+  lastSyncedAt    DateTime @default(now())
+
+  @@unique([connectionId, externalId])
+  @@index([connectionId, startTime])
+}
+
+model GymSyncedBooking {
+  id               String                @id @default(uuid())
+  connectionId     String
+  connection       GymPlatformConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalId       String
+
+  type             String   // CLASS, PT_SESSION, DROP_IN
+  clientName       String
+  clientEmail      String?
+  clientExternalId String?
+  clientId         String?
+
+  className        String?
+  startTime        DateTime
+  endTime          DateTime?
+  status           String   // BOOKED, CHECKED_IN, CANCELLED, NO_SHOW
+
+  lastSyncedAt     DateTime @default(now())
+
+  @@unique([connectionId, externalId])
+  @@index([connectionId, startTime])
+  @@index([clientId])
 }

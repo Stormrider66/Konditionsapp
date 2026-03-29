@@ -68,14 +68,44 @@ export function GymClassesCard({ basePath }: GymClassesCardProps) {
 
   const fetchClasses = useCallback(async () => {
     try {
-      const today = new Date().toISOString().split('T')[0]
-      const res = await fetch(`/api/coach/gym/classes/today?date=${today}`)
-      if (res.ok) {
-        const data = await res.json()
-        setClasses(data.classes || [])
+      // Fetch from both internal classes API and synced gym platform classes
+      const [internalRes, syncedRes] = await Promise.allSettled([
+        fetch(`/api/coach/gym/classes/today?date=${new Date().toISOString().split('T')[0]}`),
+        fetch('/api/coach/gym-platform/synced-classes'),
+      ])
+
+      const allClasses: ClassSchedule[] = []
+
+      if (internalRes.status === 'fulfilled' && internalRes.value.ok) {
+        const data = await internalRes.value.json()
+        allClasses.push(...(data.classes || []))
       }
+
+      if (syncedRes.status === 'fulfilled' && syncedRes.value.ok) {
+        const data = await syncedRes.value.json()
+        const synced = (data.classes || []).map((c: Record<string, unknown>) => ({
+          id: c.id,
+          className: c.name,
+          classType: 'OTHER',
+          startTime: c.startTime,
+          endTime: c.endTime,
+          coachName: c.instructor || '',
+          locationName: c.location || null,
+          maxCapacity: c.maxCapacity || 0,
+          bookedCount: c.bookedCount || 0,
+          checkedInCount: 0,
+          status: 'SCHEDULED',
+          color: null,
+          source: c.provider,
+        }))
+        allClasses.push(...synced)
+      }
+
+      // Sort by start time
+      allClasses.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+      setClasses(allClasses)
     } catch {
-      // ignore — API may not exist yet
+      // ignore
     } finally {
       setLoading(false)
     }
