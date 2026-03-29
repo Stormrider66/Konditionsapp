@@ -433,6 +433,37 @@ async function processAthleteMilestones(
       const notificationId = await createMilestoneNotification(athlete.id, milestone)
       if (notificationId) {
         notificationsCreated++
+
+        // Auto-generate social media draft for significant milestones
+        if (milestone.celebrationLevel === 'GOLD' || milestone.celebrationLevel === 'PLATINUM') {
+          try {
+            const { createAutoSocialDraft } = await import('@/lib/social/auto-draft-generator')
+            const client = await prisma.client.findUnique({
+              where: { id: athlete.id },
+              select: { name: true, userId: true, businessId: true },
+            })
+            if (client?.businessId) {
+              await createAutoSocialDraft({
+                type: milestone.type === 'PERSONAL_RECORD' ? 'PR_ACHIEVED' : 'MILESTONE',
+                clientId: athlete.id,
+                clientName: client.name,
+                businessId: client.businessId,
+                coachUserId: client.userId,
+                exerciseName: milestone.title?.replace('Nytt PR: ', '').replace('!', '') || undefined,
+                value: milestone.value,
+                unit: milestone.unit,
+                previousValue: milestone.previousBest,
+                improvement: milestone.improvement,
+                milestoneType: milestone.type,
+                milestoneTitle: milestone.title,
+                milestoneDescription: milestone.description,
+                celebrationLevel: milestone.celebrationLevel,
+              })
+            }
+          } catch {
+            // Non-critical — don't break milestone detection
+          }
+        }
       }
     }
 

@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Bot,
   AlertTriangle,
@@ -207,26 +208,53 @@ export function CoachAIAssistantPanel() {
           <>
             {/* Filter tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-3">
-              <TabsList className="w-full grid grid-cols-6 h-8 bg-muted/50 dark:bg-slate-900/50">
-                <TabsTrigger value="all" className="text-xs px-1">
-                  Alla
-                </TabsTrigger>
-                <TabsTrigger value="READINESS_DROP" className="text-xs px-1">
-                  <TrendingDown className="h-3 w-3" />
-                </TabsTrigger>
-                <TabsTrigger value="MISSED_CHECKINS" className="text-xs px-1">
-                  <Calendar className="h-3 w-3" />
-                </TabsTrigger>
-                <TabsTrigger value="MISSED_WORKOUTS" className="text-xs px-1">
-                  <Activity className="h-3 w-3" />
-                </TabsTrigger>
-                <TabsTrigger value="PAIN_MENTION" className="text-xs px-1">
-                  <MessageSquare className="h-3 w-3" />
-                </TabsTrigger>
-                <TabsTrigger value="HIGH_ACWR" className="text-xs px-1">
-                  <AlertTriangle className="h-3 w-3" />
-                </TabsTrigger>
-              </TabsList>
+              <TooltipProvider delayDuration={300}>
+                <TabsList className="w-full grid grid-cols-6 h-8 bg-muted/50 dark:bg-slate-900/50">
+                  <TabsTrigger value="all" className="text-xs px-1">
+                    Alla
+                  </TabsTrigger>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="READINESS_DROP" className="text-xs px-1">
+                        <TrendingDown className="h-3 w-3" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Beredskapsfall</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="MISSED_CHECKINS" className="text-xs px-1">
+                        <Calendar className="h-3 w-3" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Missade check-ins</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="MISSED_WORKOUTS" className="text-xs px-1">
+                        <Activity className="h-3 w-3" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Missade pass</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="PAIN_MENTION" className="text-xs px-1">
+                        <MessageSquare className="h-3 w-3" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Smärtrapporter</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="HIGH_ACWR" className="text-xs px-1">
+                        <AlertTriangle className="h-3 w-3" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Hög belastning</TooltipContent>
+                  </Tooltip>
+                </TabsList>
+              </TooltipProvider>
             </Tabs>
 
             {/* Alert list */}
