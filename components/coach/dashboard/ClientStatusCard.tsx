@@ -46,6 +46,7 @@ export interface PTClientStatus {
 interface ClientStatusCardProps {
   client: PTClientStatus
   basePath: string
+  onExpand?: (clientId: string) => void
 }
 
 function getUrgencyBorder(client: PTClientStatus): string {
@@ -141,7 +142,7 @@ const sportLabels: Record<string, string> = {
   PADEL: 'Padel',
 }
 
-export function ClientStatusCard({ client, basePath }: ClientStatusCardProps) {
+export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCardProps) {
   const urgencyBorder = getUrgencyBorder(client)
   const engagementDot = getEngagementDot(client.engagementLevel)
 
@@ -336,11 +337,14 @@ export function ClientStatusCard({ client, basePath }: ClientStatusCardProps) {
               </Button>
             </Link>
           )}
-          <Link href={`${basePath}/coach/clients/${client.id}`}>
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-              <ExternalLink className="h-3 w-3" />
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => onExpand?.(client.id)}
+          >
+            <ExternalLink className="h-3 w-3" />
+          </Button>
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ClientStatusCard, type PTClientStatus } from '@/components/coach/dashboard/ClientStatusCard'
+import { AthleteDetailSheet } from '@/components/coach/dashboard/AthleteDetailSheet'
 
 type FilterType = 'all' | 'attention'
 
@@ -97,6 +98,7 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
   const [roster, setRoster] = useState<PTClientStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<FilterType>('all')
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
 
   const fetchRoster = useCallback(async () => {
     try {
@@ -213,10 +215,18 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(client => (
-            <ClientStatusCard key={client.id} client={client} basePath={basePath} />
+            <ClientStatusCard key={client.id} client={client} basePath={basePath} onExpand={setSelectedClientId} />
           ))}
         </div>
       )}
+
+      <AthleteDetailSheet
+        clientId={selectedClientId}
+        clientSummary={roster.find(c => c.id === selectedClientId) ?? null}
+        open={selectedClientId !== null}
+        onOpenChange={(open) => { if (!open) setSelectedClientId(null) }}
+        basePath={basePath}
+      />
     </div>
   )
 }
