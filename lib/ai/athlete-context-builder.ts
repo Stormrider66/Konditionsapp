@@ -189,6 +189,7 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
         swimmingExperience: true,
         weeklyAvailability: true,
         preferredSessionLength: true,
+        equipment: true,
       },
     }),
 
